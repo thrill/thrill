@@ -37,6 +37,7 @@ use Text::Diff;
 use File::stat;
 
 my %includemap;
+my @source_filelist;
 
 sub expect_error($$$$) {
     my ($path,$ln,$str,$expect) = @_;
@@ -122,6 +123,8 @@ sub process_cpp {
     my @data = <F>;
     close(F);
 
+    push(@source_filelist, $path);
+
     my @origdata = @data;
 
     # put all #include lines into the includemap
@@ -148,7 +151,7 @@ sub process_cpp {
     expect($path, $i, $data[$i], " ".('*'x78)."/\n"); ++$i;
 
     # check include guard name
-    if ($path =~ m!^tbt/.*\.(h|h.in|hpp)$!)
+    if ($path =~ m!\.(h|h.in|hpp)$!)
     {
         expect($path, $i, $data[$i], "\n"); ++$i;
 
@@ -202,11 +205,11 @@ sub process_cpp {
         }
     }
 
-    if (!array_equal(\@data, \@origdata)) {
-        print "$path\n";
-        print diff(\@origdata, \@data);
-        #system("emacsclient -n $path");
-    }
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
 
     if ($write_changes)
     {
@@ -261,11 +264,11 @@ sub process_pl_cmake {
         }
     }
 
-    if (!array_equal(\@data, \@origdata)) {
-        print "$path\n";
-        print diff(\@origdata, \@data);
-        #system("emacsclient -n $path");
-    }
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
 
     if ($write_changes)
     {
@@ -285,8 +288,8 @@ foreach my $arg (@ARGV) {
     }
 }
 
-(-e "tbt")
-    or die("Please run this script in the project source base directory.");
+(-e "tbt/CMakeLists.txt")
+    or die("Please run this script in the TBT source base directory.");
 
 use File::Find;
 my @filelist;
@@ -298,10 +301,25 @@ foreach my $file (@filelist)
 
     if ($file =~ m!^b!) {
     }
+    elsif ($file =~ m!^ChartApp!) {
+        # skip new subapplications
+    }
+    elsif ($file =~ m!^extlib!) {
+        # skip external libraries
+    }
+    elsif ($file =~ m!^charter/qcustomplot/!) {
+        # skip external libraries
+    }
+    elsif ($file =~ m!/(moc|ui)_!) {
+        # skip generated files
+    }
     elsif ($file =~ /\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.(pl)$/) {
+    elsif ($file =~ /\.(ui|pro\.user)$/) {
+        # Qt file
+    }
+    elsif ($file =~ /\.(pl|pro)$/) {
         process_pl_cmake($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
@@ -311,6 +329,23 @@ foreach my $file (@filelist)
     elsif ($file =~ m!^\.git/!) {
     }
     elsif ($file =~ m!^misc/!) {
+    }
+    elsif ($file =~ m!CPPLINT\.cfg$!) {
+    }
+    elsif ($file =~ m!^webdata/!) {
+    }
+    elsif ($file =~ m!^doxygen-html/!) {
+    }
+    elsif ($file =~ m!^tests/.*\.(dat|plot)$!) {
+    }
+    elsif ($file =~ m!^scraper/.*\.(sql|txt)$!) {
+    }
+    elsif ($file =~ m!^scraper/extra/LWP/.*\.pm$!) {
+    }
+    elsif ($file eq "tbt/ibclient/API_VersionNum.txt") {
+    }
+    # skip all additional files in source root
+    elsif ($file =~ m!^[^/]+$!) {
     }
     else {
         print "Unknown file type $file\n";
@@ -342,6 +377,20 @@ if (0)
         print "Replace c-style header $ch in\n";
         print "    [".join(",", sort keys %{$includemap{$ch}}). "]\n";
     }
+}
+
+# run cpplint.py
+{
+    my @lintlist;
+
+    foreach my $path (@source_filelist)
+    {
+        #next if $path =~ /exclude/;
+
+        push(@lintlist, $path);
+    }
+
+    system("cpplint.py", "--counting=total", "--extensions=h,c,cc,hpp,cpp", @lintlist);
 }
 
 ################################################################################
