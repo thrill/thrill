@@ -6,6 +6,7 @@
 #ifndef C7A_ENGINE_CONTROLLER_HEADER
 #define C7A_ENGINE_CONTROLLER_HEADER
 
+#include "stage_builder.hpp"
 #include <vector>
 
 namespace c7a {
@@ -30,6 +31,15 @@ public:
         for (auto x : _data)
             res = ReduceFn(x, res);
         
+    }
+
+    void ExecuteScope(DIABase *scope_root) 
+    {
+        auto stages = BuildStages(*scope_root);
+        for (auto s : stages) 
+        {
+            s.run();
+        }
     }
 
     void populateData(std::vector<std::pair<K, V>>) {
