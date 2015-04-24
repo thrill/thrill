@@ -123,7 +123,7 @@ class WorkerFlowControlChannel
 	 * @return The received messages. 
 	 */
 	template <typename T>
-	vector<T> allToAll(messages vector<T>);
+	std::vector<T> allToAll(std::vector<T> messages);
 };
 
 }}
