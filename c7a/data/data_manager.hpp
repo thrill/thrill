@@ -2,13 +2,22 @@
  * c7a/data/data_manager.hpp
  *
  ******************************************************************************/
-#pragma once
 
-namespace c7a::data {
+#ifndef C7A_DATA_DATA_MANAGER_HEADER
+#define C7A_DATA_DATA_MANAGER_HEADER
+
+namespace c7a {
+namespace data {
 
 class DataManager
 {
-    void foo() { }
+public:
+    void foo();
 };
 
 }
+}
+
+#endif // !C7A_DATA_DATA_MANAGER_HEADER
+
+/******************************************************************************/

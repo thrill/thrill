@@ -1,16 +1,21 @@
 /*******************************************************************************
- * c7a/api/dop_node.hpp
+ * c7a/engine/operations.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
  ******************************************************************************/
 
-#ifndef C7A_API_DOP_NODE_HEADER
-#define C7A_API_DOP_NODE_HEADER
+#ifndef C7A_ENGINE_OPS
+#define C7A_ENGINE_OPS
 
-class DIANode {
+namespace c7a {
+namespace engine {
 
-};
+//implement ReadFromFs() here
+//implement Map() here
+//implement Reduce() here
+//implement WriteToFs() here
 
-#endif // !C7A_API_DOP_NODE_HEADER
+}
+}
+#endif // !C7A_ENGINE_OPS
 
 /******************************************************************************/

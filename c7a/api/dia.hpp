@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * c7a/api/dia.hpp
+ *
+ * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ ******************************************************************************/
+
+#ifndef C7A_API_DIA_HEADER
+#define C7A_API_DIA_HEADER
+
 #include <functional>
 #include <vector>
 #include <iostream>
@@ -12,32 +21,36 @@
 template <typename T>
 class DIA {
 public:
-    DIA() : data_() {}
+    DIA() : data_() { }
 
-    DIA(const DIA& other) : data_(other.data_) {}
+    DIA(const DIA& other) : data_(other.data_) { }
 
-    explicit DIA(const std::vector<T>& init_data) : data_(init_data) {}
+    explicit DIA(const std::vector<T>& init_data) : data_(init_data) { }
 
-    explicit DIA(DIA&& other) : DIA() {
+    explicit DIA(DIA&& other) : DIA()
+    {
         swap(*this, other);
     }
 
-    virtual ~DIA() {};
+    virtual ~DIA() { }
 
     struct Identity {
-        template<typename U>
-        constexpr auto operator()(U&& v) const noexcept 
-            -> decltype(std::forward<U>(v)) {
+        template <typename U>
+        constexpr auto operator () (U&& v) const noexcept
+        ->decltype(std::forward<U>(v))
+        {
             return std::forward<U>(v);
         }
     };
 
-    friend void swap(DIA& first, DIA& second) {
+    friend void swap(DIA& first, DIA& second)
+    {
         using std::swap;
         swap(first.data_, second.data_);
     }
 
-    DIA& operator=(DIA rhs) {
+    DIA& operator = (DIA rhs)
+    {
         swap(*this, rhs);
         return *this;
     }
@@ -45,7 +58,8 @@ public:
     //! Get the element at a certain index.
     //
     //! \return Element at index \a index.
-    T At(size_t index) {
+    T At(size_t index)
+    {
         return data_.at(index);
     }
 
@@ -53,7 +67,8 @@ public:
     //
     //! \param print_fn Converts each element to printable output.
     template <typename print_fn_t = Identity>
-    void Print(print_fn_t print_fn = print_fn_t()) {
+    void Print(print_fn_t print_fn = print_fn_t())
+    {
         for (const T& element : data_) {
             std::cout << print_fn(element) << std::endl;
         }
@@ -65,7 +80,7 @@ public:
     //
     //! \return Resulting DIA containing elements of type U.
     template <typename map_fn_t>
-    auto Map(const map_fn_t& map_fn) {
+    auto Map(const map_fn_t &map_fn) {
         static_assert(FunctionTraits<map_fn_t>::arity == 1, "error");
         using map_result_t = typename FunctionTraits<map_fn_t>::result_type;
         std::vector<map_result_t> output;
@@ -82,12 +97,12 @@ public:
     //! \param reduce_fn Reduces the elements (of type T) of each bucket to a single value of type U.
     //
     //! \return Resulting DIA containing elements of type U.
-    template<typename key_extr_fn_t, typename reduce_fn_t>
-    auto Reduce(const key_extr_fn_t& key_extr, const reduce_fn_t& reduce_fn) {
+    template <typename key_extr_fn_t, typename reduce_fn_t>
+    auto Reduce(const key_extr_fn_t &key_extr, const reduce_fn_t &reduce_fn) {
         static_assert(FunctionTraits<key_extr_fn_t>::arity == 1, "error");
         static_assert(FunctionTraits<reduce_fn_t>::arity == 1, "error");
-        using reduce_result_t 
-            = typename FunctionTraits<reduce_fn_t>::result_type;
+        using reduce_result_t
+                  = typename FunctionTraits<reduce_fn_t>::result_type;
         using key_t = typename FunctionTraits<key_extr_fn_t>::result_type;
 
         std::vector<reduce_result_t> output;
@@ -105,13 +120,13 @@ public:
         for (auto key : keys) {
             std::vector<T> bucket;
             auto range = buckets.equal_range(key);
-            for_each (
+            for_each(
                 range.first,
                 range.second,
                 [&bucket](std::pair<key_t, T> element) {
-                        bucket.push_back(element.second);
-                    }
-            );
+                    bucket.push_back(element.second);
+                }
+                );
             output.push_back(reduce_fn(bucket));
         }
 
@@ -125,17 +140,17 @@ public:
     //
     //! \return Resulting DIA containing lists of elements of type U.
     template <typename flatmap_fn_t>
-    auto FlatMap(const flatmap_fn_t& flatmap_fn) {
+    auto FlatMap(const flatmap_fn_t &flatmap_fn) {
         static_assert(FunctionTraits<flatmap_fn_t>::arity == 2, "error");
-        using flatmap_arg_t 
-            = typename FunctionTraits<flatmap_fn_t>::template arg<0>;
-        using emit_fn_t 
-            = typename FunctionTraits<flatmap_fn_t>::template arg<1>;
-        using emit_arg_t 
-            = typename FunctionTraits<emit_fn_t>::template arg<0>;
+        using flatmap_arg_t
+                  = typename FunctionTraits<flatmap_fn_t>::template arg<0>;
+        using emit_fn_t
+                  = typename FunctionTraits<flatmap_fn_t>::template arg<1>;
+        using emit_arg_t
+                  = typename FunctionTraits<emit_fn_t>::template arg<0>;
         std::vector<emit_arg_t> output;
 
-        std::function<void(emit_arg_t)> emit_fn = 
+        std::function<void(emit_arg_t)> emit_fn =
             [&output](emit_arg_t new_element) {
                 output.push_back(new_element);
             };
@@ -150,18 +165,18 @@ public:
     //! Zip the current DIA of type T with another DIA of type U.
     //
     //! \param second DIA to zip with.
-    //! \param zip_fn Maps an element of type T and an element of type U 
+    //! \param zip_fn Maps an element of type T and an element of type U
     //!               to an element of type V.
     //
     //! \return Resulting DIA containing elements of type V.
-    template<typename zip_fn_t>
+    template <typename zip_fn_t>
     auto Zip(DIA<typename FunctionTraits<zip_fn_t>::template arg<1> > second,
-             const zip_fn_t& zip_fn) {
+             const zip_fn_t &zip_fn) {
         using zip_result_t = typename FunctionTraits<zip_fn_t>::result_type;
         std::vector<zip_result_t> output;
 
         std::size_t index = 0;
-        for(auto element : data_) {
+        for (auto element : data_) {
             output.push_back(zip_fn(At(index), second.At(index)));
             index++;
         }
@@ -172,7 +187,8 @@ public:
     //! Allow direct data access. This is EVIL!
     //
     //! \return Interal data.
-    const std::vector<T>& evil_get_data() const {
+    const std::vector<T> & evil_get_data() const
+    {
         return data_;
     }
 
@@ -180,3 +196,6 @@ private:
     std::vector<T> data_;
 };
 
+#endif // !C7A_API_DIA_HEADER
+
+/******************************************************************************/
