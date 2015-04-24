@@ -19,7 +19,7 @@ template <typename T>
 class DIANode : public DIABase {
 protected:
     kState state_;
-    T my_func_;
+    //T my_func_;
 };
 
 #endif // !C7A_API_DIA_NODE_HEADER
