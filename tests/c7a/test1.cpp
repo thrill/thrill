@@ -1,16 +1,14 @@
 /*******************************************************************************
- * c7a/portfolio/portfolio.cpp
+ * tests/portfolio/test1.cpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Run simple test on the Portfolio class.
  ******************************************************************************/
 
-#include <c7a/portfolio/portfolio.hpp>
+#include <c7a/api/dia.hpp>
 
-namespace c7a {
-
-Portfolio::Portfolio()
-{ }
-
-} // namespace c7a
+int main()
+{
+    return 0;
+}
 
 /******************************************************************************/
