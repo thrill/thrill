@@ -7,8 +7,21 @@
 #ifndef C7A_API_LOP_NODE_HEADER
 #define C7A_API_LOP_NODE_HEADER
 
-class LOpNode {
-}
+#include "dia_node.hpp"
+
+enum kType {
+    FLATMAP,
+    MAP
+};
+
+template <typename T>
+class LOpNode : public DIANode<T> {
+public: 
+    LOpNode(std::vector<DIABase*> parents, kType op_type, T func) : DIANode<T>::parents_(parents), op_type_(op_type), DIANode<T>::my_func_(func) {};
+
+private: 
+    kType op_type_;
+};
 
 #endif // !C7A_API_LOP_NODE_HEADER
 

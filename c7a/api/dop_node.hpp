@@ -7,7 +7,8 @@
 #ifndef C7A_API_DOP_NODE_HEADER
 #define C7A_API_DOP_NODE_HEADER
 
-class DIANode {
+template <typename T>
+class DOpNode : public DIANode<T> {
 
 };
 
