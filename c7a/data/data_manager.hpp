@@ -6,13 +6,43 @@
 #ifndef C7A_DATA_DATA_MANAGER_HEADER
 #define C7A_DATA_DATA_MANAGER_HEADER
 
+#include <map>
+#include "block_iterator.hpp"
+
 namespace c7a {
 namespace data {
 
+//! Identification for DIAs
+typedef int DIAId;
+
+//! Stores in-memory data
+//!
+//! Future versions: Provide access to remote DIAs
 class DataManager
 {
 public:
-    void foo();
+
+    //! returns iterator on requested partition
+    //!
+    //! \param id ID of the DIA
+    template<class T>
+    BlockIterator<T> getLocalBlocks(DIAId id) {
+        auto block = _data[id];
+        return BlockIterator<T>(block.begin(), block.end());
+    }
+
+    //! returns true if the manager holds data of given DIA
+    //!
+    //! \param id ID of the DIA
+    bool Contains(DIAId id) {
+        return _data.find(id) != _data.end();
+    }
+
+    //BlockEmitter<T> getLocalEmitter(DIAId);
+
+private:
+
+    std::map<DIAId, std::vector<Blob>> _data;
 };
 
 }
