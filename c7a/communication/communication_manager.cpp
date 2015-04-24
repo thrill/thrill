@@ -1,0 +1,13 @@
+/*******************************************************************************
+ * c7a/communication/communication_manager.cpp
+ *
+ ******************************************************************************/
+#include "communication_manager.hpp"
+
+namespace c7a::communication {
+
+CommunicationManager::foo()
+{
+}
+
+}
