@@ -23,7 +23,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++14")
 
 # enable use of "make test"
 enable_testing()
@@ -31,7 +31,7 @@ enable_testing()
 ################################################################################
 ### Find Required Libraries ###
 
-# use Boost libraries:
+# example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
 #include_directories(${Boost_INCLUDE_DIRS})
