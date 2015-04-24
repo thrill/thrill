@@ -33,10 +33,10 @@ enable_testing()
 
 # use Boost libraries:
 
-find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
-include_directories(${Boost_INCLUDE_DIRS})
-set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
-message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
+#find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
+#include_directories(${Boost_INCLUDE_DIRS})
+#set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
+#message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
 ################################################################################
 ### Descend into Subdirectories
