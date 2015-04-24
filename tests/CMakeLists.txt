@@ -37,8 +37,10 @@ endmacro(test_run)
 
 include_directories(${gtest_SOURCE_DIR}/include)
 set(test_sources
-    # data/test_data_manager.cpp
     c7a/test1.cpp
+    data/test_data_manager.cpp
+    data/test_block_iterator.cpp
+    data/test_serializer.cpp
 )
 add_executable(unit_tests ${test_sources})
 target_link_libraries(unit_tests gtest_main)
