@@ -24,6 +24,8 @@ class DIA {
 public:
     DIA() : data_() { }
 
+    DIA(DIANode<T>* node) : data_(), my_node_(node) { }
+
     DIA(const DIA& other) : data_(other.data_) { }
 
     explicit DIA(const std::vector<T>& init_data) : data_(init_data) { }
@@ -79,18 +81,9 @@ public:
         std::vector<emit_arg_t> output;
 
         std::vector<DIABase*> parents{my_node_};
-        LOpNode<flatmap_fn_t> l_node(parents, FLATMAP, flatmap_fn);
-
-        // std::function<void(emit_arg_t)> emit_fn =
-        //     [&output](emit_arg_t new_element) {
-        //         output.push_back(new_element);
-        //     };
-
-        // for (auto element : data_) {
-        //     flatmap_fn(element, emit_fn);
-        // }
-
-        // return DIA<emit_arg_t>(output);
+        LOpNode<emit_arg_t,flatmap_fn_t> l_node(parents, FLATMAP, flatmap_fn);
+      
+        return DIA(l_node);
     }
 
     //! Allow direct data access. This is EVIL!
