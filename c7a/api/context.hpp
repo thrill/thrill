@@ -41,14 +41,13 @@ public:
                            const write_fn_t& write_fn)
     {
         static_assert(FunctionTraits<write_fn_t>::arity == 1, "error");
-        using write_result_t = typename FunctionTraits<write_fn_t>::result_type;
-        std::vector<write_result_t> output;
 
         std::ofstream outfile(filepath);
 
         for (auto element : dia.evil_get_data()) {
             outfile << write_fn(element) << std::endl;
         }
+
         outfile.close();
     }
 };

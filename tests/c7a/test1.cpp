@@ -6,6 +6,7 @@
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/context.hpp>
+#include <assert.h>
 
 int main()
 {
@@ -14,8 +15,8 @@ int main()
 
     Context ctx;
 
-    auto initial = ctx.ReadFromFileSystem("../../../tests/c7a/data/test1.in", read_int);
-    ctx.WriteToFileSystem(initial, "../../../tests/c7a/data/test1.out", write_int);
+    auto initial = ctx.ReadFromFileSystem("../../../tests/c7a/data/test1", read_int);
+    ctx.WriteToFileSystem(initial, "../../../tests/c7a/data/test1_result", write_int);
 
     return 0;
 }
