@@ -1,5 +1,5 @@
 # c7a
-THE code repository for the allmighty c7a-framework.
+THE code repository for the almighty c7a-framework.
 
 - <a href="https://github.com/PdF14-MR/c7a/wiki/Styleguide">Styleguide</a> ist im wiki.
 - Unit-test schreiben? Lies <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">hier</a>
