@@ -7,6 +7,10 @@
 
 namespace c7a {
 namespace data {
+
+//! internal representation of data elements
+typedef std::string Blob;
+
 //! \namepsace namespace to hide the implementations of serializers
 namespace serializers {
     template<class T>
