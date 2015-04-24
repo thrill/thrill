@@ -2,7 +2,9 @@
  * c7a/communication/communication_manager.hpp
  *
  ******************************************************************************/
-#pragma once
+
+#ifndef C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
+#define C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
 
 namespace c7a {
 namespace communication {
@@ -18,3 +20,6 @@ public:
 };
 
 }}
+
+#endif // !C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
+

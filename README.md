@@ -1,7 +1,8 @@
 # c7a
 THE code repository for the allmighty c7a-framework.
 
-Der <a href="https://github.com/PdF14-MR/c7a/wiki/Styleguide">Styleguide</a> ist im wiki.
+- <a href="https://github.com/PdF14-MR/c7a/wiki/Styleguide">Styleguide</a> ist im wiki.
+- Unit-test schreiben? Lies <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">hier</a>
 
 Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
 
@@ -9,6 +10,8 @@ Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :
 1. Assign JIRA ticket to yourself & pull to 'In Progress' :point_left:
 2. Code & commit to branch CA-XXX/name-of-the-ticket
 3. Run fancy code clean scripts
+  * run `perl misc/analyze-source.pl` from source root, READ the output.
+  * run `perl misc/analyze-source.pl -w` to write changes.
 4. Push feature branch to remote
 5. Check result of build server
 6. Notify reviewer (assign JIRA ticket, move to 'In Review') :eyes:
