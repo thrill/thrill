@@ -31,7 +31,7 @@ enable_testing()
 ################################################################################
 ### Find Required Libraries ###
 
-# use Boost libraries:
+# example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
 #include_directories(${Boost_INCLUDE_DIRS})
@@ -44,6 +44,7 @@ enable_testing()
 include_directories(${CMAKE_SOURCE_DIR})
 
 # descend into library source
+add_subdirectory(gtest-1.7.0)
 add_subdirectory(c7a)
 
 # descend into testsuite
