@@ -36,6 +36,7 @@ macro(test_run NAME)
 endmacro(test_run)
 
 include_directories(${gtest_SOURCE_DIR}/include)
+# ADD NEW TESTS HERE!
 set(test_sources
     c7a/test1.cpp
     data/test_data_manager.cpp
