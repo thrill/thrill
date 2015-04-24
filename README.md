@@ -1,25 +1,25 @@
 # c7a
 THE code repository for the allmighty c7a-framework.
 
-Coding camps are times of anarchy. Anarchy does not need to stick to workflow.
+Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
 
 # Workflow
-1. Assign JIRA ticket to yourself & pull to 'In Progress'
+1. Assign JIRA ticket to yourself & pull to 'In Progress' :point_left:
 2. Code & commit to branch CA-XXX/name-of-the-ticket
 3. Run fancy code clean scripts
 4. Push feature branch to remote
 5. Check result of build server
-6. Notify reviewer (assign JIRA ticket, move to 'In Review')
-7. Reviewer commits small changes to feature branch (GOTO 4), bounces big changes back to you and re-assigns ticket to you (GOTO 2)
-9. Let build server commit feature branch to master
+6. Notify reviewer (assign JIRA ticket, move to 'In Review') :eyes:
+7. Reviewer commits small changes to feature branch (GOTO 4), bounces big changes back to you and re-assigns ticket to you (GOTO 2) :punch:
+9. Let build server commit feature branch to master :ok_hand:
 
-# Definition of Done
+# Definition of Done :heavy_check_mark:
 - build server is happy
-- at least one reviewer is happy
+- at least one reviewer saw it and is happy (more happy reviewers are better :two_hearts:)
 - no tests have been removed (better: new features covered by tests)
 - 100% code compile coverage
 
-# Halp! I cannot push my feature branch to master
+# Halp! I cannot push my feature branch to master :fire:
 1. Fetch the latest version of master branch
 2. Checkout your feature branch
 3. ```git merge master```
