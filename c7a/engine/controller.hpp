@@ -19,16 +19,6 @@ public:
     Controller(int id, const std::vector<int> &otherWorkers) : 
         _id(id), _otherWorkers(otherWorkers);
 
-    // First reduce with reduce() function
-    //
-    // Shuffle
-    //
-    // Second reduce with reduce() function
-
-    void shuffle() {
-        // 
-    }
-
 //    template <typename K, V>
     // This is the final reduce
     T reduce(std::function<T(T, T)> ReduceFn) {
@@ -50,6 +40,15 @@ private:
     // The worker needs to know the ids of all other workers
     std::vector<int> _otherWorkers;
     std::vector<std::pair<K, V>> _data;
+    // First reduce with reduce() function
+    //
+    // Shuffle
+    //
+    // Second reduce with reduce() function
+
+    void shuffle() {
+        // 
+    }
 };
 
 class MasterController : public Controller
