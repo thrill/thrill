@@ -4,7 +4,7 @@
  ******************************************************************************/
 #pragma once
 
-#include <vector>
+#include "flow_control_channel.hpp"
 
 namespace c7a {
 namespace communication {
