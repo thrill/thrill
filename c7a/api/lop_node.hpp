@@ -14,13 +14,14 @@ enum kType {
     MAP
 };
 
-template <typename T>
+template <typename T, typename FuncType>
 class LOpNode : public DIANode<T> {
 public: 
-    LOpNode(std::vector<DIABase*> parents, kType op_type, T func) : DIANode<T>::parents_(parents), op_type_(op_type), DIANode<T>::my_func_(func) {};
+    LOpNode(std::vector<DIABase*> parents, kType op_type, FuncType func) : DIANode<T>::parents_(parents), op_type_(op_type), DIANode<T>::my_func_(func) {};
 
 private: 
     kType op_type_;
+    FuncType my_func_;
 };
 
 #endif // !C7A_API_LOP_NODE_HEADER
