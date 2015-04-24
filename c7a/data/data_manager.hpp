@@ -4,11 +4,14 @@
  ******************************************************************************/
 #pragma once
 
-namespace c7a::data {
+namespace c7a {
+namespace data {
 
 class DataManager
 {
-    void foo() { }
+public:
+    void foo();
 };
 
+}
 }
