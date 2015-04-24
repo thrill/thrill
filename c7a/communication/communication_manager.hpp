@@ -4,11 +4,13 @@
  ******************************************************************************/
 #pragma once
 
-namespace c7a::communication {
+namespace c7a {
+namespace communication {
 
 class CommunicationManager
 {
-    void foo() { }
+public:
+    void foo();
 };
 
-}
+}}

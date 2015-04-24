@@ -4,10 +4,12 @@
  ******************************************************************************/
 #include "communication_manager.hpp"
 
-namespace c7a::communication {
+namespace c7a {
+namespace communication {
 
-CommunicationManager::foo()
+void CommunicationManager::foo()
 {
-}
 
 }
+
+}}
