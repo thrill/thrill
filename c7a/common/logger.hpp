@@ -1,11 +1,11 @@
 /*******************************************************************************
- * tbt/common/logger.hpp
+ * c7a/common/logger.hpp
  *
  * Simple and less simple logging classes.
  ******************************************************************************/
 
-#ifndef TBT_COMMON_LOGGER_HEADER
-#define TBT_COMMON_LOGGER_HEADER
+#ifndef C7A_COMMON_LOGGER_HEADER
+#define C7A_COMMON_LOGGER_HEADER
 
 #include <iostream>
 #include <sstream>
@@ -23,7 +23,7 @@ protected:
 
 public:
     //! constructor: if real = false the output is suppressed.
-    Logger(bool real)
+    explicit Logger(bool real)
         : m_real(real)
     { }
 
@@ -56,7 +56,7 @@ protected:
 
 public:
     //! constructor: if real = false the output is suppressed.
-    SpacingLogger(bool real)
+    explicit SpacingLogger(bool real)
         : m_real(real), m_first(true)
     { }
 
@@ -112,7 +112,7 @@ static const bool debug = true;
     do {                                                    \
         std::ostringstream oss;                             \
         oss << msg << " @ " << __FILE__ << ':' << __LINE__; \
-        throw (std::runtime_error(oss.str()));              \
+        throw std::runtime_error(oss.str());                \
     } while (0)
 
 //! Check condition X and die miserably if false. Same as assert() except this
@@ -122,13 +122,13 @@ static const bool debug = true;
 
 //! Check that X == Y or die miserably, but output the values of X and Y for
 //! better debugging.
-#define die_unequal(X, Y)                          \
-    do {                                           \
-        if ((X) != (Y))                            \
-            die("Inequality: " #X " != " #Y " : "  \
-                "\"" << "\" != \"" << Y << "\"");  \
+#define die_unequal(X, Y)                         \
+    do {                                          \
+        if ((X) != (Y))                           \
+            die("Inequality: " #X " != " #Y " : " \
+                "\"" << "\" != \"" << Y << "\""); \
     } while (0)
 
-#endif // !TBT_COMMON_LOGGER_HEADER
+#endif // !C7A_COMMON_LOGGER_HEADER
 
 /******************************************************************************/

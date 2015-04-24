@@ -4,11 +4,11 @@
  * Run simple test on the Portfolio class.
  ******************************************************************************/
 
-#include <tbt/portfolio/portfolio.hpp>
+#include <c7a/portfolio/portfolio.hpp>
 
 int main()
 {
-    tbt::Portfolio p;
+    c7a::Portfolio p;
 
     return 0;
 }

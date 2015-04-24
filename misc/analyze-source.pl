@@ -157,10 +157,10 @@ sub process_cpp {
 
         # construct include guard macro name: PROGRAM_FILE_NAME_HEADER
         my $guard = $path;
-        $guard =~ s!tbt/!!;
+        $guard =~ s!c7a/!!;
         $guard =~ tr!/-!__!;
         $guard =~ s!\.h(pp)?(\.in)?$!!;
-        $guard = "TBT_".uc($guard)."_HEADER";
+        $guard = "C7A_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
         expect($path, $i, $data[$i], "#ifndef $guard\n"); ++$i;
@@ -288,8 +288,8 @@ foreach my $arg (@ARGV) {
     }
 }
 
-(-e "tbt/CMakeLists.txt")
-    or die("Please run this script in the TBT source base directory.");
+(-e "c7a/CMakeLists.txt")
+    or die("Please run this script in the C7A source base directory.");
 
 use File::Find;
 my @filelist;
@@ -337,12 +337,6 @@ foreach my $file (@filelist)
     elsif ($file =~ m!^doxygen-html/!) {
     }
     elsif ($file =~ m!^tests/.*\.(dat|plot)$!) {
-    }
-    elsif ($file =~ m!^scraper/.*\.(sql|txt)$!) {
-    }
-    elsif ($file =~ m!^scraper/extra/LWP/.*\.pm$!) {
-    }
-    elsif ($file eq "tbt/ibclient/API_VersionNum.txt") {
     }
     # skip all additional files in source root
     elsif ($file =~ m!^[^/]+$!) {

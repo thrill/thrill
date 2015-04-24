@@ -1,11 +1,11 @@
 ################################################################################
 # examples/CMakeLists.txt
 #
-# CMake file for tbtrader example programs.
+# CMake file for c7a example programs.
 ################################################################################
 
 add_executable(dc3 dc3.cpp)
 
-target_link_libraries(dc3 tbt ${ALL_LIBRARIES})
+target_link_libraries(dc3 c7a ${ALL_LIBRARIES})
 
 ################################################################################

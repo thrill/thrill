@@ -1,16 +1,22 @@
 /*******************************************************************************
- * tbt/portfolio/portfolio.cpp
+ * c7a/portfolio/portfolio.hpp
  *
  * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
  ******************************************************************************/
 
-#include <tbt/portfolio/portfolio.hpp>
+#ifndef C7A_PORTFOLIO_PORTFOLIO_HEADER
+#define C7A_PORTFOLIO_PORTFOLIO_HEADER
 
-namespace tbt {
+namespace c7a {
 
-Portfolio::Portfolio()
-{ }
+class Portfolio
+{
+public:
+    Portfolio();
+};
 
-} // namespace tbt
+} // namespace c7a
+
+#endif // !C7A_PORTFOLIO_PORTFOLIO_HEADER
 
 /******************************************************************************/

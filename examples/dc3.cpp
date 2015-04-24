@@ -4,11 +4,11 @@
  * Dummy binary program.
  ******************************************************************************/
 
-#include <tbt/portfolio/portfolio.hpp>
+#include <c7a/portfolio/portfolio.hpp>
 
 int main(int argc, char* argv[])
 {
-    tbt::Portfolio p;
+    c7a::Portfolio p;
 
     return 0;
 }

@@ -1,10 +1,10 @@
 ################################################################################
-# tbt/CMakeLists.txt
+# c7a/CMakeLists.txt
 #
-# CMake file for tbtrader library
+# CMake file for c7arader library
 ################################################################################
 
-add_library(tbt STATIC
+add_library(c7a STATIC
   portfolio/portfolio.cpp
   )
 

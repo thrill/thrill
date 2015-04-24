@@ -1,7 +1,7 @@
 ################################################################################
 # tests/CMakeLists.txt
 #
-# CMake file for tbtrader testsuite
+# CMake file for c7a testsuite
 ################################################################################
 
 # macro for building test programs
@@ -10,7 +10,7 @@ macro(build_only PROGNAME)
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
   add_executable(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
-  target_link_libraries(${TESTNAME} tbt ${ALL_LIBRARIES})
+  target_link_libraries(${TESTNAME} c7a ${ALL_LIBRARIES})
 
 endmacro(build_only)
 

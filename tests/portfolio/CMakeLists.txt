@@ -1,7 +1,7 @@
 ################################################################################
 # tests/portfolio/CMakeLists.txt
 #
-# CMake file for tbtrader testsuite
+# CMake file for c7a testsuite
 ################################################################################
 
 build_test(test1)

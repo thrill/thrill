@@ -1,12 +1,12 @@
 ################################################################################
 # CMakeLists.txt
 #
-# Build script for tbtrader.
+# Build script for c7a.
 ################################################################################
 
 cmake_minimum_required(VERSION 2.8)
 
-project(tbtrader)
+project(c7a)
 
 # custom cmake scripts
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -44,7 +44,7 @@ message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 include_directories(${CMAKE_SOURCE_DIR})
 
 # descend into library source
-add_subdirectory(tbt)
+add_subdirectory(c7a)
 
 # descend into testsuite
 add_subdirectory(tests)
