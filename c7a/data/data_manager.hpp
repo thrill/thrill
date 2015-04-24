@@ -39,9 +39,9 @@ public:
         return data_.find(id) != data_.end();
     }
 
-    BlockEmitter<T> getLocalEmitter(DIAId) {
-
-    }
+    /*BlockEmitter<T> getLocalEmitter(DIAId) {
+        
+    }*/
 
 private:
 
