@@ -10,34 +10,31 @@
 namespace c7a {
 namespace data {
 
-//! internal representation of data elements
-typedef std::string Blob;
-
 //! BlockIterator gives you access to data of a block
 template<class T>
 class BlockIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    BlockIterator<T>(std::vector<Blob>::const_iterator begin, std::vector<Blob>::const_iterator end) : _begin(begin), _end(end) { }
+    BlockIterator<T>(std::vector<Blob>::const_iterator begin, std::vector<Blob>::const_iterator end) : begin_(begin), end_(end) { }
 
     //! returns the next element if one exists
     //!
     //! does no checks whether a next element exists!
     inline const T next() {
-        const T& elem = *_begin;
-        _begin++;
+        const T& elem = *begin_;
+        begin_++;
         return Deserialize<T>(elem);
     }
 
     //! returns true an element is available
     inline bool has_next() {
-        return _begin != _end;
+        return begin_ != end_;
     }
 
 private:
-    std::vector<Blob>::const_iterator _begin;
-    std::vector<Blob>::const_iterator _end;
+    std::vector<Blob>::const_iterator begin_;
+    std::vector<Blob>::const_iterator end_;
 };
 
 }
