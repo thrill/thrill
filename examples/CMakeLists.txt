@@ -4,8 +4,8 @@
 # CMake file for c7a example programs.
 ################################################################################
 
-add_executable(dc3 dc3.cpp)
+add_executable(simple simple.cpp)
 
-target_link_libraries(dc3 c7a ${ALL_LIBRARIES})
+# target_link_libraries(simple c7a ${ALL_LIBRARIES})
 
 ################################################################################

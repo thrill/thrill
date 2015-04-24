@@ -10,7 +10,7 @@ macro(build_only PROGNAME)
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
   add_executable(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
-  target_link_libraries(${TESTNAME} c7a ${ALL_LIBRARIES})
+  # target_link_libraries(${TESTNAME} c7a ${ALL_LIBRARIES})
 
 endmacro(build_only)
 
@@ -25,6 +25,6 @@ macro(build_test PROGNAME)
 endmacro(build_test)
 
 # descend into directories
-add_subdirectory(portfolio)
+add_subdirectory(c7a)
 
 ################################################################################
