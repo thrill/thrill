@@ -15,6 +15,7 @@ namespace data {
 //! Identification for DIAs
 typedef int DIAId;
 
+
 //! Stores in-memory data
 //!
 //! Future versions: Provide access to remote DIAs
@@ -27,7 +28,7 @@ public:
     //! \param id ID of the DIA
     template<class T>
     BlockIterator<T> getLocalBlocks(DIAId id) {
-        auto block = _data[id];
+        auto block = data_[id];
         return BlockIterator<T>(block.begin(), block.end());
     }
 
@@ -35,14 +36,16 @@ public:
     //!
     //! \param id ID of the DIA
     bool Contains(DIAId id) {
-        return _data.find(id) != _data.end();
+        return data_.find(id) != data_.end();
     }
 
-    //BlockEmitter<T> getLocalEmitter(DIAId);
+    BlockEmitter<T> getLocalEmitter(DIAId) {
+
+    }
 
 private:
 
-    std::map<DIAId, std::vector<Blob>> _data;
+    std::map<DIAId, std::vector<Blob>> data_;
 };
 
 }

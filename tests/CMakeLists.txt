@@ -37,16 +37,19 @@ endmacro(test_run)
 
 include_directories(${gtest_SOURCE_DIR}/include)
 # ADD NEW TESTS HERE!
-set(test_sources
-    c7a/test1.cpp
+set(unit_test_sources
     data/test_data_manager.cpp
     data/test_block_iterator.cpp
     data/test_serializer.cpp
 )
-add_executable(unit_tests ${test_sources})
+set(system_test_sources
+    system-tests/test1.cpp
+)
+add_executable(unit_tests ${unit_test_sources})
+add_executable(system_tests ${system_test_sources})
 target_link_libraries(unit_tests gtest_main)
 
 # descend into directories
-add_subdirectory(c7a)
+add_subdirectory(system-tests)
 
 ################################################################################
