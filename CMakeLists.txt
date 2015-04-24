@@ -44,6 +44,7 @@ enable_testing()
 include_directories(${CMAKE_SOURCE_DIR})
 
 # descend into library source
+add_subdirectory(gtest-1.7.0)
 add_subdirectory(c7a)
 
 # descend into testsuite
