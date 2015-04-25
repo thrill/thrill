@@ -25,7 +25,9 @@ class DIA {
 public:
     DIA() : data_() { }
 
-    DIA(DIANode<T>* node) : data_(), my_node_(node) { }
+    DIA(DIANode<T> node) : data_(), my_node_(node) { }
+
+    DIA(const std::vector<T>& init_data, DIANode<T> node) : data_(init_data), my_node_(node) { }
 
     DIA(const DIA& other) : data_(other.data_) { }
 
@@ -80,7 +82,7 @@ public:
         using emit_arg_t
                   = typename FunctionTraits<emit_fn_t>::template arg<0>;
 
-        std::vector<DIABase*> parents{my_node_};
+        std::vector<DIABase> parents{my_node_};
         LOpNode<emit_arg_t,flatmap_fn_t> l_node(parents, FLATMAP, flatmap_fn);
       
         return DIA(l_node);
@@ -95,11 +97,11 @@ public:
     template<typename key_extr_fn_t, typename reduce_fn_t>
     auto Reduce(const key_extr_fn_t& key_extr, const reduce_fn_t& reduce_fn) {
         static_assert(FunctionTraits<key_extr_fn_t>::arity == 1, "error");
-        static_assert(FunctionTraits<reduce_fn_t>::arity == 1, "error");
+        static_assert(FunctionTraits<reduce_fn_t>::arity == 2, "error");
 
         //using key_t = typename FunctionTraits<key_extr_fn_t>::result_type;
 
-        std::vector<DIABase*> parents{my_node_};
+        std::vector<DIABase> parents{my_node_};
         ReduceNode<T,key_extr_fn_t,reduce_fn_t> rd_node(parents, key_extr, reduce_fn);
 
         return DIA(rd_node);
@@ -119,7 +121,7 @@ public:
 
 private:
     std::vector<T> data_;
-    DIANode<T>* my_node_;
+    DIANode<T> my_node_;
 };
 
 #endif // !C7A_API_DIA_HEADER
