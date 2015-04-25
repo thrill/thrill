@@ -21,6 +21,8 @@
 #include "lop_node.hpp"
 #include "reduce_node.hpp"
 
+namespace c7a {
+
 template <typename T>
 class DIA : public std::shared_ptr< DIANode<T> > {
 public:
@@ -47,12 +49,15 @@ public:
     using Super::get;
 
 protected:
+    //! Protected constructor used by Node generator functions to create graph
+    //! nodes.
     explicit DIA(DIANode<T>* node)
-        : std::shared_ptr<DIANode<T> >(node)
+        : Super(node)
     {
     }
 
 public:
+    //! TODO: remove this, this create the initial DIA node.
     static DIA<T> BigBang()
     {
         return DIA<T>(NULL);
@@ -143,6 +148,8 @@ public:
 private:
     std::vector<T> data_;
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER
 

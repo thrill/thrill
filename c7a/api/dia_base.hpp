@@ -6,6 +6,7 @@
 
 #include<vector>
 
+namespace c7a {
 
 class DIABase {
 public:
@@ -36,5 +37,6 @@ protected:
     DIABaseVector childs_, parents_;
 };
 
+} // namespace c7a
 
 /******************************************************************************/

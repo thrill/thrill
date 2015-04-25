@@ -7,6 +7,8 @@
 #ifndef C7A_API_READ_NODE_HEADER
 #define C7A_API_READ_NODE_HEADER
 
+namespace c7a {
+
 template <typename T, typename ReadFunction>
 class ReadNode : public DOpNode<T> {
 public: 
@@ -24,6 +26,8 @@ public:
 private: 
     ReadFunction read_function_;
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_READ_NODE_HEADER
 
