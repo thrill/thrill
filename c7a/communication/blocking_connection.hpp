@@ -120,6 +120,10 @@ private:
         return NET_CLIENT_SUCCESS;
     };
 
+    int GetFileDescriptor() {
+        return sock_;
+    }
+
     bool receiveData(size_t len, void* data) {
         int ret = recv(sock_, data, len, 0);
 
