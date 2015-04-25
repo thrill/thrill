@@ -38,11 +38,13 @@ public:
         // std::vector<DIABase> test;
         using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-        return DIA<read_result_t>(new ReadResultNode({}, read_fn));
+        auto id = [](read_result_t t) { return t; };
+
+        return DIA<read_result_t, decltype(id)>(new ReadResultNode({}, read_fn), id);
     }
 
-    template <typename T, typename write_fn_t>
-    void WriteToFileSystem(DIA<T> dia, std::string filepath,
+    template <typename T, typename L, typename write_fn_t>
+    void WriteToFileSystem(DIA<T, L> dia, std::string filepath,
                            const write_fn_t& write_fn)
     {
         //  static_assert(FunctionTraits<write_fn_t>::arity == 1, "error");

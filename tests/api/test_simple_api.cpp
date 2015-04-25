@@ -54,20 +54,25 @@ TEST(DIASimple, ReduceStringEquality) {
 
     auto key_ex = [](double in) { return (int) in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
-    auto map_fn = [](double input, std::function<void(double)> emit_func) {
+    auto map_fn = [](double input) {
+            std::cout << "Map" << std::endl;
+            return input;
+        };
+    auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
+            std::cout << "FlatMap" << std::endl;
             emit_func(input);
             emit_func(input);
         };
 
-    auto duplicates = doubles.FlatMap(map_fn);
-    auto reduced_doubles = doubles.Reduce(key_ex, red_fn);
-    auto reduced_duplicates = reduced_doubles.FlatMap(map_fn);
-    auto reduced_duplicates2 = reduced_doubles.FlatMap(map_fn);
-    auto reduced_duplicates3 = reduced_doubles.FlatMap(map_fn);
-    auto reduced_duplicates4 = reduced_duplicates.FlatMap(map_fn);
-    auto reduced_doubles2 = doubles.Reduce(key_ex, red_fn);
+    auto duplicates = doubles.Map(map_fn);
+    auto duplicates2 = duplicates.Map(map_fn);
+    auto red_duplicates = duplicates2.Reduce(key_ex, red_fn);
 
-    doubles.PrintNodes();
-    
-    assert(reduced_doubles.NodeString() == "[ReduceNode/Type=[d]/KeyType=[i]");
+    auto duplicates3 = red_duplicates.Map(map_fn);
+    auto red_duplicates2 = duplicates3.Reduce(key_ex, red_fn);
+
+    std::cout << "2 Map + Reduce" << std::endl;
+    (red_duplicates.get_node())->execute();    
+    std::cout << "PostOp + Map + Reduce" << std::endl;
+    (red_duplicates2.get_node())->execute();    
 }
