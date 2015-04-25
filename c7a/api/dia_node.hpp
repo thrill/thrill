@@ -6,7 +6,11 @@
 #ifndef C7A_API_DIA_NODE_HEADER
 #define C7A_API_DIA_NODE_HEADER
 
+#include <string>
+#include <vector>
+
 #include "dia_base.hpp"
+
 
 enum kState {
     NEW,
@@ -17,6 +21,20 @@ enum kState {
 
 template <typename T>
 class DIANode : public DIABase {
+
+public:
+
+    DIANode() : DIABase() {}
+
+    DIANode(std::vector<DIABase> parents) : DIABase(parents) { }
+
+    std::string toString() {
+        std::string str;
+        str = std::string("[DIANode/State:/Type:") + typeid(T).name() + "]";
+        return str;
+    }
+
+
 protected:
     kState state_;
     //T my_func_;
