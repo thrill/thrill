@@ -46,68 +46,21 @@ public:
         return clients[src]->Receive(data, len);
     }
 
-    int ReceiveFromAny(void** data, int* len) {
-        FD_ZERO(&m_readset);
-        FD_ZERO(&m_writeset);
-        FD_ZERO(&m_exceptset);
+    int ReceiveFromAny(void** data, size_t* len) {
+        int r = select(0, &fd_set_, NULL, NULL, NULL);
 
-        for(auto& client : clients)
-        {
-            FD_SET(clients, &m_readset);
-        }
-
-        struct timeval timeout;
-
-        timeout.tv_usec = (msec % 1000) * 1000;
-        timeout.tv_sec = msec / 1000;
-
-#ifdef __linux__
-        // linux supports reading eslaped time from timeout
-
-        int r = ::select(maxfd, &m_readset, &m_writeset, &m_exceptset, &timeout);
-
-        m_elapsed = msec - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
-
-#else
-        // else we have to do the gettimeofday calls ourselves
-
-        struct timeval selstart, selfinish;
-
-        gettimeofday(&selstart, NULL);
-        int r = ::select(maxfd, &m_readset, &m_writeset, &m_exceptset, &timeout);
-        gettimeofday(&selfinish, NULL);
-
-        m_elapsed = (selfinish.tv_sec - selstart.tv_sec) * 1000;
-        m_elapsed += (selfinish.tv_usec - selstart.tv_usec) / 1000;
-
-        // int selsays = msec - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
-
-        Socket::trace("Spent %d msec in select. select says %d\n", m_elapsed, selsays);
-
-#endif
-
-        if (r < 0) {
-        Socket::trace_error("Select() failed: %s\n", strerror(errno));
-        }
-        else if (r == 0) {
-        return NULL;
-        }
-        else {
-        for(socketlist_type::iterator s = m_socketlist.begin(); s != m_socketlist.end(); ++s)
-        {
-            if (readable  && FD_ISSET((*s)->get_fd(), &m_readset)) return *s;
-            if (writeable && FD_ISSET((*s)->get_fd(), &m_writeset)) return *s;
-
-            if (FD_ISSET((*s)->get_fd(), &m_exceptset)) return *s;
-        }
+        if (r <= 0) {
+            return NET_SERVER_CLIENT_FAILED;
+        } else {
+            return Receive(r, data, len);
         }
     }
 
     void Close() {
         for(unsigned int i = 0; i < endpoints.size(); i++) {
-            if(i != localId_) {
+            if(i != localId) {
                 //remove file descriptor of client that disconnects
-                FD_CLR(clients[i]->GetFiledescriptor(), &fd_set_)
+                FD_CLR(clients[i]->GetFileDescriptor(), &fd_set_);
 
                 clients[i]->Close();
             }
@@ -143,6 +96,9 @@ private:
             //Accept connections of all hosts with lower ID.
             for(unsigned int i = 0; i < localId; i++) {
                 int clientSocket = accept(serverSocket_, &clientAddress, &clientAddressLen);
+
+                //add file descriptor to read set for poll
+                FD_SET(clientSocket, &fd_set_);
 
                 if(clientSocket <= 0) {
                     return NET_SERVER_ACCEPT_FAILED;

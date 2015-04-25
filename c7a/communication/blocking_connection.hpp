@@ -120,12 +120,13 @@ private:
         return NET_CLIENT_SUCCESS;
     };
 
+    friend class NetDispatcher;
     int GetFileDescriptor() {
         return sock_;
     }
 
     bool receiveData(size_t len, void* data) {
-        int ret = recv(sock_, data, len, 0);
+        size_t ret = recv(sock_, data, len, 0);
 
         if(ret != len) {
             return NET_CLIENT_DATA_RECEIVE_FAILED;
