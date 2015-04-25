@@ -33,7 +33,7 @@ namespace c7a {
 #define NET_CLIENT_SEND_ERROR -5
 #define NET_CLIENT_DATA_RECEIVE_FAILED -6
 
-class NetConnection : public Socket
+class NetConnection : protected Socket
 {
 public:
     static const bool debug = true;
@@ -124,7 +124,6 @@ public:
 private:
     std::string address_;
     struct sockaddr_in serverAddress_;
-    char sendBuffer_[MAX_BUF_SIZE];
     char receiveBuffer_[MAX_BUF_SIZE];
 
     int receiveHeader(size_t* len)
