@@ -22,11 +22,12 @@ class Logger
 {
 protected:
     //! real output or suppress
-    bool m_real;
+    bool real_;
 
     //! the global mutex of logger and spacing logger
     static std::mutex mutex_;
 
+    //! for access to mutex_
     friend class SpacingLogger;
 
     //! lock the global mutex of spacing logger for serialized output in
@@ -36,21 +37,21 @@ protected:
 public:
     //! constructor: if real = false the output is suppressed.
     explicit Logger(bool real)
-        : m_real(real), lock_(Logger::mutex_)
+        : real_(real), lock_(Logger::mutex_)
     { }
 
     //! output any type, including io manipulators
     template <typename AnyType>
     Logger& operator << (AnyType at)
     {
-        if (m_real) std::cout << at;
+        if (real_) std::cout << at;
         return *this;
     }
 
     //! destructor: output a newline
     ~Logger()
     {
-        if (m_real) std::cout << std::endl;
+        if (real_) std::cout << std::endl;
     }
 };
 
@@ -62,9 +63,9 @@ class SpacingLogger
 {
 protected:
     //! real output or suppress
-    bool m_real;
+    bool real_;
     //! true until the first element it outputted.
-    bool m_first;
+    bool first_;
 
     //! lock the global mutex of spacing logger for serialized output in
     //! multi-threaded programs.
@@ -73,17 +74,17 @@ protected:
 public:
     //! constructor: if real = false the output is suppressed.
     explicit SpacingLogger(bool real)
-        : m_real(real), m_first(true), lock_(Logger::mutex_)
+        : real_(real), first_(true), lock_(Logger::mutex_)
     { }
 
     //! output any type, including io manipulators
     template <typename AnyType>
     SpacingLogger& operator << (AnyType at)
     {
-        if (!m_real) return *this;
+        if (!real_) return *this;
 
-        if (!m_first) std::cout << ' ';
-        else m_first = false;
+        if (!first_) std::cout << ' ';
+        else first_ = false;
 
         std::cout << at;
 
@@ -93,13 +94,10 @@ public:
     //! destructor: output a newline
     ~SpacingLogger()
     {
-        if (m_real)
+        if (real_)
             std::cout << std::endl;
     }
 };
-
-//! global debug flag.
-static const bool debug = true;
 
 // //! Default logging method: output if the local debug variable is true.
 #define LOG ::c7a::Logger(debug)
