@@ -15,6 +15,8 @@ target_link_libraries(c7atest
   pthread
 )
 
+add_test(c7atest c7atest)
+
 install(TARGETS c7atest DESTINATION build)
 
 ################################################################################

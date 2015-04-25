@@ -25,6 +25,9 @@ endif()
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
+# enable "make test" and add_test().
+enable_testing()
+
 ################################################################################
 ### Find Required Libraries ###
 
@@ -81,6 +84,7 @@ set_target_properties(libgmock PROPERTIES
     "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
 #    "INTERFACE_INCLUDE_DIRECTORIES" "${source_dir}/include"
 )
+
 ### Descend into Subdirectories
 
 include_directories(${CMAKE_SOURCE_DIR})
