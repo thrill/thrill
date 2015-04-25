@@ -40,15 +40,15 @@ public:
         return InitializeClients();
     }
 
-    int Send(int dest, void* data, size_t len) {
+    int Send(unsigned int dest, void* data, size_t len) {
         return clients[dest]->Send(data, len);
     }
 
-    int Receive(int src, void** data, size_t *len) {
+    int Receive(unsigned int src, void** data, size_t *len) {
         return clients[src]->Receive(data, len);
     }
 
-    int ReceiveFromAny(int *src, void** data, size_t* len) {
+    int ReceiveFromAny(unsigned int *src, void** data, size_t* len) {
         *src = select(0, &fd_set_, NULL, NULL, NULL);
 
         if (*src <= 0) {
