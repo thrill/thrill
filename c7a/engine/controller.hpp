@@ -7,11 +7,14 @@
 #define C7A_ENGINE_CONTROLLER_HEADER
 
 #include "stage_builder.hpp"
+#include "../common/logger.hpp"    
 #include <functional>
 #include <vector>
 
 namespace c7a {
 namespace engine {
+
+bool test = true;
 
 //todo make it virtual!
 template <typename T, typename K, typename V>
@@ -21,7 +24,9 @@ public:
     Controller(int id, const std::vector<int> &otherWorkers) :
         _id(id), _otherWorkers(otherWorkers) {}
 
-//    template <typename K, V>
+    Controller(){};
+
+    //    template <typename K, V>
     // This is the final reduce
     T reduce(std::function<T(T, T)> ReduceFn) {
         T res;
@@ -34,13 +39,26 @@ public:
 
     }
 
+    void ReducePreOp()
+    {
+        SpacingLogger(true) << "I'm doing reduce pre op";
+    };
+    void ReduceMainOp()
+    {
+        SpacingLogger(true) << "I'm doing reduce main op";
+    };
+    void ReducePostOp()
+    {
+        SpacingLogger(true) << "I'm doing reduce post up";
+    };
+
     void ExecuteScope(DIABase *action)
     {
-/*        auto stages = FindStages(action);
-        for (auto it = get.first; it != get.second; ++it)
+        auto stages = FindStages(action);
+        for (auto it = stages.first; it != stages.second; ++it)
         {
             it->Run();
-        }*/
+        }
     }
 
     void populateData(std::vector<std::pair<K, V>>) {
@@ -61,6 +79,7 @@ private:
         //
     }
 };
+
 /*
 class MasterController : public Controller
 {
@@ -74,6 +93,7 @@ public:
     void foo();
 };
 */
+
 }
 }
 
