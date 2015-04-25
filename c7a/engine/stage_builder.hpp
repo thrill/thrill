@@ -14,17 +14,17 @@
 namespace c7a { 
 namespace engine {
 
-static const bool test = true;
+
 
 class Stage
 {
 public:
     Stage(DIABase* node) : node_(node)
     {
-        SpacingLogger(test) << "I'm creating stage" << node_->ToString() << "node" << node_;   
+        SpacingLogger(true) << "I'm creating stage" << node_->ToString() << "node" << node_;   
     }
     void Run() {
-        SpacingLogger(test) << "I'm running stage" << node_->ToString() <<  "node" << node_;
+        SpacingLogger(true) << "I'm running stage" << node_->ToString() <<  "node" << node_;
         //GOAL: Make sure the stage is executed efficiently. 
         node_->execute();
     };
@@ -37,7 +37,7 @@ typedef std::pair<std::vector<Stage>::reverse_iterator, std::vector<Stage>::reve
 
 static inline vec_it  FindStages(DIABase* action)
 {
-    SpacingLogger(test) << "I'm looking for stages:";
+    SpacingLogger(true) << "I'm looking for stages:";
 
     std::vector<Stage> result_stages;
 
