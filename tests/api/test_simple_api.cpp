@@ -2,10 +2,10 @@
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 
-TEST(DIASimple, InputTest1ReadInt) {
-     auto read_int = [](std::string line) { return std::stoi(line); };
+TEST(DISABLED_DIASimple, InputTest1ReadInt) {
+     //auto read_int = [](std::string line) { return std::stoi(line); };
 
-     c7a::Context ctx;
+     //c7a::Context ctx;
 
      // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
 
@@ -14,10 +14,10 @@ TEST(DIASimple, InputTest1ReadInt) {
      // assert(initial.Size() == 4);
 }
 
-TEST(DIASimple, InputTest1ReadDouble) {
-     auto read_double = [](std::string line) { return std::stod(line); };
+TEST(DISABLED_DIASimple, InputTest1ReadDouble) {
+     //auto read_double = [](std::string line) { return std::stod(line); };
 
-     c7a::Context ctx;
+     //c7a::Context ctx;
 
      // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
 
@@ -27,13 +27,13 @@ TEST(DIASimple, InputTest1ReadDouble) {
 
 }
 
-TEST(DIASimple, InputTest1Write) {
+TEST(DISABLED_DIASimple, InputTest1Write) {
 
-     auto read_int = [](std::string line) { return std::stoi(line); };
-     auto write_int = [](int element) { return element; };
+     //auto read_int = [](std::string line) { return std::stoi(line); };
+     //auto write_int = [](int element) { return element; };
 
-     c7a::Context ctx;
-     
+     //c7a::Context ctx;
+
      // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
      // ctx.WriteToFileSystem(initial, "tests/inputs/test1_result", write_int);
      // auto copy = ctx.ReadFromFileSystem("tests/inputs/test1_result", read_int);
@@ -47,7 +47,7 @@ TEST(DIASimple, ReduceStringEquality) {
 
     using c7a::DIA;
     using c7a::Context;
-    
+
     auto doubles = Context().ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
             return std::stod(line);
         });
@@ -68,6 +68,6 @@ TEST(DIASimple, ReduceStringEquality) {
     auto reduced_doubles2 = doubles.Reduce(key_ex, red_fn);
 
     doubles.PrintNodes();
-    
+
     assert(reduced_doubles.NodeString() == "[ReduceNode/Type=[d]/KeyType=[i]");
 }
