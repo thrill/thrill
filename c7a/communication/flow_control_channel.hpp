@@ -4,6 +4,8 @@
  ******************************************************************************/
 #pragma once
 #include <string>
+#include <vector>
+#include "net_dispatcher.hpp"
 
 namespace c7a {
 namespace communication {
@@ -16,10 +18,10 @@ namespace communication {
 class FlowControlChannel
 {
 private:
-	const NetworkDispatcher *dispatcher;	
+	const NetDispatcher *dispatcher;	
 public:
-	FlowControlChannel(NetworkDispatcher *dispatcher) : dispatcher(dispatcher) { }
-	sendTo(const std::string &message, int destination);
+	FlowControlChannel(NetDispatcher *dispatcher) : dispatcher(dispatcher) { }
+	void sendTo(const std::string &message, int destination);
 	const std::string &receiveFrom(int source);
 	const std::string &receiveFromAny(int *source = NULL) 
 {
@@ -97,7 +99,7 @@ class WorkerFlowControlChannel : FlowControlChannel
 	 * The message from worker j is placed into index j-1. 
 	 * @return The received messages. 
 	 */
-	const std::vector<std::string> &allToAll(const &std::vector<std::string> messages);
+	const std::vector<std::string> &allToAll(const std::vector<std::string>& messages);
 };
 
 }}
