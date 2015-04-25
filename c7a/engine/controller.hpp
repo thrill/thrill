@@ -33,12 +33,12 @@ public:
         
     }
 
-    void ExecuteScope(DIABase *scope_root) 
+    void ExecuteScope(DIABase *action) 
     {
-        auto stages = BuildStages(*scope_root);
-        for (auto s : stages) 
+        auto stages = FindStages(action);
+        for (auto it = get.first; it != get.second; ++it) 
         {
-            s.run();
+            it->Run();
         }
     }
 
