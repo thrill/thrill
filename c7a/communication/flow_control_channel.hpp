@@ -21,9 +21,9 @@ protected:
 	NetDispatcher *dispatcher;	
 public:
 	FlowControlChannel(NetDispatcher *dispatcher) : dispatcher(dispatcher) { }
-	void sendTo(std::string message, unsigned int destination); //TODO call-by-value is only tmp here and two lines below
-	std::string receiveFrom(unsigned int source);
-	std::string receiveFromAny(unsigned int *source = NULL);
+	void SendTo(std::string message, unsigned int destination); //TODO call-by-value is only tmp here and two lines below
+	std::string ReceiveFrom(unsigned int source);
+	std::string ReceiveFromAny(unsigned int *source = NULL);
 
 };
 
@@ -37,13 +37,15 @@ public:
 class MasterFlowControlChannel : FlowControlChannel
 {
 public:
+	MasterFlowControlChannel(NetDispatcher *dispatcher) : FlowControlChannel(dispatcher) { }
+	
 	/**
 	 * @brief Receives a value from each worker in the system.
 	 * @details This method is blocking. 
 	 * 
 	 * @return The received values. 
 	 */
-	std::vector<std::string> receiveFromWorkers();
+	std::vector<std::string> ReceiveFromWorkers();
 
 	/**
 	 * @brief Broadcasts a single value to all workers.
@@ -51,7 +53,7 @@ public:
 	 * 
 	 * @param value The value to send. 
 	 */
-	void broadcastToWorkers(const std::string &value);
+	void BroadcastToWorkers(const std::string &value);
 	
 	/**
 	 * @brief Receives all values that were transmitted from all workers 
@@ -60,7 +62,7 @@ public:
 	 * worker is stored at the index [i-1][j-1]. 
 	 * @return The received data. 
 	 */
-	std::vector<std::vector<std::string> > allToAll();
+	std::vector<std::vector<std::string> > AllToAll();
 
 };
 
@@ -74,13 +76,16 @@ public:
  */
 class WorkerFlowControlChannel : FlowControlChannel
 {
+public:
+	WorkerFlowControlChannel(NetDispatcher *dispatcher) : FlowControlChannel(dispatcher) { }
+	
 	/**
 	 * @brief Sends a single value to the master.
 	 * @details This method is blocking.
 	 * 
 	 * @param value The value to send to the master.
 	 */
-	void sendToMaster(std::string message); //TODO use ref again
+	void SendToMaster(std::string message); //TODO use ref again
 
 	/**
 	 * @brief Receives a single value from the master.
@@ -88,7 +93,7 @@ class WorkerFlowControlChannel : FlowControlChannel
 	 * 
 	 * @return The received value. 
 	 */
-	std::string receiveFromMaster();
+	std::string ReceiveFromMaster();
 
 	/**
 	 * @brief Sends and receives each other worker a message. 
@@ -99,7 +104,7 @@ class WorkerFlowControlChannel : FlowControlChannel
 	 * The message from worker j is placed into index j-1. 
 	 * @return The received messages. 
 	 */
-	std::vector<std::string> allToAll(std::vector<std::string> messages);
+	std::vector<std::string> AllToAll(std::vector<std::string> messages);
 };
 
 }}
