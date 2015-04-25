@@ -1,7 +1,7 @@
 /*******************************************************************************
  * /<file>
  *
- * 
+ *
  ******************************************************************************/
 
 #ifndef _NEW_HEADER
@@ -19,7 +19,7 @@
 #include <cstdio>
 #include <cerrno>
 
-#include "socket.hpp"
+#include <c7a/communication/socket.hpp>
 
 namespace c7a {
 namespace communication {
@@ -47,7 +47,7 @@ public:
 
     NetConnection(int existingSocket, int workerId)
         : Socket(existingSocket),
-          connectedWorker(workerId)          
+          connectedWorker(workerId)
     { }
 
     int Receive(void **buf, size_t *messageLen)
@@ -96,20 +96,23 @@ public:
 
         if(connect(fd_, (struct sockaddr*)&serverAddress_, sizeof(serverAddress_)) < 0) {
             shutdown(fd_, SHUT_WR);
-            fd_ = -1; 
+            fd_ = -1;
             return NET_CLIENT_CONNECT_FAILED;
         }
 
         return NET_CLIENT_SUCCESS;
     };
 
-    int Send(void* data, size_t len) {
-        //TODO make this zero copy
-        memcpy(sendBuffer_, &len, sizeof(size_t));
-        memcpy(sendBuffer_ + sizeof(size_t), data, len);
-        if(send(sendBuffer_, len + sizeof(size_t)) < 0) {
+    int Send(void* data, size_t len)
+    {
+        if (send(&len, sizeof(len), MSG_MORE) != sizeof(len)) {
             return NET_CLIENT_SEND_ERROR;
         }
+
+        if (send(data, len) != len) {
+            return NET_CLIENT_SEND_ERROR;
+        }
+
         return NET_CLIENT_SUCCESS;
     }
 
@@ -124,7 +127,7 @@ private:
     char receiveBuffer_[MAX_BUF_SIZE];
 
     int receiveHeader(size_t *len)
-    {   
+    {
         if (Socket::recv((void*)len, sizeof(size_t)) != sizeof(size_t)) {
             return NET_CLIENT_HEADER_RECEIVE_FAILED;
         }
