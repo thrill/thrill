@@ -16,25 +16,24 @@ class BlockIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    BlockIterator<T>(std::vector<Blob>::const_iterator begin, std::vector<Blob>::const_iterator end) : begin_(begin), end_(end) { }
+    BlockIterator<T>(const std::vector<Blob>& data)
+        : data_(data), pos_(0) { }
 
     //! returns the next element if one exists
     //!
     //! does no checks whether a next element exists!
     inline const T Next() {
-        const Blob& elem = *begin_;
-        begin_++;
-        return Deserialize<T>(elem);
+        return Deserialize<T>(data_[pos_++]);
     }
 
     //! returns true an element is available
     inline bool HasNext() {
-        return begin_ != end_;
+        return data_.size() > pos_;
     }
 
 private:
-    std::vector<Blob>::const_iterator begin_;
-    std::vector<Blob>::const_iterator end_;
+    const std::vector<Blob>& data_;
+    size_t pos_;
 };
 
 }

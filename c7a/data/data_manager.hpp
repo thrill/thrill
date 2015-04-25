@@ -28,13 +28,17 @@ class DataManager
 {
 public:
 
+    DataManager() : nextId_(0) { }
+
     //! returns iterator on requested partition
     //!
     //! \param id ID of the DIA
     template<class T>
     BlockIterator<T> GetLocalBlocks(DIAId id) {
-        const auto& block = data_[id];
-        return BlockIterator<T>(block.cbegin(), block.cend());
+        if (!Contains(id)) {
+            throw std::runtime_error("target dia id unknown.");
+        }
+        return BlockIterator<T>(data_[id]);
     }
 
     //! returns true if the manager holds data of given DIA
@@ -42,6 +46,11 @@ public:
     //! \param id ID of the DIA
     bool Contains(DIAId id) {
         return data_.find(id) != data_.end();
+    }
+
+    DIAId AllocateDIA() {
+        data_.insert( std::make_pair(nextId_, std::vector<std::string>()) );
+        return nextId_++;
     }
 
     template<class T>
@@ -54,7 +63,7 @@ public:
     }
 
 private:
-
+    DIAId nextId_;
     std::map<DIAId, std::vector<Blob>> data_;
 };
 
