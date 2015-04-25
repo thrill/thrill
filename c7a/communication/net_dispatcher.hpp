@@ -10,6 +10,7 @@
 #include <map>
 #include "execution_endpoint.hpp"
 #include "blocking_connection.hpp"
+#include <sys/select.h>
 
 namespace c7a {
 namespace communication {
