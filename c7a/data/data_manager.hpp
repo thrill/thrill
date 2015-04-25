@@ -32,7 +32,7 @@ public:
     //!
     //! \param id ID of the DIA
     template<class T>
-    BlockIterator<T> getLocalBlocks(DIAId id) {
+    BlockIterator<T> GetLocalBlocks(DIAId id) {
         const auto& block = data_[id];
         return BlockIterator<T>(block.cbegin(), block.cend());
     }
@@ -45,7 +45,7 @@ public:
     }
 
     template<class T>
-    BlockEmitter<T> getLocalEmitter(DIAId id) {
+    BlockEmitter<T> GetLocalEmitter(DIAId id) {
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
