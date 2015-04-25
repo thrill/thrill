@@ -10,6 +10,7 @@ set(unit_test_sources
     data/test_data_manager.cpp
     data/test_block_iterator.cpp
     data/test_serializer.cpp
+    engine/test_stage_builder.cpp
     api/test_simple_api.cpp
 )
 add_executable(unit_tests ${unit_test_sources})

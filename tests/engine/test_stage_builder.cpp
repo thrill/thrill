@@ -6,9 +6,9 @@ using namespace c7a::engine;
 
 TEST(Stage, GetStagesFromBuilder) {
     //create DIABase graph
-    DIABase a = DIABase();
-    DIABase b = DIABase();
-    DIABase c = DIABase();
+    c7a::DIABase a = c7a::DIABase();
+    c7a::DIABase b = c7a::DIABase();
+    c7a::DIABase c = c7a::DIABase();
     a.add_child(b);
     a.add_child(c);
 
