@@ -15,10 +15,12 @@ namespace communication {
  */
 class FlowControlChannel
 {
-	public:
-		sendTo(const std::string &message, int destination);
-		const std::string &receiveFrom(int source);
-
+private:
+	const NetworkDispatcher *dispatcher;	
+public:
+	FlowControlChannel(NetworkDispatcher *dispatcher) : dispatcher(dispatcher) { }
+	sendTo(const std::string &message, int destination);
+	const std::string &receiveFrom(int source);
 };
 
 /**

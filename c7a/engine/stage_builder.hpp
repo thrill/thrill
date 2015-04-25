@@ -60,4 +60,4 @@ vec_it  FindStages(DIABase* action)
     return std::make_pair(it_begin, it_end);
 };
 
-}}
+}}// !C7A_ENGINE_STAGE_BUILD
