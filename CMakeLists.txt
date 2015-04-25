@@ -89,7 +89,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_subdirectory(c7a)
 
 # descend into testsuite
-add_subdirectory(tests)
+#add_subdirectory(tests)
 
 # descend into example programs source
 add_subdirectory(examples)
