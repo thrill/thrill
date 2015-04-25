@@ -10,7 +10,8 @@
 
 #include "../common/logger.hpp"
 
-namespace c7a { namespace engine {
+namespace c7a {
+namespace engine {
 
 std::vector<Stage> BuildStages(DIABase *scope_root);
 
@@ -23,9 +24,10 @@ public:
     };
 private:
     void bar();
-}
+};
 
-}}
+}
+}
 // !C7A_ENGINE_STAGE_BUILD
 
 /******************************************************************************/
