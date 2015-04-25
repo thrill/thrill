@@ -77,6 +77,23 @@ private:
             std::cout << it->first << " " << it->second << "\n";
         }
     }
+
+    // @brief hash some input string
+    //
+    // @param size if interval
+    int hash(const std::string &key, int size) {
+        int hashVal = 0;
+
+        for(int i = 0; i<key.length();  i++)
+            hashVal = 37*hashVal+key[i];
+
+        hashVal %= size;
+
+        if(hashVal<0)
+            hashVal += size;
+
+        return hashVal;
+    }
 };
 
 }
