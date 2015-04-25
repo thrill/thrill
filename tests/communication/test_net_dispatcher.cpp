@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 #include <thread>
+#include <vector>
+#include <string>
 #include "c7a/communication/net_dispatcher.hpp"
 #include "c7a/communication/flow_control_channel.hpp"
 
@@ -19,9 +21,14 @@ void TestNetDispatcher(NetDispatcher *candidate) {
 	FlowControlChannel channel(candidate);
 
 	if(candidate->localId == candidate->masterId) {
-		
+		vector<string> messages = channel.receiveFromWorkers();
+		for(string message : messages) {
+			ASSERT_EQ(message, "Hello Master");
+		}
+        channel.broadcastToWorkers("Hello Worker");
 	} else {
-		
+		channel.sendToMaster("Hello Master");
+        ASSERT_EQ(channel.receiveFromMaster(), "Hello Worker");
 	}
 
 	candidate->Close();
