@@ -4,6 +4,8 @@
  ******************************************************************************/
 #pragma once
 #include <string>
+#include <vector>
+#include "net_dispatcher.hpp"
 
 namespace c7a {
 namespace communication {
@@ -15,12 +17,14 @@ namespace communication {
  */
 class FlowControlChannel
 {
-private:
-	const NetworkDispatcher *dispatcher;	
+protected:
+	NetDispatcher *dispatcher;	
 public:
-	FlowControlChannel(NetworkDispatcher *dispatcher) : dispatcher(dispatcher) { }
-	sendTo(const std::string &message, int destination);
-	const std::string &receiveFrom(int source);
+	FlowControlChannel(NetDispatcher *dispatcher) : dispatcher(dispatcher) { }
+	void sendTo(std::string message, int destination); //TODO call-by-value is only tmp here and two lines below
+	std::string receiveFrom(int source);
+	std::string receiveFromAny(int *source = NULL);
+
 };
 
 /**
@@ -39,7 +43,7 @@ public:
 	 * 
 	 * @return The received values. 
 	 */
-	const std::string &receiveFromWorkers();
+	std::vector<std::string> receiveFromWorkers();
 
 	/**
 	 * @brief Broadcasts a single value to all workers.
@@ -56,7 +60,7 @@ public:
 	 * worker is stored at the index [i-1][j-1]. 
 	 * @return The received data. 
 	 */
-	const std::vector<std::vector<std::string> > &allToAll();
+	std::vector<std::vector<std::string> > allToAll();
 
 };
 
@@ -76,7 +80,7 @@ class WorkerFlowControlChannel : FlowControlChannel
 	 * 
 	 * @param value The value to send to the master.
 	 */
-	void sendToMaster(const std::string &message);
+	void sendToMaster(std::string message); //TODO use ref again
 
 	/**
 	 * @brief Receives a single value from the master.
@@ -84,7 +88,7 @@ class WorkerFlowControlChannel : FlowControlChannel
 	 * 
 	 * @return The received value. 
 	 */
-	const std::string &receiveFromMaster();
+	std::string receiveFromMaster();
 
 	/**
 	 * @brief Sends and receives each other worker a message. 
@@ -95,7 +99,7 @@ class WorkerFlowControlChannel : FlowControlChannel
 	 * The message from worker j is placed into index j-1. 
 	 * @return The received messages. 
 	 */
-	const std::vector<std::string> &allToAll(const &std::vector<std::string> messages);
+	std::vector<std::string> allToAll(std::vector<std::string> messages);
 };
 
 }}
