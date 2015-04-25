@@ -22,7 +22,7 @@ public:
     //!
     //! does no checks whether a next element exists!
     inline const T Next() {
-        const T& elem = *begin_;
+        const Blob& elem = *begin_;
         begin_++;
         return Deserialize<T>(elem);
     }
