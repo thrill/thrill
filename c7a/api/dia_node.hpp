@@ -32,7 +32,7 @@ public:
 
     virtual ~DIANode() {}
 
-    virtual std::string ToString() {
+    std::string ToString() override {
         std::string str;
         str = std::string("[DIANode/State:") + state_string_() + "/Type:" + typeid(T).name() + "]";
         return str;
