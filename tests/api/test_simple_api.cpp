@@ -36,15 +36,14 @@ TEST(DIASimple, InputTest1Write) {
      assert(copy.Size() == 4);
 }
 
-/*TEST(DIASimple, ReduceStringEquality) {
+TEST(DIASimple, ReduceStringEquality) {
 
     DIA<double> doubles;
 
     auto key_ex = [](double in) { return (int) in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
 
-    //doubles.Reduce(key_ex, red_fn);
-
+    doubles.Reduce(key_ex, red_fn);
 
 }
-*/
+
