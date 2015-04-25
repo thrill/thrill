@@ -31,8 +31,7 @@ TEST(Stage, GetStagesFromBuilder) {
 
 
     auto stages = FindStages(&(*reduced_doubles2));
-    for (auto it = stages.first; it != stages.second; ++it)
-    {
+    for (auto it = stages.first; it != stages.second; ++it) {
         it->Run();
     }
 }

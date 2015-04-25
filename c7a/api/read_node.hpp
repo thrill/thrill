@@ -12,9 +12,10 @@ namespace c7a {
 template <typename T, typename ReadFunction>
 class ReadNode : public DOpNode<T> {
 public: 
-    ReadNode(const std::vector<DIABase*>& parents, 
+    ReadNode(data::DataManager &data_manager, 
+             const std::vector<DIABase*>& parents, 
              ReadFunction read_function) 
-        : DOpNode<T>(parents), 
+        : DOpNode<T>(data_manager, parents), 
           read_function_(read_function) {};
     virtual ~ReadNode() {} 
 
