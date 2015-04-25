@@ -21,6 +21,8 @@ public:
 	FlowControlChannel(NetworkDispatcher *dispatcher) : dispatcher(dispatcher) { }
 	sendTo(const std::string &message, int destination);
 	const std::string &receiveFrom(int source);
+	const std::string &receiveFromAny(int *source = NULL) 
+{
 };
 
 /**

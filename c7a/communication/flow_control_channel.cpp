@@ -26,6 +26,20 @@ const std::string &FlowControlChannel::receiveFrom(int source)
 	return std::string(source, (char*) buf, len);
 }
 
+const std::string &FlowControlChannel::receiveFromAny(int *source) 
+{
+	void* buf;
+	int dummy;
+	size_t len;
+
+	if(source == NULL)
+		source = &dummy;
+
+	dispatcher->ReceiveFromAny(source, &buf, &len);
+
+	return std::string(source, (char*) buf, len);
+}
+
 //################### Master flow control channel 
 
 std::vector<std::string> MasterFlowControlChannel::receiveFromWorkers()
@@ -44,7 +58,18 @@ void MasterFlowControlChannel::broadcastToWorkers(const std::string &value)
 
 std::vector<std::vector<std::string> > MasterFlowControlChannel::allToAll()
 {
+	int count = dispatcher->endpoints.count() - 1;
+	vector<std::vector<std::string> > results(count);
 
+	int id;
+	for(int i = 0; i < count * count; i++) {
+		results[id].push_back(receiveFromAny(&id));
+		if(id + 1== localId) {
+			results[id].push_back("");
+		}
+	}
+
+	return results;
 }
 
 //################### Worker flow control channel 
@@ -64,12 +89,14 @@ const vector<std::string> &WorkerFlowControlChannel::allToAll(const messages &ve
 	for(ExecutionEndpoint endpoint : dispatcher->endpoints) {
 		if(endpoint.id != dispatcher->localId) {
 			sendTo(endpoint.id, messages[endpoint.id]);
+			sendTo(dispatcher->Master, messages[endpoint.id]);
 		}
 	}
 
-	vector<std::string> result;
-	for(int i = 0; i < dispatcher->endpoints.count(); i++) {
-		//TODO Emi include recv from any from dispatcher. 
+	int id;
+	vector<std::string> result(dispatcher->endpoints.coint() - 1);
+	for(int i = 0; i < dispatcher->endpoints.count() - 1; i++) {
+		result[id] = receiveFromAny(&id)
 	}
 
 	return result;
