@@ -25,9 +25,10 @@ class NetDispatcher {
 public:
 
     const ExecutionEndpoints endpoints;
+    const unsigned int localId;
 
     NetDispatcher(unsigned int localId, ExecutionEndpoints endpoints)
-        : endpoints(endpoints), localId_(localId)
+        : endpoints(endpoints), localId(localId)
     {
         clients.resize(endpoints.size());
         serverSocket_ = -1;
@@ -37,11 +38,11 @@ public:
         return InitializeClients();
     }
 
-    int Send(int dest, void* data, int len) {
+    int Send(int dest, void* data, size_t len) {
         return clients[dest]->Send(data, len);
     }
 
-    int Receive(int src, void** data, int *len) {
+    int Receive(int src, void** data, size_t *len) {
         return clients[src]->Receive(data, len);
     }
 
@@ -55,7 +56,6 @@ public:
 
 private:
     int serverSocket_;
-    unsigned int localId_;
     struct sockaddr_in serverAddress_;
 
     std::vector<NetConnection*> clients;

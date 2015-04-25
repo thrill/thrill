@@ -8,6 +8,21 @@
 namespace c7a {
 namespace communication {
 
+void FlowControlChannel::sendTo(const std::string &message, int destination) 
+{
+	//TODO Emi Error handling. 
+	dispatcher.send(dest, (void*)message.str(), message.length());
+}
+
+const std::string &FlowControlChannel::receiveFrom(int source) 
+{
+	void* buf;
+	size_t len;
+	dispatcher.receive(source, &buf, &len);
+
+	return std::string((char*) buf, len);
+}
+
 std::vector<std::string> MasterFlowControlChannel::receiveFromWorkers()
 {
 	return std::vector<std::string>;
