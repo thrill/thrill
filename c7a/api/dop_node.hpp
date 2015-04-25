@@ -9,7 +9,8 @@
 
 template <typename T>
 class DOpNode : public DIANode<T> {
-
+    DOpNode() {}
+    virtual ~DOpNode() {}
 };
 
 #endif // !C7A_API_DOP_NODE_HEADER
