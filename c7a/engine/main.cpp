@@ -9,6 +9,8 @@
 #include <vector>
 #include <sstream>
 
+#if THIS_BELONGS_INTO_TESTS
+
 std::vector<std::thread> threads;
 
 // Number of workers in the network
@@ -46,3 +48,5 @@ int main() {
 
     return 0;
 }
+
+#endif // THIS_BELONGS_INTO_TESTS
