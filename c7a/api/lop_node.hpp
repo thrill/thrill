@@ -9,14 +9,22 @@
 
 #include "dia_node.hpp"
 
-template <typename T, typename FuncType>
+template <typename T, typename LOpFunction>
 class LOpNode : public DIANode<T> {
 public: 
-    LOpNode(std::vector<DIABase> parents, FuncType func) : DIANode<T>(parents), DIANode<T>::my_func_(func) {};
+    LOpNode(std::vector<DIABase> parents, LOpFunction lop_function) : DIANode<T>(parents), lop_function_(lop_function) {};
     virtual ~LOpNode() {}
 
+    void execute() {};
+
+    std::string toString() {
+        using key_t = typename FunctionTraits<LOpFunction>::result_type;
+        std::string str = std::string("[LOpNode/Type=[") + typeid(T).name() + "]";
+        return str;
+    }
+
 private: 
-    FuncType my_func_;
+    LOpFunction lop_function_;
 };
 
 #endif // !C7A_API_LOP_NODE_HEADER

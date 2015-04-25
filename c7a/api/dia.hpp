@@ -24,7 +24,10 @@ class DIA {
 public:
     DIA() : data_() { }
 
-    DIA(DIANode<T> node) : data_(), my_node_(node) { }
+    DIA(DIANode<T> node) : data_(), my_node_(node) {
+        std::cout << node.ToString() << std::endl;
+        std::cout << my_node_.ToString() << std::endl;
+    }
 
     DIA(const std::vector<T>& init_data, DIANode<T> node) : data_(init_data), my_node_(node) { }
 
@@ -91,7 +94,7 @@ public:
     //
     //! \return Resulting DIA containing elements of type U.
     template<typename key_extr_fn_t, typename reduce_fn_t>
-    auto Reduce(const key_extr_fn_t& key_extr, const reduce_fn_t& reduce_fn) {
+    DIA<T> Reduce(const key_extr_fn_t& key_extr, const reduce_fn_t& reduce_fn) {
         static_assert(FunctionTraits<key_extr_fn_t>::arity == 1, "error");
         static_assert(FunctionTraits<reduce_fn_t>::arity == 2, "error");
 

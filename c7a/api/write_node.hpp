@@ -11,6 +11,7 @@ template <typename T, typename WriteFunction>
 class WriteNode : public ActionNode<T> {
 public: 
     WriteNode(std::vector<DIABase> parents, WriteFunction write_function) : ActionNode<T>(parents), write_function_(write_function) {};
+    virtual ~WriteNode() {} 
 
     void execute() {};
 
