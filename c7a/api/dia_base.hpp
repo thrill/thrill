@@ -17,9 +17,9 @@ public:
 
     DIABase(std::vector<DIABase> parents) : parents_(parents) {}
 
-    //virtual ~DIABase();
+    virtual ~DIABase() {}
 
-    //virtual void execute();
+    void execute() {}
 
     std::vector<DIABase> & get_childs() {
         return childs_; 

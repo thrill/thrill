@@ -23,10 +23,11 @@ template <typename T>
 class DIANode : public DIABase {
 
 public:
+    DIANode() {}
 
-    DIANode() : DIABase() {}
+    DIANode(std::vector<DIABase> parents) : DIABase(parents) {}
 
-    DIANode(std::vector<DIABase> parents) : DIABase(parents) { }
+    virtual ~DIANode() {}
 
     std::string ToString() {
         std::string str;
