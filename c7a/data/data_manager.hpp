@@ -28,8 +28,8 @@ public:
     //! \param id ID of the DIA
     template<class T>
     BlockIterator<T> getLocalBlocks(DIAId id) {
-        auto block = data_[id];
-        return BlockIterator<T>(block.begin(), block.end());
+        const auto& block = data_[id];
+        return BlockIterator<T>(block.cbegin(), block.cend());
     }
 
     //! returns true if the manager holds data of given DIA
