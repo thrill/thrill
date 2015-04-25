@@ -3,6 +3,7 @@ THE code repository for the almighty c7a-framework.
 
 - <a href="https://github.com/PdF14-MR/c7a/wiki/Styleguide">Styleguide</a> ist im wiki.
 - Unit-test schreiben? Lies <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">hier</a>
+- abgegebene Version des <a href="https://github.com/PdF14-MR/research-proposal/blob/b08aed24d22bcf4837f87da10763f89ff3a46212/c7a-proposal-abgabe20150424.pdf">Research Proposal PDF</a>
 
 Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
 
