@@ -64,7 +64,7 @@ public:
             << " data=" << hexdump(data, len)
             << " len=" << len;
 
-        return clients[dest]->Send(data, len);
+        return clients[dest]->SendString(data, len);
     }
 
     /*!
@@ -82,7 +82,7 @@ public:
     {
         LOG << "NetDispatcher::Receive src=" << src;
 
-        int r = clients[src]->Receive(outdata);
+        int r = clients[src]->ReceiveString(outdata);
 
         LOG << "done NetDispatcher::Receive"
             << " " << src << " -> " << localId

@@ -42,6 +42,8 @@ class NetConnection : protected Socket
 public:
     static const bool debug = true;
 
+    static const bool SelfVerify = true;
+
     const int connectedWorker;
 
     NetConnection(int workerId)
@@ -53,8 +55,77 @@ public:
           connectedWorker(workerId)
     { }
 
-    //! Blocking receive message from the connected socket.
-    int Receive(std::string* outdata)
+    //! \name Send Functions
+    //! \{
+
+    //! Send a fixed-length type, possibly without length header.
+    template <typename T>
+    int Send(const T& value)
+    {
+        if (SelfVerify) {
+            // for communication verification, send sizeof.
+            size_t len = sizeof(value);
+            if (send(&len, sizeof(len), MSG_MORE) != sizeof(len)) {
+                return NET_CLIENT_SEND_ERROR;
+            }
+        }
+
+        if (send(value, sizeof(value)) != (ssize_t)sizeof(value)) {
+            return NET_CLIENT_SEND_ERROR;
+        }
+
+        return NET_CLIENT_SUCCESS;
+    }
+
+    //! Send a string buffer
+    int SendString(const void* data, size_t len)
+    {
+        if (send(&len, sizeof(len), MSG_MORE) != sizeof(len)) {
+            return NET_CLIENT_SEND_ERROR;
+        }
+
+        if (send(data, len) != (ssize_t)len) {
+            return NET_CLIENT_SEND_ERROR;
+        }
+
+        return NET_CLIENT_SUCCESS;
+    }
+
+    //! Send a string message.
+    int SendString(const std::string& message)
+    {
+        return SendString(message.data(), message.size());
+    }
+
+    //! \}
+
+    //! \name Receive Functions
+    //! \{
+
+    //! Receive a fixed-length type, possibly without length header.
+    template <typename T>
+    int Receive(T& value)
+    {
+        if (SelfVerify) {
+            // for communication verification, receive sizeof.
+            size_t len = 0;
+            if (recv(&len, sizeof(len)) != sizeof(len)) {
+                return NET_CLIENT_HEADER_RECEIVE_FAILED;
+            }
+
+            // if this fails, then fixed-length type communication desynced.
+            die_unequal(len, sizeof(value));
+        }
+
+        if (recv(&value, sizeof(value)) != (ssize_t)sizeof(value)) {
+            return NET_CLIENT_SEND_ERROR;
+        }
+
+        return NET_CLIENT_SUCCESS;
+    }
+
+    //! Blocking receive string message from the connected socket.
+    int ReceiveString(std::string* outdata)
     {
         size_t messageLen = 0;
 
@@ -75,6 +146,8 @@ public:
 
         return NET_CLIENT_SUCCESS;
     }
+
+    //! \}
 
     int Connect(std::string address_, int port)
     {
@@ -111,25 +184,6 @@ public:
         }
 
         return NET_CLIENT_SUCCESS;
-    }
-
-    int Send(const void* data, size_t len)
-    {
-        if (send(&len, sizeof(len), MSG_MORE) != sizeof(len)) {
-            return NET_CLIENT_SEND_ERROR;
-        }
-
-        if (send(data, len) != (ssize_t)len) {
-            return NET_CLIENT_SEND_ERROR;
-        }
-
-        return NET_CLIENT_SUCCESS;
-    }
-
-    //! Send a message string.
-    int Send(const std::string& message)
-    {
-        return Send(message.data(), message.size());
     }
 
     void Close()
