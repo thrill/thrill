@@ -1,20 +1,21 @@
 /*******************************************************************************
- * c7a/api/lop_composer.hpp
+ * c7a/engine/operations.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
  ******************************************************************************/
 
-#ifndef C7A_API_LOP_COMPOSER_HEADER
-#define C7A_API_LOP_COMPOSER_HEADER
+#ifndef C7A_ENGINE_OPS
+#define C7A_ENGINE_OPS
 
 namespace c7a {
+namespace engine {
 
-class LOpComposer {
+//implement ReadFromFs() here
+//implement Map() here
+//implement Reduce() here
+//implement WriteToFs() here
 
 }
-
-} // namespace c7a
-
-#endif // !C7A_API_LOP_COMPOSER_HEADER
+}
+#endif // !C7A_ENGINE_OPS
 
 /******************************************************************************/

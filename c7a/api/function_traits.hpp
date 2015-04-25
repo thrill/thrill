@@ -9,6 +9,8 @@
 
 #include <tuple>
 
+namespace c7a {
+
 // taken from: http://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
 template <typename T>
 struct FunctionTraits : public FunctionTraits<decltype(& T::operator ())>{ };
@@ -27,6 +29,8 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
     // the i-th argument is equivalent to the i-th tuple element of a tuple
     // composed of those arguments.
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_FUNCTION_TRAITS_HEADER
 
