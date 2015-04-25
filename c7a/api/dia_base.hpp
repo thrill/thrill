@@ -6,37 +6,39 @@
 
 #include<vector>
 
+namespace c7a {
 
 class DIABase {
-public: 
+public:
 
-    DIABase() {
-        std::vector<DIABase> vec;
-        parents_ = vec;
-    }
+    typedef std::vector<DIABase*> DIABaseVector;
 
-    DIABase(std::vector<DIABase> parents) : parents_(parents) {}
+    DIABase(const DIABaseVector& parents)
+        : parents_(parents)
+    {}
 
     virtual ~DIABase() {}
 
     void execute() {}
 
-    std::vector<DIABase> & get_childs() {
-        return childs_; 
+    virtual std::string ToString() {}
+
+    const DIABaseVector& get_childs() {
+        return childs_;
     }
 
-    std::vector<DIABase> & get_parents() {
-        return parents_; 
+    const DIABaseVector & get_parents() {
+        return parents_;
     }
 
-    void add_child(DIABase child) {
+    void add_child(DIABase* child) {
         childs_.push_back(child);
     }
 
-protected: 
-    std::vector<DIABase> childs_;
-    std::vector<DIABase> parents_;
+protected:
+    DIABaseVector childs_, parents_;
 };
 
+} // namespace c7a
 
 /******************************************************************************/

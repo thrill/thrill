@@ -8,7 +8,7 @@
 namespace c7a {
 namespace communication {
 
-void CommunicationManager::foo()
+void CommunicationManager::initialize(std::vector<Endpoint> endpoints)
 {
 
 }
