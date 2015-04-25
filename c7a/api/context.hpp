@@ -39,8 +39,6 @@ public:
 
         DIANode<read_result_t> node(test);
 
-        std::cout << node.toString() << std::endl;
-
         return DIA<read_result_t>(output, node);
     }
 

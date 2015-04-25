@@ -119,6 +119,10 @@ public:
         return data_;
     }
 
+    std::string NodeString() {
+        return my_node_.ToString();
+    }
+
 private:
     std::vector<T> data_;
     DIANode<T> my_node_;
