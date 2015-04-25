@@ -45,7 +45,7 @@ public:
             (messageLen);
         if(res != NET_CLIENT_SUCCESS) { return res; }
 
-        if(messageLen > 0) {
+        if(*messageLen > 0) {
             res = receiveData(*messageLen, receiveBuffer_);
             if(res != NET_CLIENT_SUCCESS) { return res; }
         }
@@ -84,7 +84,7 @@ public:
 
         if(connect(sock_, (struct sockaddr*)&serverAddress_, sizeof(serverAddress_)) < 0) {
             shutdown(sock_, SHUT_WR);
-            sock_ = -1;
+            sock_ = -1; 
             return NET_CLIENT_CONNECT_FAILED;
         }
 
