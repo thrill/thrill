@@ -3,7 +3,7 @@
  *
  * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
  ******************************************************************************/
-
+#pragma once
 #include<vector>
 
 namespace c7a {
