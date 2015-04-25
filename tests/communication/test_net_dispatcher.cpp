@@ -18,20 +18,25 @@ TEST(NetDispatcher, InitializeAndClose) {
 void TestNetDispatcher(NetDispatcher *candidate) {
 	ASSERT_EQ(candidate->Initialize(), NET_SERVER_SUCCESS);
 
-	FlowControlChannel channel(candidate);
 
-	/*if(candidate->localId == candidate->masterId) {
-		vector<string> messages = channel.receiveFromWorkers();
-		for(string message : messages) {
-			ASSERT_EQ(message, "Hello Master");
-		}
-        channel.broadcastToWorkers("Hello Worker");
+	if(candidate->localId == candidate->masterId) {
+        MasterFlowControlChannel channel(candidate);
+
+		//vector<string> messages = channel.ReceiveFromWorkers();
+		//for(string message : messages) {
+		//	ASSERT_EQ(message, "Hello Master");
+		//}
+        //channel.BroadcastToWorkers("Hello Worker");
+
+        candidate->Close();
 	} else {
-		channel.sendToMaster("Hello Master");
-        ASSERT_EQ(channel.receiveFromMaster(), "Hello Worker");
+        WorkerFlowControlChannel channel(candidate);
+        
+		//channel.SendToMaster("Hello Master");
+        //ASSERT_EQ(channel.ReceiveFromMaster(), "Hello Worker");
+
+        candidate->Close();
 	}
-*/
-	candidate->Close();
 };
 
 TEST(NetDispatcher, InitializeMultipleCommunication) {
