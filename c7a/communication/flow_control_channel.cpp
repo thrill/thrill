@@ -2,55 +2,53 @@
  * c7a/communication/flow_control_channel.cpp
  *
  ******************************************************************************/
-#include "communication_manager.hpp"
+
+#include "flow_control_channel.hpp"
 
 namespace c7a {
 namespace communication {
 
-template <typename T>
-std::vector<T> MasterFlowControlChannel::receiveFromWorkers()
+void FlowControlChannel::sendTo(const std::string &message, int destination) 
 {
-	return std::vector<T>;
+	//TODO Emi Error handling. 
+	dispatcher.send(dest, (void*)message.str(), message.length());
 }
 
-template <typename T>
-void MasterFlowControlChannel::broadcastToWorkers(T value)
+const std::string &FlowControlChannel::receiveFrom(int source) 
 {
+	void* buf;
+	size_t len;
+	dispatcher.receive(source, &buf, &len);
 
+	return std::string((char*) buf, len);
 }
 
-template <typename T>
-std::vector<T> MasterFlowControlChannel::prefixSum()
+std::vector<std::string> MasterFlowControlChannel::receiveFromWorkers()
 {
-
+	return std::vector<std::string>;
 }
 
-template <typename T>
-std::vector<std::vector<T> > MasterFlowControlChannel::allToAll()
-{
-
-}
-
-template <typename T>
-void WorkerFlowControlChannel::sendToMaster(T value)
+void MasterFlowControlChannel::broadcastToWorkers(std::string value)
 {
 
 }
 
-template <typename T>
-T WorkerFlowControlChannel::receiveFromMaster()
+std::vector<std::vector<std::string> > MasterFlowControlChannel::allToAll()
 {
 
 }
 
-template <typename T>
-T WorkerFlowControlChannel::prefixSum(T value)
+void WorkerFlowControlChannel::sendToMaster(std::string value)
 {
 
 }
 
-template <typename T>
-vector<T> WorkerFlowControlChannel::allToAll(messages vector<T>)
+std::string WorkerFlowControlChannel::receiveFromMaster()
+{
+
+}
+
+vector<std::string> WorkerFlowControlChannel::allToAll(messages vector<std::string>)
 {
 
 }

@@ -20,7 +20,7 @@ public:
 
     void execute() {};
 
-    std::string toString() {
+    std::string ToString() override {
         using key_t = typename FunctionTraits<LOpFunction>::result_type;
         std::string str = std::string("[LOpNode/Type=[") + typeid(T).name() + "]";
         return str;
