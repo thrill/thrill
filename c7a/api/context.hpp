@@ -28,6 +28,7 @@ public:
                             const read_fn_t &read_fn) {
         static_assert(FunctionTraits<read_fn_t>::arity == 1, "error");
         using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
+        (void) filepath; //TODO remove | to supress warning
         // std::vector<read_result_t> output;
         // std::ifstream infile(filepath);
         // std::string line;
@@ -45,6 +46,9 @@ public:
     void WriteToFileSystem(DIA<T> dia, std::string filepath,
                            const write_fn_t& write_fn)
     {
+        (void) filepath; //TODO remove | to supress warning
+        (void) dia ;     //TODO remove | to supress warning
+        (void) write_fn;     //TODO remove | to supress warning
         //  static_assert(FunctionTraits<write_fn_t>::arity == 1, "error");
         //  std::ofstream outfile(filepath);
         //  for (auto element : dia.evil_get_data()) {
