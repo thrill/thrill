@@ -10,6 +10,9 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <mutex>
+
+namespace c7a {
 
 /*!
  * A simple logging class which outputs a std::endl during destruction.
@@ -21,10 +24,19 @@ protected:
     //! real output or suppress
     bool m_real;
 
+    //! the global mutex of logger and spacing logger
+    static std::mutex mutex_;
+
+    friend class SpacingLogger;
+
+    //! lock the global mutex of spacing logger for serialized output in
+    //! multi-threaded programs.
+    std::unique_lock<std::mutex> lock_;
+
 public:
     //! constructor: if real = false the output is suppressed.
     explicit Logger(bool real)
-        : m_real(real)
+        : m_real(real), lock_(Logger::mutex_)
     { }
 
     //! output any type, including io manipulators
@@ -54,10 +66,14 @@ protected:
     //! true until the first element it outputted.
     bool m_first;
 
+    //! lock the global mutex of spacing logger for serialized output in
+    //! multi-threaded programs.
+    std::unique_lock<std::mutex> lock_;
+
 public:
     //! constructor: if real = false the output is suppressed.
     explicit SpacingLogger(bool real)
-        : m_real(real), m_first(true)
+        : m_real(real), m_first(true), lock_(Logger::mutex_)
     { }
 
     //! output any type, including io manipulators
@@ -86,24 +102,24 @@ public:
 static const bool debug = true;
 
 // //! Default logging method: output if the local debug variable is true.
-// #define LOG Logger(debug)
+#define LOG ::c7a::Logger(debug)
 
 // //! Override default output: never or always output log.
-// #define LOG0 Logger(false)
-// #define LOG1 Logger(true)
+#define LOG0 ::c7a::Logger(false)
+#define LOG1 ::c7a::Logger(true)
 
 // //! Explicitly specify the condition for logging
-// #define LOGC(cond) Logger(cond)
+#define LOGC(cond) ::c7a::Logger(cond)
 
 //! Default logging method: output if the local debug variable is true.
-#define sLOG SpacingLogger(debug)
+#define sLOG ::c7a::SpacingLogger(debug)
 
 //! Override default output: never or always output log.
-#define sLOG0 SpacingLogger(false)
-#define sLOG1 SpacingLogger(true)
+#define sLOG0 ::c7a::SpacingLogger(false)
+#define sLOG1 ::c7a::SpacingLogger(true)
 
 //! Explicitly specify the condition for logging
-#define sLOGC(cond) SpacingLogger(cond)
+#define sLOGC(cond) ::c7a::SpacingLogger(cond)
 
 /******************************************************************************/
 
@@ -128,6 +144,8 @@ static const bool debug = true;
             die("Inequality: " #X " != " #Y " : " \
                 "\"" << "\" != \"" << Y << "\""); \
     } while (0)
+
+} // namespace c7a
 
 #endif // !C7A_COMMON_LOGGER_HEADER
 
