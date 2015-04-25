@@ -307,9 +307,6 @@ foreach my $file (@filelist)
     elsif ($file =~ /^c7a\/common\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.(ui|pro\.user)$/) {
-        # Qt file
-    }
     elsif ($file =~ /\.(pl|pro)$/) {
         process_pl_cmake($file);
     }
@@ -323,11 +320,10 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!CPPLINT\.cfg$!) {
     }
-    elsif ($file =~ m!^webdata/!) {
-    }
     elsif ($file =~ m!^doxygen-html/!) {
     }
     elsif ($file =~ m!^tests/.*\.(dat|plot)$!) {
+        # data files of tests
     }
     # skip all additional files in source root
     elsif ($file =~ m!^[^/]+$!) {

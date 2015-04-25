@@ -7,6 +7,7 @@
 
 #include <mutex>
 #include <deque>
+#include <vector>
 
 namespace c7a {
 namespace engine {
