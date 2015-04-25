@@ -3,8 +3,12 @@
 
 using namespace c7a::data;
 
-TEST(DataManager, GetLocalBlockReturnsEmptyIteratorIfNotFound) {
+TEST(DataManager, GetLocalBlock_FailsIfNotFound) {
     DataManager manager;
-    auto it = manager.getLocalBlocks<int>(0);
-    ASSERT_FALSE(it.has_next());
+    ASSERT_ANY_THROW(manager.getLocalBlocks<int>(0));
+}
+
+TEST(DataManager, GetLocalEmitter_FailsIfNotFound) {
+    DataManager manager;
+    ASSERT_ANY_THROW(manager.getLocalEmitter<int>(0));
 }
