@@ -9,6 +9,8 @@ TEST(DIASimple, InputTest1ReadInt) {
 
      auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
 
+     assert(initial.NodeString() == "[DIANode/State:NEW/Type:i]");
+
      assert(initial.Size() == 4);
 }
 
@@ -19,7 +21,10 @@ TEST(DIASimple, InputTest1ReadDouble) {
 
      auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
 
+     assert(initial.NodeString() == "[DIANode/State:NEW/Type:d]");
+
      assert(initial.Size() == 4);
+     
 }
 
 TEST(DIASimple, InputTest1Write) {
@@ -32,6 +37,8 @@ TEST(DIASimple, InputTest1Write) {
      auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
      ctx.WriteToFileSystem(initial, "tests/inputs/test1_result", write_int);     
      auto copy = ctx.ReadFromFileSystem("tests/inputs/test1_result", read_int);
+
+     assert(copy.NodeString() == "[DIANode/State:NEW/Type:i]");
 
      assert(copy.Size() == 4);
 }
