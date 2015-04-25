@@ -23,7 +23,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
 # enable use of "make test"
 enable_testing()
@@ -44,7 +44,7 @@ enable_testing()
 include_directories(${CMAKE_SOURCE_DIR})
 
 # descend into library source
-add_subdirectory(gtest-1.7.0)
+add_subdirectory(libs/gtest-1.7.0)
 add_subdirectory(c7a)
 
 # descend into testsuite

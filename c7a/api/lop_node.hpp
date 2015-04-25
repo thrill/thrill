@@ -7,8 +7,30 @@
 #ifndef C7A_API_LOP_NODE_HEADER
 #define C7A_API_LOP_NODE_HEADER
 
-class LOpNode {
-}
+#include "dia_node.hpp"
+
+namespace c7a {
+
+template <typename T, typename LOpFunction>
+class LOpNode : public DIANode<T> {
+public:
+
+    LOpNode(const std::vector<DIABase*>& parents, LOpFunction lop_function) : DIANode<T>(parents), lop_function_(lop_function) {};
+    virtual ~LOpNode() {}
+
+    void execute() {};
+
+    std::string ToString() override {
+        using key_t = typename FunctionTraits<LOpFunction>::result_type;
+        std::string str = std::string("[LOpNode/Type=[") + typeid(T).name() + "]";
+        return str;
+    }
+
+private:
+    LOpFunction lop_function_;
+};
+
+} // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER
 
