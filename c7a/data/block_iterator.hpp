@@ -21,14 +21,14 @@ public:
     //! returns the next element if one exists
     //!
     //! does no checks whether a next element exists!
-    inline const T next() {
+    inline const T Next() {
         const T& elem = *begin_;
         begin_++;
         return Deserialize<T>(elem);
     }
 
     //! returns true an element is available
-    inline bool has_next() {
+    inline bool HasNext() {
         return begin_ != end_;
     }
 
