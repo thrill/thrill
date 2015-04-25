@@ -20,23 +20,26 @@ void FlowControlChannel::SendTo(std::string message, unsigned int destination)
 
 std::string FlowControlChannel::ReceiveFrom(unsigned int source) 
 {
-	void* buf;
-	size_t len;
-	assert(dispatcher->Receive(source, &buf, &len) == NET_SERVER_SUCCESS);
+    void* buf;
+    size_t len;
+    int r = dispatcher->Receive(source, &buf, &len);
+    assert(r == NET_SERVER_SUCCESS);
 
     return std::string((char*) buf, len);
 }
 
 std::string FlowControlChannel::ReceiveFromAny(unsigned int *source) 
 {
-	void* buf;
-	unsigned int dummy;
-	size_t len;
+    void* buf;
+    unsigned int dummy;
+    size_t len;
 
-	if(source == NULL)
-		source = &dummy;
+    if(source == NULL)
+        source = &dummy;
 
-	dispatcher->ReceiveFromAny(source, &buf, &len);
+    int ret = dispatcher->ReceiveFromAny(source, &buf, &len);
+
+    die_unless(ret == NET_SERVER_SUCCESS);
 
     return std::string((char*) buf, len);
 }
@@ -45,13 +48,17 @@ std::string FlowControlChannel::ReceiveFromAny(unsigned int *source)
 
 std::vector<std::string> MasterFlowControlChannel::ReceiveFromWorkers()
 {	
-	unsigned int id;
+    unsigned int id;
     std::vector<std::string> result(dispatcher->endpoints.size());
-	for(unsigned int i = 0; i < dispatcher->endpoints.size() - 1; i++) {
-		result[id] = ReceiveFromAny(&id);
-	}
+    for(unsigned int i = 0; i < dispatcher->endpoints.size(); i++)
+    {
+        if (i == dispatcher->localId) continue;
+        std::string r = ReceiveFrom(i);
+        //sLOG << "Received from worker id" << id << "r" << r;
+        result[i] = r;
+    }
 
-	return result;
+    return result;
 }
 
 void MasterFlowControlChannel::BroadcastToWorkers(const std::string &value)

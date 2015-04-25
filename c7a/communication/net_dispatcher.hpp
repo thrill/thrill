@@ -8,8 +8,8 @@
 #include <assert.h>
 #include <thread>
 #include <map>
-#include "execution_endpoint.hpp"
-#include "blocking_connection.hpp"
+#include <c7a/communication/execution_endpoint.hpp>
+#include <c7a/communication/net_connection.hpp>
 #include <sys/select.h>
 
 namespace c7a {
@@ -22,14 +22,20 @@ namespace communication {
 struct VertexId; //Forward declaration
 
 //TODO 4 Tobi: remove raw pointers
-class NetDispatcher {
+/*!
+ * Collection of endpoints to workers and the master.
+ */
+class NetDispatcher
+{
 public:
+
+    static const bool debug = true;
 
     const ExecutionEndpoints endpoints;
     const unsigned int localId;
     const unsigned int masterId;
 
-    NetDispatcher(unsigned int localId, ExecutionEndpoints endpoints)
+    NetDispatcher(unsigned int localId, const ExecutionEndpoints& endpoints)
         : endpoints(endpoints), localId(localId), masterId(0)
     {
         clients.resize(endpoints.size());
@@ -40,30 +46,86 @@ public:
         return InitializeClients();
     }
 
+    /*!
+     * Sends a message (data,len) to worker dest, returns status code.
+     */
     int Send(unsigned int dest, void* data, size_t len) {
+        LOG << "Sending dest=" << dest << " data=" << data << " len=" << len;
         return clients[dest]->Send(data, len);
     }
 
+    /*!
+     * Receives a message into (data,len) from worker src, returns status code.
+     */
     int Receive(unsigned int src, void** data, size_t *len) {
+        LOG << "Receive src=" << src << " data=" << data << " len=" << len;
         return clients[src]->Receive(data, len);
     }
 
-    int ReceiveFromAny(unsigned int *src, void** data, size_t* len) {
-        *src = select(0, &fd_set_, NULL, NULL, NULL);
+    /*!
+     * Receives a message from any worker into (data,len), puts worker id in
+     * *src, and returns status code.
+     */
+    int ReceiveFromAny(unsigned int *src, void** data, size_t* len)
+    {
+        fd_set fd_set;
+        int max_fd = 0;
 
-        if (*src <= 0) {
-            return NET_SERVER_CLIENT_FAILED;
-        } else {
-            return Receive(*src, data, len);
+        FD_ZERO(&fd_set);
+
+        // add file descriptor to read set for poll TODO(ts): make this faster
+        // (somewhen)
+
+        sLOG << "--- NetDispatcher::ReceiveFromAny() - select():";
+
+        for (size_t i = 0; i != endpoints.size(); ++i)
+        {
+            // skip our own client connection
+            if (i == localId) continue;
+
+            int fd = clients[i]->GetFileDescriptor();
+            FD_SET(fd, &fd_set);
+            max_fd = std::max(max_fd, fd);
+            sLOG << "select from fd=" << fd;
         }
+
+        int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
+
+        if (retval < 0) {
+            perror("select()");
+            abort();
+            return NET_SERVER_CLIENT_FAILED;
+        }
+        else if (retval == 0) {
+            perror("select() TIMEOUT");
+            abort();
+            return NET_SERVER_CLIENT_FAILED;
+        }
+
+        for (size_t i = 0; i < endpoints.size(); i++)
+        {
+            // skip our own client connection
+            if (i == localId) continue;
+
+            int fd = clients[i]->GetFileDescriptor();
+
+            if (FD_ISSET(fd, &fd_set))
+            {
+                sLOG << "select() readable fd" << fd;
+
+                *src = i;
+                return Receive(i, data, len);
+            }
+        }
+
+        sLOG << "Select() returned but no fd was readable.";
+
+        return NET_SERVER_SUCCESS;
     }
 
     void Close() {
         for(unsigned int i = 0; i < endpoints.size(); i++) {
             if(i != localId) {
-                //remove file descriptor of client that disconnects
-                FD_CLR(clients[i]->GetFileDescriptor(), &fd_set_);
-
                 clients[i]->Close();
             }
         }
@@ -72,7 +134,6 @@ public:
 private:
     int serverSocket_;
     struct sockaddr_in serverAddress_;
-    fd_set fd_set_; //list of file descriptors of all clients
 
     std::vector<NetConnection*> clients;
 
@@ -88,8 +149,20 @@ private:
         serverAddress_.sin_addr.s_addr = INADDR_ANY;
         serverAddress_.sin_port = htons(endpoints[localId].port);
 
+        int sockoptflag = 1;
+
+        if (setsockopt(serverSocket_, SOL_SOCKET, SO_REUSEPORT,
+                       &sockoptflag, sizeof(sockoptflag)) != 0)
+        {
+            perror("Cannot set SO_REUSEPORT on socket fd");
+            return NET_SERVER_INIT_FAILED;
+        }
+
         if(localId > 0) {
-            if(bind(serverSocket_, (struct sockaddr *) &serverAddress_, sizeof(serverAddress_)) < 0) {
+            if(bind(serverSocket_,
+                    (struct sockaddr *) &serverAddress_,
+                    sizeof(serverAddress_)) < 0)
+            {
                 return NET_SERVER_INIT_FAILED;
             }
 
@@ -97,16 +170,13 @@ private:
 
             //Accept connections of all hosts with lower ID.
             for(unsigned int i = 0; i < localId; i++) {
-                int clientSocket = accept(serverSocket_, &clientAddress, &clientAddressLen);
+                int fd = accept(serverSocket_, &clientAddress, &clientAddressLen);
 
-                //add file descriptor to read set for poll
-                FD_SET(clientSocket, &fd_set_);
-
-                if(clientSocket <= 0) {
+                if(fd <= 0) {
                     return NET_SERVER_ACCEPT_FAILED;
                 }
                 //Hosts will always connect in Order.
-                clients[i] = new NetConnection(clientSocket, i);
+                clients[i] = new NetConnection(fd, i);
             }
         }
         //shutdown(serverSocket_, SHUT_WR);

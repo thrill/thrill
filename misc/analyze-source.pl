@@ -301,19 +301,10 @@ foreach my $file (@filelist)
 
     if ($file =~ m!^b!) {
     }
-    elsif ($file =~ m!^ChartApp!) {
-        # skip new subapplications
-    }
-    elsif ($file =~ m!^extlib!) {
+    elsif ($file =~ m!^libs!) {
         # skip external libraries
     }
-    elsif ($file =~ m!^charter/qcustomplot/!) {
-        # skip external libraries
-    }
-    elsif ($file =~ m!/(moc|ui)_!) {
-        # skip generated files
-    }
-    elsif ($file =~ /\.(h|cpp|hpp|h.in)$/) {
+    elsif ($file =~ /^c7a\/common\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
     }
     elsif ($file =~ /\.(ui|pro\.user)$/) {
