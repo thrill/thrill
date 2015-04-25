@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "dia_base.hpp"
+#include "../data/data_manager.hpp"
 
 namespace c7a {
 
@@ -26,8 +27,8 @@ class DIANode : public DIABase {
 public:
     DIANode() {}
 
-    DIANode(const DIABaseVector& parents)
-        : DIABase(parents)
+    DIANode(data::DataManager &data_manager, const DIABaseVector& parents)
+        : DIABase(data_manager, parents)
     { }
 
     virtual ~DIANode() {}
