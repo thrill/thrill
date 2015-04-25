@@ -21,6 +21,8 @@ public:
 
     void execute() {}
 
+    virtual std::string ToString() {}
+
     const DIABaseVector& get_childs() {
         return childs_;
     }
