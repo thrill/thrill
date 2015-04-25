@@ -1,11 +1,11 @@
 /*******************************************************************************
- * c7a/<file>
+ * c7a/communication/socket.hpp
  *
  *
  ******************************************************************************/
 
-#ifndef C7A_NEW_HEADER
-#define C7A_NEW_HEADER
+#ifndef C7A_COMMUNICATION_SOCKET_HEADER
+#define C7A_COMMUNICATION_SOCKET_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
@@ -19,8 +19,7 @@ class Socket
 public:
     Socket(int fd = -1)
         : fd_(fd)
-    {
-    }
+    { }
 
     int GetFileDescriptor() const
     {
@@ -30,7 +29,7 @@ public:
     //! Send (data,size) to socket (BSD socket API function wrapper), for
     //! blocking sockets one should probably use send() instead of this
     //! lower-layer functions.
-    ssize_t _send(const void *data, size_t size, int flags = 0)
+    ssize_t _send(const void* data, size_t size, int flags = 0)
     {
         LOG << "Socket::send()"
             << " fd_=" << fd_
@@ -48,7 +47,7 @@ public:
     }
 
     //! Send (data,size) to socket, retry sends if short-sends occur.
-    ssize_t send(const void *data, size_t size, int flags = 0)
+    ssize_t send(const void* data, size_t size, int flags = 0)
     {
         LOG << "Socket::send()"
             << " fd_=" << fd_
@@ -103,12 +102,11 @@ public:
     }
 
 protected:
-
     int fd_;
 };
 
 } // namespace c7a
 
-#endif // !C7A_NEW_HEADER
+#endif // !C7A_COMMUNICATION_SOCKET_HEADER
 
 /******************************************************************************/

@@ -1,25 +1,28 @@
 /*******************************************************************************
  * c7a/communication/communication_manager.cpp
  *
+ *
  ******************************************************************************/
 
 #include "communication_manager.hpp"
 
 namespace c7a {
-namespace communication {
 
 void CommunicationManager::Initialize(std::vector<ExecutionEndpoint> endpoints)
 {
-    (void) endpoints;
+    (void)endpoints;
 }
 
-SystemControlChannel *CommunicationManager::GetSystemControlChannel()
+SystemControlChannel* CommunicationManager::GetSystemControlChannel()
 {
-	return NULL;
+    return NULL;
 }
 
-FlowControlChannel *CommunicationManager::GetFlowControlChannel()
+FlowControlChannel* CommunicationManager::GetFlowControlChannel()
 {
-	return NULL;
+    return NULL;
 }
-}}
+
+} // namespace c7a
+
+/******************************************************************************/

@@ -304,7 +304,7 @@ foreach my $file (@filelist)
     elsif ($file =~ m!^libs!) {
         # skip external libraries
     }
-    elsif ($file =~ /^c7a\/common\/.*\.(h|cpp|hpp|h.in)$/) {
+    elsif ($file =~ /^(c7a|tests)\/(common|communication)\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
     }
     elsif ($file =~ /\.(pl|pro)$/) {

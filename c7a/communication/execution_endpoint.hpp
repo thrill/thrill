@@ -1,4 +1,11 @@
-#pragma once
+/*******************************************************************************
+ * c7a/communication/execution_endpoint.hpp
+ *
+ *
+ ******************************************************************************/
+
+#ifndef C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER
+#define C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER
 
 #include <iostream>
 #include <sstream>
@@ -6,7 +13,6 @@
 #include <cstdlib>
 
 namespace c7a {
-namespace communication {
 
 class ExecutionEndpoint;
 typedef std::vector<ExecutionEndpoint> ExecutionEndpoints;
@@ -25,7 +31,8 @@ public:
     ExecutionEndpoint(unsigned int id, std::string host, int port)
         : id(id), port(port), host(host) { }
 
-    static ExecutionEndpoints ParseEndpointList(std::string str) {
+    static ExecutionEndpoints ParseEndpointList(std::string str)
+    {
         std::stringstream stream;
         stream << str;
         ExecutionEndpoints endpoints;
@@ -33,21 +40,25 @@ public:
         std::string endpoint;
         int workerId = 0;
 
-        while(stream >> endpoint) {
+        while (stream >> endpoint) {
             endpoints.push_back(ParseEndpoint(endpoint, workerId));
 
             workerId++;
         }
         return endpoints;
     }
-    static ExecutionEndpoint ParseEndpoint(std::string endpoint, int workerId) {
+    static ExecutionEndpoint ParseEndpoint(std::string endpoint, int workerId)
+    {
         int seperator = endpoint.find(":");
         std::string host = endpoint.substr(0, seperator);
-        int port = strtol(endpoint.substr(seperator + 1).c_str(),0,10);
+        int port = strtol(endpoint.substr(seperator + 1).c_str(), 0, 10);
 
         return ExecutionEndpoint(workerId, host, port);
     }
 };
 
-}
-}
+} // namespace c7a
+
+#endif // !C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER
+
+/******************************************************************************/
