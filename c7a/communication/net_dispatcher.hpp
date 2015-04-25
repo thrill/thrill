@@ -47,9 +47,22 @@ public:
         return clients[src]->Receive(data, len);
     }
 
+    int ReceiveFromAny(void** data, size_t* len) {
+        int r = select(0, &fd_set_, NULL, NULL, NULL);
+
+        if (r <= 0) {
+            return NET_SERVER_CLIENT_FAILED;
+        } else {
+            return Receive(r, data, len);
+        }
+    }
+
     void Close() {
         for(unsigned int i = 0; i < endpoints.size(); i++) {
             if(i != localId) {
+                //remove file descriptor of client that disconnects
+                FD_CLR(clients[i]->GetFileDescriptor(), &fd_set_);
+
                 clients[i]->Close();
             }
         }
@@ -58,6 +71,7 @@ public:
 private:
     int serverSocket_;
     struct sockaddr_in serverAddress_;
+    fd_set fd_set_; //list of file descriptors of all clients
 
     std::vector<NetConnection*> clients;
 
@@ -83,6 +97,9 @@ private:
             //Accept connections of all hosts with lower ID.
             for(unsigned int i = 0; i < localId; i++) {
                 int clientSocket = accept(serverSocket_, &clientAddress, &clientAddressLen);
+
+                //add file descriptor to read set for poll
+                FD_SET(clientSocket, &fd_set_);
 
                 if(clientSocket <= 0) {
                     return NET_SERVER_ACCEPT_FAILED;
