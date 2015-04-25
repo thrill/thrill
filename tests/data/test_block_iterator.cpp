@@ -5,8 +5,8 @@ using namespace c7a::data;
 
 struct TestBlockIterator : public ::testing::Test {
     TestBlockIterator()
-        : emptyIt(emptyData.begin(), emptyData.end())
-        , it     (data.begin(),      data.end()) { }
+        : emptyIt(emptyData)
+        , it     (data) { }
 
     std::vector<std::string> emptyData = {};
     std::vector<std::string> data = { "foo", "bar" };
