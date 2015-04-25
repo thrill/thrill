@@ -147,15 +147,26 @@ public:
     }
 
     void PrintNodes () {
-        std::stack<DIABase*> dia_stack;
-        dia_stack.push(get());
+        using BasePair = std::pair<DIABase*, int>;
+        std::stack<BasePair> dia_stack;
+        dia_stack.push(std::make_pair(get(), 0));
         while (!dia_stack.empty()) {
             auto curr = dia_stack.top();
+            auto node = curr.first;
+            auto depth = curr.second;
             dia_stack.pop();
-            std::cout << curr->ToString() << std::endl;
-            auto children = curr->get_childs();
+            auto is_end = true;
+            if (!dia_stack.empty()) is_end = dia_stack.top().second < depth;
+            for (int i = 0; i < depth - 1; ++i) {
+                std::cout << "│   ";
+            }
+
+            if (is_end && depth > 0) std::cout << "└── ";
+            else if (depth > 0) std::cout << "├── ";
+            std::cout << node->ToString() << std::endl;
+            auto children = node->get_childs();
             for (auto c : children) {
-                dia_stack.push(c);
+                dia_stack.push(std::make_pair(c, depth + 1));
             }
         }
     }
