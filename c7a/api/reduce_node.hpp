@@ -8,6 +8,7 @@
 #define C7A_API_REDUCE_NODE_HEADER
 
 #include "dop_node.hpp"
+#include "../common/logger.hpp"
 
 namespace c7a {
 
@@ -15,11 +16,12 @@ template <typename T, typename L, typename KeyExtractor, typename ReduceFunction
 class ReduceNode : public DOpNode<T> {
 //! Hash elements of the current DIA onto buckets and reduce each bucket to a single value.
 public: 
-    ReduceNode(const std::vector<DIABase*>& parents,
+    ReduceNode(data::DataManager &data_manager, 
+               const std::vector<DIABase*>& parents,
                L lambda,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<T>(parents),
+        : DOpNode<T>(data_manager, parents),
         local_lambda_(lambda),
         key_extractor_(key_extractor),
         reduce_function_(reduce_function) { };

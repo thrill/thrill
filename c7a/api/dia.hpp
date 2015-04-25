@@ -91,7 +91,7 @@ public:
         
         // Create new node with local lambas and parent node
         ReduceResultNode* reduce_node 
-            = new ReduceResultNode({ node_ }, local_lambda_, key_extr, reduce_fn);
+            = new ReduceResultNode(node_->get_data_manager(), { node_ }, local_lambda_, key_extr, reduce_fn);
 
         // Return new DIA with reduce node and post-op
         return DIA<dop_result_t, decltype(reduce_node->get_post_op())>
