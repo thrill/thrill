@@ -15,7 +15,7 @@ class ReduceNode : public DOpNode<T> {
 public: 
     ReduceNode(std::vector<DIABase> parents, KeyExtractor key_extractor, ReduceFunction reduce_function) : DOpNode<T>(parents), key_extractor_(key_extractor), reduce_function_(reduce_function) {};
 
-    std::string ToString() {
+    std::string ToString() override {
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         std::string str = std::string("[ReduceNode/Type=[") + typeid(T).name() + "]/KeyType=[" + typeid(key_t).name() + "]";
         return str;
