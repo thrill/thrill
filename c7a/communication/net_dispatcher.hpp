@@ -57,26 +57,45 @@ public:
     /*!
      * Sends a message (data,len) to worker dest, returns status code.
      */
-    int Send(unsigned int dest, void* data, size_t len)
+    int Send(unsigned int dest, const void* data, size_t len)
     {
-        LOG << "Sending dest=" << dest << " data=" << data << " len=" << len;
+        LOG << "NetDispatcher::Send"
+            << " " << localId << " -> " << dest
+            << " data=" << hexdump(data, len)
+            << " len=" << len;
+
         return clients[dest]->Send(data, len);
+    }
+
+    /*!
+     * Sends a message to worker dest, returns status code.
+     */
+    int Send(unsigned int dest, const std::string& message)
+    {
+        return Send(dest, message.data(), message.size());
     }
 
     /*!
      * Receives a message into (data,len) from worker src, returns status code.
      */
-    int Receive(unsigned int src, void** data, size_t* len)
+    int Receive(unsigned int src, std::string* outdata)
     {
-        LOG << "Receive src=" << src << " data=" << data << " len=" << len;
-        return clients[src]->Receive(data, len);
+        LOG << "NetDispatcher::Receive src=" << src;
+
+        int r = clients[src]->Receive(outdata);
+
+        LOG << "done NetDispatcher::Receive"
+            << " " << src << " -> " << localId
+            << " data=" << hexdump(*outdata);
+
+        return r;
     }
 
     /*!
      * Receives a message from any worker into (data,len), puts worker id in
      * *src, and returns status code.
      */
-    int ReceiveFromAny(unsigned int* src, void** data, size_t* len)
+    int ReceiveFromAny(unsigned int* src, std::string* outdata)
     {
         fd_set fd_set;
         int max_fd = 0;
@@ -124,7 +143,7 @@ public:
                 sLOG << "select() readable fd" << fd;
 
                 *src = i;
-                return Receive(i, data, len);
+                return Receive(i, outdata);
             }
         }
 

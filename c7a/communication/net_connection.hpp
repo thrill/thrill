@@ -33,6 +33,10 @@ namespace c7a {
 #define NET_CLIENT_SEND_ERROR -5
 #define NET_CLIENT_DATA_RECEIVE_FAILED -6
 
+/*!
+ * NetConnection is a message-based socket connection to another client (worker
+ * or master). Messages are opaque byte strings with a length.
+ */
 class NetConnection : protected Socket
 {
 public:
@@ -49,19 +53,25 @@ public:
           connectedWorker(workerId)
     { }
 
-    int Receive(void** buf, size_t* messageLen)
+    //! Blocking receive message from the connected socket.
+    int Receive(std::string* outdata)
     {
-        int res = receiveHeader(messageLen);
-        if (res != NET_CLIENT_SUCCESS) { return res; }
-        sLOG << "NetConnection::Receive() res1" << res
-             << "messageLen" << *messageLen;
+        size_t messageLen = 0;
 
-        if (*messageLen > 0) {
-            res = receiveData(*messageLen, receiveBuffer_);
-            if (res != NET_CLIENT_SUCCESS) { return res; }
+        if (recv(&messageLen, sizeof(messageLen)) != sizeof(messageLen)) {
+            return NET_CLIENT_HEADER_RECEIVE_FAILED;
         }
 
-        *buf = receiveBuffer_;
+        if (messageLen == 0)
+            return NET_CLIENT_SUCCESS;
+
+        outdata->resize(messageLen);
+
+        ssize_t ret = recv(const_cast<char*>(outdata->data()), messageLen);
+
+        if (ret != (ssize_t)messageLen) {
+            return NET_CLIENT_DATA_RECEIVE_FAILED;
+        }
 
         return NET_CLIENT_SUCCESS;
     }
@@ -103,17 +113,23 @@ public:
         return NET_CLIENT_SUCCESS;
     }
 
-    int Send(void* data, size_t len)
+    int Send(const void* data, size_t len)
     {
         if (send(&len, sizeof(len), MSG_MORE) != sizeof(len)) {
             return NET_CLIENT_SEND_ERROR;
         }
 
-        if (send(data, len) != len) {
+        if (send(data, len) != (ssize_t)len) {
             return NET_CLIENT_SEND_ERROR;
         }
 
         return NET_CLIENT_SUCCESS;
+    }
+
+    //! Send a message string.
+    int Send(const std::string& message)
+    {
+        return Send(message.data(), message.size());
     }
 
     void Close()
@@ -124,29 +140,8 @@ public:
 private:
     std::string address_;
     struct sockaddr_in serverAddress_;
-    char receiveBuffer_[MAX_BUF_SIZE];
-
-    int receiveHeader(size_t* len)
-    {
-        if (Socket::recv((void*)len, sizeof(size_t)) != sizeof(size_t)) {
-            return NET_CLIENT_HEADER_RECEIVE_FAILED;
-        }
-        return NET_CLIENT_SUCCESS;
-    }
 
     friend class NetDispatcher;
-
-    bool receiveData(size_t len, void* data)
-    {
-        size_t ret = Socket::recv(data, len);
-
-        if (ret != len) {
-            return NET_CLIENT_DATA_RECEIVE_FAILED;
-        }
-        else {
-            return NET_CLIENT_SUCCESS;
-        }
-    }
 };
 
 } // namespace c7a
