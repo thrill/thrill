@@ -7,11 +7,20 @@
 #ifndef C7A_API_DOP_NODE_HEADER
 #define C7A_API_DOP_NODE_HEADER
 
+#include "dia_node.hpp"
+
+namespace c7a {
+
 template <typename T>
 class DOpNode : public DIANode<T> {
-    DOpNode() {}
+public:
+    DOpNode(const std::vector<DIABase*>& parents)
+        : DIANode<T>(parents)
+    {}
     virtual ~DOpNode() {}
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_DOP_NODE_HEADER
 
