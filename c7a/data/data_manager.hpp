@@ -7,6 +7,8 @@
 #define C7A_DATA_DATA_MANAGER_HEADER
 
 #include <map>
+#include <functional>
+#include <stdexcept>
 #include "block_iterator.hpp"
 
 namespace c7a {
@@ -15,6 +17,9 @@ namespace data {
 //! Identification for DIAs
 typedef int DIAId;
 
+//! function Signature for an emitt function
+template<typename T>
+using BlockEmitter = std::function<void(T)>;
 
 //! Stores in-memory data
 //!
@@ -39,9 +44,14 @@ public:
         return data_.find(id) != data_.end();
     }
 
-    /*BlockEmitter<T> getLocalEmitter(DIAId) {
-        
-    }*/
+    template<class T>
+    BlockEmitter<T> getLocalEmitter(DIAId id) {
+        if (!Contains(id)) {
+            throw std::runtime_error("target dia id unknown.");
+        }
+        auto& target = data_[id];
+        return [&target](T elem){ target.push_back(Serialize(elem)); };
+    }
 
 private:
 
