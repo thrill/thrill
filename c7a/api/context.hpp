@@ -29,6 +29,7 @@ public:
         std::ifstream infile(filepath);
 
         std::string line;
+
         while (std::getline(infile, line)) {
             output.push_back(read_fn(line));
         }
