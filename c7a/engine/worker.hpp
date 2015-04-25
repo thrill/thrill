@@ -19,7 +19,7 @@ class Worker
 {
 public:
 
-    Worker(int id, const std::vector<int> &otherWorkers, const std::vector<K> words) :
+    Worker(int id, const std::vector<int> &otherWorkers, const std::vector<K> &words) :
             _id(id), _otherWorkers(otherWorkers), _words(words) {
 
         reduce();
@@ -32,27 +32,24 @@ public:
         // just simulate here
         std::vector<std::pair<K, V>> wordPairs;
 
-        for (std::vector<std::string>::iterator it = _words.begin(); it != _words.end(); it++) {
-            wordPairs.push_back(std::pair<K, V>(*it, 1));
-        }
+        for (auto word : _words)
+            wordPairs.push_back(make_pair(word, 1));
 
         // declare reduce function
-        std::function<V (V, V)> f_reduce = [] (const V val1, const V val2) ->V { return val1 + val2; };
+        std::function<V (V, V)> f_reduce =
+            [] (const V &val1, const V &val2) { return val1 + val2; };
 
         // iterate over K,V pairs and reduce
-        for (std::vector<std::pair<std::string, int>>::iterator it = wordPairs.begin(); it != wordPairs.end(); it++) {
-
-            std::pair<K, V> p = *it;
-
-            // key already cached
-            auto res = _wordsReduced.find(p.first);
+        for (auto wordPair : wordPairs) {
+            // key already in reduce map
+            auto res = _wordsReduced.find(wordPair.first);
             if (res != _wordsReduced.end()) {
-                V red = f_reduce(res->second, p.second);
-                res->second = red;
+                V red = f_reduce(res -> second, wordPair.second);
+                res -> second = red;
 
-            // key not cached, just insert
+            // key not in map, just insert it
             } else {
-                _wordsReduced.insert(std::make_pair(p.first, p.second));
+                _wordsReduced.insert(wordPair);
             }
         }
 
