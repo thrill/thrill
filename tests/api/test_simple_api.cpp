@@ -50,7 +50,10 @@ TEST(DIASimple, ReduceStringEquality) {
     auto key_ex = [](double in) { return (int) in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
 
-    doubles.Reduce(key_ex, red_fn);
+    auto reduced_doubles = doubles.Reduce(key_ex, red_fn);
 
+    std::cout << reduced_doubles.NodeString() << std::endl;
+
+    assert(doubles.NodeString() == "[DIANode/State:NEW/Type:d]");
 }
 
