@@ -21,10 +21,10 @@ class Stage
 public:
     Stage(DIABase* node) : node_(node)
     {
-        SpacingLogger(test) << "I'm creating a stage.";   
+        SpacingLogger(test) << "I'm creating stage" << node_->ToString();   
     }
     void Run() {
-        SpacingLogger(test) << "I'm running a stage.";
+        SpacingLogger(test) << "I'm running stage" << node_->ToString();
         //GOAL: Make sure the stage is executed efficiently. 
         node_->execute();
     };
@@ -45,11 +45,11 @@ vec_it  FindStages(DIABase* action)
     std::stack<DIABase*> dia_stack;
     dia_stack.push(action);
     while (!dia_stack.empty()) {
-        auto curr = dia_stack.top();
+        DIABase* curr = dia_stack.top();
         dia_stack.pop();
         result_stages.emplace_back(Stage(curr));
-        auto parents = curr->get_parents();
-        for (auto p : parents) {
+        std::vector<DIABase*> parents = curr->get_parents();
+        for (DIABase* p : parents) {
             dia_stack.push(p);
         }
     }
