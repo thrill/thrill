@@ -15,12 +15,13 @@
 #include "dia.hpp"
 #include "dia_node.hpp"
 #include "read_node.hpp"
+#include "../data/data_manager.hpp"
 
 namespace c7a {
 
 class Context {
 public:
-    Context() { }
+    Context() {};
     virtual ~Context() { }
 
     template <typename read_fn_t>
@@ -39,7 +40,7 @@ public:
         // std::vector<DIABase> test;
         using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-        return DIA<read_result_t>(new ReadResultNode({}, read_fn));
+        return DIA<read_result_t>(new ReadResultNode(data_manager_, {}, read_fn));
     }
 
     template <typename T, typename write_fn_t>
@@ -56,6 +57,8 @@ public:
         //  }
         //  outfile.close();
     }
+private:
+    data::DataManager data_manager_;
 };
 
 } // namespace c7a
