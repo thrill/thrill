@@ -11,6 +11,7 @@ template <typename T, typename ReadFunction>
 class ReadNode : public DOpNode<T> {
 public: 
     ReadNode(std::vector<DIABase> parents, ReadFunction read_function) : DOpNode<T>(parents), read_function_(read_function) {};
+    virtual ~ReadNode() {} 
 
     void execute() {};
 

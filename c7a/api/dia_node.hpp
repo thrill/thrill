@@ -28,7 +28,7 @@ public:
 
     virtual ~DIANode() {}
 
-    std::string ToString() {
+    virtual std::string ToString() {
         std::string str;
         str = std::string("[DIANode/State:") + state_string_() + "/Type:" + typeid(T).name() + "]";
         return str;
