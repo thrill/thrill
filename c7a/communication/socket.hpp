@@ -102,6 +102,7 @@ public:
     }
 
 protected:
+    //! the file descriptor of the socket.
     int fd_;
 };
 
