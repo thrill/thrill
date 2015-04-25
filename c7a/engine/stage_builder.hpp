@@ -21,10 +21,10 @@ class Stage
 public:
     Stage(DIABase* node) : node_(node)
     {
-        SpacingLogger(test) << "I'm creating stage" << node_->ToString();   
+        SpacingLogger(test) << "I'm creating stage" << node_->ToString() << node_;   
     }
     void Run() {
-        SpacingLogger(test) << "I'm running stage" << node_->ToString();
+        SpacingLogger(test) << "I'm running stage" << node_->ToString() << node_;
         //GOAL: Make sure the stage is executed efficiently. 
         node_->execute();
     };
