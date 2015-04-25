@@ -12,34 +12,51 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <memory>
 #include <unordered_map>
 #include <string>
 
+#include "dia_node.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
 #include "reduce_node.hpp"
 
 template <typename T>
-class DIA {
+class DIA : public std::shared_ptr< DIANode<T> > {
 public:
-    DIA() : data_() { }
+    // DIA() : data_() { }
 
-    DIA(DIANode<T> node) : data_(), my_node_(node) {
-        std::cout << node.ToString() << std::endl;
-        std::cout << my_node_.ToString() << std::endl;
+    // DIA(DIANode<T> node) : data_(), my_node_(node) {
+    //     std::cout << node.ToString() << std::endl;
+    //     std::cout << my_node_.ToString() << std::endl;
+    // }
+
+    // DIA(const std::vector<T>& init_data, DIANode<T> node) : data_(init_data), my_node_(node) { }
+
+    // DIA(const DIA& other) : data_(other.data_) { }
+
+    // explicit DIA(const std::vector<T>& init_data) : data_(init_data) { }
+
+    // explicit DIA(DIA&& other) : DIA() {
+    //     swap(*this, other);
+    // }
+
+
+    typedef std::shared_ptr< DIANode<T> > Super;
+
+    using Super::get;
+
+protected:
+    explicit DIA(DIANode<T>* node)
+        : std::shared_ptr<DIANode<T> >(node)
+    {
     }
 
-    DIA(const std::vector<T>& init_data, DIANode<T> node) : data_(init_data), my_node_(node) { }
-
-    DIA(const DIA& other) : data_(other.data_) { }
-
-    explicit DIA(const std::vector<T>& init_data) : data_(init_data) { }
-
-    explicit DIA(DIA&& other) : DIA() {
-        swap(*this, other);
+public:
+    static DIA<T> BigBang()
+    {
+        return DIA<T>(NULL);
     }
-
-    virtual ~DIA() { }
 
     struct Identity {
         template <typename U>
@@ -81,13 +98,14 @@ public:
         using emit_arg_t
                   = typename FunctionTraits<emit_fn_t>::template arg<0>;
 
-        std::vector<DIABase> parents{my_node_};
-        LOpNode<emit_arg_t,flatmap_fn_t> l_node(parents, flatmap_fn);
-      
-        return DIA(l_node);
+        using LOpResultNode
+            = LOpNode<emit_arg_t,flatmap_fn_t>;
+
+        return std::make_shared<LOpResultNode>({ this }, flatmap_fn);
     }
 
-//! Hash elements of the current DIA onto buckets and reduce each bucket to a single value.
+    //! Hash elements of the current DIA onto buckets and reduce each bucket to
+    //! a single value.
     //
     //! \param key_extr Hash function to get a key for each element.
     //! \param reduce_fn Reduces the elements (of type T) of each bucket to a single value of type U.
@@ -100,10 +118,10 @@ public:
 
         //using key_t = typename FunctionTraits<key_extr_fn_t>::result_type;
 
-        std::vector<DIABase> parents{my_node_};
-        ReduceNode<T,key_extr_fn_t,reduce_fn_t> rd_node(parents, key_extr, reduce_fn);
+        using ReduceResultNode
+            = ReduceNode<T,key_extr_fn_t,reduce_fn_t>;
 
-        return DIA(rd_node);
+        return DIA<T>(new ReduceResultNode({ get() }, key_extr, reduce_fn));
     }
 
     size_t Size() {
@@ -119,12 +137,11 @@ public:
     }
 
     std::string NodeString() {
-        return my_node_.ToString();
+        return get()->ToString();
     }
 
 private:
     std::vector<T> data_;
-    DIANode<T> my_node_;
 };
 
 #endif // !C7A_API_DIA_HEADER

@@ -12,7 +12,9 @@
 template <typename T>
 class DOpNode : public DIANode<T> {
 public:
-    DOpNode(std::vector<DIABase> parents) : DIANode<T>(parents) {};
+    DOpNode(const std::vector<DIABase*>& parents)
+        : DIANode<T>(parents)
+    {}
     virtual ~DOpNode() {}
 };
 

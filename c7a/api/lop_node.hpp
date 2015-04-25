@@ -11,8 +11,9 @@
 
 template <typename T, typename LOpFunction>
 class LOpNode : public DIANode<T> {
-public: 
-    LOpNode(std::vector<DIABase> parents, LOpFunction lop_function) : DIANode<T>(parents), lop_function_(lop_function) {};
+public:
+
+    LOpNode(const std::vector<DIABase*>& parents, LOpFunction lop_function) : DIANode<T>(parents), lop_function_(lop_function) {};
     virtual ~LOpNode() {}
 
     void execute() {};
@@ -23,7 +24,7 @@ public:
         return str;
     }
 
-private: 
+private:
     LOpFunction lop_function_;
 };
 
