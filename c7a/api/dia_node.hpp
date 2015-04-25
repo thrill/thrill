@@ -24,7 +24,9 @@ class DIANode : public DIABase {
 public:
     DIANode() {}
 
-    DIANode(std::vector<DIABase> parents) : DIABase(parents) {}
+    DIANode(const DIABaseVector& parents)
+        : DIABase(parents)
+    { }
 
     virtual ~DIANode() {}
 
