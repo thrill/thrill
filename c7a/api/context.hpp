@@ -15,6 +15,8 @@
 #include "dia.hpp"
 #include "dia_node.hpp"
 
+namespace c7a {
+
 class Context {
 public:
     Context() { }
@@ -37,11 +39,9 @@ public:
 
         std::vector<DIABase> test;
 
-        DIANode<read_result_t> node(test);
+        // DIANode<read_result_t> node(test);
 
-        std::cout << node.toString() << std::endl;
-
-        return DIA<read_result_t>(output, node);
+        // return DIA<read_result_t>(output, node);
     }
 
     template <typename T, typename write_fn_t>
@@ -59,6 +59,8 @@ public:
         outfile.close();
     }
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
 

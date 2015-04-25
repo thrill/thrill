@@ -1,5 +1,6 @@
 # c7a
 THE code repository for the almighty c7a-framework.
+![build status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=c7a&build=15)
 
 - <a href="https://github.com/PdF14-MR/c7a/wiki/Styleguide">Styleguide</a> ist im wiki.
 - Unit-test schreiben? Lies <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">hier</a>
