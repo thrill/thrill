@@ -16,11 +16,9 @@ namespace engine {
 
 
 
-class Stage
-{
+class Stage {
 public:
-    Stage(DIABase* node) : node_(node)
-    {
+    Stage(DIABase* node) : node_(node) {
         SpacingLogger(true) << "I'm creating stage" << node_->ToString() << "node" << node_;   
         // SpacingLogger(true) << "PTR IS" << node_ << node_->ToString(); 
     }
@@ -37,8 +35,7 @@ private:
 // Returns a list of stages of graph scope
 typedef std::pair<std::vector<Stage>::reverse_iterator, std::vector<Stage>::reverse_iterator> vec_it;
 
-static inline vec_it  FindStages(DIABase* action)
-{
+static inline vec_it  FindStages(DIABase* action) {
     SpacingLogger(true) << "I'm looking for stages:";
 
     std::vector<Stage> result_stages;

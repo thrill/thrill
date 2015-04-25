@@ -38,21 +38,8 @@ public:
 
     }
 
-    void ReducePreOp()
-    {
-        SpacingLogger(true) << "I'm doing reduce pre op";
-    };
-    void ReduceMainOp()
-    {
-        SpacingLogger(true) << "I'm doing reduce main op";
-    };
-    void ReducePostOp()
-    {
-        SpacingLogger(true) << "I'm doing reduce post up";
-    };
 
-    void ExecuteScope(DIABase *action)
-    {
+    void ExecuteScope(DIABase *action) {
         auto stages = FindStages(action);
         for (auto it = stages.first; it != stages.second; ++it)
         {
