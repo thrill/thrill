@@ -7,7 +7,7 @@
 #define C7A_ENGINE_CONTROLLER_HEADER
 
 #include "stage_builder.hpp"
-#include "../common/logger.hpp"    
+#include <c7a/common/logger.hpp>
 #include <functional>
 #include <vector>
 

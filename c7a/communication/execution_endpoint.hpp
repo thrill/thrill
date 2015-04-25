@@ -11,8 +11,11 @@ namespace communication {
 class ExecutionEndpoint;
 typedef std::vector<ExecutionEndpoint> ExecutionEndpoints;
 
-//represents a piece of execution hardware that has some endpoint
-class ExecutionEndpoint {
+/*!
+ * Identifies a worker, contains its host and port.
+ */
+class ExecutionEndpoint
+{
 public:
     //store some kind of endpoint information here
     const unsigned int id;
@@ -45,4 +48,6 @@ public:
         return ExecutionEndpoint(workerId, host, port);
     }
 };
-}}
+
+}
+}

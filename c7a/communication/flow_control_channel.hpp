@@ -34,10 +34,11 @@ public:
  * on the worker. 
  * 
  */
-class MasterFlowControlChannel : FlowControlChannel
+class MasterFlowControlChannel : public FlowControlChannel
 {
 public:
-	MasterFlowControlChannel(NetDispatcher *dispatcher) : FlowControlChannel(dispatcher) { }
+	MasterFlowControlChannel(NetDispatcher *dispatcher)
+            : FlowControlChannel(dispatcher) { }
 	
 	/**
 	 * @brief Receives a value from each worker in the system.
@@ -74,7 +75,7 @@ public:
  * on the master. 
  * 
  */
-class WorkerFlowControlChannel : FlowControlChannel
+class WorkerFlowControlChannel : public FlowControlChannel
 {
 public:
 	WorkerFlowControlChannel(NetDispatcher *dispatcher) : FlowControlChannel(dispatcher) { }
