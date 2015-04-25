@@ -33,9 +33,9 @@ public:
         
     }
 
-    void ExecuteScope(DIABase *scope_root) 
+    void ExecuteScope(DIABase &scope_root) 
     {
-        auto stages = BuildStages(*scope_root);
+        auto stages = FindStages(scope_root);
         for (auto s : stages) 
         {
             s.run();
