@@ -19,7 +19,6 @@
 #include "lop_node.hpp"
 #include "reduce_node.hpp"
 
-// Distributed immutable array
 template <typename T>
 class DIA {
 public:
@@ -33,8 +32,7 @@ public:
 
     explicit DIA(const std::vector<T>& init_data) : data_(init_data) { }
 
-    explicit DIA(DIA&& other) : DIA()
-    {
+    explicit DIA(DIA&& other) : DIA() {
         swap(*this, other);
     }
 
@@ -49,14 +47,12 @@ public:
         }
     };
 
-    friend void swap(DIA& first, DIA& second)
-    {
+    friend void swap(DIA& first, DIA& second) {
         using std::swap;
         swap(first.data_, second.data_);
     }
 
-    DIA& operator = (DIA rhs)
-    {
+    DIA& operator = (DIA rhs) {
         swap(*this, rhs);
         return *this;
     }
@@ -83,7 +79,7 @@ public:
                   = typename FunctionTraits<emit_fn_t>::template arg<0>;
 
         std::vector<DIABase> parents{my_node_};
-        LOpNode<emit_arg_t,flatmap_fn_t> l_node(parents, FLATMAP, flatmap_fn);
+        LOpNode<emit_arg_t,flatmap_fn_t> l_node(parents, flatmap_fn);
       
         return DIA(l_node);
     }
