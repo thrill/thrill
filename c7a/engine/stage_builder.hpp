@@ -9,6 +9,7 @@
 #include "../api/dia_base.hpp"
 #include "../common/logger.hpp"
 #include <stack>
+ #include <utility>
 
 namespace c7a { 
 namespace engine {
@@ -18,21 +19,22 @@ bool test = true;
 class Stage
 {
 public:
-    Stage(DIABase &dop_root) : dop_root_(dop_root)
+    Stage(DIABase* node) : node_(node)
     {
         SpacingLogger(test) << "I'm creating a stage.";   
     }
     void Run() {
         SpacingLogger(test) << "I'm running a stage.";
         //GOAL: Make sure the stage is executed efficiently. 
-        dop_root_.execute();
+        node_->execute();
     };
 private:
-    DIABase dop_root_;
+    DIABase* node_;
 };
 
 // Returns a list of stages of graph scope
-std::vector<Stage> FindStages(DIABase &scope_root)
+typedef std::pair<std::vector<Stage>::reverse_iterator, std::vector<Stage>::reverse_iterator> vec_it;
+vec_it  FindStages(DIABase* action)
 {
     SpacingLogger(test) << "I'm looking for stages:";
 
@@ -40,19 +42,22 @@ std::vector<Stage> FindStages(DIABase &scope_root)
 
     // GOAL: Returns a vector with stages
     // TEMP SOLUTION: Every node is a stage
-    std::stack<DIABase> dia_stack;
-    dia_stack.push(scope_root);
+    std::stack<DIABase*> dia_stack;
+    dia_stack.push(action);
     while (!dia_stack.empty()) {
         auto curr = dia_stack.top();
         dia_stack.pop();
         result_stages.emplace_back(Stage(curr));
-        auto children = curr.get_childs();
-        for (auto c : children) {
-            dia_stack.push(c);
+        auto parents = curr->get_parents();
+        for (auto p : parents) {
+            dia_stack.push(p);
         }
     }
 
-    return result_stages;
+    auto it_begin = result_stages.rbegin();
+    auto it_end = result_stages.rend();
+
+    return std::make_pair(it_begin, it_end);
 };
 
 }}
