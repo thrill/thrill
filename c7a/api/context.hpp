@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "dia.hpp"
+#include "dia_node.hpp"
 
 class Context {
 public:
@@ -29,11 +30,16 @@ public:
         std::ifstream infile(filepath);
 
         std::string line;
+
         while (std::getline(infile, line)) {
             output.push_back(read_fn(line));
         }
 
-        return DIA<read_result_t>(output);
+        std::vector<DIABase> test;
+
+        DIANode<read_result_t> node(test);
+
+        return DIA<read_result_t>(output, node);
     }
 
     template <typename T, typename write_fn_t>

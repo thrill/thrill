@@ -9,7 +9,8 @@
 
 template <typename T>
 class ActionNode : public DIANode<T> {
-
+    ActionNode() {}
+    virtual ~ActionNode() {}
 };
 
 #endif // !C7A_API_ACTION_NODE_HEADER
