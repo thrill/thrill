@@ -22,7 +22,7 @@ public:
 
     void execute() {}
 
-    virtual std::string ToString() {}
+    virtual std::string ToString() { return "DIABase"; }
 
     const DIABaseVector& get_childs() {
         return childs_;
