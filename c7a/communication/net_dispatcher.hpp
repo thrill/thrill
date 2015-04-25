@@ -26,9 +26,10 @@ public:
 
     const ExecutionEndpoints endpoints;
     const unsigned int localId;
+    const unsigned int masterId;
 
     NetDispatcher(unsigned int localId, ExecutionEndpoints endpoints)
-        : endpoints(endpoints), localId(localId)
+        : endpoints(endpoints), localId(localId), masterId(0)
     {
         clients.resize(endpoints.size());
         serverSocket_ = -1;
