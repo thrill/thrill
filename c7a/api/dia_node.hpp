@@ -32,7 +32,7 @@ public:
 
     virtual ~DIANode() {}
 
-    virtual std::string ToString() {
+    std::string ToString() override {
         std::string str;
         str = std::string("[DIANode/State:") + state_string_() + "/Type:" + typeid(T).name() + "]";
         return str;
@@ -41,7 +41,6 @@ public:
 
 protected:
     kState state_ = NEW;
-    //T my_func_;
     
     std::string state_string_() {
         switch(state_) {

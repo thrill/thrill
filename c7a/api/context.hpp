@@ -14,6 +14,7 @@
 
 #include "dia.hpp"
 #include "dia_node.hpp"
+#include "read_node.hpp"
 
 namespace c7a {
 
@@ -27,36 +28,29 @@ public:
                             const read_fn_t &read_fn) {
         static_assert(FunctionTraits<read_fn_t>::arity == 1, "error");
         using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
-        std::vector<read_result_t> output;
+        // std::vector<read_result_t> output;
+        // std::ifstream infile(filepath);
+        // std::string line;
+        // while (std::getline(infile, line)) {
+        //     output.push_back(read_fn(line));
+        // }
 
-        std::ifstream infile(filepath);
+        // std::vector<DIABase> test;
+        using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-        std::string line;
-
-        while (std::getline(infile, line)) {
-            output.push_back(read_fn(line));
-        }
-
-        std::vector<DIABase> test;
-
-        // DIANode<read_result_t> node(test);
-
-        // return DIA<read_result_t>(output, node);
+        return DIA<read_result_t>(new ReadResultNode({}, read_fn));
     }
 
     template <typename T, typename write_fn_t>
     void WriteToFileSystem(DIA<T> dia, std::string filepath,
                            const write_fn_t& write_fn)
     {
-        static_assert(FunctionTraits<write_fn_t>::arity == 1, "error");
-
-        std::ofstream outfile(filepath);
-
-        for (auto element : dia.evil_get_data()) {
-            outfile << write_fn(element) << std::endl;
-        }
-
-        outfile.close();
+        //  static_assert(FunctionTraits<write_fn_t>::arity == 1, "error");
+        //  std::ofstream outfile(filepath);
+        //  for (auto element : dia.evil_get_data()) {
+        //      outfile << write_fn(element) << std::endl;
+        //  }
+        //  outfile.close();
     }
 };
 
