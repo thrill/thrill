@@ -14,7 +14,6 @@
 namespace c7a {
 namespace engine {
 
-bool test = true;
 
 //todo make it virtual!
 template <typename T, typename K, typename V>
