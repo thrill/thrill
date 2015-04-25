@@ -62,6 +62,10 @@ TEST(DIASimple, ReduceStringEquality) {
     auto duplicates = doubles.FlatMap(map_fn);
     auto reduced_doubles = doubles.Reduce(key_ex, red_fn);
     auto reduced_duplicates = reduced_doubles.FlatMap(map_fn);
+    auto reduced_duplicates2 = reduced_doubles.FlatMap(map_fn);
+    auto reduced_duplicates3 = reduced_doubles.FlatMap(map_fn);
+    auto reduced_duplicates4 = reduced_duplicates.FlatMap(map_fn);
+    auto reduced_doubles2 = doubles.Reduce(key_ex, red_fn);
 
     doubles.PrintNodes();
     
