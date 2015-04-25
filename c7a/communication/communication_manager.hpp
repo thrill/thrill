@@ -5,6 +5,7 @@
 
 #ifndef C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
 #define C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
+#include <vector>
 
 namespace c7a {
 namespace communication {
@@ -16,7 +17,11 @@ namespace communication {
 class CommunicationManager
 {
 public:
-    void foo();
+    void Initialize(std::vector<Endpoint> endpoints);
+
+    SystemControlChannel *GetSystemControlChannel();
+
+    FlowControlChannel *GetFlowControlChannel();
 };
 
 }}

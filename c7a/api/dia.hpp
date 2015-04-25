@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <vector>
+#include <stack>
 #include <iostream>
 #include <fstream>
 #include <cassert>
@@ -25,14 +26,8 @@ namespace c7a {
 
 template <typename T>
 class DIA : public std::shared_ptr< DIANode<T> > {
+friend class Context;
 public:
-    // DIA() : data_() { }
-
-    // DIA(DIANode<T> node) : data_(), my_node_(node) {
-    //     std::cout << node.ToString() << std::endl;
-    //     std::cout << my_node_.ToString() << std::endl;
-    // }
-
     // DIA(const std::vector<T>& init_data, DIANode<T> node) : data_(init_data), my_node_(node) { }
 
     // DIA(const DIA& other) : data_(other.data_) { }
@@ -42,7 +37,6 @@ public:
     // explicit DIA(DIA&& other) : DIA() {
     //     swap(*this, other);
     // }
-
 
     typedef std::shared_ptr< DIANode<T> > Super;
 
@@ -106,7 +100,11 @@ public:
         using LOpResultNode
             = LOpNode<emit_arg_t,flatmap_fn_t>;
 
-        return std::make_shared<LOpResultNode>({ this }, flatmap_fn);
+        auto child_node = new LOpResultNode({ get() }, flatmap_fn);
+        auto child = DIA<T>(child_node);
+        get()->add_child(child_node);
+
+        return child;
     }
 
     //! Hash elements of the current DIA onto buckets and reduce each bucket to
@@ -125,8 +123,11 @@ public:
 
         using ReduceResultNode
             = ReduceNode<T,key_extr_fn_t,reduce_fn_t>;
+        auto child_node = new ReduceResultNode({ get() }, key_extr, reduce_fn);
+        auto child = DIA<T>(child_node);
+        get()->add_child(child_node);
 
-        return DIA<T>(new ReduceResultNode({ get() }, key_extr, reduce_fn));
+        return child;
     }
 
     size_t Size() {
@@ -143,6 +144,31 @@ public:
 
     std::string NodeString() {
         return get()->ToString();
+    }
+
+    void PrintNodes () {
+        using BasePair = std::pair<DIABase*, int>;
+        std::stack<BasePair> dia_stack;
+        dia_stack.push(std::make_pair(get(), 0));
+        while (!dia_stack.empty()) {
+            auto curr = dia_stack.top();
+            auto node = curr.first;
+            auto depth = curr.second;
+            dia_stack.pop();
+            auto is_end = true;
+            if (!dia_stack.empty()) is_end = dia_stack.top().second < depth;
+            for (int i = 0; i < depth - 1; ++i) {
+                std::cout << "│   ";
+            }
+
+            if (is_end && depth > 0) std::cout << "└── ";
+            else if (depth > 0) std::cout << "├── ";
+            std::cout << node->ToString() << std::endl;
+            auto children = node->get_childs();
+            for (auto c : children) {
+                dia_stack.push(std::make_pair(c, depth + 1));
+            }
+        }
     }
 
 private:
