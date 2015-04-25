@@ -5,7 +5,7 @@
 TEST(DIASimple, InputTest1ReadInt) {
      auto read_int = [](std::string line) { return std::stoi(line); };
 
-     Context ctx;
+     c7a::Context ctx;
 
      // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
 
@@ -17,7 +17,7 @@ TEST(DIASimple, InputTest1ReadInt) {
 TEST(DIASimple, InputTest1ReadDouble) {
      auto read_double = [](std::string line) { return std::stod(line); };
 
-     Context ctx;
+     c7a::Context ctx;
 
      // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
 
@@ -32,8 +32,8 @@ TEST(DIASimple, InputTest1Write) {
      auto read_int = [](std::string line) { return std::stoi(line); };
      auto write_int = [](int element) { return element; };
 
-     Context ctx;
-
+     c7a::Context ctx;
+     
      // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
      // ctx.WriteToFileSystem(initial, "tests/inputs/test1_result", write_int);
      // auto copy = ctx.ReadFromFileSystem("tests/inputs/test1_result", read_int);
@@ -45,6 +45,8 @@ TEST(DIASimple, InputTest1Write) {
 
 TEST(DIASimple, ReduceStringEquality) {
 
+    using c7a::DIA;
+    
     DIA<double> doubles = DIA<double>::BigBang();
 
     auto key_ex = [](double in) { return (int) in; };

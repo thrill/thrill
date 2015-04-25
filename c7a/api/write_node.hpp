@@ -7,6 +7,8 @@
 #ifndef C7A_API_WRITE_NODE_HEADER
 #define C7A_API_WRITE_NODE_HEADER
 
+namespace c7a {
+
 template <typename T, typename WriteFunction>
 class WriteNode : public ActionNode<T> {
 public: 
@@ -24,6 +26,8 @@ public:
 private: 
     WriteFunction write_function_;
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER
 

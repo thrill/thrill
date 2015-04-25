@@ -9,6 +9,8 @@
 
 #include "dia_node.hpp"
 
+namespace c7a {
+
 template <typename T, typename LOpFunction>
 class LOpNode : public DIANode<T> {
 public:
@@ -27,6 +29,8 @@ public:
 private:
     LOpFunction lop_function_;
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER
 
