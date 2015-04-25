@@ -100,7 +100,7 @@ public:
         using LOpResultNode
             = LOpNode<emit_arg_t,flatmap_fn_t>;
 
-        auto child_node = new LOpResultNode({ get() }, flatmap_fn);
+        auto child_node = new LOpResultNode(get()->get_data_manager(), { get() }, flatmap_fn);
         auto child = DIA<T>(child_node);
         get()->add_child(child_node);
 
@@ -123,7 +123,7 @@ public:
 
         using ReduceResultNode
             = ReduceNode<T,key_extr_fn_t,reduce_fn_t>;
-        auto child_node = new ReduceResultNode({ get() }, key_extr, reduce_fn);
+        auto child_node = new ReduceResultNode(get()->get_data_manager(), { get() }, key_extr, reduce_fn);
         auto child = DIA<T>(child_node);
         get()->add_child(child_node);
 

@@ -40,12 +40,12 @@ public:
 
     }
 
-    int Receive(void **buf, int *messageLen) {
+    int Receive(void **buf, size_t *messageLen) {
         int res = receiveHeader
             (messageLen);
         if(res != NET_CLIENT_SUCCESS) { return res; }
 
-        if(messageLen > 0) {
+        if(*messageLen > 0) {
             res = receiveData(*messageLen, receiveBuffer_);
             if(res != NET_CLIENT_SUCCESS) { return res; }
         }
@@ -84,16 +84,16 @@ public:
 
         if(connect(sock_, (struct sockaddr*)&serverAddress_, sizeof(serverAddress_)) < 0) {
             shutdown(sock_, SHUT_WR);
-            sock_ = -1;
+            sock_ = -1; 
             return NET_CLIENT_CONNECT_FAILED;
         }
 
         return NET_CLIENT_SUCCESS;
     };
 
-    int Send(void* data, int len) {
+    int Send(void* data, size_t len) {
         //TODO make this zero copy
-        memcpy(sendBuffer_, &len, sizeof(int));
+        memcpy(sendBuffer_, &len, sizeof(size_t));
         memcpy(sendBuffer_ + sizeof(int), data, len);
         if(send(sock_, sendBuffer_, len + sizeof(int), 0) < 0) {
             return NET_CLIENT_SEND_ERROR;
@@ -112,16 +112,21 @@ private:
     char sendBuffer_[MAX_BUF_SIZE];
     char receiveBuffer_[MAX_BUF_SIZE];
 
-    int receiveHeader(int *len) {
+    int receiveHeader(size_t *len) {
 
-        if(recv(sock_, (void*)len, sizeof(int), 0) != sizeof(int)) {
+        if(recv(sock_, (void*)len, sizeof(size_t), 0) != sizeof(size_t)) {
             return NET_CLIENT_HEADER_RECEIVE_FAILED;
         }
         return NET_CLIENT_SUCCESS;
     };
 
-    bool receiveData(int len, void* data) {
-        int ret = recv(sock_, data, len, 0);
+    friend class NetDispatcher;
+    int GetFileDescriptor() {
+        return sock_;
+    }
+
+    bool receiveData(size_t len, void* data) {
+        size_t ret = recv(sock_, data, len, 0);
 
         if(ret != len) {
             return NET_CLIENT_DATA_RECEIVE_FAILED;
