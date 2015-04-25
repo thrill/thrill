@@ -17,11 +17,11 @@ class ReduceNode : public DIANode<T> {
 
     void execute() {};
 
-    /*std::string toString() {
+    std::string toString() {
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         std::string str = std::string("[ReduceNode/Type=[") + typeid(T).name() + "]/KeyType=[" + typeid(key_t).name() + "]";
         return str;
-        }*/
+    }
 
 
 private: 
