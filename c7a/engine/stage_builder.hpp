@@ -22,8 +22,10 @@ public:
     Stage(DIABase* node) : node_(node)
     {
         SpacingLogger(true) << "I'm creating stage" << node_->ToString() << "node" << node_;   
+        // SpacingLogger(true) << "PTR IS" << node_ << node_->ToString(); 
     }
     void Run() {
+        // SpacingLogger(true) << "PTR IS" << node_ << node_->ToString(); 
         SpacingLogger(true) << "I'm running stage" << node_->ToString() <<  "node" << node_;
         //GOAL: Make sure the stage is executed efficiently. 
         node_->execute();
@@ -51,7 +53,9 @@ static inline vec_it  FindStages(DIABase* action)
         result_stages.emplace_back(Stage(curr));
         std::vector<DIABase*> parents = curr->get_parents();
         for (DIABase* p : parents) {
-            dia_stack.push(p);
+            // SpacingLogger(true) << "PTR IS" << p; 
+            if (p) dia_stack.push(p);
+            else SpacingLogger(true) << "OMG NULLPTR";
         }
     }
 

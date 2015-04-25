@@ -30,7 +30,7 @@ TEST(Stage, GetStagesFromBuilder) {
     auto reduced_doubles2 = doubles.Reduce(key_ex, red_fn);
 
 
-    auto stages = FindStages(&(*reduced_duplicates4));
+    auto stages = FindStages(&(*reduced_doubles2));
     for (auto it = stages.first; it != stages.second; ++it)
     {
         it->Run();
