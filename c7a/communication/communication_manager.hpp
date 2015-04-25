@@ -17,7 +17,11 @@ namespace communication {
 class CommunicationManager
 {
 public:
-    void initialize(std::vector<Endpoint> endpoints);
+    void Initialize(std::vector<Endpoint> endpoints);
+
+    SystemControlChannel *GetSystemControlChannel();
+
+    FlowControlChannel *GetFlowControlChannel();
 };
 
 }}
