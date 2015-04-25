@@ -8,9 +8,9 @@
 namespace c7a {
 namespace communication {
 
-void CommunicationManager::Initialize(std::vector<Endpoint> endpoints)
+void CommunicationManager::Initialize(std::vector<ExecutionEndpoint> endpoints)
 {
-
+    (void) endpoints;
 }
 
 SystemControlChannel *CommunicationManager::GetSystemControlChannel()
