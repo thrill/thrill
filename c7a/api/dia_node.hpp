@@ -41,7 +41,6 @@ public:
 
 protected:
     kState state_ = NEW;
-    //T my_func_;
     
     std::string state_string_() {
         switch(state_) {
