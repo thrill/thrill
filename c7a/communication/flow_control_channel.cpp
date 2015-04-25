@@ -20,28 +20,22 @@ void FlowControlChannel::SendTo(std::string message, unsigned int destination)
 
 std::string FlowControlChannel::ReceiveFrom(unsigned int source)
 {
-    void* buf;
-    size_t len;
-    int r = dispatcher->Receive(source, &buf, &len);
+    std::string message;
+
+    int r = dispatcher->Receive(source, &message);
     assert(r == NET_SERVER_SUCCESS);
 
-    return std::string((char*)buf, len);
+    return message;
 }
 
 std::string FlowControlChannel::ReceiveFromAny(unsigned int* source)
 {
-    void* buf;
-    unsigned int dummy;
-    size_t len;
+    std::string message;
 
-    if (source == NULL)
-        source = &dummy;
-
-    int ret = dispatcher->ReceiveFromAny(source, &buf, &len);
-
+    int ret = dispatcher->ReceiveFromAny(source, &message);
     die_unless(ret == NET_SERVER_SUCCESS);
 
-    return std::string((char*)buf, len);
+    return message;
 }
 
 //################### Master flow control channel

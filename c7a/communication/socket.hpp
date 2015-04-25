@@ -31,7 +31,7 @@ public:
     //! lower-layer functions.
     ssize_t _send(const void* data, size_t size, int flags = 0)
     {
-        LOG << "Socket::send()"
+        LOG << "Socket::_send()"
             << " fd_=" << fd_
             << " size=" << size
             << " data=" << hexdump(data, size)
@@ -39,7 +39,7 @@ public:
 
         ssize_t r = ::send(fd_, data, size, flags);
 
-        LOG << "done Socket::send()"
+        LOG << "done Socket::_send()"
             << " fd_=" << fd_
             << " return=" << r;
 
@@ -84,21 +84,59 @@ public:
     }
 
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    ssize_t recv(void* outdata, size_t maxsize, int flags = 0)
+    ssize_t _recv(void* outdata, size_t maxsize, int flags = 0)
     {
-        LOG << "Socket::recv()"
+        LOG << "Socket::_recv()"
             << " fd_=" << fd_
             << " maxsize=" << maxsize
             << " flags=" << flags;
 
         ssize_t r = ::recv(fd_, outdata, maxsize, flags);
 
-        LOG << "done Socket::recv()"
+        LOG << "done Socket::_recv()"
             << " fd_=" << fd_
             << " return=" << r
             << " data=" << (r >= 0 ? hexdump(outdata, r) : "<error>");
 
         return r;
+    }
+
+    //! Receive (data,size) from socket, retry recvs if short-reads occur.
+    ssize_t recv(void* outdata, size_t size, int flags = 0)
+    {
+        LOG << "Socket::recv()"
+            << " fd_=" << fd_
+            << " size=" << size
+            << " flags=" << flags;
+
+        char* cdata = static_cast<char*>(outdata);
+        size_t rb = 0; // read bytes
+
+        while (rb < size)
+        {
+            ssize_t r = ::recv(fd_, cdata + rb, size - rb, flags);
+
+            if (r < 0) {
+                // an error occured, check errno.
+
+                LOG << "done Socket::recv()"
+                    << " fd_=" << fd_
+                    << " size=" << size
+                    << " return=" << r
+                    << " errno=" << strerror(errno);
+
+                return r;
+            }
+
+            rb += r;
+        }
+
+        LOG << "done Socket::recv()"
+            << " fd_=" << fd_
+            << " return=" << rb
+            << " data=" << hexdump(outdata, rb);
+
+        return rb;
     }
 
 protected:
