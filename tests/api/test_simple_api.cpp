@@ -46,17 +46,28 @@ TEST(DIASimple, InputTest1Write) {
 TEST(DIASimple, ReduceStringEquality) {
 
     using c7a::DIA;
+    using c7a::Context;
     
-    DIA<double> doubles = DIA<double>::BigBang();
+    auto doubles = Context().ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
+            return std::stod(line);
+        });
 
     auto key_ex = [](double in) { return (int) in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
+    auto map_fn = [](double input, std::function<void(double)> emit_func) {
+            emit_func(input);
+            emit_func(input);
+        };
 
-    DIA<double> reduced_doubles = doubles.Reduce(key_ex, red_fn);
+    auto duplicates = doubles.FlatMap(map_fn);
+    auto reduced_doubles = doubles.Reduce(key_ex, red_fn);
+    auto reduced_duplicates = reduced_doubles.FlatMap(map_fn);
+    auto reduced_duplicates2 = reduced_doubles.FlatMap(map_fn);
+    auto reduced_duplicates3 = reduced_doubles.FlatMap(map_fn);
+    auto reduced_duplicates4 = reduced_duplicates.FlatMap(map_fn);
+    auto reduced_doubles2 = doubles.Reduce(key_ex, red_fn);
 
-    DIA<double> reduced_doubles2 = reduced_doubles;
-
-    std::cout << reduced_doubles.NodeString() << std::endl;
-
+    doubles.PrintNodes();
+    
     assert(reduced_doubles.NodeString() == "[ReduceNode/Type=[d]/KeyType=[i]");
 }
