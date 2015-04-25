@@ -47,13 +47,13 @@ public:
         return clients[src]->Receive(data, len);
     }
 
-    int ReceiveFromAny(void** data, size_t* len) {
-        int r = select(0, &fd_set_, NULL, NULL, NULL);
+    int ReceiveFromAny(int *src, void** data, size_t* len) {
+        *src = select(0, &fd_set_, NULL, NULL, NULL);
 
-        if (r <= 0) {
+        if (*src <= 0) {
             return NET_SERVER_CLIENT_FAILED;
         } else {
-            return Receive(r, data, len);
+            return Receive(*src, data, len);
         }
     }
 
