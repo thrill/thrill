@@ -3,24 +3,25 @@
 
 using namespace c7a::data;
 
-TEST(DataManager, GetLocalBlock_FailsIfNotFound) {
+struct DataManagerFixture : public ::testing::Test {
     DataManager manager;
-    ASSERT_ANY_THROW(manager.GetLocalBlocks<int>(0));
+    DIAId id = manager.AllocateDIA();
+};
+
+TEST_F(DataManagerFixture, GetLocalBlock_FailsIfNotFound) {
+    ASSERT_ANY_THROW(manager.GetLocalBlocks<int>(999));
 }
 
-TEST(DataManager, GetLocalEmitter_FailsIfNotFound) {
-    DataManager manager;
-    ASSERT_ANY_THROW(manager.GetLocalEmitter<int>(0));
+TEST_F(DataManagerFixture, GetLocalEmitter_FailsIfNotFound) {
+    ASSERT_ANY_THROW(manager.GetLocalEmitter<int>(23));
 }
 
-TEST(DataManager, GetLocalEmitter_CanCallEmitter) {
-    DataManager manager;
+TEST_F(DataManagerFixture, GetLocalEmitter_CanCallEmitter) {
     auto e = manager.GetLocalEmitter<int>(manager.AllocateDIA());
     ASSERT_NO_THROW(e(123));
 }
 
-TEST(DataManager, EmittAndIterate_CorrectOrder) {
-    DataManager manager;
+TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
     auto id = manager.AllocateDIA();
     auto emitFn = manager.GetLocalEmitter<int>(id);
     emitFn(123);
@@ -30,8 +31,7 @@ TEST(DataManager, EmittAndIterate_CorrectOrder) {
     ASSERT_EQ(22, it.Next());
 }
 
-TEST(DataManager, EmittAndIterate_ConcurrentAccess) {
-    DataManager manager;
+TEST_F(DataManagerFixture, EmittAndIterate_ConcurrentAccess) {
     auto id = manager.AllocateDIA();
     auto emitFn = manager.GetLocalEmitter<int>(id);
     auto it = manager.GetLocalBlocks<int>(id);
