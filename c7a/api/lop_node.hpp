@@ -9,19 +9,13 @@
 
 #include "dia_node.hpp"
 
-enum kType {
-    FLATMAP,
-    MAP
-};
-
 template <typename T, typename FuncType>
 class LOpNode : public DIANode<T> {
 public: 
-    LOpNode(std::vector<DIABase> parents, kType op_type, FuncType func) : DIANode<T>::parents_(parents), op_type_(op_type), DIANode<T>::my_func_(func) {};
+    LOpNode(std::vector<DIABase> parents, FuncType func) : DIANode<T>(parents), DIANode<T>::my_func_(func) {};
     virtual ~LOpNode() {}
 
 private: 
-    kType op_type_;
     FuncType my_func_;
 };
 

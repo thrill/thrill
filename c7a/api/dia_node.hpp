@@ -11,7 +11,6 @@
 
 #include "dia_base.hpp"
 
-
 enum kState {
     NEW,
     CALCULATED,

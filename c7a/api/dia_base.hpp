@@ -33,7 +33,7 @@ public:
         childs_.push_back(child);
     }
 
-private: 
+protected: 
     std::vector<DIABase> childs_;
     std::vector<DIABase> parents_;
 };
