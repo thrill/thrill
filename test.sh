@@ -1,2 +1,2 @@
 ./compile.sh
-build/tests/unit_tests --gtest_print_time=0
+build/tests/c7atest --gtest_print_time=0
