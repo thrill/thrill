@@ -12,9 +12,11 @@ namespace c7a {
 template <typename T, typename WriteFunction>
 class WriteNode : public ActionNode<T> {
 public: 
-    WriteNode(const std::vector<DIABase*>& parents, 
+<<<<<<< HEAD
+    WriteNode(data::DataManager &data_manager, 
+              const std::vector<DIABase*>& parents, 
               WriteFunction write_function) 
-        : ActionNode<T>(parents), write_function_(write_function) {};
+        : ActionNode<T>(data_manager, parents), write_function_(write_function) {};
     virtual ~WriteNode() {} 
 
     void execute() {};
