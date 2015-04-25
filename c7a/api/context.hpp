@@ -15,6 +15,8 @@
 #include "dia.hpp"
 #include "dia_node.hpp"
 
+namespace c7a {
+
 class Context {
 public:
     Context() { }
@@ -57,6 +59,8 @@ public:
         outfile.close();
     }
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
 

@@ -9,6 +9,8 @@
 
 #include "dop_node.hpp"
 
+namespace c7a {
+
 template <typename T, typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<T> {
 //! Hash elements of the current DIA onto buckets and reduce each bucket to a single value.
@@ -32,6 +34,8 @@ private:
     KeyExtractor key_extractor_;
     ReduceFunction reduce_function_;
 };
+
+} // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
 
