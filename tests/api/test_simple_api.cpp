@@ -2,12 +2,22 @@
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 
-TEST(DIASimple, InputTest1Read) {
+TEST(DIASimple, InputTest1ReadInt) {
      auto read_int = [](std::string line) { return std::stoi(line); };
      
      Context ctx;
 
      auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
+
+     assert(initial.Size() == 4);
+}
+
+TEST(DIASimple, InputTest1ReadDouble) {
+     auto read_double = [](std::string line) { return std::stod(line); };
+     
+     Context ctx;
+
+     auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
 
      assert(initial.Size() == 4);
 }
@@ -25,3 +35,16 @@ TEST(DIASimple, InputTest1Write) {
 
      assert(copy.Size() == 4);
 }
+
+/*TEST(DIASimple, ReduceStringEquality) {
+
+    DIA<double> doubles;
+
+    auto key_ex = [](double in) { return (int) in; };
+    auto red_fn = [](double in1, double in2) { return in1 + in2; };
+
+    //doubles.Reduce(key_ex, red_fn);
+
+
+}
+*/

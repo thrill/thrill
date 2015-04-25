@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "dia.hpp"
+#include "dia_node.hpp"
 
 class Context {
 public:
@@ -34,7 +35,13 @@ public:
             output.push_back(read_fn(line));
         }
 
-        return DIA<read_result_t>(output);
+        std::vector<DIABase> test;
+
+        DIANode<read_result_t> node(test);
+
+        std::cout << node.toString() << std::endl;
+
+        return DIA<read_result_t>(output, node);
     }
 
     template <typename T, typename write_fn_t>

@@ -17,7 +17,7 @@ enum kType {
 template <typename T, typename FuncType>
 class LOpNode : public DIANode<T> {
 public: 
-    LOpNode(std::vector<DIABase*> parents, kType op_type, FuncType func) : DIANode<T>::parents_(parents), op_type_(op_type), DIANode<T>::my_func_(func) {};
+    LOpNode(std::vector<DIABase> parents, kType op_type, FuncType func) : DIANode<T>::parents_(parents), op_type_(op_type), DIANode<T>::my_func_(func) {};
 
 private: 
     kType op_type_;
