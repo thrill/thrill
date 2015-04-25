@@ -1,7 +1,7 @@
 ################################################################################
 # c7a/CMakeLists.txt
 #
-# CMake file for c7arader library
+# CMake file for c7a library
 ################################################################################
 file(GLOB_RECURSE SRCS
          RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}

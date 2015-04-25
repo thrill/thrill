@@ -25,7 +25,8 @@ static inline std::string hexdump(const void* data, size_t size)
     out.resize(size * 2);
 
     static const char xdigits[16] = {
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        '0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
     };
 
     std::string::iterator oi = out.begin();
