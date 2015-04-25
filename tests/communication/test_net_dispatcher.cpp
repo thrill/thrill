@@ -7,7 +7,7 @@
 
 using namespace c7a::communication;
 using namespace std;
-
+namespace {
 TEST(NetDispatcher, InitializeAndClose) {
     auto endpoints = {ExecutionEndpoint::ParseEndpoint("127.0.0.1:1234", 0)};
     auto candidate = NetDispatcher(0, endpoints);
@@ -37,7 +37,6 @@ void TestNetDispatcher(NetDispatcher *candidate) {
 
         candidate->Close();
 	}
-
 };
 
 TEST(NetDispatcher, InitializeMultipleCommunication) {
@@ -61,4 +60,5 @@ TEST(NetDispatcher, InitializeMultipleCommunication) {
 	for(int i = 0; i < count; i++) {
     	threads[i].join();
     }
+}
 }
