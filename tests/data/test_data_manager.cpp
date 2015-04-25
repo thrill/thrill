@@ -5,10 +5,10 @@ using namespace c7a::data;
 
 TEST(DataManager, GetLocalBlock_FailsIfNotFound) {
     DataManager manager;
-    ASSERT_ANY_THROW(manager.getLocalBlocks<int>(0));
+    ASSERT_ANY_THROW(manager.GetLocalBlocks<int>(0));
 }
 
 TEST(DataManager, GetLocalEmitter_FailsIfNotFound) {
     DataManager manager;
-    ASSERT_ANY_THROW(manager.getLocalEmitter<int>(0));
+    ASSERT_ANY_THROW(manager.GetLocalEmitter<int>(0));
 }
