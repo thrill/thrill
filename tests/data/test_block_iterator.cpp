@@ -4,9 +4,9 @@
 using namespace c7a::data;
 
 struct TestBlockIterator : public ::testing::Test {
-    TestBlockIterator() 
-        : emptyIt(emptyData.begin(), emptyData.end())
-        , it     (data.begin(),      data.end()) { }
+    TestBlockIterator()
+        : emptyIt(emptyData)
+        , it     (data) { }
 
     std::vector<std::string> emptyData = {};
     std::vector<std::string> data = { "foo", "bar" };
@@ -15,21 +15,21 @@ struct TestBlockIterator : public ::testing::Test {
 };
 
 TEST_F(TestBlockIterator, EmptyArrayHasNotNext) {
-    ASSERT_FALSE(emptyIt.has_next());
+    ASSERT_FALSE(emptyIt.HasNext());
 }
 
 TEST_F(TestBlockIterator, IterateOverStrings) {
-    ASSERT_EQ("foo", it.next());
-    ASSERT_EQ("bar", it.next());
+    ASSERT_EQ("foo", it.Next());
+    ASSERT_EQ("bar", it.Next());
 }
 
 TEST_F(TestBlockIterator, HasNextReturnsFalseAtTheEnd) {
-    (void) it.next();
-    (void) it.next();
-    ASSERT_FALSE(it.has_next());
+    (void) it.Next();
+    (void) it.Next();
+    ASSERT_FALSE(it.HasNext());
 }
 
 TEST_F(TestBlockIterator, HasNextReturnsTrueInTheMiddle) {
-    (void) it.next();
-    ASSERT_TRUE(it.has_next());
+    (void) it.Next();
+    ASSERT_TRUE(it.HasNext());
 }
