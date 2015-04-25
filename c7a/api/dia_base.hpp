@@ -3,8 +3,11 @@
  *
  * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
  ******************************************************************************/
+#pragma once
 
-#include<vector>
+#include <vector>
+#include <string>
+#include "../data/data_manager.hpp"
 
 namespace c7a {
 
@@ -13,15 +16,15 @@ public:
 
     typedef std::vector<DIABase*> DIABaseVector;
 
-    DIABase(const DIABaseVector& parents)
-        : parents_(parents)
+    DIABase(data::DataManager &data_manager, const DIABaseVector& parents)
+        : data_manager_(data_manager), parents_(parents)
     {}
 
     virtual ~DIABase() {}
 
     virtual void execute() {}
 
-    virtual std::string ToString() {}
+    virtual std::string ToString() { return "DIABase"; }
 
     const DIABaseVector& get_childs() {
         return childs_;
@@ -31,11 +34,16 @@ public:
         return parents_;
     }
 
+    data::DataManager & get_data_manager() {
+        return data_manager_;
+    }
+
     void add_child(DIABase* child) {
         childs_.push_back(child);
     }
 
 protected:
+    data::DataManager &data_manager_;
     DIABaseVector childs_, parents_;
 };
 
