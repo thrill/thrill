@@ -21,9 +21,9 @@ protected:
 	NetDispatcher *dispatcher;	
 public:
 	FlowControlChannel(NetDispatcher *dispatcher) : dispatcher(dispatcher) { }
-	void sendTo(std::string message, int destination); //TODO call-by-value is only tmp here and two lines below
-	std::string receiveFrom(int source);
-	std::string receiveFromAny(int *source = NULL);
+	void sendTo(std::string message, unsigned int destination); //TODO call-by-value is only tmp here and two lines below
+	std::string receiveFrom(unsigned int source);
+	std::string receiveFromAny(unsigned int *source = NULL);
 
 };
 
