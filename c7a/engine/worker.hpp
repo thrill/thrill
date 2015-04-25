@@ -31,7 +31,7 @@ public:
     }
 
     template<typename K, typename V>
-    void reduce(const std::vector<K> w) {
+    void reduce(const std::vector<K> &w) {
 
         std::vector<K> words = w;
         std::map<K, V> wordsReducedSend;
@@ -42,8 +42,7 @@ public:
         // just simulate here
         std::vector<std::pair<K, V>> wordPairs;
 
-        // TODO: replace concrete types with K and V
-        for (std::vector<std::string>::iterator it = words.begin(); it != words.end(); it++) {
+        for (auto it = words.begin(); it != words.end(); it++) {
             wordPairs.push_back(std::pair<K, V>(*it, 1));
         }
 
@@ -55,7 +54,7 @@ public:
         //////////
 
         // iterate over K,V pairs and reduce
-        for (std::vector<std::pair<std::string, int>>::iterator it = wordPairs.begin(); it != wordPairs.end(); it++) {
+        for (auto it = wordPairs.begin(); it != wordPairs.end(); it++) {
 
             std::pair<K, V> p = *it;
 
@@ -76,13 +75,14 @@ public:
         //////////
 
         // iterate over map with reduce data
-        for(std::map<std::string, int>::iterator it = wordsReducedSend.begin(); it != wordsReducedSend.end(); it++) {
+        for(auto it = wordsReducedSend.begin(); it != wordsReducedSend.end(); it++) {
 
             std::pair<K, V> p = *it;
             p.first;
             p.second;
 
             // compute hash value
+            // TODO: fix hashing
             int targetWorker = hash(p.first, _otherWorkers.size()+1);
 
             std::string msg = "word: " + p.first + " target worker: " + std::to_string(targetWorker);
@@ -97,13 +97,14 @@ public:
                 std::string msg = "payload: " + payload + " stays on worker: " + std::to_string(targetWorker);
                 Logger::instance().log(msg);
 
-                // data to be send to other worker
+            // data to be send to other worker
             } else {
                 // serialize payload
 
                 std::string msg = "send payload : " + payload + " to worker: " + std::to_string(targetWorker);
                 Logger::instance().log(msg);
 
+                // TODO: cache data to be send, send as once
                 _mockSelect.sendToWorkerString(targetWorker, payload);
             }
         }
@@ -118,13 +119,16 @@ public:
         int received = 0;
         while (received < _otherWorkers.size()) {
             _mockSelect.receiveFromAnyString(&out_sender, &out_data);
+            // TODO: deserialize data
             // actually insert received data to: _wordsReducedReceived
 
-            std::string msg = "received from: " + std::to_string(out_sender) + " data: " + out_data;
+            std::string msg = "worker " + std::to_string(_id) + " received from: " + std::to_string(out_sender) + " data: " + out_data;
             Logger::instance().log(msg);
 
             received++;
         }
+
+        // TODO: local reduce
     }
 
 private:
