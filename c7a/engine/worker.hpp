@@ -42,9 +42,8 @@ public:
         // just simulate here
         std::vector<std::pair<K, V>> wordPairs;
 
-        for (auto it = words.begin(); it != words.end(); it++) {
-            wordPairs.push_back(std::pair<K, V>(*it, 1));
-        }
+        for (auto word : _words)
+            wordPairs.push_back(std::make_pair(word, 1));
 
         // declare reduce function
         std::function<V (V, V)> f_reduce = [] (const V val1, const V val2) ->V { return val1 + val2; };
