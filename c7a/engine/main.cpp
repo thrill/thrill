@@ -1,50 +1,49 @@
-/*
+/*******************************************************************************
  * Perform All-Reduce in the hypercube for the workers.
+ *
  * Author: Robert Hangu
- */
-//#include "controller.hpp"
-#include "mock-network.hpp"
+ ******************************************************************************/
+
 #include <iostream>
 #include <thread>
 #include <vector>
 #include <sstream>
 
-#if THIS_BELONGS_INTO_TESTS
+#include <c7a/net/net-group.hpp>
+#include <c7a/net/flow_control_channel.hpp>
 
-std::vector<std::thread> threads;
+#if THIS_BELONGS_INTO_TESTS
 
 // Number of workers in the network
 int worker_count;
 
-void worker(c7a::MockNetwork& net, size_t id, int local_value) {
-    c7a::MockSelect client(net, id);
-
+void CommunicationOfOneThread(c7a::NetGroup* net) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
-    for (int d = 1; d <= worker_count; d <<= 1) {
-        // Convert the local int to string
-        std::ostringstream local_value_string;
-        local_value_string << local_value;
+
+    int local_value = net -> MyRank();
+    for (int d = 1; d < worker_count; d <<= 1) {
         // Send local_value to worker with id id ^ d
-        client.sendToWorkerString(id ^ d, local_value_string.str());
+        if ((net -> MyRank() ^ d) < worker_count){
+            net -> SendMsg(net -> MyRank() ^ d, std::to_string(local_value));
+            std::cout << "LOCAL: Worker " << net -> MyRank() << ": Sending " << local_value
+                      << " to worker " << (net -> MyRank() ^ d) << "\n";
+        }
 
         // Receive local_value from worker with id id ^ d
-        size_t from_whom;
         std::string recv_data;
-        client.receiveFromAnyString(&from_whom, &recv_data);
-        std::cout << "Worker " << id << ": Received " << recv_data
-                  << " from worker " << from_whom << "\n";
+        if ((net -> MyRank() ^ d) < worker_count) {
+            net -> ReceiveFrom(net -> MyRank() ^ d, &recv_data);
+            std::cout << "LOCAL: Worker " << net -> MyRank() << ": Received " << recv_data
+                      << " from worker " << (net -> MyRank() ^ d) << "\n";
+        }
     }
 }
 
 int main() {
-    c7a::MockNetwork net;
+    worker_count = 8;
 
-    for (int i = 0; i < 8; ++i)
-        threads.push_back(std::thread(worker, std::ref(net), i, 2 * (i + 1)));
-
-    for (int i = 0; i < threads.size(); ++i)
-        threads[i].join();
+    c7a::NetGroup::ExecuteLocalMock(worker_count, CommunicationOfOneThread);
 
     return 0;
 }
