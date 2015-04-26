@@ -11,6 +11,7 @@
 #include <stack>
 #include <string>
 #include <utility>
+#include <algorithm>
 
 namespace c7a { 
 namespace engine {
