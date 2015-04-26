@@ -23,8 +23,6 @@
 
 namespace c7a {
 
-#define MAX_BUF_SIZE 10000
-
 #define NET_CLIENT_SUCCESS 0
 #define NET_CLIENT_HEADER_RECEIVE_FAILED -1
 #define NET_CLIENT_CONNECT_FAILED -2
@@ -127,20 +125,20 @@ public:
     //! Blocking receive string message from the connected socket.
     int ReceiveString(std::string* outdata)
     {
-        size_t messageLen = 0;
+        size_t len = 0;
 
-        if (recv(&messageLen, sizeof(messageLen)) != sizeof(messageLen)) {
+        if (recv(&len, sizeof(len)) != sizeof(len)) {
             return NET_CLIENT_HEADER_RECEIVE_FAILED;
         }
 
-        if (messageLen == 0)
+        if (len == 0)
             return NET_CLIENT_SUCCESS;
 
-        outdata->resize(messageLen);
+        outdata->resize(len);
 
-        ssize_t ret = recv(const_cast<char*>(outdata->data()), messageLen);
+        ssize_t ret = recv(const_cast<char*>(outdata->data()), len);
 
-        if (ret != (ssize_t)messageLen) {
+        if (ret != (ssize_t)len) {
             return NET_CLIENT_DATA_RECEIVE_FAILED;
         }
 
