@@ -18,7 +18,9 @@ public:
 
     DIABase(data::DataManager &data_manager, const DIABaseVector& parents)
         : data_manager_(data_manager), parents_(parents)
-    {}
+    {
+        data_id_ = data_manager_.AllocateDIA();
+    }
 
     virtual ~DIABase() {}
 
@@ -43,7 +45,8 @@ public:
     }
 
 protected:
-    data::DataManager &data_manager_;
+    data::DataManager & data_manager_;
+    data::DIAId data_id_;
     DIABaseVector childs_, parents_;
 };
 

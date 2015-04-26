@@ -58,6 +58,14 @@ private:
     auto PreOp(T t) {
         local_lambda_(t);
         std::cout << "PreOp" << std::endl;
+
+        //get data from data manager
+        data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(this->data_id_);
+
+        //run local reduce
+
+
+
         return t;
     }
 
