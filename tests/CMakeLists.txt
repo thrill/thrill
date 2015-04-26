@@ -11,6 +11,7 @@ set(SRCS
     data/test_block_iterator.cpp
     data/test_serializer.cpp
     net/test-net-group.cpp
+    net/test-channel-multiplexer.cpp
     engine/mock-network.cpp
     engine/test_stage_builder.cpp
 )
