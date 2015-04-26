@@ -28,7 +28,7 @@ public:
 
     SystemControlChannel * GetSystemControlChannel();
 
-    FlowControlChannel * GetFlowControlChannel();
+    //FlowControlChannel * GetFlowControlChannel();
 };
 
 } // namespace c7a

@@ -21,10 +21,10 @@ SystemControlChannel* CommunicationManager::GetSystemControlChannel()
     return NULL;
 }
 
-FlowControlChannel* CommunicationManager::GetFlowControlChannel()
-{
-    return NULL;
-}
+// FlowControlChannel* CommunicationManager::GetFlowControlChannel()
+// {
+//     return NULL;
+// }
 
 } // namespace c7a
 

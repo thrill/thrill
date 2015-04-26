@@ -28,11 +28,10 @@ class ExecutionEndpoint
 public:
     //store some kind of endpoint information here
     const unsigned int id;
-    const int port;
-    const std::string host;
+    const std::string hostport;
 
-    ExecutionEndpoint(unsigned int id, std::string host, int port)
-        : id(id), port(port), host(host) { }
+    ExecutionEndpoint(unsigned int id, const std::string& hostport)
+        : id(id), hostport(hostport) { }
 
     static ExecutionEndpoints ParseEndpointList(std::string str)
     {
@@ -40,23 +39,14 @@ public:
         stream << str;
         ExecutionEndpoints endpoints;
 
-        std::string endpoint;
+        std::string hostport;
         int workerId = 0;
 
-        while (stream >> endpoint) {
-            endpoints.push_back(ParseEndpoint(endpoint, workerId));
-
+        while (stream >> hostport) {
+            endpoints.push_back(ExecutionEndpoint(workerId, hostport));
             workerId++;
         }
         return endpoints;
-    }
-    static ExecutionEndpoint ParseEndpoint(std::string endpoint, int workerId)
-    {
-        int seperator = endpoint.find(":");
-        std::string host = endpoint.substr(0, seperator);
-        int port = strtol(endpoint.substr(seperator + 1).c_str(), 0, 10);
-
-        return ExecutionEndpoint(workerId, host, port);
     }
 };
 

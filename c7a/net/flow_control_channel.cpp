@@ -12,6 +12,8 @@
 
 namespace c7a {
 
+#ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
+
 //################### Base flow control channel.
 
 void FlowControlChannel::SendTo(std::string message, unsigned int destination)
@@ -112,6 +114,8 @@ std::vector<std::string> WorkerFlowControlChannel::AllToAll(std::vector<std::str
 
     return result;
 }
+
+#endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 } // namespace c7a
 
