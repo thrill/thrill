@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "c7a/engine/mock-network.hpp"
 
-using namespace c7a;
+using namespace c7a::engine;
 
 TEST(TestMockNetwork, TestMockNetwork)
 {

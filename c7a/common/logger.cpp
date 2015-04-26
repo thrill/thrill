@@ -1,30 +1,20 @@
 /*******************************************************************************
- * c7a/communication/communication_manager.cpp
+ * c7a/common/logger.cpp
+ *
+ * Simple and less simple logging classes.
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "communication_manager.hpp"
+#include <c7a/common/logger.hpp>
 
 namespace c7a {
 
-void CommunicationManager::Initialize(std::vector<ExecutionEndpoint> endpoints)
-{
-    (void)endpoints;
-}
-
-SystemControlChannel* CommunicationManager::GetSystemControlChannel()
-{
-    return NULL;
-}
-
-FlowControlChannel* CommunicationManager::GetFlowControlChannel()
-{
-    return NULL;
-}
+std::mutex Logger::mutex_;
 
 } // namespace c7a
 

@@ -22,7 +22,7 @@ public:
 
     virtual ~DIABase() {}
 
-    void execute() {}
+    virtual void execute() {}
 
     virtual std::string ToString() { return "DIABase"; }
 

@@ -12,14 +12,19 @@ namespace c7a {
 template <typename T, typename WriteFunction>
 class WriteNode : public ActionNode<T> {
 public: 
-    WriteNode(data::DataManager &data_manager, std::vector<DIABase> parents, WriteFunction write_function) : ActionNode<T>(data_manager, parents), write_function_(write_function) {};
+<<<<<<< HEAD
+    WriteNode(data::DataManager &data_manager, 
+              const std::vector<DIABase*>& parents, 
+              WriteFunction write_function) 
+        : ActionNode<T>(data_manager, parents), write_function_(write_function) {};
     virtual ~WriteNode() {} 
 
     void execute() {};
 
-    std::string toString() {
+    std::string toString() override {
         using key_t = typename FunctionTraits<WriteFunction>::result_type;
-        std::string str = std::string("[WriteNode/Type=[") + typeid(T).name() + "]";
+        std::string str 
+            = std::string("[WriteNode/Type=[") + typeid(T).name() + "]";
         return str;
     }
 
