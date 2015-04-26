@@ -20,13 +20,14 @@ TEST(Stage, GetStagesFromBuilder) {
             std::cout << "Map" << std::endl;
             return input;
         };
+
     auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
             std::cout << "FlatMap" << std::endl;
             emit_func(input);
             emit_func(input);
         };
 
-    // auto duplicates = doubles.Map(map_fn);
+    auto duplicates = doubles.Map(map_fn);
     // auto duplicates2 = duplicates.Map(map_fn);
     auto doubles2 = doubles.Reduce(key_ex, red_fn);
 

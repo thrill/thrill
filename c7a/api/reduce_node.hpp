@@ -1,7 +1,7 @@
 /*******************************************************************************
  * c7a/api/dop_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Model real-time or backtesting Portfolio with Positions, TradeStackog and more.
  ******************************************************************************/
 
 #ifndef C7A_API_REDUCE_NODE_HEADER
@@ -14,17 +14,17 @@
 
 namespace c7a {
 
-template <typename T, typename L, typename KeyExtractor, typename ReduceFunction>
+template <typename T, typename Stack, typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<T> {
 //! Hash elements of the current DIA onto buckets and reduce each bucket to a single value.
 public: 
     ReduceNode(data::DataManager &data_manager, 
                const std::vector<DIABase*>& parents,
-               L lambda,
+               Stack& stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
         : DOpNode<T>(data_manager, parents),
-        local_lambda_(lambda),
+        local_stack_(stack),
         key_extractor_(key_extractor),
         reduce_function_(reduce_function) {};
 
@@ -45,23 +45,22 @@ public:
         using reduce_t 
             = typename FunctionTraits<ReduceFunction>::result_type;
 
-        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)>) {
+        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)> emit_func) {
             return emit_func(t);
         };
 
-        FunctionStack<> stack = new FunctionStack<>();
-        stack.push(id_fn);
-
-        return stack;
+        FunctionStack<> stack;
+        return stack.push(id_fn);
     }
 
 private: 
-    L local_lambda_;
+    Stack local_stack_;
     KeyExtractor key_extractor_;
     ReduceFunction reduce_function_;
 
-
-    auto PreOp() {
+    void PreOp() {
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
         std::cout << "PreOp" << std::endl;
 
         data::DIAId pid = this->get_parents()[0]->get_data_id();
@@ -72,17 +71,25 @@ private:
         // std::vector<std::string>::iterator end = local_block.end();
         
         // //run local reduce
-        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         std::unordered_map<key_t, T> hash;
 
         SpacingLogger(true) << "######################";
         SpacingLogger(true) << "INPUT";
         SpacingLogger(true) << "######################";
 
+
+        std::vector<reduce_arg_t> elements;
+        auto save_fn = [&elements](reduce_arg_t input) {
+                elements.push_back(input);
+            };
+        auto lop_chain = local_stack_.push(save_fn).emit();
+
         // loop over input        
         while (it.HasNext()){
-            auto item = it.Next();
-            local_lambda_(item);
+            lop_chain(it.Next());
+        }
+
+        for (auto item : elements) { 
             key_t key = key_extractor_(item);
             auto elem = hash.find(key);            
             SpacingLogger(true) << item;
@@ -108,11 +115,11 @@ private:
         SpacingLogger(true);
     }
 
-    auto MainOp() {
+    void MainOp() {
         std::cout << "MainOp" << std::endl;
     }
 
-    auto PostOp() {
+    void PostOp() {
         std::cout << "PostOp" << std::endl;
     }
 };
