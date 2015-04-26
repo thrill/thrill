@@ -20,7 +20,10 @@ TEST_F(DataManagerFixture, GetLocalEmitter_CanCallEmitter) {
     auto e = manager.GetLocalEmitter<int>(manager.AllocateDIA());
     ASSERT_NO_THROW(e(123));
 }
-
+TEST_F(DataManagerFixture, AllocateTwice) {
+    manager.AllocateDIA();
+    manager.AllocateDIA();
+}
 TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
     auto id = manager.AllocateDIA();
     auto emitFn = manager.GetLocalEmitter<int>(id);
