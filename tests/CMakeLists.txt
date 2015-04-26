@@ -5,7 +5,7 @@
 ################################################################################
 
 set(SRCS
-    main.cpp
+    c7a-tests.cpp
     api/test_simple_api.cpp
     data/test_data_manager.cpp
     data/test_block_iterator.cpp
@@ -14,19 +14,16 @@ set(SRCS
     net/test-channel-multiplexer.cpp
     engine/mock-network.cpp
     engine/test_stage_builder.cpp
+    # api/test_wordcount.cpp
+    data/test_dia_allocate
 )
 
-add_executable(c7atest ${SRCS})
+add_executable(c7a-tests ${SRCS})
 
-target_link_libraries(c7atest
-  c7a
-  gmock
-  gtest
-  pthread
+target_link_libraries(c7a-tests
+  c7a gtest gmock pthread
 )
 
-add_test(c7atest c7atest)
-
-install(TARGETS c7atest DESTINATION build)
+add_test(c7a-tests c7a-tests ${CMAKE_CURRENT_SOURCE_DIR})
 
 ################################################################################

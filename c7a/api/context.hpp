@@ -28,16 +28,18 @@ public:
     auto ReadFromFileSystem(std::string filepath,
                             const read_fn_t &read_fn) {
         (void) filepath; //TODO remove | to supress warning
-
-        // Set types 
         using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
         using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-        // Create initial lambda function for chaining
-        auto id = [](read_result_t t) { return t; };
-        // Return new DIA with id function and no parent
-        return DIA<read_result_t, decltype(id)>
-            (new ReadResultNode(data_manager_, {}, read_fn), id);
+        ReadResultNode* read_node 
+            = new ReadResultNode(data_manager_, 
+                                 {}, 
+                                 read_fn, 
+                                 filepath);
+
+        auto read_stack = read_node->ProduceStack();
+        return DIA<read_result_t, decltype(read_stack)>
+            (read_node, read_stack);
     }
 
     template <typename T, typename L, typename write_fn_t>
