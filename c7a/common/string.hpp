@@ -2,6 +2,12 @@
  * c7a/common/string.hpp
  *
  * Some string helper functions
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_COMMON_STRING_HEADER
