@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/socket_address.hpp
+ * c7a/net/socket_address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -10,8 +10,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_SOCKET_ADDRESS_HEADER
-#define C7A_COMMUNICATION_SOCKET_ADDRESS_HEADER
+#ifndef C7A_NET_SOCKET_ADDRESS_HEADER
+#define C7A_NET_SOCKET_ADDRESS_HEADER
 
 #include <vector>
 #include <string>
@@ -272,6 +272,6 @@ public:
 
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_SOCKET_ADDRESS_HEADER
+#endif // !C7A_NET_SOCKET_ADDRESS_HEADER
 
 /******************************************************************************/
