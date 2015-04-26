@@ -27,21 +27,17 @@ public:
     template <typename read_fn_t>
     auto ReadFromFileSystem(std::string filepath,
                             const read_fn_t &read_fn) {
-        static_assert(FunctionTraits<read_fn_t>::arity == 1, "error");
-        using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
         (void) filepath; //TODO remove | to supress warning
-        // std::vector<read_result_t> output;
-        // std::ifstream infile(filepath);
-        // std::string line;
-        // while (std::getline(infile, line)) {
-        //     output.push_back(read_fn(line));
-        // }
 
-        // std::vector<DIABase> test;
+        // Set types 
+        using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
         using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
+        // Create initial lambda function for chaining
         auto id = [](read_result_t t) { return t; };
-        return DIA<read_result_t, decltype(id)>(new ReadResultNode(data_manager_, {}, read_fn), id);
+        // Return new DIA with id function and no parent
+        return DIA<read_result_t, decltype(id)>
+            (new ReadResultNode(data_manager_, {}, read_fn), id);
     }
 
     template <typename T, typename L, typename write_fn_t>
@@ -51,12 +47,6 @@ public:
         (void) filepath; //TODO remove | to supress warning
         (void) dia ;     //TODO remove | to supress warning
         (void) write_fn;     //TODO remove | to supress warning
-        //  static_assert(FunctionTraits<write_fn_t>::arity == 1, "error");
-        //  std::ofstream outfile(filepath);
-        //  for (auto element : dia.evil_get_data()) {
-        //      outfile << write_fn(element) << std::endl;
-        //  }
-        //  outfile.close();
     }
 private:
     data::DataManager data_manager_;
