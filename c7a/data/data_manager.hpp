@@ -55,7 +55,7 @@ public:
     }
 
     DIAId AllocateDIA() {
-        SpacingLogger(true) << "Allocate DIA" << nextId_;
+        SpacingLogger(true) << "Allocate DIA" << data_.size() - 1;
         //data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
         data_.push_back( std::vector<Blob>() );
         return data_.size() - 1;
@@ -76,8 +76,7 @@ private:
 
     //YES I COULD just use a map of (int, vector) BUT then I have a weird
     //behaviour of std::map on inserts. Sometimes it randomly kills itself.
-    //May depend on the compiler. Google it.
-    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
+    //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
     std::vector<std::vector<Blob>> data_;
 };
 
