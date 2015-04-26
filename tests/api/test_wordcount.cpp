@@ -11,7 +11,9 @@ TEST(WordCount, PreOP) {
     using c7a::Context;
 
     Context ctx;
-    auto doubles = ctx.ReadFromFileSystem("tests/inputs/wordcount.in", [](std::string line) {
+    auto doubles = ctx.ReadFromFileSystem(
+        "tests/inputs/wordcount.in",
+        [](const std::string& line) {
             return line;
         });
 
