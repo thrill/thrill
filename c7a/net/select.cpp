@@ -66,8 +66,8 @@ Socket* Select::SelectOne(const int msec,
 
     // int selsays = msec - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
 
-    Socket::trace("Spent %d msec in select. select says %d\n",
-                  elapsed_, selsays);
+    LOG << "Select::SelectOne() spent " << elapsed_ << " msec in select."
+        << "select() says " << r;
 
 #endif
 
