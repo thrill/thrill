@@ -79,6 +79,10 @@ public:
         childs_.push_back(child);
     }
 
+    data::DIAId get_data_id() {
+        return data_id_;
+    }
+
 protected:
     //! DataManager, which can give iterators to data.
     data::DataManager & data_manager_;
