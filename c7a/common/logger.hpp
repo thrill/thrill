@@ -48,7 +48,7 @@ public:
 
     //! output any type, including io manipulators
     template <typename AnyType>
-    Logger& operator << (AnyType at)
+    Logger& operator << (const AnyType& at)
     {
         if (real_) std::cout << at;
         return *this;
@@ -85,7 +85,7 @@ public:
 
     //! output any type, including io manipulators
     template <typename AnyType>
-    SpacingLogger& operator << (AnyType at)
+    SpacingLogger& operator << (const AnyType& at)
     {
         if (!real_) return *this;
 
