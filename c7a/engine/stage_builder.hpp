@@ -34,7 +34,7 @@ private:
 };
 
 // Returns a list of stages of graph scope
-void  FindStages(DIABase* action, std::vector<Stage> & stages_result) {
+inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
     SpacingLogger(true) << "FINDING stages:";
     std::set<DIABase*> stages_found;
     // GOAL: Returns a vector with stages

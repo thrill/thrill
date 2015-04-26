@@ -25,10 +25,8 @@ auto run_emitter(L lambda)
     using param_t = typename FunctionTraits<L>::template arg<0>;
     // auto arity = FunctionTraits<L>::arity;
 
-    return [=](param_t i) {
-        lambda(i, [](param_t i) {
-                std::cout << "Base got: " << i << "\n";
-            });
+    return [=](param_t i) -> void {
+        lambda(i);
     };
 }
 
@@ -38,7 +36,7 @@ auto run_emitter(L lambda, Ls... rest)
     using param_t = typename FunctionTraits<L>::template arg<0>;
     // auto arity = FunctionTraits<L>::arity;
 
-    return [=](param_t i){
+    return [=](param_t i) -> void {
         lambda(i, run_emitter(rest...));
     };
 }
