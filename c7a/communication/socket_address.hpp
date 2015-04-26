@@ -15,9 +15,11 @@
 
 #include <vector>
 #include <string>
-#include <netinet/in.h>
-#include <inttypes.h>
+#include <cstdint>
 #include <cstring>
+#include <iosfwd>
+
+#include <netinet/in.h>
 
 namespace c7a {
 
@@ -59,7 +61,7 @@ public:
 
     //! Create a socket address object and resolve the given host:port using
     //! getaddrinfo(). Check result with is_valid().
-    SocketAddress(const char* hostport);
+    SocketAddress(const std::string& hostport);
 
     //! Create a socket address object and resolve the given host name using
     //! getaddrinfo(). Check result with is_valid().
@@ -179,6 +181,9 @@ public:
     //! Return textual message of the last error occurring in the resolve
     //! method.
     const char * get_resolve_error() const;
+
+ //! Make the socket address ostream-able.
+friend std::ostream& operator << (std::ostream& os, const SocketAddress& sa);
 };
 
 class IPv4Address : public SocketAddress
