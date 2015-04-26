@@ -15,7 +15,7 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/communication/socket_address.hpp>
+#include <c7a/net/socket_address.hpp>
 
 #include <cerrno>
 #include <cstring>

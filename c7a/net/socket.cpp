@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/communication/socket.hpp>
+#include <c7a/net/socket.hpp>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
