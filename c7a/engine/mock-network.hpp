@@ -8,6 +8,8 @@
 #include <mutex>
 #include <deque>
 #include <vector>
+#include <string>
+#include <stdlib.h>
 
 namespace c7a {
 namespace engine {

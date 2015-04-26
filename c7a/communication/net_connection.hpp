@@ -33,6 +33,11 @@ namespace c7a {
 #define NET_CLIENT_NAME_RESOLVE_FAILED -4
 #define NET_CLIENT_SEND_ERROR -5
 #define NET_CLIENT_DATA_RECEIVE_FAILED -6
+// OS X doesn't know MSG_MORE and MSG_NOSIGNAL
+// http://noahdesu.github.io/2014/01/16/port-sendmsg.html
+#ifndef MSG_MORE
+# define MSG_MORE 0
+#endif
 
 /*!
  * NetConnection is a message-based socket connection to another client (worker
