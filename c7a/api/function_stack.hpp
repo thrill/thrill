@@ -15,30 +15,38 @@
 #include <array>
 #include <utility>
 
+#include "function_traits.hpp"
+
 namespace c7a {
 
-auto run_emitter()
+template <typename L>
+auto run_emitter(L lambda)
 {
-    return [=](int i) {
-        std::cout << "base got " << i << "\n";
+    using param_t = typename FunctionTraits<L>::template arg<0>;
+    auto base_emit = [](param_t i) {
+        std::cout << "Base got: " << i << "\n";
+    };
+
+    return [=](param_t i) {
+        lambda(i, base_emit);
     };
 }
 
-template <typename T1, typename... T>
-auto run_emitter(T1 first_thing, T... rest)
+template <typename L, typename... Ls>
+auto run_emitter(L lambda, Ls... rest)
 {
-    std::cout << "nicht base\n";
-    return [=](int i){
-        first_thing(i, run_emitter(rest...));
+    using param_t = typename FunctionTraits<L>::template arg<0>;
+    std::cout << "Recurse\n";
+
+    return [=](param_t i){
+        lambda(i, run_emitter(rest...));
     };
 }
 
 template <typename ...Types>
 class FunctionStack {
 public:
-    FunctionStack() {
-        stack_ = std::make_tuple();
-    }
+    FunctionStack() { stack_ = std::make_tuple(); }
     FunctionStack(std::tuple<Types...> stack)
         : stack_(stack) {};
     virtual ~FunctionStack() { }
@@ -51,56 +59,21 @@ public:
         std::tuple<Types..., Function> new_stack
             = std::tuple_cat(stack_, std::make_tuple(append_func));
 
-        std::cout << "Stack Size(PUSH): " <<
-            std::tuple_size<decltype(new_stack)>::value << std::endl;
-
         return FunctionStack<Types..., Function>(new_stack);
     }
 
-    template<typename ...Elements>
-    auto pop() {
-        // Create new stack type
-        typedef std::tuple<Types...> StackType;
-
-        // Create new stack
-        constexpr auto Size = std::tuple_size<StackType>::value;
-        auto func_and_stack
-            = PopFromStack(stack_, std::make_index_sequence<Size>{});
-
-        auto pop_func = func_and_stack.first;
-        auto new_stack = std::make_tuple(1);
-        auto new_func_stack = FunctionStack<int>(new_stack);
-        // std::tuple<Elements...> new_stack = func_and_stack.second;
-        // auto new_func_stack = FunctionStack<Elements...>(new_stack);
-
-        std::cout << "Stack Size(POP): " <<
-            std::tuple_size<decltype(new_stack)>::value << std::endl;
-
-        return std::make_pair(pop_func, new_func_stack);
-    }
-
-    template<typename T, std::size_t I0, std::size_t ...I>
-    auto PopFromStack(T&& t, std::index_sequence<I0, I...>) {
-        return std::make_pair(std::get<I0>(t),
-                std::make_tuple(std::get<I>(t)...));
-    }
-
     template <std::size_t ...Is>
-    auto emit2( std::index_sequence<Is...>)
+    auto emit_sequence( std::index_sequence<Is...>)
     {
         return run_emitter(std::get<Is>(stack_)...);
     }
 
-    void emit(int i) {
+    auto emit() {
         typedef std::tuple<Types...> StackType;
 
         const size_t Size = std::tuple_size<StackType>::value;
 
-        auto l = emit2(std::make_index_sequence<Size>{});
-
-        l(42);
-        
-        //run_emitter(1,2,34,45);
+        return emit_sequence(std::make_index_sequence<Size>{});
     }
 
 private:
