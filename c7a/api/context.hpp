@@ -36,7 +36,8 @@ public:
         // Create initial lambda function for chaining
         auto id = [](read_result_t t) { return t; };
         // Return new DIA with id function and no parent
-        return DIA<read_result_t, decltype(id)>(new ReadResultNode(data_manager_, {}, read_fn), id);
+        return DIA<read_result_t, decltype(id)>
+            (new ReadResultNode(data_manager_, {}, read_fn), id);
     }
 
     template <typename T, typename L, typename write_fn_t>
