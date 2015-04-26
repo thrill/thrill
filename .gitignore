@@ -30,3 +30,6 @@ docs/**
 *.exe
 *.out
 *.app
+
+# IntelliJ products
+*.idea
