@@ -182,8 +182,8 @@ public:
     //! method.
     const char * get_resolve_error() const;
 
- //! Make the socket address ostream-able.
-friend std::ostream& operator << (std::ostream& os, const SocketAddress& sa);
+    //! Make the socket address ostream-able.
+    friend std::ostream& operator << (std::ostream& os, const SocketAddress& sa);
 };
 
 class IPv4Address : public SocketAddress

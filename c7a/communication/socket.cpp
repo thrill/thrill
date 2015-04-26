@@ -1,6 +1,8 @@
 /*******************************************************************************
  * c7a/communication/socket.cpp
  *
+ * Lightweight wrapper around BSD socket API.
+ *
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -16,7 +18,7 @@
 
 namespace c7a {
 
-void Socket::set_keepalive(bool activate)
+void Socket::SetKeepAlive(bool activate)
 {
     int sockoptflag = (activate ? 1 : 0);
 
@@ -29,7 +31,7 @@ void Socket::set_keepalive(bool activate)
     }
 }
 
-void Socket::set_reuseaddr(bool activate)
+void Socket::SetReuseAddr(bool activate)
 {
     int sockoptflag = (activate ? 1 : 0);
 
@@ -51,7 +53,7 @@ void Socket::set_reuseaddr(bool activate)
 #endif
 }
 
-void Socket::set_nodelay(bool activate)
+void Socket::SetNoDelay(bool activate)
 {
     int sockoptflag = (activate ? 1 : 0);
 
