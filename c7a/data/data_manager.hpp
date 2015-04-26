@@ -43,20 +43,23 @@ public:
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        return BlockIterator<T>(*data_[id]);
+        return BlockIterator<T>(data_[id]);
     }
 
     //! returns true if the manager holds data of given DIA
     //!
     //! \param id ID of the DIA
     bool Contains(DIAId id) {
-        return data_.find(id) != data_.end();
+        //return data_.find(id) != data_.end();
+        return data_.size() > id && id >= 0;
     }
 
     DIAId AllocateDIA() {
         SpacingLogger(true) << "Allocate DIA" << nextId_;
-        data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
-        return nextId_++;
+        //data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
+        data_.push_back( std::vector<Blob>() );
+        return data_.size() - 1;
+        //return nextId_++;
     }
 
     template<class T>
@@ -65,7 +68,7 @@ public:
             throw std::runtime_error("target dia id unknown.");
         }
         auto& target = data_[id]; //yes. const ref to an unique_ptr
-        return [& target](T elem){ target->push_back(Serialize(elem)); };
+        return [& target](T elem){ target.push_back(Serialize(elem)); };
     }
 
 private:
@@ -74,7 +77,8 @@ private:
     //YES I COULD just use a map of (int, vector) BUT then I have a weird
     //behaviour of std::map on inserts. Sometimes it randomly kills itself.
     //May depend on the compiler. Google it.
-    std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
+    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
+    std::vector<std::vector<Blob>> data_;
 };
 
 }
