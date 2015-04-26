@@ -7,6 +7,7 @@
 #ifndef C7A_API_REDUCE_NODE_HEADER
 #define C7A_API_REDUCE_NODE_HEADER
 
+#include <unordered_map>
 #include "dop_node.hpp"
 #include "../common/logger.hpp"
 
@@ -54,15 +55,51 @@ private:
     L local_lambda_;
     KeyExtractor key_extractor_;
     ReduceFunction reduce_function_;
-    
+
+
     auto PreOp(T t) {
         local_lambda_(t);
         std::cout << "PreOp" << std::endl;
 
-        //get data from data manager
-        data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(this->data_id_);
+        // //get data from data manager
+        // // data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(this->data_id_);
+        // std::vector<std::string> local_block = {"I", "I", "hate", "code", "non-compiling", "code"};
+        // std::vector<std::string>::iterator begin = local_block.begin();
+        // std::vector<std::string>::iterator end = local_block.end();
+        
+        // //run local reduce
+        // using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        // std::unordered_map<key_t, T> hash;
 
-        //run local reduce
+        // SpacingLogger(true) << "######################";
+        // SpacingLogger(true) << "INPUT";
+        // SpacingLogger(true) << "######################";
+
+        // // loop over input        
+        // for (auto it = begin; it != end; ++it){
+        //     key_t key = key_extractor_(*it);
+        //     auto elem = hash.find(key);            
+        //     SpacingLogger(true) << *it;
+
+        //     // is there already an element with same key?
+        //     if(elem != hash.end()) {
+        //         auto new_elem = reduce_function_(*it, elem->second);
+        //         hash.at(key) = new_elem;
+        //     }
+        //     else {
+        //         hash.insert(std::make_pair(key, *it));
+        //     }
+        // }
+
+
+        // // just for testing
+        // SpacingLogger(true) << "######################";
+        // SpacingLogger(true) << "OUTPUT";
+        // SpacingLogger(true) << "######################";
+        // for (auto it = hash.begin(); it != hash.end(); ++it){
+        //     SpacingLogger(true) << it->second;
+        // }
+        // SpacingLogger(true);
 
 
 
