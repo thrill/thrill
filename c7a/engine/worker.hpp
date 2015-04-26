@@ -14,6 +14,7 @@
 #include <thread>
 #include <mutex>
 #include "Logger.hpp"
+#include "../data/serializer.hpp"
 
 namespace c7a {
 namespace engine {
@@ -22,8 +23,8 @@ class Worker
 {
 public:
 
-    Worker(size_t id, const std::vector<int> &otherWorkers, MockNetwork& net) :
-            _id(id), _otherWorkers(otherWorkers), _mockSelect(net, id) {
+    Worker(size_t id, size_t num_other_workers, MockNetwork& net) :
+            _id(id), _numOtherWorkers(num_other_workers), _mockSelect(net, id) {
     }
 
     void print() {
@@ -81,9 +82,8 @@ public:
             p.first;
             p.second;
 
-            // compute hash value
-            // TODO: fix hashing
-            int targetWorker = hash(p.first, _otherWorkers.size()+1);
+            // compute hash value from key representing id of target worker
+            int targetWorker = hash(p.first, _numOtherWorkers);
 
             std::string msg = "word: " + p.first + " target worker: " + std::to_string(targetWorker);
             Logger::instance().log(msg);
@@ -117,7 +117,8 @@ public:
         std::string out_data;
 
         int received = 0;
-        while (received < _otherWorkers.size()) {
+        // Assumption: Only receive one data package per worker
+        while (received <= _numOtherWorkers) {
             _mockSelect.receiveFromAnyString(&out_sender, &out_data);
             // TODO: deserialize data
             // actually insert received data to: _wordsReducedReceived
@@ -136,7 +137,7 @@ private:
     size_t _id;
 
     // The worker needs to know the ids of all other workers
-    std::vector<int> _otherWorkers;
+    size_t _numOtherWorkers;
 
     template<typename K, typename V>
     void print(std::map<K, V> map) {
@@ -150,7 +151,7 @@ private:
 
     // @brief hash some input string
     // @param size if interval
-    int hash(const std::string key, int size) {
+    int hash(const std::string key, size_t size) {
         int hashVal = 0;
 
         for(int i = 0; i<key.length();  i++)
