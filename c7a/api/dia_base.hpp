@@ -17,8 +17,10 @@ public:
     typedef std::vector<DIABase*> DIABaseVector;
 
     DIABase(data::DataManager &data_manager, const DIABaseVector& parents)
-        : data_manager_(data_manager), parents_(parents)
-    {
+        : data_manager_(data_manager), parents_(parents) {
+        for (auto parent : parents_) {
+            parent->add_child(this);
+        }
         data_id_ = data_manager_.AllocateDIA();
     }
 
