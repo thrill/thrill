@@ -23,14 +23,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # enable warnings
-# set(CMAKE_CXX_COMPILER "/usr/local/bin/g++-4.9")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
-# enable "make test" and add_test().
-enable_testing()
-
 ################################################################################
-### Find Required Libraries ###
+### Find Required Libraries
 
 # example: use Boost libraries:
 
@@ -39,53 +35,13 @@ enable_testing()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
+# google test + mock - enable "make test" and add_test()
+add_subdirectory(extlib/gmock) # note: gmock includes gtest
+enable_testing()
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
+
 ################################################################################
-# Enable ExternalProject CMake module
-include(ExternalProject)
-
-# Download and install GoogleTest
-ExternalProject_Add(
-    gtest
-    URL https://googletest.googlecode.com/files/gtest-1.7.0.zip
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
-    # Disable install step
-    INSTALL_COMMAND ""
-)
-
-# Create a libgtest target to be used as a dependency by test programs
-add_library(libgtest IMPORTED STATIC GLOBAL)
-add_dependencies(libgtest gtest)
-
-# Set gtest properties
-ExternalProject_Get_Property(gtest source_dir binary_dir)
-set_target_properties(libgtest PROPERTIES
-    "IMPORTED_LOCATION" "${binary_dir}/libgtest.a"
-    "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
-)
-# I couldn't make it work with INTERFACE_INCLUDE_DIRECTORIES
-include_directories("${source_dir}/include")
-
-# Download and install GoogleMock
-ExternalProject_Add(
-    gmock
-    URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gmock
-    # Disable install step
-    INSTALL_COMMAND ""
-)
-
-# Create a libgmock target to be used as a dependency by test programs
-add_library(libgmock IMPORTED STATIC GLOBAL)
-add_dependencies(libgmock gmock)
-
-# Set gmock properties
-ExternalProject_Get_Property(gmock source_dir binary_dir)
-set_target_properties(libgmock PROPERTIES
-    "IMPORTED_LOCATION" "${binary_dir}/libgmock.a"
-    "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
-#    "INTERFACE_INCLUDE_DIRECTORIES" "${source_dir}/include"
-)
-
 ### Descend into Subdirectories
 
 include_directories(${CMAKE_SOURCE_DIR})
