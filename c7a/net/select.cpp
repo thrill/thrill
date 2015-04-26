@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/select.cpp
+ * c7a/net/select.cpp
  *
  * Lightweight wrapper around select()
  *

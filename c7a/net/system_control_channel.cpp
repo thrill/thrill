@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/system_control_channel.cpp
+ * c7a/net/system_control_channel.cpp
  *
  * Part of Project c7a.
  *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/net-group.hpp
+ * c7a/net/net-group.hpp
  *
  * NetGroup is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -11,8 +11,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_NET_GROUP_HEADER
-#define C7A_COMMUNICATION_NET_GROUP_HEADER
+#ifndef C7A_NET_NET_GROUP_HEADER
+#define C7A_NET_NET_GROUP_HEADER
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -30,6 +30,15 @@
 namespace c7a {
 
 typedef unsigned int ClientId;
+
+//! Simple sum operator
+template <typename T>
+struct SumOp {
+    T operator () (T& a, T& b)
+    {
+        return a + b;
+    }
+};
 
 /*!
  * Collection of NetConnections to workers, allow point-to-point client
@@ -196,6 +205,14 @@ public:
         }
     }
 
+    //! \name Collective Operations
+    //! \{
+
+    template <typename T, typename BinarySumOp = SumOp<T> >
+    void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
+
+    //! \}
+
 protected:
     //! Construct object but initialize other fields later.
     NetGroup(ClientId id, size_t num_clients)
@@ -268,8 +285,37 @@ private:
     // }
 };
 
+template <typename T, typename BinarySumOp>
+void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
+{
+    // For each dimension of the hypercube, exchange data between workers with
+    // different bits at position d
+
+    for (size_t d = 1; d < this->Size(); d <<= 1)
+    {
+        // Send value to worker with id id ^ d
+        if ((this->MyRank() ^ d) < this->Size()) {
+            this->GetConnection(this->MyRank() ^ d).Send(value);
+            std::cout << "LOCAL: Worker " << this->MyRank() << ": Sending " << value
+                      << " to worker " << (this->MyRank() ^ d) << "\n";
+        }
+
+        // Receive value from worker with id id ^ d
+        T recv_data;
+        if ((this->MyRank() ^ d) < this->Size()) {
+            this->GetConnection(this->MyRank() ^ d).Receive(&recv_data);
+            value = sum_op(value, recv_data);
+            std::cout << "LOCAL: Worker " << this->MyRank() << ": Received " << recv_data
+                      << " from worker " << (this->MyRank() ^ d)
+                      << " value = " << value << "\n";
+        }
+    }
+
+    std::cout << "LOCAL: value after all reduce " << value << "\n";
+}
+
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_NET_GROUP_HEADER
+#endif // !C7A_NET_NET_GROUP_HEADER
 
 /******************************************************************************/
