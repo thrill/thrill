@@ -17,18 +17,20 @@
 
 namespace c7a {
 
-void run_emitter()
+auto run_emitter()
 {
-    std::cout << "base\n";
+    return [=](int i) {
+        std::cout << "base got " << i << "\n";
+    };
 }
 
 template <typename T1, typename... T>
-void run_emitter(T1 first_thing, T... rest)
+auto run_emitter(T1 first_thing, T... rest)
 {
     std::cout << "nicht base\n";
-    first_thing();
-
-    run_emitter(rest...);
+    return [=](int i){
+        first_thing(i, run_emitter(rest...));
+    };
 }
 
 template <typename ...Types>
@@ -46,13 +48,13 @@ public:
     {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
-        std::tuple<Function, Types...> new_stack
-            = std::tuple_cat(std::make_tuple(append_func), stack_);
+        std::tuple<Types..., Function> new_stack
+            = std::tuple_cat(stack_, std::make_tuple(append_func));
 
         std::cout << "Stack Size(PUSH): " <<
             std::tuple_size<decltype(new_stack)>::value << std::endl;
 
-        return FunctionStack<Function, Types...>(new_stack);
+        return FunctionStack<Types..., Function>(new_stack);
     }
 
     template<typename ...Elements>
@@ -84,9 +86,9 @@ public:
     }
 
     template <std::size_t ...Is>
-    void emit2( std::index_sequence<Is...>)
+    auto emit2( std::index_sequence<Is...>)
     {
-        run_emitter(std::get<Is>(stack_)...);
+        return run_emitter(std::get<Is>(stack_)...);
     }
 
     void emit(int i) {
@@ -94,8 +96,10 @@ public:
 
         const size_t Size = std::tuple_size<StackType>::value;
 
-        emit2(std::make_index_sequence<Size>{});
+        auto l = emit2(std::make_index_sequence<Size>{});
 
+        l(42);
+        
         //run_emitter(1,2,34,45);
     }
 
