@@ -29,7 +29,7 @@ public:
             = typename FunctionTraits<LOpFunction>::result_type;
         // Create string
         std::string str 
-            = std::string("[LOpNode/Type=[") + typeid(T).name() + "]";
+            = std::string("[LOpNode]");
         return str;
     }
 

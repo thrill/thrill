@@ -31,9 +31,7 @@ public:
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         // Create string
         std::string str 
-            = std::string("[ReduceNode/Type=[") 
-            + typeid(T).name() + "]/KeyType=[" 
-            + typeid(key_t).name() + "]";
+            = std::string("[ReduceNode]");
         return str;
     }
 
