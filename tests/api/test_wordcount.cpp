@@ -14,11 +14,13 @@ TEST(WordCount, PreOP) {
     auto doubles = ctx.ReadFromFileSystem(
         "tests/inputs/wordcount.in",
         [](const std::string& line) {
-            return line;
+	  return std::make_pair(line,1);
         });
 
-    auto key_ex = [](std::string in) { return in; };
-    auto red_fn = [](std::string in1, std::string in2) { return in1; };
+    using WordPair = std::pair<std::string,int>;
+
+    auto key_ex = [](WordPair in) { return in.first; };
+    auto red_fn = [](WordPair in1, WordPair in2) { return std::make_pair(in1.first, in1.second + in2.second); };
 
     auto rem_duplicates = doubles.Reduce(key_ex, red_fn);
 
