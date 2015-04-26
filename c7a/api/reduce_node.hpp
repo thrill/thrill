@@ -9,6 +9,7 @@
 
 #include <unordered_map>
 #include "dop_node.hpp"
+#include "function_stack.hpp"
 #include "../common/logger.hpp"
 
 namespace c7a {
@@ -35,20 +36,23 @@ public:
     }
 
     void execute() override {
-        PreOp(T());
+        PreOp();
         MainOp();
+        PostOp();
     }
 
-    auto get_pre_op() {
-        return [=](T t) {
-            return PreOp(t);
-        };
-    }
+    auto ProduceStack() {
+        using reduce_t 
+            = typename FunctionTraits<ReduceFunction>::result_type;
 
-    auto get_post_op() {
-        return [=](T t) {
-            return PostOp(t);
+        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)>) {
+            return emit_func(t);
         };
+
+        FunctionStack<> stack = new FunctionStack<>();
+        stack.push(id_fn);
+
+        return stack;
     }
 
 private: 
@@ -57,8 +61,7 @@ private:
     ReduceFunction reduce_function_;
 
 
-    auto PreOp(T t) {
-        local_lambda_(t);
+    auto PreOp() {
         std::cout << "PreOp" << std::endl;
 
         data::DIAId pid = this->get_parents()[0]->get_data_id();
@@ -79,6 +82,7 @@ private:
         // loop over input        
         while (it.HasNext()){
             auto item = it.Next();
+            local_lambda_(item);
             key_t key = key_extractor_(item);
             auto elem = hash.find(key);            
             SpacingLogger(true) << item;
@@ -102,19 +106,14 @@ private:
             SpacingLogger(true) << it->second;
         }
         SpacingLogger(true);
-
-
-
-        return t;
     }
 
     auto MainOp() {
         std::cout << "MainOp" << std::endl;
     }
 
-    auto PostOp(T t) {
+    auto PostOp() {
         std::cout << "PostOp" << std::endl;
-        return t;
     }
 };
 
