@@ -1,6 +1,10 @@
 /*******************************************************************************
  * c7a/communication/communication_manager.hpp
  *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
@@ -12,23 +16,23 @@
 #include "flow_control_channel.hpp"
 
 namespace c7a {
-namespace communication {
 
 /**
  * @brief Manages communication.
- * @details Manages communication and handles errors. 
+ * @details Manages communication and handles errors.
  */
 class CommunicationManager
 {
 public:
     void Initialize(std::vector<ExecutionEndpoint> endpoints);
 
-    SystemControlChannel *GetSystemControlChannel();
+    SystemControlChannel * GetSystemControlChannel();
 
-    FlowControlChannel *GetFlowControlChannel();
+    FlowControlChannel * GetFlowControlChannel();
 };
 
-}}
+} // namespace c7a
 
 #endif // !C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER
 
+/******************************************************************************/

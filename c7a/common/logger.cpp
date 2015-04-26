@@ -1,20 +1,21 @@
 /*******************************************************************************
- * c7a/api/lop_composer.hpp
+ * c7a/common/logger.cpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Simple and less simple logging classes.
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_API_LOP_COMPOSER_HEADER
-#define C7A_API_LOP_COMPOSER_HEADER
+#include <c7a/common/logger.hpp>
 
 namespace c7a {
 
-class LOpComposer {
-
-}
+std::mutex Logger::mutex_;
 
 } // namespace c7a
-
-#endif // !C7A_API_LOP_COMPOSER_HEADER
 
 /******************************************************************************/
