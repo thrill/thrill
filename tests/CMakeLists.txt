@@ -17,17 +17,12 @@ set(SRCS
     data/test_dia_allocate
 )
 
-add_executable(c7atest ${SRCS})
+add_executable(c7a-tests ${SRCS})
 
-target_link_libraries(c7atest
-  c7a
-  libgtest
-  libgmock
-  pthread
+target_link_libraries(c7a-tests
+  c7a gtest gmock pthread
 )
 
-add_test(c7atest c7atest)
-
-install(TARGETS c7atest DESTINATION build)
+add_test(c7a-tests c7a-tests ${CMAKE_CURRENT_SOURCE_DIR})
 
 ################################################################################

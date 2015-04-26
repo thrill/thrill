@@ -28,7 +28,6 @@ public:
     auto ReadFromFileSystem(std::string filepath,
                             const read_fn_t &read_fn) {
         (void) filepath; //TODO remove | to supress warning
-
         using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
         using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
