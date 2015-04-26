@@ -31,6 +31,14 @@ namespace c7a {
 
 typedef unsigned int ClientId;
 
+//! Simple sum operator
+template <typename T>
+struct SumOp {
+    T operator() (T &a, T &b) {
+        return a + b;
+    } 
+};
+
 /*!
  * Collection of NetConnections to workers, allow point-to-point client
  * communication and simple collectives like MPI.
@@ -196,6 +204,14 @@ public:
         }
     }
 
+    //! \name Collective Operations
+    //! \{
+    
+    template <typename T, typename BinarySumOp = SumOp<T>>
+    void AllReduce(T &value, BinarySumOp sumOp);
+
+    //! \}
+    
 protected:
     //! Construct object but initialize other fields later.
     NetGroup(ClientId id, size_t num_clients)
@@ -267,6 +283,34 @@ private:
     //     return NET_SERVER_SUCCESS;
     // }
 };
+
+template <typename T, typename BinarySumOp>
+void NetGroup::AllReduce(T &value, BinarySumOp sumOp) {
+    // For each dimension of the hypercube, exchange data between workers with
+    // different bits at position d
+
+    for (int d = 1; d < this -> Size(); d <<= 1) {
+        // Send value to worker with id id ^ d
+        if ((this -> MyRank() ^ d) < this -> Size()){
+            this -> GetConnection(this -> MyRank() ^ d).Send(value);
+            std::cout << "LOCAL: Worker " << this -> MyRank() << ": Sending " << value
+                      << " to worker " << (this -> MyRank() ^ d) << "\n";
+        }
+
+        // Receive value from worker with id id ^ d
+        int recv_data;
+        if ((this -> MyRank() ^ d) < this -> Size()) {
+            this -> GetConnection(this -> MyRank() ^ d).Receive(&recv_data);
+            value += recv_data;
+            value = sumOp(value, recv_data);
+            std::cout << "LOCAL: Worker " << this -> MyRank() << ": Received " << recv_data
+                      << " from worker " << (this -> MyRank() ^ d)
+                      << " value = " << value << "\n";
+        }
+    }
+    
+    std::cout << "LOCAL: value after all reduce " << value << "\n";
+}
 
 } // namespace c7a
 

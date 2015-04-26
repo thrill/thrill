@@ -21,27 +21,9 @@ void CommunicationOfOneThread(c7a::NetGroup* net) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    int local_value = net -> MyRank();
-    for (int d = 1; d < worker_count; d <<= 1) {
-        // Send local_value to worker with id id ^ d
-        if ((net -> MyRank() ^ d) < worker_count){
-            net -> GetConnection(net -> MyRank() ^ d).Send(local_value);
-            std::cout << "LOCAL: Worker " << net -> MyRank() << ": Sending " << local_value
-                      << " to worker " << (net -> MyRank() ^ d) << "\n";
-        }
-
-        // Receive local_value from worker with id id ^ d
-        int recv_data;
-        if ((net -> MyRank() ^ d) < worker_count) {
-            net -> GetConnection(net -> MyRank() ^ d).Receive(&recv_data);
-            local_value += recv_data;
-            std::cout << "LOCAL: Worker " << net -> MyRank() << ": Received " << recv_data
-                      << " from worker " << (net -> MyRank() ^ d)
-                      << " local_value = " << local_value << "\n";
-        }
-    }
-    
-    std::cout << "LOCAL: local_value after all reduce " << local_value << "\n";
+    int local_value = net->MyRank();
+    net->AllReduce<int>(local_value, c7a::SumOp<int>());
+//    ASSSERT_EQ(local_value = net->Size() * (net->Size() - 1) / 2);
 }
 
 int main() {
