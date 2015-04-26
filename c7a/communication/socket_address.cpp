@@ -30,13 +30,13 @@ SocketAddress::SocketAddress(struct sockaddr* sa, socklen_t salen)
     memcpy(&m_addr, sa, std::min<socklen_t>(salen, sizeof(m_addr)));
 }
 
-SocketAddress::SocketAddress(const char* hostport)
+SocketAddress::SocketAddress(const std::string& hostport)
 {
     std::string host = hostport;
     size_t colonpos = host.rfind(':');
     if (colonpos == std::string::npos)
     {
-        resolve(hostport);
+        resolve(hostport.c_str());
     }
     else
     {
@@ -176,6 +176,11 @@ SocketAddress::resolve_all(const char* hostname, const char* servicename)
     freeaddrinfo(result);
 
     return salist;
+}
+
+std::ostream& operator << (std::ostream& os, const SocketAddress& sa)
+{
+    return os << sa.str() << ':' << sa.get_port();
 }
 
 /******************************************************************************/
