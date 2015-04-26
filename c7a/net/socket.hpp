@@ -221,9 +221,9 @@ public:
     //! Send (data,size) to socket (BSD socket API function wrapper), for
     //! blocking sockets one should probably use send() instead of this
     //! lower-layer functions.
-    ssize_t _send(const void* data, size_t size, int flags = 0)
+    ssize_t send_one(const void* data, size_t size, int flags = 0)
     {
-        LOG << "Socket::_send()"
+        LOG << "Socket::send_one()"
             << " fd_=" << fd_
             << " size=" << size
             << " data=" << hexdump(data, size)
@@ -231,7 +231,7 @@ public:
 
         ssize_t r = ::send(fd_, data, size, flags);
 
-        LOG << "done Socket::_send()"
+        LOG << "done Socket::send_one()"
             << " fd_=" << fd_
             << " return=" << r;
 
@@ -276,16 +276,16 @@ public:
     }
 
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    ssize_t _recv(void* outdata, size_t maxsize, int flags = 0)
+    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
     {
-        LOG << "Socket::_recv()"
+        LOG << "Socket::recv_one()"
             << " fd_=" << fd_
             << " maxsize=" << maxsize
             << " flags=" << flags;
 
         ssize_t r = ::recv(fd_, outdata, maxsize, flags);
 
-        LOG << "done Socket::_recv()"
+        LOG << "done Socket::recv_one()"
             << " fd_=" << fd_
             << " return=" << r
             << " data=" << (r >= 0 ? hexdump(outdata, r) : "<error>");
