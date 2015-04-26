@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/socket.hpp
+ * c7a/net/socket.hpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,8 +10,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_SOCKET_HEADER
-#define C7A_COMMUNICATION_SOCKET_HEADER
+#ifndef C7A_NET_SOCKET_HEADER
+#define C7A_NET_SOCKET_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
@@ -365,6 +365,6 @@ protected:
 
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_SOCKET_HEADER
+#endif // !C7A_NET_SOCKET_HEADER
 
 /******************************************************************************/

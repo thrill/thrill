@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/communication/test_net_dispatcher.cpp
+ * tests/net/test-net-group.cpp
  *
  * Part of Project c7a.
  *
@@ -76,7 +76,8 @@ TEST(NetGroup, InitializeSendReceive) {
 
 TEST(NetGroup, TestAllReduce) {
     // Construct a NetGroup of 8 workers which do nothing but terminate.
-    NetGroup::ExecuteLocalMock(8, [](NetGroup* net) {
+    NetGroup::ExecuteLocalMock(
+        8, [](NetGroup* net) {
             size_t local_value = net->MyRank();
             net->AllReduce(local_value);
             ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
