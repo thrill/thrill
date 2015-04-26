@@ -10,6 +10,10 @@
 
 #include <c7a/communication/socket.hpp>
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+
 namespace c7a {
 
 void Socket::set_keepalive(bool activate)
