@@ -66,13 +66,9 @@ TEST(DIASimple, ReduceStringEquality) {
 
     auto duplicates = doubles.Map(map_fn);
     auto duplicates2 = duplicates.Map(map_fn);
-    // auto red_duplicates = duplicates2.Reduce(key_ex, red_fn);
+    auto red_duplicates = duplicates2.Reduce(key_ex, red_fn);
 
+    duplicates.PrintNodes();
     // auto duplicates3 = red_duplicates.Map(map_fn);
     // auto red_duplicates2 = duplicates3.Reduce(key_ex, red_fn);
-
-    std::cout << "2 Map + Reduce" << std::endl;
-    //(red_duplicates.get_node())->execute();    
-    std::cout << "PostOp + Map + Reduce" << std::endl;
-    //(red_duplicates2.get_node())->execute();    
 }
