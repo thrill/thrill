@@ -41,6 +41,11 @@ public:
     { }
 };
 
+// Because Mac OSX does not know MSG_MORE.
+#ifndef MSG_MORE
+#define MSG_MORE 0
+#endif
+
 /*!
  * NetConnection is a rich point-to-point socket connection to another client
  * (worker, master, or whatever). Messages are fixed-length integral items or
