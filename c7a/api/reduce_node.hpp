@@ -109,7 +109,7 @@ private:
         //TODO get number of worker by net-group or something similar
         int number_worker = 1;
         //TODO use network emitter in future
-        std::vector<BlockEmitter<T>> emit_array;
+        std::vector<data::BlockEmitter<T>> emit_array;
         data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
             std::hash<T> t_hash;
