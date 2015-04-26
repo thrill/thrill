@@ -94,16 +94,28 @@ private:
     BlockEmitter<Blob> target_;
 };
 */
+
+//! Block header is sent before a sequence of blocsk
+//! it indicates the number of elements and their
+//! boundaries
+struct BlockHeader {
+    size_t num_elements;
+    size_t boundaries[];
+};
+
 //! Multiplexes virtual Connections on NetDispatcher
 class ChannelMultiplexer {
 public:
     //! Called by the network dispatcher
     void Consume(Socket& connection) {
-        int fd = connection.GetFileDescriptor();
+        //int fd = connection.GetFileDescriptor();
+        int flags = 0;
+        struct BlockHeader header;
+        connection.recv_one(&header, sizeof(header), flags);
     }
 
 
 private:
- 
+
 };
 }}
