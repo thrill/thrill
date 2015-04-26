@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/flow_control_channel.hpp
+ * c7a/net/flow_control_channel.hpp
  *
  * Part of Project c7a.
  *
@@ -7,8 +7,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_FLOW_CONTROL_CHANNEL_HEADER
-#define C7A_COMMUNICATION_FLOW_CONTROL_CHANNEL_HEADER
+#ifndef C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
+#define C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 
 #include <string>
 #include <vector>
@@ -118,6 +118,6 @@ public:
 
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_FLOW_CONTROL_CHANNEL_HEADER
+#endif // !C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 
 /******************************************************************************/
