@@ -23,12 +23,12 @@ template <typename L>
 auto run_emitter(L lambda)
 {
     using param_t = typename FunctionTraits<L>::template arg<0>;
-    auto base_emit = [](param_t i) {
-        std::cout << "Base got: " << i << "\n";
-    };
+    // auto arity = FunctionTraits<L>::arity;
 
     return [=](param_t i) {
-        lambda(i, base_emit);
+        lambda(i, [](param_t i) {
+                std::cout << "Base got: " << i << "\n";
+            });
     };
 }
 
@@ -36,7 +36,7 @@ template <typename L, typename... Ls>
 auto run_emitter(L lambda, Ls... rest)
 {
     using param_t = typename FunctionTraits<L>::template arg<0>;
-    std::cout << "Recurse\n";
+    // auto arity = FunctionTraits<L>::arity;
 
     return [=](param_t i){
         lambda(i, run_emitter(rest...));

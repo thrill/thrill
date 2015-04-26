@@ -47,10 +47,27 @@ TEST(DISABLED_DIASimple, InputTest1Write) {
 TEST(DIASimple, FunctionStackTest) {
     using c7a::FunctionStack;
 
+    // User-defined functions
     auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
-            std::cout << "FlatMap(Double)" << std::endl;
             emit_func(input);
             emit_func(input);
+        };
+
+    auto map_fn = [](double input) {
+            return 2*input;
+        };
+
+    auto filter_fn = [](double input) {
+            return input > 80;
+        };
+
+    // Converted emitter functions
+    auto conv_map_fn = [=](double input, std::function<void(double)> emit_func) {
+            emit_func(map_fn(input));
+        };
+
+    auto conv_filter_fn = [=](double input, std::function<void(double)> emit_func) {
+            if (filter_fn(input)) emit_func(input);
         };
 
     std::cout << "==============" << std::endl;
@@ -58,8 +75,9 @@ TEST(DIASimple, FunctionStackTest) {
     std::cout << "==============" << std::endl;
     FunctionStack<> stack;
     auto new_stack = stack.push(fmap_fn);
-    auto new_stack2 = new_stack.push(fmap_fn);
-    auto composed_function = new_stack2.emit();
+    auto new_stack2 = new_stack.push(conv_map_fn);
+    auto new_stack3 = new_stack2.push(conv_filter_fn);
+    auto composed_function = new_stack3.emit();
     composed_function(42);
     return;
 }
