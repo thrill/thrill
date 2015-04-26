@@ -17,7 +17,7 @@ class Socket
     static const bool debug = true;
 
 public:
-    Socket(int fd = -1)
+    explicit Socket(int fd = -1)
         : fd_(fd)
     { }
 
