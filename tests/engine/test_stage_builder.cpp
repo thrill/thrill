@@ -9,8 +9,8 @@ using namespace c7a::engine;
 TEST(Stage, GetStagesFromBuilder) {
     using c7a::DIA;
     using c7a::Context;
-
-    auto doubles = Context().ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
+    Context ctx;
+    auto doubles = ctx.ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
             return std::stod(line);
         });
 

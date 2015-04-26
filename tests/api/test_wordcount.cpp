@@ -10,7 +10,8 @@ TEST(WordCount, PreOP) {
     using c7a::DIA;
     using c7a::Context;
 
-    auto doubles = Context().ReadFromFileSystem("tests/inputs/wordcount.in", [](std::string line) {
+    Context ctx;
+    auto doubles = ctx.ReadFromFileSystem("tests/inputs/wordcount.in", [](std::string line) {
             return line;
         });
 
