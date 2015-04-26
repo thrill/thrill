@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/communication/select.hpp>
+#include <c7a/net/select.hpp>
 
 #include <sys/time.h>
 #include <stdio.h>

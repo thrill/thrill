@@ -25,7 +25,7 @@
 #include <cerrno>
 #include <stdexcept>
 
-#include <c7a/communication/socket.hpp>
+#include <c7a/net/socket.hpp>
 
 namespace c7a {
 

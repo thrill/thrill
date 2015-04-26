@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/communication/socket_address.hpp>
+#include <c7a/net/socket_address.hpp>
 
 #include <string>
 #include <netdb.h>
@@ -18,7 +18,7 @@
 #include <errno.h>
 
 #include <c7a/common/logger.hpp>
-#include <c7a/communication/socket.hpp>
+#include <c7a/net/socket.hpp>
 
 namespace c7a {
 
