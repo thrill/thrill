@@ -207,8 +207,8 @@ public:
     //! \name Collective Operations
     //! \{
     
-    template <typename T, typename BinarySumOp = SumOp<T>>
-    void AllReduce(T &value, BinarySumOp sumOp);
+    template <typename T, typename BinarySumOp = SumOp<T> >
+    void AllReduce(T &value, BinarySumOp sumOp = BinarySumOp());
 
     //! \}
     
@@ -285,11 +285,12 @@ private:
 };
 
 template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T &value, BinarySumOp sumOp) {
+void NetGroup::AllReduce(T &value, BinarySumOp sum_op) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    for (int d = 1; d < this -> Size(); d <<= 1) {
+    for (size_t d = 1; d < this -> Size(); d <<= 1)
+    {
         // Send value to worker with id id ^ d
         if ((this -> MyRank() ^ d) < this -> Size()){
             this -> GetConnection(this -> MyRank() ^ d).Send(value);
@@ -298,11 +299,10 @@ void NetGroup::AllReduce(T &value, BinarySumOp sumOp) {
         }
 
         // Receive value from worker with id id ^ d
-        int recv_data;
+        T recv_data;
         if ((this -> MyRank() ^ d) < this -> Size()) {
             this -> GetConnection(this -> MyRank() ^ d).Receive(&recv_data);
-            value += recv_data;
-            value = sumOp(value, recv_data);
+            value = sum_op(value, recv_data);
             std::cout << "LOCAL: Worker " << this -> MyRank() << ": Received " << recv_data
                       << " from worker " << (this -> MyRank() ^ d)
                       << " value = " << value << "\n";
