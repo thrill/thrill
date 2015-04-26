@@ -2,6 +2,9 @@
 build/**
 docs/**
 
+#libs that are downloaded through setup.sh
+lib/*
+
 # Compiled Object files
 *.slo
 *.lo
