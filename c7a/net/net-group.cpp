@@ -11,7 +11,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/communication/net-group.hpp>
+#include <c7a/net/net-group.hpp>
 
 #include <thread>
 

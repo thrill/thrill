@@ -13,7 +13,7 @@
 #ifndef C7A_COMMUNICATION_SELECT_HEADER
 #define C7A_COMMUNICATION_SELECT_HEADER
 
-#include <c7a/communication/socket.hpp>
+#include <c7a/net/socket.hpp>
 
 #include <vector>
 #include <sys/select.h>

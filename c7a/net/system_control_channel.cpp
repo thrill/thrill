@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/communication/system_control_channel.hpp>
+#include <c7a/net/system_control_channel.hpp>
 
 namespace c7a {
 

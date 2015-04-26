@@ -11,8 +11,8 @@
 #include <thread>
 #include <vector>
 #include <string>
-#include "c7a/communication/net-group.hpp"
-#include "c7a/communication/flow_control_channel.hpp"
+#include <c7a/net/net-group.hpp>
+#include <c7a/net/flow_control_channel.hpp>
 
 using namespace c7a;
 

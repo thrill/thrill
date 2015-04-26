@@ -23,8 +23,8 @@
 #include <assert.h>
 #include <thread>
 #include <map>
-#include <c7a/communication/execution_endpoint.hpp>
-#include <c7a/communication/net-connection.hpp>
+#include <c7a/net/execution_endpoint.hpp>
+#include <c7a/net/net-connection.hpp>
 #include <sys/select.h>
 
 namespace c7a {
