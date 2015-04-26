@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/socket_address.hpp
+ * c7a/net/socket-address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
