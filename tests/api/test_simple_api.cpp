@@ -80,8 +80,16 @@ TEST(DIASimple, ReduceStringEquality) {
     std::cout << "FunctionStack" << std::endl;
     std::cout << "==============" << std::endl;
     FunctionStack<> stack;
-    auto new_stack = stack.push([](){ std::cout << "hello" << std::endl; });
-    auto new_stack2 = new_stack.push([](){ std::cout << "hello2" << std::endl; });
+    auto new_stack = stack.push(
+        [](int i, std::function<void(double)> emit_func) {
+            std::cout << "hello1" << std::endl;
+            emit_func(i + 1);
+        });
+    auto new_stack2 = new_stack.push(
+        [](int i, std::function<void(double)> emit_func){
+            std::cout << "hello2" << std::endl;
+            emit_func(i + 1);
+        });
     //auto new_stack2 = new_stack.push(map2_fn);
     //auto pair = new_stack2.pop();
     new_stack2.emit(10);
