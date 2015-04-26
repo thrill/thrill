@@ -22,8 +22,6 @@ public:
     void execute() {};
 
     std::string ToString() override {
-        // Extract type
-        using key_t = typename FunctionTraits<ReadFunction>::result_type;
         // Create string
         std::string str 
             = std::string("[ReadNode]");

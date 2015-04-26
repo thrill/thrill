@@ -24,9 +24,6 @@ public:
     void execute() {};
 
     std::string ToString() override {
-        // Extract type
-        using key_t 
-            = typename FunctionTraits<LOpFunction>::result_type;
         // Create string
         std::string str 
             = std::string("[LOpNode]");
