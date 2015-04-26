@@ -8,12 +8,28 @@
  ******************************************************************************/
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 #include <c7a/net/channel-multiplexer.hpp>
 
-using namespace c7a::net;
+using ::testing::_;
+using ::testing::Return;
 
-TEST(ChannelMultiplexer, CompileTest) {
-    ChannelMultiplexer candidate();
-    ASSERT_TRUE(true);
+using namespace c7a::net;
+using namespace c7a;
+
+struct MockSocket : public Socket {
+    MOCK_METHOD0(GetFileDescriptor, void());
+    MOCK_METHOD3(recv_one, ssize_t(void*, size_t, int));
+    MOCK_METHOD3(recv, ssize_t(void*, size_t, int));
+};
+
+struct ChannelMultiplexerTest : public ::testing::Test {
+    MockSocket socket;
+    ChannelMultiplexer candidate;
+};
+
+TEST_F(ChannelMultiplexerTest, ReadsHeaderIfSocketIsFresh) {
+    EXPECT_CALL(socket, recv_one(_, sizeof(BlockHeader), _)).WillOnce(Return(1));
+    candidate.Consume(socket);
 }
 
