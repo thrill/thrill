@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
 #include "c7a/engine/stage_builder.hpp"
 #include "c7a/api/dia.hpp"
@@ -12,7 +13,7 @@ TEST(WordCount, PreOP) {
 
     Context ctx;
     auto doubles = ctx.ReadFromFileSystem(
-        "tests/inputs/wordcount.in",
+        g_workpath + "/inputs/wordcount.in",
         [](const std::string& line) {
 	  return std::make_pair(line,1);
         });
