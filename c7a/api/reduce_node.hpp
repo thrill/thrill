@@ -24,11 +24,16 @@ public:
         : DOpNode<T>(data_manager, parents),
         local_lambda_(lambda),
         key_extractor_(key_extractor),
-        reduce_function_(reduce_function) { };
+        reduce_function_(reduce_function) {};
 
     std::string ToString() override {
+        // Extract type
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
-        std::string str = std::string("[ReduceNode/Type=[") + typeid(T).name() + "]/KeyType=[" + typeid(key_t).name() + "]";
+        // Create string
+        std::string str 
+            = std::string("[ReduceNode/Type=[") 
+            + typeid(T).name() + "]/KeyType=[" 
+            + typeid(key_t).name() + "]";
         return str;
     }
 

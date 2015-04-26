@@ -14,9 +14,9 @@ namespace c7a {
 template <typename T>
 class DOpNode : public DIANode<T> {
 public:
-    DOpNode(data::DataManager &data_manager, const std::vector<DIABase*>& parents)
-        : DIANode<T>(data_manager, parents)
-    {}
+    DOpNode(data::DataManager &data_manager, 
+            const std::vector<DIABase*>& parents)
+        : DIANode<T>(data_manager, parents) {}
     virtual ~DOpNode() {}
 };
 

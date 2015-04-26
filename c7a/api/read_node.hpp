@@ -16,13 +16,15 @@ public:
              const std::vector<DIABase*>& parents, 
              ReadFunction read_function) 
         : DOpNode<T>(data_manager, parents), 
-          read_function_(read_function) {};
+        read_function_(read_function) {};
     virtual ~ReadNode() {} 
 
     void execute() {};
 
     std::string ToString() override {
+        // Extract type
         using key_t = typename FunctionTraits<ReadFunction>::result_type;
+        // Create string
         std::string str 
             = std::string("[ReadNode/Type=[") + typeid(T).name() + "]";
         return str;
