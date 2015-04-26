@@ -21,7 +21,6 @@ public:
     void execute() {};
 
     std::string toString() override {
-        using key_t = typename FunctionTraits<WriteFunction>::result_type;
         std::string str 
             = std::string("[WriteNode]");
         return str;
