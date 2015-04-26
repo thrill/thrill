@@ -40,10 +40,11 @@ public:
 
 
     void ExecuteScope(DIABase *action) {
-        auto stages = FindStages(action);
-        for (auto it = stages.first; it != stages.second; ++it)
+        std::vector<Stage> result;
+        FindStages(action, result);
+        for (auto s : result)
         {
-            it->Run();
+            s.Run();
         }
     }
 
