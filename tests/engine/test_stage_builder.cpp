@@ -33,8 +33,11 @@ TEST(Stage, GetStagesFromBuilder) {
     auto duplicates3 = red_duplicates.Map(map_fn);
     auto red_duplicates2 = duplicates3.Reduce(key_ex, red_fn);
 
-    auto stages = FindStages(duplicates3.get_node());
-    for (auto it = stages.first; it != stages.second; ++it) {
-        it->Run();
+
+    std::vector<Stage> result;
+    FindStages(duplicates3.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
     }
 }
