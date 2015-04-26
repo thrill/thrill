@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -12,6 +13,14 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
+
+#include <cerrno>
+#include <cstring>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 namespace c7a {
 
@@ -141,6 +150,24 @@ public:
 
         return rb;
     }
+
+    //! \}
+
+    //! \name Accelerations
+    //! \{
+
+    //! Enable sending of keep-alive messages on connection-oriented sockets.
+    void set_keepalive(bool activate = true);
+
+    //! Enable SO_REUSEADDR, which allows the socket to be bound more quickly to
+    //! previously used ports.
+    void set_reuseaddr(bool activate = true);
+
+    //! If set, disable the Nagle algorithm. This means that segments are always
+    //! sent as soon as possible, even if there is only a small amount of data.
+    void set_nodelay(bool activate = true);
+
+    //! \}
 
 protected:
     //! the file descriptor of the socket.
