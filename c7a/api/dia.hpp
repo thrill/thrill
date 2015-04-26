@@ -54,7 +54,7 @@ public:
      * \param lambda Function which can transform elements from the DIANode to elements
      * of this DIA.
      */
-    DIA(DIANode<T>* node, Stack& stack) : node_(node), local_stack_(stack) {}
+    DIA(DIANode<T>* node, Stack stack) : node_(node), local_stack_(stack) {}
 
     friend void swap(DIA& first, DIA& second) {
         using std::swap;
@@ -96,7 +96,7 @@ public:
                 emit_func(map_fn(input));
             };
 
-        auto new_stack = local_stack_(conv_map_fn);
+        auto new_stack = local_stack_.push(conv_map_fn);
         return DIA<T, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -115,7 +115,7 @@ public:
      */
     template <typename flatmap_fn_t>
     auto FlatMap(const flatmap_fn_t &flatmap_fn) {
-        auto new_stack = local_stack_(flatmap_fn);
+        auto new_stack = local_stack_.push(flatmap_fn);
         return DIA<T, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -141,22 +141,19 @@ public:
      */
     template<typename key_extr_fn_t, typename reduce_fn_t>
     auto Reduce(const key_extr_fn_t& key_extractor, const reduce_fn_t& reduce_function) {
-        auto local_lambda = local_stack_.emit();
-
         using dop_result_t 
             = typename FunctionTraits<reduce_fn_t>::result_type;
         using ReduceResultNode
-            = ReduceNode<T, decltype(local_lambda), key_extr_fn_t, reduce_fn_t>;
-        // Create new node with local lambas and parent node
+            = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
+
         ReduceResultNode* reduce_node 
             = new ReduceResultNode(node_->get_data_manager(), 
                                    { node_ }, 
-                                   local_lambda, 
+                                   local_stack_,
                                    key_extractor, 
                                    reduce_function);
 
         auto reduce_stack = reduce_node->ProduceStack();
-        // Return new DIA with reduce node and post-op
         return DIA<dop_result_t, decltype(reduce_stack)>
             (reduce_node, reduce_stack);
     }

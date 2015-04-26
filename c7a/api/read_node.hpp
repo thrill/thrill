@@ -39,6 +39,18 @@ public:
         }
     };
 
+    auto ProduceStack() {
+        using read_t 
+            = typename FunctionTraits<ReadFunction>::result_type;
+
+        auto id_fn = [=](read_t t, std::function<void(read_t)> emit_func) {
+            return emit_func(t);
+        };
+
+        FunctionStack<> stack;
+        return stack.push(id_fn);
+    }
+
     std::string ToString() override {
         // Create string
         std::string str 

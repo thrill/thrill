@@ -39,6 +39,18 @@ namespace serializers {
             return std::stoi(x);
         }
     };
+    
+    //! serializer for double
+    template<>
+        struct Impl<double> {
+        static std::string Serialize(const double& x) {
+            return std::to_string(x);
+        }
+
+        static double Deserialize(const std::string& x) {
+            return std::stod(x);
+        }
+    };
 
     //! serializer for (string, int) tuples
     template <>
