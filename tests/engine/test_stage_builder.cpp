@@ -26,16 +26,16 @@ TEST(Stage, GetStagesFromBuilder) {
             emit_func(input);
         };
 
-    auto duplicates = doubles.Map(map_fn);
-    auto duplicates2 = duplicates.Map(map_fn);
-    auto red_duplicates = duplicates2.Reduce(key_ex, red_fn);
+    // auto duplicates = doubles.Map(map_fn);
+    // auto duplicates2 = duplicates.Map(map_fn);
+    auto doubles2 = doubles.Reduce(key_ex, red_fn);
 
-    auto duplicates3 = red_duplicates.Map(map_fn);
-    auto red_duplicates2 = duplicates3.Reduce(key_ex, red_fn);
+    // auto duplicates3 = red_duplicates.Map(map_fn);
+    auto red_duplicates2 = doubles2.Reduce(key_ex, red_fn);
 
 
     std::vector<Stage> result;
-    FindStages(duplicates3.get_node(), result);
+    FindStages(red_duplicates2.get_node(), result);
     for (auto s : result)
     {
         s.Run();

@@ -9,7 +9,9 @@
 #include <map>
 #include <functional>
 #include <stdexcept>
+#include <memory> //unique_ptr
 #include "block_iterator.hpp"
+#include "../common/logger.hpp"
 
 namespace c7a {
 namespace data {
@@ -30,6 +32,9 @@ public:
 
     DataManager() : nextId_(0) { }
 
+    DataManager(const DataManager&) = delete;
+    DataManager & operator=(const DataManager&) = delete;
+
     //! returns iterator on requested partition
     //!
     //! \param id ID of the DIA
@@ -38,7 +43,7 @@ public:
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        return BlockIterator<T>(data_[id]);
+        return BlockIterator<T>(*data_[id]);
     }
 
     //! returns true if the manager holds data of given DIA
@@ -49,7 +54,8 @@ public:
     }
 
     DIAId AllocateDIA() {
-        data_.insert( std::make_pair(nextId_, std::vector<std::string>()) );
+        SpacingLogger(true) << "Allocate DIA" << nextId_;
+        data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
         return nextId_++;
     }
 
@@ -58,13 +64,17 @@ public:
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        auto& target = data_[id];
-        return [&target](T elem){ target.push_back(Serialize(elem)); };
+        auto& target = data_[id]; //yes. const ref to an unique_ptr
+        return [& target](T elem){ target->push_back(Serialize(elem)); };
     }
 
 private:
     DIAId nextId_;
-    std::map<DIAId, std::vector<Blob>> data_;
+
+    //YES I COULD just use a map of (int, vector) BUT then I have a weird
+    //behaviour of std::map on inserts. Sometimes it randomly kills itself.
+    //May depend on the compiler. Google it.
+    std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
 };
 
 }
