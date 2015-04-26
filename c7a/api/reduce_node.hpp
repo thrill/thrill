@@ -26,7 +26,12 @@ public:
         : DOpNode<T>(data_manager, parents),
         local_stack_(stack),
         key_extractor_(key_extractor),
-        reduce_function_(reduce_function) {};
+        reduce_function_(reduce_function) {
+            // This new DIA Allocate is needed to send data from Pre to Main
+            // TODO: use network iterate later
+            post_data_id_ = (this->data_manager_).AllocateDIA();
+
+        };
 
     std::string ToString() override {
         // Create string
@@ -45,7 +50,7 @@ public:
         using reduce_t 
             = typename FunctionTraits<ReduceFunction>::result_type;
 
-        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)> emit_func) {
+        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)>) {
             return emit_func(t);
         };
 
@@ -53,10 +58,12 @@ public:
         return stack.push(id_fn);
     }
 
+
 private: 
     Stack local_stack_;
     KeyExtractor key_extractor_;
     ReduceFunction reduce_function_;
+    data::DIAId post_data_id_;
 
     void PreOp() {
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
@@ -71,11 +78,12 @@ private:
         // std::vector<std::string>::iterator end = local_block.end();
         
         // //run local reduce
-        std::unordered_map<key_t, T> hash;
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        std::unordered_map<key_t, T> reduce_data;
 
-        SpacingLogger(true) << "######################";
-        SpacingLogger(true) << "INPUT";
-        SpacingLogger(true) << "######################";
+        // SpacingLogger(true) << "######################";
+        // SpacingLogger(true) << "INPUT";
+        // SpacingLogger(true) << "######################";
 
 
         std::vector<reduce_arg_t> elements;
@@ -91,36 +99,113 @@ private:
 
         for (auto item : elements) { 
             key_t key = key_extractor_(item);
-            auto elem = hash.find(key);            
-            SpacingLogger(true) << item;
+            auto elem = reduce_data.find(key);            
+            // SpacingLogger(true) << item;
 
             // is there already an element with same key?
-            if(elem != hash.end()) {
+            if(elem != reduce_data.end()) {
                 auto new_elem = reduce_function_(item, elem->second);
-                hash.at(key) = new_elem;
+                reduce_data.at(key) = new_elem;
             }
             else {
-                hash.insert(std::make_pair(key, item));
+                reduce_data.insert(std::make_pair(key, item));
             }
         }
 
-
         // just for testing
-        SpacingLogger(true) << "######################";
-        SpacingLogger(true) << "OUTPUT";
-        SpacingLogger(true) << "######################";
-        for (auto it = hash.begin(); it != hash.end(); ++it){
+        // SpacingLogger(true) << "######################";
+        // SpacingLogger(true) << "OUTPUT";
+        // SpacingLogger(true) << "######################";
+
+        // send data to main op
+        //TODO use network emitter in future
+        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
+        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
             SpacingLogger(true) << it->second;
+            emit(it->second);
         }
-        SpacingLogger(true);
     }
 
-    void MainOp() {
-        std::cout << "MainOp" << std::endl;
+
+    auto MainOp() {
     }
 
     void PostOp() {
         std::cout << "PostOp" << std::endl;
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        std::unordered_map<key_t, T> reduce_data;
+
+        data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(this->data_id_);
+
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        std::unordered_map<key_t, T> global_data;
+
+        while(it.HasNext()) {
+            auto item = it.Next();
+            key_t key = key_extractor_(item);
+            auto elem = reduce_data.find(key);            
+            // SpacingLogger(true) << item;
+
+            // is there already an element with same key?
+            if(elem != reduce_data.end()) {
+                auto new_elem = reduce_function_(item, elem->second);
+                reduce_data.at(key) = new_elem;
+            }
+            else {
+                reduce_data.insert(std::make_pair(key, item));
+            }
+        }
+
+        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(post_data_id_);
+        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
+            // SpacingLogger(true) << it->second;
+            emit(it->second);
+        }
+        // // send data to other workers
+        // for(auto it = dataGlobalReduce.begin(); it != dataGlobalReduce.end(); it++) {
+        //     std::pair<K, V> p = *it;
+
+        //     // compute hash value from key representing id of target worker
+        //     int targetWorker = hash(p.first, _numOtherWorkers);
+
+        //     LOG << "word: "
+        //         << p.first
+        //         << " target worker: "
+        //         << std::to_string(targetWorker);
+
+        //     // if target worker equals _id,
+        //     // keep data on the same worker
+        //     if (targetWorker == _id) {
+
+        //         // add data to be reduced
+        //         dataLocalReduce.insert(p);
+
+        //         LOG << "payload: "
+        //             << "word: "
+        //             << std::string(p.first)
+        //             << " count: "
+        //             << std::to_string(p.second)
+        //             << " stays on worker_id: "
+        //             << std::to_string(targetWorker);
+
+        //     // data to be send to another worker
+        //     } else {
+
+        //         LOG << "send payload : "
+        //             << "word: "
+        //             << std::string(p.first)
+        //             << " count: "
+        //             << std::to_string(p.second)
+        //             << " to worker_id: "
+        //             << std::to_string(targetWorker);
+
+        //         // serialize payload
+        //         auto payloadSer = c7a::data::Serialize<std::pair<K, V>>(p);
+
+        //         // send payload to target worker
+        //         _mockSelect.sendToWorkerString(targetWorker, payloadSer);
+        //     }
+        // }
     }
 };
 
