@@ -25,11 +25,10 @@ public:
     virtual ~Context() { }
 
     template <typename read_fn_t>
-    auto ReadFromFileSystem(std::string filepath,
-                            const read_fn_t &read_fn) {
-        (void) filepath; //TODO remove | to supress warning
-
-        // Set types 
+    auto ReadFromFileSystem(const std::string& filepath,
+                            const read_fn_t &read_fn)
+    {
+        // Set types
         using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
         using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
