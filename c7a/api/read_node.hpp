@@ -23,7 +23,8 @@ public:
 
     std::string ToString() override {
         using key_t = typename FunctionTraits<ReadFunction>::result_type;
-        std::string str = std::string("[ReadNode/Type=[") + typeid(T).name() + "]";
+        std::string str 
+            = std::string("[ReadNode/Type=[") + typeid(T).name() + "]";
         return str;
     }
 

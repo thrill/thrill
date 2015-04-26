@@ -2,7 +2,7 @@
 ################################################################################
 # misc/analyze-source.pl
 #
-# Copyright (C) 2014 Timo Bingmann <tb@panthema.net>
+# Copyright (C) 2014-2015 Timo Bingmann <tb@panthema.net>
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -17,6 +17,9 @@
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
+
+# print multiple email addresses
+my $email_multimap = 0;
 
 # launch emacsen for each error
 my $launch_emacs = 0;
@@ -37,6 +40,8 @@ use Text::Diff;
 use File::stat;
 
 my %includemap;
+my %authormap;
+
 my @source_filelist;
 
 sub expect_error($$$$) {
@@ -49,19 +54,34 @@ sub expect_error($$$$) {
     system("emacsclient -n $path") if $launch_emacs;
 }
 
-sub expect($$\$$) {
-    my ($path,$ln,$str,$expect) = @_;
+sub expect($$\@$) {
+    my ($path,$ln,$data,$expect) = @_;
 
-    if ($$str ne $expect) {
-        expect_error($path,$ln,$$str,$expect);
-        $$str = $expect;
+    if ($$data[$ln] ne $expect) {
+        expect_error($path,$ln,$$data[$ln],$expect);
+        # insert line with expected value
+        splice(@$data, $ln, 0, $expect);
     }
 }
-sub expect_re($$\$$) {
-    my ($path,$ln,$str,$expect) = @_;
+sub expectr($$\@$$) {
+    my ($path,$ln,$data,$expect,$replace_regex) = @_;
 
-    if ($$str !~ m/$expect/) {
-        expect_error($path,$ln,$$str,"/$expect/");
+    if ($$data[$ln] ne $expect) {
+        expect_error($path,$ln,$$data[$ln],$expect);
+        # replace line with expected value if like regex
+        if ($$data[$ln] =~ m/$replace_regex/) {
+            $$data[$ln] = $expect;
+        } else {
+            splice(@$data, $ln, 0, $expect);
+        }
+    }
+}
+
+sub expect_re($$\@$) {
+    my ($path,$ln,$data,$expect) = @_;
+
+    if ($$data[$ln] !~ m/$expect/) {
+        expect_error($path, $ln, $$data[$ln], "/$expect/");
     }
 }
 
@@ -137,23 +157,41 @@ sub process_cpp {
 
     # check source header
     my $i = 0;
-    expect($path, $i, $data[$i], "/".('*'x79)."\n"); ++$i;
-    expect($path, $i, $data[$i], " * $path\n"); ++$i;
-    expect($path, $i, $data[$i], " *\n"); ++$i;
+    expect($path, $i, @data, "/".('*'x79)."\n"); ++$i;
+    expectr($path, $i, @data, " * $path\n", qr/^ \* /); ++$i;
+    expect($path, $i, @data, " *\n"); ++$i;
 
-    # skip over comment
-    while ($data[$i] ne " ".('*'x78)."/\n")
-    {
-        expect_re($path, $i, $data[$i], '^ \*( .*)?\n$');
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^ \* Part of Project c7a/) {
+        expect_re($path, $i, @data, '^ \*( .*)?\n$');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
+    }
+
+    # check "Part of Project c7a"
+    expect($path, $i-1, @data, " *\n");
+    expect($path, $i, @data, " * Part of Project c7a.\n"); ++$i;
+    expect($path, $i, @data, " *\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^ \* Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
         die unless ++$i < @data;
     }
 
-    expect($path, $i, $data[$i], " ".('*'x78)."/\n"); ++$i;
+    # otherwise check license
+    expect($path, $i, @data, " *\n"); ++$i;
+    expectr($path, $i, @data, " * This file has no license. Only Chunk Norris can compile it.\n", qr/^ \*/); ++$i;
+    expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
 
     # check include guard name
     if ($path =~ m!\.(h|h.in|hpp)$!)
     {
-        expect($path, $i, $data[$i], "\n"); ++$i;
+        expect($path, $i, @data, "\n"); ++$i;
 
         # construct include guard macro name: PROGRAM_FILE_NAME_HEADER
         my $guard = $path;
@@ -163,11 +201,11 @@ sub process_cpp {
         $guard = "C7A_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
-        expect($path, $i, $data[$i], "#ifndef $guard\n"); ++$i;
-        expect($path, $i, $data[$i], "#define $guard\n"); ++$i;
+        expectr($path, $i, @data, "#ifndef $guard\n", qr/^#ifndef /); ++$i;
+        expectr($path, $i, @data, "#define $guard\n", qr/^#define /); ++$i;
 
         my $n = scalar(@data)-1;
-        expect($path, $n-2, $data[$n-2], "#endif // !$guard\n");
+        expectr($path, $n-2, @data, "#endif // !$guard\n", qr/^#endif /);
     }
 
     # check terminating /****/ comment
@@ -243,17 +281,17 @@ sub process_pl_cmake {
     # check source header
     my $i = 0;
     if ($data[$i] =~ m/#!/) { ++$i; } # bash line
-    expect($path, $i, $data[$i], ('#'x80)."\n"); ++$i;
-    expect($path, $i, $data[$i], "# $path\n"); ++$i;
-    expect($path, $i, $data[$i], "#\n"); ++$i;
+    expect($path, $i, @data, ('#'x80)."\n"); ++$i;
+    expect($path, $i, @data, "# $path\n"); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
 
     # skip over comment
     while ($data[$i] ne ('#'x80)."\n") {
-        expect_re($path, $i, $data[$i], '^#( .*)?\n$');
+        expect_re($path, $i, @data, '^#( .*)?\n$');
         return unless ++$i < @data;
     }
 
-    expect($path, $i, $data[$i], ('#'x80)."\n"); ++$i;
+    expect($path, $i, @data, ('#'x80)."\n"); ++$i;
 
     # check terminating ####### comment
     {
@@ -283,6 +321,7 @@ sub process_pl_cmake {
 foreach my $arg (@ARGV) {
     if ($arg eq "-w") { $write_changes = 1; }
     elsif ($arg eq "-e") { $launch_emacs = 1; }
+    elsif ($arg eq "-m") { $email_multimap = 1; }
     else {
         print "Unknown parameter: $arg\n";
     }
@@ -301,23 +340,11 @@ foreach my $file (@filelist)
 
     if ($file =~ m!^b!) {
     }
-    elsif ($file =~ m!^ChartApp!) {
-        # skip new subapplications
-    }
-    elsif ($file =~ m!^extlib!) {
+    elsif ($file =~ m!^libs!) {
         # skip external libraries
     }
-    elsif ($file =~ m!^charter/qcustomplot/!) {
-        # skip external libraries
-    }
-    elsif ($file =~ m!/(moc|ui)_!) {
-        # skip generated files
-    }
-    elsif ($file =~ /\.(h|cpp|hpp|h.in)$/) {
+    elsif ($file =~ /^(c7a|tests)\/(common|communication)\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
-    }
-    elsif ($file =~ /\.(ui|pro\.user)$/) {
-        # Qt file
     }
     elsif ($file =~ /\.(pl|pro)$/) {
         process_pl_cmake($file);
@@ -332,11 +359,10 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!CPPLINT\.cfg$!) {
     }
-    elsif ($file =~ m!^webdata/!) {
-    }
     elsif ($file =~ m!^doxygen-html/!) {
     }
     elsif ($file =~ m!^tests/.*\.(dat|plot)$!) {
+        # data files of tests
     }
     # skip all additional files in source root
     elsif ($file =~ m!^[^/]+$!) {
@@ -356,6 +382,25 @@ if (0)
         print join(",", sort keys %{$includemap{$inc}}). "]\n";
     }
 }
+
+# print authors to AUTHORS
+print "Writing AUTHORS:\n";
+open(A, "> AUTHORS");
+foreach my $a (sort keys %authormap)
+{
+    my $mail = $authormap{$a};
+    if ($email_multimap) {
+        $mail = join(",", sort keys %{$mail});
+    }
+    else {
+        $mail = (sort keys(%{$mail}))[0]; # pick first
+    }
+    $mail = $mail ? " <$mail>" : "";
+
+    print "  $a$mail\n";
+    print A "$a$mail\n";
+}
+close(A);
 
 # check includemap for C-style headers
 {

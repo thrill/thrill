@@ -13,7 +13,6 @@ set(SRCS
     communication/test_net_dispatcher.cpp
     engine/mock-network.cpp
     engine/test_stage_builder.cpp
-
 )
 
 add_executable(c7atest ${SRCS})
@@ -24,6 +23,8 @@ target_link_libraries(c7atest
   libgmock
   pthread
 )
+
+add_test(c7atest c7atest)
 
 install(TARGETS c7atest DESTINATION build)
 
