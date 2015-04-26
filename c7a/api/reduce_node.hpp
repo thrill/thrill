@@ -8,6 +8,7 @@
 #define C7A_API_REDUCE_NODE_HEADER
 
 #include <unordered_map>
+#include <functional>
 #include "dop_node.hpp"
 #include "function_stack.hpp"
 #include "../common/logger.hpp"
@@ -74,18 +75,10 @@ private:
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
         data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(pid);
-        // std::vector<std::string> local_block = {"I", "I", "hate", "code", "non-compiling", "code"};
-        // std::vector<std::string>::iterator begin = local_block.begin();
-        // std::vector<std::string>::iterator end = local_block.end();
         
         // //run local reduce
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         std::unordered_map<key_t, T> reduce_data;
-
-        // SpacingLogger(true) << "######################";
-        // SpacingLogger(true) << "INPUT";
-        // SpacingLogger(true) << "######################";
-
 
         std::vector<reduce_arg_t> elements;
         auto save_fn = [&elements](reduce_arg_t input) {
@@ -113,16 +106,15 @@ private:
             }
         }
 
-        // just for testing
-        // SpacingLogger(true) << "######################";
-        // SpacingLogger(true) << "OUTPUT";
-        // SpacingLogger(true) << "######################";
-
-        // send data to main op
+        //TODO get number of worker by net-group or something similar
+        int number_worker = 1;
         //TODO use network emitter in future
+        std::vector<BlockEmitter<T>> emit_array;
         data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
-            SpacingLogger(true) << it->second;
+            std::hash<T> t_hash;
+            auto hashed = t_hash(it->second) % number_worker;
+            // TODO When emitting and the real network emitter is there, hashed is needed to emit 
             emit(it->second);
         }
     }
@@ -145,7 +137,6 @@ private:
             auto item = it.Next();
             key_t key = key_extractor_(item);
             auto elem = reduce_data.find(key);            
-            // SpacingLogger(true) << item;
 
             // is there already an element with same key?
             if(elem != reduce_data.end()) {
@@ -159,7 +150,6 @@ private:
 
         data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(post_data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
-            // SpacingLogger(true) << it->second;
             emit(it->second);
         }
     }
