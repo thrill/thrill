@@ -27,8 +27,6 @@ public:
         reduce_function_(reduce_function) {};
 
     std::string ToString() override {
-        // Extract type
-        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         // Create string
         std::string str 
             = std::string("[ReduceNode]");
