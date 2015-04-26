@@ -23,7 +23,7 @@ public:
         SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;   
     }
     void Run() {
-        std::cout << "RUNNING stage" << node_->ToString() <<  "node" << node_ << std::endl;
+        SpacingLogger(true) << "RUNNING stage with node" << node_;
         //GOAL: Make sure the stage is executed efficiently. 
         node_->execute();
     };
