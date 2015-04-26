@@ -50,7 +50,8 @@ public:
         using reduce_t 
             = typename FunctionTraits<ReduceFunction>::result_type;
 
-        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)>) {
+
+        auto id_fn = [=](reduce_t t, std::function<void(reduce_t)> emit_func) {
             return emit_func(t);
         };
 
@@ -161,51 +162,6 @@ private:
             // SpacingLogger(true) << it->second;
             emit(it->second);
         }
-        // // send data to other workers
-        // for(auto it = dataGlobalReduce.begin(); it != dataGlobalReduce.end(); it++) {
-        //     std::pair<K, V> p = *it;
-
-        //     // compute hash value from key representing id of target worker
-        //     int targetWorker = hash(p.first, _numOtherWorkers);
-
-        //     LOG << "word: "
-        //         << p.first
-        //         << " target worker: "
-        //         << std::to_string(targetWorker);
-
-        //     // if target worker equals _id,
-        //     // keep data on the same worker
-        //     if (targetWorker == _id) {
-
-        //         // add data to be reduced
-        //         dataLocalReduce.insert(p);
-
-        //         LOG << "payload: "
-        //             << "word: "
-        //             << std::string(p.first)
-        //             << " count: "
-        //             << std::to_string(p.second)
-        //             << " stays on worker_id: "
-        //             << std::to_string(targetWorker);
-
-        //     // data to be send to another worker
-        //     } else {
-
-        //         LOG << "send payload : "
-        //             << "word: "
-        //             << std::string(p.first)
-        //             << " count: "
-        //             << std::to_string(p.second)
-        //             << " to worker_id: "
-        //             << std::to_string(targetWorker);
-
-        //         // serialize payload
-        //         auto payloadSer = c7a::data::Serialize<std::pair<K, V>>(p);
-
-        //         // send payload to target worker
-        //         _mockSelect.sendToWorkerString(targetWorker, payloadSer);
-        //     }
-        // }
     }
 };
 
