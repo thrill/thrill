@@ -92,8 +92,8 @@ TEST(DIASimple, ReduceStringEquality) {
         });
     //auto new_stack2 = new_stack.push(map2_fn);
     //auto pair = new_stack2.pop();
-    new_stack2.emit(10);
-    
+    auto composed_function = new_stack2.emit();
+    composed_function(42);
     return;
 
     // std::cout << "==============" << std::endl;
