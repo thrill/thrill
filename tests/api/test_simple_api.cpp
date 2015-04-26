@@ -50,9 +50,11 @@ TEST(DIASimple, ReduceStringEquality) {
     using c7a::Context;
     using c7a::FunctionStack;
 
-    // auto doubles = Context().ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
-    //         return std::stod(line);
-    //     });
+    Context ctx;
+
+    auto doubles = ctx.ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
+            return std::stod(line);
+        });
 
     auto key_ex = [](double in) { return (int) in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
