@@ -10,7 +10,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/socket_address.hpp>
+#include <c7a/net/socket-address.hpp>
 
 #include <string>
 #include <netdb.h>
