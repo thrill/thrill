@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/communication/net_dispatcher.hpp
  *
+ * Part of Project c7a.
  *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_COMMUNICATION_NET_DISPATCHER_HEADER

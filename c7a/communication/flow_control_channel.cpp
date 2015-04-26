@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/communication/flow_control_channel.cpp
  *
+ * Part of Project c7a.
  *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #include "flow_control_channel.hpp"

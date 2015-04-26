@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/communication/communication_manager.hpp
  *
+ * Part of Project c7a.
  *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_COMMUNICATION_COMMUNICATION_MANAGER_HEADER

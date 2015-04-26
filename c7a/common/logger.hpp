@@ -2,6 +2,12 @@
  * c7a/common/logger.hpp
  *
  * Simple and less simple logging classes.
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_COMMON_LOGGER_HEADER

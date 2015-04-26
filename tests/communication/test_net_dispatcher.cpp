@@ -1,7 +1,10 @@
 /*******************************************************************************
  * tests/communication/test_net_dispatcher.cpp
  *
+ * Part of Project c7a.
  *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #include "gtest/gtest.h"

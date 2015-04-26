@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/communication/execution_endpoint.hpp
  *
+ * Part of Project c7a.
  *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER

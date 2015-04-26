@@ -2,6 +2,12 @@
  * c7a/communication/socket_address.cpp
  *
  * Implements lookups and conversions to low-level socket address structs.
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #include <c7a/communication/socket_address.hpp>
