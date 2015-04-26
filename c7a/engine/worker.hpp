@@ -9,14 +9,14 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <unordered_map>
 #include <iostream>
 #include "mock-network.hpp"
 #include <thread>
 #include <mutex>
 #include <c7a/data/serializer.hpp>
 #include <c7a/common/logger.hpp>
-
-using namespace c7a::data;
+#include <c7a/engine/hash_table.hpp>
 
 namespace c7a {
 namespace engine {
@@ -40,6 +40,9 @@ public:
     template<typename K, typename V>
     void reduce(const std::vector<K> &w) {
 
+        // declare reduce function
+        std::function<V (V, V)> f_reduce = [] (const V val1, const V val2) ->V { return val1 + val2; };
+
         std::vector<K> words = w;
         std::map<K, V> dataGlobalReduce;
         std::map<K, V> dataLocalReduce;
@@ -52,9 +55,6 @@ public:
         for (auto word : words)
             wordPairs.push_back(std::make_pair(word, 1));
 
-        // declare reduce function
-        std::function<V (V, V)> f_reduce = [] (const V val1, const V val2) ->V { return val1 + val2; };
-
         //////////
         // pre operation
         //////////
@@ -63,9 +63,15 @@ public:
         for (auto it = wordPairs.begin(); it != wordPairs.end(); it++) {
             // get the pair
             std::pair<K, V> pairToBeReduced = *it;
+
             // reduce pair
-            localReduce<K, V>(dataGlobalReduce, pairToBeReduced, f_reduce);
+            ht.insert(pairToBeReduced, f_reduce);
+
+            // TODO remove, just tmp, being replaced by custom hash table
+            localReduce<K, V>(dataLocalReduce, pairToBeReduced, f_reduce);
         }
+
+        ht.print();
 
         //////////
         // main operation
@@ -73,7 +79,6 @@ public:
 
         // send data to other workers
         for(auto it = dataGlobalReduce.begin(); it != dataGlobalReduce.end(); it++) {
-
             std::pair<K, V> p = *it;
 
             // compute hash value from key representing id of target worker
@@ -111,7 +116,7 @@ public:
                     << std::to_string(targetWorker);
 
                 // serialize payload
-                auto payloadSer = Serialize<std::pair<K, V>>(p);
+                auto payloadSer = c7a::data::Serialize<std::pair<K, V>>(p);
 
                 // send payload to target worker
                 _mockSelect.sendToWorkerString(targetWorker, payloadSer);
@@ -139,7 +144,7 @@ public:
             _mockSelect.receiveFromAnyString(&out_sender, &out_data);
 
             // deserialize incoming data
-            auto pairToBeReduced = Deserialize<std::pair<K, V>>(out_data);
+            auto pairToBeReduced = c7a::data::Deserialize<std::pair<K, V>>(out_data);
 
             LOG << "worker_id: "
                 << std::to_string(_id)
@@ -177,6 +182,8 @@ private:
 
     // keep the mock select
     MockSelect _mockSelect;
+
+    HashTable<std::string, int> ht;
 
     // @brief hash some input string
     // @param size if interval

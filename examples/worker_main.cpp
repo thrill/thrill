@@ -26,23 +26,23 @@ int main()
 {
     c7a::engine::MockNetwork net;
 
-    std::vector<std::string> words = {"word0", "word1", "word2", "word3", "word4", "word4"};
+    std::vector<std::string> words = {"word0", "word1", "word2", "word4", "word4", "word4"};
 
     c7a::engine::Worker w0(0, 5, net);
-    c7a::engine::Worker w1(1, 5, net);
-    c7a::engine::Worker w2(2, 5, net);
-    c7a::engine::Worker w3(3, 5, net);
-    c7a::engine::Worker w4(4, 5, net);
+//    c7a::engine::Worker w1(1, 5, net);
+//    c7a::engine::Worker w2(2, 5, net);
+//    c7a::engine::Worker w3(3, 5, net);
+//    c7a::engine::Worker w4(4, 5, net);
     std::thread t0([&]{ w0.reduce<std::string, int>(words); });
-    std::thread t1([&]{ w1.reduce<std::string, int>(words); });
-    std::thread t2([&]{ w2.reduce<std::string, int>(words); });
-    std::thread t3([&]{ w3.reduce<std::string, int>(words); });
-    std::thread t4([&]{ w4.reduce<std::string, int>(words); });
+//    std::thread t1([&]{ w1.reduce<std::string, int>(words); });
+//    std::thread t2([&]{ w2.reduce<std::string, int>(words); });
+//    std::thread t3([&]{ w3.reduce<std::string, int>(words); });
+//    std::thread t4([&]{ w4.reduce<std::string, int>(words); });
     t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
+//    t1.join();
+//    t2.join();
+//    t3.join();
+//    t4.join();
 
     /*std::vector<c7a::engine::Worker> workerObjs;
     std::vector<std::thread*> threads;
