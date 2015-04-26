@@ -20,10 +20,7 @@ set(SRCS
 add_executable(c7atest ${SRCS})
 
 target_link_libraries(c7atest
-  c7a
-  libgtest
-  libgmock
-  pthread
+  c7a gtest gmock pthread
 )
 
 add_test(c7atest c7atest)
