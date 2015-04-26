@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/socket.cpp
+ * c7a/net/socket.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *

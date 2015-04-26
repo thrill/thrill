@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/select.hpp
+ * c7a/net/select.hpp
  *
  * Lightweight wrapper around select()
  *
@@ -10,8 +10,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_SELECT_HEADER
-#define C7A_COMMUNICATION_SELECT_HEADER
+#ifndef C7A_NET_SELECT_HEADER
+#define C7A_NET_SELECT_HEADER
 
 #include <c7a/net/socket.hpp>
 
@@ -78,6 +78,6 @@ public:
 
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_SELECT_HEADER
+#endif // !C7A_NET_SELECT_HEADER
 
 /******************************************************************************/

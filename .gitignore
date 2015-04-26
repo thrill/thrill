@@ -36,3 +36,6 @@ lib/*
 
 # IntelliJ products
 *.idea
+
+# Vim swap files
+*.swp

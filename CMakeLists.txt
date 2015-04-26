@@ -23,14 +23,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # enable warnings
-# set(CMAKE_CXX_COMPILER "/usr/local/bin/g++-4.9")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
-# enable "make test" and add_test().
-enable_testing()
-
 ################################################################################
-### Find Required Libraries ###
+### Find Required Libraries
 
 # example: use Boost libraries:
 
@@ -39,12 +35,14 @@ enable_testing()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
-################################################################################
+# google test + mock - enable "make test" and add_test()
+add_subdirectory(extlib/gmock) # note: gmock includes gtest
+enable_testing()
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
 
-### add gmock sources
-add_subdirectory(${GMOCK_ROOT})
-include_directories(${GMOCK_ROOT}/include)
-include_directories(${GMOCK_ROOT}/gtest/include)
+################################################################################
+### Descend into Subdirectories
 
 ### Descend into Subdirectories
 include_directories(${CMAKE_SOURCE_DIR})

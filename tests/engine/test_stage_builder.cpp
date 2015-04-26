@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
 #include "c7a/engine/stage_builder.hpp"
 #include "c7a/api/dia.hpp"
@@ -9,8 +10,10 @@ using namespace c7a::engine;
 TEST(Stage, GetStagesFromBuilder) {
     using c7a::DIA;
     using c7a::Context;
-
-    auto doubles = Context().ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
+    Context ctx;
+    auto doubles = ctx.ReadFromFileSystem(
+        g_workpath + "/inputs/test1",
+        [](std::string line) {
             return std::stod(line);
         });
 
@@ -20,13 +23,14 @@ TEST(Stage, GetStagesFromBuilder) {
             std::cout << "Map" << std::endl;
             return input;
         };
+
     auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
             std::cout << "FlatMap" << std::endl;
             emit_func(input);
             emit_func(input);
         };
 
-    // auto duplicates = doubles.Map(map_fn);
+    auto duplicates = doubles.Map(map_fn);
     // auto duplicates2 = duplicates.Map(map_fn);
     auto doubles2 = doubles.Reduce(key_ex, red_fn);
 

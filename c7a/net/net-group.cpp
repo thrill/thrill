@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/net-group.cpp
+ * c7a/net/net-group.cpp
  *
  * NetGroup is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
