@@ -10,7 +10,7 @@ set(SRCS
     data/test_data_manager.cpp
     data/test_block_iterator.cpp
     data/test_serializer.cpp
-    communication/test_net_dispatcher.cpp
+    net/test-net-group.cpp
     engine/mock-network.cpp
     engine/test_stage_builder.cpp
 )

@@ -12,9 +12,11 @@
 
 #include <string>
 #include <vector>
-#include "net_dispatcher.hpp"
+#include "net-group.hpp"
 
 namespace c7a {
+
+#ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 /**
  * @brief Provides a blocking collection for communication.
@@ -111,6 +113,8 @@ public:
      */
     std::vector<std::string> AllToAll(std::vector<std::string> messages);
 };
+
+#endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 } // namespace c7a
 

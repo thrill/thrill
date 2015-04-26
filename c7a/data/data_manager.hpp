@@ -9,7 +9,9 @@
 #include <map>
 #include <functional>
 #include <stdexcept>
+#include <memory> //unique_ptr
 #include "block_iterator.hpp"
+#include "../common/logger.hpp"
 
 namespace c7a {
 namespace data {
@@ -30,6 +32,9 @@ public:
 
     DataManager() : nextId_(0) { }
 
+    DataManager(const DataManager&) = delete;
+    DataManager & operator=(const DataManager&) = delete;
+
     //! returns iterator on requested partition
     //!
     //! \param id ID of the DIA
@@ -45,12 +50,16 @@ public:
     //!
     //! \param id ID of the DIA
     bool Contains(DIAId id) {
-        return data_.find(id) != data_.end();
+        //return data_.find(id) != data_.end();
+        return data_.size() > id && id >= 0;
     }
 
     DIAId AllocateDIA() {
-        data_.insert( std::make_pair(nextId_, std::vector<std::string>()) );
-        return nextId_++;
+        SpacingLogger(true) << "Allocate DIA" << data_.size() - 1;
+        //data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
+        data_.push_back( std::vector<Blob>() );
+        return data_.size() - 1;
+        //return nextId_++;
     }
 
     template<class T>
@@ -58,13 +67,17 @@ public:
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        auto& target = data_[id];
-        return [&target](T elem){ target.push_back(Serialize(elem)); };
+        auto& target = data_[id]; //yes. const ref to an unique_ptr
+        return [& target](T elem){ target.push_back(Serialize(elem)); };
     }
 
 private:
     DIAId nextId_;
-    std::map<DIAId, std::vector<Blob>> data_;
+
+    //YES I COULD just use a map of (int, vector) BUT then I have a weird
+    //behaviour of std::map on inserts. Sometimes it randomly kills itself.
+    //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
+    std::vector<std::vector<Blob>> data_;
 };
 
 }
