@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/execution_endpoint.hpp
+ * c7a/net/execution_endpoint.hpp
  *
  * Part of Project c7a.
  *
@@ -7,8 +7,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER
-#define C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER
+#ifndef C7A_NET_EXECUTION_ENDPOINT_HEADER
+#define C7A_NET_EXECUTION_ENDPOINT_HEADER
 
 #include <iostream>
 #include <sstream>
@@ -52,6 +52,6 @@ public:
 
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_EXECUTION_ENDPOINT_HEADER
+#endif // !C7A_NET_EXECUTION_ENDPOINT_HEADER
 
 /******************************************************************************/

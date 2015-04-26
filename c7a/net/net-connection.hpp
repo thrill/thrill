@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/net-connection.hpp
+ * c7a/net/net-connection.hpp
  *
  * Contains NetConnection a richer set of network point-to-point primitives.
  *
@@ -10,8 +10,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_COMMUNICATION_NET_CONNECTION_HEADER
-#define C7A_COMMUNICATION_NET_CONNECTION_HEADER
+#ifndef C7A_NET_NET_CONNECTION_HEADER
+#define C7A_NET_NET_CONNECTION_HEADER
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -79,7 +79,7 @@ public:
                 throw NetException("Error during Send", errno);
         }
 
-        if (send(value, sizeof(value)) != (ssize_t)sizeof(value))
+        if (send(&value, sizeof(value)) != (ssize_t)sizeof(value))
             throw NetException("Error during Send", errno);
     }
 
@@ -106,7 +106,7 @@ public:
 
     //! Receive a fixed-length type, possibly without length header.
     template <typename T>
-    void Receive(T& value)
+    void Receive(T* out_value)
     {
         if (self_verify_) {
             // for communication verification, receive sizeof.
@@ -115,10 +115,10 @@ public:
                 throw NetException("Error during Receive", errno);
 
             // if this fails, then fixed-length type communication desynced.
-            die_unequal(len, sizeof(value));
+            die_unequal(len, sizeof(*out_value));
         }
 
-        if (recv(&value, sizeof(value)) != (ssize_t)sizeof(value))
+        if (recv(out_value, sizeof(*out_value)) != (ssize_t)sizeof(*out_value))
             throw NetException("Error during Receive", errno);
     }
 
@@ -183,6 +183,6 @@ public:
 
 } // namespace c7a
 
-#endif // !C7A_COMMUNICATION_NET_CONNECTION_HEADER
+#endif // !C7A_NET_NET_CONNECTION_HEADER
 
 /******************************************************************************/

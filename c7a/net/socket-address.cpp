@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/communication/socket_address.cpp
+ * c7a/net/socket-address.cpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/socket_address.hpp>
+#include <c7a/net/socket-address.hpp>
 
 #include <string>
 #include <netdb.h>
