@@ -34,7 +34,7 @@ typedef unsigned int ClientId;
 //! Simple sum operator
 template <typename T>
 struct SumOp {
-    T operator () (T& a, T& b)
+    T operator () (const T& a, const T& b)
     {
         return a + b;
     }
@@ -49,9 +49,11 @@ class NetGroup
 public:
     //! Construct a mock NetGroup using a complete graph of local stream sockets
     //! for testing, and starts a thread for each client, which gets passed the
-    //! NetGroup object. \internal
+    //! NetGroup object. This is ideal for testing network communication
+    //! protocols. See tests/net/test-net-group.cpp for examples.
     static void ExecuteLocalMock(
-        size_t num_clients, const std::function<void(NetGroup*)>& thread_function);
+        size_t num_clients,
+        const std::function<void(NetGroup*)>& thread_function);
 
     //! non-copyable: delete copy-constructor
     NetGroup(const NetGroup&) = delete;
@@ -60,13 +62,8 @@ public:
 
     static const bool debug = true;
 
-    const ExecutionEndpoints endpoints;
-
-    NetGroup(unsigned int my_id, const ExecutionEndpoints& endpoints)
-        : endpoints(endpoints),
-          my_rank_(my_id),
-          connections_(endpoints.size())
-    { }
+    //! \name Status und Access to NetConnections
+    //! \{
 
     //! Return NetConnection to client id.
     NetConnection & GetConnection(ClientId id)
@@ -89,6 +86,20 @@ public:
     {
         return my_rank_;
     }
+
+    void Close()
+    {
+        for (size_t i = 0; i != connections_.size(); ++i)
+        {
+            if (i == my_rank_) continue;
+            connections_[i].Close();
+        }
+    }
+
+    //! \}
+
+    //! \name Send and Receive Functions
+    //! \{
 
     /*!
      * Sends a message (data,len) to worker dest, returns status code.
@@ -196,14 +207,7 @@ public:
         return ReceiveFromAny(out_src, out_data);
     }
 
-    void Close()
-    {
-        for (size_t i = 0; i != connections_.size(); ++i)
-        {
-            if (i == my_rank_) continue;
-            connections_[i].Close();
-        }
-    }
+    //! \}
 
     //! \name Collective Operations
     //! \{
@@ -214,7 +218,8 @@ public:
     //! \}
 
 protected:
-    //! Construct object but initialize other fields later.
+    //! Construct object but initialize other fields later, used by
+    //! ExecuteLocalMock to create many NetGroup objects.
     NetGroup(ClientId id, size_t num_clients)
         : my_rank_(id),
           connections_(num_clients)
@@ -293,14 +298,14 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
 
     for (size_t d = 1; d < this->Size(); d <<= 1)
     {
-        // Send value to worker with id id ^ d
+        // Send value to worker with id = id XOR d
         if ((this->MyRank() ^ d) < this->Size()) {
             this->GetConnection(this->MyRank() ^ d).Send(value);
             std::cout << "LOCAL: Worker " << this->MyRank() << ": Sending " << value
                       << " to worker " << (this->MyRank() ^ d) << "\n";
         }
 
-        // Receive value from worker with id id ^ d
+        // Receive value from worker with id = id XOR d
         T recv_data;
         if ((this->MyRank() ^ d) < this->Size()) {
             this->GetConnection(this->MyRank() ^ d).Receive(&recv_data);
