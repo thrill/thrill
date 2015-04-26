@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
 #include "c7a/engine/stage_builder.hpp"
 #include "c7a/api/dia.hpp"
@@ -10,7 +11,9 @@ TEST(Stage, GetStagesFromBuilder) {
     using c7a::DIA;
     using c7a::Context;
     Context ctx;
-    auto doubles = ctx.ReadFromFileSystem("tests/inputs/test1", [](std::string line) {
+    auto doubles = ctx.ReadFromFileSystem(
+        g_workpath + "/inputs/test1",
+        [](std::string line) {
             return std::stod(line);
         });
 
