@@ -35,7 +35,7 @@ public:
 
     std::string ToString() override {
         std::string str;
-        str = std::string("[DIANode/State:") + state_string_() + "/Type:" + typeid(T).name() + "]";
+        str = std::string("[DIANode/State:") + state_string_() + "]";
         return str;
     }
 
