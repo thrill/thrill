@@ -5,7 +5,7 @@
 ################################################################################
 
 set(SRCS
-    main.cpp
+    c7a-tests.cpp
     api/test_simple_api.cpp
     data/test_data_manager.cpp
     data/test_block_iterator.cpp
@@ -13,7 +13,7 @@ set(SRCS
     net/test-net-group.cpp
     engine/mock-network.cpp
     engine/test_stage_builder.cpp
-    api/test_wordcount.cpp
+    # api/test_wordcount.cpp
     data/test_dia_allocate
 )
 
