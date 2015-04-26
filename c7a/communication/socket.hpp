@@ -1,6 +1,8 @@
 /*******************************************************************************
  * c7a/communication/socket.hpp
  *
+ * Lightweight wrapper around BSD socket API.
+ *
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -20,14 +22,28 @@
 #include <cassert>
 
 #include <sys/socket.h>
+#include <fcntl.h>
 
 namespace c7a {
 
+/*!
+ * Socket is a light-weight wrapper around the BSD socket API. Functions all
+ * have plain return values and do not through exceptions.
+ *
+ * Not all functions in this class follow the normal naming conventions, because
+ * they are wrappers around the equally named functions of the socket API.
+ *
+ * Sockets are currently copyable! One may want to add move semantics later.
+ */
 class Socket
 {
     static const bool debug = true;
 
 public:
+    //! \name Creation
+    //! \{
+
+    //! Construct new Socket object from existing file descriptor.
     explicit Socket(int fd = -1)
         : fd_(fd)
     { }
@@ -35,7 +51,7 @@ public:
     //! Create a new stream socket.
     static Socket Create()
     {
-        int fd = socket(AF_INET, SOCK_STREAM, 0);
+        int fd = ::socket(AF_INET, SOCK_STREAM, 0);
 
         if (fd < 0) {
             LOG << "Socket::Create()"
@@ -46,13 +62,78 @@ public:
         return Socket(fd);
     }
 
-    //! Check whether the contained file descriptor is valid.
-    bool IsValid() const { return fd_ >= 0; }
-
-    int GetFileDescriptor() const
+    //! Create a pair of connected stream sockets. Use this for internal local
+    //! test connection pairs.
+    static std::pair<Socket, Socket> CreatePair()
     {
-        return fd_;
+        int fds[2];
+        int r = socketpair(PF_UNIX, SOCK_STREAM, 0, fds);
+
+        if (r != 0) {
+            LOG << "Socket::CreatePair()"
+                << " error=" << strerror(errno);
+            abort();
+        }
+
+        return std::make_pair(Socket(fds[0]), Socket(fds[1]));
     }
+
+    //! \}
+
+    //! \name Status
+    //! \{
+
+    //! Check whether the contained file descriptor is valid.
+    bool IsValid() const
+    { return fd_ >= 0; }
+
+    //! Return the associated file descriptor
+    int GetFileDescriptor() const
+    { return fd_; }
+
+    //! Turn socket into non-blocking state.
+    //! \return old blocking value (0 or 1) or -1 for error
+    int SetNonBlocking(bool non_blocking)
+    {
+        if (non_blocking == non_blocking_) return 1;
+
+        int old_opts = fcntl(fd_, F_GETFL);
+
+        int new_opts = non_blocking
+                       ? (old_opts | O_NONBLOCK) : (old_opts & ~O_NONBLOCK);
+
+        if (fcntl(fd_, F_SETFL, new_opts) != 0)
+        {
+            LOG << "Socket::SetNonBlocking()"
+                << " fd_=" << fd_
+                << " non_blocking=" << non_blocking
+                << " error=" << strerror(errno);
+            return -1;
+        }
+
+        non_blocking_ = non_blocking;
+        return old_opts;
+    }
+
+    //! \}
+
+    //! \name Close
+    //! \{
+
+    bool shutdown(int how = SHUT_RDWR)
+    {
+        if (::shutdown(fd_, how) != 0)
+        {
+            LOG << "Socket::close()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return false;
+        }
+
+        return true;
+    }
+
+    //! \}
 
     //! \name Connect, Bind and Accept Functions
     //! \{
@@ -256,15 +337,15 @@ public:
     //! \{
 
     //! Enable sending of keep-alive messages on connection-oriented sockets.
-    void set_keepalive(bool activate = true);
+    void SetKeepAlive(bool activate = true);
 
     //! Enable SO_REUSEADDR, which allows the socket to be bound more quickly to
     //! previously used ports.
-    void set_reuseaddr(bool activate = true);
+    void SetReuseAddr(bool activate = true);
 
     //! If set, disable the Nagle algorithm. This means that segments are always
     //! sent as soon as possible, even if there is only a small amount of data.
-    void set_nodelay(bool activate = true);
+    void SetNoDelay(bool activate = true);
 
     //! \}
 
@@ -277,6 +358,9 @@ protected:
 
     //! flag whether the socket was connected
     bool is_connected_ = false;
+
+    //! flag whether the socket is set to non-blocking mode
+    bool non_blocking_ = false;
 };
 
 } // namespace c7a
