@@ -17,8 +17,8 @@
 using namespace c7a;
 using namespace std;
 
-TEST(NetDispatcher, InitializeAndClose) {
-    auto endpoints = { ExecutionEndpoint::ParseEndpoint("127.0.0.1:1234", 0) };
+TEST(DISABLED_NetDispatcher, InitializeAndClose) {
+    auto endpoints = {ExecutionEndpoint::ParseEndpoint("127.0.0.1:1234", 0)};
     auto candidate = NetDispatcher(0, endpoints);
     ASSERT_EQ(candidate.Initialize(), NET_SERVER_SUCCESS);
     candidate.Close();
@@ -49,8 +49,8 @@ void TestNetDispatcher(NetDispatcher* candidate)
     }
 }
 
-TEST(NetDispatcher, InitializeMultipleCommunication) {
-    const int count = 4;
+TEST(DISABLED_NetDispatcher, InitializeMultipleCommunication) {
+	const int count = 4;
 
     ExecutionEndpoints endpoints = {
         ExecutionEndpoint::ParseEndpoint("127.0.0.1:1234", 0),
