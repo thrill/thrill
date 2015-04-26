@@ -11,3 +11,4 @@ fi
 cd build
 cmake .. $@
 make 
+ctest -V
