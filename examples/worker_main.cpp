@@ -25,7 +25,6 @@ std::string toStr(std::vector<int> v)
 int main()
 {
     c7a::engine::MockNetwork net;
-    std::vector<int> workers = {0, 1, 2, 3, 4};
 
     std::vector<std::string> words = {"word0", "word1", "word2", "word3", "word4", "word4"};
 

@@ -13,14 +13,19 @@
 #include "mock-network.hpp"
 #include <thread>
 #include <mutex>
-#include "Logger.hpp"
-#include "../data/serializer.hpp"
+#include <c7a/data/serializer.hpp>
+#include <c7a/common/logger.hpp>
+
+using namespace c7a::data;
 
 namespace c7a {
 namespace engine {
 
 class Worker
 {
+
+static const bool debug = true;
+
 public:
 
     Worker(size_t id, size_t num_other_workers, MockNetwork& net) :
@@ -28,22 +33,23 @@ public:
     }
 
     void print() {
-        std::cout << "worker " << _id << std::endl;
+        LOG << "worker "
+            << _id;
     }
 
     template<typename K, typename V>
     void reduce(const std::vector<K> &w) {
 
         std::vector<K> words = w;
-        std::map<K, V> wordsReducedSend;
-        std::map<K, V> wordsReducedReceived;
+        std::map<K, V> dataGlobalReduce;
+        std::map<K, V> dataLocalReduce;
 
         // create key/value pairs from words
         // actually, will get them from map operation,
         // just simulate here
         std::vector<std::pair<K, V>> wordPairs;
 
-        for (auto word : _words)
+        for (auto word : words)
             wordPairs.push_back(std::make_pair(word, 1));
 
         // declare reduce function
@@ -55,58 +61,69 @@ public:
 
         // iterate over K,V pairs and reduce
         for (auto it = wordPairs.begin(); it != wordPairs.end(); it++) {
-
-            std::pair<K, V> p = *it;
-
-            // key already cached
-            auto res = wordsReducedSend.find(p.first);
-            if (res != wordsReducedSend.end()) {
-                V red = f_reduce(res->second, p.second);
-                res->second = red;
-
-            // key not cached, just insert
-            } else {
-                wordsReducedSend.insert(std::make_pair(p.first, p.second));
-            }
+            // get the pair
+            std::pair<K, V> pairToBeReduced = *it;
+            // reduce pair
+            localReduce<K, V>(dataGlobalReduce, pairToBeReduced, f_reduce);
         }
 
         //////////
         // main operation
         //////////
 
-        // iterate over map with reduce data
-        for(auto it = wordsReducedSend.begin(); it != wordsReducedSend.end(); it++) {
+        // send data to other workers
+        for(auto it = dataGlobalReduce.begin(); it != dataGlobalReduce.end(); it++) {
 
             std::pair<K, V> p = *it;
-            p.first;
-            p.second;
 
             // compute hash value from key representing id of target worker
             int targetWorker = hash(p.first, _numOtherWorkers);
 
-            std::string msg = "word: " + p.first + " target worker: " + std::to_string(targetWorker);
-            Logger::instance().log(msg);
+            LOG << "word: "
+                << p.first
+                << " target worker: "
+                << std::to_string(targetWorker);
 
-            std::string payload = "word: " + std::string(p.first) + " count: " + std::to_string(p.second);
-
-            // data stays on same worker
+            // if target worker equals _id,
+            // keep data on the same worker
             if (targetWorker == _id) {
-                wordsReducedReceived.insert(p);
 
-                std::string msg = "payload: " + payload + " stays on worker: " + std::to_string(targetWorker);
-                Logger::instance().log(msg);
+                // add data to be reduced
+                dataLocalReduce.insert(p);
 
-            // data to be send to other worker
+                LOG << "payload: "
+                    << "word: "
+                    << std::string(p.first)
+                    << " count: "
+                    << std::to_string(p.second)
+                    << " stays on worker_id: "
+                    << std::to_string(targetWorker);
+
+            // data to be send to another worker
             } else {
+
+                LOG << "send payload : "
+                    << "word: "
+                    << std::string(p.first)
+                    << " count: "
+                    << std::to_string(p.second)
+                    << " to worker_id: "
+                    << std::to_string(targetWorker);
+
                 // serialize payload
+                auto payloadSer = Serialize<std::pair<K, V>>(p);
 
-                std::string msg = "send payload : " + payload + " to worker: " + std::to_string(targetWorker);
-                Logger::instance().log(msg);
-
-                // TODO: cache data to be send, send as once
-                _mockSelect.sendToWorkerString(targetWorker, payload);
+                // send payload to target worker
+                _mockSelect.sendToWorkerString(targetWorker, payloadSer);
             }
         }
+
+        // inform all workers about no more data is send
+        /*auto payloadSer = Serialize<std::pair<K, V>>(p);
+        for (int n=0; n<_numOtherWorkers; n++) {
+            if (n != _id)
+                _mockSelect.sendToWorkerString(n, payloadSer);
+        }*/
 
         //////////
         // post operation
@@ -117,18 +134,28 @@ public:
 
         int received = 0;
         // Assumption: Only receive one data package per worker
-        while (received <= _numOtherWorkers) {
+        while (received < _numOtherWorkers-1) {
+            // wait for data from other workers
             _mockSelect.receiveFromAnyString(&out_sender, &out_data);
-            // TODO: deserialize data
-            // actually insert received data to: _wordsReducedReceived
 
-            std::string msg = "worker " + std::to_string(_id) + " received from: " + std::to_string(out_sender) + " data: " + out_data;
-            Logger::instance().log(msg);
+            // deserialize incoming data
+            auto pairToBeReduced = Deserialize<std::pair<K, V>>(out_data);
 
+            LOG << "worker_id: "
+                << std::to_string(_id)
+                << " received from worker_id: "
+                << std::to_string(out_sender)
+                << " data: "
+                << "(" << pairToBeReduced.first << "," << pairToBeReduced.second << ")";
+
+            // local reduce
+            localReduce<K, V>(dataLocalReduce, pairToBeReduced, f_reduce);
+
+            //TODO: implement some stop criterion
             received++;
         }
 
-        // TODO: local reduce
+        print(dataLocalReduce);
     }
 
 private:
@@ -141,7 +168,10 @@ private:
     template<typename K, typename V>
     void print(std::map<K, V> map) {
         for(auto it = map.cbegin(); it != map.cend(); ++it) {
-            std::cout << it->first << " " << it->second << "\n";
+            LOG << "worker_id: "
+                << _id
+                << " data: "
+                << "(" << it->first << "," << it->second << ")";
         }
     }
 
@@ -162,6 +192,23 @@ private:
             hashVal += size;
 
         return hashVal;
+    }
+
+    template<typename K, typename V>
+    void localReduce(std::map<K, V> &dataReduced,
+                     std::pair<K, V> &pairToBeReduced, std::function<V (V, V)> f_reduce) {
+
+        // key already cached, then reduce using lambda fn
+        auto res = dataReduced.find(pairToBeReduced.first);
+        if (res != dataReduced.end()) {
+            V red = f_reduce(res->second, pairToBeReduced.second);
+            res->second = red;
+
+        // key not yet cached, just cache
+        } else {
+            //dataReduced.insert(std::make_pair(p.first, p.second));
+            dataReduced.insert(pairToBeReduced);
+        }
     }
 };
 
