@@ -74,6 +74,15 @@ TEST(NetGroup, InitializeSendReceive) {
     NetGroup::ExecuteLocalMock(6, ThreadInitializeSendReceive);
 }
 
+TEST(NetGroup, TestAllReduce) {
+    // Construct a NetGroup of 8 workers which do nothing but terminate.
+    NetGroup::ExecuteLocalMock(8, [](NetGroup* net) {
+            size_t local_value = net->MyRank();
+            net->AllReduce(local_value);
+            ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+        });
+}
+
 // TEST(NetGroup, InitializeAndClose) {
 //     auto endpoints = { ExecutionEndpoint(0, "127.0.0.1:1234") };
 //     auto candidate = NetDispatcher(0, endpoints);
