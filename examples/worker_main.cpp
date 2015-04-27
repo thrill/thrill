@@ -28,21 +28,65 @@ int main()
 
     std::vector<std::string> words = {"word0", "word1", "word2", "word4", "word4", "word4"};
 
+    // declare reduce function
+    std::function<int (int, int)> f_reduce = [] (const int val1, const int val2) ->int { return val1 + val2; };
+
     c7a::engine::Worker w0(0, 5, net);
-//    c7a::engine::Worker w1(1, 5, net);
-//    c7a::engine::Worker w2(2, 5, net);
-//    c7a::engine::Worker w3(3, 5, net);
-//    c7a::engine::Worker w4(4, 5, net);
-    std::thread t0([&]{ w0.reduce<std::string, int>(words); });
-//    std::thread t1([&]{ w1.reduce<std::string, int>(words); });
-//    std::thread t2([&]{ w2.reduce<std::string, int>(words); });
-//    std::thread t3([&]{ w3.reduce<std::string, int>(words); });
-//    std::thread t4([&]{ w4.reduce<std::string, int>(words); });
-    t0.join();
-//    t1.join();
-//    t2.join();
-//    t3.join();
-//    t4.join();
+    for (auto word : words) {
+        w0.reduce<std::string, int>(std::make_pair(word, 1), f_reduce);
+    }
+    w0.flush<std::string, int>(f_reduce);
+    w0.receive<std::string, int>(f_reduce);
+
+    c7a::engine::Worker w1(1, 5, net);
+    for (auto word : words) {
+        w1.reduce<std::string, int>(std::make_pair(word, 1), f_reduce);
+    }
+    w1.flush<std::string, int>(f_reduce);
+    w1.receive<std::string, int>(f_reduce);
+
+    c7a::engine::Worker w2(2, 5, net);
+    for (auto word : words) {
+        w2.reduce<std::string, int>(std::make_pair(word, 1), f_reduce);
+    }
+    w2.flush<std::string, int>(f_reduce);
+    w2.receive<std::string, int>(f_reduce);
+
+    c7a::engine::Worker w3(3, 5, net);
+    for (auto word : words) {
+        w3.reduce<std::string, int>(std::make_pair(word, 1), f_reduce);
+    }
+    w3.flush<std::string, int>(f_reduce);
+    w3.receive<std::string, int>(f_reduce);
+
+    c7a::engine::Worker w4(4, 5, net);
+    for (auto word : words) {
+        w4.reduce<std::string, int>(std::make_pair(word, 1), f_reduce);
+    }
+    w4.flush<std::string, int>(f_reduce);
+    w4.receive<std::string, int>(f_reduce);
+
+
+//    std::thread t5([&]{
+//        w0.receive<std::string, int>(f_reduce);
+//    });
+//    t5.join();
+//    std::thread t6([&]{
+//        w1.receive<std::string, int>(f_reduce);
+//    });
+//    t6.join();
+//    std::thread t7([&]{
+//        w2.receive<std::string, int>(f_reduce);
+//    });
+//    t7.join();
+//    std::thread t8([&]{
+//        w3.receive<std::string, int>(f_reduce);
+//    });
+//    t8.join();
+//    std::thread t9([&]{
+//        w4.receive<std::string, int>(f_reduce);
+//    });
+//    t9.join();
 
     /*std::vector<c7a::engine::Worker> workerObjs;
     std::vector<std::thread*> threads;
