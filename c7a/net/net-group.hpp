@@ -61,7 +61,7 @@ public:
     //! \{
 
     //! Return NetConnection to client id.
-    NetConnection & GetConnection(ClientId id)
+    NetConnection & Connection(ClientId id)
     {
         if (id >= connections_.size())
             throw NetException("NetGroup::GetClient() requested "
@@ -93,57 +93,8 @@ public:
 
     //! \}
 
-    //! \name Send and Receive Functions
+    //! \name Richer ReceiveFromAny Functions
     //! \{
-
-    /*!
-     * Sends a message (data,len) to worker dest, returns status code.
-     */
-    void SendMsg(ClientId dest, const void* data, size_t len)
-    {
-        LOG << "NetGroup::Send"
-            << " " << my_rank_ << " -> " << dest
-            << " data=" << hexdump(data, len)
-            << " len=" << len;
-
-        if (dest >= connections_.size())
-            throw NetException("NetGroup::Send() requested "
-                               "invalid client id " + std::to_string(dest));
-
-        if (dest == my_rank_)
-            throw NetException("NetGroup::Send() requested to send to self.");
-
-        connections_[dest].SendString(data, len);
-    }
-
-    /*!
-     * Sends a message to worker dest, returns status code.
-     */
-    void SendMsg(ClientId dest, const std::string& message)
-    {
-        return SendMsg(dest, message.data(), message.size());
-    }
-
-    /*!
-     * Receives a message into (data,len) from worker src, returns status code.
-     */
-    void ReceiveFrom(ClientId src, std::string* outdata)
-    {
-        if (src >= connections_.size())
-            throw NetException("NetGroup::ReceiveFrom() requested "
-                               "invalid client id " + std::to_string(src));
-
-        if (src == my_rank_)
-            throw NetException("NetGroup::ReceiveFrom() requested to send to self.");
-
-        LOG << "NetGroup::ReceiveFrom src=" << src;
-
-        connections_[src].ReceiveString(outdata);
-
-        LOG << "done NetGroup::ReceiveFrom"
-            << " " << src << " -> " << my_rank_
-            << " data=" << hexdump(*outdata);
-    }
 
     /*!
      * Receives a message from any worker into (data,len), puts worker id in
@@ -193,7 +144,7 @@ public:
                 sLOG << "select() readable fd" << fd;
 
                 *out_src = i;
-                return ReceiveFrom(i, out_data);
+                return connections_[i].ReceiveString(out_data);
             }
         }
 
@@ -295,7 +246,7 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
     {
         // Send value to worker with id = id XOR d
         if ((this->MyRank() ^ d) < this->Size()) {
-            this->GetConnection(this->MyRank() ^ d).Send(value);
+            this->Connection(this->MyRank() ^ d).Send(value);
             std::cout << "LOCAL: Worker " << this->MyRank() << ": Sending " << value
                       << " to worker " << (this->MyRank() ^ d) << "\n";
         }
@@ -303,7 +254,7 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
         // Receive value from worker with id = id XOR d
         T recv_data;
         if ((this->MyRank() ^ d) < this->Size()) {
-            this->GetConnection(this->MyRank() ^ d).Receive(&recv_data);
+            this->Connection(this->MyRank() ^ d).Receive(&recv_data);
             value = sum_op(value, recv_data);
             std::cout << "LOCAL: Worker " << this->MyRank() << ": Received " << recv_data
                       << " from worker " << (this->MyRank() ^ d)
