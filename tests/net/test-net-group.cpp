@@ -29,8 +29,8 @@ static void ThreadInitializeSendReceive(NetGroup* net)
     for (size_t i = 0; i != net->Size(); ++i)
     {
         if (i == net->MyRank()) continue;
-        net->SendMsg(i, "Hello " + std::to_string(net->MyRank())
-                     + " -> " + std::to_string(i));
+        net->Connection(i).SendString("Hello " + std::to_string(net->MyRank())
+                                      + " -> " + std::to_string(i));
     }
     // receive the n-1 messages from clients in order
     for (size_t i = 0; i != net->Size(); ++i)
@@ -38,7 +38,7 @@ static void ThreadInitializeSendReceive(NetGroup* net)
         if (i == net->MyRank()) continue;
 
         std::string msg;
-        net->ReceiveFrom(i, &msg);
+        net->Connection(i).ReceiveString(&msg);
         sLOG << "Received from client" << i << "msg" << msg;
 
         ASSERT_EQ(msg, "Hello " + std::to_string(i)
@@ -51,8 +51,8 @@ static void ThreadInitializeSendReceive(NetGroup* net)
     for (size_t i = 0; i != net->Size(); ++i)
     {
         if (i == net->MyRank()) continue;
-        net->SendMsg(i, "Hello " + std::to_string(net->MyRank())
-                     + " -> " + std::to_string(i));
+        net->Connection(i).SendString("Hello " + std::to_string(net->MyRank())
+                                      + " -> " + std::to_string(i));
     }
     // receive the n-1 messages from clients in order
     for (size_t i = 0; i != net->Size(); ++i)

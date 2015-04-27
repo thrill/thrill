@@ -90,6 +90,9 @@ public:
     template <typename T>
     void Send(const T& value)
     {
+        static_assert(std::is_integral<T>::value,
+                      "You only want to send integral types as raw values.");
+
         if (self_verify_) {
             // for communication verification, send sizeof.
             size_t len = sizeof(value);
@@ -126,6 +129,9 @@ public:
     template <typename T>
     void Receive(T* out_value)
     {
+        static_assert(std::is_integral<T>::value,
+                      "You only want to receive integral types as raw values.");
+
         if (self_verify_) {
             // for communication verification, receive sizeof.
             size_t len = 0;
