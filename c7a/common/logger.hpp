@@ -30,34 +30,38 @@ protected:
     //! real output or suppress
     bool real_;
 
+    //! collector stream
+    std::ostringstream oss_;
+
     //! the global mutex of logger and spacing logger
     static std::mutex mutex_;
 
     //! for access to mutex_
     friend class SpacingLogger;
 
-    //! lock the global mutex of spacing logger for serialized output in
-    //! multi-threaded programs.
-    std::unique_lock<std::mutex> lock_;
-
 public:
     //! constructor: if real = false the output is suppressed.
     explicit Logger(bool real)
-        : real_(real), lock_(Logger::mutex_)
+        : real_(real)
     { }
 
     //! output any type, including io manipulators
     template <typename AnyType>
     Logger& operator << (const AnyType& at)
     {
-        if (real_) std::cout << at;
+        if (real_) oss_ << at;
         return *this;
     }
 
     //! destructor: output a newline
     ~Logger()
     {
-        if (real_) std::cout << std::endl;
+        if (real_) {
+            // lock the global mutex of logger for serialized output in
+            // multi-threaded programs.
+            std::unique_lock<std::mutex> lock;
+            std::cout << oss_.str() << std::endl;
+        }
     }
 };
 
@@ -73,14 +77,13 @@ protected:
     //! true until the first element it outputted.
     bool first_;
 
-    //! lock the global mutex of spacing logger for serialized output in
-    //! multi-threaded programs.
-    std::unique_lock<std::mutex> lock_;
+    //! collector stream
+    std::ostringstream oss_;
 
 public:
     //! constructor: if real = false the output is suppressed.
     explicit SpacingLogger(bool real)
-        : real_(real), first_(true), lock_(Logger::mutex_)
+        : real_(real), first_(true)
     { }
 
     //! output any type, including io manipulators
@@ -89,10 +92,10 @@ public:
     {
         if (!real_) return *this;
 
-        if (!first_) std::cout << ' ';
+        if (!first_) oss_ << ' ';
         else first_ = false;
 
-        std::cout << at;
+        oss_ << at;
 
         return *this;
     }
@@ -100,8 +103,12 @@ public:
     //! destructor: output a newline
     ~SpacingLogger()
     {
-        if (real_)
-            std::cout << std::endl;
+        if (real_) {
+            // lock the global mutex of logger for serialized output in
+            // multi-threaded programs.
+            std::unique_lock<std::mutex> lock;
+            std::cout << oss_.str() << std::endl;
+        }
     }
 };
 
