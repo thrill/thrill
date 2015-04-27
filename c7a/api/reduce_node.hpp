@@ -40,7 +40,6 @@ public:
      * \param stack Function stack with all lambdas between the parent and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
-     *
      */
     ReduceNode(data::DataManager &data_manager, 
                const std::vector<DIABase*>& parents,
