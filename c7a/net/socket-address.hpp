@@ -23,6 +23,9 @@
 
 namespace c7a {
 
+//! \addtogroup netsock Low Level Socket API
+//! \{
+
 /*!
  * SocketAddress is an abstract class used to unify the two different IPv4 and
  * IPv6 socket address representation. It is derived into IPv4Address and
@@ -269,6 +272,8 @@ public:
     //! is_valid() if the conversion was successfull.
     explicit IPv6Address(const char* ipstring, uint16_t port = 0);
 };
+
+// \}
 
 } // namespace c7a
 
