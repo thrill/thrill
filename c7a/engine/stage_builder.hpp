@@ -17,8 +17,6 @@
 namespace c7a { 
 namespace engine {
 
-
-
 class Stage {
 public:
     Stage(DIABase* node) : node_(node) {
@@ -32,6 +30,7 @@ public:
 private:
     DIABase* node_;
 };
+
 
 // Returns a list of stages of graph scope
 inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
@@ -59,5 +58,6 @@ inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
 
     std::reverse(stages_result.begin(),stages_result.end());
 };
+
 
 }}// !C7A_ENGINE_STAGE_BUILD
