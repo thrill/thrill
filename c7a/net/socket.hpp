@@ -145,7 +145,7 @@ public:
     //! Bind socket to given SocketAddress for listening or connecting.
     bool bind(const SocketAddress& sa)
     {
-        if (::bind(fd_, sa.sockaddr(), sa.get_socklen()) != 0)
+        if (::bind(fd_, sa.sockaddr(), sa.socklen()) != 0)
         {
             LOG << "Socket::bind()"
                 << " fd_=" << fd_
@@ -160,7 +160,7 @@ public:
     //! Initial socket connection to address
     bool connect(const SocketAddress& sa)
     {
-        int r = ::connect(fd_, sa.sockaddr(), sa.get_socklen());
+        int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
 
         if (r == 0) {
             is_connected_ = true;
