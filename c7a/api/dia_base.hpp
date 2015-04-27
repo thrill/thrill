@@ -28,7 +28,7 @@ public:
     typedef std::vector<DIABase*> DIABaseVector;
 
     /*!
-     * The constructor for a DIABase. Sets the @param data_manager and the
+     * The constructor for a DIABase. Sets the data_manager and the
      * associated DIAId. 
      *
      * Sets the parents for this node and adds this node as a child for 
@@ -79,6 +79,8 @@ public:
         childs_.push_back(child);
     }
 
+    //! Returns the unique ID of this DIABase.
+    //! \return The unique ID of this DIABase.
     data::DIAId get_data_id() {
         return data_id_;
     }
@@ -86,7 +88,7 @@ public:
 protected:
     //! DataManager, which can give iterators to data.
     data::DataManager & data_manager_;
-    //! Unique ID of this DIABase.
+    //! Unique ID of this DIABase. Used by the DataManager.
     data::DIAId data_id_;
     //! Childs and parents of this DIABase.
     DIABaseVector childs_, parents_;
