@@ -157,6 +157,8 @@ sub process_cpp {
 
     # check source header
     my $i = 0;
+    if ($data[$i] =~ m!// -.*- mode:!) { ++$i; } # skip emacs mode line
+
     expect($path, $i, @data, "/".('*'x79)."\n"); ++$i;
     expectr($path, $i, @data, " * $path\n", qr/^ \* /); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
@@ -342,6 +344,9 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!^extlib/!) {
         # skip external libraries
+    }
+    elsif ($file =~ /^doc\//) {
+        process_cpp($file);
     }
     elsif ($file =~ /^(c7a|tests)\/(common|net)\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
