@@ -39,7 +39,7 @@ namespace serializers {
             return std::stoi(x);
         }
     };
-    
+
     //! serializer for double
     template<>
         struct Impl<double> {

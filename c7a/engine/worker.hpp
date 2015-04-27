@@ -13,6 +13,7 @@
 #include <iostream>
 #include "mock-network.hpp"
 #include <thread>
+#include <function>
 #include <mutex>
 #include <c7a/data/serializer.hpp>
 #include <c7a/common/logger.hpp>

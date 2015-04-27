@@ -8,6 +8,7 @@
 #define C7A_API_REDUCE_NODE_HEADER
 
 #include <unordered_map>
+#include <functional>
 #include "dop_node.hpp"
 #include "function_stack.hpp"
 #include "../common/logger.hpp"
@@ -26,7 +27,12 @@ public:
         : DOpNode<T>(data_manager, parents),
         local_stack_(stack),
         key_extractor_(key_extractor),
-        reduce_function_(reduce_function) {};
+        reduce_function_(reduce_function) {
+            // This new DIA Allocate is needed to send data from Pre to Main
+            // TODO: use network iterate later
+            post_data_id_ = (this->data_manager_).AllocateDIA();
+
+        };
 
     std::string ToString() override {
         // Create string
@@ -45,6 +51,7 @@ public:
         using reduce_t 
             = typename FunctionTraits<ReduceFunction>::result_type;
 
+
         auto id_fn = [=](reduce_t t, std::function<void(reduce_t)> emit_func) {
             return emit_func(t);
         };
@@ -53,10 +60,12 @@ public:
         return stack.push(id_fn);
     }
 
+
 private: 
     Stack local_stack_;
     KeyExtractor key_extractor_;
     ReduceFunction reduce_function_;
+    data::DIAId post_data_id_;
 
     void PreOp() {
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
@@ -66,17 +75,10 @@ private:
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
         data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(pid);
-        // std::vector<std::string> local_block = {"I", "I", "hate", "code", "non-compiling", "code"};
-        // std::vector<std::string>::iterator begin = local_block.begin();
-        // std::vector<std::string>::iterator end = local_block.end();
         
         // //run local reduce
-        std::unordered_map<key_t, T> hash;
-
-        SpacingLogger(true) << "######################";
-        SpacingLogger(true) << "INPUT";
-        SpacingLogger(true) << "######################";
-
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        std::unordered_map<key_t, T> reduce_data;
 
         std::vector<reduce_arg_t> elements;
         auto save_fn = [&elements](reduce_arg_t input) {
@@ -91,36 +93,65 @@ private:
 
         for (auto item : elements) { 
             key_t key = key_extractor_(item);
-            auto elem = hash.find(key);            
-            SpacingLogger(true) << item;
+            auto elem = reduce_data.find(key);            
+            // SpacingLogger(true) << item;
 
             // is there already an element with same key?
-            if(elem != hash.end()) {
+            if(elem != reduce_data.end()) {
                 auto new_elem = reduce_function_(item, elem->second);
-                hash.at(key) = new_elem;
+                reduce_data.at(key) = new_elem;
             }
             else {
-                hash.insert(std::make_pair(key, item));
+                reduce_data.insert(std::make_pair(key, item));
             }
         }
 
-
-        // just for testing
-        SpacingLogger(true) << "######################";
-        SpacingLogger(true) << "OUTPUT";
-        SpacingLogger(true) << "######################";
-        for (auto it = hash.begin(); it != hash.end(); ++it){
-            SpacingLogger(true) << it->second;
+        //TODO get number of worker by net-group or something similar
+        int number_worker = 1;
+        //TODO use network emitter in future
+        std::vector<data::BlockEmitter<T>> emit_array;
+        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
+        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
+            std::hash<T> t_hash;
+            auto hashed = t_hash(it->second) % number_worker;
+            // TODO When emitting and the real network emitter is there, hashed is needed to emit 
+            emit(it->second);
         }
-        SpacingLogger(true);
     }
 
-    void MainOp() {
-        std::cout << "MainOp" << std::endl;
+
+    auto MainOp() {
     }
 
     void PostOp() {
         std::cout << "PostOp" << std::endl;
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        std::unordered_map<key_t, T> reduce_data;
+
+        data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(this->data_id_);
+
+        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        std::unordered_map<key_t, T> global_data;
+
+        while(it.HasNext()) {
+            auto item = it.Next();
+            key_t key = key_extractor_(item);
+            auto elem = reduce_data.find(key);            
+
+            // is there already an element with same key?
+            if(elem != reduce_data.end()) {
+                auto new_elem = reduce_function_(item, elem->second);
+                reduce_data.at(key) = new_elem;
+            }
+            else {
+                reduce_data.insert(std::make_pair(key, item));
+            }
+        }
+
+        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(post_data_id_);
+        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
+            emit(it->second);
+        }
     }
 };
 
