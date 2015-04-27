@@ -65,6 +65,7 @@ After a module works as intended, one can just set debug = false, and all debug 
 The macros are only for rapid module-based development. It cannot be used as an extended logging system for our network framework, where logs of network execution and communication are collected for later analysis. Something else is needed here.
 
 */
-} namespace c7a
+
+} // namespace c7a
 
 /******************************************************************************/
