@@ -27,10 +27,12 @@ namespace c7a {
 //! \{
 
 /*!
- * SocketAddress is an abstract class used to unify the two different IPv4 and
- * IPv6 socket address representation. It is derived into IPv4Address and
- * IPv6Address only for direct initialization, in general one just uses
- * SocketAddress("localhost:1234") with appropriate resolution into a sockaddr.
+ * SocketAddress is a super class used to unify the two different IPv4 and IPv6
+ * socket address representation. It is derived into IPv4Address and IPv6Address
+ * only for direct initialization, in general one just uses
+ * SocketAddress("localhost:1234") for appropriate resolution into a
+ * sockaddr. The SocketAddress object can then be given to various Connect(),
+ * Bind() and similar functions of Socket.
  */
 class SocketAddress
 {
@@ -40,64 +42,64 @@ protected:
     //! Enclosed IPv4, IPv6 or other socket address structure. Used as a struct
     //! sockaddr_in or a struct sockaddr_in6. sizeof(sockaddr_in6) is
     //! (currently) 28.
-    union m_addr_union
+    union SockAddrUnion
     {
         struct sockaddr     generic;
         struct sockaddr_in  in;
         struct sockaddr_in6 in6;
-    } m_addr;
+    } sockaddr_;
 
     //! Return value of the last getaddrinfo() call. Used to output nice user
     //! messages.
-    int m_resolve_error;
+    int resolve_error_;
 
 public:
     //! Create empty invalid address object by clearing all bytes.
     SocketAddress()
-        : m_resolve_error(0)
+        : resolve_error_(0)
     {
-        memset(&m_addr, 0, sizeof(m_addr));
+        memset(&sockaddr_, 0, sizeof(sockaddr_));
     }
 
     //! Create a socket address object with the given sockaddr data.
     SocketAddress(struct sockaddr* sa, socklen_t salen);
 
     //! Create a socket address object and resolve the given host:port using
-    //! getaddrinfo(). Check result with is_valid().
+    //! getaddrinfo(). Check result with IsValid().
     SocketAddress(const std::string& hostport);
 
     //! Create a socket address object and resolve the given host name using
-    //! getaddrinfo(). Check result with is_valid().
+    //! getaddrinfo(). Check result with IsValid().
     SocketAddress(const char* hostname, const char* servicename);
 
     //! Return pointer to enclosed address as a generic sockattr struct.
     const struct sockaddr * sockaddr() const
     {
-        return &m_addr.generic;
+        return &sockaddr_.generic;
     }
 
     //! Return total length of enclosed sockaddr structure.
-    socklen_t get_socklen() const
+    socklen_t socklen() const
     {
-        return sizeof(m_addr);
+        return sizeof(sockaddr_);
     }
 
     //! Returns true if the enclosed socket address is a valid IPv4 or IPv6
     //! address.
-    bool is_valid() const
+    bool IsValid() const
     {
         return (sockaddr()->sa_family == AF_INET) ||
                (sockaddr()->sa_family == AF_INET6);
     }
 
     //! Returns true if the enclosed socket address is a IPv4 address.
-    bool is_ipv4() const
+    bool IsIPv4() const
     {
         return (sockaddr()->sa_family == AF_INET);
     }
 
     //! Returns true if the enclosed socket address is a IPv6 address.
-    bool is_ipv6() const
+    bool IsIPv6() const
     {
         return (sockaddr()->sa_family == AF_INET6);
     }
@@ -105,34 +107,38 @@ public:
     //! Cast the enclosed sockaddr into the sockaddr_in IPv4 structure.
     struct sockaddr_in * sockaddr_in()
     {
-        return &m_addr.in;
+        return &sockaddr_.in;
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in IPv4 structure. Const
     //! version.
     const struct sockaddr_in * sockaddr_in() const
     {
-        return &m_addr.in;
+        return &sockaddr_.in;
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in6 IPv6 structure.
     struct sockaddr_in6 * sockaddr_in6()
     {
-        return &m_addr.in6;
+        return &sockaddr_.in6;
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in6 IPv6 structure. Const
     //! version.
     const struct sockaddr_in6 * sockaddr_in6() const
     {
-        return &m_addr.in6;
+        return &sockaddr_.in6;
     }
 
-    //! Return the enclosed socket address as a string.
-    std::string str() const;
+    //! Return the enclosed socket address as a string without the port number.
+    std::string ToString() const;
+
+    //! Make the socket address ostream-able: outputs address:port
+    friend std::ostream& operator << (std::ostream& os,
+                                      const SocketAddress& sa);
 
     //! Return the currently set port address in host byte-order.
-    uint16_t get_port() const
+    uint16_t GetPort() const
     {
         if (sockaddr()->sa_family == AF_INET)
         {
@@ -147,7 +153,7 @@ public:
     }
 
     //! Change the currently set port address.
-    void set_port(uint16_t port)
+    void SetPort(uint16_t port)
     {
         if (sockaddr()->sa_family == AF_INET)
         {
@@ -161,34 +167,36 @@ public:
 
     //! Resolve the given host name using getaddrinfo() and replace this object
     //! with the first socket address if found.
-    bool resolve(const char* hostname,
+    bool Resolve(const char* hostname,
                  const char* servicename = NULL);
 
     //! Resolve the given host name using getaddrinfo() and return only the
     //! first socket address if found.
-    static SocketAddress resolve_one(const char* hostname,
-                                     const char* servicename = NULL);
+    static SocketAddress ResolveOne(const char* hostname,
+                                    const char* servicename = NULL);
 
     //! Parse the address for a :port notation and then resolve the
     //! given host name using getaddrinfo() and return only the first
     //! socket address if found. Uses defaultservice if no port is
     //! found in the hostname.
-    static SocketAddress resolve_withport(const char* hostname,
-                                          const char* defaultservice);
+    static SocketAddress ResolveWithPort(const char* hostname,
+                                         const char* defaultservice);
 
     //! Resolve the given host name using getaddrinfo() and return all
     //! resulting socket addresses as a vector.
     static std::vector<SocketAddress>
-    resolve_all(const char* hostname, const char* servicename = NULL);
+    ResolveAll(const char* hostname, const char* servicename = NULL);
 
     //! Return textual message of the last error occurring in the resolve
     //! method.
-    const char * get_resolve_error() const;
-
-    //! Make the socket address ostream-able.
-    friend std::ostream& operator << (std::ostream& os, const SocketAddress& sa);
+    const char * GetResolveError() const;
 };
 
+/*!
+ * IPv4 Subclass of SocketAddress for direct initialization from a known IPv4
+ * address, known either in binary format, numerals, or as "ddd.ddd.ddd.ddd"
+ * format. No name lookup or resolution takes place in these functions.
+ */
 class IPv4Address : public SocketAddress
 {
 public:
@@ -196,41 +204,46 @@ public:
     explicit IPv4Address(uint16_t port)
         : SocketAddress()
     {
-        m_addr.in.sin_family = AF_INET;
-        m_addr.in.sin_port = htons(port);
+        sockaddr_.in.sin_family = AF_INET;
+        sockaddr_.in.sin_port = htons(port);
     }
 
     //! Create an IPv4 address object with initialized address and port parts.
     IPv4Address(uint32_t addr, uint16_t port)
         : SocketAddress()
     {
-        m_addr.in.sin_family = AF_INET;
-        m_addr.in.sin_addr.s_addr = addr;
-        m_addr.in.sin_port = htons(port);
+        sockaddr_.in.sin_family = AF_INET;
+        sockaddr_.in.sin_addr.s_addr = addr;
+        sockaddr_.in.sin_port = htons(port);
     }
 
     //! Create an IPv4 address object with initialized address and port parts.
     IPv4Address(struct in_addr& addr, uint16_t port)
         : SocketAddress()
     {
-        m_addr.in.sin_family = AF_INET;
-        m_addr.in.sin_addr = addr;
-        m_addr.in.sin_port = htons(port);
+        sockaddr_.in.sin_family = AF_INET;
+        sockaddr_.in.sin_addr = addr;
+        sockaddr_.in.sin_port = htons(port);
     }
 
     //! Create an IPv4 address object and copy the given sockaddr_in structure.
     explicit IPv4Address(struct sockaddr_in& sa)
         : SocketAddress()
     {
-        m_addr.in = sa;
+        sockaddr_.in = sa;
     }
 
     //! Create an IPv4 address object and initialize it with the given ip
     //! address string, which is given in "ddd.ddd.ddd.ddd" format. You must
-    //! check with is_valid() if the conversion was successfull.
+    //! check with IsValid() if the conversion was successfull.
     explicit IPv4Address(const char* ipstring, uint16_t port = 0);
 };
 
+/*!
+ * IPv6 Subclass of SocketAddress for direct initialization from a known IPv6
+ * address, known either in binary format, numerals, or in some IPv6 format. No
+ * name lookup or resolution takes place in these functions.
+ */
 class IPv6Address : public SocketAddress
 {
 public:
@@ -238,38 +251,38 @@ public:
     explicit IPv6Address(uint16_t port)
         : SocketAddress()
     {
-        m_addr.in6.sin6_family = AF_INET6;
-        m_addr.in6.sin6_port = htons(port);
+        sockaddr_.in6.sin6_family = AF_INET6;
+        sockaddr_.in6.sin6_port = htons(port);
     }
 
     //! Create an IPv6 address object with initialized address and port parts.
     IPv6Address(uint8_t addr[16], uint16_t port)
         : SocketAddress()
     {
-        m_addr.in6.sin6_family = AF_INET6;
-        memcpy(&m_addr.in6.sin6_addr, addr, 16 * sizeof(uint8_t));
-        m_addr.in6.sin6_port = htons(port);
+        sockaddr_.in6.sin6_family = AF_INET6;
+        memcpy(&sockaddr_.in6.sin6_addr, addr, 16 * sizeof(uint8_t));
+        sockaddr_.in6.sin6_port = htons(port);
     }
 
     //! Create an IPv4 address object with initialized address and port parts.
     IPv6Address(struct in6_addr& addr, uint16_t port)
         : SocketAddress()
     {
-        m_addr.in6.sin6_family = AF_INET6;
-        m_addr.in6.sin6_addr = addr;
-        m_addr.in6.sin6_port = htons(port);
+        sockaddr_.in6.sin6_family = AF_INET6;
+        sockaddr_.in6.sin6_addr = addr;
+        sockaddr_.in6.sin6_port = htons(port);
     }
 
     //! Create an IPv4 address object and copy the given sockaddr_in structure.
     explicit IPv6Address(struct sockaddr_in6& sa)
         : SocketAddress()
     {
-        m_addr.in6 = sa;
+        sockaddr_.in6 = sa;
     }
 
     //! Create an IPv6 address object and initialize it with the given ip
     //! address string, which is given in some IPv6 format. You must check with
-    //! is_valid() if the conversion was successfull.
+    //! IsValid() if the conversion was successfull.
     explicit IPv6Address(const char* ipstring, uint16_t port = 0);
 };
 

@@ -25,9 +25,9 @@ namespace c7a {
 /******************************************************************************/
 
 SocketAddress::SocketAddress(struct sockaddr* sa, socklen_t salen)
-    : m_resolve_error(0)
+    : resolve_error_(0)
 {
-    memcpy(&m_addr, sa, std::min<socklen_t>(salen, sizeof(m_addr)));
+    memcpy(&sockaddr_, sa, std::min<socklen_t>(salen, sizeof(sockaddr_)));
 }
 
 SocketAddress::SocketAddress(const std::string& hostport)
@@ -36,22 +36,22 @@ SocketAddress::SocketAddress(const std::string& hostport)
     size_t colonpos = host.rfind(':');
     if (colonpos == std::string::npos)
     {
-        resolve(hostport.c_str());
+        Resolve(hostport.c_str());
     }
     else
     {
         std::string port = host.substr(colonpos + 1);
         host.erase(colonpos);
-        resolve(host.c_str(), port.c_str());
+        Resolve(host.c_str(), port.c_str());
     }
 }
 
 SocketAddress::SocketAddress(const char* hostname, const char* servicename)
 {
-    resolve(hostname, servicename);
+    Resolve(hostname, servicename);
 }
 
-std::string SocketAddress::str() const
+std::string SocketAddress::ToString() const
 {
     char str[64];
     if (sockaddr()->sa_family == AF_INET)
@@ -78,7 +78,12 @@ std::string SocketAddress::str() const
         return "<invalid>";
 }
 
-bool SocketAddress::resolve(const char* hostname, const char* servicename)
+std::ostream& operator << (std::ostream& os, const SocketAddress& sa)
+{
+    return os << sa.ToString() << ':' << sa.GetPort();
+}
+
+bool SocketAddress::Resolve(const char* hostname, const char* servicename)
 {
     struct addrinfo* result;
     struct addrinfo hints;
@@ -92,25 +97,25 @@ bool SocketAddress::resolve(const char* hostname, const char* servicename)
     int gai = getaddrinfo(hostname, servicename, &hints, &result);
     if (gai != 0)
     {
-        memset(&m_addr, 0, sizeof(m_addr));
-        m_resolve_error = gai;
+        memset(&sockaddr_, 0, sizeof(sockaddr_));
+        resolve_error_ = gai;
         return false;
     }
     else
     {
         *this = SocketAddress(result->ai_addr, result->ai_addrlen);
         freeaddrinfo(result);
-        return is_valid();
+        return IsValid();
     }
 }
 
-const char* SocketAddress::get_resolve_error() const
+const char* SocketAddress::GetResolveError() const
 {
-    return gai_strerror(m_resolve_error);
+    return gai_strerror(resolve_error_);
 }
 
 SocketAddress
-SocketAddress::resolve_one(const char* hostname, const char* servicename)
+SocketAddress::ResolveOne(const char* hostname, const char* servicename)
 {
     struct addrinfo* result;
     struct addrinfo hints;
@@ -134,23 +139,23 @@ SocketAddress::resolve_one(const char* hostname, const char* servicename)
 }
 
 SocketAddress
-SocketAddress::resolve_withport(const char* hostname,
-                                const char* defaultservice)
+SocketAddress::ResolveWithPort(const char* hostname,
+                               const char* defaultservice)
 {
     std::string host = hostname;
 
     std::string::size_type colonpos = host.rfind(':');
     if (colonpos == std::string::npos)
-        return resolve_one(hostname, defaultservice);
+        return ResolveOne(hostname, defaultservice);
 
     std::string servicename(host, colonpos + 1);
     host.erase(colonpos);
 
-    return resolve_one(host.c_str(), servicename.c_str());
+    return ResolveOne(host.c_str(), servicename.c_str());
 }
 
 std::vector<SocketAddress>
-SocketAddress::resolve_all(const char* hostname, const char* servicename)
+SocketAddress::ResolveAll(const char* hostname, const char* servicename)
 {
     std::vector<SocketAddress> salist;
 
@@ -176,11 +181,6 @@ SocketAddress::resolve_all(const char* hostname, const char* servicename)
     freeaddrinfo(result);
 
     return salist;
-}
-
-std::ostream& operator << (std::ostream& os, const SocketAddress& sa)
-{
-    return os << sa.str() << ':' << sa.get_port();
 }
 
 /******************************************************************************/
