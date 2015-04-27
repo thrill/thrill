@@ -39,6 +39,7 @@ The BSD socket API is difficult to work with correctly, which is why the followi
 - Select for select()
 
 */
-} namespace c7a
+
+} // namespace c7a
 
 /******************************************************************************/
