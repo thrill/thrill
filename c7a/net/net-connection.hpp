@@ -29,6 +29,14 @@
 
 namespace c7a {
 
+//! \addtogroup net Network Communication
+//! \{
+
+/*!
+ * A NetException is thrown by NetConnection on all errors instead of returning
+ * error codes. If ever we manage to recover from network errors, we probably
+ * have to rebuild most of the network objects anyway.
+ */
 class NetException : public std::runtime_error
 {
 public:
@@ -190,6 +198,8 @@ public:
         shutdown();
     }
 };
+
+// \}
 
 } // namespace c7a
 

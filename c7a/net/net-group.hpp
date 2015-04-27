@@ -25,20 +25,15 @@
 #include <map>
 #include <c7a/net/execution_endpoint.hpp>
 #include <c7a/net/net-connection.hpp>
+#include <c7a/common/functional.hpp>
 #include <sys/select.h>
 
 namespace c7a {
 
-typedef unsigned int ClientId;
+//! \addtogroup net Network Communication
+//! \{
 
-//! Simple sum operator
-template <typename T>
-struct SumOp {
-    T operator () (const T& a, const T& b)
-    {
-        return a + b;
-    }
-};
+typedef unsigned int ClientId;
 
 /*!
  * Collection of NetConnections to workers, allow point-to-point client
@@ -318,6 +313,8 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
 
     std::cout << "LOCAL: value after all reduce " << value << "\n";
 }
+
+//! \}
 
 } // namespace c7a
 
