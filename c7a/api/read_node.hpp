@@ -1,7 +1,7 @@
 /*******************************************************************************
- * c7a/api/dop_node.hpp
+ * c7a/api/read_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * DIANode for a reduce operation. Performs the actual reduce operation
  ******************************************************************************/
 
 #ifndef C7A_API_READ_NODE_HEADER
@@ -12,9 +12,25 @@
 
 namespace c7a {
 
+/*!
+ * A DIANode which performs a Read operation. Read reads a file from the file system and
+ * emits it to the DataManager according to a given read function.
+ *
+ * \tparam T Output type of the Read operation.
+ * \tparam ReadFunction Type of the read function.
+ */
 template <typename T, typename ReadFunction>
 class ReadNode : public DOpNode<T> {
 public: 
+
+     /*!
+     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
+     *
+     * \param data_manager Reference to the DataManager, which gives iterators for data
+     * \param parents Vector of parents. Is empty, as read has no previous operations
+     * \param read_function Read function, which defines how each line of the file is read and emitted
+     * \param path_in Path of the input file
+     */
     ReadNode(data::DataManager &data_manager, 
              const std::vector<DIABase*>& parents, 
              ReadFunction read_function,
@@ -25,6 +41,8 @@ public:
         {};
     virtual ~ReadNode() {} 
 
+    //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
+    //!applying the read function on it.
     void execute() {
         // BlockEmitter<T> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "READING data with id" << this->data_id_;
@@ -39,6 +57,9 @@ public:
         }
     };
 
+    /*!
+     * TODO: I have no idea..
+     */
     auto ProduceStack() {
         using read_t 
             = typename FunctionTraits<ReadFunction>::result_type;
@@ -51,6 +72,10 @@ public:
         return stack.push(id_fn);
     }
 
+    /*!
+     * Returns "[ReadNode]" as a string.
+     * \return "[ReadNode]"
+     */
     std::string ToString() override {
         // Create string
         std::string str 
@@ -59,7 +84,9 @@ public:
     }
 
 private: 
+    //! The read function which is applied on every line read.
     ReadFunction read_function_;
+    //! Path of the input file.
     std::string path_in_;
 };
 
