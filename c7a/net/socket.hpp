@@ -26,6 +26,10 @@
 
 namespace c7a {
 
+//! \addtogroup netsock Low Level Socket API
+//! \ingroup net
+//! \{
+
 /*!
  * Socket is a light-weight wrapper around the BSD socket API. Functions all
  * have plain return values and do not through exceptions.
@@ -362,6 +366,8 @@ protected:
     //! flag whether the socket is set to non-blocking mode
     bool non_blocking_ = false;
 };
+
+// \}
 
 } // namespace c7a
 

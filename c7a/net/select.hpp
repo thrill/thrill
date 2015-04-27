@@ -20,6 +20,9 @@
 
 namespace c7a {
 
+//! \addtogroup netsock Low Level Socket API
+//! \{
+
 /**
  * Select is an object-oriented wrapper for select(). It takes care of the
  * socket list, bit-fields, etc.
@@ -75,6 +78,8 @@ public:
     unsigned int elapsed()
     { return elapsed_; }
 };
+
+//! \}
 
 } // namespace c7a
 
