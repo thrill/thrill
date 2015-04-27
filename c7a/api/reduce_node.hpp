@@ -1,7 +1,7 @@
 /*******************************************************************************
- * c7a/api/dop_node.hpp
+ * c7a/api/reduce_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeStackog and more.
+ * DIANode for a reduce operation. Performs the actual reduce operation
  ******************************************************************************/
 
 #ifndef C7A_API_REDUCE_NODE_HEADER
@@ -15,10 +15,33 @@
 
 namespace c7a {
 
+/*!
+ * A DIANode which performs a Reduce operation. Reduce groups the elements in a DIA by their
+ * key and reduces every key bucket to a single element each. The ReduceNode stores the 
+ * key_extractor and the reduce_function UDFs. The chainable LOps ahead of the Reduce operation
+ * are stored in the Stack. The ReduceNode has the type T, which is the result type of the
+ * reduce_function.
+ *
+ * \tparam T Output type of the Reduce operation
+ * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
+ * \tparam KeyExtractor Type of the key_extractor function.
+ * \tparam ReduceFunction Type of the reduce_function
+ */
 template <typename T, typename Stack, typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<T> {
-//! Hash elements of the current DIA onto buckets and reduce each bucket to a single value.
+
 public: 
+
+    /*!
+     * Constructor for a ReduceNode. Sets the DataManager, parents, stack, key_extractor and reduce_function.
+     *
+     * \param data_manager Reference to the DataManager, which gives iterators for data
+     * \param parents Vector of parents. Has size 1, as a reduce node only has a single parent
+     * \param stack Function stack with all lambdas between the parent and this node
+     * \param key_extractor Key extractor function
+     * \param reduce_function Reduce function
+     *
+     */
     ReduceNode(data::DataManager &data_manager, 
                const std::vector<DIABase*>& parents,
                Stack& stack,
@@ -34,6 +57,10 @@ public:
 
         };
 
+    /*!
+     * Returns "[ReduceNode]" as a string.
+     * \return "[ReduceNode]"
+     */
     std::string ToString() override {
         // Create string
         std::string str 
@@ -41,12 +68,18 @@ public:
         return str;
     }
 
+    /*!
+     * Actually executes the reduce operation. Uses the member functions PreOp, MainOp and PostOp.
+     */
     void execute() override {
         PreOp();
         MainOp();
         PostOp();
     }
 
+    /*!
+     * TODO: I have no idea...
+     */
     auto ProduceStack() {
         using reduce_t 
             = typename FunctionTraits<ReduceFunction>::result_type;
@@ -62,11 +95,18 @@ public:
 
 
 private: 
+
+    //! Local stack
     Stack local_stack_;
+    //!Key extractor function
     KeyExtractor key_extractor_;
+    //!Reduce function
     ReduceFunction reduce_function_;
+    //!Unique ID of this node, used by the DataManager
     data::DIAId post_data_id_;
 
+    //! Locally hash elements of the current DIA onto buckets and reduce each bucket to a single value,
+    //! afterwards send data to another worker given by the shuffle algorithm.
     void PreOp() {
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
@@ -119,10 +159,11 @@ private:
         }
     }
 
-
+    //!Recieve elements from other workers.
     auto MainOp() {
     }
 
+    //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     void PostOp() {
         std::cout << "PostOp" << std::endl;
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
