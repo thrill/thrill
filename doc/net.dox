@@ -1,0 +1,42 @@
+// -*- mode: c++; mode: visual-line; mode: flyspell; fill-column: 100000 -*-
+/*******************************************************************************
+ * doc/net.dox
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+namespace c7a {
+
+/******************************************************************************/
+/** \page net Network Layer
+
+The c7a Network Layer consists of sublayers:
+
+## NetGroup & NetConnection layer
+
+The NetGroup object is similar to an MPI communicator: it has socket connections to k partners/clients/workers in the group. The net clients have immediate  relation to the master/worker concept of higher c7a layers, though they will probably be implementing using a NetGroup. This master/worker abstraction is done on higher levels.
+
+NetGroup provides
+- a \ref NetGroup::Size "Size()" and \ref NetGroup::MyRank "MyRank()" function to describe the group.
+- a point-to-point NetConnection class with a rich set of Send, Receive methods to transfer raw data to another worker in the group: \ref NetConnection::Send "Send<T>", \ref NetConnection::SendString "SendString", \ref NetConnection::Receive "Receive<T>", \ref NetConnection::ReceiveString "ReceiveString".
+- \ref NetGroup::ReceiveFromAny "ReceiveFromAny" functions to listen for messages from any worker in the group.
+- collective operations for **primitiv** datatypes: \ref NetGroup::AllReduce "AllReduce".
+
+If any operation on a NetConnection fails, then a NetException is thrown.
+
+## Low-level Socket API
+
+The BSD socket API is difficult to work with correctly, which is why the following classes provide convenience functions and **excessive** logging facilities.
+
+- Socket resembles a TCP socket, direct BSD socket API
+- SocketAddress for net address resolution to IPv4 and IPv6
+- Select for select()
+
+*/
+} namespace c7a
+
+/******************************************************************************/
