@@ -97,10 +97,69 @@ public:
     //! \{
 
     /*!
-     * Receives a message from any worker into (data,len), puts worker id in
-     * *src, and returns status code.
+     * Receive a fixed-length integral type from any worker into out_value, puts
+     * worker id in *src.
      */
-    void ReceiveFromAny(ClientId* out_src, std::string* out_data)
+
+    template <typename T>
+    void ReceiveFromAny(ClientId* out_src, T* out_value)
+    {
+        fd_set fd_set;
+        int max_fd = 0;
+
+        FD_ZERO(&fd_set);
+
+        // add file descriptor to read set for poll TODO(ts): make this faster
+        // (somewhen)
+
+        sLOG << "--- NetGroup::ReceiveFromAny() - select():";
+
+        for (size_t i = 0; i != connections_.size(); ++i)
+        {
+            if (i == my_rank_) continue;
+
+            int fd = connections_[i].GetFileDescriptor();
+            FD_SET(fd, &fd_set);
+            max_fd = std::max(max_fd, fd);
+            sLOG << "select from fd=" << fd;
+        }
+
+        int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
+
+        if (retval < 0) {
+            perror("select()");
+            abort();
+        }
+        else if (retval == 0) {
+            perror("select() TIMEOUT");
+            abort();
+        }
+
+        for (size_t i = 0; i < connections_.size(); i++)
+        {
+            if (i == my_rank_) continue;
+
+            int fd = connections_[i].GetFileDescriptor();
+
+            if (FD_ISSET(fd, &fd_set))
+            {
+                sLOG << "select() readable fd" << fd;
+
+                *out_src = i;
+                return connections_[i].Receive<T>(out_value);
+            }
+        }
+
+        sLOG << "Select() returned but no fd was readable.";
+
+        return ReceiveFromAny<T>(out_src, out_value);
+    }
+
+    /*!
+     * Receives a string message from any worker into out_data, which will be
+     * resized as needed, puts worker id in *src.
+     */
+    void ReceiveStringFromAny(ClientId* out_src, std::string* out_data)
     {
         fd_set fd_set;
         int max_fd = 0;
@@ -150,7 +209,7 @@ public:
 
         sLOG << "Select() returned but no fd was readable.";
 
-        return ReceiveFromAny(out_src, out_data);
+        return ReceiveStringFromAny(out_src, out_data);
     }
 
     //! \}
