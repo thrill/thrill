@@ -61,7 +61,7 @@ static void ThreadInitializeSendReceive(NetGroup* net)
 
         ClientId from;
         std::string msg;
-        net->ReceiveFromAny(&from, &msg);
+        net->ReceiveStringFromAny(&from, &msg);
         sLOG << "Received from client" << i << "msg" << msg;
 
         ASSERT_EQ(msg, "Hello " + std::to_string(from)
