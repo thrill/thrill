@@ -51,7 +51,7 @@ SocketAddress::SocketAddress(const char* hostname, const char* servicename)
     Resolve(hostname, servicename);
 }
 
-std::string SocketAddress::ToString() const
+std::string SocketAddress::ToStringHost() const
 {
     char str[64];
     if (sockaddr()->sa_family == AF_INET)
@@ -78,9 +78,14 @@ std::string SocketAddress::ToString() const
         return "<invalid>";
 }
 
+std::string SocketAddress::ToStringHostPort() const
+{
+    return ToStringHost() + ":" + std::to_string(GetPort());
+}
+
 std::ostream& operator << (std::ostream& os, const SocketAddress& sa)
 {
-    return os << sa.ToString() << ':' << sa.GetPort();
+    return os << sa.ToStringHostPort();
 }
 
 bool SocketAddress::Resolve(const char* hostname, const char* servicename)

@@ -131,7 +131,10 @@ public:
     }
 
     //! Return the enclosed socket address as a string without the port number.
-    std::string ToString() const;
+    std::string ToStringHost() const;
+
+    //! Return the enclosed socket address as a string with the port number.
+    std::string ToStringHostPort() const;
 
     //! Make the socket address ostream-able: outputs address:port
     friend std::ostream& operator << (std::ostream& os,
