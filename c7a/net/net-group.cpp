@@ -40,16 +40,15 @@ void NetGroup::ExecuteLocalMock(size_t num_clients,
     }
 
     // create a thread for each NetGroup object and run user program.
-    std::vector<std::thread*> threads(num_clients);
+    std::vector<std::thread> threads(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {
-        threads[i] = new std::thread(
+        threads[i] = std::thread(
             std::bind(thread_function, group[i].get()));
     }
 
     for (size_t i = 0; i != num_clients; ++i) {
-        threads[i]->join();
-        delete threads[i];
+        threads[i].join();
     }
 
     // close sockets allocated before
