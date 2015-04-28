@@ -23,7 +23,7 @@
 #include <assert.h>
 #include <thread>
 #include <map>
-#include <c7a/net/execution_endpoint.hpp>
+#include <c7a/net/net-endpoint.hpp>
 #include <c7a/net/net-connection.hpp>
 #include <c7a/common/functional.hpp>
 #include <sys/select.h>
