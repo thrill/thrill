@@ -15,6 +15,9 @@
 
 namespace c7a {
 
+//! \addtogroup api Interface
+//! {
+
 /*!
  * A DIANode which performs a Reduce operation. Reduce groups the elements in a DIA by their
  * key and reduces every key bucket to a single element each. The ReduceNode stores the 
@@ -196,6 +199,8 @@ private:
 };
 
 } // namespace c7a
+
+//! }
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
 
