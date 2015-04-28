@@ -24,7 +24,7 @@ void Socket::SetKeepAlive(bool activate)
 
     /* Enable sending of keep-alive messages on connection-oriented sockets. */
     if (::setsockopt(fd_, SOL_SOCKET, SO_KEEPALIVE,
-                   &sockoptflag, sizeof(sockoptflag)) != 0)
+                     &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set SO_KEEPALIVE on socket fd " << fd_
             << ": " << strerror(errno);
@@ -38,14 +38,14 @@ void Socket::SetReuseAddr(bool activate)
     /* set SO_REUSEPORT */
 #ifdef SO_REUSEPORT
     if (::setsockopt(fd_, SOL_SOCKET, SO_REUSEPORT,
-                   &sockoptflag, sizeof(sockoptflag)) != 0)
+                     &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set SO_REUSEPORT on socket fd " << fd_
             << ": " << strerror(errno);
     }
 #else
     if (::setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR,
-                   &sockoptflag, sizeof(sockoptflag)) != 0)
+                     &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set SO_REUSEADDR on socket fd " << fd_
             << ": " << strerror(errno);
@@ -65,7 +65,7 @@ void Socket::SetNoDelay(bool activate)
        small packets, which results in poor utilization of the network. This
        option cannot be used at the same time as the option TCP_CORK. */
     if (::setsockopt(fd_, SOL_TCP, TCP_NODELAY,
-                   &sockoptflag, sizeof(sockoptflag)) != 0)
+                     &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set TCP_NODELAY on socket fd " << fd_
             << ": " << strerror(errno);

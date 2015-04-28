@@ -74,6 +74,44 @@ TEST(NetGroup, InitializeSendReceive) {
     NetGroup::ExecuteLocalMock(6, ThreadInitializeSendReceive);
 }
 
+static void RealNetGroupConstructAndCall(
+    std::function<void(NetGroup*)> thread_function)
+{
+    static const std::vector<NetEndpoint> endpoints = {
+        NetEndpoint("127.0.0.1:11234"),
+        NetEndpoint("127.0.0.1:11235"),
+        // NetEndpoint("127.0.0.1:11236"),
+        // NetEndpoint("127.0.0.1:11237"),
+        // NetEndpoint("127.0.0.1:11238"),
+        // NetEndpoint("127.0.0.1:11239")
+    };
+
+    static const int count = endpoints.size();
+
+    std::vector<std::thread> threads(count);
+
+    // lambda to construct NetGroup and call user thread function.
+
+    for (int i = 0; i < count; i++) {
+        threads[i] = std::thread(
+            [ = i, &endpoints]() {
+                // construct NetGroup i with endpoints
+                NetGroup group(i, endpoints);
+                // run thread function
+                thread_function(&group);
+            });
+    }
+
+    for (int i = 0; i < count; i++) {
+        threads[i].join();
+    }
+}
+
+TEST(NetGroup, RealInitializeAndClose) {
+    // Construct a real NetGroup of 6 workers which do nothing but terminate.
+    RealNetGroupConstructAndCall([](NetGroup*) { });
+}
+
 TEST(NetGroup, TestAllReduce) {
     // Construct a NetGroup of 8 workers which perform an AllReduce collective
     NetGroup::ExecuteLocalMock(

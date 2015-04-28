@@ -42,7 +42,7 @@ namespace c7a {
  */
 class Socket
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     //! \name Creation
@@ -130,7 +130,7 @@ public:
     }
 
     //! Return the current local socket address.
-    SocketAddress	GetLocalAddress()
+    SocketAddress GetLocalAddress()
     {
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
@@ -148,7 +148,7 @@ public:
     }
 
     //! Return the current peer socket address.
-    SocketAddress	GetPeerAddress()
+    SocketAddress GetPeerAddress()
     {
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
@@ -206,38 +206,40 @@ public:
     //! Bind socket to given SocketAddress for listening or connecting.
     bool bind(const SocketAddress& sa)
     {
-        if (::bind(fd_, sa.sockaddr(), sa.socklen()) != 0)
-        {
+        int r = ::bind(fd_, sa.sockaddr(), sa.socklen());
+
+        if (r != 0) {
             LOG << "Socket::bind()"
                 << " fd_=" << fd_
                 << " sa=" << sa
+                << " return=" << r
                 << " error=" << strerror(errno);
-            return false;
         }
 
-        return true;
+        return r;
     }
 
     //! Initial socket connection to address
-    bool connect(const SocketAddress& sa)
+    int connect(const SocketAddress& sa)
     {
         int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
 
         if (r == 0) {
             is_connected_ = true;
-            return true;
+            return r;
         }
 
         LOG << "Socket::connect()"
             << " fd_=" << fd_
             << " sa=" << sa
+            << " return=" << r
             << " error=" << strerror(errno);
 
-        return false;
+        return r;
     }
 
     //! Turn socket into listener state to accept incoming connections.
-    int listen(int backlog = 0)
+    bool listen(int backlog = 0)
     {
         if (backlog == 0) backlog = SOMAXCONN;
 
@@ -251,7 +253,7 @@ public:
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
         }
-        return (r == 0);
+        return r;
     }
 
     //! Wait on socket until a new connection comes in.
@@ -403,7 +405,7 @@ public:
 
     //! Perform raw getsockopt() operation on socket.
     int getsockopt(int level, int optname,
-                   void *optval, socklen_t *optlen) const
+                   void* optval, socklen_t* optlen) const
     {
         int r = ::getsockopt(fd_, level, optname, optval, optlen);
 
@@ -416,12 +418,12 @@ public:
                 << " optlen=" << optlen
                 << " error=" << strerror(errno);
 
-        return  r;
+        return r;
     }
 
     //! Perform raw setsockopt() operation on socket.
     int setsockopt(int level, int optname,
-                   const void *optval, socklen_t optlen)
+                   const void* optval, socklen_t optlen)
     {
         int r = ::setsockopt(fd_, level, optname, optval, optlen);
 
@@ -434,7 +436,7 @@ public:
                 << " optlen=" << optlen
                 << " error=" << strerror(errno);
 
-        return  r;
+        return r;
     }
 
     //! Enable sending of keep-alive messages on connection-oriented sockets.
