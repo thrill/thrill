@@ -23,6 +23,7 @@
 
 #include <sys/socket.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 namespace c7a {
 
@@ -95,6 +96,15 @@ public:
     int GetFileDescriptor() const
     { return fd_; }
 
+    //! Query socket for its current error state.
+    int GetError() const
+    {
+        int socket_error;
+        socklen_t len = sizeof(socket_error);
+        getsockopt(SOL_SOCKET, SO_ERROR, &socket_error, &len);
+        return socket_error;
+    }
+
     //! Turn socket into non-blocking state.
     //! \return old blocking value (0 or 1) or -1 for error
     int SetNonBlocking(bool non_blocking)
@@ -119,16 +129,67 @@ public:
         return old_opts;
     }
 
+    //! Return the current local socket address.
+    SocketAddress	GetLocalAddress()
+    {
+        struct sockaddr_in6 sa;
+        socklen_t salen = sizeof(sa);
+
+        if (getsockname(
+                fd_, reinterpret_cast<struct sockaddr*>(&sa), &salen) != 0)
+        {
+            LOG << "Socket::GetLocalAddress()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return SocketAddress();
+        }
+
+        return SocketAddress(reinterpret_cast<struct sockaddr*>(&sa), salen);
+    }
+
+    //! Return the current peer socket address.
+    SocketAddress	GetPeerAddress()
+    {
+        struct sockaddr_in6 sa;
+        socklen_t salen = sizeof(sa);
+
+        if (getpeername(
+                fd_, reinterpret_cast<struct sockaddr*>(&sa), &salen) != 0)
+        {
+            LOG << "Socket::GetPeerAddress()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return SocketAddress();
+        }
+
+        return SocketAddress(reinterpret_cast<struct sockaddr*>(&sa), salen);
+    }
+
     //! \}
 
     //! \name Close
     //! \{
 
+    //! Close socket.
+    bool close()
+    {
+        if (::close(fd_) != 0)
+        {
+            LOG << "Socket::close()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return false;
+        }
+
+        return true;
+    }
+
+    //! Shutdown one or both directions of socket.
     bool shutdown(int how = SHUT_RDWR)
     {
         if (::shutdown(fd_, how) != 0)
         {
-            LOG << "Socket::close()"
+            LOG << "Socket::shutdown()"
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
             return false;
@@ -337,8 +398,44 @@ public:
 
     //! \}
 
-    //! \name Accelerations
+    //! \name Socket Options and Accelerations
     //! \{
+
+    //! Perform raw getsockopt() operation on socket.
+    int getsockopt(int level, int optname,
+                   void *optval, socklen_t *optlen) const
+    {
+        int r = ::getsockopt(fd_, level, optname, optval, optlen);
+
+        if (r != 0)
+            LOG << "Socket::getsockopt()"
+                << " fd_=" << fd_
+                << " level=" << level
+                << " optname=" << optname
+                << " optval=" << optval
+                << " optlen=" << optlen
+                << " error=" << strerror(errno);
+
+        return  r;
+    }
+
+    //! Perform raw setsockopt() operation on socket.
+    int setsockopt(int level, int optname,
+                   const void *optval, socklen_t optlen)
+    {
+        int r = ::setsockopt(fd_, level, optname, optval, optlen);
+
+        if (r != 0)
+            LOG << "Socket::setsockopt()"
+                << " fd_=" << fd_
+                << " level=" << level
+                << " optname=" << optname
+                << " optval=" << optval
+                << " optlen=" << optlen
+                << " error=" << strerror(errno);
+
+        return  r;
+    }
 
     //! Enable sending of keep-alive messages on connection-oriented sockets.
     void SetKeepAlive(bool activate = true);
