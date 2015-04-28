@@ -13,9 +13,6 @@
 #ifndef C7A_NET_SELECT_HEADER
 #define C7A_NET_SELECT_HEADER
 
-#include <c7a/net/socket.hpp>
-
-#include <vector>
 #include <sys/select.h>
 
 namespace c7a {
@@ -29,19 +26,6 @@ namespace c7a {
  */
 class Select
 {
-private:
-    //! read bit-field
-    fd_set read_set_;
-
-    //! write bit-field
-    fd_set write_set_;
-
-    //! exception bit-field
-    fd_set except_set_;
-
-    //! maximum file descriptor value in bitsets
-    int max_fd_;
-
 public:
     //! Add a socket to the read and exception selection set
     Select& SetRead(int fd)
@@ -104,6 +88,19 @@ public:
         timeout.tv_sec = msec / 1000;
         return select(&timeout);
     }
+
+private:
+    //! read bit-field
+    fd_set read_set_;
+
+    //! write bit-field
+    fd_set write_set_;
+
+    //! exception bit-field
+    fd_set except_set_;
+
+    //! maximum file descriptor value in bitsets
+    int max_fd_;
 };
 
 //! \}
