@@ -25,6 +25,9 @@
 
 namespace c7a {
 
+//! \addtogroup api Interface
+//! {
+
 /*!
  * DIA is the interface between the user and the c7a framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be 
@@ -210,6 +213,8 @@ private:
     //! The local function stack, which stores the chained lambda function from the last DIANode to this DIA.
     Stack local_stack_;
 };
+
+//! }
 
 } // namespace c7a
 

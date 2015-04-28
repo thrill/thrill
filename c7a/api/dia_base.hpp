@@ -12,6 +12,9 @@
 
 namespace c7a {
 
+//! \addtogroup api Interface
+//! {
+
 /*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build
  * the execution graph, which is used to execute the computation.
@@ -28,15 +31,15 @@ public:
     typedef std::vector<DIABase*> DIABaseVector;
 
     /*!
-     * The constructor for a DIABase. Sets the data_manager and the
+     * The constructor for a DIABase. Sets the DataManager and the
      * associated DIAId. 
      *
      * Sets the parents for this node and adds this node as a child for 
      * each parent.
      *
-     * \param data_manager DataManager, which gives iterators to data
+     * \param data_manager Reference to DataManager, which gives iterators to data
      *
-     * \param parents Parents of this node, which have to be computed previously
+     * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(data::DataManager &data_manager, const DIABaseVector& parents)
         : data_manager_(data_manager), parents_(parents) {
@@ -93,6 +96,8 @@ protected:
     //! Childs and parents of this DIABase.
     DIABaseVector childs_, parents_;
 };
+
+//! }
 
 } // namespace c7a
 
