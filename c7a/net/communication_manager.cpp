@@ -11,10 +11,8 @@
 
 namespace c7a {
 
-void CommunicationManager::Initialize(std::vector<ExecutionEndpoint> endpoints)
-{
-    (void)endpoints;
-}
+void CommunicationManager::Initialize(const std::vector<NetEndpoint>& /* endpoints */)
+{ }
 
 SystemControlChannel* CommunicationManager::GetSystemControlChannel()
 {
