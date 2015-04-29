@@ -14,19 +14,18 @@
 #ifndef C7A_NET_NET_GROUP_HEADER
 #define C7A_NET_NET_GROUP_HEADER
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <string>
-#include <cstring>
-#include <vector>
-#include <assert.h>
-#include <thread>
-#include <map>
 #include <c7a/net/net-endpoint.hpp>
 #include <c7a/net/net-connection.hpp>
 #include <c7a/common/functional.hpp>
-#include <sys/select.h>
+
+#include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <map>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 

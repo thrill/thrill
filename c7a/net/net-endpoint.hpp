@@ -30,7 +30,7 @@ public:
     //store some kind of endpoint information here
     const std::string hostport;
 
-    NetEndpoint(const std::string& hostport)
+    explicit NetEndpoint(const std::string& hostport)
         : hostport(hostport) { }
 
     static std::vector<NetEndpoint> ParseEndpointList(std::string str)

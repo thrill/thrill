@@ -14,8 +14,11 @@
 #include <c7a/net/net-group.hpp>
 #include <c7a/net/select-dispatcher.hpp>
 
-#include <thread>
 #include <deque>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 
@@ -134,7 +137,7 @@ NetGroup::NetGroup(ClientId my_rank,
 
             // assign connection.
             die_unless(!connections_[msg->id].GetSocket().IsValid());
-            connections_[msg->id] = s;
+            connections_[msg->id] = NetConnection(s);
             ++got_connections;
 
             return true;
