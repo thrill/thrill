@@ -13,13 +13,13 @@
 #ifndef C7A_NET_SOCKET_ADDRESS_HEADER
 #define C7A_NET_SOCKET_ADDRESS_HEADER
 
+#include <netinet/in.h>
+
 #include <vector>
 #include <string>
 #include <cstdint>
 #include <cstring>
 #include <iosfwd>
-
-#include <netinet/in.h>
 
 namespace c7a {
 
@@ -66,7 +66,7 @@ public:
 
     //! Create a socket address object and resolve the given host:port using
     //! getaddrinfo(). Check result with IsValid().
-    SocketAddress(const std::string& hostport);
+    explicit SocketAddress(const std::string& hostport);
 
     //! Create a socket address object and resolve the given host name using
     //! getaddrinfo(). Check result with IsValid().
