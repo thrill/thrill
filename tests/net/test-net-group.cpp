@@ -7,12 +7,13 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
+#include <c7a/net/net-group.hpp>
+#include <c7a/net/flow_control_channel.hpp>
+#include <gtest/gtest.h>
+
 #include <thread>
 #include <vector>
 #include <string>
-#include <c7a/net/net-group.hpp>
-#include <c7a/net/flow_control_channel.hpp>
 
 using namespace c7a;
 
@@ -72,6 +73,53 @@ static void ThreadInitializeSendReceive(NetGroup* net)
 TEST(NetGroup, InitializeSendReceive) {
     // Construct a NetGroup of 6 workers which execute the thread function above
     NetGroup::ExecuteLocalMock(6, ThreadInitializeSendReceive);
+}
+
+static void RealNetGroupConstructAndCall(
+    std::function<void(NetGroup*)> thread_function)
+{
+    static const std::vector<NetEndpoint> endpoints = {
+        NetEndpoint("127.0.0.1:11234"),
+        NetEndpoint("127.0.0.1:11235"),
+        NetEndpoint("127.0.0.1:11236"),
+        NetEndpoint("127.0.0.1:11237"),
+        NetEndpoint("127.0.0.1:11238"),
+        NetEndpoint("127.0.0.1:11239")
+    };
+
+    static const int count = endpoints.size();
+
+    std::vector<std::thread> threads(count);
+
+    // lambda to construct NetGroup and call user thread function.
+
+    for (int i = 0; i < count; i++) {
+        threads[i] = std::thread(
+            [i, &thread_function]() {
+                // construct NetGroup i with endpoints
+                NetGroup group(i, endpoints);
+                // run thread function
+                thread_function(&group);
+                // TODO(tb): sleep here because otherwise connection may get
+                // closed in ReceiveStringFromAny which causes an error.
+                sleep(1);
+            });
+    }
+
+    for (int i = 0; i < count; i++) {
+        threads[i].join();
+    }
+}
+
+TEST(NetGroup, RealInitializeAndClose) {
+    // Construct a real NetGroup of 6 workers which do nothing but terminate.
+    RealNetGroupConstructAndCall([](NetGroup*) { });
+}
+
+TEST(NetGroup, RealInitializeSendReceive) {
+    // Construct a real NetGroup of 6 workers which execute the thread function
+    // above which sends and receives a message from all neighbors.
+    RealNetGroupConstructAndCall(ThreadInitializeSendReceive);
 }
 
 TEST(NetGroup, TestAllReduce) {
