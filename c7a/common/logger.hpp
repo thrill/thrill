@@ -57,10 +57,12 @@ public:
     ~Logger()
     {
         if (real_) {
+            oss_ << "\n";
             // lock the global mutex of logger for serialized output in
             // multi-threaded programs.
             std::unique_lock<std::mutex> lock;
-            std::cout << oss_.str() << std::endl;
+            std::cout << oss_.str();
+            std::cout.flush();
         }
     }
 };
@@ -104,10 +106,12 @@ public:
     ~SpacingLogger()
     {
         if (real_) {
+            oss_ << "\n";
             // lock the global mutex of logger for serialized output in
             // multi-threaded programs.
             std::unique_lock<std::mutex> lock;
-            std::cout << oss_.str() << std::endl;
+            std::cout << oss_.str();
+            std::cout.flush();
         }
     }
 };

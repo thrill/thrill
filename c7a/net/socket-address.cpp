@@ -11,14 +11,16 @@
  ******************************************************************************/
 
 #include <c7a/net/socket-address.hpp>
-
-#include <string>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <errno.h>
-
 #include <c7a/common/logger.hpp>
 #include <c7a/net/socket.hpp>
+
+#include <netdb.h>
+#include <arpa/inet.h>
+
+#include <cerrno>
+#include <string>
+#include <algorithm>
+#include <vector>
 
 namespace c7a {
 
@@ -51,7 +53,7 @@ SocketAddress::SocketAddress(const char* hostname, const char* servicename)
     Resolve(hostname, servicename);
 }
 
-std::string SocketAddress::ToString() const
+std::string SocketAddress::ToStringHost() const
 {
     char str[64];
     if (sockaddr()->sa_family == AF_INET)
@@ -78,9 +80,14 @@ std::string SocketAddress::ToString() const
         return "<invalid>";
 }
 
+std::string SocketAddress::ToStringHostPort() const
+{
+    return ToStringHost() + ":" + std::to_string(GetPort());
+}
+
 std::ostream& operator << (std::ostream& os, const SocketAddress& sa)
 {
-    return os << sa.ToString() << ':' << sa.GetPort();
+    return os << sa.ToStringHostPort();
 }
 
 bool SocketAddress::Resolve(const char* hostname, const char* servicename)
