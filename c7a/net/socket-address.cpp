@@ -11,14 +11,16 @@
  ******************************************************************************/
 
 #include <c7a/net/socket-address.hpp>
-
-#include <string>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <errno.h>
-
 #include <c7a/common/logger.hpp>
 #include <c7a/net/socket.hpp>
+
+#include <netdb.h>
+#include <arpa/inet.h>
+
+#include <cerrno>
+#include <string>
+#include <algorithm>
+#include <vector>
 
 namespace c7a {
 

@@ -13,19 +13,15 @@
 #ifndef C7A_NET_NET_CONNECTION_HEADER
 #define C7A_NET_NET_CONNECTION_HEADER
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <netdb.h>
-#include <string>
-#include <cstring>
-#include <thread>
-#include <assert.h>
-#include <cstdio>
-#include <cerrno>
-#include <stdexcept>
-
 #include <c7a/net/socket.hpp>
+
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
+#include <stdexcept>
+#include <string>
+#include <thread>
 
 namespace c7a {
 
@@ -40,7 +36,7 @@ namespace c7a {
 class NetException : public std::runtime_error
 {
 public:
-    NetException(const std::string& what)
+    explicit NetException(const std::string& what)
         : std::runtime_error(what)
     { }
 
@@ -65,13 +61,13 @@ public:
  */
 class NetConnection : protected Socket
 {
-public:
     static const bool debug = true;
 
     static const bool self_verify_ = true;
 
+public:
     //! Construct NetConnection from a Socket
-    NetConnection(const Socket& s = Socket())
+    explicit NetConnection(const Socket& s = Socket())
         : Socket(s)
     { }
 

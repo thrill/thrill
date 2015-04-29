@@ -15,6 +15,8 @@
 
 #include <sys/select.h>
 
+#include <algorithm>
+
 namespace c7a {
 
 //! \addtogroup netsock Low Level Socket API
