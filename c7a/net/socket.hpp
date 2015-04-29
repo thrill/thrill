@@ -42,7 +42,7 @@ namespace c7a {
  */
 class Socket
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     //! \name Creation
@@ -321,7 +321,7 @@ public:
         {
             ssize_t r = ::send(fd_, cdata + wb, size - wb, flags);
 
-            if (r < 0) {
+            if (r <= 0) {
                 // an error occured, check errno.
 
                 LOG << "done Socket::send()"
@@ -375,7 +375,7 @@ public:
         {
             ssize_t r = ::recv(fd_, cdata + rb, size - rb, flags);
 
-            if (r < 0) {
+            if (r <= 0) {
                 // an error occured, check errno.
 
                 LOG << "done Socket::recv()"

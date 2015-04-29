@@ -109,6 +109,12 @@ public:
         my_rank_ = -1;
     }
 
+    //! Closes all client connections
+    ~NetGroup()
+    {
+        Close();
+    }
+
     //! \}
 
     //! \name Richer ReceiveFromAny Functions
@@ -130,7 +136,7 @@ public:
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
 
-        sLOG << "--- NetGroup::ReceiveFromAny() - select():";
+        sLOG0 << "--- NetGroup::ReceiveFromAny() - select():";
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
@@ -139,7 +145,7 @@ public:
             int fd = connections_[i].GetFileDescriptor();
             FD_SET(fd, &fd_set);
             max_fd = std::max(max_fd, fd);
-            sLOG << "select from fd=" << fd;
+            sLOG0 << "select from fd=" << fd;
         }
 
         int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
@@ -187,7 +193,7 @@ public:
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
 
-        sLOG << "--- NetGroup::ReceiveFromAny() - select():";
+        sLOG0 << "--- NetGroup::ReceiveFromAny() - select():";
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
@@ -196,7 +202,7 @@ public:
             int fd = connections_[i].GetFileDescriptor();
             FD_SET(fd, &fd_set);
             max_fd = std::max(max_fd, fd);
-            sLOG << "select from fd=" << fd;
+            sLOG0 << "select from fd=" << fd;
         }
 
         int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
@@ -218,14 +224,14 @@ public:
 
             if (FD_ISSET(fd, &fd_set))
             {
-                sLOG << "select() readable fd" << fd;
+                sLOG << my_rank_ << "- select() readable fd" << fd << "id" << i;
 
                 *out_src = i;
                 return connections_[i].ReceiveString(out_data);
             }
         }
 
-        sLOG << "Select() returned but no fd was readable.";
+        sLOG << my_rank_ << " - Select() returned but no fd was readable.";
 
         return ReceiveStringFromAny(out_src, out_data);
     }
