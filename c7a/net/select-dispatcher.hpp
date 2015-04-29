@@ -16,7 +16,7 @@
 #include <c7a/net/socket.hpp>
 #include <c7a/net/select.hpp>
 
-#include <vector>
+#include <deque>
 
 namespace c7a {
 
@@ -30,53 +30,62 @@ namespace c7a {
  */
 class SelectDispatcher : protected Select
 {
+    static const bool debug = false;
+
 public:
     typedef std::function<bool (Socket&)> Callback;
 
-    //! Register a socket for readability and exception checks
-    void AddRead(Socket& s)
-    {
-        Select::SetRead(s.GetFileDescriptor());
-        Select::SetException(s.GetFileDescriptor());
-        watch_.push_back(
-            Watch { s.GetFileDescriptor(), s, nullptr, nullptr, nullptr });
-    }
-
-    //! Register a socket for writability and exception checks
-    void AddWrite(Socket& s)
-    {
-        Select::SetWrite(s.GetFileDescriptor());
-        Select::SetException(s.GetFileDescriptor());
-        watch_.push_back(
-            Watch { s.GetFileDescriptor(), s, nullptr, nullptr, nullptr });
-    }
-
     //! Register a buffered read callback and a default exception callback.
-    void HookRead(Socket& s, const Callback& read_cb)
+    void AddRead(Socket& s, const Callback& read_cb)
     {
         Select::SetRead(s.GetFileDescriptor());
         Select::SetException(s.GetFileDescriptor());
-        watch_.push_back(
-            Watch { s.GetFileDescriptor(), s,
-                    read_cb, nullptr, ExceptionCallback });
+        watch_.emplace_back(s.GetFileDescriptor(), s,
+                            read_cb, nullptr, ExceptionCallback);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void HookWrite(Socket& s, const Callback& write_cb)
+    void AddWrite(Socket& s, const Callback& write_cb)
     {
-        Select::SetRead(s.GetFileDescriptor());
+        Select::SetWrite(s.GetFileDescriptor());
         Select::SetException(s.GetFileDescriptor());
-        watch_.push_back(
-            Watch { s.GetFileDescriptor(), s,
-                    write_cb, nullptr, ExceptionCallback });
+        watch_.emplace_back(s.GetFileDescriptor(), s,
+                            nullptr, write_cb, ExceptionCallback);
     }
 
-    int Dispatch(std::vector<Socket*>& read_set,
-                 std::vector<Socket*>& write_set,
-                 std::vector<Socket*>& except_set)
+    //! Register a buffered write callback and a default exception callback.
+    void AddReadWrite(Socket& s,
+                      const Callback& read_cb, const Callback& write_cb)
+    {
+        Select::SetRead(s.GetFileDescriptor());
+        Select::SetWrite(s.GetFileDescriptor());
+        Select::SetException(s.GetFileDescriptor());
+        watch_.emplace_back(s.GetFileDescriptor(), s,
+                            read_cb, write_cb, ExceptionCallback);
+    }
+
+    void Dispatch()
     {
         // copy select fdset
         Select fdset = *this;
+
+        if (debug)
+        {
+            std::ostringstream oss;
+            for (Watch& w : watch_) {
+                oss << w.fd << " ";
+            }
+            oss << "| ";
+            for (int i = 0; i < Select::max_fd_ + 1; ++i) {
+                if (Select::InRead(i))
+                    oss << "r" << i << " ";
+                if (Select::InWrite(i))
+                    oss << "w" << i << " ";
+                if (Select::InException(i))
+                    oss << "e" << i << " ";
+            }
+            LOG << "Performing select() on " << oss.str();
+        }
 
         int r = fdset.select(10 * 1000);
 
@@ -87,15 +96,20 @@ public:
             throw NetException("OpenConnections() timeout in select().", errno);
         }
 
-        for (Watch& w : watch_)
+        // save _current_ size, as it may change.
+        size_t watch_size = watch_.size();
+
+        for (size_t i = 0; i != watch_size; ++i)
         {
+            Watch& w = watch_[i];
+
             if (w.fd < 0) continue;
 
             if (fdset.InRead(w.fd))
             {
                 if (w.read_cb) {
-                    // have to clear the read flag since the callback may add a new
-                    // (other) callback for the same fd.
+                    // have to clear the read flag since the callback may add a
+                    // new (other) callback for the same fd.
                     Select::ClearRead(w.fd);
                     Select::ClearException(w.fd);
 
@@ -109,13 +123,20 @@ public:
                     }
                 }
                 else {
-                    read_set.push_back(&w.socket);
+                    LOG << "SelectDispatcher: got read event for fd "
+                        << w.fd << " without a read handler.";
+
+                    Select::ClearRead(w.fd);
                 }
             }
+
+            if (w.fd < 0) continue;
 
             if (fdset.InWrite(w.fd))
             {
                 if (w.write_cb) {
+                    // have to clear the read flag since the callback may add a
+                    // new (other) callback for the same fd.
                     Select::ClearWrite(w.fd);
                     Select::ClearException(w.fd);
 
@@ -129,9 +150,14 @@ public:
                     }
                 }
                 else {
-                    write_set.push_back(&w.socket);
+                    LOG << "SelectDispatcher: got write event for fd "
+                        << w.fd << " without a write handler.";
+
+                    Select::ClearWrite(w.fd);
                 }
             }
+
+            if (w.fd < 0) continue;
 
             if (fdset.InException(w.fd))
             {
@@ -147,7 +173,10 @@ public:
                     }
                 }
                 else {
-                    except_set.push_back(&w.socket);
+                    LOG << "SelectDispatcher: got exception event for fd "
+                        << w.fd << " without an exception handler.";
+
+                    Select::ClearException(w.fd);
                 }
             }
         }
@@ -158,12 +187,23 @@ private:
     struct Watch
     {
         int      fd;
-        Socket&  socket;
+        Socket   socket;
         Callback read_cb, write_cb, except_cb;
+
+        Watch(int _fd, Socket& _socket,
+              const Callback& _read_cb, const Callback& _write_cb,
+              const Callback& _except_cb)
+            : fd(_fd),
+              socket(_socket),
+              read_cb(_read_cb),
+              write_cb(_write_cb),
+              except_cb(_except_cb)
+        { }
     };
 
-    //! Handlers for all registered file descriptors
-    std::vector<Watch> watch_;
+    //! handlers for all registered file descriptors, we have to keep them
+    //! address local.
+    std::deque<Watch> watch_;
 
     //! Default exception handler
     static bool ExceptionCallback(Socket& s)

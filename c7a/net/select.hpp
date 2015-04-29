@@ -38,6 +38,7 @@ public:
     //! Add a socket to the read and exception selection set
     Select & SetRead(int fd)
     {
+        assert(fd >= 0);
         FD_SET(fd, &read_set_);
         max_fd_ = std::max(max_fd_, fd);
         return *this;
@@ -46,6 +47,7 @@ public:
     //! Add a socket to the write and exception selection set
     Select & SetWrite(int fd)
     {
+        assert(fd >= 0);
         FD_SET(fd, &write_set_);
         max_fd_ = std::max(max_fd_, fd);
         return *this;
@@ -54,6 +56,7 @@ public:
     //! Add a socket to the exception selection set
     Select & SetException(int fd)
     {
+        assert(fd >= 0);
         FD_SET(fd, &except_set_);
         max_fd_ = std::max(max_fd_, fd);
         return *this;
@@ -103,7 +106,7 @@ public:
         return select(&timeout);
     }
 
-private:
+protected:
     //! read bit-field
     fd_set read_set_;
 

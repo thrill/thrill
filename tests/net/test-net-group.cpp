@@ -80,10 +80,10 @@ static void RealNetGroupConstructAndCall(
     static const std::vector<NetEndpoint> endpoints = {
         NetEndpoint("127.0.0.1:11234"),
         NetEndpoint("127.0.0.1:11235"),
-        // NetEndpoint("127.0.0.1:11236"),
-        // NetEndpoint("127.0.0.1:11237"),
-        // NetEndpoint("127.0.0.1:11238"),
-        // NetEndpoint("127.0.0.1:11239")
+        NetEndpoint("127.0.0.1:11236"),
+        NetEndpoint("127.0.0.1:11237"),
+        NetEndpoint("127.0.0.1:11238"),
+        NetEndpoint("127.0.0.1:11239")
     };
 
     static const int count = endpoints.size();
@@ -94,11 +94,14 @@ static void RealNetGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [ = i, &endpoints]() {
+            [i, &thread_function]() {
                 // construct NetGroup i with endpoints
                 NetGroup group(i, endpoints);
                 // run thread function
                 thread_function(&group);
+                // TODO(tb): sleep here because otherwise connection may get
+                // closed in ReceiveStringFromAny which causes an error.
+                sleep(1);
             });
     }
 
@@ -110,6 +113,12 @@ static void RealNetGroupConstructAndCall(
 TEST(NetGroup, RealInitializeAndClose) {
     // Construct a real NetGroup of 6 workers which do nothing but terminate.
     RealNetGroupConstructAndCall([](NetGroup*) { });
+}
+
+TEST(NetGroup, RealInitializeSendReceive) {
+    // Construct a real NetGroup of 6 workers which execute the thread function
+    // above which sends and receives a message from all neighbors.
+    RealNetGroupConstructAndCall(ThreadInitializeSendReceive);
 }
 
 TEST(NetGroup, TestAllReduce) {
