@@ -46,10 +46,10 @@ public:
 
         if (size_ == buffer_.size()) {
             functional_(s, buffer_);
-            return true;
+            return false;
         }
         else {
-            return false;
+            return true;
         }
     }
 
@@ -72,6 +72,7 @@ NetGroup::NetGroup(ClientId my_rank,
     die_unless(my_rank_ < endpoints.size());
 
     // resolve all endpoint addresses
+
     std::vector<SocketAddress> addrlist;
 
     for (const NetEndpoint& ne : endpoints)
@@ -103,40 +104,6 @@ NetGroup::NetGroup(ClientId my_rank,
     // differently.
     sleep(1);
 
-    // number of clients from which we are expecting connections
-
-    unsigned int accepting = my_rank_;
-
-    // initiate connections to all hosts with higher id.
-
-    std::vector<ClientId> connecting;
-
-    unsigned int connected = 0;
-
-    for (ClientId id = my_rank_ + 1; id < addrlist.size(); ++id)
-    {
-        connections_[id] = Socket::Create();
-
-        Socket& socket = connections_[id].GetSocket();
-
-        // initiate non-blocking TCP connection
-        socket.SetNonBlocking(true);
-
-        if (socket.connect(addrlist[id]) == 0) {
-            // connect() already successful? this should not be.
-            abort();
-        }
-        else if (errno == EINPROGRESS) {
-            // connect is in progress, will wait for completion.
-            connecting.push_back(id);
-        }
-        else {
-            throw NetException("Could not connect to client "
-                               + std::to_string(id) + " via "
-                               + addrlist[id].ToStringHostPort(), errno);
-        }
-    }
-
     // Transfer Welcome message to other clients and receive from all other to
     // synchronize group.
 
@@ -147,14 +114,31 @@ NetGroup::NetGroup(ClientId my_rank,
     };
 
     static const uint32_t c7a_sign = 0x0C7A0C7A;
-    static const WelcomeMsg my_welcome = { c7a_sign, my_rank_ };
+    const WelcomeMsg my_welcome = { c7a_sign, my_rank_ };
 
     // construct list of welcome message read buffers, we really need a deque
     // here due to reallocation in vector
 
-    auto MsgReaderLambda = [](Socket& s, const std::string& buffer) -> bool {
-                               std::cout << "Message on " << s.GetFileDescriptor() << std::endl;
-                           };
+    unsigned int got_connections = 0;
+
+    auto MsgReaderLambda =
+        [this, &got_connections](Socket& s, const std::string& buffer) -> bool {
+            LOG0 << "Message on " << s.GetFileDescriptor();
+            die_unequal(buffer.size(), sizeof(WelcomeMsg));
+
+            const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
+            die_unequal(msg->c7a, c7a_sign);
+
+            LOG0 << "client " << my_rank_ << " got signature "
+                 << "from client " << msg->id;
+
+            // assign connection.
+            die_unless(!connections_[msg->id].GetSocket().IsValid());
+            connections_[msg->id] = s;
+            ++got_connections;
+
+            return true;
+        };
 
     typedef NetReadBuffer<decltype(MsgReaderLambda), sizeof(my_welcome)>
         WelcomeReadBuffer;
@@ -166,55 +150,95 @@ NetGroup::NetGroup(ClientId my_rank,
 
     SelectDispatcher disp;
 
-    // wait for incoming connections
-    disp.HookRead(
-        listenSocket_, [&](Socket& s) -> bool {
-            // new accept()able connection on listen socket
-            die_unless(accepting > 0);
+    // initiate connections to all hosts with higher id.
 
-            Socket ns = s.accept();
-            LOG << "OpenConnections() accepted connection"
-                << " from=" << ns.GetPeerAddress();
-
-                                      // send welcome message - TODO(tb): this is a blocking send
-            ns.send(&my_welcome, sizeof(my_welcome));
-
-                                      // wait for welcome message from other side
-            msg_reader.emplace_back(ns, sizeof(my_welcome), MsgReaderLambda);
-            disp.HookRead(ns, msg_reader.back());
-
-            return (--accepting > 0); // wait for more connection?
-        });
-
-    // wait for completed connect() calls
-    for (ClientId& id : connecting)
+    for (ClientId id = my_rank_ + 1; id < addrlist.size(); ++id)
     {
-        Socket& socket = connections_[id].GetSocket();
+        Socket ns = Socket::Create();
 
-        disp.HookWrite(
-            socket, [id, &addrlist](Socket& s) -> bool {
+        // initiate non-blocking TCP connection
+        ns.SetNonBlocking(true);
+
+        auto on_connect =
+            [&, id](Socket& s) -> bool {
                 int err = s.GetError();
 
                 if (err != 0) {
                     throw NetException(
-                        "OpenConnections() could not connect to client "
-                        + std::to_string(id) + " via "
-                        + addrlist[id].ToStringHostPort(), err);
+                              "OpenConnections() could not connect to client "
+                              + std::to_string(id) + " via "
+                              + addrlist[id].ToStringHostPort(), err);
                 }
+
+                LOG << "OpenConnections() " << my_rank_ << " connected"
+                    << " fd=" << s.GetFileDescriptor()
+                    << " to=" << s.GetPeerAddress();
 
                 // send welcome message - TODO(tb): this is a blocking send
                 s.SetNonBlocking(false);
                 s.send(&my_welcome, sizeof(my_welcome));
+                LOG << "sent client " << my_welcome.id;
+
+                // wait for welcome message from other side
+                msg_reader.emplace_back(s, sizeof(my_welcome), MsgReaderLambda);
+                disp.AddRead(s, msg_reader.back());
 
                 return false;
-            });
+            };
+
+        if (ns.connect(addrlist[id]) == 0) {
+            // connect() already successful? this should not be.
+            on_connect(ns);
+        }
+        else if (errno == EINPROGRESS) {
+            // connect is in progress, will wait for completion.
+            disp.AddWrite(ns, on_connect);
+        }
+        else {
+            throw NetException("Could not connect to client "
+                               + std::to_string(id) + " via "
+                               + addrlist[id].ToStringHostPort(), errno);
+        }
     }
 
-    std::vector<Socket*> read_set, write_set, except_set;
+    // wait for incoming connections from lower ids
 
-    while (accepting > 0 || connected != connecting.size())
+    unsigned int accepting = my_rank_;
+
+    disp.AddRead(
+        listenSocket_, [&](Socket& s) -> bool
+        {
+            // new accept()able connection on listen socket
+            die_unless(accepting > 0);
+
+            Socket ns = s.accept();
+            LOG << "OpenConnections() " << my_rank_ << " accepted connection"
+                << " fd=" << ns.GetFileDescriptor()
+                << " from=" << ns.GetPeerAddress();
+
+            // send welcome message - TODO(tb): this is a blocking send
+            ns.send(&my_welcome, sizeof(my_welcome));
+            LOG << "sent client " << my_welcome.id;
+
+            // wait for welcome message from other side
+            msg_reader.emplace_back(ns, sizeof(my_welcome), MsgReaderLambda);
+            disp.AddRead(ns, msg_reader.back());
+
+            // wait for more connections?
+            return (--accepting > 0);
+        });
+
+    while (got_connections != addrlist.size() - 1)
     {
-        disp.Dispatch(read_set, write_set, except_set);
+        disp.Dispatch();
+    }
+
+    LOG << "done";
+
+    // output list of file descriptors connected to partners
+    for (size_t i = 0; i != connections_.size(); ++i) {
+        LOG << "NetGroup link " << my_rank_ << " -> " << i << " = fd "
+            << connections_[i].GetSocket().GetFileDescriptor();
     }
 }
 
@@ -252,11 +276,6 @@ void NetGroup::ExecuteLocalMock(
     for (size_t i = 0; i != num_clients; ++i) {
         threads[i]->join();
         delete threads[i];
-    }
-
-    // close sockets allocated before
-    for (size_t i = 0; i != num_clients; ++i) {
-        group[i]->Close();
     }
 }
 
