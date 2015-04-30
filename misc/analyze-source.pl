@@ -223,7 +223,7 @@ sub process_cpp {
     if (filter_uncrustify($path))
     {
         my $data = join("", @data);
-        @data = filter_program($data, "uncrustify", "-q", "-c", "misc/uncrustify.cfg", "-l", "CPP");
+        @data = filter_program($data, "uncrustify", "-c", "misc/uncrustify.cfg", "-l", "CPP");
 
         # manually add blank line after "namespace xyz {" and before "} // namespace xyz"
         my $namespace = 0;
