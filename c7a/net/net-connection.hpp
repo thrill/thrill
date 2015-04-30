@@ -163,37 +163,6 @@ public:
 
     //! \}
 
-    void Connect(const std::string& address)
-    {
-        assert(fd_ == -1);
-
-        SocketAddress sa(address);
-
-        // if (inet_addr(address_.c_str()) == INADDR_NONE) {
-        //     struct in_addr** addressList;
-        //     struct hostent* resolved;
-
-        //     if ((resolved = gethostbyname(address_.c_str())) == NULL) {
-        //         return NET_CLIENT_NAME_RESOLVE_FAILED; //Host resolve failed.
-        //     }
-
-        //     addressList = (struct in_addr**)resolved->h_addr_list;
-        //     serverAddress_.sin_addr = *addressList[0];
-        // }
-        // else {
-        //     serverAddress_.sin_addr.s_addr = inet_addr(address_.c_str());
-        // }
-
-        // serverAddress_.sin_family = AF_INET;
-        // serverAddress_.sin_port = htons(port);
-
-        if (!connect(sa)) {
-            shutdown();
-            fd_ = -1;
-            throw NetException("Error during Connect(" + address + ")", errno);
-        }
-    }
-
     //! Close this NetConnection
     void Close()
     {
