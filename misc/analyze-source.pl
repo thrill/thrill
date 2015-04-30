@@ -223,7 +223,7 @@ sub process_cpp {
     if (filter_uncrustify($path))
     {
         my $data = join("", @data);
-        @data = filter_program($data, "uncrustify", "-c", "misc/uncrustify.cfg", "-l", "CPP");
+        @data = filter_program($data, "uncrustify", "-q", "-c", "misc/uncrustify.cfg", "-l", "CPP");
 
         # manually add blank line after "namespace xyz {" and before "} // namespace xyz"
         my $namespace = 0;
@@ -331,6 +331,12 @@ foreach my $arg (@ARGV) {
 
 (-e "c7a/CMakeLists.txt")
     or die("Please run this script in the C7A source base directory.");
+
+# check uncrustify's version:
+my ($uncrustver) = filter_program("", "uncrustify", "--version");
+($uncrustver eq "uncrustify 0.61\n")
+    or die("Requires uncrustify 0.61 to run correctly. ".
+           "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
 
 use File::Find;
 my @filelist;
