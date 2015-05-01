@@ -1,0 +1,29 @@
+/*******************************************************************************
+ * doc/api.dox
+ *
+ *Part of project c7a
+ ******************************************************************************/
+
+namespace c7a {
+
+/** \page api User Interface
+
+From the user's perspective, a DIA (Distributed Immutable Array) is an immutable array,
+which can only be accessed by Operations and Actions. Operations transform a DIA into
+another DIA, Actions aggregate data of the DIA and make it accessible to the user program.
+
+Inside the c7a framework, a DIA only consists of a reference to a DIANode and a lambda
+function, which can transform elements from the DIANode to this DIA. Distributed Operations(DOps)
+and Actions both need a global barrier and thus form a new DIANode. Every DOp and Action
+has an own node type, which are sub-classes of DIANode. 
+
+DIABase is the untyped super-class of DIANode. DIABase objects form a DAG, in which the parent-child
+relation means that a parent has to be executed before the child can be executed. Every DIANode can
+be executed, which performs the actual operation and all uncalculated parent operations. The engine
+uses the DIABase graph to optimize the order of operations.
+*/
+    
+
+} // namespace c7a
+
+/******************************************************************************/
