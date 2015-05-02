@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "dia_base.hpp"
+#include "context.hpp"
 #include "../data/data_manager.hpp"
 
 namespace c7a {
@@ -52,8 +53,8 @@ public:
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
-    DIANode(data::DataManager &data_manager, const DIABaseVector& parents)
-        : DIABase(data_manager, parents)
+    DIANode(Context & ctx, const DIABaseVector& parents)
+        : DIABase(ctx, parents)
     { }
 
     

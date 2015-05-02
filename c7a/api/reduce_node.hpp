@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <functional>
 #include "dop_node.hpp"
+#include "context.hpp"
 #include "function_stack.hpp"
 #include "../common/logger.hpp"
 
@@ -44,18 +45,18 @@ public:
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    ReduceNode(data::DataManager &data_manager, 
+    ReduceNode(Context & ctx, 
                const std::vector<DIABase*>& parents,
                Stack& stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<T>(data_manager, parents),
+        : DOpNode<T>(ctx, parents),
         local_stack_(stack),
         key_extractor_(key_extractor),
         reduce_function_(reduce_function) {
             // This new DIA Allocate is needed to send data from Pre to Main
             // TODO: use network iterate later
-            post_data_id_ = (this->data_manager_).AllocateDIA();
+        post_data_id_ = (this->context_).get_data_manager().AllocateDIA();
 
         };
 
@@ -116,7 +117,7 @@ private:
 
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
-        data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(pid);
+        data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(pid);
         
         // //run local reduce
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
@@ -152,7 +153,7 @@ private:
         int number_worker = 1;
         //TODO use network emitter in future
         std::vector<data::BlockEmitter<T>> emit_array;
-        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
+        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
             std::hash<T> t_hash;
             auto hashed = t_hash(it->second) % number_worker;
@@ -171,7 +172,7 @@ private:
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         std::unordered_map<key_t, T> reduce_data;
 
-        data::BlockIterator<T> it = (this->data_manager_).template GetLocalBlocks<T>(this->data_id_);
+        data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(this->data_id_);
 
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         std::unordered_map<key_t, T> global_data;
@@ -191,7 +192,7 @@ private:
             }
         }
 
-        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(post_data_id_);
+        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(post_data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it){
             emit(it->second);
         }

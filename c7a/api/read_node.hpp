@@ -8,6 +8,8 @@
 #define C7A_API_READ_NODE_HEADER
 
 #include "../common/logger.hpp"
+#include "dop_node.hpp"
+#include "function_stack.hpp"
 #include <string>
 
 namespace c7a {
@@ -34,11 +36,11 @@ public:
      * \param read_function Read function, which defines how each line of the file is read and emitted
      * \param path_in Path of the input file
      */
-    ReadNode(data::DataManager &data_manager, 
+    ReadNode(Context & ctx, 
              const std::vector<DIABase*>& parents, 
              ReadFunction read_function,
              std::string path_in) 
-        : DOpNode<T>(data_manager, parents), 
+        : DOpNode<T>(ctx, parents), 
         read_function_(read_function),
         path_in_(path_in)
         {};
@@ -49,14 +51,14 @@ public:
     void execute() {
         // BlockEmitter<T> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "READING data with id" << this->data_id_;
-        data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
+        //data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
 
         std::ifstream infile(path_in_);
         assert(infile.good());
 
         std::string line;
         while(std::getline(infile, line)) {
-            emit(read_function_(line));
+            //emit(read_function_(line));
         }
     };
 
