@@ -20,7 +20,10 @@
 #include "dia_node.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
+
+#include "read_node.hpp"
 #include "reduce_node.hpp"
+#include "context.hpp"
 
 
 namespace c7a {
@@ -161,6 +164,7 @@ public:
             (reduce_node, reduce_stack);
     }
 
+
     /*!
      * Returns Chuck Norris!
      *
@@ -215,6 +219,25 @@ private:
 };
 
 //! }
+
+
+template <typename read_fn_t>
+auto ReadFromFileSystem(Context & ctx, std::string filepath,
+                            const read_fn_t &read_fn) {
+        (void) filepath; //TODO remove | to supress warning
+        using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
+        using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
+
+        ReadResultNode* read_node 
+            = new ReadResultNode(ctx, 
+                                 {}, 
+                                 read_fn, 
+                                 filepath);
+
+        auto read_stack = read_node->ProduceStack();
+        return DIA<read_result_t, decltype(read_stack)>
+            (read_node, read_stack);
+    }
 
 } // namespace c7a
 

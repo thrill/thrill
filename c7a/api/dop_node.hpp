@@ -8,15 +8,16 @@
 #define C7A_API_DOP_NODE_HEADER
 
 #include "dia_node.hpp"
+#include "context.hpp"
 
 namespace c7a {
 
 template <typename T>
 class DOpNode : public DIANode<T> {
 public:
-    DOpNode(data::DataManager &data_manager, 
+    DOpNode(Context & ctx, 
             const std::vector<DIABase*>& parents)
-        : DIANode<T>(data_manager, parents) {}
+        : DIANode<T>(ctx, parents) {}
     virtual ~DOpNode() {}
 };
 
