@@ -12,6 +12,8 @@
 #include "function_stack.hpp"
 #include <string>
 
+#include <sys/stat.h>
+
 namespace c7a {
 
 //! \addtogroup api Interface
@@ -51,17 +53,23 @@ public:
     void execute() {
         // BlockEmitter<T> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "READING data with id" << this->data_id_;
-  
-        std::ifstream infile(path_in_);
-        assert(infile.good());
 
-        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(infile);
+        std::ifstream file(path_in_);
+        assert(file.good());
+        
+        struct stat statbuf;
+
+        if (stat(path_in_.c_str(), &statbuf) == -1) {
+            assert(false);
+        }
+  
+        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file, statbuf.st_size);
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
         std::string line;
         while(iter.HasNext()) {
-            //SpacingLogger(true) << iter.Next();
-            emit(read_function_(iter.Next()));
+            SpacingLogger(true) << iter.Next();
+            //emit(read_function_(iter.Next()));
         }
     };
 
