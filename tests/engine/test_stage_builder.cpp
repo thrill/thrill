@@ -11,7 +11,7 @@ TEST(Stage, GetStagesFromBuilder) {
     using c7a::DIA;
     using c7a::Context;
     Context ctx;
-    auto doubles = ctx.ReadFromFileSystem(
+    auto doubles = ReadFromFileSystem(ctx, 
         g_workpath + "/inputs/test1",
         [](std::string line) {
             return std::stod(line);

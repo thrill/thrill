@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include "context.hpp"
 #include "../data/data_manager.hpp"
 
 
@@ -41,12 +42,12 @@ public:
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
-    DIABase(data::DataManager &data_manager, const DIABaseVector& parents)
-        : data_manager_(data_manager), parents_(parents) {
+    DIABase(Context & ctx, const DIABaseVector& parents)
+        : context_(ctx), parents_(parents) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
-        data_id_ = data_manager_.AllocateDIA();
+        data_id_ = context_.get_data_manager().AllocateDIA();
     }
 
     //!Virtual destructor for a DIABase.
@@ -72,8 +73,8 @@ public:
 
     //! Returns the DataManager of this DIABase.
     //! \return The DataManager of this DIABase.
-    data::DataManager & get_data_manager() {
-        return data_manager_;
+    Context & get_data_manager() {
+        return context_;
     }
 
     //! Adds a child to the vector of childs. This method is called in the constructor.
@@ -90,7 +91,7 @@ public:
 
 protected:
     //! DataManager, which can give iterators to data.
-    data::DataManager & data_manager_;
+    Context & context_;
     //! Unique ID of this DIABase. Used by the DataManager.
     data::DIAId data_id_;
     //! Childs and parents of this DIABase.
