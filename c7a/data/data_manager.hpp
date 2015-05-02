@@ -12,6 +12,7 @@
 #include <memory> //unique_ptr
 #include "block_iterator.hpp"
 #include "../common/logger.hpp"
+#include "input_line_iterator.hpp"
 
 namespace c7a {
 namespace data {
@@ -69,6 +70,10 @@ public:
         }
         auto& target = data_[id]; //yes. const ref to an unique_ptr
         return [& target](T elem){ target.push_back(Serialize(elem)); };
+    }
+
+    InputLineIterator GetInputLineIterator(std::ifstream & file) {
+        return InputLineIterator(file);
     }
 
 private:
