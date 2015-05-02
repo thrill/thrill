@@ -8,6 +8,7 @@
 
 #include <map>
 #include <functional>
+#include <string>
 #include <stdexcept>
 #include <memory> //unique_ptr
 #include "block_iterator.hpp"
@@ -72,8 +73,14 @@ public:
         return [& target](T elem){ target.push_back(Serialize(elem)); };
     }
 
-    InputLineIterator GetInputLineIterator(std::ifstream & file) {
-        return InputLineIterator(file);
+    InputLineIterator GetInputLineIterator(std::ifstream & file,size_t file_size) {
+        
+        //TODO: get those
+        size_t my_id = 0;
+        size_t num_work = 2;
+
+
+        return InputLineIterator(file,file_size,my_id,num_work);
     }
 
 private:
