@@ -51,14 +51,17 @@ public:
     void execute() {
         // BlockEmitter<T> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "READING data with id" << this->data_id_;
-        //data::BlockEmitter<T> emit = (this->data_manager_).template GetLocalEmitter<T>(this->data_id_);
-
+  
         std::ifstream infile(path_in_);
         assert(infile.good());
 
+        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(infile);
+        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
+
         std::string line;
-        while(std::getline(infile, line)) {
-            //emit(read_function_(line));
+        while(iter.HasNext()) {
+            //SpacingLogger(true) << iter.Next();
+            emit(read_function_(iter.Next()));
         }
     };
 
