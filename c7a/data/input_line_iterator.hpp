@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include "serializer.hpp"
+#include <sys/stat.h>
 
 namespace c7a {
 namespace data {
@@ -17,8 +18,29 @@ class InputLineIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    InputLineIterator(std::ifstream & file)
-        : file_(file), pos_(0) { }
+    InputLineIterator(std::ifstream & file,
+                          size_t file_size,
+                          size_t my_id, 
+                          size_t num_workers)
+        : file_(file),
+          file_size_(file_size), 
+          my_id_(my_id),
+          num_workers_(num_workers) {
+        
+        size_t per_worker = file_size_ / num_workers_;
+        size_t my_start = per_worker * my_id_;
+        file_.seekg(my_start);
+
+        if(my_id != 0) {
+            file_.unget();
+            if (file_.get() != '\n') {
+                std::string str;
+                std::getline(file_,str);
+            }            
+        }
+
+        
+    }
 
     //! returns the next element if one exists
     //!
@@ -31,18 +53,17 @@ public:
 
     //! returns true an element is available
     inline bool HasNext() {
-        int c = file_.peek();  // peek character
-
-        if ( c != EOF ) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+        size_t per_worker = file_size_ / num_workers_;
+        size_t my_end = per_worker * (my_id_ + 1) - 1;
+       
+        return (file_.tellg() <= my_end);
+     }
 
 private:
     std::ifstream & file_;
-    size_t pos_;
+    size_t file_size_;
+    size_t my_id_;
+    size_t num_workers_;
 };
 
 }
