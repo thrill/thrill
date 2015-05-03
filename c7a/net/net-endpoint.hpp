@@ -19,6 +19,9 @@
 
 namespace c7a {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /*!
  * Identifies a remote worker in a NetGroup, currently contains only its host
  * address. In future, the master/worker coordination classes should use this to
@@ -47,6 +50,8 @@ public:
         return endpoints;
     }
 };
+
+//! \}
 
 } // namespace c7a
 
