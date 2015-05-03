@@ -40,7 +40,7 @@ typedef unsigned int ClientId;
  */
 class NetGroup
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     //! \name Construction
