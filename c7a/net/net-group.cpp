@@ -12,7 +12,7 @@
  ******************************************************************************/
 
 #include <c7a/net/net-group.hpp>
-#include <c7a/net/select-dispatcher.hpp>
+#include <c7a/net/net-dispatcher.hpp>
 
 #include <deque>
 #include <string>
@@ -143,15 +143,10 @@ NetGroup::NetGroup(ClientId my_rank,
             return true;
         };
 
-    typedef NetReadBuffer<decltype(MsgReaderLambda), sizeof(my_welcome)>
-        WelcomeReadBuffer;
-
-    std::deque<WelcomeReadBuffer> msg_reader;
-
     // Perform select loop waiting for incoming connections and fulfilled
     // outgoing connections.
 
-    SelectDispatcher disp;
+    NetDispatcher disp;
 
     // initiate connections to all hosts with higher id.
 
@@ -177,14 +172,13 @@ NetGroup::NetGroup(ClientId my_rank,
                     << " fd=" << s.GetFileDescriptor()
                     << " to=" << s.GetPeerAddress();
 
-                // send welcome message - TODO(tb): this is a blocking send
+                // send welcome message
                 s.SetNonBlocking(false);
-                s.send(&my_welcome, sizeof(my_welcome));
+                disp.AsyncWrite(s, &my_welcome, sizeof(my_welcome));
                 LOG << "sent client " << my_welcome.id;
 
                 // wait for welcome message from other side
-                msg_reader.emplace_back(s, sizeof(my_welcome), MsgReaderLambda);
-                disp.AddRead(s, msg_reader.back());
+                disp.AsyncRead(s, sizeof(my_welcome), MsgReaderLambda);
 
                 return false;
             };
@@ -219,13 +213,12 @@ NetGroup::NetGroup(ClientId my_rank,
                 << " fd=" << ns.GetFileDescriptor()
                 << " from=" << ns.GetPeerAddress();
 
-            // send welcome message - TODO(tb): this is a blocking send
-            ns.send(&my_welcome, sizeof(my_welcome));
+            // send welcome message
+            disp.AsyncWrite(ns, &my_welcome, sizeof(my_welcome));
             LOG << "sent client " << my_welcome.id;
 
             // wait for welcome message from other side
-            msg_reader.emplace_back(ns, sizeof(my_welcome), MsgReaderLambda);
-            disp.AddRead(ns, msg_reader.back());
+            disp.AsyncRead(ns, sizeof(my_welcome), MsgReaderLambda);
 
             // wait for more connections?
             return (--accepting > 0);
