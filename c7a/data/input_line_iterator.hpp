@@ -29,7 +29,7 @@ public:
         
         size_t per_worker = file_size_ / num_workers_;
         size_t my_start = per_worker * my_id_;
-        file_.seekg(my_start);
+        file_.seekg(my_start,ios::beg);
 
         if(my_id != 0) {
             file_.unget();
