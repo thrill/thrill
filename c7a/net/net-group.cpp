@@ -13,6 +13,7 @@
 
 #include <c7a/net/net-group.hpp>
 #include <c7a/net/select-dispatcher.hpp>
+#include <c7a/net/epoll-dispatcher.hpp>
 
 #include <deque>
 #include <string>
@@ -151,7 +152,7 @@ NetGroup::NetGroup(ClientId my_rank,
     // Perform select loop waiting for incoming connections and fulfilled
     // outgoing connections.
 
-    SelectDispatcher disp;
+    EPollDispatcher disp;
 
     // initiate connections to all hosts with higher id.
 

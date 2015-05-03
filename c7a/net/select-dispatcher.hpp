@@ -24,9 +24,9 @@ namespace c7a {
 //! \{
 
 /**
- * SelectSocket is a higher level wrapper for select(). One can register Socket
- * objects for readability and writability checks, buffered reads and writes
- * with completion callbacks, and also timer functions.
+ * SelectDispatcher is a higher level wrapper for select(). One can register
+ * Socket objects for readability and writability checks, buffered reads and
+ * writes with completion callbacks, and also timer functions.
  */
 class SelectDispatcher : protected Select
 {
