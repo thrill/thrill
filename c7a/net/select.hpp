@@ -99,13 +99,17 @@ public:
                         &read_set_, &write_set_, &except_set_, timeout);
     }
 
-    //! Do a select() with timeout in msec
-    int select(unsigned int msec)
+    //! Do a select() with timeout
+    int select_timeout(double timeout)
     {
-        struct timeval timeout;
-        timeout.tv_usec = (msec % 1000) * 1000;
-        timeout.tv_sec = msec / 1000;
-        return select(&timeout);
+        if (timeout == INFINITY)
+            return select(NULL);
+        else {
+            struct timeval tv;
+            tv.tv_sec = static_cast<long>(timeout);
+            tv.tv_usec = (timeout - tv.tv_sec) * 1e6;
+            return select(&tv);
+        }
     }
 
 protected:

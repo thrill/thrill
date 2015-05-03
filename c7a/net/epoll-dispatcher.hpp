@@ -64,7 +64,7 @@ public:
 
             if (w.read_cb)
                 throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + "already has read callback");
+                                   + " already has read callback");
 
             w.read_cb = read_cb;
             w.events |= EPOLLIN;
@@ -104,7 +104,7 @@ public:
 
             if (w.write_cb)
                 throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + "already has write callback");
+                                   + " already has write callback");
 
             w.write_cb = write_cb;
             w.events |= EPOLLOUT;
@@ -145,11 +145,11 @@ public:
 
             if (w.read_cb)
                 throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + "already has read callback");
+                                   + " already has read callback");
 
             if (w.write_cb)
                 throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + "already has write callback");
+                                   + " already has write callback");
 
             w.read_cb = write_cb;
             w.write_cb = write_cb;
@@ -178,12 +178,16 @@ public:
         }
     }
 
-    void Dispatch()
+    void Dispatch(double timeout)
     {
+        if (watch_.size() == 0)
+            LOG << "EPollDispatcher() called without any file descriptor to wait on";
+
         static const size_t max_events = 16;
         struct epoll_event events[max_events];
 
-        int nfds = epoll_wait(epollfd_, events, max_events, -1);
+        int tm_msec = (timeout == INFINITY ? -1 : timeout * 1e6);
+        int nfds = epoll_wait(epollfd_, events, max_events, tm_msec);
 
         if (nfds == -1)
             throw NetException("EPollDispatcher() error in epoll_wait()", errno);
@@ -201,24 +205,42 @@ public:
             if (ev.events & EPOLLIN)
             {
                 if (w.read_cb) {
-                    if (!w.read_cb(w.socket))
+                    // copy read callback, may be replace
+                    Callback cb = w.read_cb;
+                    w.read_cb = NULL;
+
+                    // execute callback -> true requeue/false dequeue
+                    if (!cb(w.socket))
                     {
-                        w.events &= ~EPOLLIN;
+                        if (!w.read_cb)
+                        {
+                            w.events &= ~EPOLLIN;
 
-                        if (w.events == 0) {
-                            if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
-                                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                   errno);
-                        }
-                        else {
-                            struct epoll_event evn;
-                            evn.events = w.events;
-                            evn.data.ptr = wm;
+                            if (w.events == 0) {
+                                if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
+                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
+                                                       errno);
 
-                            if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
-                                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                   errno);
+                                watch_.erase(fd);
+                                continue;
+                            }
+                            else {
+                                struct epoll_event evn;
+                                evn.events = w.events;
+                                evn.data.ptr = wm;
+
+                                if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
+                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
+                                                       errno);
+                            }
                         }
+                    }
+                    else
+                    {
+                        if (w.read_cb)
+                            throw NetException("EPollDispatcher() fd " + std::to_string(fd)
+                                               + " already has read callback");
+                        w.read_cb = cb;
                     }
                 }
                 else {
@@ -230,24 +252,42 @@ public:
             if (ev.events & EPOLLOUT)
             {
                 if (w.write_cb) {
-                    if (!w.write_cb(w.socket))
+                    // copy write callback, may be replace
+                    Callback cb = w.write_cb;
+                    w.write_cb = NULL;
+
+                    // execute callback -> true requeue/false skip
+                    if (!cb(w.socket))
                     {
-                        w.events &= ~EPOLLOUT;
+                        if (!w.write_cb)
+                        {
+                            w.events &= ~EPOLLOUT;
 
-                        if (w.events == 0) {
-                            if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
-                                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                   errno);
-                        }
-                        else {
-                            struct epoll_event evn;
-                            evn.events = w.events;
-                            evn.data.ptr = wm;
+                            if (w.events == 0) {
+                                if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
+                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
+                                                       errno);
 
-                            if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
-                                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                   errno);
+                                watch_.erase(fd);
+                                continue;
+                            }
+                            else {
+                                struct epoll_event evn;
+                                evn.events = w.events;
+                                evn.data.ptr = wm;
+
+                                if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
+                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
+                                                       errno);
+                            }
                         }
+                    }
+                    else
+                    {
+                        if (w.write_cb)
+                            throw NetException("EPollDispatcher() fd " + std::to_string(fd)
+                                               + " already has write callback");
+                        w.write_cb = cb;
                     }
                 }
                 else {
@@ -259,15 +299,47 @@ public:
             if (ev.events & EPOLLERR)
             {
                 if (w.except_cb) {
-                    if (!w.except_cb(w.socket)) {
-                        if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
-                            throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                               errno);
+                    // copy except callback, may be replace
+                    Callback cb = w.except_cb;
+                    w.except_cb = NULL;
+
+                    // execute callback -> true requeue/false skip
+                    if (!cb(w.socket))
+                    {
+                        if (!w.except_cb)
+                        {
+                            w.events &= ~EPOLLERR;
+
+                            if (w.events == 0) {
+                                if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
+                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
+                                                       errno);
+
+                                watch_.erase(fd);
+                                continue;
+                            }
+                            else {
+                                struct epoll_event evn;
+                                evn.events = w.events;
+                                evn.data.ptr = wm;
+
+                                if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
+                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
+                                                       errno);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (w.except_cb)
+                            throw NetException("EPollDispatcher() fd " + std::to_string(fd)
+                                               + " already has except callback");
+                        w.except_cb = cb;
                     }
                 }
                 else {
-                    LOG << "EPollDispatcher: got exception event for fd "
-                        << fd << " without a exception handler.";
+                    LOG << "EPollDispatcher: got except event for fd "
+                        << fd << " without a except handler.";
                 }
             }
         }
