@@ -24,9 +24,9 @@ namespace c7a {
 //! \{
 
 /**
- * SelectSocket is a higher level wrapper for select(). One can register Socket
- * objects for readability and writability checks, buffered reads and writes
- * with completion callbacks, and also timer functions.
+ * SelectDispatcher is a higher level wrapper for select(). One can register
+ * Socket objects for readability and writability checks, buffered reads and
+ * writes with completion callbacks, and also timer functions.
  */
 class SelectDispatcher : protected Select
 {
@@ -64,7 +64,7 @@ public:
                             read_cb, write_cb, ExceptionCallback);
     }
 
-    void Dispatch()
+    void Dispatch(double timeout)
     {
         // copy select fdset
         Select fdset = *this;
@@ -87,14 +87,12 @@ public:
             LOG << "Performing select() on " << oss.str();
         }
 
-        int r = fdset.select(10 * 1000);
+        int r = fdset.select_timeout(timeout);
 
         if (r < 0) {
             throw NetException("OpenConnections() select() failed!", errno);
         }
-        if (r == 0) {
-            throw NetException("OpenConnections() timeout in select().", errno);
-        }
+        if (r == 0) return;
 
         // save _current_ size, as it may change.
         size_t watch_size = watch_.size();
