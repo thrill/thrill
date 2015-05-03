@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <fstream>
 #include <iostream>
 #include "serializer.hpp"
 #include <sys/stat.h>
