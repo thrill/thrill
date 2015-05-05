@@ -73,14 +73,18 @@ public:
         return [& target](T elem){ target.push_back(Serialize(elem)); };
     }
 
-    InputLineIterator GetInputLineIterator(std::ifstream & file,size_t file_size) {
+    //!Returns an InputLineIterator with a given input file stream.
+    //!
+    //! \param file Input file stream
+    //!
+    //! \return An InputLineIterator for a given file stream
+    InputLineIterator GetInputLineIterator(std::ifstream & file) {
         
-        //TODO: get those
+        //TODO: get those from networks
         size_t my_id = 0;
-        size_t num_work = 2;
+        size_t num_work = 1;
 
-
-        return InputLineIterator(file,file_size,my_id,num_work);
+        return InputLineIterator(file,my_id,num_work);
     }
 
 private:
