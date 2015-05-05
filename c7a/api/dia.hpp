@@ -29,7 +29,7 @@
 namespace c7a {
 
 //! \addtogroup api Interface
-//! {
+//! \{
 
 /*!
  * DIA is the interface between the user and the c7a framework. A DIA can be
@@ -218,7 +218,7 @@ private:
     Stack local_stack_;
 };
 
-//! }
+//! \}
 
 
 template <typename read_fn_t>
