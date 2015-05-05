@@ -9,7 +9,6 @@
 #include <fstream>
 #include <iostream>
 #include "serializer.hpp"
-#include <sys/stat.h>
 
 namespace c7a {
 namespace data {
@@ -18,20 +17,25 @@ namespace data {
 class InputLineIterator
 {
 public:
-    //! Creates an instance of iterator that deserializes blobs to T
+    //! Creates an instance of iterator that reads file line based
     InputLineIterator(std::ifstream & file,
-                          size_t file_size,
                           size_t my_id, 
                           size_t num_workers)
         : file_(file),
-          file_size_(file_size), 
           my_id_(my_id),
           num_workers_(num_workers) {
         
+
+        //Find file size and save it
+        file_.seekg(0,std::ios::end);
+        file_size_ = file_.tellg();
+
+        //Go to start of 'local part'.
         size_t per_worker = file_size_ / num_workers_;
         size_t my_start = per_worker * my_id_;
         file_.seekg(my_start,std::ios::beg);
 
+        //Go to next new line if the stream-pointer is not at the beginning of a line
         if(my_id != 0) {
             file_.unget();
             if (file_.get() != '\n') {
@@ -52,7 +56,7 @@ public:
         return line;
     }
 
-    //! returns true an element is available
+    //! returns true, if an element is available in local part
     inline bool HasNext() {
         size_t per_worker = file_size_ / num_workers_;
         size_t my_end = per_worker * (my_id_ + 1) - 1;
@@ -61,9 +65,13 @@ public:
      }
 
 private:
+    //!Input file stream 
     std::ifstream & file_;
+    //!File size in bytes
     size_t file_size_;
+    //!Worker ID
     size_t my_id_;
+    //!Total number of workers
     size_t num_workers_;
 };
 
