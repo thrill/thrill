@@ -11,16 +11,15 @@
 #include "context.hpp"
 
 namespace c7a {
-
 template <typename T>
-class DOpNode : public DIANode<T> {
+class DOpNode : public DIANode<T>
+{
 public:
-    DOpNode(Context & ctx, 
+    DOpNode(Context& ctx,
             const std::vector<DIABase*>& parents)
-        : DIANode<T>(ctx, parents) {}
-    virtual ~DOpNode() {}
+        : DIANode<T>(ctx, parents) { }
+    virtual ~DOpNode() { }
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_DOP_NODE_HEADER

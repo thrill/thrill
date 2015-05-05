@@ -15,21 +15,20 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
-class Context {
+class Context
+{
 public:
-    Context() {};
-    virtual ~Context() { }   
+    Context() { }
+    virtual ~Context() { }
 
-    data::DataManager & get_data_manager() {
+    data::DataManager & get_data_manager()
+    {
         return data_manager_;
     }
 
-  
 private:
     data::DataManager data_manager_;
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
