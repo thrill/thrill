@@ -15,7 +15,7 @@
 namespace c7a {
 
 //! \addtogroup api Interface
-//! {
+//! \{
 
 /*!
  * A DIANode which performs a Read operation. Read reads a file from the file system and
@@ -100,7 +100,7 @@ private:
 
 } // namespace c7a
 
-//! }
+//! \}
 
 #endif // !C7A_API_READ_NODE_HEADER
 

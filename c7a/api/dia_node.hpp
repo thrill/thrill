@@ -16,7 +16,7 @@
 namespace c7a {
 
 //! \addtogroup api Interface
-//! {
+//! \{
 
 /*!
  * Possible states a DIANode can be in.  
@@ -92,7 +92,7 @@ protected:
 
 } // namespace c7a
 
-//! }
+//! \}
 
 #endif // !C7A_API_DIA_NODE_HEADER
 
