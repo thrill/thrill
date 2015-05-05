@@ -22,12 +22,18 @@
 #include "lop_node.hpp"
 #include "reduce_node.hpp"
 
+
+namespace c7a {
+
+//! \addtogroup api Interface
+//! {
+
 /*!
  * DIA is the interface between the user and the c7a framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be 
- * materialized at all. A DIA contains a pointer to a DIANode of type @tparam T,
+ * materialized at all. A DIA contains a pointer to a DIANode of type T,
  * which represents the state after the previous DOp or Action. Additionally, a DIA 
- * stores the local lambda function of type @tparam L, which can transform 
+ * stores the local lambda function of type L, which can transform 
  * elements of the DIANode to elements of this DIA. DOps/Actions create a DIA
  * and a new DIANode, to which the DIA links to. LOps only create a new DIA, which
  * link to the previous DIANode. The types T and L are inferred from the 
@@ -37,9 +43,6 @@
  * \tparam L Type of the lambda function to transform elements from the previous
  *  DIANode to elements of this DIA.
  */
-
-namespace c7a {
-
 template <typename T, typename Stack>
 class DIA {
 friend class Context;
@@ -74,11 +77,11 @@ public:
     }
 
     /*!
-     * Map is a LOp, which maps this DIA according to the @param map_fn given by the user. 
-     * The map_fn maps each element of type L::result to one other element of a possibly different
+     * Map is a LOp, which maps this DIA according to the map_fn given by the user. 
+     * The map_fn maps each element of L's result type to one other element of a possibly different
      * type. The DIA returned by Map has the same type T. The lambda function of the returned DIA
      * is this DIA's local_lambda chained with map_fn. Therefore the type L of the returned DIA 
-     * is a lambda function from T to map_fn::result. 
+     * is a lambda function from T to the result type of map_fn. 
      *
      * \tparam map_fn_t Type of the map function. The type of the returned DIA is deducted from this type.
      *
@@ -101,12 +104,12 @@ public:
     }
 
     /*!
-     * FlatMap is a LOp, which maps this DIA according to the function @param flatmap_fn given by the user. 
-     * The flatmap_fn maps each element of type L::result to elements of a possibly different
+     * FlatMap is a LOp, which maps this DIA according to the flatmap_fn given by the user. 
+     * The flatmap_fn maps each element of type L's result to elements of a possibly different
      * type. The flatmap_fn has an emitter function as it's second parameter. This emitter is called
      * once for each element to be emitted. The DIA returned by FlatMap has the same type T. The
      * lambda function of the returned DIA is this DIA's local_lambda chained with flatmap_fn.
-     * Therefore the type L of the returned DIA is a lambda function from T to map_fn::result. 
+     * Therefore the type L of the returned DIA is a lambda function from T to the result type of flatmap_fn. 
      *
      * \tparam flatmap_fn_t Type of the map function. The type of the returned DIA is deducted from this type
      *
@@ -120,18 +123,18 @@ public:
     }
 
     /*!
-     * Reduce is a DOp, which groups elements of the DIA with the @param key_extractor and reduces each
-     * key-bucket to a single element using the associative @param reduce_function. The reduce_function
-     * defines, how two elements can be reduced to a single element of equal type. As Reduce is a DOp,
-     * it creates a new DIANode with type L::result. The DIA returned by Reduce links to this newly
+     * Reduce is a DOp, which groups elements of the DIA with the key_extractor and reduces each
+     * key-bucket to a single element using the associative reduce_function. The reduce_function
+     * defines how two elements can be reduced to a single element of equal type. As Reduce is a DOp,
+     * it creates a new DIANode with the type of L's result. The DIA returned by Reduce links to this newly
      * created DIANode. The local_lambda of the returned DIA consists of the reduce_function, as a reduced
      * element can directly be chained to the following LOps.
      *
-     * \tparam key_extr_fn_t Type of the key_extractor function. This is a function from L::result to a
+     * \tparam key_extr_fn_t Type of the key_extractor function. This is a function from L's result type to a
      * possibly different key type. The key_extractor function is equal to a map function.
      *
-     * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of type
-     * L::result to a single element of equal type.
+     * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type 
+     * to a single element of equal type.
      *
      * \param key_extractor Key extractor function, which maps each element to a key of possibly different type.
      *
@@ -207,8 +210,11 @@ public:
 private:
     //! The DIANode which DIA points to. The node represents the latest DOp or Action performed previously.
     DIANode<T>* node_;
+    //! The local function stack, which stores the chained lambda function from the last DIANode to this DIA.
     Stack local_stack_;
 };
+
+//! }
 
 } // namespace c7a
 

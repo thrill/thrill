@@ -13,6 +13,7 @@
 #include <iostream>
 #include "mock-network.hpp"
 #include <thread>
+#include <function>
 #include <mutex>
 #include <c7a/data/serializer.hpp>
 #include <c7a/common/logger.hpp>
@@ -24,7 +25,11 @@ namespace engine {
 class Worker
 {
 
+// logging mode
 static const bool debug = true;
+
+// max size per hashtable
+static const int maxMapSize = 10;
 
 public:
 
@@ -32,107 +37,35 @@ public:
             _id(id), _numOtherWorkers(num_other_workers), _mockSelect(net, id) {
     }
 
-    void print() {
-        LOG << "worker "
-            << _id;
+    template<typename K, typename V>
+    void reduce(std::pair<K, V> w, std::function<V (V, V)> f_reduce) {
+
+        // insert word into hash table
+        ht.insert(w, f_reduce);
+        //print(ht._hash_m);
+        //LOG << "===";
+
+        // if size of map is greater than some threshold
+        // do some partial flush
+        if (ht._hash_m.size() > maxMapSize) {
+            partialFlush<std::string, int>(f_reduce);
+        }
     }
 
     template<typename K, typename V>
-    void reduce(const std::vector<K> &w) {
-
-        // declare reduce function
-        std::function<V (V, V)> f_reduce = [] (const V val1, const V val2) ->V { return val1 + val2; };
-
-        std::vector<K> words = w;
-        std::map<K, V> dataGlobalReduce;
-        std::map<K, V> dataLocalReduce;
-
-        // create key/value pairs from words
-        // actually, will get them from map operation,
-        // just simulate here
-        std::vector<std::pair<K, V>> wordPairs;
-
-        for (auto word : words)
-            wordPairs.push_back(std::make_pair(word, 1));
-
-        //////////
-        // pre operation
-        //////////
-
-        // iterate over K,V pairs and reduce
-        for (auto it = wordPairs.begin(); it != wordPairs.end(); it++) {
-            // get the pair
-            std::pair<K, V> pairToBeReduced = *it;
-
-            // reduce pair
-            ht.insert(pairToBeReduced, f_reduce);
-
-            // TODO remove, just tmp, being replaced by custom hash table
-            localReduce<K, V>(dataLocalReduce, pairToBeReduced, f_reduce);
+    void flush(std::function<V (V, V)> f_reduce) {
+        //LOG << "flush";
+        //print(ht._hash_m);
+        while (ht._hash_m.size() != 0) {
+            partialFlush<K, V>(f_reduce);
         }
+    }
 
-        ht.print();
-
-        //////////
-        // main operation
-        //////////
-
-        // send data to other workers
-        for(auto it = dataGlobalReduce.begin(); it != dataGlobalReduce.end(); it++) {
-            std::pair<K, V> p = *it;
-
-            // compute hash value from key representing id of target worker
-            int targetWorker = hash(p.first, _numOtherWorkers);
-
-            LOG << "word: "
-                << p.first
-                << " target worker: "
-                << std::to_string(targetWorker);
-
-            // if target worker equals _id,
-            // keep data on the same worker
-            if (targetWorker == _id) {
-
-                // add data to be reduced
-                dataLocalReduce.insert(p);
-
-                LOG << "payload: "
-                    << "word: "
-                    << std::string(p.first)
-                    << " count: "
-                    << std::to_string(p.second)
-                    << " stays on worker_id: "
-                    << std::to_string(targetWorker);
-
-            // data to be send to another worker
-            } else {
-
-                LOG << "send payload : "
-                    << "word: "
-                    << std::string(p.first)
-                    << " count: "
-                    << std::to_string(p.second)
-                    << " to worker_id: "
-                    << std::to_string(targetWorker);
-
-                // serialize payload
-                auto payloadSer = c7a::data::Serialize<std::pair<K, V>>(p);
-
-                // send payload to target worker
-                _mockSelect.sendToWorkerString(targetWorker, payloadSer);
-            }
-        }
-
-        // inform all workers about no more data is send
-        /*auto payloadSer = Serialize<std::pair<K, V>>(p);
-        for (int n=0; n<_numOtherWorkers; n++) {
-            if (n != _id)
-                _mockSelect.sendToWorkerString(n, payloadSer);
-        }*/
-
-        //////////
-        // post operation
-        //////////
+    //////////
+    // post operation
+    //////////
+    template<typename K, typename V>
+    void receive(std::function<V (V, V)> f_reduce) {
 
         size_t out_sender;
         std::string out_data;
@@ -154,13 +87,11 @@ public:
                 << "(" << pairToBeReduced.first << "," << pairToBeReduced.second << ")";
 
             // local reduce
-            localReduce<K, V>(dataLocalReduce, pairToBeReduced, f_reduce);
+            localReduce(dataLocalReduce, pairToBeReduced, f_reduce);
 
             //TODO: implement some stop criterion
             received++;
         }
-
-        print(dataLocalReduce);
     }
 
 private:
@@ -170,35 +101,106 @@ private:
     // The worker needs to know the ids of all other workers
     size_t _numOtherWorkers;
 
+    // keep the mock select
+    MockSelect _mockSelect;
+
+    std::map<std::string, int> dataLocalReduce;
+
+    // hash table
+    HashTable<std::string, int> ht;
+
+    // flushes data of a certain node
     template<typename K, typename V>
-    void print(std::map<K, V> map) {
+    void partialFlush(std::function<V (V, V)> f_reduce) {
+        //LOG << "partialFlush";
+        if (ht._hash_m.size() == 0)
+            return;
+        int bucketCount = 0;
+        int bIdx;
+        for (int i=0;i<ht._hash_m.bucket_count()-1;++i) {
+            bucketCount = ht._hash_m.bucket_size(i);
+            if (bucketCount>0) {
+                bIdx = i;
+            }
+        }
+
+        /*while (bucketCount == 0) {
+            // TODO eventually replace with Mersenne-Twister
+            bIdx = 0 + (rand() % (int)((ht._hash_m.bucket_count()-1)-0+1));
+            //LOG << "random bucket "
+            //<< bIdx;
+            bucketCount = ht._hash_m.bucket_size(bIdx);
+            //LOG << "bucketCount "
+            //<< bucketCount;
+        }*/
+
+        // retrieve all elements from bucket
+        int tw = bIdx % _numOtherWorkers;
+        //LOG << "target worker "
+        //<< tw;
+
+        // get all elements from that bucket
+        for (auto it = ht._hash_m.begin(bIdx); it != ht._hash_m.end(bIdx); ++it) {
+            std::pair<K, V> pairToBeReduced = *it;
+
+            //LOG << "processing from bucket "
+            //<< "(" << pairToBeReduced.first << ", " << pairToBeReduced.second << ")";
+
+            // erase elem
+            auto it2 = ht._hash_m.erase(pairToBeReduced.first);
+            // check if elem successfully removed
+            /*if (it2 == ht._hash_m.end()) {
+                LOG << "something went wrong internally";
+                continue;
+            }*/
+
+            // check if bIdx is mapped to current worker
+            // them immediately local reduce
+            if (tw == _id) {
+
+                /*LOG << "worker_id: "
+                << std::to_string(_id)
+                << " send to worker_id: "
+                << std::to_string(tw)
+                << " data: "
+                << "(" << pairToBeReduced.first << ", " << pairToBeReduced.second << ")";*/
+
+                localReduce(dataLocalReduce, pairToBeReduced, f_reduce);
+
+            // otherwise send to target worker
+            } else {
+
+                /*LOG << "worker_id: "
+                << std::to_string(_id)
+                << " send to worker_id: "
+                << std::to_string(tw)
+                << " data: "
+                << "(" << pairToBeReduced.first << ", " << pairToBeReduced.second << ")";*/
+
+                // serialize payload
+                auto payloadSer = c7a::data::Serialize<std::pair<K, V>>(pairToBeReduced);
+
+                // send payload to target worker
+                _mockSelect.sendToWorkerString(tw, payloadSer);
+            }
+        }
+    }
+
+    template<typename K, typename V>
+    void print(std::unordered_map<K, V> map) {
+        std::cout << "mymap's buckets contain:\n";
+        for ( unsigned i = 0; i < map.bucket_count(); ++i) {
+            std::cout << "bucket #" << i << " contains:";
+            for ( auto local_it = map.begin(i); local_it!= map.end(i); ++local_it )
+                std::cout << " " << local_it->first << ":" << local_it->second;
+            std::cout << std::endl;
+        }
         for(auto it = map.cbegin(); it != map.cend(); ++it) {
             LOG << "worker_id: "
                 << _id
                 << " data: "
                 << "(" << it->first << "," << it->second << ")";
         }
-    }
-
-    // keep the mock select
-    MockSelect _mockSelect;
-
-    HashTable<std::string, int> ht;
-
-    // @brief hash some input string
-    // @param size if interval
-    int hash(const std::string key, size_t size) {
-        int hashVal = 0;
-
-        for(int i = 0; i<key.length();  i++)
-            hashVal = 37*hashVal+key[i];
-
-        hashVal %= size;
-
-        if(hashVal<0)
-            hashVal += size;
-
-        return hashVal;
     }
 
     template<typename K, typename V>
@@ -217,6 +219,22 @@ private:
             dataReduced.insert(pairToBeReduced);
         }
     }
+
+    // @brief hash some input string
+    // @param size if interval
+    /*int hash(const std::string key, size_t size) {
+        int hashVal = 0;
+
+        for(int i = 0; i<key.length();  i++)
+            hashVal = 37*hashVal+key[i];
+
+        hashVal %= size;
+
+        if(hashVal<0)
+            hashVal += size;
+
+        return hashVal;
+    }*/
 };
 
 }
