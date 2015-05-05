@@ -12,8 +12,6 @@
 #include "function_stack.hpp"
 #include <string>
 
-#include <sys/stat.h>
-
 namespace c7a {
 
 //! \addtogroup api Interface
@@ -56,14 +54,8 @@ public:
 
         std::ifstream file(path_in_);
         assert(file.good());
-        
-        struct stat statbuf;
-
-        if (stat(path_in_.c_str(), &statbuf) == -1) {
-            assert(false);
-        }
-  
-        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file, statbuf.st_size);
+              
+        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file);
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
         std::string line;
