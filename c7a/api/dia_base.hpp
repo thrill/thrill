@@ -10,9 +10,7 @@
 #include "context.hpp"
 #include "../data/data_manager.hpp"
 
-
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -26,24 +24,25 @@ namespace c7a {
  * Additionally, a DIABase has a reference to the DataManager, which can give
  * iterators to actual data.
  */
-class DIABase {
+class DIABase
+{
 public:
-
     typedef std::vector<DIABase*> DIABaseVector;
 
     /*!
      * The constructor for a DIABase. Sets the DataManager and the
-     * associated DIAId. 
+     * associated DIAId.
      *
-     * Sets the parents for this node and adds this node as a child for 
+     * Sets the parents for this node and adds this node as a child for
      * each parent.
      *
      * \param data_manager Reference to DataManager, which gives iterators to data
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
-    DIABase(Context & ctx, const DIABaseVector& parents)
-        : context_(ctx), parents_(parents) {
+    DIABase(Context& ctx, const DIABaseVector& parents)
+        : context_(ctx), parents_(parents)
+    {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -51,7 +50,7 @@ public:
     }
 
     //!Virtual destructor for a DIABase.
-    virtual ~DIABase() {}
+    virtual ~DIABase() { }
 
     //!Virtual execution method. Triggers actual computation in sub-classes.
     virtual void execute() = 0;
@@ -61,37 +60,42 @@ public:
 
     //! Returns the childs of this DIABase.
     //! \return A vector of all childs
-    const DIABaseVector& get_childs() {
+    const DIABaseVector & get_childs()
+    {
         return childs_;
     }
 
     //! Returns the parents of this DIABase.
     //! \return A vector of all parents
-    const DIABaseVector & get_parents() {
+    const DIABaseVector & get_parents()
+    {
         return parents_;
     }
 
     //! Returns the DataManager of this DIABase.
     //! \return The DataManager of this DIABase.
-    Context & get_data_manager() {
+    Context & get_data_manager()
+    {
         return context_;
     }
 
     //! Adds a child to the vector of childs. This method is called in the constructor.
     //! \param child The child to add.
-    void add_child(DIABase* child) {
+    void add_child(DIABase* child)
+    {
         childs_.push_back(child);
     }
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId get_data_id() {
+    data::DIAId get_data_id()
+    {
         return data_id_;
     }
 
 protected:
     //! DataManager, which can give iterators to data.
-    Context & context_;
+    Context& context_;
     //! Unique ID of this DIABase. Used by the DataManager.
     data::DIAId data_id_;
     //! Childs and parents of this DIABase.
@@ -99,7 +103,6 @@ protected:
 };
 
 //! \}
-
 } // namespace c7a
 
 /******************************************************************************/

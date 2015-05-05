@@ -17,12 +17,11 @@
 
 namespace c7a {
 namespace data {
-
 //! Identification for DIAs
 typedef int DIAId;
 
 //! function Signature for an emitt function
-template<typename T>
+template <typename T>
 using BlockEmitter = std::function<void(T)>;
 
 //! Stores in-memory data
@@ -31,17 +30,17 @@ using BlockEmitter = std::function<void(T)>;
 class DataManager
 {
 public:
-
     DataManager() : nextId_(0) { }
 
     DataManager(const DataManager&) = delete;
-    DataManager & operator=(const DataManager&) = delete;
+    DataManager& operator = (const DataManager&) = delete;
 
     //! returns iterator on requested partition
     //!
     //! \param id ID of the DIA
-    template<class T>
-    BlockIterator<T> GetLocalBlocks(DIAId id) {
+    template <class T>
+    BlockIterator<T> GetLocalBlocks(DIAId id)
+    {
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -51,26 +50,29 @@ public:
     //! returns true if the manager holds data of given DIA
     //!
     //! \param id ID of the DIA
-    bool Contains(DIAId id) {
+    bool Contains(DIAId id)
+    {
         //return data_.find(id) != data_.end();
         return data_.size() > id && id >= 0;
     }
 
-    DIAId AllocateDIA() {
+    DIAId AllocateDIA()
+    {
         SpacingLogger(true) << "Allocate DIA" << data_.size() - 1;
         //data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
-        data_.push_back( std::vector<Blob>() );
+        data_.push_back(std::vector<Blob>());
         return data_.size() - 1;
         //return nextId_++;
     }
 
-    template<class T>
-    BlockEmitter<T> GetLocalEmitter(DIAId id) {
+    template <class T>
+    BlockEmitter<T> GetLocalEmitter(DIAId id)
+    {
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
         auto& target = data_[id]; //yes. const ref to an unique_ptr
-        return [& target](T elem){ target.push_back(Serialize(elem)); };
+        return [&target](T elem) { target.push_back(Serialize(elem)); };
     }
 
     //!Returns an InputLineIterator with a given input file stream.
@@ -78,13 +80,13 @@ public:
     //! \param file Input file stream
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream & file) {
-        
+    InputLineIterator GetInputLineIterator(std::ifstream& file)
+    {
         //TODO: get those from networks
         size_t my_id = 0;
         size_t num_work = 1;
 
-        return InputLineIterator(file,my_id,num_work);
+        return InputLineIterator(file, my_id, num_work);
     }
 
 private:
@@ -93,9 +95,8 @@ private:
     //YES I COULD just use a map of (int, vector) BUT then I have a weird
     //behaviour of std::map on inserts. Sometimes it randomly kills itself.
     //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
-    std::vector<std::vector<Blob>> data_;
+    std::vector<std::vector<Blob> > data_;
 };
-
 }
 }
 
