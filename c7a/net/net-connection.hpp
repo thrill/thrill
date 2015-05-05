@@ -27,22 +27,8 @@
 #include <thread>
 
 namespace c7a {
-
 //! \addtogroup net Network Communication
 //! \{
-
-class NetException : public std::runtime_error
-{
-public:
-    explicit NetException(const std::string& what)
-        : std::runtime_error(what)
-    { }
-
-    NetException(const std::string& what, int _errno)
-        : std::runtime_error(what + ": " + strerror(_errno))
-    { }
-};
->>>>>>> master
 
 // Because Mac OSX does not know MSG_MORE.
 #ifndef MSG_MORE
@@ -168,7 +154,6 @@ public:
         shutdown();
     }
 };
-
 } // namespace c7a
 // \}
 
