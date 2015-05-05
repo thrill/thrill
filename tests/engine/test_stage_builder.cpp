@@ -37,6 +37,7 @@ TEST(Stage, GetStagesFromBuilder) {
     // auto duplicates3 = red_duplicates.Map(map_fn);
     auto red_duplicates2 = doubles2.Reduce(key_ex, red_fn);
 
+    //SIMULATE 
 
     std::vector<Stage> result;
     FindStages(red_duplicates2.get_node(), result);

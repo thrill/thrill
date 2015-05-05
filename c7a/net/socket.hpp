@@ -17,14 +17,20 @@
 #include <c7a/common/string.hpp>
 #include <c7a/net/socket-address.hpp>
 
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <cerrno>
 #include <cstring>
 #include <cassert>
-
-#include <sys/socket.h>
-#include <fcntl.h>
+#include <utility>
 
 namespace c7a {
+
+//! \addtogroup netsock Low Level Socket API
+//! \ingroup net
+//! \{
 
 /*!
  * Socket is a light-weight wrapper around the BSD socket API. Functions all
@@ -91,6 +97,15 @@ public:
     virtual int GetFileDescriptor() const
     { return fd_; }
 
+    //! Query socket for its current error state.
+    int GetError() const
+    {
+        int socket_error;
+        socklen_t len = sizeof(socket_error);
+        getsockopt(SOL_SOCKET, SO_ERROR, &socket_error, &len);
+        return socket_error;
+    }
+
     //! Turn socket into non-blocking state.
     //! \return old blocking value (0 or 1) or -1 for error
     int SetNonBlocking(bool non_blocking)
@@ -115,16 +130,67 @@ public:
         return old_opts;
     }
 
+    //! Return the current local socket address.
+    SocketAddress GetLocalAddress()
+    {
+        struct sockaddr_in6 sa;
+        socklen_t salen = sizeof(sa);
+
+        if (getsockname(
+                fd_, reinterpret_cast<struct sockaddr*>(&sa), &salen) != 0)
+        {
+            LOG << "Socket::GetLocalAddress()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return SocketAddress();
+        }
+
+        return SocketAddress(reinterpret_cast<struct sockaddr*>(&sa), salen);
+    }
+
+    //! Return the current peer socket address.
+    SocketAddress GetPeerAddress()
+    {
+        struct sockaddr_in6 sa;
+        socklen_t salen = sizeof(sa);
+
+        if (getpeername(
+                fd_, reinterpret_cast<struct sockaddr*>(&sa), &salen) != 0)
+        {
+            LOG << "Socket::GetPeerAddress()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return SocketAddress();
+        }
+
+        return SocketAddress(reinterpret_cast<struct sockaddr*>(&sa), salen);
+    }
+
     //! \}
 
     //! \name Close
     //! \{
 
+    //! Close socket.
+    bool close()
+    {
+        if (::close(fd_) != 0)
+        {
+            LOG << "Socket::close()"
+                << " fd_=" << fd_
+                << " error=" << strerror(errno);
+            return false;
+        }
+
+        return true;
+    }
+
+    //! Shutdown one or both directions of socket.
     bool shutdown(int how = SHUT_RDWR)
     {
         if (::shutdown(fd_, how) != 0)
         {
-            LOG << "Socket::close()"
+            LOG << "Socket::shutdown()"
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
             return false;
@@ -141,38 +207,40 @@ public:
     //! Bind socket to given SocketAddress for listening or connecting.
     bool bind(const SocketAddress& sa)
     {
-        if (::bind(fd_, sa.sockaddr(), sa.get_socklen()) != 0)
-        {
+        int r = ::bind(fd_, sa.sockaddr(), sa.socklen());
+
+        if (r != 0) {
             LOG << "Socket::bind()"
                 << " fd_=" << fd_
                 << " sa=" << sa
+                << " return=" << r
                 << " error=" << strerror(errno);
-            return false;
         }
 
-        return true;
+        return r;
     }
 
     //! Initial socket connection to address
-    bool connect(const SocketAddress& sa)
+    int connect(const SocketAddress& sa)
     {
-        int r = ::connect(fd_, sa.sockaddr(), sa.get_socklen());
+        int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
 
         if (r == 0) {
             is_connected_ = true;
-            return true;
+            return r;
         }
 
         LOG << "Socket::connect()"
             << " fd_=" << fd_
             << " sa=" << sa
+            << " return=" << r
             << " error=" << strerror(errno);
 
-        return false;
+        return r;
     }
 
     //! Turn socket into listener state to accept incoming connections.
-    int listen(int backlog = 0)
+    bool listen(int backlog = 0)
     {
         if (backlog == 0) backlog = SOMAXCONN;
 
@@ -186,7 +254,7 @@ public:
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
         }
-        return (r == 0);
+        return r;
     }
 
     //! Wait on socket until a new connection comes in.
@@ -254,7 +322,7 @@ public:
         {
             ssize_t r = ::send(fd_, cdata + wb, size - wb, flags);
 
-            if (r < 0) {
+            if (r <= 0) {
                 // an error occured, check errno.
 
                 LOG << "done Socket::send()"
@@ -308,7 +376,7 @@ public:
         {
             ssize_t r = ::recv(fd_, cdata + rb, size - rb, flags);
 
-            if (r < 0) {
+            if (r <= 0) {
                 // an error occured, check errno.
 
                 LOG << "done Socket::recv()"
@@ -333,8 +401,44 @@ public:
 
     //! \}
 
-    //! \name Accelerations
+    //! \name Socket Options and Accelerations
     //! \{
+
+    //! Perform raw getsockopt() operation on socket.
+    int getsockopt(int level, int optname,
+                   void* optval, socklen_t* optlen) const
+    {
+        int r = ::getsockopt(fd_, level, optname, optval, optlen);
+
+        if (r != 0)
+            LOG << "Socket::getsockopt()"
+                << " fd_=" << fd_
+                << " level=" << level
+                << " optname=" << optname
+                << " optval=" << optval
+                << " optlen=" << optlen
+                << " error=" << strerror(errno);
+
+        return r;
+    }
+
+    //! Perform raw setsockopt() operation on socket.
+    int setsockopt(int level, int optname,
+                   const void* optval, socklen_t optlen)
+    {
+        int r = ::setsockopt(fd_, level, optname, optval, optlen);
+
+        if (r != 0)
+            LOG << "Socket::setsockopt()"
+                << " fd_=" << fd_
+                << " level=" << level
+                << " optname=" << optname
+                << " optval=" << optval
+                << " optlen=" << optlen
+                << " error=" << strerror(errno);
+
+        return r;
+    }
 
     //! Enable sending of keep-alive messages on connection-oriented sockets.
     void SetKeepAlive(bool activate = true);
@@ -362,6 +466,8 @@ protected:
     //! flag whether the socket is set to non-blocking mode
     bool non_blocking_ = false;
 };
+
+// \}
 
 } // namespace c7a
 

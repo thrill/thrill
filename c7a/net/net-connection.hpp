@@ -13,23 +13,36 @@
 #ifndef C7A_NET_NET_CONNECTION_HEADER
 #define C7A_NET_NET_CONNECTION_HEADER
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <netdb.h>
-#include <string>
-#include <cstring>
-#include <thread>
-#include <assert.h>
-#include <cstdio>
+#include <c7a/net/socket.hpp>
+
+#include <cassert>
 #include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <stdexcept>
 
 #include <c7a/net/socket.hpp>
 #include <c7a/net/net-exception.hpp>
+#include <string>
+#include <thread>
 
 namespace c7a {
 
+//! \addtogroup net Network Communication
+//! \{
+
+class NetException : public std::runtime_error
+{
+public:
+    explicit NetException(const std::string& what)
+        : std::runtime_error(what)
+    { }
+
+    NetException(const std::string& what, int _errno)
+        : std::runtime_error(what + ": " + strerror(_errno))
+    { }
+};
+>>>>>>> master
 
 // Because Mac OSX does not know MSG_MORE.
 #ifndef MSG_MORE
@@ -47,13 +60,13 @@ namespace c7a {
  */
 class NetConnection : protected Socket
 {
-public:
     static const bool debug = true;
 
     static const bool self_verify_ = true;
 
+public:
     //! Construct NetConnection from a Socket
-    NetConnection(const Socket& s = Socket())
+    explicit NetConnection(const Socket& s = Socket())
         : Socket(s)
     { }
 
@@ -72,6 +85,9 @@ public:
     template <typename T>
     void Send(const T& value)
     {
+        static_assert(std::is_integral<T>::value,
+                      "You only want to send integral types as raw values.");
+
         if (self_verify_) {
             // for communication verification, send sizeof.
             size_t len = sizeof(value);
@@ -108,6 +124,9 @@ public:
     template <typename T>
     void Receive(T* out_value)
     {
+        static_assert(std::is_integral<T>::value,
+                      "You only want to receive integral types as raw values.");
+
         if (self_verify_) {
             // for communication verification, receive sizeof.
             size_t len = 0;
@@ -143,37 +162,6 @@ public:
 
     //! \}
 
-    void Connect(const std::string& address)
-    {
-        assert(fd_ == -1);
-
-        SocketAddress sa(address);
-
-        // if (inet_addr(address_.c_str()) == INADDR_NONE) {
-        //     struct in_addr** addressList;
-        //     struct hostent* resolved;
-
-        //     if ((resolved = gethostbyname(address_.c_str())) == NULL) {
-        //         return NET_CLIENT_NAME_RESOLVE_FAILED; //Host resolve failed.
-        //     }
-
-        //     addressList = (struct in_addr**)resolved->h_addr_list;
-        //     serverAddress_.sin_addr = *addressList[0];
-        // }
-        // else {
-        //     serverAddress_.sin_addr.s_addr = inet_addr(address_.c_str());
-        // }
-
-        // serverAddress_.sin_family = AF_INET;
-        // serverAddress_.sin_port = htons(port);
-
-        if (!connect(sa)) {
-            shutdown();
-            fd_ = -1;
-            throw NetException("Error during Connect(" + address + ")", errno);
-        }
-    }
-
     //! Close this NetConnection
     void Close()
     {
@@ -182,6 +170,7 @@ public:
 };
 
 } // namespace c7a
+// \}
 
 #endif // !C7A_NET_NET_CONNECTION_HEADER
 
