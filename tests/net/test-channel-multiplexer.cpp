@@ -11,25 +11,29 @@
 #include "gmock/gmock.h"
 #include <c7a/net/channel-multiplexer.hpp>
 
-using ::testing::_;
-using ::testing::Return;
+using::testing::_;
+using::testing::SetArgPointee;
+using::testing::Return;
+using::testing::DoAll;
 
 using namespace c7a::net;
 using namespace c7a;
 
 struct MockSocket : public Socket {
-    MOCK_METHOD0(GetFileDescriptor, void());
+    MOCK_METHOD0(GetFileDescriptor, int());
     MOCK_METHOD3(recv_one, ssize_t(void*, size_t, int));
     MOCK_METHOD3(recv, ssize_t(void*, size_t, int));
 };
 
-struct ChannelMultiplexerTest : public ::testing::Test {
-    MockSocket socket;
-    ChannelMultiplexer candidate;
+struct ChannelMultiplexerTest : public::testing::Test {
+    MockSocket                     socket;
+    ChannelMultiplexer<MockSocket> candidate;
 };
 
-TEST_F(ChannelMultiplexerTest, ReadsHeaderIfSocketIsFresh) {
-    EXPECT_CALL(socket, recv_one(_, sizeof(BlockHeader), _)).WillOnce(Return(1));
-    candidate.Consume(socket);
+ACTION_P(SetBufferTo, value) {
+    *static_cast<int*>(arg0) = value;
 }
 
+TEST_F(ChannelMultiplexerTest, ReadsHeaderIfSocketIsFresh) {
+    //candidate.Consume(socket);
+}
