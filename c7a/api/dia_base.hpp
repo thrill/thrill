@@ -14,7 +14,7 @@
 namespace c7a {
 
 //! \addtogroup api Interface
-//! {
+//! \{
 
 /*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build
@@ -98,7 +98,7 @@ protected:
     DIABaseVector childs_, parents_;
 };
 
-//! }
+//! \}
 
 } // namespace c7a
 
