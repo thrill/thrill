@@ -15,11 +15,11 @@
 
 #include <c7a/net/socket.hpp>
 #include <c7a/net/select.hpp>
+#include <c7a/net/net-exception.hpp>
 
 #include <deque>
 
 namespace c7a {
-
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -214,7 +214,6 @@ private:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_NET_SELECT_DISPATCHER_HEADER
