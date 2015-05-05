@@ -39,7 +39,7 @@ namespace serializers {
             return std::stoi(x);
         }
     };
-    
+
     //! serializer for double
     template<>
         struct Impl<double> {
@@ -59,8 +59,7 @@ namespace serializers {
             std::size_t len = sizeof(int) + x.first.size();
             char result[len];
             std::memcpy(result, &(x.second), sizeof(int));
-            std::memcpy(result + sizeof(int), x.first.c_str(),
-                        sizeof(x.first.size()));
+            std::memcpy(result + sizeof(int), x.first.c_str(), x.first.size());
             return std::string(result, len);
         }
 

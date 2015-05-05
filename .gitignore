@@ -1,6 +1,7 @@
 # build
 build/**
 docs/**
+doxygen-html/**
 
 #libs that are downloaded through setup.sh
 lib/*
