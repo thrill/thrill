@@ -4,6 +4,7 @@
 #include <cassert>
 #include <c7a/data/data_manager.hpp>
 #include <c7a/net/net-exception.hpp>
+#include <c7a/common/logger.hpp>
 #include "socket.hpp"
 
 namespace c7a {
@@ -30,6 +31,7 @@ struct BlockHeader {
         auto read = socket.recv(&num_elements, expected_size, flags);
         if (read != expected_size)
             return false;
+        SpacingLogger(true) << "expecting" << num_elements << "elements";
         expected_size = sizeof(size_t) * num_elements;
 
         //read #num_elements boundary informations
