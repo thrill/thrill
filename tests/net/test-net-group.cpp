@@ -9,6 +9,7 @@
 
 #include <c7a/net/net-group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/net-dispatcher.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -20,6 +21,37 @@ using namespace c7a;
 TEST(NetGroup, InitializeAndClose) {
     // Construct a NetGroup of 6 workers which do nothing but terminate.
     NetGroup::ExecuteLocalMock(6, [](NetGroup*) { });
+}
+
+static void ThreadInitializeAsyncRead(NetGroup* net) {
+
+    // send a message to all other clients except ourselves.
+    for (size_t i = 0; i != net->Size(); ++i)
+    {
+        if (i == net->MyRank()) continue;
+        net->Connection(i).GetSocket().send(&i, sizeof(size_t));
+    }
+
+    size_t received = 0;
+    NetDispatcher dispatcher;
+
+    NetDispatcher::AsyncReadCallback callback = [net, &received](Socket& s, const std::string& buffer) {
+        ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
+        received++;
+    };
+
+    // add async reads to net dispatcher
+    for (size_t i = 0; i != net->Size(); ++i)
+    {
+        if (i == net->MyRank()) continue;
+        dispatcher.AsyncRead(net->Connection(i).GetSocket(), sizeof(size_t), callback);
+    }
+
+    while(received < net->Size() - 1) {
+        dispatcher.Dispatch();
+    }
+
+
 }
 
 static void ThreadInitializeSendReceive(NetGroup* net)
@@ -120,6 +152,13 @@ TEST(NetGroup, RealInitializeSendReceive) {
     // Construct a real NetGroup of 6 workers which execute the thread function
     // above which sends and receives a message from all neighbors.
     RealNetGroupConstructAndCall(ThreadInitializeSendReceive);
+}
+
+
+TEST(NetGroup, RealInitializeSendReceiveAsync) {
+    // Construct a real NetGroup of 6 workers which execute the thread function
+    // which sends and receives asynchronous messages between all workers. 
+    RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
 
 TEST(NetGroup, TestAllReduce) {
