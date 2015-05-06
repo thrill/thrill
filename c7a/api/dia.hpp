@@ -20,7 +20,7 @@
 #include "dia_node.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
-
+#include "zip_node.hpp"
 #include "read_node.hpp"
 #include "reduce_node.hpp"
 #include "context.hpp"
@@ -167,6 +167,26 @@ public:
                    (reduce_node, reduce_stack);
     }
 
+    template <typename zip_fn_t>
+    auto Zip(const zip_fn_t &zip_fn, auto second_dia) {
+        using zip_result_t
+                  = typename FunctionTraits<zip_fn_t>::result_type;
+        using ZipResultNode
+            = TwoZipNode<T, typename FunctionTraits<zip_fn_t>::template arg<1>, decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
+
+        ZipResultNode* zip_node
+            = new ZipResultNode(node_->get_data_manager(),
+                                { node_, second_dia.get_node() },
+                                local_stack_,
+                                second_dia.get_local_stack(),
+                                zip_fn);
+
+        auto zip_stack = zip_node->ProduceStack();
+        return DIA<zip_result_t, decltype(zip_stack)>
+                   (zip_node, zip_stack);
+    }
+
+
     /*!
      * Returns Chuck Norris!
      *
@@ -214,6 +234,10 @@ public:
                 dia_stack.push(std::make_pair(c, depth + 1));
             }
         }
+    }
+
+    Stack & get_local_stack() {
+        return local_stack_;
     }
 
 private:

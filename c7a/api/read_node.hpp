@@ -11,6 +11,7 @@
 #include "dop_node.hpp"
 #include "function_stack.hpp"
 #include <string>
+#include <fstream>
 
 namespace c7a {
 //! \addtogroup api Interface
@@ -55,13 +56,14 @@ public:
         std::ifstream file(path_in_);
         assert(file.good());
 
+
         data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file);
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
         std::string line;
         while (iter.HasNext()) {
-            SpacingLogger(true) << iter.Next();
-            //emit(read_function_(iter.Next()));
+            //SpacingLogger(true) << iter.Next();
+            emit(read_function_(iter.Next()));
         }
     }
 
