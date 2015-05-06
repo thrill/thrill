@@ -19,29 +19,28 @@ namespace c7a {
 //! \{
 
 /*!
- * A DIANode which performs a Reduce operation. Reduce groups the elements in a DIA by their
- * key and reduces every key bucket to a single element each. The ReduceNode stores the
- * key_extractor and the reduce_function UDFs. The chainable LOps ahead of the Reduce operation
- * are stored in the Stack. The ReduceNode has the type T, which is the result type of the
- * reduce_function.
+ * A DIANode which performs a Zip operation. Zip combines two DIAs element-by-element. The ZipNode
+ * stores the zip_function UDF. The chainable LOps are stored in the Stack.
  *
- * \tparam T Output type of the Reduce operation
- * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
- * \tparam KeyExtractor Type of the key_extractor function.
- * \tparam ReduceFunction Type of the reduce_function
+ * \tparam T Output type of the Zip operation.
+ * \tparam Stack1 Function stack, which contains the chained lambdas between the last and this DIANode
+ * for first input DIA.
+ * \tparam Stack2 Function stack, which contains the chained lambdas between the last and this DIANode
+ * for secondt input DIA.
+ * \tparam Zip_Function Type of the ZipFunction.
  */
-template <typename T, typename U, typename Stack1, typename Stack2, typename ZipFunction>
+template <typename T, typename Stack1, typename Stack2, typename ZipFunction>
 class TwoZipNode : public DOpNode<T>
 {
 public:
     /*!
-     * Constructor for a ReduceNode. Sets the DataManager, parents, stack, key_extractor and reduce_function.
+     * Constructor for a ZipNode.
      *
-     * \param data_manager Reference to the DataManager, which gives iterators for data
-     * \param parents Vector of parents. Has size 1, as a reduce node only has a single parent
-     * \param stack Function stack with all lambdas between the parent and this node
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
+     * \param context Reference to the Context, which gives iterators for data
+     * \param parents Vector of parents. Has size 2, as Zip has two parents
+     * \param stack1 Function stack with all lambdas between the parent and this node for first DIA
+     * \param stack2 Function stack with all lambdas between the parent and this node for second DIA
+     * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
                const std::vector<DIABase*>& parents,
@@ -52,15 +51,11 @@ public:
           stack1_(stack1),
           stack2_(stack2),
           zip_function_(zip_function)
-    {
-        // This new DIA Allocate is needed to send data from Pre to Main
-        // TODO: use network iterate later
-        post_data_id_ = (this->context_).get_data_manager().AllocateDIA();
-    }
+    { }
 
     /*!
-     * Returns "[ReduceNode]" as a string.
-     * \return "[ReduceNode]"
+     * Returns "[ZipNode]" as a string.
+     * \return "[ZipNode]"
      */
     std::string ToString() override
     {
@@ -71,7 +66,7 @@ public:
     }
 
     /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp, MainOp and PostOp.
+     * Actually executes the zip operation. Uses the member functions PreOp, MainOp and PostOp.
      */
     void execute() override
     {
@@ -128,15 +123,17 @@ private:
     void PostOp()
     {
         using zip_result_t = typename FunctionTraits<ZipFunction>::result_type;
+        using zip_arg_0_t = typename FunctionTraits<ZipFunction>::template arg<0>;
+        using zip_arg_1_t = typename FunctionTraits<ZipFunction>::template arg<1>;
 
         
         data::DIAId pid1 = this->get_parents()[0]->get_data_id();
         data::DIAId pid2 = this->get_parents()[1]->get_data_id();
 
-        data::BlockIterator<T> it1 = (this->context_).get_data_manager().template GetLocalBlocks<T>(pid1);
-        data::BlockIterator<U> it2 = (this->context_).get_data_manager().template GetLocalBlocks<U>(pid2);
+        data::BlockIterator<zip_arg_0_t> it1 = (this->context_).get_data_manager().template GetLocalBlocks<zip_arg_0_t>(pid1);
+        data::BlockIterator<zip_arg_1_t> it2 = (this->context_).get_data_manager().template GetLocalBlocks<zip_arg_1_t>(pid2);
 
-        data::BlockEmitter<zip_result_t> emit = (this->context_).get_data_manager().template GetLocalEmitter<zip_result_t>(post_data_id_);
+        data::BlockEmitter<zip_result_t> emit = (this->context_).get_data_manager().template GetLocalEmitter<zip_result_t>(this->data_id_);
 
         while (it1.HasNext() && it2.HasNext()) {
             auto item1 = it1.Next();

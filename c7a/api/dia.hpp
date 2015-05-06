@@ -167,12 +167,25 @@ public:
                    (reduce_node, reduce_stack);
     }
 
+     /*!
+      * Zip is a DOp, which Zips two DIAs in style of functional programming. The zip_function is used to
+      * zip the i-th elements of both input DIAs together to form the i-th element of the output DIA. The
+      * type of the output DIA can be inferred from the zip_function.
+      *
+      * \tparam zip_fn_t Type of the zip_function. This is a function with two input elements, both of the
+      * local type, and one output element, which is the type of the Zip node.
+      *
+      * \param zip_fn Zip function, which zips two elements together
+      *
+      * \param Second DIA, which is zipped together with the original DIA.
+      */
     template <typename zip_fn_t>
     auto Zip(const zip_fn_t &zip_fn, auto second_dia) {
         using zip_result_t
                   = typename FunctionTraits<zip_fn_t>::result_type;
         using ZipResultNode
-            = TwoZipNode<T, typename FunctionTraits<zip_fn_t>::template arg<1>, decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
+            = TwoZipNode<typename FunctionTraits<zip_fn_t>::result_type,
+                         decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
 
         ZipResultNode* zip_node
             = new ZipResultNode(node_->get_data_manager(),
