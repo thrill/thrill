@@ -16,8 +16,8 @@ TEST(DIASimple, Test1Zip) {
 
      Context ctx;
 
-     auto initial1 = ReadFromFileSystem(ctx, "/home/alex/c7a/tests/inputs/test1", read_int);
-     auto initial2 = ReadFromFileSystem(ctx, "/home/alex/c7a/tests/inputs/test1", read_int);
+     auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+     auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
 
      auto zipped = initial1.Zip(zip_fn, initial2);
 
