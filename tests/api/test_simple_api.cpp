@@ -2,17 +2,32 @@
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
+#include "c7a/api/dia_base.hpp"
+#include <tests/c7a-tests.hpp>
+#include "c7a/engine/stage_builder.hpp"
 
-TEST(DISABLED_DIASimple, InputTest1ReadInt) {
-     //auto read_int = [](std::string line) { return std::stoi(line); };
+using namespace c7a;
 
-     //c7a::Context ctx;
+TEST(DIASimple, Test1Zip) {
+     auto read_int = [](std::string line) { return std::stoi(line); };
+     auto zip_fn = [](int in1, int in2) {
+         return in1 + in2;
+     };
 
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
+     Context ctx;
 
-     // assert(initial.NodeString() == "[DIANode/State:NEW/Type:i]");
+     auto initial1 = ReadFromFileSystem(ctx, "/home/alex/c7a/tests/inputs/test1", read_int);
+     auto initial2 = ReadFromFileSystem(ctx, "/home/alex/c7a/tests/inputs/test1", read_int);
 
-     // assert(initial.Size() == 4);
+     auto zipped = initial1.Zip(zip_fn, initial2);
+
+     std::vector<c7a::engine::Stage> result;
+     FindStages(zipped.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+        }
+
 }
 
 TEST(DISABLED_DIASimple, InputTest1ReadDouble) {
