@@ -17,7 +17,7 @@ TEST(Stage, GetStagesFromBuilder) {
                                           return std::stod(line);
                                       });
 
-    auto key_ex = [](double in) { return (int)in; };
+    auto key = [](double in) { return (int) in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
     auto map_fn = [](double input) {
                       std::cout << "Map" << std::endl;
@@ -32,10 +32,10 @@ TEST(Stage, GetStagesFromBuilder) {
 
     auto duplicates = doubles.Map(map_fn);
     // auto duplicates2 = duplicates.Map(map_fn);
-    auto doubles2 = doubles.Reduce(key_ex, red_fn);
+    auto doubles2 = doubles.ReduceBy(key).With(red_fn);
 
     // auto duplicates3 = red_duplicates.Map(map_fn);
-    auto red_duplicates2 = doubles2.Reduce(key_ex, red_fn);
+    auto red_duplicates2 = doubles2.ReduceBy(key).With(red_fn);
 
     //SIMULATE
 
