@@ -1,47 +1,55 @@
 #include "gtest/gtest.h"
+#include <tests/c7a-tests.hpp>
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
+#include "c7a/engine/stage_builder.hpp"
 
-TEST(DISABLED_DIASimple, InputTest1ReadInt) {
-     //auto read_int = [](std::string line) { return std::stoi(line); };
+using namespace c7a::engine;
 
-     //c7a::Context ctx;
+TEST(DIASimple, SharedPtrTest) {
+    using c7a::DIA;
+    using c7a::Context;
 
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
+    Context ctx;
 
-     // assert(initial.NodeString() == "[DIANode/State:NEW/Type:i]");
+    auto map_fn = [](int in) { 
+        return 2*in; 
+    };
+    auto key_ex = [](int in) { 
+        return in % 2; 
+    };
+    auto red_fn = [](int in1, int in2) { 
+        return in1 + in2; 
+    };
 
-     // assert(initial.Size() == 4);
-}
+    auto input = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+          return std::stoi(line);
+        });
+    DIA<int> ints = input.Map(map_fn);
+    auto doubles = ints.Map(map_fn);
+    ints = doubles;
+    auto quad = ints.Map(map_fn);
+    // auto quad = doubles.Map(map_fn);
+    auto red_quad = quad.Reduce(key_ex, red_fn);
 
-TEST(DISABLED_DIASimple, InputTest1ReadDouble) {
-     //auto read_double = [](std::string line) { return std::stod(line); };
+    std::vector<Stage> result;
+    FindStages(red_quad.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+    }
+    // auto doubles2 = doubles.Map(map_fn);
+    // auto doubles3 = doubles2.Map(map_fn);
+    // auto add = doubles3.Reduce(key_ex, red_fn);
+    // auto add2 = add.Map(map_fn);
+    // auto add2 = doubles2;
+    // auto add3 = add2.Map(map_fn);
 
-     //c7a::Context ctx;
-
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
-
-     // assert(initial.NodeString() == "[DIANode/State:NEW/Type:d]");
-
-     // assert(initial.Size() == 4);
-
-}
-
-TEST(DISABLED_DIASimple, InputTest1Write) {
-
-     //auto read_int = [](std::string line) { return std::stoi(line); };
-     //auto write_int = [](int element) { return element; };
-
-     //c7a::Context ctx;
-
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
-     // ctx.WriteToFileSystem(initial, "tests/inputs/test1_result", write_int);
-     // auto copy = ctx.ReadFromFileSystem("tests/inputs/test1_result", read_int);
-
-     // assert(copy.NodeString() == "[DIANode/State:NEW/Type:i]");
-
-     // assert(copy.Size() == 4);
+    return;
 }
 
 TEST(DIASimple, FunctionStackTest) {

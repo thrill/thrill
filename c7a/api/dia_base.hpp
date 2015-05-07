@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include "context.hpp"
+#include "types.hpp"
 #include "../data/data_manager.hpp"
 
 namespace c7a {
@@ -27,8 +28,6 @@ namespace c7a {
 class DIABase
 {
 public:
-    typedef std::vector<DIABase*> DIABaseVector;
-
     /*!
      * The constructor for a DIABase. Sets the DataManager and the
      * associated DIAId.
@@ -81,7 +80,7 @@ public:
 
     //! Adds a child to the vector of childs. This method is called in the constructor.
     //! \param child The child to add.
-    void add_child(DIABase* child)
+    void add_child(DIABasePtr child)
     {
         childs_.push_back(child);
     }

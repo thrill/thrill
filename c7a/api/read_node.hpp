@@ -36,7 +36,7 @@ public:
     * \param path_in Path of the input file
     */
     ReadNode(Context& ctx,
-             const std::vector<DIABase*>& parents,
+             const DIABaseVector& parents,
              ReadFunction read_function,
              std::string path_in)
         : DOpNode<T>(ctx, parents),
@@ -60,8 +60,7 @@ public:
 
         std::string line;
         while (iter.HasNext()) {
-            SpacingLogger(true) << iter.Next();
-            //emit(read_function_(iter.Next()));
+            emit(read_function_(iter.Next()));
         }
     }
 

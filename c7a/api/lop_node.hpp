@@ -11,17 +11,41 @@
 
 namespace c7a {
 
-template <typename T, typename LOpFunction>
+template <typename T, typename LOpStack>
 class LOpNode : public DIANode<T> {
 public:
-    LOpNode(data::DataManager &data_manager, 
-            const std::vector<DIABase*>& parents, 
-            LOpFunction lop_function) 
-        : DIANode<T>(data_manager, parents), 
-        lop_function_(lop_function) {};
+    LOpNode(Context& ctx,
+            const DIABaseVector& parents, 
+            LOpStack& lop_stack) 
+        : DIANode<T>(ctx, parents), 
+        lop_stack_(lop_stack) {
+        };
+
     virtual ~LOpNode() {}
 
-    void execute() {};
+    void execute() override {
+        // Execute LOpChain
+        data::DIAId pid = this->get_parents()[0]->get_data_id();
+        // //get data from data manager
+        data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(pid);
+
+        std::vector<T> elements;
+        auto save_fn = [&elements](T input) {
+                elements.push_back(input);
+            };
+        auto lop_chain = lop_stack_.push(save_fn).emit();
+
+        // loop over input
+        while (it.HasNext()) {
+            lop_chain(it.Next());
+        }
+
+        // Emit new elements
+        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(DIABase::data_id_);
+        for (auto elem : elements) {
+            emit(elem);
+        }
+    };
 
     std::string ToString() override {
         // Create string
@@ -31,7 +55,7 @@ public:
     }
 
 private:
-    LOpFunction lop_function_;
+    LOpStack lop_stack_;
 };
 
 } // namespace c7a

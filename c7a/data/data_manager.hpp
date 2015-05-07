@@ -58,7 +58,7 @@ public:
 
     DIAId AllocateDIA()
     {
-        SpacingLogger(true) << "Allocate DIA" << data_.size() - 1;
+        SpacingLogger(true) << "Allocate DIA" << data_.size();
         //data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
         data_.push_back(std::vector<Blob>());
         return data_.size() - 1;
