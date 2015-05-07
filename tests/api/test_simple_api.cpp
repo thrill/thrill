@@ -36,9 +36,7 @@ TEST(DIASimple, SharedPtrTest) {
     DIA<int> test = ints;
     ints = doubles;
     // auto quad = doubles.Map(map_fn);
-    // auto quad2 = doubles.Map(map_fn);
-    auto red_quad = doubles.Reduce(key_ex, red_fn);
-    // auto red_quad2 = quad2.Reduce(key_ex, red_fn);
+    auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
 
     std::cout << "Input: " << input.NodeString() << " RefCount: " << input.get_node_count() << std::endl;
     std::cout << "Ints: " << ints.NodeString() << " RefCount: " << ints.get_node_count() << std::endl;
