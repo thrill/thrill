@@ -47,7 +47,6 @@ inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
         stages_result.emplace_back(Stage(curr));
         std::vector<DIABase*> parents = curr->get_parents();
         for (DIABase* p : parents) {
-
             if (p && (stages_found.find(p) == stages_found.end())) {
                 dia_stack.push(p);
                 stages_found.insert(p);

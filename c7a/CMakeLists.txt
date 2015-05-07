@@ -9,8 +9,8 @@ file(GLOB_RECURSE SRCS
          ${CMAKE_CURRENT_SOURCE_DIR}/api/*.hpp
          ${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp
          ${CMAKE_CURRENT_SOURCE_DIR}/common/*.hpp
-         ${CMAKE_CURRENT_SOURCE_DIR}/net/*.cpp
-         ${CMAKE_CURRENT_SOURCE_DIR}/net/*.hpp
+         # ${CMAKE_CURRENT_SOURCE_DIR}/net/*.cpp
+         # ${CMAKE_CURRENT_SOURCE_DIR}/net/*.hpp
          ${CMAKE_CURRENT_SOURCE_DIR}/data/*.cpp
          ${CMAKE_CURRENT_SOURCE_DIR}/data/*.hpp
          ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp

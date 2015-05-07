@@ -44,10 +44,11 @@ namespace c7a {
  * \tparam L Type of the lambda function to transform elements from the previous
  *  DIANode to elements of this DIA.
  */
-template <typename T, typename Stack>
-class DIA
+template <typename T, typename Stack = FunctionStack<>>
+class DIA 
 {
     friend class Context;
+    using DIANodePtr = std::shared_ptr<DIANode<T>>;
 
 public:
     /*!
@@ -60,26 +61,50 @@ public:
      * \param lambda Function which can transform elements from the DIANode to elements
      * of this DIA.
      */
-    DIA(DIANode<T>* node, Stack stack) : node_(node), local_stack_(stack) { }
-
-    friend void swap(DIA& first, DIA& second)
-    {
-        using std::swap;
-        swap(first.data_, second.data_);
+    DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack) { 
+        node_ = std::move(node);
+        std::cout << "Node: " << NodeString() << "\tPointer Count: " << node_.use_count() << std::endl;
     }
 
-    DIA& operator = (DIA rhs)
-    {
-        swap(*this, rhs);
-        return *this;
+    DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack) { 
+        node_ = node;
+        std::cout << "Node: " << NodeString() << "\tPointer Count: " << node_.use_count() << std::endl;
+    }
+
+    DIA(DIANodePtr&& node) { 
+        node_ = std::move(node);
+        std::cout << "Node: " << NodeString() << "\tPointer Count: " << node_.use_count() << std::endl;
+    }
+
+    template <typename AnyStack>
+    DIA(const DIA<T, AnyStack>& rhs) {
+        // Create new LOpNode
+        // Transfer stack from rhs to LOpNode
+        // Build new DIA with empty stack and LOpNode
+        auto rhs_node = rhs.get_node();
+        auto rhs_stack = rhs.get_stack();
+        using LOpChainNode
+                  = LOpNode<T, decltype(rhs_stack)>;
+
+        std::shared_ptr<LOpChainNode> shared_node(
+            new LOpChainNode(rhs_node->get_data_manager(),
+                             { rhs_node },
+                             rhs_stack));
+        node_ = std::move(shared_node);
+        local_stack_ = FunctionStack<>();
     }
 
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T> * get_node()
+    DIANode<T>* get_node() const
     {
-        return node_;
+        return node_.get();
+    }
+
+    Stack get_stack() const
+    {
+        return local_stack_;
     }
 
     /*!
@@ -155,16 +180,17 @@ public:
         using ReduceResultNode
                   = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
-        ReduceResultNode* reduce_node
-            = new ReduceResultNode(node_->get_data_manager(),
-                                   { node_ },
-                                   local_stack_,
-                                   key_extractor,
-                                   reduce_function);
+        std::shared_ptr<ReduceResultNode> shared_node(
+            new ReduceResultNode(node_->get_data_manager(),
+                                 { node_.get() },
+                                 local_stack_,
+                                 key_extractor,
+                                 reduce_function));
 
-        auto reduce_stack = reduce_node->ProduceStack();
+        auto reduce_stack = shared_node->ProduceStack();
+
         return DIA<dop_result_t, decltype(reduce_stack)>
-                   (reduce_node, reduce_stack);
+                   (std::move(shared_node), reduce_stack);
     }
 
     /*!
@@ -218,7 +244,7 @@ public:
 
 private:
     //! The DIANode which DIA points to. The node represents the latest DOp or Action performed previously.
-    DIANode<T>* node_;
+    DIANodePtr node_;
     //! The local function stack, which stores the chained lambda function from the last DIANode to this DIA.
     Stack local_stack_;
 };
@@ -232,15 +258,17 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    ReadResultNode* read_node
-        = new ReadResultNode(ctx,
-                             { },
-                             read_fn,
-                             filepath);
+    std::shared_ptr<ReadResultNode> 
+        shared_node(new ReadResultNode(ctx,
+                    { },
+                    read_fn,
+                    filepath));
 
-    auto read_stack = read_node->ProduceStack();
+    auto read_stack = shared_node->ProduceStack();
+
+    std::cout << shared_node.use_count() << std::endl;
     return DIA<read_result_t, decltype(read_stack)>
-               (read_node, read_stack);
+               (std::move(shared_node), read_stack);
 }
 } // namespace c7a
 

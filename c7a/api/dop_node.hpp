@@ -16,10 +16,19 @@ class DOpNode : public DIANode<T>
 {
 public:
     DOpNode(Context& ctx,
-            const std::vector<DIABase*>& parents)
+            const DIABaseVector& parents)
         : DIANode<T>(ctx, parents) { }
+
     virtual ~DOpNode() { }
+
+    std::string ToString() override {
+        // Create string
+        std::string str 
+            = std::string("[DOpNode]");
+        return str;
+    }
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_DOP_NODE_HEADER
