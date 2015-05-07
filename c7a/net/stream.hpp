@@ -25,7 +25,8 @@ struct StreamBlockHeader {
     }
 
     void ParseBoundaries(const std::string& buffer) {
-        memcpy(&boundaries, buffer.c_str(), sizeof(size_t) * num_elements);
+        size_t offset = 2 * sizeof(size_t);
+        memcpy(boundaries, buffer.c_str() + offset, sizeof(size_t) * num_elements);
     }
 
     std::string Serialize() {
