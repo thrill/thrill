@@ -30,15 +30,15 @@ struct StreamBlockHeader {
 
     std::string Serialize() {
         size_t size = sizeof(size_t) * (num_elements + 2);
-        std::string result(size, '0');
-        size_t offset0 = (size_t)result.data();
-        size_t offset1 = offset0 + sizeof(channel_id);;
-        size_t offset2 = offset1 + sizeof(num_elements);;
+        char *result = new char[size];
+        char* offset0 = result;
+        char* offset1 = offset0 + sizeof(channel_id);
+        char* offset2 = offset1 + sizeof(num_elements);
 
-        memcpy((void*)offset0, &channel_id,   sizeof(channel_id));
-        memcpy((void*)offset1, &num_elements, sizeof(num_elements));
-        memcpy((void*)offset2, &boundaries,   sizeof(size_t) * num_elements);
-        return result;
+        memcpy(offset0, &channel_id,   sizeof(channel_id));
+        memcpy(offset1, &num_elements, sizeof(num_elements));
+        memcpy(offset2, boundaries,   sizeof(*boundaries) * num_elements);
+        return std::string(result, size);
     }
 
     void Reset() {
