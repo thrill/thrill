@@ -50,3 +50,19 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesBoundaries) {
     ASSERT_EQ(23, result.boundaries[1]);
     ASSERT_EQ(55, result.boundaries[2]);
 }
+
+TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesBoundariesIfEmpty) {
+    candidate.num_elements = 0;
+    auto seri = candidate.Serialize();
+    struct StreamBlockHeader result;
+    result.ParseIdAndNumElem(seri);
+    result.ParseBoundaries(seri);
+
+    ASSERT_EQ(0, result.num_elements);
+}
+
+TEST_F(StreamTest, StreamBlockHeaderIsStreamEnd) {
+    ASSERT_EQ(false, candidate.IsStreamEnd());
+    candidate.num_elements = 0;
+    ASSERT_EQ(true, candidate.IsStreamEnd());
+}
