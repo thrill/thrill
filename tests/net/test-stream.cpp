@@ -19,15 +19,15 @@ using::testing::ByRef;
 using namespace c7a::net;
 using namespace c7a;
 
-
 struct StreamTest : public::testing::Test {
-    StreamTest() {
+    StreamTest()
+    {
         candidate.channel_id = 2;
         candidate.num_elements = 3;
-       // candidate.boundaries = data;
+        candidate.boundaries = data;
     }
 
-    //size_t data[3] = {22, 23, 55};
+    size_t                   data[3] = { 22, 23, 55 };
     struct StreamBlockHeader candidate;
 };
 
@@ -44,9 +44,9 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesBoundaries) {
     auto seri = candidate.Serialize();
     struct StreamBlockHeader result;
     result.ParseIdAndNumElem(seri);
+    result.ParseBoundaries(seri);
 
     ASSERT_EQ(22, result.boundaries[0]);
-    ASSERT_EQ(23, result.boundaries[0]);
-    ASSERT_EQ(55, result.boundaries[0]);
+    ASSERT_EQ(23, result.boundaries[1]);
+    ASSERT_EQ(55, result.boundaries[2]);
 }
-
