@@ -87,7 +87,7 @@ public:
     {
         // Create string
         std::string str
-            = std::string("[ReadNode]");
+            = std::string("[ReadNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
 
