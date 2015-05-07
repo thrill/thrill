@@ -63,17 +63,20 @@ public:
      */
     DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack) { 
         node_ = std::move(node);
-        std::cout << "Node: " << NodeString() << "\tPointer Count: " << node_.use_count() << std::endl;
     }
 
     DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack) { 
         node_ = node;
-        std::cout << "Node: " << NodeString() << "\tPointer Count: " << node_.use_count() << std::endl;
     }
 
-    DIA(DIANodePtr&& node) { 
-        node_ = std::move(node);
-        std::cout << "Node: " << NodeString() << "\tPointer Count: " << node_.use_count() << std::endl;
+    friend void swap(DIA& first, DIA& second) {
+        using std::swap;
+        swap(first.node_, second.node_);
+    }
+
+    DIA& operator=(DIA rhs) {
+        swap(*this, rhs);
+        return *this;
     }
 
     template <typename AnyStack>
@@ -81,7 +84,7 @@ public:
         // Create new LOpNode
         // Transfer stack from rhs to LOpNode
         // Build new DIA with empty stack and LOpNode
-        auto rhs_node = rhs.get_node();
+        auto rhs_node = std::move(rhs.get_node());
         auto rhs_stack = rhs.get_stack();
         using LOpChainNode
                   = LOpNode<T, decltype(rhs_stack)>;
@@ -100,6 +103,11 @@ public:
     DIANode<T>* get_node() const
     {
         return node_.get();
+    }
+
+    int get_node_count() const
+    {
+        return node_.use_count();
     }
 
     Stack get_stack() const
@@ -266,7 +274,6 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
 
     auto read_stack = shared_node->ProduceStack();
 
-    std::cout << shared_node.use_count() << std::endl;
     return DIA<read_result_t, decltype(read_stack)>
                (std::move(shared_node), read_stack);
 }

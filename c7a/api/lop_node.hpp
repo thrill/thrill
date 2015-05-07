@@ -50,7 +50,7 @@ public:
     std::string ToString() override {
         // Create string
         std::string str 
-            = std::string("[LOpNode]");
+            = std::string("[LOpNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
 
