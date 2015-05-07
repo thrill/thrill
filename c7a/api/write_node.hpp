@@ -22,7 +22,7 @@ public:
 
     std::string toString() override {
         std::string str 
-            = std::string("[WriteNode]");
+            = std::string("[WriteNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
 

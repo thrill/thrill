@@ -63,7 +63,7 @@ public:
     {
         // Create string
         std::string str
-            = std::string("[ReduceNode]");
+            = std::string("[ReduceNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
 
