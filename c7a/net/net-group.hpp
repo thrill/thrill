@@ -235,6 +235,18 @@ public:
         return ReceiveStringFromAny(out_src, out_data);
     }
 
+    void SendStringTo(ClientId dest, const &std::string data) {
+        this->Connectiom(dest)).SendString(data);
+    }
+
+    void BroadcastString(const &std::string data) {
+        for (size_t i = 0; i < connections_.size(); i++)
+        {
+            if (i == my_rank_) continue;
+            SendStringTo(i, data);
+        }
+    }
+
     //! \}
 
     //! \name Collective Operations

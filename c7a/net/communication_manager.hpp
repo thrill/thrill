@@ -23,12 +23,39 @@ namespace c7a {
  */
 class CommunicationManager
 {
+
+private:
+	NetGroup* systemNetGroup;
+	NetGroup* flowNetGroup;
+	NetGroup* dataNetGroup;
 public:
-    void Initialize(const std::vector<NetEndpoint>& /* endpoints */);
+	void Initialize(size_t myRank, const std::vector<NetEndpoint>& endpoints)
+	{ 
+		systemNetGroup = new NetGroup(myRank, endpoints);
+		//TODO - Create a socket with OS assigned port number,
+		//Send portnumber to all others. 
+		//Receive portnumbers from all others.
+		//Stick server socket and portnumbers into NetGroup and init. 
 
-    SystemControlChannel * GetSystemControlChannel();
+		//Do this. Twice. 
+		
+	}
 
-    //FlowControlChannel * GetFlowControlChannel();
+	NetGroup* GetSystemNetGroup() {
+
+	}
+
+	NetGroup* GetFlowNetGroup() {
+
+	}
+
+	NetGroup* GetDataNetGroup() {
+
+	}
+
+	void Dispose() {
+
+	}
 };
 
 } // namespace c7a
