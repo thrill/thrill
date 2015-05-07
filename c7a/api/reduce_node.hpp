@@ -44,7 +44,7 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
-               const std::vector<DIABase*>& parents,
+               const DIABaseVector& parents,
                Stack& stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
@@ -53,9 +53,6 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function)
     {
-        // This new DIA Allocate is needed to send data from Pre to Main
-        // TODO: use network iterate later
-        post_data_id_ = (this->context_).get_data_manager().AllocateDIA();
     }
 
     /*!
@@ -102,8 +99,6 @@ private:
     KeyExtractor key_extractor_;
     //!Reduce function
     ReduceFunction reduce_function_;
-    //!Unique ID of this node, used by the DataManager
-    data::DIAId post_data_id_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each bucket to a single value,
     //! afterwards send data to another worker given by the shuffle algorithm.
@@ -135,7 +130,7 @@ private:
         for (auto item : elements) {
             key_t key = key_extractor_(item);
             auto elem = reduce_data.find(key);
-            // SpacingLogger(true) << item;
+            SpacingLogger(true) << item;
 
             // is there already an element with same key?
             if (elem != reduce_data.end()) {
@@ -179,6 +174,7 @@ private:
             auto item = it.Next();
             key_t key = key_extractor_(item);
             auto elem = reduce_data.find(key);
+            SpacingLogger(true) << item;
 
             // is there already an element with same key?
             if (elem != reduce_data.end()) {
@@ -190,7 +186,7 @@ private:
             }
         }
 
-        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(post_data_id_);
+        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(DIABase::data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
             emit(it->second);
         }

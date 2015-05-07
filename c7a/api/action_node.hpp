@@ -13,7 +13,7 @@ template <typename T>
 class ActionNode : public DIANode<T> {
 public:
     ActionNode(data::DataManager &data_manager, 
-            const std::vector<DIABase*>& parents)
+            const DIABaseVector& parents)
         : DIANode<T>(data_manager, parents) {}
     virtual ~ActionNode() {}
 };
