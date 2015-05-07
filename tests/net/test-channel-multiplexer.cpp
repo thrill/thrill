@@ -20,17 +20,16 @@ using namespace c7a::net;
 using namespace c7a;
 
 struct NetDispatcherMock : public NetDispatcher {
-    MOCK_METHOD3(AsyncRead, void(Socket&, size_t, NetDispatcher::AsyncReadCallback));
+    MOCK_METHOD3(AsyncRead, void(Socket &, size_t, NetDispatcher::AsyncReadCallback));
 };
 
 struct ChannelMultiplexerTest : public::testing::Test {
     ChannelMultiplexerTest() :
         dispatch_mock(),
-        candidate(dispatch_mock, 1) {
-    }
+        candidate(dispatch_mock, 1) { }
 
-    Socket socket;
-    NetDispatcherMock dispatch_mock;
+    Socket             socket;
+    NetDispatcherMock  dispatch_mock;
     ChannelMultiplexer candidate;
 };
 
@@ -44,7 +43,7 @@ TEST_F(ChannelMultiplexerTest, AddSocketIssuesReadForTwoNumberFields) {
     candidate.AddSocket(socket);
 }
 
-TEST_F(ChannelMultiplexerTest, DISABLED_ReadsElementBoundariesAfterStreamHead) {
+TEST_F(ChannelMultiplexerTest, ReadsElementBoundariesAfterStreamHead) {
     size_t exp_size = sizeof(size_t) * 4;
     struct StreamBlockHeader header; //channel_id, num_elements
     header.num_elements = 4;
