@@ -62,7 +62,7 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesBoundariesIfEmpty) {
 }
 
 TEST_F(StreamTest, StreamBlockHeaderIsStreamEnd) {
-    ASSERT_EQ(false, candidate.IsStreamEnd());
+    ASSERT_FALSE(candidate.IsStreamEnd());
     candidate.num_elements = 0;
-    ASSERT_EQ(true, candidate.IsStreamEnd());
+    ASSERT_TRUE(candidate.IsStreamEnd());
 }
