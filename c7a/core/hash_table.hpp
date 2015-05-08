@@ -50,16 +50,16 @@ public:
 
   HashTable(std::size_t p_n, KeyExtractor key_extractor,
 	    ReduceFunction f_reduce, data::BlockEmitter<value_t> emit) :
-      emit_(emit),
-      f_red(f_reduce),
-      key_extractor(key_extractor)  
-        {
+        p_num(p_n),
+        key_extractor(key_extractor),
+        f_red(f_reduce),
+        emit_(emit)
+    {
         if (p_n > b_size) {
             throw std::invalid_argument("num partitions must be less than num buckets");
         }
 
-        p_num = p_n;
-        //b_size = p_size*10; // scale bucket size based on num of processors TODO: implement resize
+        //b_size = p_num*10; // TODO scale initial bucket size based on num of workers
         p_size = b_size/p_num;
         p_items_size = new int[p_num];
         for (int i=0; i<p_num; i++) { // TODO: just a tmp fix
