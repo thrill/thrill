@@ -8,6 +8,10 @@ THE code repository for the almighty c7a-framework.
 
 Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
 
+# Temporary Workflow
+- steps 1 - 5 (see below)
+- merge into master and push
+
 # Workflow
 1. Assign JIRA ticket to yourself & pull to 'In Progress' :point_left:
 2. Code & commit to branch CA-XXX/name-of-the-ticket

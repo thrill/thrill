@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication_manager.cpp
+ * c7a/common/functional.hpp
  *
  * Part of Project c7a.
  *
@@ -7,23 +7,23 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "communication_manager.hpp"
+#ifndef C7A_COMMON_FUNCTIONAL_HEADER
+#define C7A_COMMON_FUNCTIONAL_HEADER
 
 namespace c7a {
 
-void CommunicationManager::Initialize(const std::vector<NetEndpoint>& /* endpoints */)
-{ }
-
-SystemControlChannel* CommunicationManager::GetSystemControlChannel()
-{
-    return NULL;
-}
-
-// FlowControlChannel* CommunicationManager::GetFlowControlChannel()
-// {
-//     return NULL;
-// }
+//! Simple sum operator
+template <typename T>
+struct SumOp {
+    //! returns the sum of a and b
+    T operator () (const T& a, const T& b)
+    {
+        return a + b;
+    }
+};
 
 } // namespace c7a
+
+#endif // !C7A_COMMON_FUNCTIONAL_HEADER
 
 /******************************************************************************/

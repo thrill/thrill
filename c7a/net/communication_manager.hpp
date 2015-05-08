@@ -11,7 +11,7 @@
 #define C7A_NET_COMMUNICATION_MANAGER_HEADER
 
 #include <vector>
-#include "execution_endpoint.hpp"
+#include "net-endpoint.hpp"
 #include "system_control_channel.hpp"
 #include "flow_control_channel.hpp"
 
@@ -24,7 +24,7 @@ namespace c7a {
 class CommunicationManager
 {
 public:
-    void Initialize(std::vector<ExecutionEndpoint> endpoints);
+    void Initialize(const std::vector<NetEndpoint>& /* endpoints */);
 
     SystemControlChannel * GetSystemControlChannel();
 

@@ -25,6 +25,16 @@ endif()
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
+# add sanitizer flags for debug builds
+if(NOT APPLE AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+  # enable AddressSanitizer
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+  # enable ThreadSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+  # enable UndefinedBehaviorSanitizer
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+endif()
+
 ################################################################################
 ### Find Required Libraries
 
