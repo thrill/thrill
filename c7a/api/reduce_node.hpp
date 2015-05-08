@@ -125,7 +125,7 @@ private:
         //TODO get number of worker by net-group or something similar
         //TODO make a static getter for this
         int number_worker = 1;
-
+      
         engine::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_);
 
         std::vector<reduce_arg_t> elements;
@@ -140,10 +140,14 @@ private:
         }
 
         for (auto item : elements) {
-            reduce_data.insert(item);
+	    reduce_data.insert(item);
         }
 
-        //TODO use network emitter in future
+	auto popped = reduce_data.pop();
+
+	std::cout << "Size: " << popped.size() << std::endl;
+
+	/*      //TODO use network emitter in future
         std::vector<data::BlockEmitter<T> > emit_array;
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
@@ -151,7 +155,7 @@ private:
             auto hashed = t_hash(it->second) % number_worker;
             // TODO When emitting and the real network emitter is there, hashed is needed to emit
             emit(it->second);
-        }
+	    }*/
     }
 
     //!Recieve elements from other workers.
