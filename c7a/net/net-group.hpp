@@ -53,14 +53,14 @@ public:
     //! protocols. See tests/net/test-net-group.cpp for examples.
     static void ExecuteLocalMock(
         size_t num_clients,
-        const std::function<void(NetGroup*)>& thread_function);
+        const std::function<void(NetGroup*)>& thread_function);;
 
     //! Construct a remote NetGroup using a list of NetEndpoints of which this
     //! object will be the my_rank-th item. The NetGroup opens a listening port
     //! on the my_rank-th NetEndpoint, which hence must be local. If
     //! construction or any connection fails, a NetException is thrown.
     NetGroup(ClientId my_rank,
-             const std::vector<NetEndpoint>& endpoints);
+             size_t group_size);
 
     //! \}
 
@@ -80,6 +80,15 @@ public:
                                "invalid client id " + std::to_string(id));
 
         return connections_[id];
+    }    //! Return NetConnection to client id.
+    
+    void SetConnection(ClientId id, const NetConnection& connection)
+    {
+        if (id >= connections_.size())
+            throw NetException("NetGroup::GetClient() requested "
+                               "invalid client id " + std::to_string(id));
+
+        connections_[id] = connection;
     }
 
     //! Return number of connections in this group.
@@ -236,11 +245,11 @@ public:
         return ReceiveStringFromAny(out_src, out_data);
     }
 
-    void SendStringTo(ClientId dest, const &std::string data) {
-        this->Connectiom(dest)).SendString(data);
+    void SendStringTo(ClientId dest, const std::string& data) {
+        this->Connection(dest).SendString(data);
     }
 
-    void BroadcastString(const &std::string data) {
+    void BroadcastString(const std::string& data) {
         for (size_t i = 0; i < connections_.size(); i++)
         {
             if (i == my_rank_) continue;
@@ -257,14 +266,6 @@ public:
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
 
     //! \}
-
-protected:
-    //! Construct object but initialize other fields later, used by
-    //! ExecuteLocalMock to create many NetGroup objects.
-    NetGroup(ClientId id, size_t num_clients)
-        : my_rank_(id),
-          connections_(num_clients)
-    { }
 
 private:
     //! The client id of this object in the NetGroup.
