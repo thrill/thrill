@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 namespace c7a {
-namespace engine {
+namespace net {
 
     class MockNetwork {
     public:
@@ -107,7 +107,7 @@ namespace engine {
         size_t my_id_;
     };
 
-} // engine
+} // core
 } // namespace c7a
 
 #endif //C7A_DUMMY_COMMUNICATOR_HPP
