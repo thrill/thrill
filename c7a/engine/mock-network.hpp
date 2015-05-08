@@ -7,6 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_ENGINE_MOCK_NETWORK_HEADER
 #define C7A_ENGINE_MOCK_NETWORK_HEADER
 

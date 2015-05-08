@@ -7,9 +7,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
-#pragma once
 
 #include <memory> //std::shared_ptr
 #include <c7a/net/net-dispatcher.hpp>

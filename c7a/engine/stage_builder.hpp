@@ -7,9 +7,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_ENGINE_STAGE_BUILDER_HEADER
 #define C7A_ENGINE_STAGE_BUILDER_HEADER
-#pragma once
 
 #include "../api/dia_base.hpp"
 #include "../common/logger.hpp"
