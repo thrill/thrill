@@ -2,8 +2,14 @@
  * c7a/api/dia.hpp
  *
  * Interface for Operations, holds pointer to node and lambda from node to state
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_DIA_HEADER
 #define C7A_API_DIA_HEADER
 
@@ -26,6 +32,7 @@
 #include "context.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -44,10 +51,11 @@ namespace c7a {
  * \tparam L Type of the lambda function to transform elements from the previous
  *  DIANode to elements of this DIA.
  */
-template <typename T, typename Stack>
-class DIA
+template <typename T, typename Stack = FunctionStack<>>
+class DIA 
 {
     friend class Context;
+    using DIANodePtr = std::shared_ptr<DIANode<T>>;
 
 public:
     /*!
@@ -60,26 +68,58 @@ public:
      * \param lambda Function which can transform elements from the DIANode to elements
      * of this DIA.
      */
-    DIA(DIANode<T>* node, Stack stack) : node_(node), local_stack_(stack) { }
-
-    friend void swap(DIA& first, DIA& second)
-    {
-        using std::swap;
-        swap(first.data_, second.data_);
+    DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack) { 
+        node_ = std::move(node);
     }
 
-    DIA& operator = (DIA rhs)
-    {
+    DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack) { 
+        node_ = node;
+    }
+
+    friend void swap(DIA& first, DIA& second) {
+        using std::swap;
+        swap(first.node_, second.node_);
+    }
+
+    DIA& operator=(DIA rhs) {
         swap(*this, rhs);
         return *this;
+    }
+
+    template <typename AnyStack>
+    DIA(const DIA<T, AnyStack>& rhs) {
+        // Create new LOpNode
+        // Transfer stack from rhs to LOpNode
+        // Build new DIA with empty stack and LOpNode
+        auto rhs_node = std::move(rhs.get_node());
+        auto rhs_stack = rhs.get_stack();
+        using LOpChainNode
+                  = LOpNode<T, decltype(rhs_stack)>;
+
+        std::shared_ptr<LOpChainNode> shared_node(
+            new LOpChainNode(rhs_node->get_data_manager(),
+                             { rhs_node },
+                             rhs_stack));
+        node_ = std::move(shared_node);
+        local_stack_ = FunctionStack<>();
     }
 
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T> * get_node()
+    DIANode<T>* get_node() const
     {
-        return node_;
+        return node_.get();
+    }
+
+    int get_node_count() const
+    {
+        return node_.use_count();
+    }
+
+    Stack get_stack() const
+    {
+        return local_stack_;
     }
 
     /*!
@@ -144,7 +184,7 @@ public:
      */
     template<typename key_extr_fn_t>
     auto ReduceBy(const key_extr_fn_t& key_extractor) {
-        return ReduceSugar<key_extr_fn_t>(key_extractor, node_, local_stack_);
+        return ReduceSugar<key_extr_fn_t>(key_extractor, node_.get(), local_stack_);
     }
 
     /*!
@@ -154,7 +194,7 @@ public:
      */
     const std::vector<T> & evil_get_data() const
     {
-        return std::vector<T>{ T() };
+        return (std::vector<T>{ T() });
     }
 
     /*!
@@ -198,7 +238,7 @@ public:
 
 private:
     //! The DIANode which DIA points to. The node represents the latest DOp or Action performed previously.
-    DIANode<T>* node_;
+    DIANodePtr node_;
     //! The local function stack, which stores the chained lambda function from the last DIANode to this DIA.
     Stack local_stack_;
 
@@ -206,15 +246,15 @@ private:
      * Syntactic sugaaah for reduce
      */
     template <typename key_extr_fn_t>
-    class ReduceSugar {
+    class ReduceSugar
+    {
     public:
-        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack & local_stack) : key_extractor_(key_extractor), node_(node), local_stack_(local_stack){};
-
+        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack& local_stack) : key_extractor_(key_extractor), node_(node), local_stack_(local_stack) { }
 
         /*!
          * Syntactic sugaaah
          *
-         * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type 
+         * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type
          * to a single element of equal type.
          *
          * \param reduce_function Reduce function, which defines how the key buckets are reduced to a
@@ -223,25 +263,28 @@ private:
          */
         template <typename reduce_fn_t>
         auto With(const reduce_fn_t& reduce_function) {
+            using dop_result_t
+                      = typename FunctionTraits<reduce_fn_t>::result_type;
+            using ReduceResultNode
+                      = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
-            using dop_result_t = typename FunctionTraits<reduce_fn_t>::result_type;
-            using ReduceResultNode = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
+            std::shared_ptr<ReduceResultNode> shared_node(
+                new ReduceResultNode(node_->get_data_manager(),
+                                     { node_ },
+                                     local_stack_,
+                                     key_extractor_,
+                                     reduce_function));
 
-            ReduceResultNode* reduce_node 
-            = new ReduceResultNode(node_->get_data_manager(), 
-                                   { node_ }, 
-                                   local_stack_,
-                                   key_extractor_, 
-                                   reduce_function);
+            auto reduce_stack = shared_node->ProduceStack();
 
-            auto reduce_stack = reduce_node->ProduceStack();
-
-        return DIA<dop_result_t, decltype(reduce_stack)>(reduce_node, reduce_stack);
+            return DIA<dop_result_t, decltype(reduce_stack)>
+                       (std::move(shared_node), reduce_stack);
         }
+
     private:
         const key_extr_fn_t& key_extractor_;
-        DIANode<T> * node_;
-        Stack & local_stack_;
+        DIANode<T>* node_;
+        Stack& local_stack_;
     };
 };
 
@@ -254,16 +297,18 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    ReadResultNode* read_node
-        = new ReadResultNode(ctx,
-                             { },
-                             read_fn,
-                             filepath);
+    std::shared_ptr<ReadResultNode> 
+        shared_node(new ReadResultNode(ctx,
+                    { },
+                    read_fn,
+                    filepath));
 
-    auto read_stack = read_node->ProduceStack();
+    auto read_stack = shared_node->ProduceStack();
+
     return DIA<read_result_t, decltype(read_stack)>
-               (read_node, read_stack);
+               (std::move(shared_node), read_stack);
 }
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER

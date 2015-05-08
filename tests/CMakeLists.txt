@@ -29,10 +29,12 @@ set(SRCS
     data/test_block_iterator.cpp
     data/test_serializer.cpp
     net/test-net-group.cpp
+    net/test-channel-multiplexer.cpp
+    net/test-stream.cpp
     engine/mock-network.cpp
     engine/test_stage_builder.cpp
     # api/test_wordcount.cpp
-    data/test_dia_allocate.cpp
+    # data/test_dia_allocate.cpp
 )
 
 add_executable(c7a-tests ${SRCS})

@@ -11,6 +11,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_NET_NET_DISPATCHER_HEADER
 #define C7A_NET_NET_DISPATCHER_HEADER
 
@@ -43,7 +44,6 @@ public:
     typedef SelectDispatcher Dispatcher;
     //typedef EPollDispatcher Dispatcher;
 
-public:
     //! \name Timeout Callbacks
     //! \{
 
@@ -93,8 +93,9 @@ public:
     typedef std::function<void (Socket& s, const std::string& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
-    void AsyncRead(Socket& s, size_t n, AsyncReadCallback done_cb)
+    virtual void AsyncRead(Socket& s, size_t n, AsyncReadCallback done_cb)
     {
+        LOG << "async read on read dispatcher";
         if (n == 0) {
             if (done_cb) done_cb(s, std::string());
             return;
