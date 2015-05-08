@@ -20,10 +20,10 @@ TEST(WordCount, PreOP) {
 
     using WordPair = std::pair<std::string,int>;
 
-    auto key_ex = [](WordPair in) { return in.first; };
+    auto key = [](WordPair in) { return in.first; };
     auto red_fn = [](WordPair in1, WordPair in2) { return std::make_pair(in1.first, in1.second + in2.second); };
 
-    auto rem_duplicates = doubles.Reduce(key_ex, red_fn);
+    auto rem_duplicates = doubles.ReduceBy(key).With(red_fn);
 
     std::vector<Stage> result;
     FindStages(rem_duplicates.get_node(), result);
