@@ -1,9 +1,14 @@
 /*******************************************************************************
  * c7a/engine/stage_builder.hpp
  *
- * Functions to build stages
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#ifndef C7A_ENGINE_STAGE_BUILDER_HEADER
+#define C7A_ENGINE_STAGE_BUILDER_HEADER
 #pragma once
 
 #include "../api/dia_base.hpp"
@@ -14,26 +19,31 @@
 #include <algorithm>
 #include <set>
 
-namespace c7a { 
+namespace c7a {
+
 namespace engine {
 
-class Stage {
+class Stage
+{
 public:
-    Stage(DIABase* node) : node_(node) {
-        SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;   
+    Stage(DIABase* node) : node_(node)
+    {
+        SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;
     }
-    void Run() {
+    void Run()
+    {
         SpacingLogger(true) << "RUNNING stage " << node_->ToString() << "node" << node_;
-        //GOAL: Make sure the stage is executed efficiently. 
+        //GOAL: Make sure the stage is executed efficiently.
         node_->execute();
-    };
+    }
+
 private:
     DIABase* node_;
 };
 
-
 // Returns a list of stages of graph scope
-inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
+inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
+{
     SpacingLogger(true) << "FINDING stages:";
     std::set<DIABase*> stages_found;
     // GOAL: Returns a vector with stages
@@ -47,7 +57,6 @@ inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
         stages_result.emplace_back(Stage(curr));
         std::vector<DIABase*> parents = curr->get_parents();
         for (DIABase* p : parents) {
-
             if (p && (stages_found.find(p) == stages_found.end())) {
                 dia_stack.push(p);
                 stages_found.insert(p);
@@ -56,8 +65,13 @@ inline void FindStages(DIABase* action, std::vector<Stage> & stages_result) {
         }
     }
 
-    std::reverse(stages_result.begin(),stages_result.end());
-};
+    std::reverse(stages_result.begin(), stages_result.end());
+}
 
+} // namespace engine
 
-}}// !C7A_ENGINE_STAGE_BUILD
+} // namespace c7a
+
+#endif // !C7A_ENGINE_STAGE_BUILDER_HEADER
+
+/******************************************************************************/
