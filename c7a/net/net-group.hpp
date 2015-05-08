@@ -14,31 +14,25 @@
 #ifndef C7A_NET_NET_GROUP_HEADER
 #define C7A_NET_NET_GROUP_HEADER
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <string>
-#include <cstring>
-#include <vector>
-#include <assert.h>
-#include <thread>
-#include <map>
-#include <c7a/net/execution_endpoint.hpp>
+#include <c7a/net/net-endpoint.hpp>
 #include <c7a/net/net-connection.hpp>
-#include <sys/select.h>
+#include <c7a/common/functional.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <map>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 
-typedef unsigned int ClientId;
+//! \addtogroup net Network Communication
+//! \{
 
-//! Simple sum operator
-template <typename T>
-struct SumOp {
-    T operator () (const T& a, const T& b)
-    {
-        return a + b;
-    }
-};
+typedef unsigned int ClientId;
 
 /*!
  * Collection of NetConnections to workers, allow point-to-point client
@@ -46,7 +40,12 @@ struct SumOp {
  */
 class NetGroup
 {
+    static const bool debug = false;
+
 public:
+    //! \name Construction
+    //! \{
+
     //! Construct a mock NetGroup using a complete graph of local stream sockets
     //! for testing, and starts a thread for each client, which gets passed the
     //! NetGroup object. This is ideal for testing network communication
@@ -55,18 +54,25 @@ public:
         size_t num_clients,
         const std::function<void(NetGroup*)>& thread_function);
 
+    //! Construct a remote NetGroup using a list of NetEndpoints of which this
+    //! object will be the my_rank-th item. The NetGroup opens a listening port
+    //! on the my_rank-th NetEndpoint, which hence must be local. If
+    //! construction or any connection fails, a NetException is thrown.
+    NetGroup(ClientId my_rank,
+             const std::vector<NetEndpoint>& endpoints);
+
+    //! \}
+
     //! non-copyable: delete copy-constructor
     NetGroup(const NetGroup&) = delete;
     //! non-copyable: delete assignment operator
     NetGroup& operator = (const NetGroup&) = delete;
 
-    static const bool debug = true;
-
     //! \name Status und Access to NetConnections
     //! \{
 
     //! Return NetConnection to client id.
-    NetConnection & GetConnection(ClientId id)
+    NetConnection & Connection(ClientId id)
     {
         if (id >= connections_.size())
             throw NetException("NetGroup::GetClient() requested "
@@ -87,74 +93,39 @@ public:
         return my_rank_;
     }
 
+    //! Closes all client connections
     void Close()
     {
+        listenSocket_.close();
+
         for (size_t i = 0; i != connections_.size(); ++i)
         {
             if (i == my_rank_) continue;
             connections_[i].Close();
         }
+
+        connections_.clear();
+        my_rank_ = -1;
+    }
+
+    //! Closes all client connections
+    ~NetGroup()
+    {
+        Close();
     }
 
     //! \}
 
-    //! \name Send and Receive Functions
+    //! \name Richer ReceiveFromAny Functions
     //! \{
 
     /*!
-     * Sends a message (data,len) to worker dest, returns status code.
+     * Receive a fixed-length integral type from any worker into out_value, puts
+     * worker id in *src.
      */
-    void SendMsg(ClientId dest, const void* data, size_t len)
-    {
-        LOG << "NetGroup::Send"
-            << " " << my_rank_ << " -> " << dest
-            << " data=" << hexdump(data, len)
-            << " len=" << len;
 
-        if (dest >= connections_.size())
-            throw NetException("NetGroup::Send() requested "
-                               "invalid client id " + std::to_string(dest));
-
-        if (dest == my_rank_)
-            throw NetException("NetGroup::Send() requested to send to self.");
-
-        connections_[dest].SendString(data, len);
-    }
-
-    /*!
-     * Sends a message to worker dest, returns status code.
-     */
-    void SendMsg(ClientId dest, const std::string& message)
-    {
-        return SendMsg(dest, message.data(), message.size());
-    }
-
-    /*!
-     * Receives a message into (data,len) from worker src, returns status code.
-     */
-    void ReceiveFrom(ClientId src, std::string* outdata)
-    {
-        if (src >= connections_.size())
-            throw NetException("NetGroup::ReceiveFrom() requested "
-                               "invalid client id " + std::to_string(src));
-
-        if (src == my_rank_)
-            throw NetException("NetGroup::ReceiveFrom() requested to send to self.");
-
-        LOG << "NetGroup::ReceiveFrom src=" << src;
-
-        connections_[src].ReceiveString(outdata);
-
-        LOG << "done NetGroup::ReceiveFrom"
-            << " " << src << " -> " << my_rank_
-            << " data=" << hexdump(*outdata);
-    }
-
-    /*!
-     * Receives a message from any worker into (data,len), puts worker id in
-     * *src, and returns status code.
-     */
-    void ReceiveFromAny(ClientId* out_src, std::string* out_data)
+    template <typename T>
+    void ReceiveFromAny(ClientId* out_src, T* out_value)
     {
         fd_set fd_set;
         int max_fd = 0;
@@ -164,7 +135,7 @@ public:
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
 
-        sLOG << "--- NetGroup::ReceiveFromAny() - select():";
+        sLOG0 << "--- NetGroup::ReceiveFromAny() - select():";
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
@@ -173,7 +144,7 @@ public:
             int fd = connections_[i].GetFileDescriptor();
             FD_SET(fd, &fd_set);
             max_fd = std::max(max_fd, fd);
-            sLOG << "select from fd=" << fd;
+            sLOG0 << "select from fd=" << fd;
         }
 
         int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
@@ -198,13 +169,70 @@ public:
                 sLOG << "select() readable fd" << fd;
 
                 *out_src = i;
-                return ReceiveFrom(i, out_data);
+                return connections_[i].Receive<T>(out_value);
             }
         }
 
         sLOG << "Select() returned but no fd was readable.";
 
-        return ReceiveFromAny(out_src, out_data);
+        return ReceiveFromAny<T>(out_src, out_value);
+    }
+
+    /*!
+     * Receives a string message from any worker into out_data, which will be
+     * resized as needed, puts worker id in *src.
+     */
+    void ReceiveStringFromAny(ClientId* out_src, std::string* out_data)
+    {
+        fd_set fd_set;
+        int max_fd = 0;
+
+        FD_ZERO(&fd_set);
+
+        // add file descriptor to read set for poll TODO(ts): make this faster
+        // (somewhen)
+
+        sLOG0 << "--- NetGroup::ReceiveFromAny() - select():";
+
+        for (size_t i = 0; i != connections_.size(); ++i)
+        {
+            if (i == my_rank_) continue;
+
+            int fd = connections_[i].GetFileDescriptor();
+            FD_SET(fd, &fd_set);
+            max_fd = std::max(max_fd, fd);
+            sLOG0 << "select from fd=" << fd;
+        }
+
+        int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
+
+        if (retval < 0) {
+            perror("select()");
+            abort();
+        }
+        else if (retval == 0) {
+            perror("select() TIMEOUT");
+            abort();
+        }
+
+        for (size_t i = 0; i < connections_.size(); i++)
+        {
+            if (i == my_rank_) continue;
+
+            int fd = connections_[i].GetFileDescriptor();
+
+            if (FD_ISSET(fd, &fd_set))
+            {
+                sLOG << my_rank_ << "- select() readable fd" << fd << "id" << i;
+
+                *out_src = i;
+                return connections_[i].ReceiveString(out_data);
+            }
+        }
+
+        sLOG << my_rank_ << " - Select() returned but no fd was readable.";
+
+        return ReceiveStringFromAny(out_src, out_data);
     }
 
     //! \}
@@ -226,68 +254,14 @@ protected:
     { }
 
 private:
-    Socket listenSocket_ = Socket::Create();
-    struct sockaddr_in serverAddress_;
-
     //! The client id of this object in the NetGroup.
-    const ClientId my_rank_;
+    ClientId my_rank_;
 
     //! Connections to all other clients in the NetGroup.
     std::vector<NetConnection> connections_;
 
-    // int OpenConnections()
-    // {
-    //     struct sockaddr clientAddress;
-    //     socklen_t clientAddressLen;
-
-    //     SocketAddress sa(serverAddress_
-
-    //     serverAddress_.sin_family = AF_INET;
-    //     serverAddress_.sin_addr.s_addr = INADDR_ANY;
-    //     //serverAddress_.sin_port = htons(endpoints[my_rank_].port);
-
-    //     if (my_rank_ > 0)
-    //     {
-    //         if (!listenSocket_.bind(sa))
-    //             return NET_SERVER_INIT_FAILED;
-
-    //         listenSocket_.listen();
-
-    //         //Accept connections of all hosts with lower ID.
-    //         for (unsigned int i = 0; i < my_rank_; i++) {
-    //             int fd = accept(serverSocket_, &clientAddress, &clientAddressLen);
-
-    //             if (fd <= 0) {
-    //                 return NET_SERVER_ACCEPT_FAILED;
-    //             }
-    //             //Hosts will always connect in Order.
-    //             connections_[i] = new NetConnection(fd, i);
-    //         }
-    //     }
-    //     //shutdown(serverSocket_, SHUT_WR);
-
-    //     //Connect to all hosts with larger ID (in order).
-    //     for (unsigned int i = my_rank_ + 1; i < endpoints.size(); i++) {
-    //         NetConnection* client = new NetConnection(i);
-    //         //Wait until server opens.
-    //         int ret = 0;
-    //         do {
-    //             ret = client->Connect(endpoints[i].hostport);
-    //             if (ret == NET_CONNECTION_CONNECT_FAILED) {
-    //                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    //             }
-    //             else if (ret != NET_CONNECTION_SUCCESS) {
-    //                 return NET_SERVER_CONNECTION_FAILED;
-    //             }
-    //         } while (ret == NET_CONNECTION_CONNECT_FAILED);
-    //         connections_[i] = client;
-    //     }
-
-    //     connections_[my_rank_] = NULL;
-
-    //     //We finished connecting. :)
-    //     return NET_SERVER_SUCCESS;
-    // }
+    //! Socket on which to listen for incoming connections.
+    Socket listenSocket_;
 };
 
 template <typename T, typename BinarySumOp>
@@ -300,7 +274,7 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
     {
         // Send value to worker with id = id XOR d
         if ((this->MyRank() ^ d) < this->Size()) {
-            this->GetConnection(this->MyRank() ^ d).Send(value);
+            this->Connection(this->MyRank() ^ d).Send(value);
             std::cout << "LOCAL: Worker " << this->MyRank() << ": Sending " << value
                       << " to worker " << (this->MyRank() ^ d) << "\n";
         }
@@ -308,7 +282,7 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
         // Receive value from worker with id = id XOR d
         T recv_data;
         if ((this->MyRank() ^ d) < this->Size()) {
-            this->GetConnection(this->MyRank() ^ d).Receive(&recv_data);
+            this->Connection(this->MyRank() ^ d).Receive(&recv_data);
             value = sum_op(value, recv_data);
             std::cout << "LOCAL: Worker " << this->MyRank() << ": Received " << recv_data
                       << " from worker " << (this->MyRank() ^ d)
@@ -318,6 +292,8 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
 
     std::cout << "LOCAL: value after all reduce " << value << "\n";
 }
+
+//! \}
 
 } // namespace c7a
 

@@ -1,28 +1,27 @@
+// -*- mode: c++; mode: visual-line; mode: flyspell; fill-column: 100000 -*-
 /*******************************************************************************
- * c7a/net/communication_manager.cpp
+ * doc/main.dox
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "communication_manager.hpp"
-
 namespace c7a {
 
-void CommunicationManager::Initialize(const std::vector<NetEndpoint>& /* endpoints */)
-{ }
+/******************************************************************************/
+/** \mainpage The Project c7a Documentation
 
-SystemControlChannel* CommunicationManager::GetSystemControlChannel()
-{
-    return NULL;
-}
+- \subpage net
 
-// FlowControlChannel* CommunicationManager::GetFlowControlChannel()
-// {
-//     return NULL;
-// }
+- \subpage common
+
+- \subpage api
+
+
+*/
 
 } // namespace c7a
 

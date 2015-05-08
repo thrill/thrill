@@ -13,68 +13,120 @@
 #ifndef C7A_NET_SELECT_HEADER
 #define C7A_NET_SELECT_HEADER
 
-#include <c7a/net/socket.hpp>
-
-#include <vector>
 #include <sys/select.h>
+
+#include <algorithm>
 
 namespace c7a {
 
+//! \addtogroup netsock Low Level Socket API
+//! \{
+
 /**
  * Select is an object-oriented wrapper for select(). It takes care of the
- * socket list, bit-fields, etc.
+ * bit-fields, etc.
  */
 class Select
 {
-    static const bool debug = true;
-
 public:
-    //! Create an empty select() object
+    //! constructor
     Select()
-    { }
+    {
+        FD_ZERO(&read_set_);
+        FD_ZERO(&write_set_);
+        FD_ZERO(&except_set_);
+    }
 
-    //! Create a select() object and add the first socket
-    Select(Socket& s1)
-    { Add(s1); }
+    //! Add a socket to the read and exception selection set
+    Select & SetRead(int fd)
+    {
+        assert(fd >= 0);
+        FD_SET(fd, &read_set_);
+        max_fd_ = std::max(max_fd_, fd);
+        return *this;
+    }
 
-    //! Create a select() object and add the first two sockets
-    Select(Socket& s1, Socket& s2)
-    { Add(s1), Add(s2); }
+    //! Add a socket to the write and exception selection set
+    Select & SetWrite(int fd)
+    {
+        assert(fd >= 0);
+        FD_SET(fd, &write_set_);
+        max_fd_ = std::max(max_fd_, fd);
+        return *this;
+    }
 
-private:
-    //! typedef of the list used for the sockets
-    typedef std::vector<Socket*> socketlist_type;
+    //! Add a socket to the exception selection set
+    Select & SetException(int fd)
+    {
+        assert(fd >= 0);
+        FD_SET(fd, &except_set_);
+        max_fd_ = std::max(max_fd_, fd);
+        return *this;
+    }
 
-    //! list of sockets in this select() group
-    std::vector<Socket*> socketlist_;
+    //! Check if a file descriptor is in the resulting read set.
+    bool InRead(int fd) const
+    { return FD_ISSET(fd, &read_set_); }
 
+    //! Check if a file descriptor is in the resulting Write set.
+    bool InWrite(int fd) const
+    { return FD_ISSET(fd, &write_set_); }
+
+    //! Check if a file descriptor is in the resulting exception set.
+    bool InException(int fd) const
+    { return FD_ISSET(fd, &except_set_); }
+
+    //! Clear a file descriptor from the read set
+    Select & ClearRead(int fd)
+    { FD_CLR(fd, &read_set_); return *this; }
+
+    //! Clear a file descriptor from the write set
+    Select & ClearWrite(int fd)
+    { FD_CLR(fd, &write_set_); return *this; }
+
+    //! Clear a file descriptor from the exception set
+    Select & ClearException(int fd)
+    { FD_CLR(fd, &except_set_); return *this; }
+
+    //! Clear a file descriptor from all sets
+    Select & Clear(int fd)
+    { return ClearRead(fd).ClearWrite(fd).ClearException(fd); }
+
+    //! Do a select(), which modifies the enclosed file descriptor objects.
+    int select(struct timeval* timeout = NULL)
+    {
+        return ::select(max_fd_ + 1,
+                        &read_set_, &write_set_, &except_set_, timeout);
+    }
+
+    //! Do a select() with timeout
+    int select_timeout(double timeout)
+    {
+        if (timeout == INFINITY)
+            return select(NULL);
+        else {
+            struct timeval tv;
+            tv.tv_sec = static_cast<long>(timeout);
+            tv.tv_usec = (timeout - tv.tv_sec) * 1e6;
+            return select(&tv);
+        }
+    }
+
+protected:
     //! read bit-field
-    fd_set readset_;
+    fd_set read_set_;
 
     //! write bit-field
-    fd_set writeset_;
+    fd_set write_set_;
 
     //! exception bit-field
-    fd_set exceptset_;
+    fd_set except_set_;
 
-    //! time elapsed during last select() call
-    unsigned int elapsed_ = 0;
-
-public:
-    //! Add a socket to the selection set
-    void Add(Socket& socket)
-    { socketlist_.push_back(&socket); }
-
-    //! Do a select() and return the first pending socket, or NULL if a timeout
-    //! occurred. Wait for maximum msec milliseconds. Only select() the readable
-    //! or writable sockets if set.
-    Socket * SelectOne(int msec, bool readable, bool writable);
-
-    //! Return the time elapsed during the last select() call on this object
-    //! @return time in msec
-    unsigned int elapsed()
-    { return elapsed_; }
+    //! maximum file descriptor value in bitsets
+    int max_fd_ = 0;
 };
+
+//! \}
 
 } // namespace c7a
 

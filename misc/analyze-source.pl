@@ -157,6 +157,8 @@ sub process_cpp {
 
     # check source header
     my $i = 0;
+    if ($data[$i] =~ m!// -.*- mode:!) { ++$i; } # skip emacs mode line
+
     expect($path, $i, @data, "/".('*'x79)."\n"); ++$i;
     expectr($path, $i, @data, " * $path\n", qr/^ \* /); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
@@ -330,6 +332,12 @@ foreach my $arg (@ARGV) {
 (-e "c7a/CMakeLists.txt")
     or die("Please run this script in the C7A source base directory.");
 
+# check uncrustify's version:
+my ($uncrustver) = filter_program("", "uncrustify", "--version");
+($uncrustver eq "uncrustify 0.61\n")
+    or die("Requires uncrustify 0.61 to run correctly. ".
+           "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
+
 use File::Find;
 my @filelist;
 find(sub { !-d && push(@filelist, $File::Find::name) }, ".");
@@ -342,6 +350,9 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!^extlib/!) {
         # skip external libraries
+    }
+    elsif ($file =~ /^doc\//) {
+        process_cpp($file);
     }
     elsif ($file =~ /^(c7a|tests)\/(common|net)\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
