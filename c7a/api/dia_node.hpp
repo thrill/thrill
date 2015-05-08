@@ -1,8 +1,12 @@
 /*******************************************************************************
  * c7a/api/dia_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
 #ifndef C7A_API_DIA_NODE_HEADER
 #define C7A_API_DIA_NODE_HEADER
 
@@ -14,6 +18,7 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -88,9 +93,10 @@ protected:
         }
     }
 };
-} // namespace c7a
 
 //! \}
+
+} // namespace c7a
 
 #endif // !C7A_API_DIA_NODE_HEADER
 

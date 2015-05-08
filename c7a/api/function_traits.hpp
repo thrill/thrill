@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/api/function_traits.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_API_FUNCTION_TRAITS_HEADER

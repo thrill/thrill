@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/api/context.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_API_CONTEXT_HEADER
@@ -15,6 +18,7 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
+
 class Context
 {
 public:
@@ -29,6 +33,7 @@ public:
 private:
     data::DataManager data_manager_;
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER

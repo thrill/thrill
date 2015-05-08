@@ -2,7 +2,15 @@
  * c7a/api/dia_base.hpp
  *
  * Untyped super class of DIANode. Used to build the execution graph.
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
+#ifndef C7A_API_DIA_BASE_HEADER
+#define C7A_API_DIA_BASE_HEADER
 #pragma once
 
 #include <vector>
@@ -11,6 +19,7 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -103,6 +112,9 @@ protected:
 };
 
 //! \}
+
 } // namespace c7a
+
+#endif // !C7A_API_DIA_BASE_HEADER
 
 /******************************************************************************/
