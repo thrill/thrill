@@ -1,7 +1,10 @@
 /*******************************************************************************
  * c7a/api/lop_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_API_LOP_NODE_HEADER
@@ -12,20 +15,22 @@
 namespace c7a {
 
 template <typename T, typename LOpFunction>
-class LOpNode : public DIANode<T> {
+class LOpNode : public DIANode<T>
+{
 public:
-    LOpNode(data::DataManager &data_manager, 
-            const std::vector<DIABase*>& parents, 
-            LOpFunction lop_function) 
-        : DIANode<T>(data_manager, parents), 
-        lop_function_(lop_function) {};
-    virtual ~LOpNode() {}
+    LOpNode(data::DataManager& data_manager,
+            const std::vector<DIABase*>& parents,
+            LOpFunction lop_function)
+        : DIANode<T>(data_manager, parents),
+          lop_function_(lop_function) { }
+    virtual ~LOpNode() { }
 
-    void execute() {};
+    void execute() { }
 
-    std::string ToString() override {
+    std::string ToString() override
+    {
         // Create string
-        std::string str 
+        std::string str
             = std::string("[LOpNode]");
         return str;
     }

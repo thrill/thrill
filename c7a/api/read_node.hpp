@@ -2,6 +2,11 @@
  * c7a/api/read_node.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_API_READ_NODE_HEADER
@@ -13,6 +18,7 @@
 #include <string>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -98,6 +104,7 @@ private:
     //! Path of the input file.
     std::string path_in_;
 };
+
 } // namespace c7a
 
 //! \}
