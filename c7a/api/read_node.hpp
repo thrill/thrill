@@ -2,8 +2,14 @@
  * c7a/api/read_node.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_READ_NODE_HEADER
 #define C7A_API_READ_NODE_HEADER
 
@@ -13,6 +19,7 @@
 #include <string>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -36,7 +43,7 @@ public:
     * \param path_in Path of the input file
     */
     ReadNode(Context& ctx,
-             const std::vector<DIABase*>& parents,
+             const DIABaseVector& parents,
              ReadFunction read_function,
              std::string path_in)
         : DOpNode<T>(ctx, parents),
@@ -60,8 +67,7 @@ public:
 
         std::string line;
         while (iter.HasNext()) {
-            SpacingLogger(true) << iter.Next();
-            //emit(read_function_(iter.Next()));
+            emit(read_function_(iter.Next()));
         }
     }
 
@@ -88,7 +94,7 @@ public:
     {
         // Create string
         std::string str
-            = std::string("[ReadNode]");
+            = std::string("[ReadNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
 
@@ -98,6 +104,7 @@ private:
     //! Path of the input file.
     std::string path_in_;
 };
+
 } // namespace c7a
 
 //! \}

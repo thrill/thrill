@@ -2,15 +2,25 @@
  * c7a/api/dia_base.hpp
  *
  * Untyped super class of DIANode. Used to build the execution graph.
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
+
 #pragma once
+#ifndef C7A_API_DIA_BASE_HEADER
+#define C7A_API_DIA_BASE_HEADER
 
 #include <vector>
 #include <string>
 #include "context.hpp"
+#include "types.hpp"
 #include "../data/data_manager.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -27,8 +37,6 @@ namespace c7a {
 class DIABase
 {
 public:
-    typedef std::vector<DIABase*> DIABaseVector;
-
     /*!
      * The constructor for a DIABase. Sets the DataManager and the
      * associated DIAId.
@@ -81,7 +89,7 @@ public:
 
     //! Adds a child to the vector of childs. This method is called in the constructor.
     //! \param child The child to add.
-    void add_child(DIABase* child)
+    void add_child(DIABasePtr child)
     {
         childs_.push_back(child);
     }
@@ -103,6 +111,9 @@ protected:
 };
 
 //! \}
+
 } // namespace c7a
+
+#endif // !C7A_API_DIA_BASE_HEADER
 
 /******************************************************************************/
