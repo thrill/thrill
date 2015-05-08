@@ -14,8 +14,11 @@
 #include <vector>
 #include <stdexcept>
 #include <cstddef>
+
 #include "c7a/api/function_traits.hpp"
 
+//TODO:Remove when we have block manager
+#include "c7a/data/data_manager.hpp"
 
 namespace c7a {
 namespace engine {
@@ -45,7 +48,9 @@ using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
 public:
 
-    HashTable(std::size_t p_n, KeyExtractor key_extractor, ReduceFunction f_reduce) : 
+  HashTable(std::size_t p_n, KeyExtractor key_extractor,
+	    ReduceFunction f_reduce, data::BlockEmitter<value_t> emit) :
+      emit_(emit),
       f_red(f_reduce),
       key_extractor(key_extractor)  
         {
@@ -156,13 +161,18 @@ public:
                 LOG << "key appendend, metrics updated!";
             }
         }
+	
+	if (p_items_total_size > size_threshhold) {
+	  LOG << "spilling in progress";
+	  PopLargestSubtable();
+	}	
     }
 
     /*!
      * Returns a vector containing all items belonging to the partition
      * having the most items.
      */
-    std::vector<value_t> pop() {
+    void PopLargestSubtable() {
 
         // get partition with max size
         int p_size_max = 0;
@@ -184,12 +194,11 @@ public:
             << p_idx*p_size+p_size-1;
 
         // retrieve items
-        std::vector<value_t> items;
         for (int i=p_idx*p_size; i<=p_idx*p_size+p_size-1; i++) {
             if (a[i] != nullptr) {
                 node<key_t, value_t> *curr_node = a[i];
                 do {
-                    items.push_back(curr_node->value);
+		    emit_(curr_node->value);
                     curr_node = curr_node->next;
                 } while (curr_node != nullptr);
                 a[i] = nullptr;
@@ -201,7 +210,7 @@ public:
         // reset total counter
         p_items_total_size -=p_size_max;
 
-        return items;
+        //do not return items;
     }
 
     /*!
@@ -285,6 +294,8 @@ public:
 
 private:
 
+    int size_threshhold = 3;
+
     int p_num = 0; // partition size
 
     int p_size = 0; // num buckets per partition
@@ -298,6 +309,9 @@ private:
     KeyExtractor key_extractor;
 
     ReduceFunction f_red;
+
+  //TODO:Network-Emitter when it's there (:
+  data::BlockEmitter<value_t> emit_;
 
     node<key_t, value_t> *a[b_size] = { nullptr }; // TODO: fix this static assignment
 

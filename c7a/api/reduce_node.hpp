@@ -117,18 +117,21 @@ private:
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
         data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(pid);
-
         // //run local reduce
-        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+        
         //std::unordered_map<key_t, T> reduce_data;
 
         //TODO get number of worker by net-group or something similar
         //TODO make a static getter for this
         int number_worker = 1;
       
-        engine::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_);
+	data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
+
+
+        engine::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_, emit);
 
         std::vector<reduce_arg_t> elements;
+
         auto save_fn = [&elements](reduce_arg_t input) {
                            elements.push_back(input);
                        };
@@ -139,23 +142,17 @@ private:
             lop_chain(it.Next());
         }
 
+	
+
         for (auto item : elements) {
+	  
 	    reduce_data.insert(item);
-        }
+	  
+	}
 
-	auto popped = reduce_data.pop();
-
-	std::cout << "Size: " << popped.size() << std::endl;
-
-	/*      //TODO use network emitter in future
-        std::vector<data::BlockEmitter<T> > emit_array;
-        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
-        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
-            std::hash<T> t_hash;
-            auto hashed = t_hash(it->second) % number_worker;
-            // TODO When emitting and the real network emitter is there, hashed is needed to emit
-            emit(it->second);
-	    }*/
+	
+	//auto popped = reduce_data.pop();
+	//std::cout << "Size: " << popped.size() << std::endl;
     }
 
     //!Recieve elements from other workers.
