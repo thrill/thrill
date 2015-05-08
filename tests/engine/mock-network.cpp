@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * tests/engine/mock-network.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
 #include "gtest/gtest.h"
 #include "c7a/engine/mock-network.hpp"
 
@@ -22,3 +31,5 @@ TEST(TestMockNetwork, TestMockNetwork)
     ASSERT_EQ(out_sender, 10);
     ASSERT_EQ(out_data, "hello this is client 10 -> 1");
 }
+
+/******************************************************************************/

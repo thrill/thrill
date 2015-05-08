@@ -1,6 +1,10 @@
 /*******************************************************************************
  * c7a/data/data_manager.hpp
  *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_DATA_DATA_MANAGER_HEADER
@@ -16,7 +20,9 @@
 #include "input_line_iterator.hpp"
 
 namespace c7a {
+
 namespace data {
+
 //! Identification for DIAs
 typedef int DIAId;
 
@@ -97,8 +103,10 @@ private:
     //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
     std::vector<std::vector<Blob> > data_;
 };
-}
-}
+
+} // namespace data
+
+} // namespace c7a
 
 #endif // !C7A_DATA_DATA_MANAGER_HEADER
 

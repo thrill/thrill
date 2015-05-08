@@ -143,7 +143,9 @@ sub process_cpp {
     my @data = <F>;
     close(F);
 
-    push(@source_filelist, $path);
+    unless ($path =~ /\.dox$/) {
+        push(@source_filelist, $path);
+    }
 
     my @origdata = @data;
 
@@ -233,7 +235,7 @@ sub process_cpp {
                 splice(@data, $i+1, 0, "\n");
                 ++$namespace;
             }
-            if ($data[$i] =~ m!^} // namespace!) {
+            if ($data[$i] =~ m!^}\s+// namespace!) {
                 splice(@data, $i, 0, "\n"); ++$i;
                 --$namespace;
             }
@@ -351,10 +353,7 @@ foreach my $file (@filelist)
     elsif ($file =~ m!^extlib/!) {
         # skip external libraries
     }
-    elsif ($file =~ /^doc\//) {
-        process_cpp($file);
-    }
-    elsif ($file =~ /^(c7a|tests)\/(common|net|api)\/.*\.(h|cpp|hpp|h.in)$/) {
+    elsif ($file =~ /^(c7a|doc|tests|examples)\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
     }
     elsif ($file =~ /\.(pl|pro)$/) {
