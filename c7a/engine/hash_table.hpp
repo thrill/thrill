@@ -80,10 +80,10 @@ public:
     {
         key_t key = key_extractor(p);
 
-        h_result h = hash(key);
+        h_result h = hash(std::to_string(key));
 
         LOG << "key: "
-            << p.first
+            << key
             << " to idx: "
             << h.global_idx;
 
@@ -122,16 +122,7 @@ public:
                         << curr_node->key
                         << " ... reducing...";
 
-                    // reduce
-                    LOG << "before reduce: "
-                        << curr_node->value.second
-                        << " and "
-                        << p.second;
-
                     (*curr_node).value = f_red(curr_node->value, p);
-
-                    LOG << "after reduce: "
-                        << curr_node->value.second;
 
                     LOG << "...finished reduce!";
 
