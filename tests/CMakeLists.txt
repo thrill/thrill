@@ -4,45 +4,40 @@
 # CMake file for c7a testsuite
 ################################################################################
 
-# macro GTEST_ADD_TESTS taken from FindGTests.cmake
-# Thanks to Daniel Blezek <blezek@gmail.com> for the GTEST_ADD_TESTS code
-function(GTEST_ADD_TESTS executable extra_args)
-  if(NOT ARGN)
-    message(FATAL_ERROR "Missing ARGN: Read the documentation for GTEST_ADD_TESTS")
-  endif()
-  foreach(source ${ARGN})
-    file(READ "${source}" contents)
-    string(REGEX MATCHALL "TEST_?F?\\(([A-Za-z_0-9 ,]+)\\)" found_tests ${contents})
-    foreach(hit ${found_tests})
-      string(REGEX
-        REPLACE ".*\\( *([A-Za-z_0-9]+), *([A-Za-z_0-9]+) *\\).*" "\\1.\\2"
-        test_name ${hit})
-      add_test(${test_name} ${executable} --gtest_filter=${test_name} ${extra_args})
-    endforeach()
-  endforeach()
-endfunction()
+set(C7A_LIBRARIES c7a gtest gmock pthread)
 
-set(SRCS
-    c7a-tests.cpp
-    api/test_simple_api.cpp
-    data/test_data_manager.cpp
-    data/test_block_iterator.cpp
-    data/test_serializer.cpp
-    net/test-net-group.cpp
-    net/test-channel-multiplexer.cpp
-    net/test-stream.cpp
-    engine/mock-network.cpp
-    engine/test_stage_builder.cpp
-    # api/test_wordcount.cpp
-    # data/test_dia_allocate.cpp
-)
+# macro for building test programs
+macro(build_only PROGNAME)
 
-add_executable(c7a-tests ${SRCS})
+  string(REPLACE "/" "-" TESTNAME "${PROGNAME}") # replace slashes
 
-target_link_libraries(c7a-tests
-  c7a gtest gmock pthread
-)
+  add_executable(${TESTNAME} c7a-tests.cpp ${PROGNAME}.cpp ${ARGN})
+  target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
 
-GTEST_ADD_TESTS(c7a-tests "${CMAKE_CURRENT_SOURCE_DIR}" ${SRCS})
+endmacro(build_only)
+
+# macro for building and running test programs
+macro(build_test PROGNAME)
+
+  build_only(${PROGNAME})
+
+  string(REPLACE "/" "-" TESTNAME "${PROGNAME}") # replace slashes
+  add_test(${TESTNAME} ${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
+
+endmacro(build_test)
+
+### list of tests in subdirectories
+
+build_test(api/test_simple_api)
+#build_only(api/test_wordcount)
+build_test(data/test_data_manager)
+build_test(data/test_block_iterator)
+#build_test(data/test_dia_allocate)
+build_test(data/test_serializer)
+build_test(engine/mock-network)
+build_test(engine/test_stage_builder)
+build_test(net/test-net-group)
+build_test(net/test-channel-multiplexer)
+build_test(net/test-stream)
 
 ################################################################################
