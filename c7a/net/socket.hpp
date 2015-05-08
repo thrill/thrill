@@ -10,6 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_NET_SOCKET_HEADER
 #define C7A_NET_SOCKET_HEADER
 
@@ -94,7 +95,7 @@ public:
     { return fd_ >= 0; }
 
     //! Return the associated file descriptor
-    int GetFileDescriptor() const
+    virtual int GetFileDescriptor() const
     { return fd_; }
 
     //! Query socket for its current error state.
@@ -344,7 +345,7 @@ public:
     }
 
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
+    virtual ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
     {
         LOG << "Socket::recv_one()"
             << " fd_=" << fd_
@@ -362,7 +363,7 @@ public:
     }
 
     //! Receive (data,size) from socket, retry recvs if short-reads occur.
-    ssize_t recv(void* outdata, size_t size, int flags = 0)
+    virtual ssize_t recv(void* outdata, size_t size, int flags = 0)
     {
         LOG << "Socket::recv()"
             << " fd_=" << fd_
@@ -451,6 +452,7 @@ public:
     //! sent as soon as possible, even if there is only a small amount of data.
     void SetNoDelay(bool activate = true);
 
+    bool operator == (const Socket& s) const;
     //! \}
 
 protected:

@@ -1,11 +1,20 @@
+/*******************************************************************************
+ * tests/data/test_data_manager.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
 #include "gtest/gtest.h"
 #include "c7a/data/data_manager.hpp"
 
 using namespace c7a::data;
 
-struct DataManagerFixture : public ::testing::Test {
+struct DataManagerFixture : public::testing::Test {
     DataManager manager;
-    DIAId id = manager.AllocateDIA();
+    DIAId       id = manager.AllocateDIA();
 };
 
 TEST_F(DataManagerFixture, GetLocalBlock_FailsIfNotFound) {
@@ -42,7 +51,6 @@ TEST_F(DataManagerFixture, AllocateMultiple) {
     auto id5 = manager.AllocateDIA();
 }
 
-
 TEST_F(DataManagerFixture, EmittAndIterate_ConcurrentAccess) {
     auto id = manager.AllocateDIA();
     auto emitFn = manager.GetLocalEmitter<int>(id);
@@ -55,3 +63,5 @@ TEST_F(DataManagerFixture, EmittAndIterate_ConcurrentAccess) {
     ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(22, it.Next());
 }
+
+/******************************************************************************/
