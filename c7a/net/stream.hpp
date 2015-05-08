@@ -27,8 +27,7 @@ struct StreamBlockHeader {
     void        ParseBoundaries(const std::string& buffer)
     {
         if (num_elements > 0) {
-            size_t offset = 2 * sizeof(size_t);
-            memcpy(boundaries, buffer.c_str() + offset, sizeof(size_t) * num_elements);
+            memcpy(boundaries, buffer.c_str(), sizeof(size_t) * num_elements);
         }
     }
 
