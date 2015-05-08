@@ -42,9 +42,11 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesIdAndNumElements) {
 
 TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesBoundaries) {
     auto seri = candidate.Serialize();
+    std::string part1 = seri.substr(0, sizeof(size_t) * 2);
+    std::string part2 = seri.substr(part1.length(), seri.length() - part1.length());
     struct StreamBlockHeader result;
-    result.ParseIdAndNumElem(seri);
-    result.ParseBoundaries(seri);
+    result.ParseIdAndNumElem(part1);
+    result.ParseBoundaries(part2);
 
     ASSERT_EQ(22, result.boundaries[0]);
     ASSERT_EQ(23, result.boundaries[1]);
