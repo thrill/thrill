@@ -23,8 +23,8 @@ TEST(NetGroup, InitializeAndClose) {
     NetGroup::ExecuteLocalMock(6, [](NetGroup*) { });
 }
 
-static void ThreadInitializeAsyncRead(NetGroup* net) {
-
+static void ThreadInitializeAsyncRead(NetGroup* net)
+{
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i != net->Size(); ++i)
     {
@@ -35,10 +35,11 @@ static void ThreadInitializeAsyncRead(NetGroup* net) {
     size_t received = 0;
     NetDispatcher dispatcher;
 
-    NetDispatcher::AsyncReadCallback callback = [net, &received](Socket& s, const std::string& buffer) {
-        ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
-        received++;
-    };
+    NetDispatcher::AsyncReadCallback callback =
+        [net, &received](Socket& s, const std::string& buffer) {
+            ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
+            received++;
+        };
 
     // add async reads to net dispatcher
     for (size_t i = 0; i != net->Size(); ++i)
@@ -47,11 +48,9 @@ static void ThreadInitializeAsyncRead(NetGroup* net) {
         dispatcher.AsyncRead(net->Connection(i).GetSocket(), sizeof(size_t), callback);
     }
 
-    while(received < net->Size() - 1) {
+    while (received < net->Size() - 1) {
         dispatcher.Dispatch();
     }
-
-
 }
 
 static void ThreadInitializeSendReceive(NetGroup* net)
@@ -154,10 +153,9 @@ TEST(NetGroup, RealInitializeSendReceive) {
     RealNetGroupConstructAndCall(ThreadInitializeSendReceive);
 }
 
-
 TEST(NetGroup, RealInitializeSendReceiveAsync) {
     // Construct a real NetGroup of 6 workers which execute the thread function
-    // which sends and receives asynchronous messages between all workers. 
+    // which sends and receives asynchronous messages between all workers.
     RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
 

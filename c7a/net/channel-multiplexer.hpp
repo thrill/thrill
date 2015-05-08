@@ -1,3 +1,14 @@
+/*******************************************************************************
+ * c7a/net/channel-multiplexer.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+#ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+#define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 #pragma once
 
 #include <memory> //std::shared_ptr
@@ -5,7 +16,9 @@
 #include <c7a/net/channel.hpp>
 
 namespace c7a {
+
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -54,5 +67,11 @@ private:
     //! channel or creates a new channel
     void ReadFirstHeaderPartFrom(Socket& s, const std::string& buffer);
 };
-}
-}
+
+} // namespace net
+
+} // namespace c7a
+
+#endif // !C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+
+/******************************************************************************/

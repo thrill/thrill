@@ -1,9 +1,20 @@
+/*******************************************************************************
+ * c7a/net/channel-multiplexer.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
 #include "channel-multiplexer.hpp"
 #include <c7a/common/logger.hpp>
 #include <cassert>
 
 namespace c7a {
+
 namespace net {
+
 ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections)
     : dispatcher_(dispatcher),
       num_connections_(num_connections) { }
@@ -49,5 +60,9 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(Socket& s, const std::string& b
 
     channel->PickupStream(s, header);
 }
-}
-}
+
+} // namespace net
+
+} // namespace c7a
+
+/******************************************************************************/

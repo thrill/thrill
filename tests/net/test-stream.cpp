@@ -68,3 +68,5 @@ TEST_F(StreamTest, StreamBlockHeaderIsStreamEnd) {
     candidate.num_elements = 0;
     ASSERT_TRUE(candidate.IsStreamEnd());
 }
+
+/******************************************************************************/
