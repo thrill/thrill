@@ -21,7 +21,7 @@
 #include "c7a/data/data_manager.hpp"
 
 namespace c7a {
-namespace engine {
+namespace core {
 
 struct h_result {
     std::size_t p_id; // which partition
@@ -152,11 +152,12 @@ public:
                 LOG << "key appendend, metrics updated!";
             }
         }
-	
-	if (p_items_total_size > size_threshhold) {
-	  LOG << "spilling in progress";
-	  PopLargestSubtable();
-	}	
+
+        // TODO should be externally configureably somehow
+        if (p_items_total_size > size_threshhold) {
+            LOG << "spilling in progress";
+            PopLargestSubtable();
+        }
     }
 
     /*!
@@ -189,7 +190,7 @@ public:
             if (a[i] != nullptr) {
                 node<key_t, value_t> *curr_node = a[i];
                 do {
-		    emit_(curr_node->value);
+		            emit_(curr_node->value);
                     curr_node = curr_node->next;
                 } while (curr_node != nullptr);
                 a[i] = nullptr;
@@ -200,8 +201,6 @@ public:
         p_items_size[p_idx] = 0;
         // reset total counter
         p_items_total_size -=p_size_max;
-
-        //do not return items;
     }
 
     /*!
@@ -301,8 +300,8 @@ private:
 
     ReduceFunction f_red;
 
-  //TODO:Network-Emitter when it's there (:
-  data::BlockEmitter<value_t> emit_;
+    //TODO:Network-Emitter when it's there (:
+    data::BlockEmitter<value_t> emit_;
 
     node<key_t, value_t> *a[b_size] = { nullptr }; // TODO: fix this static assignment
 
