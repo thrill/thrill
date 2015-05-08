@@ -13,6 +13,7 @@
 #include "context.hpp"
 #include "function_stack.hpp"
 #include "../common/logger.hpp"
+#include "../engine/hash_table.hpp"
 
 namespace c7a {
 //! \addtogroup api Interface
@@ -119,7 +120,13 @@ private:
 
         // //run local reduce
         using key_t = typename FunctionTraits<KeyExtractor>::result_type;
-        std::unordered_map<key_t, T> reduce_data;
+        //std::unordered_map<key_t, T> reduce_data;
+
+        //TODO get number of worker by net-group or something similar
+        //TODO make a static getter for this
+        int number_worker = 1;
+
+        engine::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_);
 
         std::vector<reduce_arg_t> elements;
         auto save_fn = [&elements](reduce_arg_t input) {
@@ -133,31 +140,18 @@ private:
         }
 
         for (auto item : elements) {
-            key_t key = key_extractor_(item);
-            auto elem = reduce_data.find(key);
-            // SpacingLogger(true) << item;
-
-            // is there already an element with same key?
-            if (elem != reduce_data.end()) {
-                auto new_elem = reduce_function_(item, elem->second);
-                reduce_data.at(key) = new_elem;
-            }
-            else {
-                reduce_data.insert(std::make_pair(key, item));
-            }
+            reduce_data.insert(item);
         }
 
-        //TODO get number of worker by net-group or something similar
-        int number_worker = 1;
         //TODO use network emitter in future
-        std::vector<data::BlockEmitter<T> > emit_array;
+        /*std::vector<data::BlockEmitter<T> > emit_array;
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
             std::hash<T> t_hash;
             auto hashed = t_hash(it->second) % number_worker;
             // TODO When emitting and the real network emitter is there, hashed is needed to emit
             emit(it->second);
-        }
+        }*/
     }
 
     //!Recieve elements from other workers.
@@ -166,34 +160,34 @@ private:
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     void PostOp()
     {
-        std::cout << "PostOp" << std::endl;
-        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
-        std::unordered_map<key_t, T> reduce_data;
-
-        data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(this->data_id_);
-
-        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
-        std::unordered_map<key_t, T> global_data;
-
-        while (it.HasNext()) {
-            auto item = it.Next();
-            key_t key = key_extractor_(item);
-            auto elem = reduce_data.find(key);
-
-            // is there already an element with same key?
-            if (elem != reduce_data.end()) {
-                auto new_elem = reduce_function_(item, elem->second);
-                reduce_data.at(key) = new_elem;
-            }
-            else {
-                reduce_data.insert(std::make_pair(key, item));
-            }
-        }
-
-        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(post_data_id_);
-        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
-            emit(it->second);
-        }
+//        std::cout << "PostOp" << std::endl;
+//        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+//        std::unordered_map<key_t, T> reduce_data;
+//
+//        data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(this->data_id_);
+//
+//        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+//        std::unordered_map<key_t, T> global_data;
+//
+//        while (it.HasNext()) {
+//            auto item = it.Next();
+//            key_t key = key_extractor_(item);
+//            auto elem = reduce_data.find(key);
+//
+//            // is there already an element with same key?
+//            if (elem != reduce_data.end()) {
+//                auto new_elem = reduce_function_(item, elem->second);
+//                reduce_data.at(key) = new_elem;
+//            }
+//            else {
+//                reduce_data.insert(std::make_pair(key, item));
+//            }
+//        }
+//
+//        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(post_data_id_);
+//        for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
+//            emit(it->second);
+//        }
     }
 };
 } // namespace c7a
