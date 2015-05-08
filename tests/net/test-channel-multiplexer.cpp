@@ -81,6 +81,22 @@ TEST_F(ChannelMultiplexerTest, ReadsNoElementBoundariesIfStreamIsEmpty) {
     candidate.AddSocket(socket);
 }
 
+TEST_F(ChannelMultiplexerTest, HasChannel) {
+    ASSERT_FALSE(candidate.HasChannel(3));
+
+    size_t exp_len1 = header_part1.length();
+    size_t exp_len2 = header_part2.length();
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, _, _))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header_part1))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header_part2))
+    .WillRepeatedly(Return());
+
+    candidate.AddSocket(socket);
+
+    ASSERT_TRUE(candidate.HasChannel(3));
+    ASSERT_FALSE(candidate.HasChannel(2));
+}
+
 TEST_F(ChannelMultiplexerTest, ReadsElementsByBoundaries) {
     size_t exp_len1 = header_part1.length();
     size_t exp_len2 = header_part2.length();
@@ -102,5 +118,8 @@ TEST_F(ChannelMultiplexerTest, ReadsElementsByBoundaries) {
 
     candidate.AddSocket(socket);
 
-    //auto received_data = candidate.PickupChannel(0)->Data();
+    auto received_data = candidate.PickupChannel(3)->Data();
+    ASSERT_EQ(element1, received_data[0]);
+    ASSERT_EQ(element2, received_data[1]);
+    ASSERT_EQ(element3, received_data[2]);
 }
