@@ -354,7 +354,7 @@ foreach my $file (@filelist)
     elsif ($file =~ /^doc\//) {
         process_cpp($file);
     }
-    elsif ($file =~ /^(c7a|tests)\/(common|net)\/.*\.(h|cpp|hpp|h.in)$/) {
+    elsif ($file =~ /^(c7a|tests)\/(common|net|api)\/.*\.(h|cpp|hpp|h.in)$/) {
         process_cpp($file);
     }
     elsif ($file =~ /\.(pl|pro)$/) {

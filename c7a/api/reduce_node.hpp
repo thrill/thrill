@@ -2,6 +2,11 @@
  * c7a/api/reduce_node.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #ifndef C7A_API_REDUCE_NODE_HEADER
@@ -15,6 +20,7 @@
 #include "../common/logger.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -196,9 +202,10 @@ private:
         }
     }
 };
-} // namespace c7a
 
 //! \}
+
+} // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
 
