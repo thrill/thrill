@@ -29,11 +29,14 @@ int main()
     ht.insert(v8);
 
     ht.print();
+    std::cout << "totel item size: " << ht.size() << std::endl;
     std::vector<std::pair<std::string, int>> r = ht.pop();
     std::cout << "retrieved num items: " << r.size() << std::endl;
+    std::cout << "totel item size: " << ht.size() << std::endl;
     ht.print();
     r = ht.pop();
     std::cout << "retrieved num items: " << r.size() << std::endl;
+    std::cout << "totel item size: " << ht.size() << std::endl;
     ht.print();
 
     return 0;
