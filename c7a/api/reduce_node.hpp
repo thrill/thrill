@@ -144,14 +144,14 @@ private:
         }
 
         //TODO use network emitter in future
-        /*std::vector<data::BlockEmitter<T> > emit_array;
+        std::vector<data::BlockEmitter<T> > emit_array;
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
         for (auto it = reduce_data.begin(); it != reduce_data.end(); ++it) {
             std::hash<T> t_hash;
             auto hashed = t_hash(it->second) % number_worker;
             // TODO When emitting and the real network emitter is there, hashed is needed to emit
             emit(it->second);
-        }*/
+        }
     }
 
     //!Recieve elements from other workers.

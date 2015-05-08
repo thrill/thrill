@@ -9,7 +9,11 @@
 
 int main()
 {
-    c7a::engine::HashTable <std::string, int> ht(10, [](const int val1, const int val2) ->int { return val1 + val2; });
+    using WordPair = std::pair<std::string,int>;
+    auto key = [](WordPair in) { return in.first; };
+    auto red_fn = [](WordPair in1, WordPair in2) { return std::make_pair(in1.first, in1.second + in2.second); };
+
+    c7a::engine::HashTable<decltype(key), decltype(red_fn)>ht(10, key, red_fn);
 
     std::pair<std::string, int> v1 = { "word1", 1 };
     ht.insert(v1);
