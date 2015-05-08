@@ -1,47 +1,65 @@
+/*******************************************************************************
+ * tests/api/test_simple_api.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
 #include "gtest/gtest.h"
+#include <tests/c7a-tests.hpp>
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
+#include "c7a/engine/stage_builder.hpp"
 
-TEST(DISABLED_DIASimple, InputTest1ReadInt) {
-     //auto read_int = [](std::string line) { return std::stoi(line); };
+using namespace c7a::engine;
 
-     //c7a::Context ctx;
+TEST(DIASimple, SharedPtrTest) {
+    using c7a::DIA;
+    using c7a::Context;
 
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
+    Context ctx;
 
-     // assert(initial.NodeString() == "[DIANode/State:NEW/Type:i]");
+    auto map_fn = [](int in) { 
+        return 2*in; 
+    };
+    auto key_ex = [](int in) { 
+        return in % 2; 
+    };
+    auto red_fn = [](int in1, int in2) { 
+        return in1 + in2; 
+    };
 
-     // assert(initial.Size() == 4);
-}
+    auto input = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+          return std::stoi(line);
+        });
+    DIA<int> ints = input.Map(map_fn);
+    // DIA<int> doubles = ints.Map(map_fn);
+    auto doubles = ints.Map(map_fn);
+    // Do this to keep reference count alive;
+    DIA<int> test = ints;
+    ints = doubles;
+    // auto quad = doubles.Map(map_fn);
+    auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
 
-TEST(DISABLED_DIASimple, InputTest1ReadDouble) {
-     //auto read_double = [](std::string line) { return std::stod(line); };
+    std::cout << "Input: " << input.NodeString() << " RefCount: " << input.get_node_count() << std::endl;
+    std::cout << "Ints: " << ints.NodeString() << " RefCount: " << ints.get_node_count() << std::endl;
+    std::cout << "Doubles: " << doubles.NodeString() << " RefCount: " << doubles.get_node_count() << std::endl;
+    // std::cout << "Quad: " << quad.NodeString() << " RefCount: " << quad.get_node_count() << std::endl;
+    std::cout << "Red: " << red_quad.NodeString() << " RefCount: " << red_quad.get_node_count() << std::endl;
+    std::vector<Stage> result;
+    FindStages(red_quad.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+    }
 
-     //c7a::Context ctx;
-
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
-
-     // assert(initial.NodeString() == "[DIANode/State:NEW/Type:d]");
-
-     // assert(initial.Size() == 4);
-
-}
-
-TEST(DISABLED_DIASimple, InputTest1Write) {
-
-     //auto read_int = [](std::string line) { return std::stoi(line); };
-     //auto write_int = [](int element) { return element; };
-
-     //c7a::Context ctx;
-
-     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
-     // ctx.WriteToFileSystem(initial, "tests/inputs/test1_result", write_int);
-     // auto copy = ctx.ReadFromFileSystem("tests/inputs/test1_result", read_int);
-
-     // assert(copy.NodeString() == "[DIANode/State:NEW/Type:i]");
-
-     // assert(copy.Size() == 4);
+    return;
 }
 
 TEST(DIASimple, FunctionStackTest) {
@@ -49,29 +67,35 @@ TEST(DIASimple, FunctionStackTest) {
     std::vector<double> elements;
 
     // User-defined functions
-    auto fmap_fn = [=](double input, std::function<void(double)> emit_func) {
+    auto fmap_fn =
+        [ = ](double input, std::function<void(double)> emit_func) {
             emit_func(input);
             emit_func(input);
         };
 
-    auto map_fn = [=](double input) {
-            return 2*input;
+    auto map_fn =
+        [ = ](double input) {
+            return 2 * input;
         };
 
-    auto filter_fn = [=](double input) {
+    auto filter_fn =
+        [ = ](double input) {
             return input > 80;
         };
 
-    auto save_fn = [&elements](double input) {
+    auto save_fn =
+        [&elements](double input) {
             elements.push_back(input);
         };
 
     // Converted emitter functions
-    auto conv_map_fn = [=](double input, std::function<void(double)> emit_func) {
+    auto conv_map_fn =
+        [ = ](double input, std::function<void(double)> emit_func) {
             emit_func(map_fn(input));
         };
 
-    auto conv_filter_fn = [=](double input, std::function<void(double)> emit_func) {
+    auto conv_filter_fn =
+        [ = ](double input, std::function<void(double)> emit_func) {
             if (filter_fn(input)) emit_func(input);
         };
 
@@ -93,3 +117,5 @@ TEST(DIASimple, FunctionStackTest) {
     }
     return;
 }
+
+/******************************************************************************/

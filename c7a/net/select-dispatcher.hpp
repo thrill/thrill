@@ -10,11 +10,13 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_NET_SELECT_DISPATCHER_HEADER
 #define C7A_NET_SELECT_DISPATCHER_HEADER
 
 #include <c7a/net/socket.hpp>
 #include <c7a/net/select.hpp>
+#include <c7a/net/net-exception.hpp>
 
 #include <deque>
 

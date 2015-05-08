@@ -63,6 +63,7 @@ sub expect($$\@$) {
         splice(@$data, $ln, 0, $expect);
     }
 }
+
 sub expectr($$\@$$) {
     my ($path,$ln,$data,$expect,$replace_regex) = @_;
 
@@ -82,6 +83,15 @@ sub expect_re($$\@$) {
 
     if ($$data[$ln] !~ m/$expect/) {
         expect_error($path, $ln, $$data[$ln], "/$expect/");
+    }
+}
+
+sub removeif($$\@$) {
+    my ($path,$ln,$data,$expect) = @_;
+
+    if ($$data[$ln] eq $expect) {
+        # insert line with expected value
+        splice(@$data, $ln, 1);
     }
 }
 
@@ -143,7 +153,9 @@ sub process_cpp {
     my @data = <F>;
     close(F);
 
-    push(@source_filelist, $path);
+    unless ($path =~ /\.dox$/) {
+        push(@source_filelist, $path);
+    }
 
     my @origdata = @data;
 
@@ -203,8 +215,10 @@ sub process_cpp {
         $guard = "C7A_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
+        expect($path, $i, @data, "#pragma once\n"); ++$i;
         expectr($path, $i, @data, "#ifndef $guard\n", qr/^#ifndef /); ++$i;
         expectr($path, $i, @data, "#define $guard\n", qr/^#define /); ++$i;
+        removeif($path, $i, @data, "#pragma once\n");
 
         my $n = scalar(@data)-1;
         expectr($path, $n-2, @data, "#endif // !$guard\n", qr/^#endif /);
@@ -233,7 +247,7 @@ sub process_cpp {
                 splice(@data, $i+1, 0, "\n");
                 ++$namespace;
             }
-            if ($data[$i] =~ m!^} // namespace!) {
+            if ($data[$i] =~ m!^}\s+// namespace!) {
                 splice(@data, $i, 0, "\n"); ++$i;
                 --$namespace;
             }
@@ -351,10 +365,7 @@ foreach my $file (@filelist)
     elsif ($file =~ m!^extlib/!) {
         # skip external libraries
     }
-    elsif ($file =~ /^doc\//) {
-        process_cpp($file);
-    }
-    elsif ($file =~ /^(c7a|tests)\/(common|net)\/.*\.(h|cpp|hpp|h.in)$/) {
+    elsif ($file =~ /^(c7a|doc|tests|examples)\/.*\.(h|cpp|hpp|h.in|dox)$/) {
         process_cpp($file);
     }
     elsif ($file =~ /\.(pl|pro)$/) {
