@@ -20,30 +20,15 @@
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
+
+#include <c7a/net/socket.hpp>
+#include <c7a/net/net-exception.hpp>
 #include <string>
 #include <thread>
 
 namespace c7a {
-
 //! \addtogroup net Network Communication
 //! \{
-
-/*!
- * A NetException is thrown by NetConnection on all errors instead of returning
- * error codes. If ever we manage to recover from network errors, we probably
- * have to rebuild most of the network objects anyway.
- */
-class NetException : public std::runtime_error
-{
-public:
-    explicit NetException(const std::string& what)
-        : std::runtime_error(what)
-    { }
-
-    NetException(const std::string& what, int _errno)
-        : std::runtime_error(what + ": " + strerror(_errno))
-    { }
-};
 
 // Because Mac OSX does not know MSG_MORE.
 #ifndef MSG_MORE
@@ -169,10 +154,8 @@ public:
         shutdown();
     }
 };
-
-// \}
-
 } // namespace c7a
+// \}
 
 #endif // !C7A_NET_NET_CONNECTION_HEADER
 
