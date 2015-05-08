@@ -62,7 +62,6 @@ private:
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
         LOG << "read #elements on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
-        assert(stream->header.channel_id = id_);
         assert(stream->header.num_elements > 0);
 
         stream->header.ParseBoundaries(buffer);
