@@ -1,7 +1,14 @@
 /*******************************************************************************
  * c7a/data/input_line_iterator.hpp
  *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
+#ifndef C7A_DATA_INPUT_LINE_ITERATOR_HEADER
+#define C7A_DATA_INPUT_LINE_ITERATOR_HEADER
 #pragma once
 
 #include <stdio.h>
@@ -11,7 +18,9 @@
 #include "serializer.hpp"
 
 namespace c7a {
+
 namespace data {
+
 //! InputLineIterator gives you access to lines of a file
 class InputLineIterator
 {
@@ -72,5 +81,11 @@ private:
     //!Total number of workers
     size_t num_workers_;
 };
-}
-}
+
+} // namespace data
+
+} // namespace c7a
+
+#endif // !C7A_DATA_INPUT_LINE_ITERATOR_HEADER
+
+/******************************************************************************/

@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * tests/engine/test_stage_builder.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
 #include "gtest/gtest.h"
 #include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
@@ -17,7 +26,7 @@ TEST(Stage, GetStagesFromBuilder) {
                                           return std::stod(line);
                                       });
 
-    auto key = [](double in) { return (int) in; };
+    auto key = [](double in) { return (int)in; };
     auto red_fn = [](double in1, double in2) { return in1 + in2; };
     auto map_fn = [](double input) {
                       std::cout << "Map" << std::endl;
@@ -46,3 +55,5 @@ TEST(Stage, GetStagesFromBuilder) {
         s.Run();
     }
 }
+
+/******************************************************************************/

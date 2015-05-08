@@ -1,16 +1,24 @@
+/*******************************************************************************
+ * tests/data/test_block_iterator.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
 #include "gtest/gtest.h"
 #include "c7a/data/block_iterator.hpp"
 
 using namespace c7a::data;
 
-struct TestBlockIterator : public ::testing::Test {
+struct TestBlockIterator : public::testing::Test {
     TestBlockIterator()
-        : emptyIt(emptyData)
-        , it     (data) { }
+        : emptyIt(emptyData),
+          it(data) { }
 
-    std::vector<std::string> emptyData = {};
-    std::vector<std::string> data = { "foo", "bar" };
-    BlockIterator<int> emptyIt;
+    std::vector<std::string>   emptyData = { };
+    std::vector<std::string>   data = { "foo", "bar" };
+    BlockIterator<int>         emptyIt;
     BlockIterator<std::string> it;
 };
 
@@ -24,12 +32,14 @@ TEST_F(TestBlockIterator, IterateOverStrings) {
 }
 
 TEST_F(TestBlockIterator, HasNextReturnsFalseAtTheEnd) {
-    (void) it.Next();
-    (void) it.Next();
+    (void)it.Next();
+    (void)it.Next();
     ASSERT_FALSE(it.HasNext());
 }
 
 TEST_F(TestBlockIterator, HasNextReturnsTrueInTheMiddle) {
-    (void) it.Next();
+    (void)it.Next();
     ASSERT_TRUE(it.HasNext());
 }
+
+/******************************************************************************/

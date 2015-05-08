@@ -1,3 +1,15 @@
+/*******************************************************************************
+ * c7a/engine/hash_table.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
+#ifndef C7A_ENGINE_HASH_TABLE_HEADER
+#define C7A_ENGINE_HASH_TABLE_HEADER
+
 //
 // Created by Matthias Stumpp on 26/04/15.
 //
@@ -13,13 +25,14 @@
 #include <stdexcept>
 
 namespace c7a {
+
 namespace engine {
 
 struct Key
 {
     std::string first;
 
-    bool operator==(const Key &other) const
+    bool operator == (const Key& other) const
     {
         return (first == other.first);
     }
@@ -27,7 +40,7 @@ struct Key
 
 struct KeyHasher
 {
-    std::size_t operator()(const std::string& k) const
+    std::size_t operator () (const std::string& k) const
     {
         return std::hash<std::string>()(k);
     }
@@ -42,36 +55,34 @@ struct h_result {
 template <typename K, typename V>
 struct node {
     std::pair<K, V> v;
-    node *n;
+    node            * n;
 };
 
-template<typename K, typename V>
+template <typename K, typename V>
 class HashTable
 {
-
-static const bool debug = true;
+    static const bool debug = true;
 
 public:
-
-    HashTable(int num_p, std::function<V (V, V)> f_reduce) {
+    HashTable(int num_p, std::function<V(V, V)> f_reduce)
+    {
         if (num_p > b_size) {
             throw std::invalid_argument("num processors must be less than num buckets");
         }
         p_size = num_p;
         //b_size = p_size*10; // scale bucket size based on num of processors TODO: implement resize
-        alpha_size = b_size/p_size;
+        alpha_size = b_size / p_size;
         p_items_size = new int[p_size];
-        for (int i=0; i<p_size; i++) { // TODO: just a tmp fix
+        for (int i = 0; i < p_size; i++) { // TODO: just a tmp fix
             p_items_size[i] = 0;
         }
         f_red = f_reduce;
     }
 
-    ~HashTable() {
-    }
+    ~HashTable() { }
 
     // insert new item
-    void insert(std::pair<K, V> &p)
+    void insert(std::pair<K, V>& p)
     {
         h_result h = hash(p.first);
 
@@ -82,10 +93,9 @@ public:
 
         // bucket is empty
         if (a[h.global_idx] == nullptr) {
-
             LOG << "bucket empty, inserting...";
 
-            node<K, V> *n = new node<K, V>;
+            node<K, V>* n = new node<K, V>;
             n->v = p;
             n->n = nullptr;
             a[h.global_idx] = n;
@@ -96,18 +106,17 @@ public:
             // increase total counter
             total_items_size++;
 
-        // bucket is not empty
-        } else {
-
+            // bucket is not empty
+        }
+        else {
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node<K, V> *current = a[h.global_idx];
-            std::pair<K,V> *current_pair;
+            node<K, V>* current = a[h.global_idx];
+            std::pair<K, V>* current_pair;
             do {
                 current_pair = &current->v;
                 if (p.first == current_pair->first) {
-
                     LOG << "match of key: "
                         << p.first
                         << " and "
@@ -135,11 +144,10 @@ public:
 
             // no item found with key
             if (current == nullptr) {
-
                 LOG << "key doesn't exists in bucket, appending...";
 
                 // insert at first pos
-                node<K, V> *n = new node<K, V>;
+                node<K, V>* n = new node<K, V>;
                 n->v = p;
                 n->n = a[h.global_idx];
                 a[h.global_idx] = n;
@@ -156,32 +164,32 @@ public:
     }
 
     // returns items of segment with max size
-    std::vector<std::pair<K, V>> pop() {
-
+    std::vector<std::pair<K, V> > pop()
+    {
         // get segment with max size
         int currMax = 0;
         int currentIdx = 0;
-        for (int i=0; i<p_size; i++) {
+        for (int i = 0; i < p_size; i++) {
             if (p_items_size[i] > currMax) {
                 currMax = p_items_size[i];
                 currentIdx = i;
             }
         }
 
-            LOG << "currMax: "
-                << currMax
-                << " currentIdx: "
-                << currentIdx
-                << " currentIdx*alpha_size: "
-                << currentIdx*alpha_size
-                << " CurrentIdx*alpha_size+alpha_size-1 "
-                << currentIdx*alpha_size+alpha_size-1;
+        LOG << "currMax: "
+            << currMax
+            << " currentIdx: "
+            << currentIdx
+            << " currentIdx*alpha_size: "
+            << currentIdx * alpha_size
+            << " CurrentIdx*alpha_size+alpha_size-1 "
+            << currentIdx * alpha_size + alpha_size - 1;
 
         // retrieve items
-        std::vector<std::pair<K, V>> popedItems;
-        for (int i=currentIdx*alpha_size; i<=currentIdx*alpha_size+alpha_size-1; i++) {
+        std::vector<std::pair<K, V> > popedItems;
+        for (int i = currentIdx * alpha_size; i <= currentIdx * alpha_size + alpha_size - 1; i++) {
             if (a[i] != nullptr) {
-                node<K, V> *current = a[i];
+                node<K, V>* current = a[i];
                 do {
                     popedItems.push_back(current->v);
                     current = current->n;
@@ -194,36 +202,36 @@ public:
         p_items_size[currentIdx] = 0;
 
         // reset counters
-        total_items_size -=currMax;
+        total_items_size -= currMax;
 
         return popedItems;
     }
 
-    std::size_t size() {
+    std::size_t size()
+    {
         return total_items_size;
     }
 
-    void resize() {
+    void resize()
+    {
         LOG << "to be implemneted";
     }
 
     // prints content of hash table
-    void print() {
-
-        for (int i=0; i<b_size; i++) {
+    void print()
+    {
+        for (int i = 0; i < b_size; i++) {
             if (a[i] == nullptr) {
-
                 LOG << "bucket "
                     << i
                     << " empty";
-
-            } else {
-
+            }
+            else {
                 std::string log = "";
 
                 // check if item with same key
-                node<K, V> *current = a[i];
-                std::pair<K,V> current_pair;
+                node<K, V>* current = a[i];
+                std::pair<K, V> current_pair;
                 do {
                     current_pair = current->v;
 
@@ -247,24 +255,23 @@ public:
     }
 
 private:
+    int p_size = 0;                      // processor size
 
-    int p_size = 0; // processor size
+    int alpha_size = 0;                  // num buckets per processor
 
-    int alpha_size = 0; // num buckets per processor
+    int* p_items_size;                   // total num items per processor
 
-    int* p_items_size; // total num items per processor
+    std::size_t total_items_size = 0;    // total sum of items
 
-    std::size_t total_items_size = 0; // total sum of items
+    static const int b_size = 100;       // bucket size
 
-    static const int b_size = 100; // bucket size
+    std::function<V(V, V)> f_red;
 
-    std::function<V (V, V)> f_red;
+    node<K, V>* a[b_size] = { nullptr }; // TODO: fix this static assignment
 
-    node<K, V> *a[b_size] = { nullptr }; // TODO: fix this static assignment
-
-    h_result hash(std::string v) {
-
-        h_result *h = new h_result();
+    h_result hash(std::string v)
+    {
+        h_result* h = new h_result();
 
         // idx within segment
         std::size_t h1 = std::hash<std::string>()(v);
@@ -275,13 +282,16 @@ private:
         h->seg_num = h->seg_idx % p_size;
 
         // global idx
-        h->global_idx = h->seg_idx + h->seg_num*alpha_size;
+        h->global_idx = h->seg_idx + h->seg_num * alpha_size;
 
         return *h;
     }
 };
 
-}
-}
+} // namespace engine
 
-#endif //C7A_HASH_TABLE_HPP
+} // namespace c7a
+
+#endif // !C7A_ENGINE_HASH_TABLE_HEADER
+
+/******************************************************************************/

@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * examples/worker_main.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
 #include <sstream>
 #include <unordered_map>
 #include <vector>
@@ -9,7 +18,7 @@
 
 int main()
 {
-    c7a::engine::HashTable <std::string, int> ht(10, [](const int val1, const int val2) ->int { return val1 + val2; });
+    c7a::engine::HashTable<std::string, int> ht(10, [](const int val1, const int val2) -> int { return val1 + val2; });
 
     std::pair<std::string, int> v1 = { "word1", 1 };
     ht.insert(v1);
@@ -30,7 +39,7 @@ int main()
 
     ht.print();
     std::cout << "totel item size: " << ht.size() << std::endl;
-    std::vector<std::pair<std::string, int>> r = ht.pop();
+    std::vector<std::pair<std::string, int> > r = ht.pop();
     std::cout << "retrieved num items: " << r.size() << std::endl;
     std::cout << "totel item size: " << ht.size() << std::endl;
     ht.print();
@@ -41,3 +50,5 @@ int main()
 
     return 0;
 }
+
+/******************************************************************************/
