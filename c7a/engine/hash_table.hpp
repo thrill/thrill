@@ -199,6 +199,10 @@ public:
         return popedItems;
     }
 
+    std::size_t size() {
+        return total_items_size;
+    }
+
     void resize() {
         LOG << "to be implemneted";
     }
@@ -250,7 +254,7 @@ private:
 
     int* p_items_size; // total num items per processor
 
-    int total_items_size = 0; // total sum of items
+    std::size_t total_items_size = 0; // total sum of items
 
     static const int b_size = 100; // bucket size
 
