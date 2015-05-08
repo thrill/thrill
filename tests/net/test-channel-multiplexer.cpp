@@ -37,21 +37,29 @@ struct ChannelMultiplexerTest : public::testing::Test {
         header.num_elements = 3;
         header.channel_id = 3;
         header.boundaries = boundaries;
-        std::string data = header.Serialize();
-        header_part1 = data.substr(0, sizeof(size_t) * 2);
-        header_part2 = data.substr(header_part1.length(), data.length() - header_part1.length());
 
         header2.num_elements = 3;
         header2.channel_id = 3;
         header2.boundaries = boundaries2;
-        data = header2.Serialize();
-        header2_part1 = data.substr(0, sizeof(size_t) * 2);
-        header2_part2 = data.substr(header2_part1.length(), data.length() - header2_part1.length());
 
         header3.num_elements = 0;
         header3.channel_id = 3;
         header3.boundaries = boundaries3;
+        serializeHeaders();
+    }
+
+    //tests can call this if they need to change the headers and re-genenerate
+    void serializeHeaders()
+    {
+        std::string data = header.Serialize();
+        header_part1 = data.substr(0, sizeof(size_t) * 2);
+        header_part2 = data.substr(header_part1.length(), data.length() - header_part1.length());
+
+        data = header2.Serialize();
+        header2_part1 = data.substr(0, sizeof(size_t) * 2);
+        header2_part2 = data.substr(header2_part1.length(), data.length() - header2_part1.length());
         data = header3.Serialize();
+
         header3_part1 = data.substr(0, sizeof(size_t) * 2);
         header3_part2 = data.substr(header3_part1.length(), data.length() - header3_part1.length());
     }
@@ -172,4 +180,40 @@ TEST_F(ChannelMultiplexerTest, ReadsThreeBlocksSingleChannel) {
     ASSERT_EQ(element1, received_data[0]);
     ASSERT_EQ(element2, received_data[1]);
     ASSERT_EQ(element3, received_data[2]);
+    ASSERT_EQ(element2, received_data[3]);
+    ASSERT_EQ(element1, received_data[4]);
+    ASSERT_EQ(element3, received_data[5]);
+}
+
+TEST_F(ChannelMultiplexerTest, ReadsThreeBlocksThreeChannel) {
+    header.channel_id = 0;
+    header2.channel_id = 1;
+    header3.channel_id = 2;
+    serializeHeaders();
+
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, _, _))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header_part1))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header_part2))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), element1))     //read foo
+    .WillOnce(InvokeArgument<2>(ByRef(socket), element2))     //read bar22
+    .WillOnce(InvokeArgument<2>(ByRef(socket), element3))     //read .
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header2_part1))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header2_part2))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), element2))     //read bar22
+    .WillOnce(InvokeArgument<2>(ByRef(socket), element1))     //read foo
+    .WillOnce(InvokeArgument<2>(ByRef(socket), element3))     //read .
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header3_part1));
+
+    candidate.AddSocket(socket);
+
+    auto received_data0 = candidate.PickupChannel(0)->Data();
+    ASSERT_EQ(element1, received_data0[0]);
+    ASSERT_EQ(element2, received_data0[1]);
+    ASSERT_EQ(element3, received_data0[2]);
+    auto received_data1 = candidate.PickupChannel(1)->Data();
+    ASSERT_EQ(element2, received_data1[0]);
+    ASSERT_EQ(element1, received_data1[1]);
+    ASSERT_EQ(element3, received_data1[2]);
+    auto received_data2 = candidate.PickupChannel(2)->Data();
+    ASSERT_EQ(0, received_data2.size());
 }
