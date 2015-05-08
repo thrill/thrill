@@ -7,9 +7,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_DATA_SERIALIZER_HEADER
 #define C7A_DATA_SERIALIZER_HEADER
-#pragma once
 
 #include <string>
 #include <cstring> //string copy

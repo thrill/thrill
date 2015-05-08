@@ -9,9 +9,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_DIA_BASE_HEADER
 #define C7A_API_DIA_BASE_HEADER
-#pragma once
 
 #include <vector>
 #include <string>
