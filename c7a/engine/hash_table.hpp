@@ -1,6 +1,8 @@
-//
-// Created by Matthias Stumpp on 26/04/15.
-//
+/*******************************************************************************
+ * c7a/core/hashtable.hpp
+ *
+ * Hash table with support for reduce and partitions.
+ ******************************************************************************/
 
 #ifndef C7A_HASH_TABLE_HPP
 #define C7A_HASH_TABLE_HPP
@@ -15,37 +17,20 @@
 namespace c7a {
 namespace engine {
 
-struct Key
-{
-    std::string first;
-
-    bool operator==(const Key &other) const
-    {
-        return (first == other.first);
-    }
-};
-
-struct KeyHasher
-{
-    std::size_t operator()(const std::string& k) const
-    {
-        return std::hash<std::string>()(k);
-    }
-};
-
 struct h_result {
-    std::size_t seg_idx;
-    std::size_t seg_num;
+    std::size_t p_idx;
+    std::size_t p_num;
     std::size_t global_idx;
 };
 
-template <typename K, typename V>
+template <typename key_t, typename value_t>
 struct node {
-    std::pair<K, V> v;
-    node *n;
+    key_t key;
+    value_t value;
+    node *next;
 };
 
-template<typename K, typename V>
+template<typename KeyExtractor, typename ReduceFunction>
 class HashTable
 {
 
@@ -53,15 +38,16 @@ static const bool debug = true;
 
 public:
 
-    HashTable(int num_p, std::function<V (V, V)> f_reduce) {
-        if (num_p > b_size) {
-            throw std::invalid_argument("num processors must be less than num buckets");
+    HashTable(std::size_t p_n, KeyExtractor key_extractor, ReduceFunction f_reduce) {
+        if (p_n > b_size) {
+            throw std::invalid_argument("num partitions must be less than num buckets");
         }
-        p_size = num_p;
+
+        p_num = p_n;
         //b_size = p_size*10; // scale bucket size based on num of processors TODO: implement resize
-        alpha_size = b_size/p_size;
-        p_items_size = new int[p_size];
-        for (int i=0; i<p_size; i++) { // TODO: just a tmp fix
+        p_size = b_size/p_num;
+        p_items_size = new std::size_t[p_num];
+        for (int i=0; i<p_num; i++) { // TODO: just a tmp fix
             p_items_size[i] = 0;
         }
         f_red = f_reduce;
@@ -70,10 +56,17 @@ public:
     ~HashTable() {
     }
 
-    // insert new item
-    void insert(std::pair<K, V> &p)
+    /*!
+     * Inserts a key/value pair.
+     *
+     * Optionally, this may be reduce using the reduce function
+     * in case the key already exists.
+     */
+    void insert(value_t &p)
     {
-        h_result h = hash(p.first);
+        key_t key = key_extractor(p);
+
+        h_result h = hash(key);
 
         LOG << "key: "
             << p.first
@@ -85,16 +78,17 @@ public:
 
             LOG << "bucket empty, inserting...";
 
-            node<K, V> *n = new node<K, V>;
-            n->v = p;
-            n->n = nullptr;
-            a[h.global_idx] = n;
+            node *node = new node<key_t, value_t>;
+            node->key = key;
+            node->value = p;
+            node->next = nullptr;
+            a[h.global_idx] = node;
 
-            // increase counter for processor
-            p_items_size[h.seg_num]++;
+            // increase counter for partition
+            p_items_size[h.p_num]++;
 
             // increase total counter
-            total_items_size++;
+            p_items_total_size++;
 
         // bucket is not empty
         } else {
@@ -102,109 +96,145 @@ public:
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node<K, V> *current = a[h.global_idx];
-            std::pair<K,V> *current_pair;
+            node *curr_node = a[h.global_idx];
+            value_t *curr_value;
             do {
-                current_pair = &current->v;
-                if (p.first == current_pair->first) {
+                curr_value = &curr_node->value;
+                if (key == curr_node->key) {
 
                     LOG << "match of key: "
-                        << p.first
+                        << key
                         << " and "
-                        << current_pair->first
+                        << curr_node->key
                         << " ... reducing...";
 
                     // reduce
                     LOG << "before reduce: "
-                        << current_pair->second
+                        << curr_node->value
                         << " and "
-                        << p.second;
+                        << p;
 
-                    (*current_pair).second = f_red(current_pair->second, p.second);
+                    (*curr_node).value = f_red(curr_node->value, p);
 
                     LOG << "after reduce: "
-                        << current_pair->second;
+                        << curr_node->value;
 
                     LOG << "...finished reduce!";
 
                     break;
                 }
 
-                current = current->n;
-            } while (current != nullptr);
+                curr_node = curr_node->next;
+            } while (curr_node != nullptr);
 
             // no item found with key
-            if (current == nullptr) {
+            if (curr_node == nullptr) {
 
                 LOG << "key doesn't exists in bucket, appending...";
 
                 // insert at first pos
-                node<K, V> *n = new node<K, V>;
-                n->v = p;
-                n->n = a[h.global_idx];
-                a[h.global_idx] = n;
+                node *node = new node<key_t, value_t>;
+                node->key = key;
+                node->value = p;
+                node->next = a[h.global_idx];
+                a[h.global_idx] = node;
 
-                // increase counter for processor
-                p_items_size[h.seg_num]++;
-
+                // increase counter for partition
+                p_items_size[h.p_num]++;
                 // increase total counter
-                total_items_size++;
+                p_items_total_size++;
 
                 LOG << "key appendend, metrics updated!";
             }
         }
     }
 
-    // returns items of segment with max size
-    std::vector<std::pair<K, V>> pop() {
+    /*!
+     * Returns a vector containing all items belonging to the partition
+     * having the most items.
+     */
+    std::vector<value_t> pop() {
 
-        // get segment with max size
-        int currMax = 0;
-        int currentIdx = 0;
-        for (int i=0; i<p_size; i++) {
-            if (p_items_size[i] > currMax) {
-                currMax = p_items_size[i];
-                currentIdx = i;
+        // get partition with max size
+        int p_size_max = 0;
+        int p_idx = 0;
+        for (int i=0; i<p_num; i++) {
+            if (p_items_size[i] > p_size_max) {
+                p_size_max = p_items_size[i];
+                p_idx = i;
             }
         }
 
-            LOG << "currMax: "
-                << currMax
-                << " currentIdx: "
-                << currentIdx
-                << " currentIdx*alpha_size: "
-                << currentIdx*alpha_size
-                << " CurrentIdx*alpha_size+alpha_size-1 "
-                << currentIdx*alpha_size+alpha_size-1;
+        LOG << "currMax: "
+            << p_size_max
+            << " currentIdx: "
+            << p_idx
+            << " currentIdx*p_size: "
+            << p_idx*p_size
+            << " CurrentIdx*p_size+p_size-1 "
+            << p_idx*p_size+p_size-1;
 
         // retrieve items
-        std::vector<std::pair<K, V>> popedItems;
-        for (int i=currentIdx*alpha_size; i<=currentIdx*alpha_size+alpha_size-1; i++) {
+        std::vector<value_t> items;
+        for (int i=p_idx*p_size; i<=p_idx*p_size+p_size-1; i++) {
             if (a[i] != nullptr) {
-                node<K, V> *current = a[i];
+                node *curr_node = a[i];
                 do {
-                    popedItems.push_back(current->v);
-                    current = current->n;
-                } while (current != nullptr);
+                    items.push_back(curr_node->value);
+                    curr_node = curr_node->next;
+                } while (curr_node != nullptr);
                 a[i] = nullptr;
             }
         }
 
-        // reset processor specific counter
-        p_items_size[currentIdx] = 0;
+        // reset partition specific counter
+        p_items_size[p_idx] = 0;
+        // reset total counter
+        p_items_total_size -=p_size_max;
 
-        // reset counters
-        total_items_size -=currMax;
-
-        return popedItems;
+        return items;
     }
 
+    /*!
+     * Returns a map containing all items per partition.
+     */
+    std::map<std::size_t, std::vector<value_t>> erase() {
+
+        // retrieve items
+        std::map<std::size_t, std::vector<value_t>> items;
+        for (std::size_t i=0; i<p_num; i++) {
+            std::vector<value_t> curr_items;
+            for (std::size_t j=i*p_size; j<=i*p_size+p_size-1; j++) {
+                if (a[i] != nullptr) {
+                    items.insert(std::make_pair<std::size_t, std::vector<value_t>>(i, curr_items));
+                    node *curr_node = a[i];
+                    do {
+                        curr_items.push_back(curr_node->value);
+                        curr_node = curr_node->next;
+                    } while (curr_node != nullptr);
+                    a[i] = nullptr;
+                }
+            }
+
+            // set size of partition to 0
+            p_items_size[i] = 0;
+        }
+
+        // reset counters
+        p_items_total_size = 0;
+
+        return items;
+    }
+
+    /*!
+     * Returns the total num of items.
+     */
     std::size_t size() {
-        return total_items_size;
+        return p_items_total_size;
     }
 
     void resize() {
-        LOG << "to be implemneted";
+        LOG << "to be implemented";
     }
 
     // prints content of hash table
@@ -222,19 +252,17 @@ public:
                 std::string log = "";
 
                 // check if item with same key
-                node<K, V> *current = a[i];
-                std::pair<K,V> current_pair;
+                node *curr_node = a[i];
+                value_t curr_item;
                 do {
-                    current_pair = current->v;
+                    curr_item = curr_node->value;
 
                     log += "(";
-                    log += current_pair.first;
-                    log += ", ";
-                    log += std::to_string(current_pair.second); // TODO: to_string works on primitives
+                    //log += curr_item;
                     log += ") ";
 
-                    current = current->n;
-                } while (current != nullptr);
+                    curr_node = curr_node->next;
+                } while (curr_node != nullptr);
 
                 LOG << "bucket "
                     << i
@@ -248,34 +276,38 @@ public:
 
 private:
 
-    int p_size = 0; // processor size
+    std::size_t p_num = 0; // partition size
 
-    int alpha_size = 0; // num buckets per processor
+    std::size_t p_size = 0; // num buckets per partition
 
-    int* p_items_size; // total num items per processor
+    std::size_t* p_items_size; // num items per partition
 
-    std::size_t total_items_size = 0; // total sum of items
+    std::size_t p_items_total_size = 0; // total sum of items
 
-    static const int b_size = 100; // bucket size
+    static const std::size_t b_size = 100; // bucket size
 
-    std::function<V (V, V)> f_red;
+    KeyExtractor key_extractor;
 
-    node<K, V> *a[b_size] = { nullptr }; // TODO: fix this static assignment
+    ReduceFunction f_red;
+
+    using key_t = typename FunctionTraits<key_extractor>::result_type;
+    using value_t = typename FunctionTraits<f_red>::result_type;
+
+    node<key_t, value_t> *a[b_size] = { nullptr }; // TODO: fix this static assignment
 
     h_result hash(std::string v) {
 
         h_result *h = new h_result();
 
-        // idx within segment
+        // partition idx
         std::size_t h1 = std::hash<std::string>()(v);
-        h->seg_idx = h1 % alpha_size;
-        std::cout << h1 << " " << h->seg_idx << std::endl;
+        h->p_idx = h1 % p_size;
 
-        // segment num -> which processor
-        h->seg_num = h->seg_idx % p_size;
+        // partition num -> which processor
+        h->p_num = h->p_idx % p_num;
 
         // global idx
-        h->global_idx = h->seg_idx + h->seg_num*alpha_size;
+        h->global_idx = h->p_idx + h->p_num*p_size;
 
         return *h;
     }
@@ -285,3 +317,5 @@ private:
 }
 
 #endif //C7A_HASH_TABLE_HPP
+
+/******************************************************************************/
