@@ -13,7 +13,7 @@
 #include "context.hpp"
 #include "function_stack.hpp"
 #include "../common/logger.hpp"
-#include "../engine/hash_table.hpp"
+#include "../core/hash_table.hpp"
 
 namespace c7a {
 //! \addtogroup api Interface
@@ -125,10 +125,9 @@ private:
         //TODO make a static getter for this
         int number_worker = 1;
       
-	data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
+	    data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
-
-        engine::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_, emit);
+        c7a::core::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_, emit);
 
         std::vector<reduce_arg_t> elements;
 
@@ -142,17 +141,12 @@ private:
             lop_chain(it.Next());
         }
 
-	
-
         for (auto item : elements) {
-	  
-	    reduce_data.insert(item);
-	  
-	}
+	        reduce_data.insert(item);
+	    }
 
-	
-	//auto popped = reduce_data.pop();
-	//std::cout << "Size: " << popped.size() << std::endl;
+	    //auto popped = reduce_data.pop();
+	    //std::cout << "Size: " << popped.size() << std::endl;
     }
 
     //!Recieve elements from other workers.

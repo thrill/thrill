@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/engine/stage_builder.hpp
+ * c7a/core/stage_builder.hpp
  *
  * Functions to build stages
  ******************************************************************************/
@@ -15,7 +15,7 @@
 #include <set>
 
 namespace c7a { 
-namespace engine {
+namespace core {
 
 class Stage {
 public:
