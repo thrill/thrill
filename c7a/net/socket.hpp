@@ -451,7 +451,7 @@ public:
     //! sent as soon as possible, even if there is only a small amount of data.
     void SetNoDelay(bool activate = true);
 
-    bool operator ==(const Socket &s) const;
+    bool operator == (const Socket& s) const;
     //! \}
 
 protected:

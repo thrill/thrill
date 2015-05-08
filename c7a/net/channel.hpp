@@ -1,9 +1,23 @@
+/*******************************************************************************
+ * c7a/net/channel.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
+#ifndef C7A_NET_CHANNEL_HEADER
+#define C7A_NET_CHANNEL_HEADER
 #pragma once
 
 #include <c7a/net/socket.hpp>
 #include <c7a/net/stream.hpp>
+
 namespace c7a {
+
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -134,6 +148,11 @@ private:
         ReadFromStream(stream);
     }
 };
-//! \}
-}
-}
+
+} // namespace net
+
+} // namespace c7a
+
+#endif // !C7A_NET_CHANNEL_HEADER
+
+/******************************************************************************/

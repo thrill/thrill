@@ -31,7 +31,8 @@ void Socket::SetKeepAlive(bool activate)
     }
 }
 
-bool Socket::operator ==(const Socket &socket) const {
+bool Socket::operator == (const Socket& socket) const
+{
     return socket.GetFileDescriptor() == GetFileDescriptor();
 }
 

@@ -20,6 +20,7 @@
 #include <deque>
 
 namespace c7a {
+
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -214,6 +215,7 @@ private:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_NET_SELECT_DISPATCHER_HEADER

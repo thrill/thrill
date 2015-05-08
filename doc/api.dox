@@ -1,7 +1,10 @@
 /*******************************************************************************
  * doc/api.dox
  *
- *Part of project c7a
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 namespace c7a {
@@ -15,14 +18,13 @@ another DIA, Actions aggregate data of the DIA and make it accessible to the use
 Inside the c7a framework, a DIA only consists of a reference to a DIANode and a lambda
 function, which can transform elements from the DIANode to this DIA. Distributed Operations(DOps)
 and Actions both need a global barrier and thus form a new DIANode. Every DOp and Action
-has an own node type, which are sub-classes of DIANode. 
+has an own node type, which are sub-classes of DIANode.
 
 DIABase is the untyped super-class of DIANode. DIABase objects form a DAG, in which the parent-child
 relation means that a parent has to be executed before the child can be executed. Every DIANode can
 be executed, which performs the actual operation and all uncalculated parent operations. The engine
 uses the DIABase graph to optimize the order of operations.
 */
-    
 
 } // namespace c7a
 
