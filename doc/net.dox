@@ -38,6 +38,10 @@ The BSD socket API is difficult to work with correctly, which is why the followi
 - SocketAddress for net address resolution to IPv4 and IPv6
 - Select for select()
 
+## High-level data channel API
+
+The channel API provides a mechanism to receive data from multiple sockets into a single data object which can be identified like a DIA. Low-level sockets are used to build connections between each worker pair. This connection can be shared by multiple communication procedures at the same time by multiplexing.
+Abstraction can be found in \ref ChannelMultiplexer.
 */
 
 } // namespace c7a
