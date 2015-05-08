@@ -13,13 +13,16 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <cstddef>
+#include "c7a/api/function_traits.hpp"
+
 
 namespace c7a {
 namespace engine {
 
 struct h_result {
-    std::size_t p_idx;
-    std::size_t p_num;
+    std::size_t p_id; // which partition
+    std::size_t p_offset; // which idx within a partition
     std::size_t global_idx;
 };
 
@@ -36,9 +39,13 @@ class HashTable
 
 static const bool debug = true;
 
+using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+
+using value_t = typename FunctionTraits<ReduceFunction>::result_type;
+
 public:
 
-    HashTable(std::size_t p_n, KeyExtractor key_extractor, ReduceFunction f_reduce) {
+    HashTable(std::size_t p_n, KeyExtractor key_extractor, ReduceFunction f_reduce) : f_red( f_reduce ) {
         if (p_n > b_size) {
             throw std::invalid_argument("num partitions must be less than num buckets");
         }
@@ -46,11 +53,10 @@ public:
         p_num = p_n;
         //b_size = p_size*10; // scale bucket size based on num of processors TODO: implement resize
         p_size = b_size/p_num;
-        p_items_size = new std::size_t[p_num];
+        p_items_size = new int[p_num];
         for (int i=0; i<p_num; i++) { // TODO: just a tmp fix
             p_items_size[i] = 0;
         }
-        f_red = f_reduce;
     }
 
     ~HashTable() {
@@ -78,14 +84,14 @@ public:
 
             LOG << "bucket empty, inserting...";
 
-            node *node = new node<key_t, value_t>;
-            node->key = key;
-            node->value = p;
-            node->next = nullptr;
-            a[h.global_idx] = node;
+            node<key_t, value_t> *n = new node<key_t, value_t>;
+            n->key = key;
+            n->value = p;
+            n->next = nullptr;
+            a[h.global_idx] = n;
 
             // increase counter for partition
-            p_items_size[h.p_num]++;
+            p_items_size[h.p_id]++;
 
             // increase total counter
             p_items_total_size++;
@@ -96,7 +102,7 @@ public:
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node *curr_node = a[h.global_idx];
+            node<key_t, value_t> *curr_node = a[h.global_idx];
             value_t *curr_value;
             do {
                 curr_value = &curr_node->value;
@@ -133,14 +139,14 @@ public:
                 LOG << "key doesn't exists in bucket, appending...";
 
                 // insert at first pos
-                node *node = new node<key_t, value_t>;
-                node->key = key;
-                node->value = p;
-                node->next = a[h.global_idx];
-                a[h.global_idx] = node;
+                node<key_t, value_t> *n = new node<key_t, value_t>;
+                n->key = key;
+                n->value = p;
+                n->next = a[h.global_idx];
+                a[h.global_idx] = n;
 
                 // increase counter for partition
-                p_items_size[h.p_num]++;
+                p_items_size[h.p_id]++;
                 // increase total counter
                 p_items_total_size++;
 
@@ -178,7 +184,7 @@ public:
         std::vector<value_t> items;
         for (int i=p_idx*p_size; i<=p_idx*p_size+p_size-1; i++) {
             if (a[i] != nullptr) {
-                node *curr_node = a[i];
+                node<key_t, value_t> *curr_node = a[i];
                 do {
                     items.push_back(curr_node->value);
                     curr_node = curr_node->next;
@@ -198,16 +204,16 @@ public:
     /*!
      * Returns a map containing all items per partition.
      */
-    std::map<std::size_t, std::vector<value_t>> erase() {
+    std::map<int, std::vector<value_t>> erase() {
 
         // retrieve items
-        std::map<std::size_t, std::vector<value_t>> items;
-        for (std::size_t i=0; i<p_num; i++) {
+        std::map<int, std::vector<value_t>> items;
+        for (int i=0; i<p_num; i++) {
             std::vector<value_t> curr_items;
-            for (std::size_t j=i*p_size; j<=i*p_size+p_size-1; j++) {
+            for (int j=i*p_size; j<=i*p_size+p_size-1; j++) {
                 if (a[i] != nullptr) {
-                    items.insert(std::make_pair<std::size_t, std::vector<value_t>>(i, curr_items));
-                    node *curr_node = a[i];
+                    items.insert(std::make_pair<int, std::vector<value_t>>(i, curr_items));
+                    node<key_t, value_t> *curr_node = a[i];
                     do {
                         curr_items.push_back(curr_node->value);
                         curr_node = curr_node->next;
@@ -252,7 +258,7 @@ public:
                 std::string log = "";
 
                 // check if item with same key
-                node *curr_node = a[i];
+                node<key_t, value_t> *curr_node = a[i];
                 value_t curr_item;
                 do {
                     curr_item = curr_node->value;
@@ -276,22 +282,19 @@ public:
 
 private:
 
-    std::size_t p_num = 0; // partition size
+    int p_num = 0; // partition size
 
-    std::size_t p_size = 0; // num buckets per partition
+    int p_size = 0; // num buckets per partition
 
-    std::size_t* p_items_size; // num items per partition
+    int* p_items_size; // num items per partition
 
-    std::size_t p_items_total_size = 0; // total sum of items
+    int p_items_total_size = 0; // total sum of items
 
-    static const std::size_t b_size = 100; // bucket size
+    static const int b_size = 100; // bucket size
 
     KeyExtractor key_extractor;
 
     ReduceFunction f_red;
-
-    using key_t = typename FunctionTraits<key_extractor>::result_type;
-    using value_t = typename FunctionTraits<f_red>::result_type;
 
     node<key_t, value_t> *a[b_size] = { nullptr }; // TODO: fix this static assignment
 
@@ -301,13 +304,13 @@ private:
 
         // partition idx
         std::size_t h1 = std::hash<std::string>()(v);
-        h->p_idx = h1 % p_size;
+        h->p_offset = h1 % p_size;
 
-        // partition num -> which processor
-        h->p_num = h->p_idx % p_num;
+        // partition id
+        h->p_id = h->p_offset % p_num;
 
         // global idx
-        h->global_idx = h->p_idx + h->p_num*p_size;
+        h->global_idx = h->p_offset + h->p_id*p_size;
 
         return *h;
     }
