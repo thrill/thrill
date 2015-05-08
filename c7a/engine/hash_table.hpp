@@ -45,7 +45,10 @@ using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
 public:
 
-    HashTable(std::size_t p_n, KeyExtractor key_extractor, ReduceFunction f_reduce) : f_red( f_reduce ) {
+    HashTable(std::size_t p_n, KeyExtractor key_extractor, ReduceFunction f_reduce) : 
+      f_red(f_reduce),
+      key_extractor(key_extractor)  
+        {
         if (p_n > b_size) {
             throw std::invalid_argument("num partitions must be less than num buckets");
         }
@@ -116,14 +119,14 @@ public:
 
                     // reduce
                     LOG << "before reduce: "
-                        << curr_node->value
+                        << curr_node->value.second
                         << " and "
-                        << p;
+                        << p.second;
 
                     (*curr_node).value = f_red(curr_node->value, p);
 
                     LOG << "after reduce: "
-                        << curr_node->value;
+                        << curr_node->value.second;
 
                     LOG << "...finished reduce!";
 
@@ -264,7 +267,7 @@ public:
                     curr_item = curr_node->value;
 
                     log += "(";
-                    //log += curr_item;
+                    log += curr_item.second;
                     log += ") ";
 
                     curr_node = curr_node->next;
