@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/communication/test_net_dispatcher.cpp
+ * tests/net/test-channel-multiplexer.cpp
  *
  * Part of Project c7a.
  *
@@ -217,3 +217,5 @@ TEST_F(ChannelMultiplexerTest, ReadsThreeBlocksThreeChannel) {
     auto received_data2 = candidate.PickupChannel(2)->Data();
     ASSERT_EQ(0, received_data2.size());
 }
+
+/******************************************************************************/

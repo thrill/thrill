@@ -1,3 +1,14 @@
+/*******************************************************************************
+ * c7a/net/stream.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+#ifndef C7A_NET_STREAM_HEADER
+#define C7A_NET_STREAM_HEADER
 #pragma once
 
 #include <stdlib.h> //free
@@ -6,7 +17,9 @@
 #include <c7a/net/socket.hpp>
 
 namespace c7a {
+
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -107,6 +120,13 @@ struct Stream {
         return header.IsStreamEnd();
     }
 };
-}
-}
+
 //! \}
+
+} // namespace net
+
+} // namespace c7a
+
+#endif // !C7A_NET_STREAM_HEADER
+
+/******************************************************************************/

@@ -27,6 +27,7 @@
 #include <thread>
 
 namespace c7a {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -154,8 +155,10 @@ public:
         shutdown();
     }
 };
-} // namespace c7a
+
 // \}
+
+} // namespace c7a
 
 #endif // !C7A_NET_NET_CONNECTION_HEADER
 
