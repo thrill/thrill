@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * tests/api/test_wordcount.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
 #include "gtest/gtest.h"
 #include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
@@ -15,13 +24,16 @@ TEST(WordCount, PreOP) {
     auto doubles = ctx.ReadFromFileSystem(
         g_workpath + "/inputs/wordcount.in",
         [](const std::string& line) {
-	  return std::make_pair(line,1);
+            return std::make_pair(line, 1);
         });
 
-    using WordPair = std::pair<std::string,int>;
+    using WordPair = std::pair<std::string, int>;
 
     auto key = [](WordPair in) { return in.first; };
-    auto red_fn = [](WordPair in1, WordPair in2) { return std::make_pair(in1.first, in1.second + in2.second); };
+    auto red_fn =
+        [](WordPair in1, WordPair in2) {
+            return std::make_pair(in1.first, in1.second + in2.second);
+        };
 
     auto rem_duplicates = doubles.ReduceBy(key).With(red_fn);
 
@@ -32,3 +44,5 @@ TEST(WordCount, PreOP) {
         s.Run();
     }
 }
+
+/******************************************************************************/

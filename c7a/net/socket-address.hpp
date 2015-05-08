@@ -10,6 +10,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_NET_SOCKET_ADDRESS_HEADER
 #define C7A_NET_SOCKET_ADDRESS_HEADER
 

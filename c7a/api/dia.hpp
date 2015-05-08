@@ -2,8 +2,14 @@
  * c7a/api/dia.hpp
  *
  * Interface for Operations, holds pointer to node and lambda from node to state
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_DIA_HEADER
 #define C7A_API_DIA_HEADER
 
@@ -26,6 +32,7 @@
 #include "context.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -187,7 +194,7 @@ public:
      */
     const std::vector<T> & evil_get_data() const
     {
-        return std::vector<T>{ T() };
+        return (std::vector<T>{ T() });
     }
 
     /*!
@@ -239,15 +246,15 @@ private:
      * Syntactic sugaaah for reduce
      */
     template <typename key_extr_fn_t>
-    class ReduceSugar {
+    class ReduceSugar
+    {
     public:
-        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack & local_stack) : key_extractor_(key_extractor), node_(node), local_stack_(local_stack){};
-
+        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack& local_stack) : key_extractor_(key_extractor), node_(node), local_stack_(local_stack) { }
 
         /*!
          * Syntactic sugaaah
          *
-         * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type 
+         * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type
          * to a single element of equal type.
          *
          * \param reduce_function Reduce function, which defines how the key buckets are reduced to a
@@ -273,10 +280,11 @@ private:
             return DIA<dop_result_t, decltype(reduce_stack)>
                        (std::move(shared_node), reduce_stack);
         }
+
     private:
         const key_extr_fn_t& key_extractor_;
-        DIANode<T> * node_;
-        Stack & local_stack_;
+        DIANode<T>* node_;
+        Stack& local_stack_;
     };
 };
 
@@ -300,6 +308,7 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     return DIA<read_result_t, decltype(read_stack)>
                (std::move(shared_node), read_stack);
 }
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER

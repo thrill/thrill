@@ -1,9 +1,13 @@
 /*******************************************************************************
  * c7a/api/dop_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_DOP_NODE_HEADER
 #define C7A_API_DOP_NODE_HEADER
 
@@ -11,6 +15,7 @@
 #include "context.hpp"
 
 namespace c7a {
+
 template <typename T>
 class DOpNode : public DIANode<T>
 {

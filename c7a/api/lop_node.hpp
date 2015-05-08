@@ -1,9 +1,13 @@
 /*******************************************************************************
  * c7a/api/lop_node.hpp
  *
- * Model real-time or backtesting Portfolio with Positions, TradeLog and more.
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_LOP_NODE_HEADER
 #define C7A_API_LOP_NODE_HEADER
 
@@ -47,7 +51,8 @@ public:
         }
     };
 
-    std::string ToString() override {
+    std::string ToString() override
+    {
         // Create string
         std::string str 
             = std::string("[LOpNode] Id: ") + std::to_string(DIABase::data_id_);

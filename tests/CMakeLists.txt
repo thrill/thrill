@@ -25,12 +25,14 @@ endfunction()
 set(SRCS
     c7a-tests.cpp
     api/test_simple_api.cpp
-    # data/test_data_manager.cpp
-    # data/test_block_iterator.cpp
-    # data/test_serializer.cpp
-    # net/test-net-group.cpp
-    # engine/mock-network.cpp
-    # engine/test_stage_builder.cpp
+    data/test_data_manager.cpp
+    data/test_block_iterator.cpp
+    data/test_serializer.cpp
+    net/test-net-group.cpp
+    net/test-channel-multiplexer.cpp
+    net/test-stream.cpp
+    engine/mock-network.cpp
+    engine/test_stage_builder.cpp
     # api/test_wordcount.cpp
     # data/test_dia_allocate.cpp
 )
