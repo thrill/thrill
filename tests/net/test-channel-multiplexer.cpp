@@ -30,7 +30,9 @@ struct ChannelMultiplexerTest : public::testing::Test {
         element1("foo"),
         element2("bar22"),
         element3("."),
-        boundaries{element1.length(), element2.length(), element3.length()}
+        boundaries{element1.length(), element2.length(), element3.length()},
+        boundaries2{element2.length(), element1.length(), element3.length()},
+        boundaries3{}
     {
         header.num_elements = 3;
         header.channel_id = 3;
@@ -38,18 +40,40 @@ struct ChannelMultiplexerTest : public::testing::Test {
         std::string data = header.Serialize();
         header_part1 = data.substr(0, sizeof(size_t) * 2);
         header_part2 = data.substr(header_part1.length(), data.length() - header_part1.length());
+
+        header2.num_elements = 3;
+        header2.channel_id = 3;
+        header2.boundaries = boundaries2;
+        data = header2.Serialize();
+        header2_part1 = data.substr(0, sizeof(size_t) * 2);
+        header2_part2 = data.substr(header2_part1.length(), data.length() - header2_part1.length());
+
+        header3.num_elements = 0;
+        header3.channel_id = 3;
+        header3.boundaries = boundaries3;
+        data = header3.Serialize();
+        header3_part1 = data.substr(0, sizeof(size_t) * 2);
+        header3_part2 = data.substr(header3_part1.length(), data.length() - header3_part1.length());
     }
 
-    struct StreamBlockHeader header; //channel_id, num_elements
+    struct StreamBlockHeader header;
+    struct StreamBlockHeader header2;
+    struct StreamBlockHeader header3;
     Socket                   socket;
     NetDispatcherMock        dispatch_mock;
     ChannelMultiplexer       candidate;
     std::string              header_part1;
     std::string              header_part2;
+    std::string              header2_part1;
+    std::string              header2_part2;
+    std::string              header3_part1;
+    std::string              header3_part2;
     std::string              element1;
     std::string              element2;
     std::string              element3;
     size_t                   boundaries[3];
+    size_t                   boundaries2[3];
+    size_t                   boundaries3[0];
 };
 
 ACTION_P(SetBufferTo, value) {
@@ -84,8 +108,6 @@ TEST_F(ChannelMultiplexerTest, ReadsNoElementBoundariesIfStreamIsEmpty) {
 TEST_F(ChannelMultiplexerTest, HasChannel) {
     ASSERT_FALSE(candidate.HasChannel(3));
 
-    size_t exp_len1 = header_part1.length();
-    size_t exp_len2 = header_part2.length();
     EXPECT_CALL(dispatch_mock, AsyncRead(socket, _, _))
     .WillOnce(InvokeArgument<2>(ByRef(socket), header_part1))
     .WillOnce(InvokeArgument<2>(ByRef(socket), header_part2))
@@ -115,6 +137,34 @@ TEST_F(ChannelMultiplexerTest, ReadsElementsByBoundaries) {
 
     EXPECT_CALL(dispatch_mock, AsyncRead(socket, element3.length(), _))
     .WillOnce(InvokeArgument<2>(ByRef(socket), element3));     //read .
+
+    candidate.AddSocket(socket);
+
+    auto received_data = candidate.PickupChannel(3)->Data();
+    ASSERT_EQ(element1, received_data[0]);
+    ASSERT_EQ(element2, received_data[1]);
+    ASSERT_EQ(element3, received_data[2]);
+}
+
+TEST_F(ChannelMultiplexerTest, ReadsThreeBlocksSingleChannel) {
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, header_part1.length(), _))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header_part1))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header2_part1))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header3_part1));
+
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, header_part2.length(), _))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header_part2))
+    .WillOnce(InvokeArgument<2>(ByRef(socket), header2_part2));
+    //no call for header 3 because it has 0 elements
+
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, element1.length(), _))
+    .WillRepeatedly(InvokeArgument<2>(ByRef(socket), element1));     //read foo
+
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, element2.length(), _))
+    .WillRepeatedly(InvokeArgument<2>(ByRef(socket), element2));     //read bar22
+
+    EXPECT_CALL(dispatch_mock, AsyncRead(socket, element3.length(), _))
+    .WillRepeatedly(InvokeArgument<2>(ByRef(socket), element3));     //read .
 
     candidate.AddSocket(socket);
 
