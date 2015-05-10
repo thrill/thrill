@@ -37,7 +37,7 @@ class ReduceNode : public DOpNode<T>
 public:
     /*!
      * Constructor for a ReduceNode. Sets the DataManager, parents, stack, key_extractor and reduce_function.
-     *     
+     *
      * \param ctx Reference to Context, which holds references to data and network.
      * \param parents Vector of parents. Has size 1, as a reduce node only has a single parent
      * \param stack Function stack with all lambdas between the parent and this node

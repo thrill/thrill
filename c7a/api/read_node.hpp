@@ -60,7 +60,7 @@ public:
 
         std::string line;
         while (iter.HasNext()) {
-	  //SpacingLogger(true) << iter.Next();
+            //SpacingLogger(true) << iter.Next();
             emit(read_function_(iter.Next()));
         }
     }
