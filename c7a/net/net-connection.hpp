@@ -58,13 +58,28 @@ public:
         : Socket(s)
     { }
 
-    //! Return the associated file descriptor
-    int GetFileDescriptor() const
-    { return Socket::GetFileDescriptor(); }
-
     //! Return the raw socket object for more low-level network programming.
     Socket & GetSocket()
     { return *this; }
+
+    //! Return the raw socket object for more low-level network programming.
+    const Socket & GetSocket() const
+    { return *this; }
+
+    //! Return the associated socket error
+    int GetError() const
+    { return Socket::GetError(); }
+
+    //! Set socket to non-blocking
+    int SetNonBlocking(bool non_blocking) const
+    { return Socket::SetNonBlocking(non_blocking); }
+
+    //! Return the socket peer address
+    std::string GetPeerAddress() const
+    { return Socket::GetPeerAddress().ToStringHostPort(); }
+
+    bool operator == (const NetConnection& c) const
+    { return GetSocket().GetFileDescriptor() == c.GetSocket().GetFileDescriptor(); }
 
     //! \name Send Functions
     //! \{
@@ -154,6 +169,15 @@ public:
     void Close()
     {
         shutdown();
+    }
+
+    //! make ostreamable
+    friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
+    {
+        return os << "[Socket"
+                  << " fd=" << c.GetSocket().GetFileDescriptor()
+                  << " peer=" << c.GetPeerAddress()
+                  << "]";
     }
 };
 

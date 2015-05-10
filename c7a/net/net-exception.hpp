@@ -27,7 +27,7 @@ namespace net {
 class NetException : public std::runtime_error
 {
 public:
-    NetException(const std::string& what)
+    explicit NetException(const std::string& what)
         : std::runtime_error(what)
     { }
 

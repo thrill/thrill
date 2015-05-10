@@ -201,7 +201,7 @@ public:
         {
             if (i == my_rank_) continue;
 
-            int fd = connections_[i].GetFileDescriptor();
+            int fd = connections_[i].GetSocket().GetFileDescriptor();
             FD_SET(fd, &fd_set);
             max_fd = std::max(max_fd, fd);
             sLOG0 << "select from fd=" << fd;
@@ -222,7 +222,7 @@ public:
         {
             if (i == my_rank_) continue;
 
-            int fd = connections_[i].GetFileDescriptor();
+            int fd = connections_[i].GetSocket().GetFileDescriptor();
 
             if (FD_ISSET(fd, &fd_set))
             {

@@ -42,7 +42,7 @@ public:
     typedef std::function<bool (Socket&)> Callback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Socket& s, const Callback& read_cb)
+    void AddRead(const Socket& s, const Callback& read_cb)
     {
         Select::SetRead(s.GetFileDescriptor());
         Select::SetException(s.GetFileDescriptor());
@@ -51,7 +51,7 @@ public:
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Socket& s, const Callback& write_cb)
+    void AddWrite(const Socket& s, const Callback& write_cb)
     {
         Select::SetWrite(s.GetFileDescriptor());
         Select::SetException(s.GetFileDescriptor());
@@ -60,7 +60,7 @@ public:
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(Socket& s,
+    void AddReadWrite(const Socket& s,
                       const Callback& read_cb, const Callback& write_cb)
     {
         Select::SetRead(s.GetFileDescriptor());
@@ -194,7 +194,7 @@ private:
         Socket   socket;
         Callback read_cb, write_cb, except_cb;
 
-        Watch(int _fd, Socket& _socket,
+        Watch(int _fd, const Socket& _socket,
               const Callback& _read_cb, const Callback& _write_cb,
               const Callback& _except_cb)
             : fd(_fd),

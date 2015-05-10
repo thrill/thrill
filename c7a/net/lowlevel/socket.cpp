@@ -35,11 +35,6 @@ void Socket::SetKeepAlive(bool activate)
     }
 }
 
-bool Socket::operator == (const Socket& socket) const
-{
-    return socket.GetFileDescriptor() == GetFileDescriptor();
-}
-
 void Socket::SetReuseAddr(bool activate)
 {
     int sockoptflag = (activate ? 1 : 0);
