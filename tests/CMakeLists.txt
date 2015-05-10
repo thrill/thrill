@@ -31,6 +31,7 @@ set(SRCS
     net/test-net-group.cpp
     net/mock-network.cpp
     core/test_stage_builder.cpp
+    core/test_hash_table.cpp
     # api/test_wordcount.cpp
     data/test_dia_allocate.cpp
 )
