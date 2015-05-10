@@ -18,6 +18,8 @@
 
 namespace c7a {
 
+namespace net {
+
 void Socket::SetKeepAlive(bool activate)
 {
     int sockoptflag = (activate ? 1 : 0);
@@ -77,6 +79,8 @@ void Socket::SetNoDelay(bool activate)
     }
 #endif
 }
+
+} // namespace net
 
 } // namespace c7a
 

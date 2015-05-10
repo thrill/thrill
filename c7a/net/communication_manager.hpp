@@ -18,6 +18,8 @@
 
 namespace c7a {
 
+namespace net {
+
 /**
  * @brief Manages communication.
  * @details Manages communication and handles errors.
@@ -31,6 +33,8 @@ public:
 
     //FlowControlChannel * GetFlowControlChannel();
 };
+
+} // namespace net
 
 } // namespace c7a
 
