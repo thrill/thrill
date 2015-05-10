@@ -26,9 +26,10 @@ public:
 
     virtual ~DOpNode() { }
 
-    std::string ToString() override {
+    std::string ToString() override
+    {
         // Create string
-        std::string str 
+        std::string str
             = std::string("[DOpNode]");
         return str;
     }

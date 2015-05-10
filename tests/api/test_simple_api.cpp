@@ -22,21 +22,21 @@ TEST(DIASimple, SharedPtrTest) {
 
     Context ctx;
 
-    auto map_fn = [](int in) { 
-        return 2*in; 
-    };
-    auto key_ex = [](int in) { 
-        return in % 2; 
-    };
-    auto red_fn = [](int in1, int in2) { 
-        return in1 + in2; 
-    };
+    auto map_fn = [](int in) {
+                      return 2 * in;
+                  };
+    auto key_ex = [](int in) {
+                      return in % 2;
+                  };
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
 
     auto input = ReadFromFileSystem(
         ctx,
         g_workpath + "/inputs/test1",
         [](const std::string& line) {
-          return std::stoi(line);
+            return std::stoi(line);
         });
     DIA<int> ints = input.Map(map_fn);
     // DIA<int> doubles = ints.Map(map_fn);
