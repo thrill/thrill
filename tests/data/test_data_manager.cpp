@@ -35,11 +35,11 @@ TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
 }
 
 TEST_F(DataManagerFixture, AllocateMultiple) {
-    auto id = manager.AllocateDIA();
-    auto id2 = manager.AllocateDIA();
-    auto id3 = manager.AllocateDIA();
-    auto id4 = manager.AllocateDIA();
-    auto id5 = manager.AllocateDIA();
+    manager.AllocateDIA();
+    manager.AllocateDIA();
+    manager.AllocateDIA();
+    manager.AllocateDIA();
+    manager.AllocateDIA();
 }
 
 

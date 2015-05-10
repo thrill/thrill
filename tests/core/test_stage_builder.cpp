@@ -24,11 +24,11 @@ TEST(Stage, GetStagesFromBuilder) {
                       return input;
                   };
 
-    auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
+    /*auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
                        std::cout << "FlatMap" << std::endl;
                        emit_func(input);
                        emit_func(input);
-                   };
+                       };*/
 
     auto duplicates = doubles.Map(map_fn);
     // auto duplicates2 = duplicates.Map(map_fn);
