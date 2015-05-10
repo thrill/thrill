@@ -24,6 +24,8 @@
 
 namespace c7a {
 
+namespace net {
+
 /******************************************************************************/
 
 SocketAddress::SocketAddress(struct sockaddr* sa, socklen_t salen)
@@ -217,6 +219,8 @@ IPv6Address::IPv6Address(const char* ipstring, uint16_t port)
     }
     sin6->sin6_port = htons(port);
 }
+
+} // namespace net
 
 } // namespace c7a
 

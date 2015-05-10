@@ -29,6 +29,8 @@
 
 namespace c7a {
 
+namespace net {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -158,6 +160,8 @@ public:
 };
 
 // \}
+
+} // namespace net
 
 } // namespace c7a
 
