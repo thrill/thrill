@@ -29,7 +29,7 @@ class NetReadBuffer
 {
 public:
     //! Construct buffered reader with callback
-    NetReadBuffer(Socket& socket, size_t buffer_size = BufferSize,
+    NetReadBuffer(lowlevel::Socket& socket, size_t buffer_size = BufferSize,
                   const Functional& functional = Functional())
         : functional_(functional),
           buffer_(buffer_size, 0)
@@ -39,7 +39,7 @@ public:
     }
 
     //! Should be called when the socket is readable
-    bool operator () (Socket& s)
+    bool operator () (lowlevel::Socket& s)
     {
         int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
                            buffer_.size() - size_);
@@ -75,6 +75,9 @@ NetGroup::NetGroup(ClientId my_rank,
       connections_(endpoints.size())
 {
     die_unless(my_rank_ < endpoints.size());
+
+    using lowlevel::Socket;
+    using lowlevel::SocketAddress;
 
     // resolve all endpoint addresses
 
@@ -244,6 +247,8 @@ void NetGroup::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(NetGroup*)>& thread_function)
 {
+    using lowlevel::Socket;
+
     // construct a group of num_clients
     std::vector<std::unique_ptr<NetGroup> > group(num_clients);
 

@@ -37,7 +37,7 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     NetDispatcher dispatcher;
 
     NetDispatcher::AsyncReadCallback callback =
-        [net, &received](Socket& s, const std::string& buffer) {
+        [net, &received](lowlevel::Socket& s, const std::string& buffer) {
             ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
             received++;
         };

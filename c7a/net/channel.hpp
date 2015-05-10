@@ -11,7 +11,7 @@
 #ifndef C7A_NET_CHANNEL_HEADER
 #define C7A_NET_CHANNEL_HEADER
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/stream.hpp>
 
 namespace c7a {
@@ -39,7 +39,7 @@ class Channel
 {
 public:
     //! Called to transfer the polling responsibility back to the channel multiplexer
-    typedef std::function<void (Socket& s)> ReleaseSocketCallback;
+    typedef std::function<void (lowlevel::Socket& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
     Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback, int id, int expected_streams)
@@ -53,7 +53,7 @@ public:
     //! This is the start state of the callback state machine.
     //! end-of-streams are handled directly
     //! all other block headers are parsed
-    void PickupStream(Socket& s, struct StreamBlockHeader head)
+    void PickupStream(lowlevel::Socket& s, struct StreamBlockHeader head)
     {
         struct Stream* stream = new struct Stream (s, head);
         if (stream->IsFinished()) {
@@ -103,7 +103,7 @@ private:
     //!The second part of the header (boundaries of the block) is read here
     //!
     //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(Socket& s, const std::string& buffer, struct Stream* stream)
+    void ReadSecondHeaderPartFrom(lowlevel::Socket& s, const std::string& buffer, struct Stream* stream)
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
         LOG << "read #elements on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
@@ -141,7 +141,7 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(Socket& s, const std::string& buffer, struct Stream* stream)
+    inline void ConsumeData(lowlevel::Socket& s, const std::string& buffer, struct Stream* stream)
     {
         LOG << "read data on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
         data_.push_back(buffer);  //TODO give buffer to AsyncRead instead of copying data here!

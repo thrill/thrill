@@ -14,15 +14,13 @@
 #ifndef C7A_NET_NET_CONNECTION_HEADER
 #define C7A_NET_NET_CONNECTION_HEADER
 
-#include <c7a/net/socket.hpp>
-
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/net-exception.hpp>
 #include <string>
 #include <thread>
@@ -48,7 +46,7 @@ namespace net {
  * instead of explicit error handling. If ever an error occurs, we probably have
  * to rebuild the whole network explicitly.
  */
-class NetConnection : protected Socket
+class NetConnection : protected lowlevel::Socket
 {
     static const bool debug = true;
 

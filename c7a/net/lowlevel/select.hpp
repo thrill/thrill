@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/select.hpp
+ * c7a/net/lowlevel/select.hpp
  *
  * Lightweight wrapper around select()
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SELECT_HEADER
-#define C7A_NET_SELECT_HEADER
+#ifndef C7A_NET_LOWLEVEL_SELECT_HEADER
+#define C7A_NET_LOWLEVEL_SELECT_HEADER
 
 #include <sys/select.h>
 
@@ -21,6 +21,8 @@
 namespace c7a {
 
 namespace net {
+
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -131,10 +133,12 @@ protected:
 
 //! \}
 
+} // namespace lowlevel
+
 } // namespace net
 
 } // namespace c7a
 
-#endif // !C7A_NET_SELECT_HEADER
+#endif // !C7A_NET_LOWLEVEL_SELECT_HEADER
 
 /******************************************************************************/

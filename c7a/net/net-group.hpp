@@ -264,7 +264,7 @@ private:
     std::vector<NetConnection> connections_;
 
     //! Socket on which to listen for incoming connections.
-    Socket listenSocket_;
+    lowlevel::Socket listenSocket_;
 };
 
 template <typename T, typename BinarySumOp>

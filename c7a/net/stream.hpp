@@ -14,7 +14,7 @@
 #include <stdlib.h> //free
 #include <stdio.h>  //mempcy
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 
 namespace c7a {
 
@@ -99,11 +99,11 @@ struct StreamBlockHeader {
 //! streams
 struct Stream {
     struct StreamBlockHeader header;
-    Socket&                  socket;
+    lowlevel::Socket&        socket;
     int                      elements_read = 0;
 
     //!attaches a stream to a socket and initializes the current header
-    Stream(Socket& socket, struct StreamBlockHeader header)
+    Stream(lowlevel::Socket& socket, struct StreamBlockHeader header)
         : header(header),
           socket(socket) { }
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/socket-address.cpp
+ * c7a/net/lowlevel/socket-address.cpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -10,9 +10,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/socket-address.hpp>
+#include <c7a/net/lowlevel/socket-address.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/net/socket.hpp>
 
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -25,6 +25,8 @@
 namespace c7a {
 
 namespace net {
+
+namespace lowlevel {
 
 /******************************************************************************/
 
@@ -219,6 +221,8 @@ IPv6Address::IPv6Address(const char* ipstring, uint16_t port)
     }
     sin6->sin6_port = htons(port);
 }
+
+} // namespace lowlevel
 
 } // namespace net
 
