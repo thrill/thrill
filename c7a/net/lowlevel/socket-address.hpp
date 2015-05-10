@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/socket-address.hpp
+ * c7a/net/lowlevel/socket-address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SOCKET_ADDRESS_HEADER
-#define C7A_NET_SOCKET_ADDRESS_HEADER
+#ifndef C7A_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
+#define C7A_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
 
 #include <netinet/in.h>
 
@@ -25,6 +25,8 @@
 namespace c7a {
 
 namespace net {
+
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -294,10 +296,12 @@ public:
 
 // \}
 
+} // namespace lowlevel
+
 } // namespace net
 
 } // namespace c7a
 
-#endif // !C7A_NET_SOCKET_ADDRESS_HEADER
+#endif // !C7A_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
 
 /******************************************************************************/

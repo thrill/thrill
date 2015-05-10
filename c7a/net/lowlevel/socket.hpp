@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/socket.hpp
+ * c7a/net/lowlevel/socket.hpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -11,12 +11,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SOCKET_HEADER
-#define C7A_NET_SOCKET_HEADER
+#ifndef C7A_NET_LOWLEVEL_SOCKET_HEADER
+#define C7A_NET_LOWLEVEL_SOCKET_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/net/socket-address.hpp>
+#include <c7a/net/lowlevel/socket-address.hpp>
 
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -30,6 +30,8 @@
 namespace c7a {
 
 namespace net {
+
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \ingroup net
@@ -473,10 +475,12 @@ protected:
 
 // \}
 
+} // namespace lowlevel
+
 } // namespace net
 
 } // namespace c7a
 
-#endif // !C7A_NET_SOCKET_HEADER
+#endif // !C7A_NET_LOWLEVEL_SOCKET_HEADER
 
 /******************************************************************************/

@@ -15,9 +15,9 @@
 #ifndef C7A_NET_NET_DISPATCHER_HEADER
 #define C7A_NET_NET_DISPATCHER_HEADER
 
-#include <c7a/net/socket.hpp>
-#include <c7a/net/select-dispatcher.hpp>
-#include <c7a/net/epoll-dispatcher.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/lowlevel/select-dispatcher.hpp>
+#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
 #include <string>
 #include <deque>
@@ -43,8 +43,8 @@ class NetDispatcher
 
 public:
     //! switch between different low-level dispatchers
-    typedef SelectDispatcher Dispatcher;
-    //typedef EPollDispatcher Dispatcher;
+    typedef lowlevel::SelectDispatcher Dispatcher;
+    //typedef lowlevel::EPollDispatcher Dispatcher;
 
     //! \name Timeout Callbacks
     //! \{
@@ -64,23 +64,23 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef std::function<bool (Socket&)> SocketCallback;
+    typedef std::function<bool (lowlevel::Socket&)> SocketCallback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Socket& s, const SocketCallback& read_cb)
+    void AddRead(lowlevel::Socket& s, const SocketCallback& read_cb)
     {
         return dispatcher_.AddRead(s, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Socket& s, const SocketCallback& write_cb)
+    void AddWrite(lowlevel::Socket& s, const SocketCallback& write_cb)
     {
         return dispatcher_.AddWrite(s, write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(
-        Socket& s,
+        lowlevel::Socket& s,
         const SocketCallback& read_cb, const SocketCallback& write_cb)
     {
         return dispatcher_.AddReadWrite(s, read_cb, write_cb);
@@ -92,10 +92,10 @@ public:
     //! \{
 
     //! callback signature for async read callbacks
-    typedef std::function<void (Socket& s, const std::string& buffer)> AsyncReadCallback;
+    typedef std::function<void (lowlevel::Socket& s, const std::string& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
-    virtual void AsyncRead(Socket& s, size_t n, AsyncReadCallback done_cb)
+    virtual void AsyncRead(lowlevel::Socket& s, size_t n, AsyncReadCallback done_cb)
     {
         LOG << "async read on read dispatcher";
         if (n == 0) {
@@ -111,10 +111,10 @@ public:
     }
 
     //! callback signature for async write callbacks
-    typedef std::function<void (Socket& s)> AsyncWriteCallback;
+    typedef std::function<void (lowlevel::Socket& s)> AsyncWriteCallback;
 
     //! asynchronously write buffer and callback when delivered
-    void AsyncWrite(Socket& s, const std::string& buffer,
+    void AsyncWrite(lowlevel::Socket& s, const std::string& buffer,
                     AsyncWriteCallback done_cb = NULL)
     {
         if (buffer.size() == 0) {
@@ -131,7 +131,7 @@ public:
 
     //! asynchronously write buffer and callback when delivered. Copies the data
     //! into a std::string buffer!
-    void AsyncWrite(Socket& s, const void* buffer, size_t size,
+    void AsyncWrite(lowlevel::Socket& s, const void* buffer, size_t size,
                     AsyncWriteCallback done_cb = NULL)
     {
         return AsyncWrite(
@@ -221,7 +221,7 @@ protected:
         { }
 
         //! Should be called when the socket is readable
-        bool operator () (Socket& s)
+        bool operator () (lowlevel::Socket& s)
         {
             int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
                                buffer_.size() - size_);
@@ -267,7 +267,7 @@ protected:
         { }
 
         //! Should be called when the socket is writable
-        bool operator () (Socket& s)
+        bool operator () (lowlevel::Socket& s)
         {
             int r = s.send_one(const_cast<char*>(buffer_.data() + size_),
                                buffer_.size() - size_);
@@ -303,7 +303,7 @@ protected:
     /**************************************************************************/
 
     //! Default exception handler
-    static bool ExceptionCallback(Socket& s)
+    static bool ExceptionCallback(lowlevel::Socket& s)
     {
         // exception on listen socket ?
         throw NetException("NetDispatcher() exception on socket fd "
