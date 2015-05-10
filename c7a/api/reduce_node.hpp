@@ -118,16 +118,16 @@ private:
         // //get data from data manager
         data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(pid);
         // //run local reduce
-        
+
         //std::unordered_map<key_t, T> reduce_data;
 
         //TODO get number of worker by net-group or something similar
         //TODO make a static getter for this
         int number_worker = 1;
-      
-	    data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
-        c7a::core::HashTable <KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_, emit);
+        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
+
+        c7a::core::HashTable<KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_, emit);
 
         std::vector<reduce_arg_t> elements;
 
@@ -142,11 +142,10 @@ private:
         }
 
         for (auto item : elements) {
-	        reduce_data.Insert(item);
-	    }
+            reduce_data.Insert(item);
+        }
 
         reduce_data.Flush();
-
     }
 
     //!Recieve elements from other workers.
