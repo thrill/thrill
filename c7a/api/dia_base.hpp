@@ -36,7 +36,7 @@ public:
      * Sets the parents for this node and adds this node as a child for
      * each parent.
      *
-     * \param data_manager Reference to DataManager, which gives iterators to data
+     * \param ctx Reference to Context, which holds references to data and network.
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
