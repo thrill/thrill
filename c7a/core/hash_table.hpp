@@ -197,20 +197,18 @@ public:
     }
 
     /*!
-     * Returns a map containing all items per partition.
+     * Flushes the HashTable after all elements are inserted.  
      */
-    std::map<int, std::vector<value_t> > Erase()
+    void Flush()
     {
         // retrieve items
         std::map<int, std::vector<value_t> > items;
         for (int i = 0; i < num_partitions_; i++) {
-            std::vector<value_t> curr_items;
             for (int j = i * buckets_per_part_; j <= i * buckets_per_part_ + buckets_per_part_ - 1; j++) {
                 if (a[i] != nullptr) {
-                    items.insert(std::make_pair<int, std::vector<value_t> >(i, curr_items));
                     node<key_t, value_t>* curr_node = a[i];
                     do {
-                        curr_items.push_back(curr_node->value);
+                        emit_(curr_node->value);
                         curr_node = curr_node->next;
                     } while (curr_node != nullptr);
                     a[i] = nullptr;
@@ -223,8 +221,6 @@ public:
 
         // reset counters
         total_table_size_ = 0;
-
-        return items;
     }
 
     /*!
