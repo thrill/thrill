@@ -142,11 +142,9 @@ private:
         }
 
         for (auto item : elements) {
-	        reduce_data.insert(item);
+	        reduce_data.Insert(item);
 	    }
 
-	    //auto popped = reduce_data.pop();
-	    //std::cout << "Size: " << popped.size() << std::endl;
     }
 
     //!Recieve elements from other workers.
