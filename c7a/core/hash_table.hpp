@@ -72,7 +72,7 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(value_t& p)
+    void Insert(const value_t& p)
     {
         key_t key = key_extractor_(p);
 
@@ -199,16 +199,18 @@ public:
      */
     void Flush()
     {
+        LOG << "Flushing in progress";
+
         // retrieve items
         for (int i = 0; i < num_partitions_; i++) {
             for (int j = i * buckets_per_part_; j <= i * buckets_per_part_ + buckets_per_part_ - 1; j++) {
-                if (a[i] != nullptr) {
-                    node<key_t, value_t>* curr_node = a[i];
+                if (a[j] != nullptr) {
+                    node<key_t, value_t>* curr_node = a[j];
                     do {
                         emit_(curr_node->value);
                         curr_node = curr_node->next;
                     } while (curr_node != nullptr);
-                    a[i] = nullptr;
+                    a[j] = nullptr;
                 }
             }
 
