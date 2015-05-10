@@ -197,7 +197,7 @@ public:
     }
 
     /*!
-     * Flushes the HashTable after all elements are inserted.  
+     * Flushes the HashTable after all elements are inserted.
      */
     void Flush()
     {
