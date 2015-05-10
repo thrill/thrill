@@ -57,8 +57,7 @@ public:
      * \param node Pointer to the last DIANode, DOps and Actions create a new DIANode,
      * LOps link to the DIANode of the previous DIA.
      *
-     * \param lambda Function which can transform elements from the DIANode to elements
-     * of this DIA.
+     * \param stack Function stack consisting of functions between last DIANode and this DIA.
      */
     DIA(DIANode<T>* node, Stack stack) : node_(node), local_stack_(stack) { }
 
