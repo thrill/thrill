@@ -141,8 +141,8 @@ public:
      * \param key_extractor Key extractor function, which maps each element to a key of possibly different type.
      *
      */
-    template<typename key_extr_fn_t>
-    auto ReduceBy(const key_extr_fn_t& key_extractor) {
+    template <typename key_extr_fn_t>
+    auto ReduceBy(const key_extr_fn_t &key_extractor) {
         return ReduceSugar<key_extr_fn_t>(key_extractor, node_, local_stack_);
     }
 
@@ -205,15 +205,15 @@ private:
      * Syntactic sugaaah for reduce
      */
     template <typename key_extr_fn_t>
-    class ReduceSugar {
+    class ReduceSugar
+    {
     public:
-        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack & local_stack) : key_extractor_(key_extractor), node_(node), local_stack_(local_stack){};
-
+        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack& local_stack) : key_extractor_(key_extractor), node_(node), local_stack_(local_stack) { }
 
         /*!
          * Syntactic sugaaah
          *
-         * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type 
+         * \tparam reduce_fn_t Type of the reduce_function. This is a function reducing two elements of L's result type
          * to a single element of equal type.
          *
          * \param reduce_function Reduce function, which defines how the key buckets are reduced to a
@@ -221,26 +221,26 @@ private:
          *
          */
         template <typename reduce_fn_t>
-        auto With(const reduce_fn_t& reduce_function) {
-
+        auto With(const reduce_fn_t &reduce_function) {
             using dop_result_t = typename FunctionTraits<reduce_fn_t>::result_type;
             using ReduceResultNode = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
-            ReduceResultNode* reduce_node 
-            = new ReduceResultNode(node_->get_data_manager(), 
-                                   { node_ }, 
-                                   local_stack_,
-                                   key_extractor_, 
-                                   reduce_function);
+            ReduceResultNode* reduce_node
+                = new ReduceResultNode(node_->get_data_manager(),
+                                       { node_ },
+                                       local_stack_,
+                                       key_extractor_,
+                                       reduce_function);
 
             auto reduce_stack = reduce_node->ProduceStack();
 
-        return DIA<dop_result_t, decltype(reduce_stack)>(reduce_node, reduce_stack);
+            return DIA<dop_result_t, decltype(reduce_stack)>(reduce_node, reduce_stack);
         }
+
     private:
         const key_extr_fn_t& key_extractor_;
-        DIANode<T> * node_;
-        Stack & local_stack_;
+        DIANode<T>* node_;
+        Stack& local_stack_;
     };
 };
 
