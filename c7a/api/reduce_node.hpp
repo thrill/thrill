@@ -145,6 +145,8 @@ private:
 	        reduce_data.Insert(item);
 	    }
 
+        reduce_data.Flush();
+
     }
 
     //!Recieve elements from other workers.
