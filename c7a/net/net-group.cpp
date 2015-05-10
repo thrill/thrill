@@ -130,8 +130,10 @@ NetGroup::NetGroup(ClientId my_rank,
     unsigned int got_connections = 0;
 
     auto MsgReaderLambda =
-        [this, &got_connections](Socket& s, const std::string& buffer) -> bool {
-            LOG0 << "Message on " << s.GetFileDescriptor();
+        [this, &got_connections](
+            const NetConnection& s, const std::string& buffer) -> bool
+        {
+            LOG0 << "Message on " << s;
             die_unequal(buffer.size(), sizeof(WelcomeMsg));
 
             const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
@@ -163,7 +165,7 @@ NetGroup::NetGroup(ClientId my_rank,
         ns.SetNonBlocking(true);
 
         auto on_connect =
-            [&, id](Socket& s) -> bool {
+            [&, id](const NetConnection& s) -> bool {
                 int err = s.GetError();
 
                 if (err != 0) {
@@ -174,7 +176,7 @@ NetGroup::NetGroup(ClientId my_rank,
                 }
 
                 LOG << "OpenConnections() " << my_rank_ << " connected"
-                    << " fd=" << s.GetFileDescriptor()
+                    << " fd=" << s.GetSocket().GetFileDescriptor()
                     << " to=" << s.GetPeerAddress();
 
                 // send welcome message
@@ -190,11 +192,11 @@ NetGroup::NetGroup(ClientId my_rank,
 
         if (ns.connect(addrlist[id]) == 0) {
             // connect() already successful? this should not be.
-            on_connect(ns);
+            on_connect(NetConnection(ns));
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            disp.AddWrite(ns, on_connect);
+            disp.AddWrite(NetConnection(ns), on_connect);
         }
         else {
             throw NetException("Could not connect to client "
@@ -208,14 +210,15 @@ NetGroup::NetGroup(ClientId my_rank,
     unsigned int accepting = my_rank_;
 
     disp.AddRead(
-        listenSocket_, [&](Socket& s) -> bool
+        NetConnection(listenSocket_),
+        [&](const NetConnection& s) -> bool
         {
-            // new accept()able connection on listen socket
+                // new accept()able connection on listen socket
             die_unless(accepting > 0);
 
-            Socket ns = s.accept();
+            NetConnection ns = NetConnection(s.GetSocket().accept());
             LOG << "OpenConnections() " << my_rank_ << " accepted connection"
-                << " fd=" << ns.GetFileDescriptor()
+                << " fd=" << ns.GetSocket().GetFileDescriptor()
                 << " from=" << ns.GetPeerAddress();
 
             // send welcome message
