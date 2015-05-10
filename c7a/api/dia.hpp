@@ -51,11 +51,11 @@ namespace c7a {
  * \tparam L Type of the lambda function to transform elements from the previous
  *  DIANode to elements of this DIA.
  */
-template <typename T, typename Stack = FunctionStack<>>
-class DIA 
+template <typename T, typename Stack = FunctionStack<> >
+class DIA
 {
     friend class Context;
-    using DIANodePtr = std::shared_ptr<DIANode<T>>;
+    using DIANodePtr = std::shared_ptr<DIANode<T> >;
 
 public:
     /*!
@@ -68,26 +68,31 @@ public:
      * \param lambda Function which can transform elements from the DIANode to elements
      * of this DIA.
      */
-    DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack) { 
+    DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack)
+    {
         node_ = std::move(node);
     }
 
-    DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack) { 
+    DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack)
+    {
         node_ = node;
     }
 
-    friend void swap(DIA& first, DIA& second) {
+    friend void swap(DIA& first, DIA& second)
+    {
         using std::swap;
         swap(first.node_, second.node_);
     }
 
-    DIA& operator=(DIA rhs) {
+    DIA& operator = (DIA rhs)
+    {
         swap(*this, rhs);
         return *this;
     }
 
     template <typename AnyStack>
-    DIA(const DIA<T, AnyStack>& rhs) {
+    DIA(const DIA<T, AnyStack>& rhs)
+    {
         // Create new LOpNode
         // Transfer stack from rhs to LOpNode
         // Build new DIA with empty stack and LOpNode
@@ -107,7 +112,7 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T>* get_node() const
+    DIANode<T> * get_node() const
     {
         return node_.get();
     }
@@ -182,8 +187,8 @@ public:
      * \param key_extractor Key extractor function, which maps each element to a key of possibly different type.
      *
      */
-    template<typename key_extr_fn_t>
-    auto ReduceBy(const key_extr_fn_t& key_extractor) {
+    template <typename key_extr_fn_t>
+    auto ReduceBy(const key_extr_fn_t &key_extractor) {
         return ReduceSugar<key_extr_fn_t>(key_extractor, node_.get(), local_stack_);
     }
 
@@ -262,7 +267,7 @@ private:
          *
          */
         template <typename reduce_fn_t>
-        auto With(const reduce_fn_t& reduce_function) {
+        auto With(const reduce_fn_t &reduce_function) {
             using dop_result_t
                       = typename FunctionTraits<reduce_fn_t>::result_type;
             using ReduceResultNode
@@ -297,11 +302,11 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    std::shared_ptr<ReadResultNode> 
-        shared_node(new ReadResultNode(ctx,
-                    { },
-                    read_fn,
-                    filepath));
+    std::shared_ptr<ReadResultNode>
+    shared_node(new ReadResultNode(ctx,
+                                   { },
+                                   read_fn,
+                                   filepath));
 
     auto read_stack = shared_node->ProduceStack();
 

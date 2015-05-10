@@ -59,8 +59,7 @@ public:
           local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function)
-    {
-    }
+    { }
 
     /*!
      * Returns "[ReduceNode]" as a string.

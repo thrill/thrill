@@ -16,18 +16,19 @@
 namespace c7a {
 
 template <typename T, typename LOpStack>
-class LOpNode : public DIANode<T> {
+class LOpNode : public DIANode<T>
+{
 public:
     LOpNode(Context& ctx,
-            const DIABaseVector& parents, 
-            LOpStack& lop_stack) 
-        : DIANode<T>(ctx, parents), 
-        lop_stack_(lop_stack) {
-        };
+            const DIABaseVector& parents,
+            LOpStack& lop_stack)
+        : DIANode<T>(ctx, parents),
+          lop_stack_(lop_stack) { }
 
-    virtual ~LOpNode() {}
+    virtual ~LOpNode() { }
 
-    void execute() override {
+    void execute() override
+    {
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
@@ -35,8 +36,8 @@ public:
 
         std::vector<T> elements;
         auto save_fn = [&elements](T input) {
-                elements.push_back(input);
-            };
+                           elements.push_back(input);
+                       };
         auto lop_chain = lop_stack_.push(save_fn).emit();
 
         // loop over input
@@ -49,12 +50,12 @@ public:
         for (auto elem : elements) {
             emit(elem);
         }
-    };
+    }
 
     std::string ToString() override
     {
         // Create string
-        std::string str 
+        std::string str
             = std::string("[LOpNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
