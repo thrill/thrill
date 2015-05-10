@@ -113,7 +113,7 @@ public:
 
     //! Turn socket into non-blocking state.
     //! \return old blocking value (0 or 1) or -1 for error
-    int SetNonBlocking(bool non_blocking)
+    int SetNonBlocking(bool non_blocking) const
     {
         if (non_blocking == non_blocking_) return 1;
 
@@ -136,7 +136,7 @@ public:
     }
 
     //! Return the current local socket address.
-    SocketAddress GetLocalAddress()
+    SocketAddress GetLocalAddress() const
     {
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
@@ -154,7 +154,7 @@ public:
     }
 
     //! Return the current peer socket address.
-    SocketAddress GetPeerAddress()
+    SocketAddress GetPeerAddress() const
     {
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
@@ -263,7 +263,7 @@ public:
     }
 
     //! Wait on socket until a new connection comes in.
-    Socket accept()
+    Socket accept() const
     {
         assert(is_listensocket_);
 
@@ -456,7 +456,6 @@ public:
     //! sent as soon as possible, even if there is only a small amount of data.
     void SetNoDelay(bool activate = true);
 
-    bool operator == (const Socket& s) const;
     //! \}
 
 protected:
@@ -470,7 +469,7 @@ protected:
     bool is_connected_ = false;
 
     //! flag whether the socket is set to non-blocking mode
-    bool non_blocking_ = false;
+    mutable bool non_blocking_ = false;
 };
 
 // \}
