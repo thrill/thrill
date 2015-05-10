@@ -76,7 +76,7 @@ public:
     {
         key_t key = key_extractor_(p);
 
-        hash_result h = hash(std::to_string(key));
+        hash_result h = hash(key);
 
         LOG << "key: "
             << key
@@ -290,12 +290,12 @@ private:
 
     node<key_t, value_t>* a[num_buckets_] = { nullptr }; // TODO: fix this static assignment
 
-    hash_result hash(std::string v)
+    hash_result hash(key_t v)
     {
         hash_result* h = new hash_result();
 
         // partition idx
-        std::size_t hashed = std::hash<std::string>()(v);
+        std::size_t hashed = std::hash<key_t>()(v);
         h->partition_offset = hashed % buckets_per_part_;
 
         // partition id
