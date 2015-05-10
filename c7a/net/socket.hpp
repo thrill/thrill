@@ -29,6 +29,8 @@
 
 namespace c7a {
 
+namespace net {
+
 //! \addtogroup netsock Low Level Socket API
 //! \ingroup net
 //! \{
@@ -470,6 +472,8 @@ protected:
 };
 
 // \}
+
+} // namespace net
 
 } // namespace c7a
 
