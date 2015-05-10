@@ -17,10 +17,10 @@ template <typename T>
 class ActionNode : public DIANode<T>
 {
 public:
-    ActionNode(data::DataManager &data_manager, 
-            const DIABaseVector& parents)
-        : DIANode<T>(data_manager, parents) {}
-    virtual ~ActionNode() {}
+    ActionNode(data::DataManager& data_manager,
+               const DIABaseVector& parents)
+        : DIANode<T>(data_manager, parents) { }
+    virtual ~ActionNode() { }
 };
 
 } // namespace c7a
