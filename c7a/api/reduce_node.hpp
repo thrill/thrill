@@ -110,7 +110,6 @@ private:
     //! afterwards send data to another worker given by the shuffle algorithm.
     void PreOp()
     {
-        using key_t = typename FunctionTraits<KeyExtractor>::result_type;
         using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
         std::cout << "PreOp" << std::endl;
 

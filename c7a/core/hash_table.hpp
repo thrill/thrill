@@ -106,9 +106,7 @@ public:
 
             // check if item with same key
             node<key_t, value_t>* curr_node = a[h.global_index];
-            value_t* curr_value;
             do {
-                curr_value = &curr_node->value;
                 if (key == curr_node->key) {
                     LOG << "match of key: "
                         << key
@@ -202,7 +200,6 @@ public:
     void Flush()
     {
         // retrieve items
-        std::map<int, std::vector<value_t> > items;
         for (int i = 0; i < num_partitions_; i++) {
             for (int j = i * buckets_per_part_; j <= i * buckets_per_part_ + buckets_per_part_ - 1; j++) {
                 if (a[i] != nullptr) {
