@@ -17,7 +17,7 @@
 
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select-dispatcher.hpp>
-#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
+//#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
 #include <string>
 #include <deque>
