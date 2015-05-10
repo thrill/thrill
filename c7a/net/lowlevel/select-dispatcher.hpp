@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/select-dispatcher.hpp
+ * c7a/net/lowlevel/select-dispatcher.hpp
  *
  * Asynchronous callback wrapper around select()
  *
@@ -11,11 +11,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SELECT_DISPATCHER_HEADER
-#define C7A_NET_SELECT_DISPATCHER_HEADER
+#ifndef C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#define C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
-#include <c7a/net/socket.hpp>
-#include <c7a/net/select.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/net-exception.hpp>
 
 #include <deque>
@@ -23,6 +23,8 @@
 namespace c7a {
 
 namespace net {
+
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -219,10 +221,12 @@ private:
 
 //! \}
 
+} // namespace lowlevel
+
 } // namespace net
 
 } // namespace c7a
 
-#endif // !C7A_NET_SELECT_DISPATCHER_HEADER
+#endif // !C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
 /******************************************************************************/

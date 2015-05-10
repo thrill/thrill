@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/epoll-dispatcher.hpp
+ * c7a/net/lowlevel/epoll-dispatcher.hpp
  *
  * Asynchronous callback wrapper around epoll()
  *
@@ -11,10 +11,10 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_EPOLL_DISPATCHER_HEADER
-#define C7A_NET_EPOLL_DISPATCHER_HEADER
+#ifndef C7A_NET_LOWLEVEL_EPOLL_DISPATCHER_HEADER
+#define C7A_NET_LOWLEVEL_EPOLL_DISPATCHER_HEADER
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 
 #include <sys/epoll.h>
 #include <map>
@@ -22,6 +22,8 @@
 namespace c7a {
 
 namespace net {
+
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -388,10 +390,12 @@ private:
 
 //! \}
 
+} // namespace lowlevel
+
 } // namespace net
 
 } // namespace c7a
 
-#endif // !C7A_NET_EPOLL_DISPATCHER_HEADER
+#endif // !C7A_NET_LOWLEVEL_EPOLL_DISPATCHER_HEADER
 
 /******************************************************************************/

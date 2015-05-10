@@ -20,7 +20,7 @@ using namespace c7a::net;
 using namespace c7a;
 
 struct NetDispatcherMock : public NetDispatcher {
-    MOCK_METHOD3(AsyncRead, void(Socket &, size_t, NetDispatcher::AsyncReadCallback));
+    MOCK_METHOD3(AsyncRead, void(lowlevel::Socket &, size_t, NetDispatcher::AsyncReadCallback));
 };
 
 struct ChannelMultiplexerTest : public::testing::Test {
@@ -67,7 +67,7 @@ struct ChannelMultiplexerTest : public::testing::Test {
     struct StreamBlockHeader header;
     struct StreamBlockHeader header2;
     struct StreamBlockHeader header3;
-    Socket                   socket;
+    lowlevel::Socket         socket;
     NetDispatcherMock        dispatch_mock;
     ChannelMultiplexer       candidate;
     std::string              header_part1;
