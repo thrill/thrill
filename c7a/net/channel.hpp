@@ -55,7 +55,7 @@ public:
     //! all other block headers are parsed
     void PickupStream(NetConnection& s, struct StreamBlockHeader head)
     {
-        struct Stream* stream = new struct Stream (s, head);
+        Stream* stream = new Stream (s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
             finished_streams_++;
@@ -103,7 +103,7 @@ private:
     //!The second part of the header (boundaries of the block) is read here
     //!
     //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(NetConnection& s, const std::string& buffer, struct Stream* stream)
+    void ReadSecondHeaderPartFrom(NetConnection& s, const std::string& buffer, Stream* stream)
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
         sLOG << "read #elements on" << stream->socket << "in channel" << id_;
@@ -115,7 +115,7 @@ private:
 
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
-    void ReadFromStream(struct Stream* stream)
+    void ReadFromStream(Stream* stream)
     {
         if (stream->elements_read < stream->header.num_elements) {
             ExpectData(stream);
@@ -131,7 +131,7 @@ private:
 
     //! Expect data to arrive at the socket.
     //! Size of element is known
-    inline void ExpectData(struct Stream* stream)
+    inline void ExpectData(Stream* stream)
     {
         //TODO we might want to read multiple items in a batch and cut them
         //into single pieces later...
@@ -142,7 +142,7 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& s, const std::string& buffer, struct Stream* stream)
+    inline void ConsumeData(NetConnection& s, const std::string& buffer, Stream* stream)
     {
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         data_.push_back(buffer);  //TODO give buffer to AsyncRead instead of copying data here!

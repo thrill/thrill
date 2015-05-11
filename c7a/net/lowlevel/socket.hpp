@@ -99,8 +99,7 @@ public:
     { return fd_ >= 0; }
 
     //! Return the associated file descriptor
-    int GetFileDescriptor() const
-    { return fd_; }
+    int fd() const { return fd_; }
 
     //! Query socket for its current error state.
     int GetError() const
