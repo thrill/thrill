@@ -11,7 +11,7 @@
 #ifndef C7A_NET_CHANNEL_HEADER
 #define C7A_NET_CHANNEL_HEADER
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/net-connection.hpp>
 #include <c7a/net/stream.hpp>
 
 namespace c7a {
@@ -39,7 +39,7 @@ class Channel
 {
 public:
     //! Called to transfer the polling responsibility back to the channel multiplexer
-    typedef std::function<void (Socket& s)> ReleaseSocketCallback;
+    typedef std::function<void (NetConnection& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
     Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback, int id, int expected_streams)
@@ -53,15 +53,15 @@ public:
     //! This is the start state of the callback state machine.
     //! end-of-streams are handled directly
     //! all other block headers are parsed
-    void PickupStream(Socket& s, struct StreamBlockHeader head)
+    void PickupStream(NetConnection& s, struct StreamBlockHeader head)
     {
         struct Stream* stream = new struct Stream (s, head);
         if (stream->IsFinished()) {
-            LOG << "end of stream on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
+            sLOG << "end of stream on" << stream->socket << "in channel" << id_;
             finished_streams_++;
         }
         else {
-            LOG << "pickup stream on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
+            sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
             active_streams_++;
             size_t expected_size = stream->header.num_elements * sizeof(size_t);
 
@@ -103,10 +103,10 @@ private:
     //!The second part of the header (boundaries of the block) is read here
     //!
     //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(Socket& s, const std::string& buffer, struct Stream* stream)
+    void ReadSecondHeaderPartFrom(NetConnection& s, const std::string& buffer, struct Stream* stream)
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
-        LOG << "read #elements on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
+        sLOG << "read #elements on" << stream->socket << "in channel" << id_;
         assert(stream->header.num_elements > 0);
 
         stream->header.ParseBoundaries(buffer);
@@ -121,7 +121,7 @@ private:
             ExpectData(stream);
         }
         else {
-            LOG << "reached end of block on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
+            sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             active_streams_--;
             stream->ResetHead();
             release_(stream->socket);
@@ -137,13 +137,14 @@ private:
         //into single pieces later...
         auto exp_size = stream->header.boundaries[stream->elements_read++];
         auto callback = std::bind(&Channel::ConsumeData, this, std::placeholders::_1, std::placeholders::_2, stream);
-        LOG << "expect data with " << exp_size << " bytes on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
+        sLOG << "expect data with" << exp_size
+             << "bytes on" << stream->socket << "in channel" << id_;
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(Socket& s, const std::string& buffer, struct Stream* stream)
+    inline void ConsumeData(NetConnection& s, const std::string& buffer, struct Stream* stream)
     {
-        LOG << "read data on socket" << stream->socket.GetFileDescriptor() << "in channel" << id_;
+        sLOG << "read data on" << stream->socket << "in channel" << id_;
         data_.push_back(buffer);  //TODO give buffer to AsyncRead instead of copying data here!
         ReadFromStream(stream);
     }
