@@ -15,7 +15,6 @@
 #include <c7a/net/stream.hpp>
 
 namespace c7a {
-
 //! \ingroup net
 //! \{
 
@@ -146,7 +145,6 @@ private:
         ReadFromStream(stream);
     }
 };
-
 } // namespace c7a
 
 #endif // !C7A_NET_CHANNEL_HEADER
