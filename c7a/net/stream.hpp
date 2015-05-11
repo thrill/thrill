@@ -101,11 +101,11 @@ class Stream
 {
 public:
     struct StreamBlockHeader header;
-    const NetConnection& socket;
+    NetConnection& socket;
     int elements_read = 0;
 
     //!attaches a stream to a socket and initializes the current header
-    Stream(const NetConnection& socket, struct StreamBlockHeader header)
+    Stream(NetConnection& socket, struct StreamBlockHeader& header)
         : header(header),
           socket(socket) { }
 

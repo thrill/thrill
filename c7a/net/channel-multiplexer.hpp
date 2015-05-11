@@ -42,7 +42,7 @@ public:
 
     //! Adds a connected TCP socket to another worker
     //! There must exist exactly one TCP connection to each worker.
-    void AddSocket(const NetConnection& s);
+    void AddSocket(NetConnection& s);
 
     //! Indicates if a channel exists with the given id
     bool HasChannel(int id);
@@ -62,12 +62,12 @@ private:
     int num_connections_;
 
     //! expects the next header from a socket
-    void ExpectHeaderFrom(const NetConnection& s);
+    void ExpectHeaderFrom(NetConnection& s);
 
     //! parses the channel id from a header and passes it to an existing
     //! channel or creates a new channel
     void ReadFirstHeaderPartFrom(
-        const NetConnection& s, const std::string& buffer);
+        NetConnection& s, const std::string& buffer);
 };
 
 } // namespace net

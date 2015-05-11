@@ -39,7 +39,7 @@ class Channel
 {
 public:
     //! Called to transfer the polling responsibility back to the channel multiplexer
-    typedef std::function<void (const NetConnection& s)> ReleaseSocketCallback;
+    typedef std::function<void (NetConnection& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
     Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback, int id, int expected_streams)
@@ -53,7 +53,7 @@ public:
     //! This is the start state of the callback state machine.
     //! end-of-streams are handled directly
     //! all other block headers are parsed
-    void PickupStream(const NetConnection& s, struct StreamBlockHeader head)
+    void PickupStream(NetConnection& s, struct StreamBlockHeader head)
     {
         struct Stream* stream = new struct Stream (s, head);
         if (stream->IsFinished()) {
@@ -103,7 +103,7 @@ private:
     //!The second part of the header (boundaries of the block) is read here
     //!
     //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(const NetConnection& s, const std::string& buffer, struct Stream* stream)
+    void ReadSecondHeaderPartFrom(NetConnection& s, const std::string& buffer, struct Stream* stream)
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
         sLOG << "read #elements on" << stream->socket << "in channel" << id_;
@@ -142,7 +142,7 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(const NetConnection& s, const std::string& buffer, struct Stream* stream)
+    inline void ConsumeData(NetConnection& s, const std::string& buffer, struct Stream* stream)
     {
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         data_.push_back(buffer);  //TODO give buffer to AsyncRead instead of copying data here!
