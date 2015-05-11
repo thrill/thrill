@@ -83,15 +83,15 @@ public:
 
     //! Clear a file descriptor from the read set
     Select & ClearRead(int fd)
-    { FD_CLR(fd, &read_set_); return *this; }
+    { assert(fd >= 0); FD_CLR(fd, &read_set_); return *this; }
 
     //! Clear a file descriptor from the write set
     Select & ClearWrite(int fd)
-    { FD_CLR(fd, &write_set_); return *this; }
+    { assert(fd >= 0); FD_CLR(fd, &write_set_); return *this; }
 
     //! Clear a file descriptor from the exception set
     Select & ClearException(int fd)
-    { FD_CLR(fd, &except_set_); return *this; }
+    { assert(fd >= 0); FD_CLR(fd, &except_set_); return *this; }
 
     //! Clear a file descriptor from all sets
     Select & Clear(int fd)
