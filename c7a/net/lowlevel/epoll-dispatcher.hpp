@@ -60,7 +60,7 @@ public:
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Socket& s, const Callback& read_cb)
     {
-        int fd = s.GetFileDescriptor();
+        int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
         if (it != watch_.end())
@@ -100,7 +100,7 @@ public:
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Socket& s, const Callback& write_cb)
     {
-        int fd = s.GetFileDescriptor();
+        int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
         if (it != watch_.end())
@@ -141,7 +141,7 @@ public:
     void AddReadWrite(Socket& s,
                       const Callback& read_cb, const Callback& write_cb)
     {
-        int fd = s.GetFileDescriptor();
+        int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
         if (it != watch_.end())
@@ -383,7 +383,7 @@ private:
     {
         // exception on listen socket ?
         throw NetException("EPollDispatcher() exception on socket fd "
-                           + std::to_string(s.GetFileDescriptor()) + "!",
+                           + std::to_string(s.fd()) + "!",
                            errno);
     }
 };

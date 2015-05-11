@@ -180,7 +180,7 @@ NetGroup::NetGroup(ClientId my_rank,
                 }
 
                 LOG << "OpenConnections() " << my_rank_ << " connected"
-                    << " fd=" << s.GetSocket().GetFileDescriptor()
+                    << " fd=" << s.GetSocket().fd()
                     << " to=" << s.GetPeerAddress();
 
                 // send welcome message
@@ -224,7 +224,7 @@ NetGroup::NetGroup(ClientId my_rank,
             NetConnection& nc = netconn.back();
 
             LOG << "OpenConnections() " << my_rank_ << " accepted connection"
-                << " fd=" << nc.GetSocket().GetFileDescriptor()
+                << " fd=" << nc.GetSocket().fd()
                 << " from=" << nc.GetPeerAddress();
 
             // send welcome message
@@ -248,7 +248,7 @@ NetGroup::NetGroup(ClientId my_rank,
     // output list of file descriptors connected to partners
     for (size_t i = 0; i != connections_.size(); ++i) {
         LOG << "NetGroup link " << my_rank_ << " -> " << i << " = fd "
-            << connections_[i].GetSocket().GetFileDescriptor();
+            << connections_[i].GetSocket().fd();
     }
 }
 

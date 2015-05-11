@@ -100,7 +100,7 @@ public:
     { return Socket::GetPeerAddress().ToStringHostPort(); }
 
     bool operator == (const NetConnection& c) const
-    { return GetSocket().GetFileDescriptor() == c.GetSocket().GetFileDescriptor(); }
+    { return GetSocket().fd() == c.GetSocket().fd(); }
 
     //! \name Send Functions
     //! \{
@@ -206,7 +206,7 @@ public:
     friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
     {
         os << "[NetConnection"
-           << " fd=" << c.GetSocket().GetFileDescriptor();
+           << " fd=" << c.GetSocket().fd();
 
         if (c.IsValid())
             os << " peer=" << c.GetPeerAddress();

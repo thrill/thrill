@@ -74,15 +74,13 @@ public:
     //! Register a buffered read callback and a default exception callback.
     void AddRead(NetConnection& c, const ConnectionCallback& read_cb)
     {
-        return dispatcher_.AddRead(
-            c.GetSocket().GetFileDescriptor(), c, read_cb);
+        return dispatcher_.AddRead(c.GetSocket().fd(), c, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(NetConnection& c, const ConnectionCallback& write_cb)
     {
-        return dispatcher_.AddWrite(
-            c.GetSocket().GetFileDescriptor(), c, write_cb);
+        return dispatcher_.AddWrite(c.GetSocket().fd(), c, write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
@@ -91,7 +89,7 @@ public:
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb)
     {
         return dispatcher_.AddReadWrite(
-            c.GetSocket().GetFileDescriptor(), c, read_cb, write_cb);
+            c.GetSocket().fd(), c, read_cb, write_cb);
     }
 
     //! \}
@@ -117,8 +115,7 @@ public:
         async_read_.emplace_back(n, done_cb);
 
         // register read callback
-        dispatcher_.AddRead(
-            c.GetSocket().GetFileDescriptor(), c, async_read_.back());
+        dispatcher_.AddRead(c.GetSocket().fd(), c, async_read_.back());
     }
 
     //! callback signature for async write callbacks
@@ -137,8 +134,7 @@ public:
         async_write_.emplace_back(buffer, done_cb);
 
         // register write callback
-        dispatcher_.AddWrite(
-            c.GetSocket().GetFileDescriptor(), c, async_write_.back());
+        dispatcher_.AddWrite(c.GetSocket().fd(), c, async_write_.back());
     }
 
     //! asynchronously write buffer and callback when delivered. Copies the data
@@ -322,7 +318,7 @@ protected:
         // exception on listen socket ?
         throw NetException(
                   "NetDispatcher() exception on socket fd "
-                  + std::to_string(s.GetSocket().GetFileDescriptor()) + "!", errno);
+                  + std::to_string(s.GetSocket().fd()) + "!", errno);
     }
 };
 
