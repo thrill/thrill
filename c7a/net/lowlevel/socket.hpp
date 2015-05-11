@@ -99,7 +99,7 @@ public:
     { return fd_ >= 0; }
 
     //! Return the associated file descriptor
-    virtual int GetFileDescriptor() const
+    int GetFileDescriptor() const
     { return fd_; }
 
     //! Query socket for its current error state.
@@ -349,7 +349,7 @@ public:
     }
 
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    virtual ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
+    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
     {
         LOG << "Socket::recv_one()"
             << " fd_=" << fd_
@@ -367,7 +367,7 @@ public:
     }
 
     //! Receive (data,size) from socket, retry recvs if short-reads occur.
-    virtual ssize_t recv(void* outdata, size_t size, int flags = 0)
+    ssize_t recv(void* outdata, size_t size, int flags = 0)
     {
         LOG << "Socket::recv()"
             << " fd_=" << fd_
