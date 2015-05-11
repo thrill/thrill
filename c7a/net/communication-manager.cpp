@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "communication_manager.hpp"
+#include "communication-manager.hpp"
 
 namespace c7a {
 
