@@ -18,8 +18,6 @@
 
 namespace c7a {
 
-namespace net {
-
 //! \ingroup net
 //! \{
 
@@ -122,8 +120,6 @@ struct Stream {
 };
 
 //! \}
-
-} // namespace net
 
 } // namespace c7a
 
