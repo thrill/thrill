@@ -19,13 +19,13 @@ ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connec
     : dispatcher_(dispatcher),
       num_connections_(num_connections) { }
 
-void ChannelMultiplexer::AddSocket(const NetConnection& s)
+void ChannelMultiplexer::AddSocket(NetConnection& s)
 {
     sLOG << "add" << s << "to channel multiplexer";
     ExpectHeaderFrom(s);
 }
 
-void ChannelMultiplexer::ExpectHeaderFrom(const NetConnection& s)
+void ChannelMultiplexer::ExpectHeaderFrom(NetConnection& s)
 {
     sLOG << "expect header on" << s;
     auto expected_size = sizeof(StreamBlockHeader::num_elements) + sizeof(StreamBlockHeader::channel_id);
@@ -44,7 +44,7 @@ std::shared_ptr<Channel> ChannelMultiplexer::PickupChannel(int id)
 }
 
 void ChannelMultiplexer::ReadFirstHeaderPartFrom(
-    const NetConnection& s, const std::string& buffer)
+    NetConnection& s, const std::string& buffer)
 {
     struct StreamBlockHeader header;
     header.ParseIdAndNumElem(buffer);
