@@ -99,12 +99,15 @@ public:
     //! Closes all client connections
     void Close()
     {
-        listenSocket_.close();
+        if (listener_.IsValid())
+            listener_.Close();
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
             if (i == my_rank_) continue;
-            connections_[i].Close();
+
+            if (connections_[i].IsValid())
+                connections_[i].Close();
         }
 
         connections_.clear();
@@ -264,7 +267,7 @@ private:
     std::vector<NetConnection> connections_;
 
     //! Socket on which to listen for incoming connections.
-    lowlevel::Socket listenSocket_;
+    NetConnection listener_;
 };
 
 template <typename T, typename BinarySumOp>
