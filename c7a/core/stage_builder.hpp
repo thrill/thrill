@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/engine/stage_builder.hpp
+ * c7a/core/stage_builder.hpp
  *
  * Part of Project c7a.
  *
@@ -19,9 +19,8 @@
 #include <algorithm>
 #include <set>
 
-namespace c7a {
-
-namespace engine {
+namespace c7a { 
+namespace core {
 
 class Stage
 {
