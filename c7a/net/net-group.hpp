@@ -30,6 +30,8 @@
 
 namespace c7a {
 
+namespace net {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -97,12 +99,15 @@ public:
     //! Closes all client connections
     void Close()
     {
-        listenSocket_.close();
+        if (listener_.IsValid())
+            listener_.Close();
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
             if (i == my_rank_) continue;
-            connections_[i].Close();
+
+            if (connections_[i].IsValid())
+                connections_[i].Close();
         }
 
         connections_.clear();
@@ -199,7 +204,7 @@ public:
         {
             if (i == my_rank_) continue;
 
-            int fd = connections_[i].GetFileDescriptor();
+            int fd = connections_[i].GetSocket().GetFileDescriptor();
             FD_SET(fd, &fd_set);
             max_fd = std::max(max_fd, fd);
             sLOG0 << "select from fd=" << fd;
@@ -220,7 +225,7 @@ public:
         {
             if (i == my_rank_) continue;
 
-            int fd = connections_[i].GetFileDescriptor();
+            int fd = connections_[i].GetSocket().GetFileDescriptor();
 
             if (FD_ISSET(fd, &fd_set))
             {
@@ -262,7 +267,7 @@ private:
     std::vector<NetConnection> connections_;
 
     //! Socket on which to listen for incoming connections.
-    Socket listenSocket_;
+    NetConnection listener_;
 };
 
 template <typename T, typename BinarySumOp>
@@ -295,6 +300,8 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
 }
 
 //! \}
+
+} // namespace net
 
 } // namespace c7a
 

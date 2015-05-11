@@ -22,12 +22,14 @@
 
 namespace c7a {
 
+namespace net {
+
 template <typename Functional, size_t BufferSize = 0>
 class NetReadBuffer
 {
 public:
     //! Construct buffered reader with callback
-    NetReadBuffer(Socket& socket, size_t buffer_size = BufferSize,
+    NetReadBuffer(lowlevel::Socket& socket, size_t buffer_size = BufferSize,
                   const Functional& functional = Functional())
         : functional_(functional),
           buffer_(buffer_size, 0)
@@ -37,7 +39,7 @@ public:
     }
 
     //! Should be called when the socket is readable
-    bool operator () (Socket& s)
+    bool operator () (lowlevel::Socket& s)
     {
         int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
                            buffer_.size() - size_);
@@ -74,6 +76,9 @@ NetGroup::NetGroup(ClientId my_rank,
 {
     die_unless(my_rank_ < endpoints.size());
 
+    using lowlevel::Socket;
+    using lowlevel::SocketAddress;
+
     // resolve all endpoint addresses
 
     std::vector<SocketAddress> addrlist;
@@ -89,19 +94,22 @@ NetGroup::NetGroup(ClientId my_rank,
     }
 
     // construct listen socket
+    {
+        Socket listenSocket = Socket::Create();
+        listenSocket.SetReuseAddr();
 
-    listenSocket_ = Socket::Create();
-    listenSocket_.SetReuseAddr();
+        const SocketAddress& lsa = addrlist[my_rank_];
 
-    const SocketAddress& lsa = addrlist[my_rank_];
+        if (listenSocket.bind(lsa) != 0)
+            throw NetException("Could not bind listen socket to "
+                               + lsa.ToStringHostPort(), errno);
 
-    if (listenSocket_.bind(lsa) != 0)
-        throw NetException("Could not bind listen socket to "
-                           + lsa.ToStringHostPort(), errno);
+        if (listenSocket.listen() != 0)
+            throw NetException("Could not listen on socket "
+                               + lsa.ToStringHostPort(), errno);
 
-    if (listenSocket_.listen() != 0)
-        throw NetException("Could not listen on socket "
-                           + lsa.ToStringHostPort(), errno);
+        listener_ = std::move(NetConnection(listenSocket));
+    }
 
     // TODO(tb): this sleep waits for other clients to open their ports. do this
     // differently.
@@ -125,8 +133,10 @@ NetGroup::NetGroup(ClientId my_rank,
     unsigned int got_connections = 0;
 
     auto MsgReaderLambda =
-        [this, &got_connections](Socket& s, const std::string& buffer) -> bool {
-            LOG0 << "Message on " << s.GetFileDescriptor();
+        [this, &got_connections](
+            NetConnection& c, const std::string& buffer)
+        {
+            LOG0 << "Message on " << c;
             die_unequal(buffer.size(), sizeof(WelcomeMsg));
 
             const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
@@ -137,10 +147,8 @@ NetGroup::NetGroup(ClientId my_rank,
 
             // assign connection.
             die_unless(!connections_[msg->id].GetSocket().IsValid());
-            connections_[msg->id] = NetConnection(s);
+            std::swap(connections_[msg->id], c);
             ++got_connections;
-
-            return true;
         };
 
     // Perform select loop waiting for incoming connections and fulfilled
@@ -150,15 +158,18 @@ NetGroup::NetGroup(ClientId my_rank,
 
     // initiate connections to all hosts with higher id.
 
+    std::deque<NetConnection> netconn;
+
     for (ClientId id = my_rank_ + 1; id < addrlist.size(); ++id)
     {
-        Socket ns = Socket::Create();
+        netconn.emplace_back(Socket::Create());
+        NetConnection& nc = netconn.back();
 
         // initiate non-blocking TCP connection
-        ns.SetNonBlocking(true);
+        nc.SetNonBlocking(true);
 
         auto on_connect =
-            [&, id](Socket& s) -> bool {
+            [&, id](NetConnection& s) -> bool {
                 int err = s.GetError();
 
                 if (err != 0) {
@@ -169,7 +180,7 @@ NetGroup::NetGroup(ClientId my_rank,
                 }
 
                 LOG << "OpenConnections() " << my_rank_ << " connected"
-                    << " fd=" << s.GetFileDescriptor()
+                    << " fd=" << s.GetSocket().GetFileDescriptor()
                     << " to=" << s.GetPeerAddress();
 
                 // send welcome message
@@ -183,13 +194,13 @@ NetGroup::NetGroup(ClientId my_rank,
                 return false;
             };
 
-        if (ns.connect(addrlist[id]) == 0) {
+        if (nc.GetSocket().connect(addrlist[id]) == 0) {
             // connect() already successful? this should not be.
-            on_connect(ns);
+            on_connect(nc);
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            disp.AddWrite(ns, on_connect);
+            disp.AddWrite(nc, on_connect);
         }
         else {
             throw NetException("Could not connect to client "
@@ -203,22 +214,25 @@ NetGroup::NetGroup(ClientId my_rank,
     unsigned int accepting = my_rank_;
 
     disp.AddRead(
-        listenSocket_, [&](Socket& s) -> bool
+        listener_,
+        [&](NetConnection& s) -> bool
         {
-            // new accept()able connection on listen socket
+                // new accept()able connection on listen socket
             die_unless(accepting > 0);
 
-            Socket ns = s.accept();
+            netconn.emplace_back(s.GetSocket().accept());
+            NetConnection& nc = netconn.back();
+
             LOG << "OpenConnections() " << my_rank_ << " accepted connection"
-                << " fd=" << ns.GetFileDescriptor()
-                << " from=" << ns.GetPeerAddress();
+                << " fd=" << nc.GetSocket().GetFileDescriptor()
+                << " from=" << nc.GetPeerAddress();
 
             // send welcome message
-            disp.AsyncWrite(ns, &my_welcome, sizeof(my_welcome));
+            disp.AsyncWrite(nc, &my_welcome, sizeof(my_welcome));
             LOG << "sent client " << my_welcome.id;
 
             // wait for welcome message from other side
-            disp.AsyncRead(ns, sizeof(my_welcome), MsgReaderLambda);
+            disp.AsyncRead(nc, sizeof(my_welcome), MsgReaderLambda);
 
             // wait for more connections?
             return (--accepting > 0);
@@ -242,6 +256,8 @@ void NetGroup::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(NetGroup*)>& thread_function)
 {
+    using lowlevel::Socket;
+
     // construct a group of num_clients
     std::vector<std::unique_ptr<NetGroup> > group(num_clients);
 
@@ -256,8 +272,8 @@ void NetGroup::ExecuteLocalMock(
 
             std::pair<Socket, Socket> sp = Socket::CreatePair();
 
-            group[i]->connections_[j] = NetConnection(sp.first);
-            group[j]->connections_[i] = NetConnection(sp.second);
+            group[i]->connections_[j] = std::move(NetConnection(sp.first));
+            group[j]->connections_[i] = std::move(NetConnection(sp.second));
         }
     }
 
@@ -273,6 +289,8 @@ void NetGroup::ExecuteLocalMock(
         threads[i].join();
     }
 }
+
+} // namespace net
 
 } // namespace c7a
 
