@@ -24,6 +24,8 @@ namespace lowlevel {
 
 void Socket::SetKeepAlive(bool activate)
 {
+    assert(IsValid());
+
     int sockoptflag = (activate ? 1 : 0);
 
     /* Enable sending of keep-alive messages on connection-oriented sockets. */
@@ -37,6 +39,8 @@ void Socket::SetKeepAlive(bool activate)
 
 void Socket::SetReuseAddr(bool activate)
 {
+    assert(IsValid());
+
     int sockoptflag = (activate ? 1 : 0);
 
     /* set SO_REUSEPORT */
@@ -59,6 +63,8 @@ void Socket::SetReuseAddr(bool activate)
 
 void Socket::SetNoDelay(bool activate)
 {
+    assert(IsValid());
+
     int sockoptflag = (activate ? 1 : 0);
 
 #if __linux__ || __FreeBSD__
