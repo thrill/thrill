@@ -37,7 +37,7 @@ public:
     /*!
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
-    * \param data_manager Reference to the DataManager, which gives iterators for data
+    * \param ctx Reference to Context, which holds references to data and network.
     * \param parents Vector of parents. Is empty, as read has no previous operations
     * \param read_function Read function, which defines how each line of the file is read and emitted
     * \param path_in Path of the input file
@@ -66,13 +66,18 @@ public:
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
         std::string line;
-        while (iter.HasNext()) {
+        while (iter.HasNext()){
+
+
+        //SpacingLogger(true) << iter.Next();
+
             emit(read_function_(iter.Next()));
         }
     }
 
     /*!
-     * TODO: I have no idea..
+     * Produces an 'empty' function stack, which only contains the identity emitter function.
+     * \return Empty function stack
      */
     auto ProduceStack() {
         using read_t

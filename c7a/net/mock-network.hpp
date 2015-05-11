@@ -23,8 +23,10 @@
 
 namespace c7a {
 
-namespace engine {
 
+namespace net {
+
+   
 class MockNetwork
 {
 public:
