@@ -17,7 +17,6 @@
 #include <c7a/net/socket.hpp>
 
 namespace c7a {
-
 //! \ingroup net
 //! \{
 
@@ -120,7 +119,6 @@ struct Stream {
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_NET_STREAM_HEADER
