@@ -17,8 +17,6 @@
 
 namespace c7a {
 
-namespace net {
-
 //! \ingroup net
 //! \{
 
@@ -68,7 +66,6 @@ private:
     void ReadFirstHeaderPartFrom(Socket& s, const std::string& buffer);
 };
 
-} // namespace net
 
 } // namespace c7a
 
