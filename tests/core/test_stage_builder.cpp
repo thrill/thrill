@@ -10,11 +10,11 @@
 #include "gtest/gtest.h"
 #include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
-#include "c7a/engine/stage_builder.hpp"
+#include "c7a/core/stage_builder.hpp"
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 
-using namespace c7a::engine;
+using namespace c7a::core;
 
 TEST(Stage, GetStagesFromBuilder) {
     using c7a::DIA;
@@ -33,11 +33,11 @@ TEST(Stage, GetStagesFromBuilder) {
                       return input;
                   };
 
-    auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
+    /*auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
                        std::cout << "FlatMap" << std::endl;
                        emit_func(input);
                        emit_func(input);
-                   };
+                       };*/
 
     auto duplicates = doubles.Map(map_fn);
     // auto duplicates2 = duplicates.Map(map_fn);

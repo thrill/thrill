@@ -13,8 +13,8 @@ file(GLOB_RECURSE SRCS
          ${CMAKE_CURRENT_SOURCE_DIR}/net/*.hpp
          ${CMAKE_CURRENT_SOURCE_DIR}/data/*.cpp
          ${CMAKE_CURRENT_SOURCE_DIR}/data/*.hpp
-         ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp
-         ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.hpp
+         ${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp
+         ${CMAKE_CURRENT_SOURCE_DIR}/core/*.hpp
 )
 
 add_library(c7a STATIC ${SRCS})
