@@ -23,9 +23,7 @@
 #include <iosfwd>
 
 namespace c7a {
-
 namespace net {
-
 namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
@@ -297,9 +295,7 @@ public:
 // \}
 
 } // namespace lowlevel
-
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER

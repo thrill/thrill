@@ -12,7 +12,6 @@
 #include <cassert>
 
 namespace c7a {
-
 namespace net {
 
 ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections)
@@ -63,7 +62,6 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(
 }
 
 } // namespace net
-
 } // namespace c7a
 
 /******************************************************************************/

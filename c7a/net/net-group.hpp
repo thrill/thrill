@@ -30,7 +30,6 @@
 #include <vector>
 
 namespace c7a {
-
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -339,7 +338,6 @@ void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
 //! \}
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_NET_GROUP_HEADER

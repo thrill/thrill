@@ -1,11 +1,17 @@
 /*******************************************************************************
- * c7a/core/hashtable.hpp
+ * c7a/core/hash_table.hpp
  *
  * Hash table with support for reduce and partitions.
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef C7A_HASH_TABLE_HPP
-#define C7A_HASH_TABLE_HPP
+#pragma once
+#ifndef C7A_CORE_HASH_TABLE_HEADER
+#define C7A_CORE_HASH_TABLE_HEADER
 
 #include <map>
 #include <iostream>
@@ -22,6 +28,7 @@
 
 namespace c7a {
 namespace core {
+
 struct hash_result {
     std::size_t partition_id;     // which partition
     std::size_t partition_offset; // which idx within a partition
@@ -312,6 +319,6 @@ private:
 }
 }
 
-#endif //C7A_HASH_TABLE_HPP
+#endif // !C7A_CORE_HASH_TABLE_HEADER
 
 /******************************************************************************/

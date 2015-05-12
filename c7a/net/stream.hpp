@@ -17,7 +17,6 @@
 #include <c7a/net/net-connection.hpp>
 
 namespace c7a {
-
 namespace net {
 
 //! \ingroup net
@@ -126,7 +125,6 @@ public:
 //! \}
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_STREAM_HEADER
