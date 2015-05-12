@@ -27,7 +27,6 @@
 #include "c7a/data/data_manager.hpp"
 
 namespace c7a {
-
 namespace core {
 
 struct hash_result {
