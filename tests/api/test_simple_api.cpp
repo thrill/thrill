@@ -12,31 +12,31 @@
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
-#include "c7a/engine/stage_builder.hpp"
+#include "c7a/core/stage_builder.hpp"
 
-using namespace c7a::engine;
+using namespace c7a::core;
 
-TEST(DIASimple, SharedPtrTest) {
+TEST(API, SharedPtrTest) {
     using c7a::DIA;
     using c7a::Context;
 
     Context ctx;
 
-    auto map_fn = [](int in) { 
-        return 2*in; 
-    };
-    auto key_ex = [](int in) { 
-        return in % 2; 
-    };
-    auto red_fn = [](int in1, int in2) { 
-        return in1 + in2; 
-    };
+    auto map_fn = [](int in) {
+                      return 2 * in;
+                  };
+    auto key_ex = [](int in) {
+                      return in % 2;
+                  };
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
 
     auto input = ReadFromFileSystem(
         ctx,
         g_workpath + "/inputs/test1",
         [](const std::string& line) {
-          return std::stoi(line);
+            return std::stoi(line);
         });
     DIA<int> ints = input.Map(map_fn);
     // DIA<int> doubles = ints.Map(map_fn);
@@ -60,9 +60,38 @@ TEST(DIASimple, SharedPtrTest) {
     }
 
     return;
+
 }
 
-TEST(DIASimple, FunctionStackTest) {
+TEST(API, Test1Zip) {
+     auto read_int = [](std::string line) { return std::stoi(line); };
+     
+     auto zip_fn = [](int in1, int in2) {
+         return in1 + in2;
+     };
+
+     c7a::Context ctx;
+
+     auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+     
+     auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+     
+     auto doubled = initial2.Map([](int in) {
+	 return 2 * in;
+       });
+
+     auto zipped = initial1.Zip(zip_fn, doubled);
+
+     std::vector<c7a::core::Stage> result;
+     FindStages(zipped.get_node(), result);
+     for (auto s : result) {
+         s.Run();	
+     }
+
+     return;
+}
+
+TEST(API, FunctionStackTest) {
     using c7a::FunctionStack;
     std::vector<double> elements;
 

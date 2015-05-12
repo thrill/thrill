@@ -26,6 +26,7 @@ Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :
 
 # Definition of Done :heavy_check_mark:
 - build server is happy
+- changes have been documented (if necessary)
 - at least one reviewer saw it and is happy (more happy reviewers are better :two_hearts:)
 - no tests have been removed (better: new features covered by tests)
 - 100% code compile coverage

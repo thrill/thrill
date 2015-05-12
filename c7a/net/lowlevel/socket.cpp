@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/socket.cpp
+ * c7a/net/lowlevel/socket.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,16 +10,20 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
 namespace c7a {
+namespace net {
+namespace lowlevel {
 
 void Socket::SetKeepAlive(bool activate)
 {
+    assert(IsValid());
+
     int sockoptflag = (activate ? 1 : 0);
 
     /* Enable sending of keep-alive messages on connection-oriented sockets. */
@@ -31,13 +35,10 @@ void Socket::SetKeepAlive(bool activate)
     }
 }
 
-bool Socket::operator == (const Socket& socket) const
-{
-    return socket.GetFileDescriptor() == GetFileDescriptor();
-}
-
 void Socket::SetReuseAddr(bool activate)
 {
+    assert(IsValid());
+
     int sockoptflag = (activate ? 1 : 0);
 
     /* set SO_REUSEPORT */
@@ -60,6 +61,8 @@ void Socket::SetReuseAddr(bool activate)
 
 void Socket::SetNoDelay(bool activate)
 {
+    assert(IsValid());
+
     int sockoptflag = (activate ? 1 : 0);
 
 #if __linux__ || __FreeBSD__
@@ -78,6 +81,8 @@ void Socket::SetNoDelay(bool activate)
 #endif
 }
 
+} // namespace lowlevel
+} // namespace net
 } // namespace c7a
 
 /******************************************************************************/
