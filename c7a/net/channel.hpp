@@ -53,7 +53,7 @@ public:
     //! all other block headers are parsed
     void PickupStream(NetConnection& s, struct StreamBlockHeader head)
     {
-        Stream* stream = new Stream (s, head);
+        Stream* stream = new Stream(s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
             finished_streams_++;
