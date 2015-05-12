@@ -20,6 +20,7 @@
 
 namespace c7a {
 namespace net {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -58,6 +59,7 @@ static std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
 }
 
 //! \}
+
 } // namespace net
 } // namespace c7a
 

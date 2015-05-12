@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication_manager.cpp
+ * c7a/net/communication-manager.cpp
  *
  * Part of Project c7a.
  *
@@ -10,7 +10,6 @@
 #include "communication-manager.hpp"
 
 namespace c7a {
-
 namespace net {
 
 void CommunicationManager::Initialize(const std::vector<NetEndpoint>& /* endpoints */)
@@ -27,7 +26,6 @@ SystemControlChannel* CommunicationManager::GetSystemControlChannel()
 // }
 
 } // namespace net
-
 } // namespace c7a
 
 /******************************************************************************/

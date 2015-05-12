@@ -20,7 +20,6 @@
 #include <set>
 
 namespace c7a {
-
 namespace core {
 
 class Stage
@@ -69,7 +68,6 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
 }
 
 } // namespace engine
-
 } // namespace c7a
 
 #endif // !C7A_CORE_STAGE_BUILDER_HEADER
