@@ -63,13 +63,11 @@ public:
         std::ifstream file(path_in_);
         assert(file.good());
 
-
         data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file);
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
         std::string line;
         while (iter.HasNext()) {
-
             emit(read_function_(iter.Next()));
         }
     }

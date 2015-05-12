@@ -191,38 +191,37 @@ public:
         return ReduceSugar<key_extr_fn_t>(key_extractor, node_.get(), local_stack_);
     }
 
-     /*!
-      * Zip is a DOp, which Zips two DIAs in style of functional programming. The zip_function is used to
-      * zip the i-th elements of both input DIAs together to form the i-th element of the output DIA. The
-      * type of the output DIA can be inferred from the zip_function.
-      *
-      * \tparam zip_fn_t Type of the zip_function. This is a function with two input elements, both of the
-      * local type, and one output element, which is the type of the Zip node.
-      *
-      * \param zip_fn Zip function, which zips two elements together
-      *
-      * \param second_dia DIA, which is zipped together with the original DIA.
-      */
+    /*!
+     * Zip is a DOp, which Zips two DIAs in style of functional programming. The zip_function is used to
+     * zip the i-th elements of both input DIAs together to form the i-th element of the output DIA. The
+     * type of the output DIA can be inferred from the zip_function.
+     *
+     * \tparam zip_fn_t Type of the zip_function. This is a function with two input elements, both of the
+     * local type, and one output element, which is the type of the Zip node.
+     *
+     * \param zip_fn Zip function, which zips two elements together
+     *
+     * \param second_dia DIA, which is zipped together with the original DIA.
+     */
     template <typename zip_fn_t, typename second_dia_t>
     auto Zip(const zip_fn_t &zip_fn, second_dia_t second_dia) {
         using zip_result_t
                   = typename FunctionTraits<zip_fn_t>::result_type;
         using ZipResultNode
-            = TwoZipNode<typename FunctionTraits<zip_fn_t>::result_type,
-                         decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
+                  = TwoZipNode<typename FunctionTraits<zip_fn_t>::result_type,
+                               decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
 
-	std::shared_ptr<ZipResultNode> shared_node(
-	    new ZipResultNode(node_->get_data_manager(),
-			      {node_.get(), second_dia.get_node()},
-                                local_stack_,
-                                second_dia.get_local_stack(),
-			      zip_fn));
+        std::shared_ptr<ZipResultNode> shared_node(
+            new ZipResultNode(node_->get_data_manager(),
+                              { node_.get(), second_dia.get_node() },
+                              local_stack_,
+                              second_dia.get_local_stack(),
+                              zip_fn));
 
         auto zip_stack = shared_node->ProduceStack();
         return DIA<zip_result_t, decltype(zip_stack)>
-			      (std::move(shared_node), zip_stack);
+                   (std::move(shared_node), zip_stack);
     }
-
 
     /*!
      * Returns Chuck Norris!
@@ -273,7 +272,8 @@ public:
         }
     }
 
-    Stack & get_local_stack() {
+    Stack & get_local_stack()
+    {
         return local_stack_;
     }
 
@@ -327,7 +327,6 @@ private:
         DIANode<T>* node_;
         Stack& local_stack_;
     };
-    
 };
 
 //! \}
