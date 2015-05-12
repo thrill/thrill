@@ -66,10 +66,8 @@ public:
         data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
 
         std::string line;
-        while (iter.HasNext()){
-
-
-        //SpacingLogger(true) << iter.Next();
+        while (iter.HasNext()) {
+            //SpacingLogger(true) << iter.Next();
 
             emit(read_function_(iter.Next()));
         }
