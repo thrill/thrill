@@ -18,7 +18,6 @@
 #include "serializer.hpp"
 
 namespace c7a {
-
 namespace data {
 
 //! InputLineIterator gives you access to lines of a file
@@ -38,8 +37,8 @@ public:
         file_size_ = file_.tellg();
 
         //Go to start of 'local part'.
-        size_t per_worker = file_size_ / num_workers_;
-        size_t my_start = per_worker * my_id_;
+        std::streampos per_worker = file_size_ / num_workers_;
+        std::streampos my_start = per_worker * my_id_;
         file_.seekg(my_start, std::ios::beg);
 
         //Go to next new line if the stream-pointer is not at the beginning of a line
@@ -65,8 +64,8 @@ public:
     //! returns true, if an element is available in local part
     inline bool HasNext()
     {
-        size_t per_worker = file_size_ / num_workers_;
-        size_t my_end = per_worker * (my_id_ + 1) - 1;
+        std::streampos per_worker = file_size_ / num_workers_;
+        std::streampos my_end = per_worker * (my_id_ + 1) - 1;
 
         return (file_.tellg() <= my_end);
     }
@@ -83,7 +82,6 @@ private:
 };
 
 } // namespace data
-
 } // namespace c7a
 
 #endif // !C7A_DATA_INPUT_LINE_ITERATOR_HEADER

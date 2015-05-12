@@ -21,7 +21,6 @@
 #include "input_line_iterator.hpp"
 
 namespace c7a {
-
 namespace data {
 
 //! Identification for DIAs
@@ -31,9 +30,10 @@ typedef int DIAId;
 template <typename T>
 using BlockEmitter = std::function<void(T)>;
 
-//! Stores in-memory data
+//! Manages all kind of memory for data elements
 //!
-//! Future versions: Provide access to remote DIAs
+//!
+//! Provides Channel creation for sending / receiving data from other workers.
 class DataManager
 {
 public:
@@ -106,7 +106,6 @@ private:
 };
 
 } // namespace data
-
 } // namespace c7a
 
 #endif // !C7A_DATA_DATA_MANAGER_HEADER
