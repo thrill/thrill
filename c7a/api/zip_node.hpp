@@ -2,8 +2,14 @@
  * c7a/api/zip_node.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_ZIP_NODE_HEADER
 #define C7A_API_ZIP_NODE_HEADER
 
@@ -15,6 +21,7 @@
 #include "../common/logger.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -97,24 +104,24 @@ private:
     //! Zip function
     ZipFunction zip_function_;
     //!Unique ID of this node, used by the DataManager
-    data::DIAId post_data_id_;    
+    data::DIAId post_data_id_;
 
     //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a global barrier.
-    void PreOp() {
+    void PreOp()
+    {
         assert((this->parents_).size() == 2);
     }
 
-   
     //!Recieve elements from other workers.
-    void MainOp() { 
+    void MainOp()
+    {
         //TODO: (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
 
         //TODO: Deterministic computation about index to worker mapping.
 
         //TODO: Use network to send and recieve data through network iterators
 
-        assert((this->parents_).size() == 2);      
-
+        assert((this->parents_).size() == 2);
     }
 
     //! Use the ZipFunction to Zip workers
@@ -123,27 +130,25 @@ private:
         using zip_result_t = typename FunctionTraits<ZipFunction>::result_type;
         using zip_arg_0_t = typename FunctionTraits<ZipFunction>::template arg<0>;
         using zip_arg_1_t = typename FunctionTraits<ZipFunction>::template arg<1>;
-        
+
         data::DIAId pid1 = this->get_parents()[0]->get_data_id();
         data::DIAId pid2 = this->get_parents()[1]->get_data_id();
 
         data::BlockIterator<zip_arg_0_t> it1 = (this->context_).get_data_manager().template GetLocalBlocks<zip_arg_0_t>(pid1);
         data::BlockIterator<zip_arg_1_t> it2 = (this->context_).get_data_manager().template GetLocalBlocks<zip_arg_1_t>(pid2);
 
-	std::vector<zip_arg_0_t> elements1;
-	std::vector<zip_arg_1_t> elements2;
+        std::vector<zip_arg_0_t> elements1;
+        std::vector<zip_arg_1_t> elements2;
 
-	
-	auto save_fn1 = [&elements1](zip_arg_0_t input) {
-	  elements1.push_back(input);
-	};
+        auto save_fn1 = [&elements1](zip_arg_0_t input) {
+                            elements1.push_back(input);
+                        };
         auto lop_chain1 = stack1_.push(save_fn1).emit();
 
-	auto save_fn2 = [&elements2](zip_arg_1_t input) {
-	  elements2.push_back(input);
-	};
+        auto save_fn2 = [&elements2](zip_arg_1_t input) {
+                            elements2.push_back(input);
+                        };
         auto lop_chain2 = stack2_.push(save_fn2).emit();
-
 
         data::BlockEmitter<zip_result_t> emit = (this->context_).get_data_manager().template GetLocalEmitter<zip_result_t>(this->data_id_);
 
@@ -151,16 +156,14 @@ private:
             auto item1 = it1.Next();
             auto item2 = it2.Next();
 
-	    lop_chain1(item1);
-	    lop_chain2(item2);
-  
-	}
+            lop_chain1(item1);
+            lop_chain2(item2);
+        }
 
-	for (size_t i = 0; i < elements1.size(); i++) {
-	  std::cout << zip_function_(elements1[i], elements2[i]) << std::endl;
-	  emit(zip_function_(elements1[i], elements2[i]));
-	}
-
+        for (size_t i = 0; i < elements1.size(); i++) {
+            std::cout << zip_function_(elements1[i], elements2[i]) << std::endl;
+            emit(zip_function_(elements1[i], elements2[i]));
+        }
     }
 };
 
@@ -168,6 +171,6 @@ private:
 
 //! \}
 
-#endif // !C7A_API_REDUCE_NODE_HEADER
+#endif // !C7A_API_ZIP_NODE_HEADER
 
 /******************************************************************************/
