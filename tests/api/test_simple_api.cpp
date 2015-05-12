@@ -18,8 +18,12 @@ TEST(DIASimple, Test1Zip) {
 
      auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
      auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+     
+     auto doubled = initial2.Map([](int in) {
+	 return 2 * in;
+       });
 
-     auto zipped = initial1.Zip(zip_fn, initial2);
+     auto zipped = initial1.Zip(zip_fn, doubled);
 
      std::vector<c7a::engine::Stage> result;
      FindStages(zipped.get_node(), result);
