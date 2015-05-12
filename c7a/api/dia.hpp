@@ -201,7 +201,7 @@ public:
       *
       * \param zip_fn Zip function, which zips two elements together
       *
-      * \param Second DIA, which is zipped together with the original DIA.
+      * \param second_dia DIA, which is zipped together with the original DIA.
       */
     template <typename zip_fn_t, typename second_dia_t>
     auto Zip(const zip_fn_t &zip_fn, second_dia_t second_dia) {
