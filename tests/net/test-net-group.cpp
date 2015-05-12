@@ -170,4 +170,13 @@ TEST(NetGroup, TestAllReduce) {
         });
 }
 
+TEST(NetGroup, TestPrefixSum) {
+    // Construct a NetGroup of 8 workers which perform a PrefixSum collective
+    NetGroup::ExecuteLocalMock(
+        8, [](NetGroup* net) {
+            size_t local_value = 1;
+            net->PrefixSum(local_value);
+            ASSERT_EQ(local_value, net->MyRank() + 1);
+        });
+}
 /******************************************************************************/
