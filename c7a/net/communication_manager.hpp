@@ -24,6 +24,7 @@
 
 namespace c7a {
 
+//TODO: Rename to NetManager
 /**
  * @brief Manages communication.
  * @details Manages communication and handles errors.
@@ -71,6 +72,10 @@ private:
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
 public:
+
+	//TODO: Add execute local mock. 
+
+
 	void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints)
 	{ 
 		if(got_connections != -1) {
@@ -200,7 +205,7 @@ public:
        	netGroups_[msg->groupId]->SetConnection(msg->id, NetConnection(sock));
         ++got_connections;
 
-		return true;
+		return false;
 	}	
 
 	/**
@@ -222,7 +227,7 @@ public:
 
         ++got_connections;
 
-		return true;
+		return false;
 	}
 
 	bool PassiveConnected(Socket& sock) {
