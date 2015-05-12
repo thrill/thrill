@@ -14,18 +14,20 @@
 namespace c7a {
 
 template <typename T, typename WriteFunction>
-class WriteNode : public ActionNode<T> {
-public: 
-    WriteNode(data::DataManager &data_manager, 
-              const DIABaseVector& parents, 
-              WriteFunction write_function) 
-        : ActionNode<T>(data_manager, parents), write_function_(write_function) {};
-    virtual ~WriteNode() {} 
+class WriteNode : public ActionNode<T>
+{
+public:
+    WriteNode(data::DataManager& data_manager,
+              const DIABaseVector& parents,
+              WriteFunction write_function)
+        : ActionNode<T>(data_manager, parents), write_function_(write_function) { }
+    virtual ~WriteNode() { }
 
-    void execute() {};
+    void execute() { }
 
-    std::string toString() override {
-        std::string str 
+    std::string toString() override
+    {
+        std::string str
             = std::string("[WriteNode] Id: ") + std::to_string(DIABase::data_id_);
         return str;
     }
