@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <string>
 
 namespace c7a {
 namespace net {
@@ -61,6 +62,14 @@ public:
     explicit Buffer(size_type n)
         : data_(new value_type[n]), size_(n)
     { }
+
+    //! allocate buffer and COPY data into it.
+    explicit Buffer(const void* data, size_type size)
+        : data_(new value_type[size]), size_(size)
+    {
+        const value_type* cdata = reinterpret_cast<const value_type*>(data);
+        std::copy(cdata, cdata + size, data_);
+    }
 
     //! non-copyable: delete copy-constructor
     Buffer(const Buffer&) = delete;
@@ -193,6 +202,14 @@ public:
     //! \name Output
     //! \{
 
+    //! copy contents into std::string
+    std::string as_string() const
+    {
+        if (!data_) return std::string();
+        return std::string(reinterpret_cast<const char*>(data_), size_);
+    }
+
+    //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const Buffer& b)
     {
         return os << "[Buffer size=" << b.size() << "]";
