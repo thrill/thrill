@@ -203,8 +203,8 @@ public:
       *
       * \param Second DIA, which is zipped together with the original DIA.
       */
-    template <typename zip_fn_t>
-    auto Zip(const zip_fn_t &zip_fn, auto second_dia) {
+    template <typename zip_fn_t, typename second_dia_t>
+    auto Zip(const zip_fn_t &zip_fn, second_dia_t second_dia) {
         using zip_result_t
                   = typename FunctionTraits<zip_fn_t>::result_type;
         using ZipResultNode
