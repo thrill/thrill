@@ -18,6 +18,7 @@
 #include <c7a/net/net-endpoint.hpp>
 #include <c7a/net/net-connection.hpp>
 #include <c7a/common/functional.hpp>
+#include <c7a/common/logger.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -249,6 +250,8 @@ public:
     template <typename T, typename BinarySumOp = SumOp<T> >
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
 
+    template <typename T, typename BinarySumOp = SumOp<T> >
+    void PrefixSum(T& value, BinarySumOp sumOp = BinarySumOp());
     //! \}
 
 protected:
@@ -281,8 +284,8 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
         // Send value to worker with id = id XOR d
         if ((this->MyRank() ^ d) < this->Size()) {
             this->Connection(this->MyRank() ^ d).Send(value);
-            std::cout << "LOCAL: Worker " << this->MyRank() << ": Sending " << value
-                      << " to worker " << (this->MyRank() ^ d) << "\n";
+            sLOG << "ALL_REDUCE: Worker" << this->MyRank() << ": Sending" << value
+                 << "to worker" << (this->MyRank() ^ d);
         }
 
         // Receive value from worker with id = id XOR d
@@ -290,15 +293,49 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
         if ((this->MyRank() ^ d) < this->Size()) {
             this->Connection(this->MyRank() ^ d).Receive(&recv_data);
             value = sum_op(value, recv_data);
-            std::cout << "LOCAL: Worker " << this->MyRank() << ": Received " << recv_data
-                      << " from worker " << (this->MyRank() ^ d)
-                      << " value = " << value << "\n";
+            sLOG << "ALL_REDUCE: Worker" << this->MyRank() << ": Received" << recv_data
+                 << "from worker" << (this->MyRank() ^ d)
+                 << "value =" << value;
         }
     }
 
-    std::cout << "LOCAL: value after all reduce " << value << "\n";
+    sLOG << "ALL_REDUCE: Worker" << this->MyRank()
+         << ": value after all reduce =" << value;
 }
 
+template <typename T, typename BinarySumOp>
+void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
+{
+    // The total sum in the current hypercube. This is stored, because later,
+    // bigger hypercubes need this value.
+    T total_sum = value;
+
+    for (size_t d = 1; d < this->Size(); d <<= 1)
+    {
+        // Send total sum of this hypercube to worker with id = id XOR d
+        if ((this->MyRank() ^ d) < this->Size()) {
+            this->Connection(this->MyRank() ^ d).Send(total_sum);
+            sLOG << "PREFIX_SUM: Worker" << this->MyRank() << ": Sending" << total_sum
+                 << "to worker" << (this->MyRank() ^ d);
+        }
+
+        // Receive total sum of smaller hypercube from worker with id = id XOR d
+        T recv_data;
+        if ((this->MyRank() ^ d) < this->Size()) {
+            this->Connection(this->MyRank() ^ d).Receive(&recv_data);
+            total_sum = sumOp(total_sum, recv_data);
+            // Variable 'value' represents the prefix sum of this worker
+            if (this->MyRank() & d)
+                value = sumOp(value, recv_data);
+            sLOG << "PREFIX_SUM: Worker" << this->MyRank() << ": Received" << recv_data
+                 << "from worker" << (this->MyRank() ^ d)
+                 << "value =" << value;
+        }
+    }
+
+    sLOG << "PREFIX_SUM: Worker" << this->MyRank()
+         << ": value after prefix sum =" << value;
+}
 //! \}
 
 } // namespace net
