@@ -20,6 +20,7 @@ using::testing::Return;
 using::testing::ByRef;
 
 using namespace c7a;
+using namespace c7a::net;
 
 struct NetDispatcherMock : public NetDispatcher {
     MOCK_METHOD3(AsyncRead, void(NetConnection &, size_t, NetDispatcher::AsyncReadCallback));
