@@ -36,7 +36,7 @@ public:
     /*!
      * Constructor for a ZipNode.
      *
-     * \param context Reference to the Context, which gives iterators for data
+     * \param ctx Reference to the Context, which gives iterators for data
      * \param parents Vector of parents. Has size 2, as Zip has two parents
      * \param stack1 Function stack with all lambdas between the parent and this node for first DIA
      * \param stack2 Function stack with all lambdas between the parent and this node for second DIA
