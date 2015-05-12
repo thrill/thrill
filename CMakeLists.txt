@@ -35,6 +35,12 @@ if(NOT APPLE AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 endif()
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
+    AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  # Clang does not support debug output for auto return types yet
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g0")
+endif()
+
 ################################################################################
 ### Find Required Libraries
 

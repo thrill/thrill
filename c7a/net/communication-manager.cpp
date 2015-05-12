@@ -11,6 +11,8 @@
 
 namespace c7a {
 
+namespace net {
+
 void CommunicationManager::Initialize(const std::vector<NetEndpoint>& /* endpoints */)
 { }
 
@@ -23,6 +25,8 @@ SystemControlChannel* CommunicationManager::GetSystemControlChannel()
 // {
 //     return NULL;
 // }
+
+} // namespace net
 
 } // namespace c7a
 

@@ -14,20 +14,19 @@
 #ifndef C7A_NET_NET_CONNECTION_HEADER
 #define C7A_NET_NET_CONNECTION_HEADER
 
-#include <c7a/net/socket.hpp>
-
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
-
-#include <c7a/net/socket.hpp>
-#include <c7a/net/net-exception.hpp>
 #include <string>
-#include <thread>
+
+#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/net-exception.hpp>
 
 namespace c7a {
+
+namespace net {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -46,7 +45,7 @@ namespace c7a {
  * instead of explicit error handling. If ever an error occurs, we probably have
  * to rebuild the whole network explicitly.
  */
-class NetConnection : protected Socket
+class NetConnection : protected lowlevel::Socket
 {
     static const bool debug = true;
 
@@ -58,13 +57,50 @@ public:
         : Socket(s)
     { }
 
-    //! Return the associated file descriptor
-    int GetFileDescriptor() const
-    { return Socket::GetFileDescriptor(); }
+#if !C7A_NETCONNECTION_COPYABLE
+    //! move-constructor
+    NetConnection(NetConnection&& other) : Socket(other)
+    { other.fd_ = -1; }
+
+    //! move assignment-operator
+    NetConnection& operator = (NetConnection&& other)
+    {
+        if (IsValid()) {
+            sLOG1 << "Assignment-destruction of valid NetConnection" << this;
+            Close();
+        }
+        Socket::operator = (other);
+        other.fd_ = -1;
+        return *this;
+    }
+#endif
+
+    //! Check whether the contained file descriptor is valid.
+    bool IsValid() const
+    { return Socket::IsValid(); }
 
     //! Return the raw socket object for more low-level network programming.
     Socket & GetSocket()
     { return *this; }
+
+    //! Return the raw socket object for more low-level network programming.
+    const Socket & GetSocket() const
+    { return *this; }
+
+    //! Return the associated socket error
+    int GetError() const
+    { return Socket::GetError(); }
+
+    //! Set socket to non-blocking
+    int SetNonBlocking(bool non_blocking) const
+    { return Socket::SetNonBlocking(non_blocking); }
+
+    //! Return the socket peer address
+    std::string GetPeerAddress() const
+    { return Socket::GetPeerAddress().ToStringHostPort(); }
+
+    bool operator == (const NetConnection& c) const
+    { return GetSocket().fd() == c.GetSocket().fd(); }
 
     //! \name Send Functions
     //! \{
@@ -150,14 +186,38 @@ public:
 
     //! \}
 
+    //! Destruction of NetConnection should be explicitly done by a NetGroup or
+    //! other network class.
+    ~NetConnection()
+    {
+        if (IsValid()) {
+            sLOG1 << "Destruction of valid NetConnection" << this;
+            Close();
+        }
+    }
+
     //! Close this NetConnection
     void Close()
     {
-        shutdown();
+        Socket::close();
+    }
+
+    //! make ostreamable
+    friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
+    {
+        os << "[NetConnection"
+           << " fd=" << c.GetSocket().fd();
+
+        if (c.IsValid())
+            os << " peer=" << c.GetPeerAddress();
+
+        return os << "]";
     }
 };
 
 // \}
+
+} // namespace net
 
 } // namespace c7a
 

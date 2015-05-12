@@ -14,7 +14,7 @@
 #include <stdlib.h> //free
 #include <stdio.h>  //mempcy
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/net-connection.hpp>
 
 namespace c7a {
 //! \ingroup net
@@ -94,25 +94,27 @@ struct StreamBlockHeader {
 //! If a client does not want to send any data to the receiver, only a end-of-
 //! stream header must be sent, since TCP connections are re-used for multiple
 //! streams
-struct Stream {
+class Stream
+{
+public:
     struct StreamBlockHeader header;
-    Socket&                  socket;
-    int                      elements_read = 0;
+    NetConnection& socket;
+    int elements_read = 0;
 
     //!attaches a stream to a socket and initializes the current header
-    Stream(Socket& socket, struct StreamBlockHeader header)
+    Stream(NetConnection& socket, struct StreamBlockHeader& header)
         : header(header),
           socket(socket) { }
 
     //! replaces the current head with the end-of-stream header
-    void                     ResetHead()
+    void ResetHead()
     {
         elements_read = 0;
         header.Reset();
     }
 
     //! indicates if all data of this stream has arrived
-    bool                     IsFinished() const
+    bool IsFinished() const
     {
         return header.IsStreamEnd();
     }

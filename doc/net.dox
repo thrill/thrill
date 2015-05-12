@@ -11,6 +11,8 @@
 
 namespace c7a {
 
+namespace net {
+
 /******************************************************************************/
 /** \page net Network Layer
 
@@ -43,6 +45,8 @@ The BSD socket API is difficult to work with correctly, which is why the followi
 The channel API provides a mechanism to receive data from multiple sockets into a single data object which can be identified like a DIA. Low-level sockets are used to build connections between each worker pair. This connection can be shared by multiple communication procedures at the same time by multiplexing.
 Abstraction can be found in \ref ChannelMultiplexer.
 */
+
+} // namespace net
 
 } // namespace c7a
 
