@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/socket.hpp
+ * c7a/net/lowlevel/socket.hpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -11,12 +11,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SOCKET_HEADER
-#define C7A_NET_SOCKET_HEADER
+#ifndef C7A_NET_LOWLEVEL_SOCKET_HEADER
+#define C7A_NET_LOWLEVEL_SOCKET_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/net/socket-address.hpp>
+#include <c7a/net/lowlevel/socket-address.hpp>
 
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -28,6 +28,10 @@
 #include <utility>
 
 namespace c7a {
+
+namespace net {
+
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \ingroup net
@@ -95,8 +99,7 @@ public:
     { return fd_ >= 0; }
 
     //! Return the associated file descriptor
-    virtual int GetFileDescriptor() const
-    { return fd_; }
+    int fd() const { return fd_; }
 
     //! Query socket for its current error state.
     int GetError() const
@@ -109,8 +112,10 @@ public:
 
     //! Turn socket into non-blocking state.
     //! \return old blocking value (0 or 1) or -1 for error
-    int SetNonBlocking(bool non_blocking)
+    int SetNonBlocking(bool non_blocking) const
     {
+        assert(IsValid());
+
         if (non_blocking == non_blocking_) return 1;
 
         int old_opts = fcntl(fd_, F_GETFL);
@@ -132,8 +137,10 @@ public:
     }
 
     //! Return the current local socket address.
-    SocketAddress GetLocalAddress()
+    SocketAddress GetLocalAddress() const
     {
+        assert(IsValid());
+
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
 
@@ -150,8 +157,10 @@ public:
     }
 
     //! Return the current peer socket address.
-    SocketAddress GetPeerAddress()
+    SocketAddress GetPeerAddress() const
     {
+        assert(IsValid());
+
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
 
@@ -175,6 +184,8 @@ public:
     //! Close socket.
     bool close()
     {
+        assert(IsValid());
+
         if (::close(fd_) != 0)
         {
             LOG << "Socket::close()"
@@ -183,12 +194,16 @@ public:
             return false;
         }
 
+        fd_ = -1;
+
         return true;
     }
 
     //! Shutdown one or both directions of socket.
     bool shutdown(int how = SHUT_RDWR)
     {
+        assert(IsValid());
+
         if (::shutdown(fd_, how) != 0)
         {
             LOG << "Socket::shutdown()"
@@ -196,6 +211,8 @@ public:
                 << " error=" << strerror(errno);
             return false;
         }
+
+        fd_ = -1;
 
         return true;
     }
@@ -208,6 +225,8 @@ public:
     //! Bind socket to given SocketAddress for listening or connecting.
     bool bind(const SocketAddress& sa)
     {
+        assert(IsValid());
+
         int r = ::bind(fd_, sa.sockaddr(), sa.socklen());
 
         if (r != 0) {
@@ -224,6 +243,8 @@ public:
     //! Initial socket connection to address
     int connect(const SocketAddress& sa)
     {
+        assert(IsValid());
+
         int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
 
         if (r == 0) {
@@ -243,12 +264,17 @@ public:
     //! Turn socket into listener state to accept incoming connections.
     bool listen(int backlog = 0)
     {
+        assert(IsValid());
+
         if (backlog == 0) backlog = SOMAXCONN;
 
         int r = ::listen(fd_, backlog);
 
         if (r == 0) {
-            is_listensocket_ = 1;
+            is_listensocket_ = true;
+
+            LOG << "Socket::listen()"
+                << " fd_=" << fd_;
         }
         else {
             LOG << "Socket::listen()"
@@ -259,8 +285,9 @@ public:
     }
 
     //! Wait on socket until a new connection comes in.
-    Socket accept()
+    Socket accept() const
     {
+        assert(IsValid());
         assert(is_listensocket_);
 
         struct sockaddr_in6 sa;
@@ -292,6 +319,8 @@ public:
     //! lower-layer functions.
     ssize_t send_one(const void* data, size_t size, int flags = 0)
     {
+        assert(IsValid());
+
         LOG << "Socket::send_one()"
             << " fd_=" << fd_
             << " size=" << size
@@ -310,6 +339,8 @@ public:
     //! Send (data,size) to socket, retry sends if short-sends occur.
     ssize_t send(const void* data, size_t size, int flags = 0)
     {
+        assert(IsValid());
+
         LOG << "Socket::send()"
             << " fd_=" << fd_
             << " size=" << size
@@ -345,8 +376,10 @@ public:
     }
 
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    virtual ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
+    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
     {
+        assert(IsValid());
+
         LOG << "Socket::recv_one()"
             << " fd_=" << fd_
             << " maxsize=" << maxsize
@@ -363,8 +396,10 @@ public:
     }
 
     //! Receive (data,size) from socket, retry recvs if short-reads occur.
-    virtual ssize_t recv(void* outdata, size_t size, int flags = 0)
+    ssize_t recv(void* outdata, size_t size, int flags = 0)
     {
+        assert(IsValid());
+
         LOG << "Socket::recv()"
             << " fd_=" << fd_
             << " size=" << size
@@ -409,6 +444,8 @@ public:
     int getsockopt(int level, int optname,
                    void* optval, socklen_t* optlen) const
     {
+        assert(IsValid());
+
         int r = ::getsockopt(fd_, level, optname, optval, optlen);
 
         if (r != 0)
@@ -427,6 +464,8 @@ public:
     int setsockopt(int level, int optname,
                    const void* optval, socklen_t optlen)
     {
+        assert(IsValid());
+
         int r = ::setsockopt(fd_, level, optname, optval, optlen);
 
         if (r != 0)
@@ -452,7 +491,6 @@ public:
     //! sent as soon as possible, even if there is only a small amount of data.
     void SetNoDelay(bool activate = true);
 
-    bool operator == (const Socket& s) const;
     //! \}
 
 protected:
@@ -466,13 +504,17 @@ protected:
     bool is_connected_ = false;
 
     //! flag whether the socket is set to non-blocking mode
-    bool non_blocking_ = false;
+    mutable bool non_blocking_ = false;
 };
 
 // \}
 
+} // namespace lowlevel
+
+} // namespace net
+
 } // namespace c7a
 
-#endif // !C7A_NET_SOCKET_HEADER
+#endif // !C7A_NET_LOWLEVEL_SOCKET_HEADER
 
 /******************************************************************************/

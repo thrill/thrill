@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -16,7 +17,7 @@
 #include <vector>
 #include <string>
 
-using namespace c7a;
+using namespace c7a::net;
 
 TEST(NetGroup, InitializeAndClose) {
     // Construct a NetGroup of 6 workers which do nothing but terminate.
@@ -36,7 +37,7 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     NetDispatcher dispatcher;
 
     NetDispatcher::AsyncReadCallback callback =
-        [net, &received](Socket& s, const std::string& buffer) {
+        [net, &received](NetConnection& /* s */, const std::string& buffer) {
             ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
             received++;
         };
@@ -45,7 +46,7 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     for (size_t i = 0; i != net->Size(); ++i)
     {
         if (i == net->MyRank()) continue;
-        dispatcher.AsyncRead(net->Connection(i).GetSocket(), sizeof(size_t), callback);
+        dispatcher.AsyncRead(net->Connection(i), sizeof(size_t), callback);
     }
 
     while (received < net->Size() - 1) {
