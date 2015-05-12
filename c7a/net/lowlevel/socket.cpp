@@ -17,9 +17,7 @@
 #include <netinet/tcp.h>
 
 namespace c7a {
-
 namespace net {
-
 namespace lowlevel {
 
 void Socket::SetKeepAlive(bool activate)
@@ -84,9 +82,7 @@ void Socket::SetNoDelay(bool activate)
 }
 
 } // namespace lowlevel
-
 } // namespace net
-
 } // namespace c7a
 
 /******************************************************************************/

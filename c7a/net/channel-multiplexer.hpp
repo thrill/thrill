@@ -17,7 +17,6 @@
 #include <c7a/net/channel.hpp>
 
 namespace c7a {
-
 namespace net {
 
 //! \ingroup net
@@ -42,7 +41,7 @@ public:
 
     //! Adds a connected TCP socket to another worker
     //! There must exist exactly one TCP connection to each worker.
-    void AddSocket(NetConnection& s);
+    virtual void AddSocket(NetConnection& s);
 
     //! Indicates if a channel exists with the given id
     bool HasChannel(int id);
@@ -71,7 +70,6 @@ private:
 };
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_CHANNEL_MULTIPLEXER_HEADER

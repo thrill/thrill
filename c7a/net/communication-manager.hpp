@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication_manager.hpp
+ * c7a/net/communication-manager.hpp
  *
  * Part of Project c7a.
  *
@@ -17,7 +17,6 @@
 #include "flow_control_channel.hpp"
 
 namespace c7a {
-
 namespace net {
 
 /**
@@ -35,7 +34,6 @@ public:
 };
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_COMMUNICATION_MANAGER_HEADER
