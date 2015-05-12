@@ -19,9 +19,7 @@
 #include <vector>
 
 namespace c7a {
-
 namespace net {
-
 //! \addtogroup net Network Communication
 //! \{
 
@@ -54,10 +52,13 @@ public:
     }
 };
 
+static std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
+{
+    return os << endpoint.hostport;
+}
+
 //! \}
-
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_NET_ENDPOINT_HEADER
