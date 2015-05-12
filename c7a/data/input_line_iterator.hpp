@@ -18,7 +18,6 @@
 #include "serializer.hpp"
 
 namespace c7a {
-
 namespace data {
 
 //! InputLineIterator gives you access to lines of a file
@@ -83,7 +82,6 @@ private:
 };
 
 } // namespace data
-
 } // namespace c7a
 
 #endif // !C7A_DATA_INPUT_LINE_ITERATOR_HEADER

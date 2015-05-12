@@ -15,7 +15,6 @@
 #include <c7a/net/stream.hpp>
 
 namespace c7a {
-
 namespace net {
 
 //! \ingroup net
@@ -55,7 +54,7 @@ public:
     //! all other block headers are parsed
     void PickupStream(NetConnection& s, struct StreamBlockHeader head)
     {
-        Stream* stream = new Stream (s, head);
+        Stream* stream = new Stream(s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
             finished_streams_++;
@@ -151,7 +150,6 @@ private:
 };
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_CHANNEL_HEADER

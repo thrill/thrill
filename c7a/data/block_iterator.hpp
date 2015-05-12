@@ -15,7 +15,6 @@
 #include "serializer.hpp"
 
 namespace c7a {
-
 namespace data {
 
 //! BlockIterator gives you access to data of a block
@@ -47,7 +46,6 @@ private:
 };
 
 } // namespace data
-
 } // namespace c7a
 
 #endif // !C7A_DATA_BLOCK_ITERATOR_HEADER

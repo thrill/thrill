@@ -25,7 +25,6 @@
 #include <c7a/net/net-exception.hpp>
 
 namespace c7a {
-
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -218,7 +217,6 @@ public:
 // \}
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_NET_CONNECTION_HEADER
