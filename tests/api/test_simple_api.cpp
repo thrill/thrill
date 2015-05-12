@@ -60,6 +60,67 @@ TEST(DIASimple, SharedPtrTest) {
     }
 
     return;
+=======
+#include "c7a/api/dia_base.hpp"
+#include <tests/c7a-tests.hpp>
+#include "c7a/engine/stage_builder.hpp"
+
+using namespace c7a;
+
+TEST(DIASimple, Test1Zip) {
+     auto read_int = [](std::string line) { return std::stoi(line); };
+     auto zip_fn = [](int in1, int in2) {
+         return in1 + in2;
+     };
+
+     Context ctx;
+
+     auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+     auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+     
+     auto doubled = initial2.Map([](int in) {
+	 return 2 * in;
+       });
+
+     auto zipped = initial1.Zip(zip_fn, doubled);
+
+     std::vector<c7a::engine::Stage> result;
+     FindStages(zipped.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+        }
+
+}
+
+TEST(DISABLED_DIASimple, InputTest1ReadDouble) {
+     //auto read_double = [](std::string line) { return std::stod(line); };
+
+     //c7a::Context ctx;
+
+     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_double);
+
+     // assert(initial.NodeString() == "[DIANode/State:NEW/Type:d]");
+
+     // assert(initial.Size() == 4);
+
+}
+
+TEST(DISABLED_DIASimple, InputTest1Write) {
+
+     //auto read_int = [](std::string line) { return std::stoi(line); };
+     //auto write_int = [](int element) { return element; };
+
+     //c7a::Context ctx;
+
+     // auto initial = ctx.ReadFromFileSystem("tests/inputs/test1", read_int);
+     // ctx.WriteToFileSystem(initial, "tests/inputs/test1_result", write_int);
+     // auto copy = ctx.ReadFromFileSystem("tests/inputs/test1_result", read_int);
+
+     // assert(copy.NodeString() == "[DIANode/State:NEW/Type:i]");
+
+     // assert(copy.Size() == 4);
+>>>>>>> Zip
 }
 
 TEST(DIASimple, FunctionStackTest) {
