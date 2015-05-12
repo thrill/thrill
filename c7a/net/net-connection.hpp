@@ -23,6 +23,7 @@
 
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/net-exception.hpp>
+#include <c7a/net/buffer.hpp>
 
 namespace c7a {
 namespace net {

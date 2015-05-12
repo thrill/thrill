@@ -43,10 +43,10 @@ std::shared_ptr<Channel> ChannelMultiplexer::PickupChannel(int id)
 }
 
 void ChannelMultiplexer::ReadFirstHeaderPartFrom(
-    NetConnection& s, const std::string& buffer)
+    NetConnection& s, const Buffer& buffer)
 {
     struct StreamBlockHeader header;
-    header.ParseIdAndNumElem(buffer);
+    header.ParseIdAndNumElem(buffer.as_string());
 
     ChannelPtr channel;
     if (!HasChannel(header.channel_id)) {

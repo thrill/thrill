@@ -133,7 +133,7 @@ NetGroup::NetGroup(ClientId my_rank,
 
     auto MsgReaderLambda =
         [this, &got_connections](
-            NetConnection& c, const std::string& buffer)
+            NetConnection& c, const Buffer& buffer)
         {
             LOG0 << "Message on " << c;
             die_unequal(buffer.size(), sizeof(WelcomeMsg));
