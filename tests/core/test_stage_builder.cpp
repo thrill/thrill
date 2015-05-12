@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/engine/test_stage_builder.cpp
+ * tests/core/test_stage_builder.cpp
  *
  * Part of Project c7a.
  *

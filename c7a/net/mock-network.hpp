@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/engine/mock-network.hpp
+ * c7a/net/mock-network.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_ENGINE_MOCK_NETWORK_HEADER
-#define C7A_ENGINE_MOCK_NETWORK_HEADER
+#ifndef C7A_NET_MOCK_NETWORK_HEADER
+#define C7A_NET_MOCK_NETWORK_HEADER
 
 //
 // Created by Matthias Stumpp on 25/04/15.
@@ -23,10 +23,8 @@
 
 namespace c7a {
 
-
 namespace net {
 
-   
 class MockNetwork
 {
 public:
@@ -133,6 +131,6 @@ protected:
 
 } // namespace c7a
 
-#endif // !C7A_ENGINE_MOCK_NETWORK_HEADER
+#endif // !C7A_NET_MOCK_NETWORK_HEADER
 
 /******************************************************************************/

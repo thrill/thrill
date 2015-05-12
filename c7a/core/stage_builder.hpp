@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_ENGINE_STAGE_BUILDER_HEADER
-#define C7A_ENGINE_STAGE_BUILDER_HEADER
+#ifndef C7A_CORE_STAGE_BUILDER_HEADER
+#define C7A_CORE_STAGE_BUILDER_HEADER
 
 #include "../api/dia_base.hpp"
 #include "../common/logger.hpp"
@@ -19,7 +19,8 @@
 #include <algorithm>
 #include <set>
 
-namespace c7a { 
+namespace c7a {
+
 namespace core {
 
 class Stage
@@ -71,6 +72,6 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
 
 } // namespace c7a
 
-#endif // !C7A_ENGINE_STAGE_BUILDER_HEADER
+#endif // !C7A_CORE_STAGE_BUILDER_HEADER
 
 /******************************************************************************/
