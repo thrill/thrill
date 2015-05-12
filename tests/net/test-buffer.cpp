@@ -38,11 +38,14 @@ TEST(Buffer, Test1) {
         std::swap(b1, b2);
     }
 
-    ASSERT_EQ(b1.size(), 0);
-    ASSERT_EQ(b2.size(), 42);
+    ASSERT_EQ(b1.size(), 0u);
+    ASSERT_EQ(b2.size(), 42u);
 
     b1.resize(60);
-    ASSERT_EQ(b1.size(), 60);
+    ASSERT_EQ(b1.size(), 60u);
+
+    // over-move of b1
+    b1 = std::move(b2);
 }
 
 /******************************************************************************/
