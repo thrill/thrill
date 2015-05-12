@@ -211,16 +211,16 @@ public:
             = TwoZipNode<typename FunctionTraits<zip_fn_t>::result_type,
                          decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
 
-        ZipResultNode* zip_node
-            = new ZipResultNode(node_->get_data_manager(),
-                                { node_, second_dia.get_node() },
+	std::shared_ptr<ZipResultNode> shared_node(
+	    new ZipResultNode(node_->get_data_manager(),
+			      {node_.get(), second_dia.get_node()},
                                 local_stack_,
                                 second_dia.get_local_stack(),
-                                zip_fn);
+			      zip_fn));
 
-        auto zip_stack = zip_node->ProduceStack();
+        auto zip_stack = shared_node->ProduceStack();
         return DIA<zip_result_t, decltype(zip_stack)>
-                   (zip_node, zip_stack);
+			      (std::move(shared_node), zip_stack);
     }
 
 
@@ -327,6 +327,7 @@ private:
         DIANode<T>* node_;
         Stack& local_stack_;
     };
+    
 };
 
 //! \}
