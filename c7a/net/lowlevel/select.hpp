@@ -19,9 +19,7 @@
 #include <algorithm>
 
 namespace c7a {
-
 namespace net {
-
 namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
@@ -134,9 +132,7 @@ protected:
 //! \}
 
 } // namespace lowlevel
-
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_LOWLEVEL_SELECT_HEADER

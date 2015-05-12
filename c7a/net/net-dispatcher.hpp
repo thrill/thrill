@@ -26,7 +26,6 @@
 #include <ctime>
 
 namespace c7a {
-
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -325,7 +324,6 @@ protected:
 //! \}
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_NET_DISPATCHER_HEADER

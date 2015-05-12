@@ -23,9 +23,7 @@
 #include <vector>
 
 namespace c7a {
-
 namespace net {
-
 namespace lowlevel {
 
 /******************************************************************************/
@@ -223,9 +221,7 @@ IPv6Address::IPv6Address(const char* ipstring, uint16_t port)
 }
 
 } // namespace lowlevel
-
 } // namespace net
-
 } // namespace c7a
 
 /******************************************************************************/

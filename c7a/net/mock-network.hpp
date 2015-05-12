@@ -22,7 +22,6 @@
 #include <stdlib.h>
 
 namespace c7a {
-
 namespace net {
 
 class MockNetwork
@@ -128,7 +127,6 @@ protected:
 };
 
 } // namespace engine
-
 } // namespace c7a
 
 #endif // !C7A_NET_MOCK_NETWORK_HEADER

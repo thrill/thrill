@@ -29,7 +29,6 @@
 #include <vector>
 
 namespace c7a {
-
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -302,7 +301,6 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
 //! \}
 
 } // namespace net
-
 } // namespace c7a
 
 #endif // !C7A_NET_NET_GROUP_HEADER

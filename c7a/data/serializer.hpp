@@ -17,7 +17,6 @@
 //TODO this copies data. That is bad and makes me sad.
 
 namespace c7a {
-
 namespace data {
 
 //! internal representation of data elements
@@ -110,7 +109,6 @@ inline T Deserialize(const std::string& x)
 }
 
 } // namespace data
-
 } // namespace c7a
 
 #endif // !C7A_DATA_SERIALIZER_HEADER

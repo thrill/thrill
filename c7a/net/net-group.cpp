@@ -21,7 +21,6 @@
 #include <vector>
 
 namespace c7a {
-
 namespace net {
 
 template <typename Functional, size_t BufferSize = 0>
@@ -291,7 +290,6 @@ void NetGroup::ExecuteLocalMock(
 }
 
 } // namespace net
-
 } // namespace c7a
 
 /******************************************************************************/
