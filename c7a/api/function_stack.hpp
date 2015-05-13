@@ -27,7 +27,7 @@ namespace c7a {
 //! \{
 
 /*!
- * Base case for the chaining of lambda functions. 
+ * Base case for the chaining of lambda functions.
  * The last lambda function receives an input element, no emitter and should have no return type.
  * It should therefore store the input parameter externally.
  *
@@ -46,7 +46,7 @@ auto run_emitter(L lambda)
 }
 
 /*!
- * Recursive case for the chaining of lambda functions. 
+ * Recursive case for the chaining of lambda functions.
  * The given lambda function receives an input element, an emitter and should have no return type.
  * The emitter will be built using the chain of remaining lambda functions.
  *
@@ -91,7 +91,6 @@ public:
         : stack_(stack) { }
     virtual ~FunctionStack() { }
 
-
     /*!
      * Add a lambda function to the end of the chain.
      *
@@ -133,7 +132,7 @@ private:
 
     /*!
      * Auxilary function for "folding" the chain.
-     * This is needed to send all lambda functions as parameters to the 
+     * This is needed to send all lambda functions as parameters to the
      * function that folds them together.
      *
      *

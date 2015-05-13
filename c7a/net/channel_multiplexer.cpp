@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/channel-multiplexer.cpp
+ * c7a/net/channel_multiplexer.cpp
  *
  * Part of Project c7a.
  *

@@ -20,10 +20,10 @@ namespace c7a {
 //! \{
 
 /*!
- * A DOpNode is a typed node representing and distributed operations in c7a. 
+ * A DOpNode is a typed node representing and distributed operations in c7a.
  * It is the super class for all distributed operation nodes.
  *
- * \tparam T Type of the corresponding DIANode 
+ * \tparam T Type of the corresponding DIANode
  */
 template <typename T>
 class DOpNode : public DIANode<T>

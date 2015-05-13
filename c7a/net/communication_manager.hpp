@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication-manager.hpp
+ * c7a/net/communication_manager.hpp
  *
  * Part of Project c7a.
  *
@@ -24,6 +24,7 @@
 
 namespace c7a {
 namespace net {
+
 //TODO: Rename to NetManager
 /**
  * @brief Manages communication.
@@ -97,11 +98,11 @@ public:
 
         if (listenSocket_.bind(lsa) != 0)
             throw Exception("Could not bind listen socket to "
-                                         + lsa.ToStringHostPort(), errno);
+                            + lsa.ToStringHostPort(), errno);
 
         if (listenSocket_.listen() != 0)
             throw Exception("Could not listen on socket "
-                                         + lsa.ToStringHostPort(), errno);
+                            + lsa.ToStringHostPort(), errno);
 
         listenConnection_ = std::move(NetConnection(listenSocket_));
 
@@ -132,8 +133,8 @@ public:
                 }
                 else {
                     throw Exception("Could not connect to client "
-                                                 + std::to_string(id) + " via "
-                                                 + addressList[id].ToStringHostPort(), errno);
+                                    + std::to_string(id) + " via "
+                                    + addressList[id].ToStringHostPort(), errno);
                 }
             }
         }
@@ -273,6 +274,7 @@ public:
         //TODO MUHA
     }
 };
+
 } // namespace net
 } // namespace c7a
 

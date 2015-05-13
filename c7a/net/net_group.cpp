@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-group.cpp
+ * c7a/net/net_group.cpp
  *
  * NetGroup is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -41,7 +41,7 @@ public:
     bool operator () (lowlevel::Socket& s)
     {
         int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
-               buffer_.size() - size_);
+                           buffer_.size() - size_);
 
         if (r < 0)
             throw Exception("NetReadBuffer() error in recv", errno);
