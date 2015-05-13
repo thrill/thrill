@@ -46,7 +46,7 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(
     NetConnection& s, const Buffer& buffer)
 {
     struct StreamBlockHeader header;
-    header.ParseIdAndNumElem(buffer.as_string());
+    header.ParseIdAndNumElem(buffer.ToString());
 
     ChannelPtr channel;
     if (!HasChannel(header.channel_id)) {
