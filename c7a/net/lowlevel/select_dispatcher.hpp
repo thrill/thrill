@@ -16,7 +16,7 @@
 
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select.hpp>
-#include <c7a/net/lowlevel/net_exception.hpp>
+#include <c7a/net/exception.hpp>
 
 #include <deque>
 
@@ -101,7 +101,7 @@ public:
         int r = fdset.select_timeout(timeout);
 
         if (r < 0) {
-            throw lowlevel::NetException("OpenConnections() select() failed!", errno);
+            throw Exception("OpenConnections() select() failed!", errno);
         }
         if (r == 0) return;
 
@@ -218,8 +218,8 @@ private:
     static bool DefaultExceptionCallback(const Cookie& /* c */)
     {
         // exception on listen socket ?
-        throw lowlevel::NetException("SelectDispatcher() exception on socket!",
-                           errno);
+        throw Exception("SelectDispatcher() exception on socket!",
+                        errno);
     }
 };
 
