@@ -278,27 +278,27 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    for (size_t d = 1; d < this->Size(); d <<= 1)
+    for (size_t d = 1; d < Size(); d <<= 1)
     {
         // Send value to worker with id = id XOR d
-        if ((this->MyRank() ^ d) < this->Size()) {
-            this->Connection(this->MyRank() ^ d).Send(value);
-            sLOG << "ALL_REDUCE: Worker" << this->MyRank() << ": Sending" << value
-                 << "to worker" << (this->MyRank() ^ d);
+        if ((MyRank() ^ d) < Size()) {
+            Connection(MyRank() ^ d).Send(value);
+            sLOG << "ALL_REDUCE: Worker" << MyRank() << ": Sending" << value
+                 << "to worker" << (MyRank() ^ d);
         }
 
         // Receive value from worker with id = id XOR d
         T recv_data;
-        if ((this->MyRank() ^ d) < this->Size()) {
-            this->Connection(this->MyRank() ^ d).Receive(&recv_data);
+        if ((MyRank() ^ d) < Size()) {
+            Connection(MyRank() ^ d).Receive(&recv_data);
             value = sum_op(value, recv_data);
-            sLOG << "ALL_REDUCE: Worker" << this->MyRank() << ": Received" << recv_data
-                 << "from worker" << (this->MyRank() ^ d)
+            sLOG << "ALL_REDUCE: Worker" << MyRank() << ": Received" << recv_data
+                 << "from worker" << (MyRank() ^ d)
                  << "value =" << value;
         }
     }
 
-    sLOG << "ALL_REDUCE: Worker" << this->MyRank()
+    sLOG << "ALL_REDUCE: Worker" << MyRank()
          << ": value after all reduce =" << value;
 }
 
@@ -309,30 +309,30 @@ void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
     // bigger hypercubes need this value.
     T total_sum = value;
 
-    for (size_t d = 1; d < this->Size(); d <<= 1)
+    for (size_t d = 1; d < Size(); d <<= 1)
     {
         // Send total sum of this hypercube to worker with id = id XOR d
-        if ((this->MyRank() ^ d) < this->Size()) {
-            this->Connection(this->MyRank() ^ d).Send(total_sum);
-            sLOG << "PREFIX_SUM: Worker" << this->MyRank() << ": Sending" << total_sum
-                 << "to worker" << (this->MyRank() ^ d);
+        if ((MyRank() ^ d) < Size()) {
+            Connection(MyRank() ^ d).Send(total_sum);
+            sLOG << "PREFIX_SUM: Worker" << MyRank() << ": Sending" << total_sum
+                 << "to worker" << (MyRank() ^ d);
         }
 
         // Receive total sum of smaller hypercube from worker with id = id XOR d
         T recv_data;
-        if ((this->MyRank() ^ d) < this->Size()) {
-            this->Connection(this->MyRank() ^ d).Receive(&recv_data);
+        if ((MyRank() ^ d) < Size()) {
+            Connection(MyRank() ^ d).Receive(&recv_data);
             total_sum = sumOp(total_sum, recv_data);
             // Variable 'value' represents the prefix sum of this worker
-            if (this->MyRank() & d)
+            if (MyRank() & d)
                 value = sumOp(value, recv_data);
-            sLOG << "PREFIX_SUM: Worker" << this->MyRank() << ": Received" << recv_data
-                 << "from worker" << (this->MyRank() ^ d)
+            sLOG << "PREFIX_SUM: Worker" << MyRank() << ": Received" << recv_data
+                 << "from worker" << (MyRank() ^ d)
                  << "value =" << value;
         }
     }
 
-    sLOG << "PREFIX_SUM: Worker" << this->MyRank()
+    sLOG << "PREFIX_SUM: Worker" << MyRank()
          << ": value after prefix sum =" << value;
 }
 //! \}
