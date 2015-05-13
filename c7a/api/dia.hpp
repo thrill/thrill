@@ -41,15 +41,14 @@ namespace c7a {
  * be imagined as an immutable array, even though the data does not need to be
  * materialized at all. A DIARef contains a pointer to a DIANode of type T,
  * which represents the state after the previous DOp or Action. Additionally, a
- * DIARef stores the local lambda function of type L, which can transform
+ * DIARef stores the local lambda function chain of type Stack, which can transform
  * elements of the DIANode to elements of this DIARef. DOps/Actions create a
  * DIARef and a new DIANode, to which the DIARef links to. LOps only create a
- * new DIARef, which link to the previous DIANode. The types T and L are
- * inferred from the user-defined function given through the operation.
+ * new DIARef, which link to the previous DIANode. 
  *
  * \tparam T Type of elements in this DIARef.
- * \tparam L Type of the lambda function to transform elements from the previous
- *  DIANode to elements of this DIARef.
+ *
+ * \tparam Stack Type of the function chain.
  */
 template <typename T, typename Stack = FunctionStack<> >
 class DIARef
@@ -58,9 +57,10 @@ class DIARef
     using DIANodePtr = std::shared_ptr<DIANode<T> >;
 
 public:
+
     /*!
-     * Constructor of a new DIARef with a pointer to a DIANode and a lambda
-     * function from the DIANode to this DIARef.
+     * Constructor of a new DIARef with a pointer to a DIANode and a 
+     * function chain from the DIANode to this DIARef.
      *
      * \param node Pointer to the last DIANode, DOps and Actions create a new
      * DIANode, LOps link to the DIANode of the previous DIARef.
@@ -73,11 +73,29 @@ public:
           local_stack_(stack)
     { }
 
+    /*!
+     * Constructor of a new DIARef supporting move semantics of nodes.
+     *
+     * \param node Pointer to the last DIANode, DOps and Actions create a new
+     * DIANode, LOps link to the DIANode of the previous DIARef.
+     *
+     * \param stack Function stack consisting of functions between last DIANode
+     * and this DIARef.
+     */
     DIARef(DIANodePtr&& node, Stack& stack)
         : node_(std::move(node)),
           local_stack_(stack)
     { }
 
+    /*!
+     * Copy-Constructor of a DIARef with empty function chain 
+     * from a DIARef with a non-empty chain.
+     * The functionality of the chain is stored in a newly created LOpNode.
+     * The current DIARef than points to this LOpNode.
+     * This is needed to support assignment operations between DIARef's.
+     *
+     * \param rhs DIA containing a non-empty function chain.
+     */
     template <typename AnyStack>
     DIARef(const DIARef<T, AnyStack>& rhs)
     {
@@ -105,26 +123,30 @@ public:
         return node_.get();
     }
 
+    /*!
+     * Returns the number of references to the according DIANode.
+     */
     int get_node_count() const
     {
         return node_.use_count();
     }
 
-    Stack get_stack() const
+    /*!
+     * Returns the stored function chain.
+     */
+    Stack & get_stack()
     {
         return local_stack_;
     }
 
     /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
-     * user.  The map_fn maps each element of L's result type to one other
+     * user.  The map_fn maps each element to another
      * element of a possibly different type. The DIARef returned by Map has the
-     * same type T. The lambda function of the returned DIARef is this DIARef's
-     * local_lambda chained with map_fn. Therefore the type L of the returned
-     * DIARef is a lambda function from T to the result type of map_fn.
+     * same type T. The function chain of the returned DIARef is this DIARef's
+     * local_stack_ chained with map_fn. 
      *
-     * \tparam map_fn_t Type of the map function. The type of the returned
-     * DIARef is deducted from this type.
+     * \tparam map_fn_t Type of the map function.
      *
      * \param map_fn Map function of type map_fn_t, which maps each element to
      * an element of a possibly different type.
@@ -146,20 +168,17 @@ public:
 
     /*!
      * FlatMap is a LOp, which maps this DIARef according to the flatmap_fn
-     * given by the user.  The flatmap_fn maps each element of type L's result
+     * given by the user.  The flatmap_fn maps each element 
      * to elements of a possibly different type. The flatmap_fn has an emitter
      * function as it's second parameter. This emitter is called once for each
      * element to be emitted. The DIARef returned by FlatMap has the same type
-     * T. The lambda function of the returned DIARef is this DIARef's
-     * local_lambda chained with flatmap_fn.  Therefore the type L of the
-     * returned DIARef is a lambda function from T to the result type of
-     * flatmap_fn.
+     * T. The function chain of the returned DIARef is this DIARef's
+     * local_stack_ chained with flatmap_fn.  
      *
-     * \tparam flatmap_fn_t Type of the map function. The type of the returned
-     * DIARef is deducted from this type
+     * \tparam flatmap_fn_t Type of the map function. 
      *
      * \param flatmap_fn Map function of type map_fn_t, which maps each element
-     * to an element of a possibly different type.
+     * to elements of a possibly different type.
      */
     template <typename flatmap_fn_t>
     auto FlatMap(const flatmap_fn_t &flatmap_fn) {
@@ -171,15 +190,14 @@ public:
      * Reduce is a DOp, which groups elements of the DIARef with the
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
-     * can be reduced to a single element of equal type. As Reduce is a DOp, it
-     * creates a new DIANode with the type of L's result. The DIARef returned by
-     * Reduce links to this newly created DIANode. The local_lambda of the
-     * returned DIARef consists of the reduce_function, as a reduced element can
+     * can be reduced to a single element of equal type. Since Reduce is a DOp, it
+     * creates a new DIANode. The DIARef returned by Reduce links to this newly 
+     * created DIANode. The local_stack_ of the returned DIARef consists of 
+     * the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam key_extr_fn_t Type of the key_extractor function. This is a
-     * function from L's result type to a possibly different key type. The
-     * key_extractor function is equal to a map function.
+     * \tparam key_extr_fn_t Type of the key_extractor function. 
+     * The key_extractor function is equal to a map function.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
@@ -215,14 +233,14 @@ public:
                   = typename FunctionTraits<zip_fn_t>::template arg<1>;
         using ZipResultNode
                   = TwoZipNode<T, zip_arg_1_t, zip_result_t,
-                               decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
+                               decltype(local_stack_), decltype(second_dia.get_stack()), zip_fn_t>;
 
         std::shared_ptr<ZipResultNode> shared_node(
             new ZipResultNode(node_->get_data_manager(),
                               node_.get(),
                               second_dia.get_node(),
                               local_stack_,
-                              second_dia.get_local_stack(),
+                              second_dia.get_stack(),
                               zip_fn));
 
         auto zip_stack = shared_node->ProduceStack();
@@ -279,17 +297,12 @@ public:
         }
     }
 
-    Stack & get_local_stack()
-    {
-        return local_stack_;
-    }
-
 private:
     //! The DIANode which DIARef points to. The node represents the latest DOp
     //! or Action performed previously.
     DIANodePtr node_;
 
-    //! The local function stack, which stores the chained lambda function from
+    //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
     Stack local_stack_;
 
