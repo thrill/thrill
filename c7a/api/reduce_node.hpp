@@ -30,17 +30,20 @@ namespace c7a {
  * A DIANode which performs a Reduce operation. Reduce groups the elements in a DIA by their
  * key and reduces every key bucket to a single element each. The ReduceNode stores the
  * key_extractor and the reduce_function UDFs. The chainable LOps ahead of the Reduce operation
- * are stored in the Stack. The ReduceNode has the type T, which is the result type of the
+ * are stored in the Stack. The ReduceNode has the type Output, which is the result type of the
  * reduce_function.
  *
- * \tparam T Output type of the Reduce operation
+ * \tparam Input Input type of the Reduce operation
+ * \tparam Output Output type of the Reduce operation
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename T, typename Stack, typename KeyExtractor, typename ReduceFunction>
-class ReduceNode : public DOpNode<T>
+template <typename Input, typename Output, typename Stack, typename KeyExtractor, typename ReduceFunction>
+class ReduceNode : public DOpNode<Output>
 {
+    using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
+
 public:
     /*!
      * Constructor for a ReduceNode. Sets the DataManager, parents, stack, key_extractor and reduce_function.
@@ -52,15 +55,57 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
-               const DIABaseVector& parents,
+               DIANode<Input>* parent,
                Stack& stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<T>(ctx, parents),
+        : DOpNode<Output>(ctx, { parent }),
           local_stack_(stack),
           key_extractor_(key_extractor),
-          reduce_function_(reduce_function)
-    { }
+          reduce_function_(reduce_function),
+          elements_()
+    { 
+        // Hook PreOp
+        auto pre_op_fn = [=](reduce_arg_t input) {
+                    PreOp(input);
+                };
+        auto lop_chain = local_stack_.push(pre_op_fn).emit();
+
+        parent->RegisterChild(lop_chain);
+    }
+
+    virtual ~ReduceNode() { }
+
+    /*!
+     * Actually executes the reduce operation. Uses the member functions PreOp, MainOp and PostOp.
+     */
+    void execute() override
+    {
+        MainOp();
+        // get data from data manager
+        data::BlockIterator<Output> it = (this->context_).get_data_manager().template GetLocalBlocks<Output>(this->data_id_);
+        // loop over input
+        while (it.HasNext()) {
+            auto item = it.Next();
+            for (auto func : DIANode<Output>::callbacks_) {
+                func(item);
+            }
+        }
+    }
+
+    /*!
+     * Produces a function stack, which only contains the PostOp function.
+     * \return PostOp function stack
+     */
+    auto ProduceStack() {
+        // Hook PostOp
+        auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
+                     return PostOp(elem, emit_func);
+                 };
+
+        FunctionStack<> stack;
+        return stack.push(post_op_fn);
+    }
 
     /*!
      * Returns "[ReduceNode]" as a string.
@@ -70,34 +115,8 @@ public:
     {
         // Create string
         std::string str
-            = std::string("[ReduceNode] Id: ") + std::to_string(DIABase::data_id_);
+            = std::string("[ReduceNode] Id: ") + std::to_string(this->data_id_);
         return str;
-    }
-
-    /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp, MainOp and PostOp.
-     */
-    void execute() override
-    {
-        PreOp();
-        MainOp();
-        PostOp();
-    }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity emitter function.
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        using reduce_t
-                  = typename FunctionTraits<ReduceFunction>::result_type;
-
-        auto id_fn = [ = ](reduce_t t, std::function<void(reduce_t)> emit_func) {
-                         return emit_func(t);
-                     };
-
-        FunctionStack<> stack;
-        return stack.push(id_fn);
     }
 
 private:
@@ -107,55 +126,35 @@ private:
     KeyExtractor key_extractor_;
     //!Reduce function
     ReduceFunction reduce_function_;
+    //! Local storage
+    std::vector<reduce_arg_t> elements_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each bucket to a single value,
     //! afterwards send data to another worker given by the shuffle algorithm.
-    void PreOp()
+    void PreOp(reduce_arg_t input)
     {
-        using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
-        std::cout << "PreOp" << std::endl;
-
-        data::DIAId pid = this->get_parents()[0]->get_data_id();
-        // //get data from data manager
-        data::BlockIterator<T> it = (this->context_).get_data_manager().template GetLocalBlocks<T>(pid);
-        // //run local reduce
-
-        //std::unordered_map<key_t, T> reduce_data;
-
-        //TODO get number of worker by net-group or something similar
-        //TODO make a static getter for this
-        int number_worker = 1;
-
-        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
-
-        c7a::core::HashTable<KeyExtractor, ReduceFunction> reduce_data(number_worker, key_extractor_, reduce_function_, emit);
-
-        std::vector<reduce_arg_t> elements;
-
-        auto save_fn = [&elements](reduce_arg_t input) {
-                           elements.push_back(input);
-                       };
-        auto lop_chain = local_stack_.push(save_fn).emit();
-
-        // loop over input
-        while (it.HasNext()) {
-            lop_chain(it.Next());
-        }
-
-        for (auto item : elements) {
-            reduce_data.Insert(item);
-        }
-
-        reduce_data.Flush();
+        SpacingLogger(true) << "PreOp: " << input;
+        elements_.push_back(input);
     }
 
     //!Recieve elements from other workers.
-    auto MainOp() { }
+    auto MainOp() { 
+        data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+
+        reduce_arg_t reduced = reduce_arg_t();
+        for (reduce_arg_t elem : elements_) {
+            reduced += elem;
+        }
+        
+        SpacingLogger(true) << "MainOp: " << reduced;
+        emit(reduced);
+    }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
-    void PostOp()
+    void PostOp(Output input, std::function<void(Output)> emit_func)
     {
-        std::cout << "TODO: PostOp, when we have communication" << std::endl;
+        SpacingLogger(true) << "PostOp: " << input;
+        emit_func(input);
     }
 };
 

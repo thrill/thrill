@@ -38,12 +38,9 @@ TEST(API, SharedPtrTest) {
         [](const std::string& line) {
             return std::stoi(line);
         });
-    DIA<int> ints = input.Map(map_fn);
+    auto ints = input.Map(map_fn);
     // DIA<int> doubles = ints.Map(map_fn);
     auto doubles = ints.Map(map_fn);
-    // Do this to keep reference count alive;
-    DIA<int> test = ints;
-    ints = doubles;
     // auto quad = doubles.Map(map_fn);
     auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
 
