@@ -13,7 +13,7 @@
 
 #include <memory> //std::shared_ptr
 #include <map>
-#include <c7a/net/net-dispatcher.hpp>
+#include <c7a/net/net_dispatcher.hpp>
 #include <c7a/net/channel.hpp>
 
 namespace c7a {

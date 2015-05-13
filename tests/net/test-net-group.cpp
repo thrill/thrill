@@ -8,9 +8,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/net-group.hpp>
+#include <c7a/net/net_group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/net-dispatcher.hpp>
+#include <c7a/net/net_dispatcher.hpp>
+#include <c7a/net/communication_manager.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -129,9 +130,10 @@ static void RealNetGroupConstructAndCall(
         threads[i] = std::thread(
             [i, &thread_function]() {
                 // construct NetGroup i with endpoints
-                NetGroup group(i, endpoints);
+                CommunicationManager group;
+                group.Initialize(i, endpoints);
                 // run thread function
-                thread_function(&group);
+                thread_function(group.GetFlowNetGroup());
                 // TODO(tb): sleep here because otherwise connection may get
                 // closed in ReceiveStringFromAny which causes an error.
                 sleep(1);

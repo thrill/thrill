@@ -13,10 +13,9 @@
 
 #include <string>
 #include <vector>
-#include "net-group.hpp"
+#include "net_group.hpp"
 
 namespace c7a {
-
 #ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 /**
@@ -116,7 +115,6 @@ public:
 };
 
 #endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
-
 } // namespace c7a
 
 #endif // !C7A_NET_FLOW_CONTROL_CHANNEL_HEADER

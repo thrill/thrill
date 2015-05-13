@@ -11,7 +11,6 @@
 #include <cassert>
 
 namespace c7a {
-
 #ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 //################### Base flow control channel.
@@ -116,7 +115,6 @@ std::vector<std::string> WorkerFlowControlChannel::AllToAll(std::vector<std::str
 }
 
 #endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
-
 } // namespace c7a
 
 /******************************************************************************/

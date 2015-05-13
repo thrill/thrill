@@ -15,9 +15,9 @@
 #ifndef C7A_NET_NET_DISPATCHER_HEADER
 #define C7A_NET_NET_DISPATCHER_HEADER
 
-#include <c7a/net/net-connection.hpp>
+#include <c7a/net/net_connection.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/lowlevel/select-dispatcher.hpp>
+#include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
 #include <string>
@@ -235,7 +235,7 @@ protected:
                 buffer_.size() - size_);
 
             if (r < 0)
-                throw NetException("AsyncReadBuffer() error in recv", errno);
+                throw lowlevel::NetException("AsyncReadBuffer() error in recv", errno);
 
             size_ += r;
 
@@ -282,7 +282,7 @@ protected:
                 buffer_.size() - size_);
 
             if (r < 0)
-                throw NetException("AsyncWriteBuffer() error in send", errno);
+                throw lowlevel::NetException("AsyncWriteBuffer() error in send", errno);
 
             size_ += r;
 
@@ -315,7 +315,7 @@ protected:
     static bool ExceptionCallback(NetConnection& s)
     {
         // exception on listen socket ?
-        throw NetException(
+        throw lowlevel::NetException(
                   "NetDispatcher() exception on socket fd "
                   + std::to_string(s.GetSocket().fd()) + "!", errno);
     }
