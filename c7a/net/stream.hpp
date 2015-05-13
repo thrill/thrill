@@ -14,7 +14,7 @@
 #include <stdlib.h> //free
 #include <stdio.h>  //mempcy
 
-#include <c7a/net/net-connection.hpp>
+#include <c7a/net/net_connection.hpp>
 
 namespace c7a {
 namespace net {

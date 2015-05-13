@@ -14,6 +14,7 @@
 
 namespace c7a {
 namespace net {
+namespace lowlevel {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -37,6 +38,7 @@ public:
 
 // \}
 
+} // namespace lowlevel
 } // namespace net
 } // namespace c7a
 

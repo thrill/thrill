@@ -16,7 +16,7 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/net/lowlevel/socket-address.hpp>
+#include <c7a/net/lowlevel/socket_address.hpp>
 
 #include <sys/socket.h>
 #include <fcntl.h>

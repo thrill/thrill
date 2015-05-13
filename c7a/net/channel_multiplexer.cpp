@@ -7,7 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "channel-multiplexer.hpp"
+#include "channel_multiplexer.hpp"
 #include <c7a/common/logger.hpp>
 #include <cassert>
 
