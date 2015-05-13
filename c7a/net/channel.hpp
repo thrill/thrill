@@ -108,7 +108,7 @@ private:
         sLOG << "read #elements on" << stream->socket << "in channel" << id_;
         assert(stream->header.num_elements > 0);
 
-        stream->header.ParseBoundaries(buffer.as_string());
+        stream->header.ParseBoundaries(buffer.ToString());
         ReadFromStream(stream);
     }
 
@@ -144,7 +144,7 @@ private:
     inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream)
     {
         sLOG << "read data on" << stream->socket << "in channel" << id_;
-        data_.emplace_back(buffer.as_string());  // TODO(ts) use buffer from AsyncRead instead of copying data here!
+        data_.emplace_back(buffer.ToString());  // TODO(ts) use buffer from AsyncRead instead of copying data here!
         ReadFromStream(stream);
     }
 };
