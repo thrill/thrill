@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/engine/mock-network.cpp
+ * tests/net/mock-network.cpp
  *
  * Part of Project c7a.
  *
@@ -8,14 +8,14 @@
  ******************************************************************************/
 
 #include "gtest/gtest.h"
-#include "c7a/engine/mock-network.hpp"
+#include "c7a/net/mock-network.hpp"
 
-using namespace c7a::engine;
+//using namespace c7a;
 
 TEST(TestMockNetwork, TestMockNetwork)
 {
-    MockNetwork net;
-    MockSelect client1(net, 1), client10(net, 10);
+    c7a::net::MockNetwork net;
+    c7a::net::MockSelect client1(net, 1), client10(net, 10);
 
     client1.sendToWorkerString(10, "hello this is client 1 -> 10");
     client10.sendToWorkerString(1, "hello this is client 10 -> 1");

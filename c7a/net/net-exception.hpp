@@ -13,6 +13,7 @@
 #define C7A_NET_NET_EXCEPTION_HEADER
 
 namespace c7a {
+namespace net {
 
 //! \addtogroup net Network Communication
 //! \{
@@ -25,7 +26,7 @@ namespace c7a {
 class NetException : public std::runtime_error
 {
 public:
-    NetException(const std::string& what)
+    explicit NetException(const std::string& what)
         : std::runtime_error(what)
     { }
 
@@ -36,6 +37,7 @@ public:
 
 // \}
 
+} // namespace net
 } // namespace c7a
 
 #endif // !C7A_NET_NET_EXCEPTION_HEADER

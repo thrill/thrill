@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/select.hpp
+ * c7a/net/lowlevel/select.hpp
  *
  * Lightweight wrapper around select()
  *
@@ -11,14 +11,16 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SELECT_HEADER
-#define C7A_NET_SELECT_HEADER
+#ifndef C7A_NET_LOWLEVEL_SELECT_HEADER
+#define C7A_NET_LOWLEVEL_SELECT_HEADER
 
 #include <sys/select.h>
 
 #include <algorithm>
 
 namespace c7a {
+namespace net {
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -79,15 +81,15 @@ public:
 
     //! Clear a file descriptor from the read set
     Select & ClearRead(int fd)
-    { FD_CLR(fd, &read_set_); return *this; }
+    { assert(fd >= 0); FD_CLR(fd, &read_set_); return *this; }
 
     //! Clear a file descriptor from the write set
     Select & ClearWrite(int fd)
-    { FD_CLR(fd, &write_set_); return *this; }
+    { assert(fd >= 0); FD_CLR(fd, &write_set_); return *this; }
 
     //! Clear a file descriptor from the exception set
     Select & ClearException(int fd)
-    { FD_CLR(fd, &except_set_); return *this; }
+    { assert(fd >= 0); FD_CLR(fd, &except_set_); return *this; }
 
     //! Clear a file descriptor from all sets
     Select & Clear(int fd)
@@ -129,8 +131,10 @@ protected:
 
 //! \}
 
+} // namespace lowlevel
+} // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_SELECT_HEADER
+#endif // !C7A_NET_LOWLEVEL_SELECT_HEADER
 
 /******************************************************************************/

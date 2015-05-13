@@ -7,6 +7,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+// this is only because of Tobi's mocking
+#define C7A_NETCONNECTION_COPYABLE 1
+
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include <c7a/net/channel-multiplexer.hpp>
@@ -16,11 +19,11 @@ using::testing::InvokeArgument;
 using::testing::Return;
 using::testing::ByRef;
 
-using namespace c7a::net;
 using namespace c7a;
+using namespace c7a::net;
 
 struct NetDispatcherMock : public NetDispatcher {
-    MOCK_METHOD3(AsyncRead, void(Socket &, size_t, NetDispatcher::AsyncReadCallback));
+    MOCK_METHOD3(AsyncRead, void(NetConnection &, size_t, NetDispatcher::AsyncReadCallback));
 };
 
 struct ChannelMultiplexerTest : public::testing::Test {
@@ -67,7 +70,7 @@ struct ChannelMultiplexerTest : public::testing::Test {
     struct StreamBlockHeader header;
     struct StreamBlockHeader header2;
     struct StreamBlockHeader header3;
-    Socket                   socket;
+    NetConnection            socket;
     NetDispatcherMock        dispatch_mock;
     ChannelMultiplexer       candidate;
     std::string              header_part1;
