@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-group.hpp
+ * c7a/net/net_group.hpp
  *
  * NetGroup is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -77,16 +77,16 @@ public:
     {
         if (id >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
-                               "invalid client id " + std::to_string(id));
+                            "invalid client id " + std::to_string(id));
 
         return connections_[id];
-    }    //! Return NetConnection to client id.
-    
-    void SetConnection(ClientId id, NetConnection &connection)
+    }       //! Return NetConnection to client id.
+
+    void SetConnection(ClientId id, NetConnection& connection)
     {
         if (id >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
-                               "invalid client id " + std::to_string(id));
+                            "invalid client id " + std::to_string(id));
 
         std::swap(connections_[id], connection);
     }
@@ -248,11 +248,13 @@ public:
         return ReceiveStringFromAny(out_src, out_data);
     }
 
-    void SendStringTo(ClientId dest, const std::string& data) {
+    void SendStringTo(ClientId dest, const std::string& data)
+    {
         this->Connection(dest).SendString(data);
     }
 
-    void BroadcastString(const std::string& data) {
+    void BroadcastString(const std::string& data)
+    {
         for (size_t i = 0; i < connections_.size(); i++)
         {
             if (i == my_rank_) continue;

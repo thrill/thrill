@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/epoll-dispatcher.hpp
+ * c7a/net/lowlevel/epoll_dispatcher.hpp
  *
  * Asynchronous callback wrapper around epoll()
  *

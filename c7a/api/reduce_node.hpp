@@ -56,7 +56,7 @@ public:
      * Constructor for a ReduceNode. Sets the DataManager, parent, stack, key_extractor and reduce_function.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param parent Parent DIANode. 
+     * \param parent Parent DIANode.
      * \param stack Function chain with all lambdas between the parent and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function

@@ -19,7 +19,7 @@ namespace c7a {
 //! \{
 
 /*!
- * A LOpNode which performs a chain of local operations. 
+ * A LOpNode which performs a chain of local operations.
  * LOp nodes are used for caching local operation results and assignment operations.
  *
  * \tparam Input Input type of the Reduce operation
@@ -33,7 +33,7 @@ public:
      * Constructor for a LOpNode. Sets the DataManager, parents and stack.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param parents Parent DIANode. 
+     * \param parents Parent DIANode.
      * \param lop_stack Function chain with all lambdas between the parent and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
@@ -48,7 +48,7 @@ public:
     virtual ~LOpNode() { }
 
     /*!
-     * Actually executes the local operations. 
+     * Actually executes the local operations.
      */
     void execute() override
     {
