@@ -57,7 +57,7 @@ private:
         {
             addressList.push_back(lowlevel::SocketAddress(ne.hostport));
             if (!addressList.back().IsValid()) {
-                throw lowlevel::NetException(
+                throw Exception(
                           "Error resolving NetEndpoint " + ne.hostport
                           + ": " + addressList.back().GetResolveError());
             }
@@ -80,7 +80,7 @@ public:
     void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints)
     {
         if (got_connections != -1) {
-            throw new lowlevel::NetException("This communication manager has already been initialized.");
+            throw new Exception("This communication manager has already been initialized.");
         }
 
         got_connections = 0;
@@ -96,11 +96,11 @@ public:
         const lowlevel::SocketAddress& lsa = addressList[my_rank_];
 
         if (listenSocket_.bind(lsa) != 0)
-            throw lowlevel::NetException("Could not bind listen socket to "
+            throw Exception("Could not bind listen socket to "
                                          + lsa.ToStringHostPort(), errno);
 
         if (listenSocket_.listen() != 0)
-            throw lowlevel::NetException("Could not listen on socket "
+            throw Exception("Could not listen on socket "
                                          + lsa.ToStringHostPort(), errno);
 
         listenConnection_ = std::move(NetConnection(listenSocket_));
@@ -131,7 +131,7 @@ public:
                     dispatcher.AddWrite(connections_.back(), std::bind(&c7a::net::CommunicationManager::ActiveConnected, this, std::placeholders::_1, hello));
                 }
                 else {
-                    throw lowlevel::NetException("Could not connect to client "
+                    throw Exception("Could not connect to client "
                                                  + std::to_string(id) + " via "
                                                  + addressList[id].ToStringHostPort(), errno);
                 }
@@ -171,7 +171,7 @@ public:
         NetConnection newConn = NetConnection(conn.GetSocket().accept());
 
         if (err != 0) {
-            throw lowlevel::NetException(
+            throw Exception(
                       "OpenConnections() could not connect to client "
                       + std::to_string(hello.id), err);
         }
