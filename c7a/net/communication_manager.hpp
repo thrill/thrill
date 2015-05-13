@@ -183,7 +183,7 @@ public:
 
         // send welcome message
         newConn.GetSocket().SetNonBlocking(false);
-        dispatcher.AsyncWrite(newConn, &hello, sizeof(hello));
+        dispatcher.AsyncWriteCopy(newConn, &hello, sizeof(hello));
         LOG << "sent client " << hello.id;
 
         // wait for welcome message from other side
@@ -198,7 +198,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessage(NetConnection& conn, const std::string& buffer)
+    bool ReceiveWelcomeMessage(NetConnection& conn, const Buffer& buffer)
     {
         LOG0 << "Message on " << conn.GetSocket().fd();
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
@@ -223,7 +223,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, const std::string& buffer)
+    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, const Buffer& buffer)
     {
         ReceiveWelcomeMessage(conn, buffer);
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
@@ -231,7 +231,7 @@ public:
         const WelcomeMsg hello = { c7a_sign, msg->groupId, (ClientId)my_rank_ };
 
         // send welcome message
-        dispatcher.AsyncWrite(conn, &hello, sizeof(hello));
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello));
         LOG << "sent client " << hello.id;
 
         ++got_connections;
