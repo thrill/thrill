@@ -17,6 +17,7 @@
 #include <string>
 #include "context.hpp"
 #include "types.hpp"
+#include "../data/data_manager.hpp"
 
 namespace c7a {
 
@@ -81,7 +82,7 @@ public:
 
     //! Returns the DataManager of this DIABase.
     //! \return The DataManager of this DIABase.
-    Context & get_context()
+    Context & get_data_manager()
     {
         return context_;
     }

@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "c7a/data/data_manager.hpp"
+#include "../data/data_manager.hpp"
 
 namespace c7a {
 
