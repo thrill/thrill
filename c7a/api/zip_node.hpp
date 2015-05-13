@@ -150,8 +150,13 @@ private:
         unsigned int smaller = elements1_.size() < elements2_.size() ? 
             elements1_.size() : 
             elements2_.size();
+
+        SpacingLogger(true) << "MainOp: ";
+
         for (size_t i = 0; i < smaller; ++i) {
-            emit(zip_function_(elements1_[i], elements2_[i]));
+            Output zipped = zip_function_(elements1_[i], elements2_[i]);
+            SpacingLogger(true) << zipped;
+            emit(zipped);
         }
     }
 
