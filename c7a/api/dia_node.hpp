@@ -78,7 +78,7 @@ public:
      * This way the parent can push all its result elements to each of the children.
      * This procedure enables the minimization of IO-accesses.
      *
-     * \param callback Callback function from the child including all 
+     * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
     void RegisterChild(std::function<void(T)> callback)

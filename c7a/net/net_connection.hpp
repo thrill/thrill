@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-connection.hpp
+ * c7a/net/net_connection.hpp
  *
  * Contains NetConnection a richer set of network point-to-point primitives.
  *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/socket-address.cpp
+ * c7a/net/lowlevel/socket_address.cpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *

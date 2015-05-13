@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-endpoint.hpp
+ * c7a/net/net_endpoint.hpp
  *
  * Part of Project c7a.
  *

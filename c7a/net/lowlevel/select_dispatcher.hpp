@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/select-dispatcher.hpp
+ * c7a/net/lowlevel/select_dispatcher.hpp
  *
  * Asynchronous callback wrapper around select()
  *

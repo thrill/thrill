@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-exception.hpp
+ * c7a/net/exception.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_EXCEPTION_HEADER
-#define C7A_NET_NET_EXCEPTION_HEADER
+#ifndef C7A_NET_EXCEPTION_HEADER
+#define C7A_NET_EXCEPTION_HEADER
 
 namespace c7a {
 namespace net {
@@ -40,6 +40,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_EXCEPTION_HEADER
+#endif // !C7A_NET_EXCEPTION_HEADER
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-dispatcher.hpp
+ * c7a/net/net_dispatcher.hpp
  *
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
