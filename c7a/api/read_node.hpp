@@ -46,7 +46,7 @@ public:
     ReadNode(Context& ctx,
              ReadFunction read_function,
              std::string path_in)
-        : DOpNode<Output>(ctx, {}),
+        : DOpNode<Output>(ctx, { }),
           read_function_(read_function),
           path_in_(path_in)
     { }

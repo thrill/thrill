@@ -2,8 +2,14 @@
  * c7a/api/zip_node.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_API_ZIP_NODE_HEADER
 #define C7A_API_ZIP_NODE_HEADER
 
@@ -15,6 +21,7 @@
 #include "../common/logger.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -32,6 +39,8 @@ namespace c7a {
 template <typename Input1, typename Input2, typename Output, typename Stack1, typename Stack2, typename ZipFunction>
 class TwoZipNode : public DOpNode<Output>
 {
+    static const bool debug = true;
+
     using zip_arg_0_t = typename FunctionTraits<ZipFunction>::template arg<0>;
     using zip_arg_1_t = typename FunctionTraits<ZipFunction>::template arg<1>;
 
@@ -55,14 +64,14 @@ public:
           stack1_(stack1),
           stack2_(stack2),
           zip_function_(zip_function)
-    { 
+    {
         // Hook PreOp(s)
-        auto pre_op1_fn = [=](Input1 input) {
-                    PreOp(input);
-                };
-        auto pre_op2_fn = [=](Input2 input) {
-                    PreOpSecond(input);
-                };
+        auto pre_op1_fn = [ = ](Input1 input) {
+                              PreOp(input);
+                          };
+        auto pre_op2_fn = [ = ](Input2 input) {
+                              PreOpSecond(input);
+                          };
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
         auto lop_chain2 = stack2_.push(pre_op2_fn).emit();
 
@@ -93,8 +102,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-                     return PostOp(elem, emit_func);
-                 };
+                              return PostOp(elem, emit_func);
+                          };
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -106,10 +115,7 @@ public:
      */
     std::string ToString() override
     {
-        // Create string
-        std::string str
-            = std::string("[ZipNode]");
-        return str;
+        return "[ZipNode]";
     }
 
 private:
@@ -125,20 +131,20 @@ private:
     //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a global barrier.
     void PreOp(zip_arg_0_t input)
     {
-        SpacingLogger(true) << "PreOp(First): " << input;
+        LOG << "PreOp(First): " << input;
         elements1_.push_back(input);
     }
 
     // TODO: Theoretically we need two PreOps?
     void PreOpSecond(zip_arg_1_t input)
     {
-        SpacingLogger(true) << "PreOp(Second): " << input;
+        LOG << "PreOp(Second): " << input;
         elements2_.push_back(input);
     }
 
-   
     //!Recieve elements from other workers.
-    void MainOp() { 
+    void MainOp()
+    {
         //TODO: (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
 
         //TODO: Deterministic computation about index to worker mapping.
@@ -147,15 +153,15 @@ private:
 
         data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 
-        unsigned int smaller = elements1_.size() < elements2_.size() ? 
-            elements1_.size() : 
-            elements2_.size();
+        unsigned int smaller = elements1_.size() < elements2_.size() ?
+                               elements1_.size() :
+                               elements2_.size();
 
-        SpacingLogger(true) << "MainOp: ";
+        LOG << "MainOp: ";
 
         for (size_t i = 0; i < smaller; ++i) {
             Output zipped = zip_function_(elements1_[i], elements2_[i]);
-            SpacingLogger(true) << zipped;
+            LOG << zipped;
             emit(zipped);
         }
     }
@@ -163,7 +169,7 @@ private:
     //! Use the ZipFunction to Zip workers
     void PostOp(Output input, std::function<void(Output)> emit_func)
     {
-        SpacingLogger(true) << "PostOp: " << input;
+        LOG << "PostOp: " << input;
         emit_func(input);
     }
 };
@@ -172,6 +178,6 @@ private:
 
 //! \}
 
-#endif // !C7A_API_REDUCE_NODE_HEADER
+#endif // !C7A_API_ZIP_NODE_HEADER
 
 /******************************************************************************/
