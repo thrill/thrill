@@ -101,7 +101,7 @@ public:
                   = LOpNode<T, decltype(rhs_stack)>;
 
         std::shared_ptr<LOpChainNode> shared_node(
-            new LOpChainNode(rhs_node->get_data_manager(),
+            new LOpChainNode(rhs_node->get_context(),
                              { rhs_node },
                              rhs_stack));
         node_ = std::move(shared_node);
@@ -212,7 +212,7 @@ public:
                          decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
 
 	std::shared_ptr<ZipResultNode> shared_node(
-	    new ZipResultNode(node_->get_data_manager(),
+	    new ZipResultNode(node_->get_context(),
 			      {node_.get(), second_dia.get_node()},
                                 local_stack_,
                                 second_dia.get_local_stack(),
@@ -310,7 +310,7 @@ private:
                       = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
             std::shared_ptr<ReduceResultNode> shared_node(
-                new ReduceResultNode(node_->get_data_manager(),
+                new ReduceResultNode(node_->get_context(),
                                      { node_ },
                                      local_stack_,
                                      key_extractor_,
