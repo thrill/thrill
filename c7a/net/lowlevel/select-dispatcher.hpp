@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/select-dispatcher.hpp
+ * c7a/net/lowlevel/select-dispatcher.hpp
  *
  * Asynchronous callback wrapper around select()
  *
@@ -11,16 +11,18 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SELECT_DISPATCHER_HEADER
-#define C7A_NET_SELECT_DISPATCHER_HEADER
+#ifndef C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#define C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
-#include <c7a/net/socket.hpp>
-#include <c7a/net/select.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/net-exception.hpp>
 
 #include <deque>
 
 namespace c7a {
+namespace net {
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -30,40 +32,47 @@ namespace c7a {
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
  */
+template <typename _Cookie>
 class SelectDispatcher : protected Select
 {
     static const bool debug = false;
 
 public:
-    typedef std::function<bool (Socket&)> Callback;
+    //! cookie data structure for callback
+    typedef _Cookie Cookie;
+
+    //! cookie type for file descriptor readiness callbacks
+    typedef std::function<bool (Cookie)> Callback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Socket& s, const Callback& read_cb)
+    void AddRead(int fd, const Cookie& c,
+                 const Callback& read_cb,
+                 const Callback& except_cb = DefaultExceptionCallback)
     {
-        Select::SetRead(s.GetFileDescriptor());
-        Select::SetException(s.GetFileDescriptor());
-        watch_.emplace_back(s.GetFileDescriptor(), s,
-                            read_cb, nullptr, ExceptionCallback);
+        Select::SetRead(fd);
+        Select::SetException(fd);
+        watch_.emplace_back(fd, c, read_cb, nullptr, except_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Socket& s, const Callback& write_cb)
+    void AddWrite(int fd, const Cookie& c,
+                  const Callback& write_cb,
+                  const Callback& except_cb = DefaultExceptionCallback)
     {
-        Select::SetWrite(s.GetFileDescriptor());
-        Select::SetException(s.GetFileDescriptor());
-        watch_.emplace_back(s.GetFileDescriptor(), s,
-                            nullptr, write_cb, ExceptionCallback);
+        Select::SetWrite(fd);
+        Select::SetException(fd);
+        watch_.emplace_back(fd, c, nullptr, write_cb, except_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(Socket& s,
-                      const Callback& read_cb, const Callback& write_cb)
+    void AddReadWrite(int fd, const Cookie& c,
+                      const Callback& read_cb, const Callback& write_cb,
+                      const Callback& except_cb = DefaultExceptionCallback)
     {
-        Select::SetRead(s.GetFileDescriptor());
-        Select::SetWrite(s.GetFileDescriptor());
-        Select::SetException(s.GetFileDescriptor());
-        watch_.emplace_back(s.GetFileDescriptor(), s,
-                            read_cb, write_cb, ExceptionCallback);
+        Select::SetRead(fd);
+        Select::SetWrite(fd);
+        Select::SetException(fd);
+        watch_.emplace_back(fd, c, read_cb, write_cb, except_cb);
     }
 
     void Dispatch(double timeout)
@@ -113,7 +122,7 @@ public:
                     Select::ClearRead(w.fd);
                     Select::ClearException(w.fd);
 
-                    if (!w.read_cb(w.socket)) {
+                    if (!w.read_cb(w.cookie)) {
                         // callback returned false: remove fd from set
                         w.fd = -1;
                     }
@@ -140,7 +149,7 @@ public:
                     Select::ClearWrite(w.fd);
                     Select::ClearException(w.fd);
 
-                    if (!w.write_cb(w.socket)) {
+                    if (!w.write_cb(w.cookie)) {
                         // callback returned false: remove fd from set
                         w.fd = -1;
                     }
@@ -164,7 +173,7 @@ public:
                 if (w.except_cb) {
                     Select::ClearException(w.fd);
 
-                    if (!w.except_cb(w.socket)) {
+                    if (!w.except_cb(w.cookie)) {
                         // callback returned false: remove fd from set
                         w.fd = -1;
                     }
@@ -187,14 +196,14 @@ private:
     struct Watch
     {
         int      fd;
-        Socket   socket;
+        Cookie   cookie;
         Callback read_cb, write_cb, except_cb;
 
-        Watch(int _fd, Socket& _socket,
+        Watch(int _fd, const Cookie& _cookie,
               const Callback& _read_cb, const Callback& _write_cb,
               const Callback& _except_cb)
             : fd(_fd),
-              socket(_socket),
+              cookie(_cookie),
               read_cb(_read_cb),
               write_cb(_write_cb),
               except_cb(_except_cb)
@@ -206,19 +215,20 @@ private:
     std::deque<Watch> watch_;
 
     //! Default exception handler
-    static bool ExceptionCallback(Socket& s)
+    static bool DefaultExceptionCallback(const Cookie& /* c */)
     {
         // exception on listen socket ?
-        throw NetException("SelectDispatcher() exception on socket fd "
-                           + std::to_string(s.GetFileDescriptor()) + "!",
+        throw NetException("SelectDispatcher() exception on socket!",
                            errno);
     }
 };
 
 //! \}
 
+} // namespace lowlevel
+} // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_SELECT_DISPATCHER_HEADER
+#endif // !C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
 /******************************************************************************/

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 namespace c7a {
+namespace net {
 
 /******************************************************************************/
 /** \page net Network Layer
@@ -44,6 +45,7 @@ The channel API provides a mechanism to receive data from multiple sockets into 
 Abstraction can be found in \ref ChannelMultiplexer.
 */
 
+} // namespace net
 } // namespace c7a
 
 /******************************************************************************/
