@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/engine/stage_builder.hpp
+ * c7a/core/stage_builder.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_ENGINE_STAGE_BUILDER_HEADER
-#define C7A_ENGINE_STAGE_BUILDER_HEADER
+#ifndef C7A_CORE_STAGE_BUILDER_HEADER
+#define C7A_CORE_STAGE_BUILDER_HEADER
 
 #include "../api/dia_base.hpp"
 #include "../common/logger.hpp"
@@ -20,8 +20,7 @@
 #include <set>
 
 namespace c7a {
-
-namespace engine {
+namespace core {
 
 class Stage
 {
@@ -69,9 +68,8 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
 }
 
 } // namespace engine
-
 } // namespace c7a
 
-#endif // !C7A_ENGINE_STAGE_BUILDER_HEADER
+#endif // !C7A_CORE_STAGE_BUILDER_HEADER
 
 /******************************************************************************/

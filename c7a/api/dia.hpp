@@ -26,7 +26,7 @@
 #include "dia_node.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
-
+#include "zip_node.hpp"
 #include "read_node.hpp"
 #include "reduce_node.hpp"
 #include "context.hpp"
@@ -51,11 +51,11 @@ namespace c7a {
  * \tparam L Type of the lambda function to transform elements from the previous
  *  DIANode to elements of this DIA.
  */
-template <typename T, typename Stack = FunctionStack<>>
-class DIA 
+template <typename T, typename Stack = FunctionStack<> >
+class DIA
 {
     friend class Context;
-    using DIANodePtr = std::shared_ptr<DIANode<T>>;
+    using DIANodePtr = std::shared_ptr<DIANode<T> >;
 
 public:
     /*!
@@ -65,29 +65,33 @@ public:
      * \param node Pointer to the last DIANode, DOps and Actions create a new DIANode,
      * LOps link to the DIANode of the previous DIA.
      *
-     * \param lambda Function which can transform elements from the DIANode to elements
-     * of this DIA.
+     * \param stack Function stack consisting of functions between last DIANode and this DIA.
      */
-    DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack) { 
+    DIA(DIANodePtr&& node, Stack& stack) : local_stack_(stack)
+    {
         node_ = std::move(node);
     }
 
-    DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack) { 
+    DIA(DIANodePtr& node, Stack& stack) : local_stack_(stack)
+    {
         node_ = node;
     }
 
-    friend void swap(DIA& first, DIA& second) {
+    friend void swap(DIA& first, DIA& second)
+    {
         using std::swap;
         swap(first.node_, second.node_);
     }
 
-    DIA& operator=(DIA rhs) {
+    DIA& operator = (DIA rhs)
+    {
         swap(*this, rhs);
         return *this;
     }
 
     template <typename AnyStack>
-    DIA(const DIA<T, AnyStack>& rhs) {
+    DIA(const DIA<T, AnyStack>& rhs)
+    {
         // Create new LOpNode
         // Transfer stack from rhs to LOpNode
         // Build new DIA with empty stack and LOpNode
@@ -107,7 +111,7 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T>* get_node() const
+    DIANode<T> * get_node() const
     {
         return node_.get();
     }
@@ -182,10 +186,43 @@ public:
      * \param key_extractor Key extractor function, which maps each element to a key of possibly different type.
      *
      */
-    template<typename key_extr_fn_t>
-    auto ReduceBy(const key_extr_fn_t& key_extractor) {
+    template <typename key_extr_fn_t>
+    auto ReduceBy(const key_extr_fn_t &key_extractor) {
         return ReduceSugar<key_extr_fn_t>(key_extractor, node_.get(), local_stack_);
     }
+
+     /*!
+      * Zip is a DOp, which Zips two DIAs in style of functional programming. The zip_function is used to
+      * zip the i-th elements of both input DIAs together to form the i-th element of the output DIA. The
+      * type of the output DIA can be inferred from the zip_function.
+      *
+      * \tparam zip_fn_t Type of the zip_function. This is a function with two input elements, both of the
+      * local type, and one output element, which is the type of the Zip node.
+      *
+      * \param zip_fn Zip function, which zips two elements together
+      *
+      * \param second_dia DIA, which is zipped together with the original DIA.
+      */
+    template <typename zip_fn_t, typename second_dia_t>
+    auto Zip(const zip_fn_t &zip_fn, second_dia_t second_dia) {
+        using zip_result_t
+                  = typename FunctionTraits<zip_fn_t>::result_type;
+        using ZipResultNode
+            = TwoZipNode<typename FunctionTraits<zip_fn_t>::result_type,
+                         decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
+
+	std::shared_ptr<ZipResultNode> shared_node(
+	    new ZipResultNode(node_->get_data_manager(),
+			      {node_.get(), second_dia.get_node()},
+                                local_stack_,
+                                second_dia.get_local_stack(),
+			      zip_fn));
+
+        auto zip_stack = shared_node->ProduceStack();
+        return DIA<zip_result_t, decltype(zip_stack)>
+			      (std::move(shared_node), zip_stack);
+    }
+
 
     /*!
      * Returns Chuck Norris!
@@ -236,6 +273,10 @@ public:
         }
     }
 
+    Stack & get_local_stack() {
+        return local_stack_;
+    }
+
 private:
     //! The DIANode which DIA points to. The node represents the latest DOp or Action performed previously.
     DIANodePtr node_;
@@ -262,7 +303,7 @@ private:
          *
          */
         template <typename reduce_fn_t>
-        auto With(const reduce_fn_t& reduce_function) {
+        auto With(const reduce_fn_t &reduce_function) {
             using dop_result_t
                       = typename FunctionTraits<reduce_fn_t>::result_type;
             using ReduceResultNode
@@ -286,6 +327,7 @@ private:
         DIANode<T>* node_;
         Stack& local_stack_;
     };
+    
 };
 
 //! \}
@@ -297,11 +339,11 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    std::shared_ptr<ReadResultNode> 
-        shared_node(new ReadResultNode(ctx,
-                    { },
-                    read_fn,
-                    filepath));
+    std::shared_ptr<ReadResultNode>
+    shared_node(new ReadResultNode(ctx,
+                                   { },
+                                   read_fn,
+                                   filepath));
 
     auto read_stack = shared_node->ProduceStack();
 

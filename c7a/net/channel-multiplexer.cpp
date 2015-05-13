@@ -12,22 +12,21 @@
 #include <cassert>
 
 namespace c7a {
-
 namespace net {
 
 ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections)
     : dispatcher_(dispatcher),
       num_connections_(num_connections) { }
 
-void ChannelMultiplexer::AddSocket(Socket& s)
+void ChannelMultiplexer::AddSocket(NetConnection& s)
 {
-    LOG << "add socket" << s.GetFileDescriptor() << "to channel multiplexer";
+    sLOG << "add" << s << "to channel multiplexer";
     ExpectHeaderFrom(s);
 }
 
-void ChannelMultiplexer::ExpectHeaderFrom(Socket& s)
+void ChannelMultiplexer::ExpectHeaderFrom(NetConnection& s)
 {
-    LOG << "expect header on socket" << s.GetFileDescriptor();
+    sLOG << "expect header on" << s;
     auto expected_size = sizeof(StreamBlockHeader::num_elements) + sizeof(StreamBlockHeader::channel_id);
     auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
     dispatcher_.AsyncRead(s, expected_size, callback);
@@ -43,7 +42,8 @@ std::shared_ptr<Channel> ChannelMultiplexer::PickupChannel(int id)
     return channels_[id];
 }
 
-void ChannelMultiplexer::ReadFirstHeaderPartFrom(Socket& s, const std::string& buffer)
+void ChannelMultiplexer::ReadFirstHeaderPartFrom(
+    NetConnection& s, const std::string& buffer)
 {
     struct StreamBlockHeader header;
     header.ParseIdAndNumElem(buffer);
@@ -62,7 +62,6 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(Socket& s, const std::string& b
 }
 
 } // namespace net
-
 } // namespace c7a
 
 /******************************************************************************/

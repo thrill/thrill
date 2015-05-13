@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/epoll-dispatcher.hpp
+ * c7a/net/lowlevel/epoll-dispatcher.hpp
  *
  * Asynchronous callback wrapper around epoll()
  *
@@ -11,15 +11,17 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_EPOLL_DISPATCHER_HEADER
-#define C7A_NET_EPOLL_DISPATCHER_HEADER
+#ifndef C7A_NET_LOWLEVEL_EPOLL_DISPATCHER_HEADER
+#define C7A_NET_LOWLEVEL_EPOLL_DISPATCHER_HEADER
 
-#include <c7a/net/socket.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 
 #include <sys/epoll.h>
 #include <map>
 
 namespace c7a {
+namespace net {
+namespace lowlevel {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -56,7 +58,7 @@ public:
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Socket& s, const Callback& read_cb)
     {
-        int fd = s.GetFileDescriptor();
+        int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
         if (it != watch_.end())
@@ -96,7 +98,7 @@ public:
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Socket& s, const Callback& write_cb)
     {
-        int fd = s.GetFileDescriptor();
+        int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
         if (it != watch_.end())
@@ -137,7 +139,7 @@ public:
     void AddReadWrite(Socket& s,
                       const Callback& read_cb, const Callback& write_cb)
     {
-        int fd = s.GetFileDescriptor();
+        int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
         if (it != watch_.end())
@@ -379,15 +381,17 @@ private:
     {
         // exception on listen socket ?
         throw NetException("EPollDispatcher() exception on socket fd "
-                           + std::to_string(s.GetFileDescriptor()) + "!",
+                           + std::to_string(s.fd()) + "!",
                            errno);
     }
 };
 
 //! \}
 
+} // namespace lowlevel
+} // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_EPOLL_DISPATCHER_HEADER
+#endif // !C7A_NET_LOWLEVEL_EPOLL_DISPATCHER_HEADER
 
 /******************************************************************************/
