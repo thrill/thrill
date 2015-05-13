@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include "gtest/gtest.h"
-#include <tests/c7a-tests.hpp>
+#include <tests/c7a_tests.hpp>
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
