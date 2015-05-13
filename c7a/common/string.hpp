@@ -21,8 +21,9 @@ namespace c7a {
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
  *
- * @param str   string to output in hex
- * @return      string of hexadecimal pairs
+ * \param data  binary data to output in hex
+ * \param size  length of binary data
+ * \return      string of hexadecimal pairs
  */
 static inline std::string hexdump(const void* data, size_t size)
 {

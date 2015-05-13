@@ -36,8 +36,10 @@ build_test(data/test_block_iterator)
 build_test(data/test_serializer)
 build_test(net/mock-network)
 build_test(core/test_stage_builder)
-#build_test(net/test-net-group)
-build_test(net/test-channel-multiplexer)
+build_test(net/test-net-group)
+build_test(net/test-buffer)
+build_test(net/test-binary-builder)
+#build_test(net/test-channel-multiplexer)
 build_test(net/test-stream)
 
 ################################################################################

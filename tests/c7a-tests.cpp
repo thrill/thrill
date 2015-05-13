@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <string>
 
 std::string g_workpath;
 
