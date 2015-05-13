@@ -36,7 +36,7 @@ TEST(BinaryBuilder, Test1) {
 
     // read binary block and verify content
 
-    BinaryBuffer bbr = bb;
+    BinaryBuffer bbr = BinaryBuffer(bb);
 
     const unsigned char bb_data[] = {
         // bb.Put<unsigned int>(1)
@@ -64,7 +64,7 @@ TEST(BinaryBuilder, Test1) {
 
     // read binary block using binary_reader
 
-    BinaryReader br(bb);
+    BinaryReader br = BinaryBuffer(bb);
 
     ASSERT_EQ(br.Get<unsigned int>(), 1u);
     ASSERT_EQ(br.GetString(), "test");

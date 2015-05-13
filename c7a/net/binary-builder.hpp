@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
 
 namespace c7a {
 namespace net {
@@ -80,14 +81,14 @@ public:
     }
 
     //! Constructor, create object with n bytes pre-allocated.
-    BinaryBuilder(size_t n)
+    explicit BinaryBuilder(size_t n)
         : data_(nullptr), size_(0), capacity_(0)
     {
         Reserve(n);
     }
 
-    //! Constructor from std::string, copies string content.
-    BinaryBuilder(const std::string& str)
+    //! Constructor from std::string, COPIES string content.
+    explicit BinaryBuilder(const std::string& str)
         : data_(nullptr), size_(0), capacity_(0)
     {
         Assign(str.data(), str.size());
@@ -502,7 +503,7 @@ protected:
 
 public:
     //! Constructor, assign memory area from BinaryBuilder.
-    BinaryBuffer(const BinaryBuilder& bb)
+    explicit BinaryBuffer(const BinaryBuilder& bb)
         : data_(bb.data()), size_(bb.size())
     { }
 
@@ -512,7 +513,7 @@ public:
     { }
 
     //! Constructor, assign memory area from string, does NOT copy.
-    BinaryBuffer(const std::string& str)
+    explicit BinaryBuffer(const std::string& str)
         : data_(reinterpret_cast<const Byte*>(str.data())),
           size_(str.size())
     { }
@@ -552,25 +553,25 @@ class BinaryReader : public BinaryBuffer
 {
 protected:
     //! Current read cursor
-    size_t cursor_;
+    size_t cursor_ = 0;
 
 public:
     //! \name Construction
     //! \{
 
     //! Constructor, assign memory area from BinaryBuilder.
-    BinaryReader(const BinaryBuffer& br)
-        : BinaryBuffer(br), cursor_(0)
+    BinaryReader(const BinaryBuffer& br) // NOLINT
+        : BinaryBuffer(br)
     { }
 
     //! Constructor, assign memory area from pointer and length.
     BinaryReader(const void* data, size_t n)
-        : BinaryBuffer(data, n), cursor_(0)
+        : BinaryBuffer(data, n)
     { }
 
     //! Constructor, assign memory area from string, does NOT copy.
-    BinaryReader(const std::string& str)
-        : BinaryBuffer(str), cursor_(0)
+    explicit BinaryReader(const std::string& str)
+        : BinaryBuffer(str)
     { }
 
     //! \}
@@ -613,7 +614,7 @@ public:
     void CheckAvailable(size_t n) const
     {
         if (!available(n))
-            throw (std::underflow_error("BinaryReader underrun"));
+            throw std::underflow_error("BinaryReader underrun");
     }
 
     //! Advance the cursor given number of bytes without reading them.
@@ -684,7 +685,7 @@ public:
         if (!(u & 0x80)) return v;
         u = Get<uint8_t>();
         if (u & 0xF0)
-            throw (std::overflow_error("Overflow during varint decoding."));
+            throw std::overflow_error("Overflow during varint decoding.");
         v |= (u & 0x7F) << 28;
         return v;
     }
@@ -713,7 +714,7 @@ public:
         if (!(u & 0x80)) return v;
         u = Get<uint8_t>();
         if (u & 0xFE)
-            throw (std::overflow_error("Overflow during varint64 decoding."));
+            throw std::overflow_error("Overflow during varint64 decoding.");
         v |= (u & 0x7F) << 63;
         return v;
     }
