@@ -20,7 +20,7 @@ namespace c7a {
 class DIABase;
 
 using DIABaseVector = std::vector<DIABase*>;
-using DIABasePtr = DIABase *;
+using DIABasePtr = DIABase*;
 using DIASharedVector = std::vector<std::shared_ptr<DIABase> >;
 using DIASharedPtr = std::shared_ptr<DIABase>;
 
