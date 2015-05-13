@@ -7,25 +7,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "communication-manager.hpp"
+#include "communication_manager.hpp"
 
 namespace c7a {
-namespace net {
-
-void CommunicationManager::Initialize(const std::vector<NetEndpoint>& /* endpoints */)
-{ }
-
-SystemControlChannel* CommunicationManager::GetSystemControlChannel()
-{
-    return NULL;
-}
-
-// FlowControlChannel* CommunicationManager::GetFlowControlChannel()
-// {
-//     return NULL;
-// }
-
-} // namespace net
-} // namespace c7a
+namespace net { } // namespace c7a
+}                 // namespace net
 
 /******************************************************************************/

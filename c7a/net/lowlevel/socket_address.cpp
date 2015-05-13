@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/lowlevel/socket-address.hpp>
+#include <c7a/net/lowlevel/socket_address.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/common/logger.hpp>
 

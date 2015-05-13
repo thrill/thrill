@@ -15,8 +15,8 @@
 #ifndef C7A_NET_NET_GROUP_HEADER
 #define C7A_NET_NET_GROUP_HEADER
 
-#include <c7a/net/net-endpoint.hpp>
-#include <c7a/net/net-connection.hpp>
+#include <c7a/net/net_endpoint.hpp>
+#include <c7a/net/net_connection.hpp>
 #include <c7a/common/functional.hpp>
 
 #include <algorithm>
@@ -61,8 +61,7 @@ public:
     //! on the my_rank-th NetEndpoint, which hence must be local. If
     //! construction or any connection fails, a NetException is thrown.
     NetGroup(ClientId my_rank,
-             const std::vector<NetEndpoint>& endpoints);
-
+             size_t group_size);
     //! \}
 
     //! non-copyable: delete copy-constructor
@@ -77,10 +76,19 @@ public:
     NetConnection & Connection(ClientId id)
     {
         if (id >= connections_.size())
-            throw NetException("NetGroup::GetClient() requested "
+            throw lowlevel::NetException("NetGroup::GetClient() requested "
                                "invalid client id " + std::to_string(id));
 
         return connections_[id];
+    }    //! Return NetConnection to client id.
+    
+    void SetConnection(ClientId id, NetConnection &connection)
+    {
+        if (id >= connections_.size())
+            throw lowlevel::NetException("NetGroup::GetClient() requested "
+                               "invalid client id " + std::to_string(id));
+
+        std::swap(connections_[id], connection);
     }
 
     //! Return number of connections in this group.
@@ -240,6 +248,18 @@ public:
         return ReceiveStringFromAny(out_src, out_data);
     }
 
+    void SendStringTo(ClientId dest, const std::string& data) {
+        this->Connection(dest).SendString(data);
+    }
+
+    void BroadcastString(const std::string& data) {
+        for (size_t i = 0; i < connections_.size(); i++)
+        {
+            if (i == my_rank_) continue;
+            SendStringTo(i, data);
+        }
+    }
+
     //! \}
 
     //! \name Collective Operations
@@ -249,14 +269,6 @@ public:
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
 
     //! \}
-
-protected:
-    //! Construct object but initialize other fields later, used by
-    //! ExecuteLocalMock to create many NetGroup objects.
-    NetGroup(ClientId id, size_t num_clients)
-        : my_rank_(id),
-          connections_(num_clients)
-    { }
 
 private:
     //! The client id of this object in the NetGroup.
