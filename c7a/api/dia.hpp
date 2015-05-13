@@ -207,16 +207,21 @@ public:
     auto Zip(const zip_fn_t &zip_fn, second_dia_t second_dia) {
         using zip_result_t
                   = typename FunctionTraits<zip_fn_t>::result_type;
+        using zip_arg_0_t
+                  = typename FunctionTraits<zip_fn_t>::template arg<0>;
+        using zip_arg_1_t
+                  = typename FunctionTraits<zip_fn_t>::template arg<1>;
         using ZipResultNode
-            = TwoZipNode<typename FunctionTraits<zip_fn_t>::result_type,
+            = TwoZipNode<T, zip_arg_1_t, zip_result_t,
                          decltype(local_stack_), decltype(second_dia.get_local_stack()), zip_fn_t>;
 
 	std::shared_ptr<ZipResultNode> shared_node(
 	    new ZipResultNode(node_->get_data_manager(),
-			      {node_.get(), second_dia.get_node()},
-                                local_stack_,
-                                second_dia.get_local_stack(),
-			      zip_fn));
+                          node_.get(), 
+                          second_dia.get_node(),
+                          local_stack_,
+                          second_dia.get_local_stack(),
+			              zip_fn));
 
         auto zip_stack = shared_node->ProduceStack();
         return DIA<zip_result_t, decltype(zip_stack)>
@@ -307,11 +312,11 @@ private:
             using dop_result_t
                       = typename FunctionTraits<reduce_fn_t>::result_type;
             using ReduceResultNode
-                      = ReduceNode<T, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
+                      = ReduceNode<T, dop_result_t, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
             std::shared_ptr<ReduceResultNode> shared_node(
                 new ReduceResultNode(node_->get_data_manager(),
-                                     { node_ },
+                                     node_,
                                      local_stack_,
                                      key_extractor_,
                                      reduce_function));
@@ -335,13 +340,11 @@ private:
 template <typename read_fn_t>
 auto ReadFromFileSystem(Context & ctx, std::string filepath,
                         const read_fn_t &read_fn) {
-    (void)filepath;      //TODO remove | to supress warning
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
     std::shared_ptr<ReadResultNode>
     shared_node(new ReadResultNode(ctx,
-                                   { },
                                    read_fn,
                                    filepath));
 

@@ -28,11 +28,11 @@ namespace c7a {
  * A DIANode which performs a Read operation. Read reads a file from the file system and
  * emits it to the DataManager according to a given read function.
  *
- * \tparam T Output type of the Read operation.
+ * \tparam Output Output type of the Read operation.
  * \tparam ReadFunction Type of the read function.
  */
-template <typename T, typename ReadFunction>
-class ReadNode : public DOpNode<T>
+template <typename Output, typename ReadFunction>
+class ReadNode : public DOpNode<Output>
 {
 public:
     /*!
@@ -44,33 +44,36 @@ public:
     * \param path_in Path of the input file
     */
     ReadNode(Context& ctx,
-             const DIABaseVector& parents,
              ReadFunction read_function,
              std::string path_in)
-        : DOpNode<T>(ctx, parents),
+        : DOpNode<Output>(ctx, {}),
           read_function_(read_function),
           path_in_(path_in)
     { }
+
     virtual ~ReadNode() { }
 
     //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
     //!applying the read function on it.
     void execute()
     {
-        // BlockEmitter<T> GetLocalEmitter(DIAId id) {
+        // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "READING data with id" << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
 
+        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file);
 
-        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file);
-        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
+        data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 
-        std::string line;
-        while (iter.HasNext()) {
-
-            emit(read_function_(iter.Next()));
+        // Hook Read
+        while (it.HasNext()) {
+            auto item = it.Next();
+            read_function_(item);
+            for (auto func : DIANode<Output>::callbacks_) {
+                func(read_function_(item));
+            }
         }
     }
 
@@ -79,10 +82,8 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        using read_t
-                  = typename FunctionTraits<ReadFunction>::result_type;
-
-        auto id_fn = [ = ](read_t t, std::function<void(read_t)> emit_func) {
+        // Hook Identity
+        auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
                          return emit_func(t);
                      };
 
