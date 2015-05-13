@@ -184,7 +184,7 @@ NetGroup::NetGroup(ClientId my_rank,
 
                 // send welcome message
                 s.SetNonBlocking(false);
-                disp.AsyncWrite(s, &my_welcome, sizeof(my_welcome));
+                disp.AsyncWriteCopy(s, &my_welcome, sizeof(my_welcome));
                 LOG << "sent client " << my_welcome.id;
 
                 // wait for welcome message from other side
@@ -227,7 +227,7 @@ NetGroup::NetGroup(ClientId my_rank,
                 << " from=" << nc.GetPeerAddress();
 
             // send welcome message
-            disp.AsyncWrite(nc, &my_welcome, sizeof(my_welcome));
+            disp.AsyncWriteCopy(nc, &my_welcome, sizeof(my_welcome));
             LOG << "sent client " << my_welcome.id;
 
             // wait for welcome message from other side
