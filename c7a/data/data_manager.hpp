@@ -24,7 +24,7 @@ namespace c7a {
 namespace data {
 
 //! Identification for DIAs
-typedef std::size_t DIAId;
+typedef int DIAId;
 
 //! function Signature for an emitt function
 template <typename T>
@@ -37,9 +37,7 @@ using BlockEmitter = std::function<void(T)>;
 class DataManager
 {
 public:
-    //TODO: If nextId_ is used again, use this constructor.
-    //DataManager() : nextId_(0) { }
-    DataManager() { }
+    DataManager() : nextId_(0) { }
 
     DataManager(const DataManager&) = delete;
     DataManager& operator = (const DataManager&) = delete;
@@ -62,7 +60,7 @@ public:
     bool Contains(DIAId id)
     {
         //return data_.find(id) != data_.end();
-        return data_.size() > id;
+        return data_.size() > id && id >= 0;
     }
 
     DIAId AllocateDIA()
@@ -99,7 +97,7 @@ public:
     }
 
 private:
-    //DIAId nextId_;
+    DIAId nextId_;
 
     //YES I COULD just use a map of (int, vector) BUT then I have a weird
     //behaviour of std::map on inserts. Sometimes it randomly kills itself.
