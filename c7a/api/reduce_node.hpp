@@ -53,11 +53,11 @@ class ReduceNode : public DOpNode<Output>
 
 public:
     /*!
-     * Constructor for a ReduceNode. Sets the DataManager, parents, stack, key_extractor and reduce_function.
+     * Constructor for a ReduceNode. Sets the DataManager, parent, stack, key_extractor and reduce_function.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param parents Vector of parents. Has size 1, as a reduce node only has a single parent
-     * \param stack Function stack with all lambdas between the parent and this node
+     * \param parent Parent DIANode. 
+     * \param stack Function chain with all lambdas between the parent and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
@@ -81,6 +81,7 @@ public:
         parent->RegisterChild(lop_chain);
     }
 
+    //! Virtual destructor for a ReduceNode.
     virtual ~ReduceNode() { }
 
     /*!
@@ -116,7 +117,7 @@ public:
     }
 
     /*!
-     * Returns "[ReduceNode]" as a string.
+     * Returns "[ReduceNode]" and its id as a string.
      * \return "[ReduceNode]"
      */
     std::string ToString() override
