@@ -161,22 +161,27 @@ TEST(NetGroup, RealInitializeSendReceiveAsync) {
 }
 
 TEST(NetGroup, TestAllReduce) {
-    // Construct a NetGroup of 8 workers which perform an AllReduce collective
-    NetGroup::ExecuteLocalMock(
-        8, [](NetGroup* net) {
-            size_t local_value = net->MyRank();
-            net->AllReduce(local_value);
-            ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
-        });
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform an AllReduce collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = net->MyRank();
+                net->AllReduce(local_value);
+                ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+            });
+    }
 }
 
 TEST(NetGroup, TestPrefixSum) {
-    // Construct a NetGroup of 8 workers which perform a PrefixSum collective
-    NetGroup::ExecuteLocalMock(
-        8, [](NetGroup* net) {
-            size_t local_value = 1;
-            net->PrefixSum(local_value);
-            ASSERT_EQ(local_value, net->MyRank() + 1);
-        });
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform a PrefixSum collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = 1;
+                net->PrefixSum(local_value);
+                ASSERT_EQ(local_value, net->MyRank() + 1);
+            });
+    }
 }
+
 /******************************************************************************/
