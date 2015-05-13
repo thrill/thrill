@@ -109,7 +109,7 @@ public:
 
         std::shared_ptr<LOpChainNode> shared_node(
             new LOpChainNode(rhs_node->get_data_manager(),
-                             { rhs_node },
+                             rhs_node,
                              rhs_stack));
         node_ = std::move(shared_node);
         local_stack_ = FunctionStack<>();
