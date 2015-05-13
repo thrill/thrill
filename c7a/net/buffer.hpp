@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <cstddef>
 #include <string>
 
@@ -31,6 +32,8 @@ namespace net {
  * advantage of Buffer is that we have guaranteed direct byte access, and that
  * it does not initialize memory (faster). A Buffer object is also non-copyable,
  * which makes sure that we use zero-copy overhead as much as possible.
+ *
+ * This Buffer allows memory using malloc()/realloc()/free().
  */
 class Buffer
 {
@@ -49,6 +52,12 @@ public:
     //! simple pointer references
     typedef const value_type& const_reference;
 
+protected:
+    //! protected constructor used to acquire ownership of a buffer
+    Buffer(bool /* acquire_tag */, void* data, size_type size)
+        : data_(reinterpret_cast<value_type*>(data)), size_(size)
+    { }
+
 public:
     //! \name Construction, Moving, Destruction
     //! \{
@@ -60,12 +69,12 @@ public:
 
     //! allocate buffer containing n bytes
     explicit Buffer(size_type n)
-        : data_(new value_type[n]), size_(n)
+        : Buffer(true, malloc(n), n)
     { }
 
     //! allocate buffer and COPY data into it.
     explicit Buffer(const void* data, size_type size)
-        : data_(new value_type[size]), size_(size)
+        : Buffer(true, malloc(size), size)
     {
         const value_type* cdata = reinterpret_cast<const value_type*>(data);
         std::copy(cdata, cdata + size, data_);
@@ -89,7 +98,7 @@ public:
     {
         if (this != &other)
         {
-            if (data_) delete[] data_;
+            if (data_) free(data_);
             data_ = other.data_;
             size_ = other.size_;
             other.data_ = nullptr;
@@ -98,10 +107,15 @@ public:
         return *this;
     }
 
+    //! construct Buffer by acquiring ownership of a memory buffer. The memory
+    //! buffer will thee FREE()ed (not delete[]-ed).
+    static Buffer Acquire(void* data, size_type size)
+    { return Buffer(true, data, size); }
+
     //! delete buffer
     ~Buffer()
     {
-        delete[] data_;
+        if (data_) free(data_);
     }
 
     //! swap buffer with another one
@@ -171,7 +185,7 @@ public:
     //! \{
 
     //! Zero the whole array content.
-    void zero()
+    void Zero()
     {
         std::fill(data_, data_ + size_, value_type(0));
     }
@@ -179,20 +193,17 @@ public:
     //! resize the array to contain exactly new_size items. This should only be
     //! used if the Buffer was default constructed containing an empty array. It
     //! should NOT be used to resizing it, since this requires it to copy data.
-    void resize(size_type new_size)
+    void Resize(size_type new_size)
     {
         if (data_)
         {
             LOG1 << "Warning: resizing non-empty simple_vector";
-            value_type* old = data_;
-            data_ = new value_type[new_size];
-            std::copy(old, old + std::min(size_, new_size), data_);
-            delete[] old;
+            data_ = reinterpret_cast<value_type*>(::realloc(data_, new_size));
             size_ = new_size;
         }
         else
         {
-            data_ = new value_type[new_size];
+            data_ = reinterpret_cast<value_type*>(::malloc(new_size));
             size_ = new_size;
         }
     }
@@ -203,7 +214,7 @@ public:
     //! \{
 
     //! copy contents into std::string
-    std::string as_string() const
+    std::string ToString() const
     {
         if (!data_) return std::string();
         return std::string(reinterpret_cast<const char*>(data_), size_);
