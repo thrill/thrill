@@ -8,7 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/binary-builder.hpp>
+#include <c7a/net/binary_builder.hpp>
 #include <gtest/gtest.h>
 
 using c7a::net::BinaryBuilder;
