@@ -17,7 +17,7 @@
 using namespace c7a::core;
 
 TEST(Stage, GetStagesFromBuilder) {
-    using c7a::DIA;
+    using c7a::DIARef;
     using c7a::Context;
     Context ctx;
     auto doubles = ReadFromFileSystem(ctx,
