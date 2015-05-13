@@ -41,10 +41,10 @@ public:
     bool operator () (lowlevel::Socket& s)
     {
         int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
-                           buffer_.size() - size_);
+               buffer_.size() - size_);
 
         if (r < 0)
-            throw lowlevel::NetException("NetReadBuffer() error in recv", errno);
+            throw Exception("NetReadBuffer() error in recv", errno);
 
         size_ += r;
 
@@ -72,6 +72,7 @@ NetGroup::NetGroup(ClientId my_rank, size_t group_size)
     : my_rank_(my_rank),
       connections_(group_size)
 { }
+
 void NetGroup::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(NetGroup*)>& thread_function)

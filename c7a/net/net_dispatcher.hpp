@@ -235,7 +235,7 @@ protected:
                 buffer_.size() - size_);
 
             if (r < 0)
-                throw lowlevel::NetException("AsyncReadBuffer() error in recv", errno);
+                throw Exception("AsyncReadBuffer() error in recv", errno);
 
             size_ += r;
 
@@ -282,7 +282,7 @@ protected:
                 buffer_.size() - size_);
 
             if (r < 0)
-                throw lowlevel::NetException("AsyncWriteBuffer() error in send", errno);
+                throw Exception("AsyncWriteBuffer() error in send", errno);
 
             size_ += r;
 
@@ -315,7 +315,7 @@ protected:
     static bool ExceptionCallback(NetConnection& s)
     {
         // exception on listen socket ?
-        throw lowlevel::NetException(
+        throw Exception(
                   "NetDispatcher() exception on socket fd "
                   + std::to_string(s.GetSocket().fd()) + "!", errno);
     }

@@ -76,7 +76,7 @@ public:
     NetConnection & Connection(ClientId id)
     {
         if (id >= connections_.size())
-            throw lowlevel::NetException("NetGroup::GetClient() requested "
+            throw Exception("NetGroup::GetClient() requested "
                                "invalid client id " + std::to_string(id));
 
         return connections_[id];
@@ -85,7 +85,7 @@ public:
     void SetConnection(ClientId id, NetConnection &connection)
     {
         if (id >= connections_.size())
-            throw lowlevel::NetException("NetGroup::GetClient() requested "
+            throw Exception("NetGroup::GetClient() requested "
                                "invalid client id " + std::to_string(id));
 
         std::swap(connections_[id], connection);
