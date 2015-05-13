@@ -7,10 +7,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/core/hash_table.hpp>
 #include "gtest/gtest.h"
-#include <tests/c7a-tests.hpp>
+#include <tests/c7a_tests.hpp>
 #include "c7a/api/context.hpp"
-#include "c7a/core/hash_table.hpp"
 
 #include <functional>
 #include <cstdio>
@@ -142,5 +142,8 @@ TEST(HashTable, ComplexType) {
 
     assert(table.Size() == 0);
 }
+
+// TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
+// resize!
 
 /******************************************************************************/
