@@ -47,7 +47,6 @@ TEST(API, SharedPtrTest) {
     std::cout << "Input: " << input.NodeString() << " RefCount: " << input.get_node_count() << std::endl;
     std::cout << "Ints: " << ints.NodeString() << " RefCount: " << ints.get_node_count() << std::endl;
     std::cout << "Doubles: " << doubles.NodeString() << " RefCount: " << doubles.get_node_count() << std::endl;
-    // std::cout << "Quad: " << quad.NodeString() << " RefCount: " << quad.get_node_count() << std::endl;
     std::cout << "Red: " << red_quad.NodeString() << " RefCount: " << red_quad.get_node_count() << std::endl;
     std::vector<Stage> result;
     FindStages(red_quad.get_node(), result);
