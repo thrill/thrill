@@ -14,6 +14,7 @@
 using c7a::net::BinaryBuilder;
 using c7a::net::BinaryBuffer;
 using c7a::net::BinaryReader;
+using c7a::net::Buffer;
 
 TEST(BinaryBuilder, Test1) {
     // construct a binary blob
@@ -65,19 +66,27 @@ TEST(BinaryBuilder, Test1) {
 
     BinaryReader br(bb);
 
-    ASSERT_EQ(br.Get<unsigned int>(), 1);
+    ASSERT_EQ(br.Get<unsigned int>(), 1u);
     ASSERT_EQ(br.GetString(), "test");
-    ASSERT_EQ(br.GetVarint(), 42);
-    ASSERT_EQ(br.GetVarint(), 12345678);
+    ASSERT_EQ(br.GetVarint(), 42u);
+    ASSERT_EQ(br.GetVarint(), 12345678u);
 
     {
         BinaryReader sub_br = br.GetBinaryBuffer();
         ASSERT_EQ(sub_br.GetString(), "sub block");
-        ASSERT_EQ(sub_br.GetVarint(), 6 * 9);
+        ASSERT_EQ(sub_br.GetVarint(), 6 * 9u);
         ASSERT_TRUE(sub_br.empty());
     }
 
     ASSERT_TRUE(br.empty());
+
+    // MOVE origin bb (which still exists) into a net::Buffer
+
+    ASSERT_EQ(bb.size(), sizeof(bb_data));
+    Buffer nb = bb.ToBuffer();
+
+    ASSERT_EQ(bb.size(), 0u);
+    ASSERT_EQ(nb.size(), sizeof(bb_data));
 }
 
 /******************************************************************************/

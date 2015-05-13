@@ -17,6 +17,8 @@
 #ifndef C7A_NET_BINARY_BUILDER_HEADER
 #define C7A_NET_BINARY_BUILDER_HEADER
 
+#include <c7a/net/buffer.hpp>
+
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>
@@ -230,6 +232,15 @@ public:
     std::string ToString() const
     {
         return std::string(reinterpret_cast<const char*>(data_), size_);
+    }
+
+    //! Explicit conversion to Buffer MOVING the memory ownership.
+    Buffer ToBuffer()
+    {
+        Buffer b = Buffer::Acquire(data_, size_);
+        data_ = nullptr;
+        size_ = capacity_ = 0;
+        return std::move(b);
     }
 
     //! \}
