@@ -12,6 +12,8 @@
 #ifndef C7A_NET_NET_EXCEPTION_HEADER
 #define C7A_NET_NET_EXCEPTION_HEADER
 
+#include <string>
+
 namespace c7a {
 namespace net {
 
