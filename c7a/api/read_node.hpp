@@ -70,7 +70,6 @@ public:
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
-            read_function_(item);
             for (auto func : DIANode<Output>::callbacks_) {
                 func(read_function_(item));
             }
@@ -99,7 +98,7 @@ public:
     {
         // Create string
         std::string str
-            = std::string("[ReadNode] Id: ") + std::to_string(DIABase::data_id_);
+            = std::string("[ReadNode] Id: ") + std::to_string(this->data_id_);
         return str;
     }
 
