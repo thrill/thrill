@@ -11,14 +11,15 @@
 #include "gtest/gtest.h"
 #include <tests/c7a_tests.hpp>
 #include "c7a/api/context.hpp"
+#include <c7a/data/data_manager.hpp>
 
 #include <functional>
 #include <cstdio>
 
 TEST(HashTable, CreateEmptyTable) {
-    auto emit = [](int in) {
-                    std::cout << in << std::endl;
-                };
+    c7a::data::DataManager manager;
+    auto id = manager.AllocateDIA();
+    auto emit = manager.GetLocalEmitter<int>(id);
 
     auto key_ex = [](int in) { return in; };
 
@@ -33,9 +34,9 @@ TEST(HashTable, CreateEmptyTable) {
 }
 
 TEST(HashTable, AddIntegers) {
-    auto emit = [](int in) {
-                    std::cout << in << std::endl;
-                };
+    c7a::data::DataManager manager;
+    auto id = manager.AllocateDIA();
+    auto emit = manager.GetLocalEmitter<int>(id);
 
     auto key_ex = [](int in) { return in; };
 
@@ -58,9 +59,9 @@ TEST(HashTable, AddIntegers) {
 }
 
 TEST(HashTable, PopIntegers) {
-    auto emit = [](int in) {
-                    std::cout << in << std::endl;
-                };
+    c7a::data::DataManager manager;
+    auto id = manager.AllocateDIA();
+    auto emit = manager.GetLocalEmitter<int>(id);
 
     auto key_ex = [](int in) { return in; };
 
@@ -84,9 +85,9 @@ TEST(HashTable, PopIntegers) {
 }
 
 TEST(HashTable, FlushIntegers) {
-    auto emit = [](int in) {
-                    std::cout << in << std::endl;
-                };
+    c7a::data::DataManager manager;
+    auto id = manager.AllocateDIA();
+    auto emit = manager.GetLocalEmitter<int>(id);
 
     auto key_ex = [](int in) { return in; };
 
@@ -113,11 +114,11 @@ TEST(HashTable, FlushIntegers) {
 }
 
 TEST(HashTable, ComplexType) {
-    using StringPair = std::pair<std::string, double>;
+    using StringPair = std::pair<std::string, int>;
 
-    auto emit = [](StringPair in) {
-                    std::cout << in.second << std::endl;
-                };
+    c7a::data::DataManager manager;
+    auto id = manager.AllocateDIA();
+    auto emit = manager.GetLocalEmitter<std::pair<std::string, int> >(id);
 
     auto key_ex = [](StringPair in) { return in.first; };
 
