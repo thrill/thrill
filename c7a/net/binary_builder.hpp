@@ -27,7 +27,6 @@
 
 namespace c7a {
 namespace net {
-
 /*!
  * BinaryBuilder represents a dynamically growable area of memory, which can be
  * modified by appending integral data types via Put() and other basic
@@ -502,6 +501,8 @@ protected:
     size_t size_;
 
 public:
+    static const size_t DEFAULT_SIZE = 4 * 1024;
+
     //! Constructor, assign memory area from BinaryBuilder.
     explicit BinaryBuffer(const BinaryBuilder& bb)
         : data_(bb.data()), size_(bb.size())
@@ -542,6 +543,12 @@ public:
     {
         if (size_ != br.size_) return true;
         return !std::equal(data_, data_ + size_, br.data_);
+    }
+
+    void Delete()
+    {
+        if (data_)
+            free((void*)data_);
     }
 };
 
@@ -740,7 +747,6 @@ public:
 
     //! \}
 };
-
 } // namespace net
 } // namespace c7a
 
