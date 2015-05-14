@@ -29,7 +29,6 @@
 namespace c7a {
 namespace core {
 
-
 template <typename KeyExtractor, typename ReduceFunction>
 class HashTable
 {
@@ -50,15 +49,16 @@ protected:
 
         hash_result(key_t v, const HashTable& ht)
         {
-            // partition idx
             size_t hashed = std::hash<key_t>()(v);
-            partition_offset = hashed % ht.buckets_per_part_;
+
+            // partition idx
+            partition_offset = hashed % ht.num_buckets_per_partition_;
 
             // partition id
-            partition_id = partition_offset % ht.num_partitions_;
+            partition_id = hashed % ht.num_partitions_;
 
             // global idx
-            global_index = partition_offset + partition_id * ht.buckets_per_part_;
+            global_index = partition_id * ht.num_buckets_per_partition_ + partition_offset;
         }
     };
 
@@ -70,6 +70,23 @@ protected:
     };
 
 public:
+
+    HashTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
+              size_t max_num_items_per_bucket, size_t max_num_items_table,
+              KeyExtractor key_extractor, ReduceFunction reduce_function,
+              data::BlockEmitter<value_t> emit)
+        : num_partitions_(num_partitions),
+          num_buckets_init_scale_(num_buckets_init_scale),
+          num_buckets_resize_scale_(num_buckets_resize_scale),
+          max_num_items_per_bucket_(max_num_items_per_bucket),
+          max_num_items_table_(max_num_items_table),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(emit)
+    {
+        init();
+    }
+
     // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
     HashTable(size_t partition_size, KeyExtractor key_extractor,
               ReduceFunction reduce_function, data::BlockEmitter<value_t> emit)
@@ -78,19 +95,32 @@ public:
           reduce_function_(reduce_function),
           emit_(emit)
     {
-        if (partition_size > num_buckets_) {
-            throw std::invalid_argument("num partitions must be less than num buckets");
-        }
-
-        //num_buckets_ = num_partitions_*10; // TODO scale initial bucket size based on num of workers
-        buckets_per_part_ = num_buckets_ / num_partitions_;
-        items_in_part_ = new int[num_partitions_];
-        for (int i = 0; i < num_partitions_; i++) { // TODO: just a tmp fix
-            items_in_part_[i] = 0;
-        }
+        init();
     }
 
     ~HashTable() { }
+
+    void init()
+    {
+        num_buckets_ = num_partitions_ * num_buckets_init_scale_;
+        if (num_partitions_ > num_buckets_ &&
+            num_buckets_ % num_partitions_ != 0) {
+            throw std::invalid_argument("partition_size must be less than or equal to num_buckets "
+                                                "AND partition_size a divider of num_buckets");
+        }
+        num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+
+        // TODO: Make this work
+        // initialize array with size num_partitions_ with nullpt
+        //const int n_b_ = 10;
+        //node<key_t, value_t>* a[n_b_] = { nullptr };
+        //array_ &= a;
+
+        items_per_partition_ = new size_t[num_partitions_];
+        for (size_t i = 0; i < num_partitions_; i++) { // TODO: just a tmp fix
+            items_per_partition_[i] = 0;
+        }
+    }
 
     /*!
      * Inserts a key/value pair.
@@ -123,10 +153,10 @@ public:
             array_[h.global_index] = n;
 
             // increase counter for partition
-            items_in_part_[h.partition_id]++;
+            items_per_partition_[h.partition_id]++;
 
             // increase total counter
-            total_table_size_++;
+            table_size_++;
 
             // bucket is not empty
         }
@@ -165,16 +195,15 @@ public:
                 array_[h.global_index] = n;
 
                 // increase counter for partition
-                items_in_part_[h.partition_id]++;
+                items_per_partition_[h.partition_id]++;
                 // increase total counter
-                total_table_size_++;
+                table_size_++;
 
                 LOG << "key appendend, metrics updated!";
             }
         }
 
-        // TODO should be externally configureably somehow
-        if (total_table_size_ > max_table_size_) {
+        if (table_size_ > max_num_items_table_) {
             LOG << "spilling in progress";
             PopLargestSubtable();
         }
@@ -187,11 +216,11 @@ public:
     void PopLargestSubtable()
     {
         // get partition with max size
-        int p_size_max = 0;
-        int p_idx = 0;
-        for (int i = 0; i < num_partitions_; i++) {
-            if (items_in_part_[i] > p_size_max) {
-                p_size_max = items_in_part_[i];
+        size_t p_size_max = 0;
+        size_t p_idx = 0;
+        for (size_t i = 0; i < num_partitions_; i++) {
+            if (items_per_partition_[i] > p_size_max) {
+                p_size_max = items_per_partition_[i];
                 p_idx = i;
             }
         }
@@ -201,15 +230,15 @@ public:
             << " currentIdx: "
             << p_idx
             << " currentIdx*p_size: "
-            << p_idx * buckets_per_part_
+            << p_idx * num_buckets_per_partition_
             << " CurrentIdx*p_size+p_size-1 "
-            << p_idx * buckets_per_part_ + buckets_per_part_ - 1;
+            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
 
         // TODO(ms): use iterators instead of indexes. easier code.
 
         // retrieve items
-        for (size_t i = p_idx * buckets_per_part_;
-             i != p_idx * buckets_per_part_ + buckets_per_part_; i++)
+        for (size_t i = p_idx * num_buckets_per_partition_;
+             i != p_idx * num_buckets_per_partition_ + num_buckets_per_partition_; i++)
         {
             if (array_[i] != nullptr) {
                 node<key_t, value_t>* curr_node = array_[i];
@@ -222,9 +251,9 @@ public:
         }
 
         // reset partition specific counter
-        items_in_part_[p_idx] = 0;
+        items_per_partition_[p_idx] = 0;
         // reset total counter
-        total_table_size_ -= p_size_max;
+        table_size_ -= p_size_max;
     }
 
     /*!
@@ -237,8 +266,8 @@ public:
         // TODO(ms): this smells like this should be FlushPE(), since same as above.
 
         // retrieve items
-        for (int i = 0; i < num_partitions_; i++) {
-            for (int j = i * buckets_per_part_; j <= i * buckets_per_part_ + buckets_per_part_ - 1; j++) {
+        for (size_t i = 0; i < num_partitions_; i++) {
+            for (size_t j = i * num_buckets_per_partition_; j <= i * num_buckets_per_partition_ + num_buckets_per_partition_ - 1; j++) {
                 if (array_[j] != nullptr) {
                     node<key_t, value_t>* curr_node = array_[j];
                     do {
@@ -250,11 +279,11 @@ public:
             }
 
             // set size of partition to 0
-            items_in_part_[i] = 0;
+            items_per_partition_[i] = 0;
         }
 
         // reset counters
-        total_table_size_ = 0;
+        table_size_ = 0;
     }
 
     /*!
@@ -262,13 +291,12 @@ public:
      */
     size_t Size()
     {
-        return total_table_size_;
+        return table_size_;
     }
 
     void Resize()
     {
         // TODO(ms): make sure that keys still map to the SAME pe.
-
         LOG << "to be implemented";
     }
 
@@ -308,19 +336,24 @@ public:
     }
 
 private:
-    //! maximum number of elements in whole table, spill largest subtable when
-    //! full
-    int max_table_size_ = 3;
+    size_t num_partitions_ = 0;             // partition size
 
-    int num_partitions_ = 0;             // partition size
+    size_t num_buckets_ = 0;                // num buckets
 
-    int buckets_per_part_ = 0;           // num buckets per partition
+    size_t num_buckets_per_partition_ = 0;  // num buckets per partition
 
-    int* items_in_part_;                 // num items per partition
+    size_t num_buckets_init_scale_ = 2.0;    // set number of buckets per partition based on num_partitions
+    // multiplied with some scaling factor, must be equal to or greater than 1
 
-    int total_table_size_ = 0;           // total sum of items
+    size_t num_buckets_resize_scale_ = 2.0;  // resize scale on max_num_items_per_bucket_
 
-    static const int num_buckets_ = 100; // bucket size
+    size_t max_num_items_per_bucket_ = 10;  // max num of items per bucket before resize
+
+    size_t* items_per_partition_;           // num items per partition
+
+    size_t table_size_ = 0;                 // total number of items
+
+    size_t max_num_items_table_ = 3;             // max num of items before spilling of largest partition
 
     KeyExtractor key_extractor_;
 
@@ -329,7 +362,7 @@ private:
     //TODO:Network-Emitter when it's there (:
     data::BlockEmitter<value_t> emit_;
 
-    node<key_t, value_t>* array_[num_buckets_] = { nullptr }; // TODO: fix this static assignment
+    node<key_t, value_t>* array_[10] = { nullptr }; // TODO: fix this static assignment
 };
 }
 }
