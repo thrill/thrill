@@ -16,19 +16,17 @@
 #include <string>
 #include <stdexcept>
 #include <memory> //unique_ptr
+
 #include "block_iterator.hpp"
-#include "../common/logger.hpp"
+#include "block_emitter.hpp"
+#include "buffer_chain.hpp"
+#include <c7a/common/logger.hpp>
 #include "input_line_iterator.hpp"
 
 namespace c7a {
 namespace data {
-
 //! Identification for DIAs
 typedef int DIAId;
-
-//! function Signature for an emitt function
-template <typename T>
-using BlockEmitter = std::function<void(T)>;
 
 //! Manages all kind of memory for data elements
 //!
@@ -51,7 +49,7 @@ public:
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        return BlockIterator<T>(data_[id]);
+        return BlockIterator<T>(buffer_chains_[id]);
     }
 
     //! returns true if the manager holds data of given DIA
@@ -59,17 +57,18 @@ public:
     //! \param id ID of the DIA
     bool Contains(DIAId id)
     {
-        //return data_.find(id) != data_.end();
-        return data_.size() > id && id >= 0;
+        return buffer_chains_.find(id) != buffer_chains_.end();
+        //return data_.size() > id && id >= 0;
     }
 
     DIAId AllocateDIA()
     {
-        SpacingLogger(true) << "Allocate DIA" << data_.size();
-        //data_[nextId_] = std::unique_ptr<std::vector<Blob>>( new std::vector<Blob>() );
-        data_.push_back(std::vector<Blob>());
-        return data_.size() - 1;
-        //return nextId_++;
+        //SpacingLogger(true) << "Allocate DIA" << data_.size();
+        //data_.push_back(std::vector<Blob>());
+        //return data_.size() - 1;
+        SpacingLogger(true) << "Allocate DIA" << nextId_;
+        buffer_chains_[nextId_] = BufferChain();
+        return nextId_++;
     }
 
     template <class T>
@@ -78,8 +77,8 @@ public:
         if (!Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        auto& target = data_[id]; //yes. const ref to an unique_ptr
-        return [&target](T elem) { target.push_back(Serialize(elem)); };
+        auto& target = buffer_chains_[id];
+        return BlockEmitter<T>(target);
     }
 
     //!Returns an InputLineIterator with a given input file stream.
@@ -101,10 +100,10 @@ private:
 
     //YES I COULD just use a map of (int, vector) BUT then I have a weird
     //behaviour of std::map on inserts. Sometimes it randomly kills itself.
-    //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
-    std::vector<std::vector<Blob> > data_;
+    //May depend on the compiler. Google it.
+    //std::vector<std::vector<Blob> > data_;
+    std::map<DIAId, BufferChain> buffer_chains_;
 };
-
 } // namespace data
 } // namespace c7a
 
