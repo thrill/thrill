@@ -40,7 +40,7 @@ build_test(core/test_hash_table)
 build_test(net/test_net_group)
 build_test(net/test_buffer)
 build_test(net/test_binary_builder)
-#build_test(net/test_channel_multiplexer)
+#build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_test(net/test_stream)
 
 ################################################################################
