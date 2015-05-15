@@ -36,7 +36,7 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     [net, &received](NetConnection & /* s */, const Buffer &buffer) {
         ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
         received++;
-    }
+    };
 
     // add async reads to net dispatcher
     for (size_t i = 0; i != net->Size(); ++i)
