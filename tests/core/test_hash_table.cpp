@@ -13,6 +13,7 @@
 #include <tests/c7a_tests.hpp>
 #include "c7a/api/context.hpp"
 
+#include <stdio.h>
 #include <functional>
 #include <cstdio>
 
@@ -250,6 +251,32 @@ TEST(PostTable, ComplexType) {
     table.Insert(std::make_pair("baguette", 42));
 
     assert(table.Size() == 4);
+}
+
+TEST(PreTable, MultipleWorkers) {
+    auto emit = [](int in) {
+                    std::cout << in << std::endl;
+                };
+
+    auto key_ex = [](int in) { return in; };
+
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+      table(2, key_ex, red_fn, {emit});
+
+    assert(table.Size() == 0);
+    table.SetMaxSize(5);
+
+    for (int i = 0; i < 6; i++) {
+        table.Insert(i * 35001);
+    }
+
+    assert(table.Size() <= 3);
+    assert(table.Size() > 0);
+
 }
 
 // TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
