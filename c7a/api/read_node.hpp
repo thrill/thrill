@@ -82,7 +82,7 @@ public:
         // Hook Identity
         auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
             return emit_func(t);
-        }
+        };
 
         FunctionStack<> stack;
         return stack.push(id_fn);
