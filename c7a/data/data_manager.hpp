@@ -35,8 +35,7 @@ typedef size_t ChannelId;
 //!
 //!
 //! Provides Channel creation for sending / receiving data from other workers.
-class DataManager
-{
+class DataManager {
 public:
     DataManager(net::ChannelMultiplexer& cmp) : cmp_(cmp), next_local_id_(0), next_remote_id_(0) { }
 
@@ -49,8 +48,7 @@ public:
     //!
     //! \param id ID of the DIA - determined by AllocateDIA()
     template <class T>
-    BlockIterator<T> GetLocalBlocks(DIAId id)
-    {
+    BlockIterator<T> GetLocalBlocks(DIAId id) {
         if (!ContainsLocal(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -61,8 +59,7 @@ public:
     //!
     //! \param id ID of the channel - determined by AllocateNetworkChannel()
     template <class T>
-    BlockIterator<T> GetRemoteBlocks(ChannelId id)
-    {
+    BlockIterator<T> GetRemoteBlocks(ChannelId id) {
         if (!ContainsChannel(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
@@ -73,8 +70,7 @@ public:
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    DIAId AllocateDIA()
-    {
+    DIAId AllocateDIA() {
         //sLOG << "Allocate DIA" << data_.size();
         //data_.push_back(std::vector<Blob>());
         //return data_.size() - 1;
@@ -86,8 +82,7 @@ public:
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    ChannelId AllocateNetworkChannel()
-    {
+    ChannelId AllocateNetworkChannel() {
         if (!ContainsChannel(next_remote_id_)) {
             sLOG << "Allocate Network Channel" << next_remote_id_;
             incoming_buffer_chains_[next_remote_id_] = BufferChain();
@@ -102,8 +97,7 @@ public:
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
     template <class T>
-    BlockEmitter<T> GetLocalEmitter(DIAId id)
-    {
+    BlockEmitter<T> GetLocalEmitter(DIAId id) {
         if (!ContainsLocal(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -111,9 +105,8 @@ public:
         return BlockEmitter<T>(target);
     }
 
-    template <class T, class SocketTarget>
-    std::vector<BlockEmitter<T, SocketTarget> > GetNetworkEmitters(ChannelId id)
-    {
+    template <class T>
+    std::vector<BlockEmitter<T, SocketTarget> > GetNetworkEmitters(ChannelId id) {
         return cmp_.OpenChannel<T>(id);
     }
 
@@ -122,8 +115,7 @@ public:
     //! \param file Input file stream
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file)
-    {
+    InputLineIterator GetInputLineIterator(std::ifstream& file) {
         //TODO: get those from networks
         size_t my_id = 0;
         size_t num_work = 1;
@@ -150,8 +142,7 @@ private:
     //! returns true if the manager holds data of given DIA
     //!
     //! \param id ID of the DIA
-    bool ContainsLocal(DIAId id)
-    {
+    bool ContainsLocal(DIAId id) {
         return local_buffer_chains_.find(id) != local_buffer_chains_.end();
         //return data_.size() > id && id >= 0;
     }
@@ -159,8 +150,7 @@ private:
     //! returns true if the manager holds data of given DIA
     //!
     //! \param id ID of the DIA
-    bool ContainsChannel(ChannelId id)
-    {
+    bool ContainsChannel(ChannelId id) {
         return incoming_buffer_chains_.find(id) != incoming_buffer_chains_.end();
         //return data_.size() > id && id >= 0;
     }
