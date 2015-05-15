@@ -251,6 +251,13 @@ public:
 
     template <typename T, typename BinarySumOp = SumOp<T> >
     void PrefixSum(T& value, BinarySumOp sumOp = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = SumOp<T> >
+    void ReduceToRoot(T& value, BinarySumOp sumOp = BinarySumOp());
+
+    template <typename T>
+    void Broadcast(T value);
+
     //! \}
 
 protected:
@@ -335,6 +342,43 @@ void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
     sLOG << "PREFIX_SUM: Worker" << MyRank()
          << ": value after prefix sum =" << value;
 }
+
+//! Perform a binomial tree reduce to the worker with index 0
+template <typename T, typename BinarySumOp>
+void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
+{
+    bool active = true;
+    for (size_t d = 1; d < Size(); d <<= 1) {
+        if (active) {
+            if (MyRank() & d) {
+                Connection(MyRank() - d).Send(value);
+                active = false;
+            } else if (MyRank() + d < Size()) {
+                T recv_data;
+                Connection(MyRank() + d).Receive(&recv_data);
+                value = sumOp(value, recv_data);
+            }
+        }
+    }
+}
+
+//! Binomial-broadcasts the value of the worker with index 0 to all the others
+template <typename T>
+void NetGroup::Broadcast(T value)
+{   
+    sLOG << "I'm in NetGroup::Broadcast:369";
+    if (MyRank() > 0) {
+        ClientId from;
+        ReceiveFromAny(&from, &value);
+    }
+    for (size_t d = 1, i = 0; ((MyRank() >> i) & 1) == 0; d <<= 1, ++i) {
+        if (MyRank() + d < Size()) {
+            Connection(MyRank() + d).Send(value);
+        }
+    }
+    sLOG << "Worker" << MyRank() << ":" << value;
+}
+
 //! \}
 
 } // namespace net
