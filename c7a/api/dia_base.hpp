@@ -82,7 +82,7 @@ public:
 
     //! Returns the DataManager of this DIABase.
     //! \return The DataManager of this DIABase.
-    Context & get_data_manager()
+    Context & get_context()
     {
         return context_;
     }
