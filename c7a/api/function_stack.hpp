@@ -134,12 +134,7 @@ private:
      * Auxilary function for "folding" the chain.
      * This is needed to send all lambda functions as parameters to the
      * function that folds them together.
-     *
-     *
-     * \tparam Is Template list of size_t's from 0 to tuple_size - 1.
-     *
-     * \param std::index_sequence<Is ...>  List of integer values from 0 to tuple_size - 1.
-     *
+     *  
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
