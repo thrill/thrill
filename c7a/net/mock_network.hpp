@@ -23,7 +23,6 @@
 
 namespace c7a {
 namespace net {
-
 class MockNetwork
 {
 public:
@@ -125,7 +124,6 @@ protected:
     //! my client id in network.
     size_t my_id_;
 };
-
 } // namespace engine
 } // namespace c7a
 

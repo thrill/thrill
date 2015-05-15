@@ -23,7 +23,6 @@
 namespace c7a {
 namespace net {
 namespace lowlevel {
-
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -42,7 +41,7 @@ public:
     typedef _Cookie Cookie;
 
     //! cookie type for file descriptor readiness callbacks
-    typedef std::function<bool (Cookie)> Callback;
+    typedef std::function<bool (Cookie&)> Callback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(int fd, const Cookie& c,
@@ -196,7 +195,7 @@ private:
     struct Watch
     {
         int      fd;
-        Cookie   cookie;
+        Cookie&  cookie;
         Callback read_cb, write_cb, except_cb;
 
         Watch(int _fd, const Cookie& _cookie,
@@ -224,7 +223,6 @@ private:
 };
 
 //! \}
-
 } // namespace lowlevel
 } // namespace net
 } // namespace c7a

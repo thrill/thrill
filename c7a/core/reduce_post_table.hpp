@@ -24,7 +24,6 @@
 
 namespace c7a {
 namespace core {
-
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePostTable
 {
@@ -35,7 +34,6 @@ class ReducePostTable
     using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
 protected:
-    
     template <typename key_t, typename value_t>
     struct node {
         key_t   key;
@@ -44,11 +42,10 @@ protected:
     };
 
 public:
-
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
-              size_t max_num_items_per_bucket, size_t max_num_items_table,
-              KeyExtractor key_extractor, ReduceFunction reduce_function,
-              std::vector<EmitterFunction> emit)
+                    size_t max_num_items_per_bucket, size_t max_num_items_table,
+                    KeyExtractor key_extractor, ReduceFunction reduce_function,
+                    std::vector<EmitterFunction> emit)
         : num_buckets_init_scale_(num_buckets),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
@@ -62,7 +59,7 @@ public:
 
     // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
     ReducePostTable(KeyExtractor key_extractor,
-              ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
+                    ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit)
@@ -88,7 +85,7 @@ public:
     {
         key_t key = key_extractor_(p);
 
-        size_t hashed_key = std::hash<key_t>()(key) % num_buckets_;
+        size_t hashed_key = std::hash<key_t>() (key) % num_buckets_;
 
         LOG << "key: "
             << key
@@ -153,17 +150,18 @@ public:
         }
 
         if (table_size_ > max_num_items_table_) {
-	        throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
+            throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
         }
     }
 
     /*!
      * Emits element to all childs
      */
-    void EmitAll(value_t& element) {
-      for (auto emitter : emit_) {
-	emitter(element);
-      }
+    void EmitAll(value_t& element)
+    {
+        for (auto emitter : emit_) {
+            emitter(element);
+        }
     }
     /*!
      * Flushes all items.
@@ -175,12 +173,12 @@ public:
         // retrieve items
         for (size_t i = 0; i < num_buckets_; i++) {
             if (vector_[i] != nullptr) {
-	        node<key_t, value_t>* curr_node = vector_[i];
-		do {
-		    EmitAll(curr_node->value);
-		    curr_node = curr_node->next;
-		} while (curr_node != nullptr);
-		vector_[i] = nullptr;
+                node<key_t, value_t>* curr_node = vector_[i];
+                do {
+                    EmitAll(curr_node->value);
+                    curr_node = curr_node->next;
+                } while (curr_node != nullptr);
+                vector_[i] = nullptr;
             }
         }
 
@@ -205,10 +203,11 @@ public:
     }
 
     /*!
-     * Sets the maximum size of the hash table. We don't want to push 2⁶⁴ elements before flush happens.
+     * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
      */
-    void SetMaxSize(size_t size) {
-      max_num_items_table_ = size;
+    void SetMaxSize(size_t size)
+    {
+        max_num_items_table_ = size;
     }
 
     /*!
@@ -225,7 +224,7 @@ public:
         vector_new.resize(num_buckets_, nullptr);
         vector_ = vector_new;
         // rehash all items in old array
-        for(auto bucket : vector_old) {
+        for (auto bucket : vector_old) {
             Insert(bucket);
         }
         LOG << "Resized";
@@ -290,18 +289,18 @@ public:
     }
 
 private:
-    size_t num_buckets_;                // num buckets
+    size_t num_buckets_;                    // num buckets
 
-    size_t num_buckets_init_scale_ = 65536;    // set number of buckets per partition based on num_partitions
+    size_t num_buckets_init_scale_ = 65536; // set number of buckets per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_buckets_resize_scale_ = 2;  // resize scale on max_num_items_per_bucket_
+    size_t num_buckets_resize_scale_ = 2;   // resize scale on max_num_items_per_bucket_
 
-    size_t max_num_items_per_bucket_ = 256;  // max num of items per bucket before resize
+    size_t max_num_items_per_bucket_ = 256; // max num of items per bucket before resize
 
     size_t table_size_ = 0;                 // total number of items
 
-    size_t max_num_items_table_ = 1048576;             // max num of items before spilling of largest partition
+    size_t max_num_items_table_ = 1048576;  // max num of items before spilling of largest partition
 
     KeyExtractor key_extractor_;
 

@@ -11,8 +11,6 @@
 
 namespace c7a {
 namespace net { } // namespace c7a
-
-
 }                 // namespace net
 
 /******************************************************************************/

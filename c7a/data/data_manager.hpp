@@ -22,7 +22,6 @@
 
 namespace c7a {
 namespace data {
-
 //! Identification for DIAs
 typedef unsigned int DIAId;
 
@@ -79,7 +78,7 @@ public:
             throw std::runtime_error("target dia id unknown.");
         }
         auto& target = data_[id]; //yes. const ref to an unique_ptr
-        return [&target](T elem) { target.push_back(Serialize(elem)); };
+        return [&target](T elem) { target.push_back(Serialize(elem)); }
     }
 
     //!Returns an InputLineIterator with a given input file stream.
@@ -104,7 +103,6 @@ private:
     //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
     std::vector<std::vector<Blob> > data_;
 };
-
 } // namespace data
 } // namespace c7a
 
