@@ -26,8 +26,8 @@ TEST(HashTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    c7a::core::HashTable<decltype(key_ex), decltype(red_fn)>
-    table(1, key_ex, red_fn, emit);
+    c7a::core::HashTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+      table(1, key_ex, red_fn, {emit});
 
     assert(table.Size() == 0);
 }
@@ -43,8 +43,8 @@ TEST(HashTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::HashTable<decltype(key_ex), decltype(red_fn)>
-    table(1, key_ex, red_fn, emit);
+    c7a::core::HashTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+      table(1, key_ex, red_fn, {emit});
 
     table.Insert(1);
     table.Insert(2);
@@ -68,8 +68,10 @@ TEST(HashTable, PopIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::HashTable<decltype(key_ex), decltype(red_fn)>
-    table(1, key_ex, red_fn, emit);
+    c7a::core::HashTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+      table(1, key_ex, red_fn, {emit});
+
+    table.SetMaxSize(3);
 
     table.Insert(1);
     table.Insert(2);
@@ -94,8 +96,8 @@ TEST(HashTable, FlushIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::HashTable<decltype(key_ex), decltype(red_fn)>
-    table(1, key_ex, red_fn, emit);
+    c7a::core::HashTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+      table(1, key_ex, red_fn, {emit});
 
     table.Insert(1);
     table.Insert(2);
@@ -125,8 +127,10 @@ TEST(HashTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    c7a::core::HashTable<decltype(key_ex), decltype(red_fn)>
-    table(1, key_ex, red_fn, emit);
+    c7a::core::HashTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+      table(1, key_ex, red_fn, {emit});
+
+    table.SetMaxSize(3);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
