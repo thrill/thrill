@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication-manager.hpp
+ * c7a/net/communication_manager.hpp
  *
  * Part of Project c7a.
  *
@@ -38,7 +38,7 @@ private:
     lowlevel::Socket listenSocket_;
     NetConnection listenConnection_;
     size_t my_rank_;
-    int received_hellos_ = -1;          //-1 mens uninitialized
+    int received_hellos_ = -1;         //-1 mens uninitialized
     unsigned int sent_hellos_;
     unsigned int accepting;
     NetDispatcher dispatcher;
@@ -58,7 +58,7 @@ private:
         {
             addressList.push_back(lowlevel::SocketAddress(ne.hostport));
             if (!addressList.back().IsValid()) {
-                throw lowlevel::NetException(
+                throw Exception(
                           "Error resolving NetEndpoint " + ne.hostport
                           + ": " + addressList.back().GetResolveError());
             }
@@ -83,12 +83,12 @@ public:
         this->my_rank_ = my_rank_;
 
         if (received_hellos_ != -1) {
-            throw new lowlevel::NetException("This communication manager has already been initialized.");
+            throw new Exception("This communication manager has already been initialized.");
         }
 
         connections_.reserve(endpoints.size() * GROUP_COUNT);
 
-        for(int i = 0; i < GROUP_COUNT; i++) {
+        for (int i = 0; i < GROUP_COUNT; i++) {
             netGroups_[i] = new NetGroup(my_rank_, endpoints.size());
         }
 
@@ -106,12 +106,12 @@ public:
         const lowlevel::SocketAddress& lsa = addressList[my_rank_];
 
         if (listenSocket_.bind(lsa) != 0)
-            throw lowlevel::NetException("Could not bind listen socket to "
-                                         + lsa.ToStringHostPort(), errno);
+            throw Exception("Could not bind listen socket to "
+                            + lsa.ToStringHostPort(), errno);
 
         if (listenSocket_.listen() != 0)
-            throw lowlevel::NetException("Could not listen on socket "
-                                         + lsa.ToStringHostPort(), errno);
+            throw Exception("Could not listen on socket "
+                            + lsa.ToStringHostPort(), errno);
 
         listenConnection_ = std::move(NetConnection(listenSocket_));
 
@@ -127,8 +127,8 @@ public:
                 const WelcomeMsg hello = { c7a_sign, group, (ClientId)my_rank_ };
 
                 lowlevel::Socket ns = lowlevel::Socket::Create();
-    
-                connections_.emplace_back(ns);   
+
+                connections_.emplace_back(ns);
 
                 die_unless(connections_.back().GetSocket().fd() > 0);
                 die_unless(connections_.back().GetSocket().IsValid());
@@ -142,9 +142,9 @@ public:
                     dispatcher.AddWrite(connections_.back(), std::bind(&c7a::net::CommunicationManager::ActiveConnected, this, std::placeholders::_1, hello));
                 }
                 else {
-                    throw lowlevel::NetException("Could not connect to client "
-                                                 + std::to_string(id) + " via "
-                                                 + addressList[id].ToStringHostPort(), errno);
+                    throw Exception("Could not connect to client "
+                                    + std::to_string(id) + " via "
+                                    + addressList[id].ToStringHostPort(), errno);
                 }
             }
         }
@@ -157,7 +157,6 @@ public:
             LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher.Dispatch();
         }
-    
 
         //Could dispose listen connection here.
 
@@ -173,9 +172,10 @@ public:
         }
     }
 
-    void HelloSent(NetConnection& conn) {
+    void HelloSent(NetConnection& conn)
+    {
         sent_hellos_++;
-    } 
+    }
 
     /**
      * @brief Called when a socket connects.
@@ -187,7 +187,7 @@ public:
         int err = conn.GetSocket().GetError();
 
         if (err != 0) {
-            throw lowlevel::NetException(
+            throw Exception(
                       "OpenConnections() could not connect to client "
                       + std::to_string(hello.id), err);
         }
@@ -200,8 +200,8 @@ public:
             << " to=" << conn.GetSocket().GetPeerAddress();
 
         // send welcome message
-        //conn.GetSocket().SetNonBlocking(false);
-        dispatcher.AsyncWrite(conn, &hello, sizeof(hello), std::bind(&c7a::net::CommunicationManager::HelloSent, this, std::placeholders::_1));
+
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), std::bind(&c7a::net::CommunicationManager::HelloSent, this, std::placeholders::_1));
         LOG << "Client " << my_rank_ << " sent active hello to client ?";
 
         // wait for welcome message from other side
@@ -216,9 +216,8 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessage(NetConnection& conn, const std::string& buffer)
+    bool ReceiveWelcomeMessage(NetConnection& conn, const Buffer& buffer)
     {
-
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
 
@@ -228,7 +227,7 @@ public:
         die_unequal(msg->c7a, c7a_sign);
 
         LOG << "client " << my_rank_ << " got signature "
-             << "from client " << msg->id;
+            << "from client " << msg->id;
 
         // assign connection.
         netGroups_[msg->groupId]->SetConnection(msg->id, conn);
@@ -244,7 +243,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, const std::string& buffer)
+    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, const Buffer& buffer)
     {
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
@@ -252,15 +251,15 @@ public:
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg->c7a, c7a_sign);
         LOG << "client " << my_rank_ << " got signature "
-             << "from client " << msg->id;
+            << "from client " << msg->id;
 
         const WelcomeMsg hello = { c7a_sign, msg->groupId, (ClientId)my_rank_ };
 
-        NetConnection & connCopy = netGroups_[msg->groupId]->SetConnection(msg->id, conn);
+        NetConnection& connCopy = netGroups_[msg->groupId]->SetConnection(msg->id, conn);
 
         die_unless(connCopy.GetSocket().IsValid());
         // send welcome message
-        dispatcher.AsyncWrite(connCopy, &hello, sizeof(hello), std::bind(&c7a::net::CommunicationManager::HelloSent, this, std::placeholders::_1));
+        dispatcher.AsyncWriteCopy(connCopy, &hello, sizeof(hello), std::bind(&c7a::net::CommunicationManager::HelloSent, this, std::placeholders::_1));
         LOG << "Client " << my_rank_ << " sent passive hello to client " << msg->id;
 
         ++received_hellos_;
@@ -275,7 +274,6 @@ public:
         die_unless(connections_.back().GetSocket().fd() > 0);
         die_unless(connections_.back().GetSocket().IsValid());
         // newConn.GetSocket().SetNonBlocking(false);
-
 
         LOG << "OpenConnections() " << my_rank_ << " accepted connection"
             << " fd=" << connections_.back().GetSocket().fd()

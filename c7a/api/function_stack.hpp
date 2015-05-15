@@ -22,12 +22,11 @@
 #include "function_traits.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
 /*!
- * Base case for the chaining of lambda functions. 
+ * Base case for the chaining of lambda functions.
  * The last lambda function receives an input element, no emitter and should have no return type.
  * It should therefore store the input parameter externally.
  *
@@ -46,7 +45,7 @@ auto run_emitter(L lambda)
 }
 
 /*!
- * Recursive case for the chaining of lambda functions. 
+ * Recursive case for the chaining of lambda functions.
  * The given lambda function receives an input element, an emitter and should have no return type.
  * The emitter will be built using the chain of remaining lambda functions.
  *
@@ -91,7 +90,6 @@ public:
         : stack_(stack) { }
     virtual ~FunctionStack() { }
 
-
     /*!
      * Add a lambda function to the end of the chain.
      *
@@ -133,13 +131,8 @@ private:
 
     /*!
      * Auxilary function for "folding" the chain.
-     * This is needed to send all lambda functions as parameters to the 
+     * This is needed to send all lambda functions as parameters to the
      * function that folds them together.
-     *
-     *
-     * \tparam Is Template list of size_t's from 0 to tuple_size - 1.
-     *
-     * \param std::index_sequence<Is ...>  List of integer values from 0 to tuple_size - 1.
      *
      * \return Single "folded" lambda function representing the chain.
      */
@@ -149,7 +142,6 @@ private:
         return run_emitter(std::get<Is>(stack_) ...);
     }
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_FUNCTION_STACK_HEADER

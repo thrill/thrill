@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-endpoint.hpp
+ * c7a/net/net_endpoint.hpp
  *
  * Part of Project c7a.
  *
@@ -20,7 +20,6 @@
 
 namespace c7a {
 namespace net {
-
 //! \addtogroup net Network Communication
 //! \{
 
@@ -53,13 +52,12 @@ public:
     }
 };
 
-static std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
+static inline std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
 {
     return os << endpoint.hostport;
 }
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 

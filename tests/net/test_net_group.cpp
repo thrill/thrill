@@ -33,10 +33,10 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     NetDispatcher dispatcher;
 
     NetDispatcher::AsyncReadCallback callback =
-        [net, &received](NetConnection& /* s */, const std::string& buffer) {
-            ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
-            received++;
-        };
+    [net, &received](NetConnection & /* s */, const Buffer &buffer) {
+        ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
+        received++;
+    }
 
     // add async reads to net dispatcher
     for (size_t i = 0; i != net->Size(); ++i)
@@ -118,7 +118,6 @@ static void RealNetGroupConstructAndCall(
 
     // lambda to construct NetGroup and call user thread function.
 
-
     std::vector<CommunicationManager> groups(count);
 
     for (int i = 0; i < count; i++) {
@@ -139,7 +138,7 @@ static void RealNetGroupConstructAndCall(
 
 TEST(NetGroup, RealInitializeAndClose) {
     // Construct a real NetGroup of 6 workers which do nothing but terminate.
-    RealNetGroupConstructAndCall([](NetGroup*) { });
+    RealNetGroupConstructAndCall([] (NetGroup*) { });
 }
 
 TEST(NetGroup, RealInitializeSendReceive) {
@@ -153,7 +152,6 @@ TEST(NetGroup, RealInitializeSendReceiveAsync) {
     // which sends and receives asynchronous messages between all workers.
     RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
-
 
 /*
 TEST(NetGroup, InitializeAndClose) {

@@ -20,7 +20,6 @@
 #include <fstream>
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -39,7 +38,6 @@ public:
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
     * \param ctx Reference to Context, which holds references to data and network.
-    * \param parents Vector of parents. Is empty, as read has no previous operations
     * \param read_function Read function, which defines how each line of the file is read and emitted
     * \param path_in Path of the input file
     */
@@ -83,8 +81,8 @@ public:
     auto ProduceStack() {
         // Hook Identity
         auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
-                         return emit_func(t);
-                     };
+            return emit_func(t);
+        }
 
         FunctionStack<> stack;
         return stack.push(id_fn);
@@ -108,7 +106,6 @@ private:
     //! Path of the input file.
     std::string path_in_;
 };
-
 } // namespace c7a
 
 //! \}

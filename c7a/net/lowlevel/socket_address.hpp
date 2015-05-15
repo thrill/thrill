@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/socket-address.hpp
+ * c7a/net/lowlevel/socket_address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -25,7 +25,6 @@
 namespace c7a {
 namespace net {
 namespace lowlevel {
-
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -293,7 +292,6 @@ public:
 };
 
 // \}
-
 } // namespace lowlevel
 } // namespace net
 } // namespace c7a

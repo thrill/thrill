@@ -17,12 +17,12 @@
 #include <string>
 
 namespace c7a {
-
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
  *
- * @param str   string to output in hex
- * @return      string of hexadecimal pairs
+ * \param data  binary data to output in hex
+ * \param size  length of binary data
+ * \return      string of hexadecimal pairs
  */
 static inline std::string hexdump(const void* data, size_t size)
 {
@@ -50,7 +50,6 @@ static inline std::string hexdump(const std::string& str)
 {
     return hexdump(str.data(), str.size());
 }
-
 } // namespace c7a
 
 #endif // !C7A_COMMON_STRING_HEADER

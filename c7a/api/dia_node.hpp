@@ -19,20 +19,8 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
-
-/*!
- * Possible states a DIANode can be in.
- */
-enum kState {
-    NEW,        /*!< The DIANode has not been computed yet. */
-    CALCULATED, /*!< The DIANode has been calculated but not explicitly cached.
-                  Data might be available or has to be recalculated when needed */
-    CACHED,     /*!< The DIANode is cached and it's data can be accessed */
-    DISPOSED    /*!< The DIANode is disposed by the user, needs to be recomputed when accessed */
-};
 
 /*!
  * A DIANode is a typed node representing and operation in c7a. It is the super class for
@@ -78,7 +66,7 @@ public:
      * This way the parent can push all its result elements to each of the children.
      * This procedure enables the minimization of IO-accesses.
      *
-     * \param callback Callback function from the child including all 
+     * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
     void RegisterChild(std::function<void(T)> callback)
@@ -112,7 +100,6 @@ protected:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_DIA_NODE_HEADER

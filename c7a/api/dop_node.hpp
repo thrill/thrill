@@ -15,15 +15,14 @@
 #include "context.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
 /*!
- * A DOpNode is a typed node representing and distributed operations in c7a. 
+ * A DOpNode is a typed node representing and distributed operations in c7a.
  * It is the super class for all distributed operation nodes.
  *
- * \tparam T Type of the corresponding DIANode 
+ * \tparam T Type of the corresponding DIANode
  */
 template <typename T>
 class DOpNode : public DIANode<T>
@@ -53,7 +52,6 @@ public:
         return str;
     }
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_DOP_NODE_HEADER

@@ -21,7 +21,6 @@
 #include "../common/logger.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -49,7 +48,8 @@ public:
      * Constructor for a ZipNode.
      *
      * \param ctx Reference to the Context, which gives iterators for data
-     * \param parents Vector of parents. Has size 2, as Zip has two parents
+     * \param parent1 First parent of the ZipNode
+     * \param parent2 Second parent of the ZipNode
      * \param stack1 Function stack with all lambdas between the parent and this node for first DIA
      * \param stack2 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
@@ -67,11 +67,11 @@ public:
     {
         // Hook PreOp(s)
         auto pre_op1_fn = [ = ](Input1 input) {
-                              PreOp(input);
-                          };
+            PreOp(input);
+        }
         auto pre_op2_fn = [ = ](Input2 input) {
-                              PreOpSecond(input);
-                          };
+            PreOpSecond(input);
+        }
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
         auto lop_chain2 = stack2_.push(pre_op2_fn).emit();
 
@@ -102,8 +102,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-                              return PostOp(elem, emit_func);
-                          };
+            return PostOp(elem, emit_func);
+        }
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -173,7 +173,6 @@ private:
         emit_func(input);
     }
 };
-
 } // namespace c7a
 
 //! \}

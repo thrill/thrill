@@ -18,11 +18,11 @@
 #include "dop_node.hpp"
 #include <c7a/api/context.hpp>
 #include "function_stack.hpp"
-#include "../common/logger.hpp"
-#include "../core/hash_table.hpp"
+#include "c7a/common/logger.hpp"
+#include "c7a/core/reduce_pre_table.hpp"
+#include "c7a/core/reduce_post_table.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -56,7 +56,7 @@ public:
      * Constructor for a ReduceNode. Sets the DataManager, parent, stack, key_extractor and reduce_function.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param parent Parent DIANode. 
+     * \param parent Parent DIANode.
      * \param stack Function chain with all lambdas between the parent and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
@@ -74,8 +74,8 @@ public:
     {
         // Hook PreOp
         auto pre_op_fn = [ = ](reduce_arg_t input) {
-                             PreOp(input);
-                         };
+            PreOp(input);
+        }
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
 
         parent->RegisterChild(lop_chain);
@@ -109,8 +109,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-                              return PostOp(elem, emit_func);
-                          };
+            return PostOp(elem, emit_func);
+        }
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -139,34 +139,39 @@ private:
     //! afterwards send data to another worker given by the shuffle algorithm.
     void PreOp(reduce_arg_t input)
     {
-        LOG << "PreOp: " << input;
         elements_.push_back(input);
     }
 
     //!Recieve elements from other workers.
     auto MainOp() {
-        data::BlockEmitter<Output> emit =
-            context_.get_data_manager().template GetLocalEmitter<Output>(data_id_);
+        using ReduceTable
+                  = core::ReducePostTable<KeyExtractor,
+                                          ReduceFunction,
+                                          std::function<void(reduce_arg_t)> >;
 
-        reduce_arg_t reduced = reduce_arg_t();
+        std::function<void(Output)> print = [] (Output elem) {
+            LOG << elem.first << " " << elem.second;
+        };
+
+        auto table = ReduceTable(key_extractor_,
+                                 reduce_function_,
+                                 { print });
+
         for (const reduce_arg_t& elem : elements_) {
-            reduced += elem;
+            table.Insert(elem);
         }
 
-        LOG << "MainOp: " << reduced;
-        emit(reduced);
+        table.Flush();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     void PostOp(Output input, std::function<void(Output)> emit_func)
     {
-        LOG << "PostOp: " << input;
         emit_func(input);
     }
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER

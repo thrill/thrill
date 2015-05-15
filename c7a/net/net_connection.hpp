@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-connection.hpp
+ * c7a/net/net_connection.hpp
  *
  * Contains NetConnection a richer set of network point-to-point primitives.
  *
@@ -22,11 +22,11 @@
 #include <string>
 
 #include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/lowlevel/net_exception.hpp>
+#include <c7a/net/exception.hpp>
+#include <c7a/net/buffer.hpp>
 
 namespace c7a {
 namespace net {
-
 //! \addtogroup net Network Communication
 //! \{
 
@@ -54,20 +54,19 @@ public:
     //! Construct NetConnection from a Socket
     explicit NetConnection(const Socket& s)
         : Socket(s)
-    { } 
+    { }
 
     explicit NetConnection()
         : Socket()
     { }
 
-
 #if !C7A_NETCONNECTION_COPYABLE
     //! move-constructor
-    NetConnection(NetConnection&& other) : Socket(other)
+    NetConnection(NetConnection && other) : Socket(other)
     { other.fd_ = -1; }
 
     //! move assignment-operator
-    NetConnection& operator = (NetConnection&& other)
+    NetConnection& operator = (NetConnection && other)
     {
         if (IsValid()) {
             sLOG1 << "Assignment-destruction of valid NetConnection" << this;
@@ -120,21 +119,21 @@ public:
             // for communication verification, send sizeof.
             size_t len = sizeof(value);
             if (send(&len, sizeof(len), MSG_MORE) != sizeof(len))
-                throw lowlevel::NetException("Error during Send", errno);
+                throw Exception("Error during Send", errno);
         }
 
         if (send(&value, sizeof(value)) != (ssize_t)sizeof(value))
-            throw lowlevel::NetException("Error during Send", errno);
+            throw Exception("Error during Send", errno);
     }
 
     //! Send a string buffer
     void SendString(const void* data, size_t len)
     {
         if (send(&len, sizeof(len), MSG_MORE) != sizeof(len))
-            throw lowlevel::NetException("Error during SendString", errno);
+            throw Exception("Error during SendString", errno);
 
         if (send(data, len) != (ssize_t)len)
-            throw lowlevel::NetException("Error during SendString", errno);
+            throw Exception("Error during SendString", errno);
     }
 
     //! Send a string message.
@@ -159,14 +158,14 @@ public:
             // for communication verification, receive sizeof.
             size_t len = 0;
             if (recv(&len, sizeof(len)) != sizeof(len))
-                throw lowlevel::NetException("Error during Receive", errno);
+                throw Exception("Error during Receive", errno);
 
             // if this fails, then fixed-length type communication desynced.
             die_unequal(len, sizeof(*out_value));
         }
 
         if (recv(out_value, sizeof(*out_value)) != (ssize_t)sizeof(*out_value))
-            throw lowlevel::NetException("Error during Receive", errno);
+            throw Exception("Error during Receive", errno);
     }
 
     //! Blocking receive string message from the connected socket.
@@ -175,7 +174,7 @@ public:
         size_t len = 0;
 
         if (recv(&len, sizeof(len)) != sizeof(len))
-            throw lowlevel::NetException("Error during ReceiveString", errno);
+            throw Exception("Error during ReceiveString", errno);
 
         if (len == 0)
             return;
@@ -185,7 +184,7 @@ public:
         ssize_t ret = recv(const_cast<char*>(outdata->data()), len);
 
         if (ret != (ssize_t)len)
-            throw lowlevel::NetException("Error during ReceiveString", errno);
+            throw Exception("Error during ReceiveString", errno);
     }
 
     //! \}
@@ -210,7 +209,7 @@ public:
     friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
     {
         os << "[NetConnection"
-           << " fd=" << c.GetSocket().fd();
+        << " fd=" << c.GetSocket().fd();
 
         if (c.IsValid())
             os << " peer=" << c.GetPeerAddress();
@@ -220,7 +219,6 @@ public:
 };
 
 // \}
-
 } // namespace net
 } // namespace c7a
 
