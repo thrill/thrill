@@ -22,7 +22,7 @@ struct TestBlockIterator : public::testing::Test {
 
     BinaryBuffer StringsToBuffer(std::vector<std::string> strings) const
     {
-        BinaryBuilder builder;
+        BinaryBufferBuilder builder;
         for (std::string s : strings) {
             builder.PutString(s);
         }

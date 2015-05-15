@@ -14,18 +14,18 @@
 #include <vector>
 #include <memory> //unique_ptr
 
-#include <c7a/net/binary_builder.hpp>
+#include <c7a/data/binary_buffer.hpp>
 
 namespace c7a {
 namespace data {
 //! Elements of a singly linked list, holding a immuteable buffer
 struct BufferChainElement {
-    BufferChainElement(net::BinaryBuffer b) : next(nullptr), buffer(b) { }
+    BufferChainElement(BinaryBuffer b) : next(nullptr), buffer(b) { }
 
     inline bool              IsEnd() const { return next == nullptr; }
 
     struct BufferChainElement* next;
-    net::BinaryBuffer        buffer;
+    BinaryBuffer             buffer;
 };
 
 //! A Buffer chain holds multiple immuteable buffers.
@@ -33,7 +33,7 @@ struct BufferChainElement {
 struct BufferChain {
     BufferChain() : head(nullptr), tail(nullptr), closed(false) { }
 
-    void                     Append(net::BinaryBuffer b)
+    void                     Append(BinaryBuffer b)
     {
         if (tail == nullptr) {
             head = new BufferChainElement(b);
