@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include "gtest/gtest.h"
-#include <tests/c7a-tests.hpp>
+#include <tests/c7a_tests.hpp>
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
@@ -17,7 +17,7 @@
 using namespace c7a::core;
 
 TEST(API, SharedPtrTest) {
-    using c7a::DIA;
+    using c7a::DIARef;
     using c7a::Context;
 
     Context ctx;
@@ -38,20 +38,10 @@ TEST(API, SharedPtrTest) {
         [](const std::string& line) {
             return std::stoi(line);
         });
-    DIA<int> ints = input.Map(map_fn);
-    // DIA<int> doubles = ints.Map(map_fn);
+    auto ints = input.Map(map_fn);
     auto doubles = ints.Map(map_fn);
-    // Do this to keep reference count alive;
-    DIA<int> test = ints;
-    ints = doubles;
-    // auto quad = doubles.Map(map_fn);
     auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
 
-    std::cout << "Input: " << input.NodeString() << " RefCount: " << input.get_node_count() << std::endl;
-    std::cout << "Ints: " << ints.NodeString() << " RefCount: " << ints.get_node_count() << std::endl;
-    std::cout << "Doubles: " << doubles.NodeString() << " RefCount: " << doubles.get_node_count() << std::endl;
-    // std::cout << "Quad: " << quad.NodeString() << " RefCount: " << quad.get_node_count() << std::endl;
-    std::cout << "Red: " << red_quad.NodeString() << " RefCount: " << red_quad.get_node_count() << std::endl;
     std::vector<Stage> result;
     FindStages(red_quad.get_node(), result);
     for (auto s : result)
@@ -60,35 +50,77 @@ TEST(API, SharedPtrTest) {
     }
 
     return;
+}
 
+TEST(API, TypeDeductionText) {
+    using c7a::DIARef;
+    using c7a::Context;
+
+    Context ctx;
+
+    auto to_int_fn = [](std::string in) {
+                      return std::stoi(in);
+                  };
+    auto double_int_fn = [](int in) {
+                      return 2 * in;
+                  };
+    auto filter_geq = [](int in) {
+                      return in <= 40;
+                  };
+    auto key_ex = [](int in) {
+                      return in % 2;
+                  };
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    auto lines = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+            return line;
+        });
+    auto ints = lines.Map(to_int_fn);
+    auto doubles = ints.Map(double_int_fn);
+    auto filtered = doubles.Filter(filter_geq);
+    auto red_quad = filtered.ReduceBy(key_ex).With(red_fn);
+
+    std::vector<Stage> result;
+    FindStages(red_quad.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+    }
+
+    return;
 }
 
 TEST(API, Test1Zip) {
-     auto read_int = [](std::string line) { return std::stoi(line); };
-     
-     auto zip_fn = [](int in1, int in2) {
-         return in1 + in2;
-     };
+    auto read_int = [](std::string line) { return std::stoi(line); };
 
-     c7a::Context ctx;
+    auto zip_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
 
-     auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
-     
-     auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
-     
-     auto doubled = initial2.Map([](int in) {
-	 return 2 * in;
-       });
+    c7a::Context ctx;
 
-     auto zipped = initial1.Zip(zip_fn, doubled);
+    auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
 
-     std::vector<c7a::core::Stage> result;
-     FindStages(zipped.get_node(), result);
-     for (auto s : result) {
-         s.Run();	
-     }
+    auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
 
-     return;
+    auto doubled = initial2.Map([](int in) {
+                                    return 2 * in;
+                                });
+
+    auto zipped = initial1.Zip(zip_fn, doubled);
+
+    std::vector<c7a::core::Stage> result;
+    FindStages(zipped.get_node(), result);
+    for (auto s : result) {
+        s.Run();
+    }
+
+    return;
 }
 
 TEST(API, FunctionStackTest) {

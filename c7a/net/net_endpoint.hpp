@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-endpoint.hpp
+ * c7a/net/net_endpoint.hpp
  *
  * Part of Project c7a.
  *
@@ -53,7 +53,7 @@ public:
     }
 };
 
-static std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
+static inline std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
 {
     return os << endpoint.hostport;
 }

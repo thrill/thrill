@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-connection.hpp
+ * c7a/net/net_connection.hpp
  *
  * Contains NetConnection a richer set of network point-to-point primitives.
  *
@@ -22,7 +22,8 @@
 #include <string>
 
 #include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/net-exception.hpp>
+#include <c7a/net/exception.hpp>
+#include <c7a/net/buffer.hpp>
 
 namespace c7a {
 namespace net {
@@ -115,21 +116,21 @@ public:
             // for communication verification, send sizeof.
             size_t len = sizeof(value);
             if (send(&len, sizeof(len), MSG_MORE) != sizeof(len))
-                throw NetException("Error during Send", errno);
+                throw Exception("Error during Send", errno);
         }
 
         if (send(&value, sizeof(value)) != (ssize_t)sizeof(value))
-            throw NetException("Error during Send", errno);
+            throw Exception("Error during Send", errno);
     }
 
     //! Send a string buffer
     void SendString(const void* data, size_t len)
     {
         if (send(&len, sizeof(len), MSG_MORE) != sizeof(len))
-            throw NetException("Error during SendString", errno);
+            throw Exception("Error during SendString", errno);
 
         if (send(data, len) != (ssize_t)len)
-            throw NetException("Error during SendString", errno);
+            throw Exception("Error during SendString", errno);
     }
 
     //! Send a string message.
@@ -154,14 +155,14 @@ public:
             // for communication verification, receive sizeof.
             size_t len = 0;
             if (recv(&len, sizeof(len)) != sizeof(len))
-                throw NetException("Error during Receive", errno);
+                throw Exception("Error during Receive", errno);
 
             // if this fails, then fixed-length type communication desynced.
             die_unequal(len, sizeof(*out_value));
         }
 
         if (recv(out_value, sizeof(*out_value)) != (ssize_t)sizeof(*out_value))
-            throw NetException("Error during Receive", errno);
+            throw Exception("Error during Receive", errno);
     }
 
     //! Blocking receive string message from the connected socket.
@@ -170,7 +171,7 @@ public:
         size_t len = 0;
 
         if (recv(&len, sizeof(len)) != sizeof(len))
-            throw NetException("Error during ReceiveString", errno);
+            throw Exception("Error during ReceiveString", errno);
 
         if (len == 0)
             return;
@@ -180,7 +181,7 @@ public:
         ssize_t ret = recv(const_cast<char*>(outdata->data()), len);
 
         if (ret != (ssize_t)len)
-            throw NetException("Error during ReceiveString", errno);
+            throw Exception("Error during ReceiveString", errno);
     }
 
     //! \}
