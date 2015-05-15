@@ -20,11 +20,6 @@
 
 using namespace c7a::net;
 
-TEST(NetGroup, InitializeAndClose) {
-    // Construct a NetGroup of 6 workers which do nothing but terminate.
-    NetGroup::ExecuteLocalMock(6, [](NetGroup*) { });
-}
-
 static void ThreadInitializeAsyncRead(NetGroup* net)
 {
     // send a message to all other clients except ourselves.
@@ -103,14 +98,11 @@ static void ThreadInitializeSendReceive(NetGroup* net)
     }
 }
 
-TEST(NetGroup, InitializeSendReceive) {
-    // Construct a NetGroup of 6 workers which execute the thread function above
-    NetGroup::ExecuteLocalMock(6, ThreadInitializeSendReceive);
-}
-
 static void RealNetGroupConstructAndCall(
     std::function<void(NetGroup*)> thread_function)
 {
+    static const bool debug = false;
+
     static const std::vector<NetEndpoint> endpoints = {
         NetEndpoint("127.0.0.1:11234"),
         NetEndpoint("127.0.0.1:11235"),
@@ -126,22 +118,22 @@ static void RealNetGroupConstructAndCall(
 
     // lambda to construct NetGroup and call user thread function.
 
+
+    std::vector<CommunicationManager> groups(count);
+
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [i, &thread_function]() {
+            [i, &thread_function, &groups]() {
                 // construct NetGroup i with endpoints
-                CommunicationManager group;
-                group.Initialize(i, endpoints);
+                groups[i].Initialize(i, endpoints);
                 // run thread function
-                thread_function(group.GetFlowNetGroup());
-                // TODO(tb): sleep here because otherwise connection may get
-                // closed in ReceiveStringFromAny which causes an error.
-                sleep(1);
+                thread_function(groups[i].GetFlowNetGroup());
             });
     }
 
     for (int i = 0; i < count; i++) {
         threads[i].join();
+        groups[i].Dispose();
     }
 }
 
@@ -162,6 +154,18 @@ TEST(NetGroup, RealInitializeSendReceiveAsync) {
     RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
 
+
+/*
+TEST(NetGroup, InitializeAndClose) {
+    // Construct a NetGroup of 6 workers which do nothing but terminate.
+    NetGroup::ExecuteLocalMock(6, [](NetGroup*) { });
+}
+
+TEST(NetGroup, InitializeSendReceive) {
+    // Construct a NetGroup of 6 workers which execute the thread function above
+    NetGroup::ExecuteLocalMock(6, ThreadInitializeSendReceive);
+}
+
 TEST(NetGroup, TestAllReduce) {
     // Construct a NetGroup of 8 workers which perform an AllReduce collective
     NetGroup::ExecuteLocalMock(
@@ -171,5 +175,5 @@ TEST(NetGroup, TestAllReduce) {
             ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
         });
 }
-
+*/
 /******************************************************************************/
