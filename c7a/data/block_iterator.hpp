@@ -14,6 +14,7 @@
 #include <vector>
 #include "serializer.hpp"
 #include "buffer_chain.hpp"
+#include "binary_buffer_reader.hpp"
 
 namespace c7a {
 namespace data {
@@ -30,7 +31,7 @@ public:
           late_init_(false)
     {
         if (current_ != nullptr) {
-            current_reader_ = net::BinaryReader(current_->buffer);
+            current_reader_ = BinaryBufferReader(current_->buffer);
         }
         else {
             late_init_ = true;
@@ -68,7 +69,7 @@ public:
         {
             current_ = buffer_chain_.head;
             if (current_ != nullptr) {
-                current_reader_ = net::BinaryReader(current_->buffer);
+                current_reader_ = BinaryBufferReader(current_->buffer);
                 late_init_ = false;
             }
         }
@@ -84,14 +85,14 @@ public:
 private:
     const struct BufferChain& buffer_chain_;
     const BufferChainElement* current_;
-    net::BinaryReader current_reader_;
+    BinaryBufferReader current_reader_;
     bool late_init_; //problem when iterator is created before emitter has flushed values
 
     void MoveToNextBuffer()
     {
         assert(!current_->IsEnd());
         current_ = current_->next;
-        current_reader_ = net::BinaryReader(current_->buffer);
+        current_reader_ = BinaryBufferReader(current_->buffer);
     }
 };
 } // namespace data

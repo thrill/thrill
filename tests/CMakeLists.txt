@@ -39,7 +39,7 @@ build_test(core/test_stage_builder)
 build_test(core/test_hash_table)
 build_only(net/test_net_group) #TODO(emi please fix)
 build_test(net/test_buffer)
-build_test(net/test_binary_builder)
+build_test(data/test_binary_builder)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_test(net/test_stream)
 
