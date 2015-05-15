@@ -38,7 +38,8 @@ private:
     lowlevel::Socket listenSocket_;
     NetConnection listenConnection_;
     size_t my_rank_;
-    int got_connections = -1;          //-1 mens uninitialized
+    int received_hellos_ = -1;          //-1 mens uninitialized
+    unsigned int sent_hellos_;
     unsigned int accepting;
     NetDispatcher dispatcher;
     std::vector<NetConnection> connections_;
@@ -79,18 +80,21 @@ public:
 
     void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints)
     {
-        if (got_connections != -1) {
+        this->my_rank_ = my_rank_;
+
+        if (received_hellos_ != -1) {
             throw new lowlevel::NetException("This communication manager has already been initialized.");
         }
 
-        connections_.reserve((endpoints.size() + 1) * GROUP_COUNT);
+        connections_.reserve(endpoints.size() * GROUP_COUNT);
 
         for(int i = 0; i < GROUP_COUNT; i++) {
             netGroups_[i] = new NetGroup(my_rank_, endpoints.size());
         }
 
-        got_connections = 0;
-        accepting = my_rank_;
+        received_hellos_ = 0;
+        sent_hellos_ = 0;
+        accepting = my_rank_ * GROUP_COUNT;
 
         die_unless(my_rank_ < endpoints.size());
 
@@ -123,7 +127,11 @@ public:
                 const WelcomeMsg hello = { c7a_sign, group, (ClientId)my_rank_ };
 
                 lowlevel::Socket ns = lowlevel::Socket::Create();
-                connections_.emplace_back(ns);
+    
+                connections_.emplace_back(ns);   
+
+                die_unless(connections_.back().GetSocket().fd() > 0);
+                die_unless(connections_.back().GetSocket().IsValid());
 
                 if (ns.connect(addressList[id]) == 0) {
                     // connect() already successful? this should not be.
@@ -143,14 +151,17 @@ public:
 
         dispatcher.AddRead(listenConnection_, std::bind(&c7a::net::CommunicationManager::PassiveConnected, this, std::placeholders::_1));
 
-        while (got_connections != (int)((addressList.size() - 1) * GROUP_COUNT))
+        int helloCount = (int)((addressList.size() - 1) * GROUP_COUNT);
+        while (received_hellos_ < helloCount || sent_hellos_ < helloCount)
         {
+            LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher.Dispatch();
         }
+    
 
         //Could dispose listen connection here.
 
-        LOG << "done";
+        LOG << "Client " << my_rank_ << " done";
 
         for (uint32_t j = 0; j < GROUP_COUNT; j++) {
             // output list of file descriptors connected to partners
@@ -161,6 +172,10 @@ public:
             }
         }
     }
+
+    void HelloSent(NetConnection& conn) {
+        sent_hellos_++;
+    } 
 
     /**
      * @brief Called when a socket connects.
@@ -177,14 +192,17 @@ public:
                       + std::to_string(hello.id), err);
         }
 
+        die_unless(conn.GetSocket().fd() > 0);
+        die_unless(conn.GetSocket().IsValid());
+
         LOG << "OpenConnections() " << my_rank_ << " connected"
             << " fd=" << conn.GetSocket().fd()
             << " to=" << conn.GetSocket().GetPeerAddress();
 
         // send welcome message
-        // conn.GetSocket().SetNonBlocking(false);
-        dispatcher.AsyncWrite(conn, &hello, sizeof(hello));
-        LOG << "sent client " << hello.id;
+        //conn.GetSocket().SetNonBlocking(false);
+        dispatcher.AsyncWrite(conn, &hello, sizeof(hello), std::bind(&c7a::net::CommunicationManager::HelloSent, this, std::placeholders::_1));
+        LOG << "Client " << my_rank_ << " sent active hello to client ?";
 
         // wait for welcome message from other side
         dispatcher.AsyncRead(conn, sizeof(hello), std::bind(&c7a::net::CommunicationManager::ReceiveWelcomeMessage, this, std::placeholders::_1, std::placeholders::_2));
@@ -200,18 +218,22 @@ public:
      */
     bool ReceiveWelcomeMessage(NetConnection& conn, const std::string& buffer)
     {
-        LOG0 << "Message on " << conn.GetSocket().fd();
+
+        die_unless(conn.GetSocket().fd() > 0);
+        die_unless(conn.GetSocket().IsValid());
+
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
 
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg->c7a, c7a_sign);
 
-        LOG0 << "client " << my_rank_ << " got signature "
+        LOG << "client " << my_rank_ << " got signature "
              << "from client " << msg->id;
 
         // assign connection.
         netGroups_[msg->groupId]->SetConnection(msg->id, conn);
-        ++got_connections;
+
+        ++received_hellos_;
 
         return false;
     }
@@ -224,16 +246,24 @@ public:
      */
     bool ReceiveWelcomeMessageAndReply(NetConnection& conn, const std::string& buffer)
     {
-        ReceiveWelcomeMessage(conn, buffer);
+        die_unless(conn.GetSocket().fd() > 0);
+        die_unless(conn.GetSocket().IsValid());
+
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
+        die_unequal(msg->c7a, c7a_sign);
+        LOG << "client " << my_rank_ << " got signature "
+             << "from client " << msg->id;
 
         const WelcomeMsg hello = { c7a_sign, msg->groupId, (ClientId)my_rank_ };
 
-        // send welcome message
-        dispatcher.AsyncWrite(conn, &hello, sizeof(hello));
-        LOG << "sent client " << hello.id;
+        NetConnection & connCopy = netGroups_[msg->groupId]->SetConnection(msg->id, conn);
 
-        ++got_connections;
+        die_unless(connCopy.GetSocket().IsValid());
+        // send welcome message
+        dispatcher.AsyncWrite(connCopy, &hello, sizeof(hello), std::bind(&c7a::net::CommunicationManager::HelloSent, this, std::placeholders::_1));
+        LOG << "Client " << my_rank_ << " sent passive hello to client " << msg->id;
+
+        ++received_hellos_;
 
         return false;
     }
@@ -242,9 +272,10 @@ public:
     {
         die_unless(accepting > 0);
         connections_.emplace_back(conn.GetSocket().accept());
+        die_unless(connections_.back().GetSocket().fd() > 0);
+        die_unless(connections_.back().GetSocket().IsValid());
         // newConn.GetSocket().SetNonBlocking(false);
 
-        die_unless(connections_.back().GetSocket().IsValid());
 
         LOG << "OpenConnections() " << my_rank_ << " accepted connection"
             << " fd=" << connections_.back().GetSocket().fd()

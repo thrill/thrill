@@ -35,14 +35,14 @@ namespace lowlevel {
 template <typename _Cookie>
 class SelectDispatcher : protected Select
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     //! cookie data structure for callback
     typedef _Cookie Cookie;
 
     //! cookie type for file descriptor readiness callbacks
-    typedef std::function<bool (Cookie)> Callback;
+    typedef std::function<bool (Cookie&)> Callback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(int fd, const Cookie& c,
@@ -195,9 +195,9 @@ private:
     //! struct to entries per watched file descriptor
     struct Watch
     {
-        int      fd;
-        Cookie   cookie;
-        Callback read_cb, write_cb, except_cb;
+        int       fd;
+        Cookie    &cookie;
+        Callback  read_cb, write_cb, except_cb;
 
         Watch(int _fd, const Cookie& _cookie,
               const Callback& _read_cb, const Callback& _write_cb,
