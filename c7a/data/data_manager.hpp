@@ -78,7 +78,7 @@ public:
             throw std::runtime_error("target dia id unknown.");
         }
         auto& target = data_[id]; //yes. const ref to an unique_ptr
-        return [&target](T elem) { target.push_back(Serialize(elem)); }
+        return [&target](T elem) { target.push_back(Serialize(elem)); };
     }
 
     //!Returns an InputLineIterator with a given input file stream.

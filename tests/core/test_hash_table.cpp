@@ -28,7 +28,7 @@ TEST(PreTable, CreateEmptyTable) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
@@ -47,7 +47,7 @@ TEST(PostTable, CreateEmptyTable) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(key_ex, red_fn, { emit });
@@ -66,7 +66,7 @@ TEST(PreTable, AddIntegers) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
@@ -93,7 +93,7 @@ TEST(PostTable, AddIntegers) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(key_ex, red_fn, { emit });
@@ -120,7 +120,7 @@ TEST(PreTable, PopIntegers) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
@@ -150,7 +150,7 @@ TEST(PreTable, FlushIntegers) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
@@ -181,7 +181,7 @@ TEST(PostTable, FlushIntegers) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(key_ex, red_fn, { emit });
@@ -206,7 +206,7 @@ TEST(PostTable, MultipleEmitters) {
 
     auto emit1 = [&vec1](int in) {
         vec1.push_back(in);
-    }
+    };
 
     auto key_ex = [] (int in) {
         return in;
@@ -214,7 +214,7 @@ TEST(PostTable, MultipleEmitters) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     std::vector<decltype(emit1)> emitters;
     emitters.push_back(emit1);
@@ -254,7 +254,7 @@ TEST(PreTable, ComplexType) {
 
     auto red_fn = [] (StringPair in1, StringPair in2) {
         return std::make_pair(in1.first, in1.second + in2.second);
-    }
+    };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
@@ -289,7 +289,7 @@ TEST(PostTable, ComplexType) {
 
     auto red_fn = [] (StringPair in1, StringPair in2) {
         return std::make_pair(in1.first, in1.second + in2.second);
-    }
+    };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(key_ex, red_fn, { emit });
@@ -320,7 +320,7 @@ TEST(PreTable, MultipleWorkers) {
 
     auto red_fn = [] (int in1, int in2) {
         return in1 + in2;
-    }
+    };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(2, key_ex, red_fn, { emit });
