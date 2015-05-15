@@ -104,6 +104,8 @@ public:
     virtual void AsyncRead(NetConnection& c, size_t n,
                            AsyncReadCallback done_cb)
     {
+        assert(c.GetSocket().IsValid());
+
         LOG << "async read on read dispatcher";
         if (n == 0) {
             if (done_cb) done_cb(c, std::string());
@@ -124,6 +126,8 @@ public:
     void AsyncWrite(NetConnection& c, const std::string& buffer,
                     AsyncWriteCallback done_cb = nullptr)
     {
+        assert(c.GetSocket().IsValid());
+
         if (buffer.size() == 0) {
             if (done_cb) done_cb(c);
             return;
@@ -141,6 +145,8 @@ public:
     void AsyncWrite(NetConnection& c, const void* buffer, size_t size,
                     AsyncWriteCallback done_cb = NULL)
     {
+        assert(c.GetSocket().IsValid());
+
         return AsyncWrite(
             c, std::string(reinterpret_cast<const char*>(buffer), size),
             done_cb);

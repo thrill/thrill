@@ -46,16 +46,20 @@ namespace lowlevel {
  */
 class Socket
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     //! \name Creation
     //! \{
 
     //! Construct new Socket object from existing file descriptor.
-    explicit Socket(int fd = -1)
+    explicit Socket(int fd)
         : fd_(fd)
     { }
+
+    explicit Socket() 
+        : fd_(-1) {
+    }
 
     //! Create a new stream socket.
     static Socket Create()
@@ -255,6 +259,8 @@ public:
             << " sa=" << sa
             << " return=" << r
             << " error=" << strerror(errno);
+
+        die_unless(false);
 
         return r;
     }
@@ -476,11 +482,6 @@ public:
                 << " error=" << strerror(errno);
 
         return r;
-    }
-
-
-    ~Socket() {
-        LOG << "Socket destruction fd_=" << fd_; 
     }
 
     //! Enable sending of keep-alive messages on connection-oriented sockets.

@@ -46,7 +46,7 @@ namespace net {
  */
 class NetConnection : protected lowlevel::Socket
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     static const bool self_verify_ = true;
 
