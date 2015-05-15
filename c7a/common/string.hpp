@@ -17,7 +17,6 @@
 #include <string>
 
 namespace c7a {
-
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
  *
@@ -51,7 +50,6 @@ static inline std::string hexdump(const std::string& str)
 {
     return hexdump(str.data(), str.size());
 }
-
 } // namespace c7a
 
 #endif // !C7A_COMMON_STRING_HEADER

@@ -15,7 +15,6 @@
 #include "context.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -53,7 +52,6 @@ public:
         return str;
     }
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_DOP_NODE_HEADER

@@ -25,7 +25,6 @@
 
 namespace c7a {
 namespace core {
-
 class Stage
 {
 public:
@@ -74,7 +73,7 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
     std::reverse(stages_result.begin(), stages_result.end());
 }
 
-inline void RunScope(DIABase* action) 
+inline void RunScope(DIABase* action)
 {
     std::vector<Stage> result;
     FindStages(action, result);
@@ -83,8 +82,6 @@ inline void RunScope(DIABase* action)
         s.Run();
     }
 }
-
-
 } // namespace engine
 } // namespace c7a
 

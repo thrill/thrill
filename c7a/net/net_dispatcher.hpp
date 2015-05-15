@@ -28,7 +28,6 @@
 
 namespace c7a {
 namespace net {
-
 //! \addtogroup net Network Communication
 //! \{
 
@@ -89,7 +88,7 @@ public:
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb)
     {
         return dispatcher_.AddReadWrite(
-            c.GetSocket().fd(), c, read_cb, write_cb);
+                   c.GetSocket().fd(), c, read_cb, write_cb);
     }
 
     //! \}
@@ -105,6 +104,8 @@ public:
     virtual void AsyncRead(NetConnection& c, size_t n,
                            AsyncReadCallback done_cb)
     {
+        assert(c.GetSocket().IsValid());
+
         LOG << "async read on read dispatcher";
         if (n == 0) {
             if (done_cb) done_cb(c, Buffer());
@@ -116,7 +117,7 @@ public:
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, [&arb](NetConnection& c) { return arb(c); });
+        AddRead(c, [&arb](NetConnection & c) { return arb(c); });
     }
 
     //! callback signature for async write callbacks
@@ -124,9 +125,11 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(NetConnection& c, Buffer&& buffer,
+    void AsyncWrite(NetConnection& c, Buffer && buffer,
                     AsyncWriteCallback done_cb = nullptr)
     {
+        assert(c.GetSocket().IsValid());
+
         if (buffer.size() == 0) {
             if (done_cb) done_cb(c);
             return;
@@ -137,13 +140,13 @@ public:
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, [&awb](NetConnection& c) { return awb(c); });
+        AddWrite(c, [&awb](NetConnection & c) { return awb(c); });
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(NetConnection& c, const void* buffer, size_t size,
-                    AsyncWriteCallback done_cb = NULL)
+                        AsyncWriteCallback done_cb = NULL)
     {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
@@ -277,7 +280,7 @@ protected:
     {
     public:
         //! Construct buffered writer with callback
-        AsyncWriteBuffer(Buffer&& buffer,
+        AsyncWriteBuffer(Buffer && buffer,
                          const AsyncWriteCallback& callback)
             : callback_(callback),
               buffer_(std::move(buffer))
@@ -330,7 +333,6 @@ protected:
 };
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 
