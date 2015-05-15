@@ -14,6 +14,7 @@
 #include <memory> //std::shared_ptr
 #include <map>
 #include <c7a/net/net_dispatcher.hpp>
+#include <c7a/net/net_group.hpp>
 #include <c7a/net/channel.hpp>
 #include <c7a/data/block_emitter.hpp>
 #include <c7a/data/socket_target.hpp>
@@ -35,14 +36,11 @@ namespace net {
 //! All sockets are polled for headers. As soon as the a header arrives it is
 //! either attached to an existing channel or a new channel instance is
 //! created.
-class ChannelMultiplexer
-{
+class ChannelMultiplexer {
 public:
-    ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections);
+    ChannelMultiplexer(NetDispatcher& dispatcher);
 
-    //! Adds a connected TCP socket to another worker
-    //! There must exist exactly one TCP connection to each worker.
-    virtual void AddSocket(NetConnection& s);
+    virtual void Connect(std::shared_ptr<NetGroup> group);
 
     std::vector<NetConnection*> GetSockets();
 
@@ -54,8 +52,7 @@ public:
     std::shared_ptr<Channel> PickupChannel(int id);
 
     template <class T>
-    std::vector<data::BlockEmitter<T, data::SocketTarget> > OpenChannel(size_t id)
-    {
+    std::vector<data::BlockEmitter<T, data::SocketTarget> > OpenChannel(size_t id) {
         return { };
     }
 
@@ -67,10 +64,9 @@ private:
     std::map<int, ChannelPtr> channels_;
 
     //Hols NetConnections for outgoing Channels
-    std::vector<NetConnection> connections_;
+    std::shared_ptr<NetGroup> group_;
 
     NetDispatcher& dispatcher_;
-    int num_connections_;
 
     //! expects the next header from a socket
     void ExpectHeaderFrom(NetConnection& s);

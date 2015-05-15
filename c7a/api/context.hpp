@@ -19,14 +19,12 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-class Context
-{
+class Context {
 public:
-    Context() : net_dispatcher_(), cmp_(net_dispatcher_, 123), data_manager_(cmp_) { }
+    Context() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) { }
     virtual ~Context() { }
 
-    data::DataManager & get_data_manager()
-    {
+    data::DataManager & get_data_manager() {
         return data_manager_;
     }
 

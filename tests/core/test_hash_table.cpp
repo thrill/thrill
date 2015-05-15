@@ -21,7 +21,7 @@
 struct HashTableTest : public::testing::Test {
     HashTableTest()
         : dispatcher(),
-          multiplexer(dispatcher, 1),
+          multiplexer(dispatcher),
           manager(multiplexer),
           id(manager.AllocateDIA()),
           emit(manager.GetLocalEmitter<int>(id)),

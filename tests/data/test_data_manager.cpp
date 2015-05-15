@@ -18,7 +18,7 @@ using namespace c7a::net;
 struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
         : dispatcher(),
-          cmp(dispatcher, 1),
+          cmp(dispatcher),
           manager(cmp) { }
 
     NetDispatcher      dispatcher;
