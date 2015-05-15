@@ -22,17 +22,25 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+option(JENKINS_BUILD "Build all with more warnings" OFF)
+
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
 # add sanitizer flags for debug builds
-if(NOT APPLE AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+if(JENKINS_BUILD)
   # enable AddressSanitizer
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
   # enable ThreadSanitizer
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
   # enable UndefinedBehaviorSanitizer
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+endif()
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
+    AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  # Clang does not support debug output for auto return types yet
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g0")
 endif()
 
 ################################################################################
