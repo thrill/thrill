@@ -16,7 +16,6 @@
 
 namespace c7a {
 namespace net {
-
 //! \ingroup net
 //! \{
 
@@ -62,15 +61,7 @@ public:
         else {
             sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
             active_streams_++;
-            size_t expected_size = stream->header.num_elements * sizeof(size_t);
-
-            auto callback = std::bind(&Channel::ReadSecondHeaderPartFrom,
-                                      this,
-                                      std::placeholders::_1,
-                                      std::placeholders::_2,
-                                      stream);
-
-            dispatcher_.AsyncRead(stream->socket, expected_size, callback);
+            ReadFromStream(stream);
         }
     }
 
@@ -97,26 +88,11 @@ private:
     int finished_streams_;
     std::vector<std::string> data_;
 
-    //!The first header part is read in the channel multiplexer to see which
-    //!channel the package belongs to
-    //!The second part of the header (boundaries of the block) is read here
-    //!
-    //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(NetConnection& s, Buffer&& buffer, Stream* stream)
-    {
-        (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
-        sLOG << "read #elements on" << stream->socket << "in channel" << id_;
-        assert(stream->header.num_elements > 0);
-
-        stream->header.ParseBoundaries(buffer.ToString());
-        ReadFromStream(stream);
-    }
-
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
     void ReadFromStream(Stream* stream)
     {
-        if (stream->elements_read < stream->header.num_elements) {
+        if (stream->bytes_read < stream->header.expected_bytes) {
             ExpectData(stream);
         }
         else {
@@ -132,9 +108,7 @@ private:
     //! Size of element is known
     inline void ExpectData(Stream* stream)
     {
-        //TODO we might want to read multiple items in a batch and cut them
-        //into single pieces later...
-        auto exp_size = stream->header.boundaries[stream->elements_read++];
+        auto exp_size = stream->header.expected_bytes - stream->bytes_read;
         auto callback = std::bind(&Channel::ConsumeData, this, std::placeholders::_1, std::placeholders::_2, stream);
         sLOG << "expect data with" << exp_size
              << "bytes on" << stream->socket << "in channel" << id_;
@@ -143,12 +117,13 @@ private:
 
     inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream)
     {
+        (void)s;
         sLOG << "read data on" << stream->socket << "in channel" << id_;
+        stream->bytes_read += buffer.size();
         data_.emplace_back(buffer.ToString());  // TODO(ts) use buffer from AsyncRead instead of copying data here!
         ReadFromStream(stream);
     }
 };
-
 } // namespace net
 } // namespace c7a
 

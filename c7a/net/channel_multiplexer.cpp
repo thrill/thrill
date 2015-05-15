@@ -13,7 +13,6 @@
 
 namespace c7a {
 namespace net {
-
 ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections)
     : dispatcher_(dispatcher),
       num_connections_(num_connections) { }
@@ -21,13 +20,23 @@ ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connec
 void ChannelMultiplexer::AddSocket(NetConnection& s)
 {
     sLOG << "add" << s << "to channel multiplexer";
-    ExpectHeaderFrom(s);
+    connections_.push_back(std::move(s));
+    ExpectHeaderFrom(connections_.back());
+}
+
+std::vector<NetConnection*> ChannelMultiplexer::GetSockets()
+{
+    std::vector<NetConnection*> result;
+    for (auto& nc : connections_) {
+        result.push_back(&nc);
+    }
+    return result;
 }
 
 void ChannelMultiplexer::ExpectHeaderFrom(NetConnection& s)
 {
     sLOG << "expect header on" << s;
-    auto expected_size = sizeof(StreamBlockHeader::num_elements) + sizeof(StreamBlockHeader::channel_id);
+    auto expected_size = sizeof(StreamBlockHeader::expected_bytes) + sizeof(StreamBlockHeader::channel_id);
     auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
     dispatcher_.AsyncRead(s, expected_size, callback);
 }
@@ -46,7 +55,7 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(
     NetConnection& s, const Buffer& buffer)
 {
     struct StreamBlockHeader header;
-    header.ParseIdAndNumElem(buffer.ToString());
+    header.ParseHeader(buffer.ToString());
 
     ChannelPtr channel;
     if (!HasChannel(header.channel_id)) {
@@ -60,7 +69,6 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(
 
     channel->PickupStream(s, header);
 }
-
 } // namespace net
 } // namespace c7a
 
