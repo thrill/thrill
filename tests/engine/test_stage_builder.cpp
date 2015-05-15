@@ -7,6 +7,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#ifndef DEBUG
+#define DEBUG = FALSE
+#endif
+
 #include "gtest/gtest.h"
 #include <tests/c7a-tests.hpp>
 #include "c7a/api/dia_base.hpp"
@@ -33,11 +37,11 @@ TEST(Stage, GetStagesFromBuilder) {
                       return input;
                   };
 
-    auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
-                       std::cout << "FlatMap" << std::endl;
-                       emit_func(input);
-                       emit_func(input);
-                   };
+    // auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
+    //                    std::cout << "FlatMap" << std::endl;
+    //                    emit_func(input);
+    //                    emit_func(input);
+    //                };
 
     auto duplicates = doubles.Map(map_fn);
     // auto duplicates2 = duplicates.Map(map_fn);
@@ -48,12 +52,8 @@ TEST(Stage, GetStagesFromBuilder) {
 
     //SIMULATE
 
-    std::vector<Stage> result;
-    FindStages(red_duplicates2.get_node(), result);
-    for (auto s : result)
-    {
-        s.Run();
-    }
+    RunScope(red_duplicates2.get_node());
+
 }
 
 /******************************************************************************/

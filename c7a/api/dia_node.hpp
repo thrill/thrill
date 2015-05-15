@@ -24,17 +24,6 @@ namespace c7a {
 //! \{
 
 /*!
- * Possible states a DIANode can be in.
- */
-enum kState {
-    NEW,        /*!< The DIANode has not been computed yet. */
-    CALCULATED, /*!< The DIANode has been calculated but not explicitly cached.
-                  Data might be available or has to be recalculated when needed */
-    CACHED,     /*!< The DIANode is cached and it's data can be accessed */
-    DISPOSED    /*!< The DIANode is disposed by the user, needs to be recomputed when accessed */
-};
-
-/*!
  * A DIANode is a typed node representing and operation in c7a. It is the super class for
  * all operation nodes and stores the state of the operation. The type of a DIANode is the type,
  * in which the DIA is after the last global barrier in the operation (between MainOp and PostOp).
@@ -71,27 +60,6 @@ public:
         std::string str;
         str = std::string("[DIANode/State:") + state_string_() + "]";
         return str;
-    }
-
-protected:
-    //! State of the DIANode. State is NEW on creation.
-    kState state_ = NEW;
-
-    //!Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_()
-    {
-        switch (state_) {
-        case NEW:
-            return "NEW";
-        case CALCULATED:
-            return "CALCULATED";
-        case CACHED:
-            return "CACHED";
-        case DISPOSED:
-            return "DISPOSED";
-        default:
-            return "UNDEFINED";
-        }
     }
 };
 
