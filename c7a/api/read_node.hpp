@@ -39,7 +39,6 @@ public:
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
     * \param ctx Reference to Context, which holds references to data and network.
-    * \param parents Vector of parents. Is empty, as read has no previous operations
     * \param read_function Read function, which defines how each line of the file is read and emitted
     * \param path_in Path of the input file
     */

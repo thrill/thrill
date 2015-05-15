@@ -30,13 +30,11 @@ class LOpNode : public DIANode<Input>
 {
 public:
     /*!
-     * Constructor for a LOpNode. Sets the DataManager, parents and stack.
+     * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param parents Parent DIANode.
+     * \param parent Parent DIANode.
      * \param lop_stack Function chain with all lambdas between the parent and this node
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
      */
     LOpNode(Context& ctx,
             DIANode<Input>* parent,
