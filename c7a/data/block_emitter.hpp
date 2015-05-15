@@ -11,7 +11,7 @@
 #ifndef C7A_DATA_BLOCK_EMITTER_HEADER
 #define C7A_DATA_BLOCK_EMITTEr_HEADER
 
-#include <c7a/net/binary_builder.hpp>
+#include "binary_buffer_builder.hpp"
 #include "buffer_chain.hpp"
 #include "serializer.hpp"
 
@@ -24,7 +24,7 @@ class BlockEmitter
 {
 public:
     BlockEmitter(TargetType& target)
-        : builder_(net::BinaryBuffer::DEFAULT_SIZE),
+        : builder_(BinaryBuffer::DEFAULT_SIZE),
           target_(target) { }
 
     void operator () (T x)
@@ -46,13 +46,13 @@ public:
     //! Writes the data to the target without closing the emitter
     void Flush()
     {
-        target_.Append(net::BinaryBuffer(builder_));
+        target_.Append(BinaryBuffer(builder_));
         builder_.Detach();
-        builder_.Reserve(net::BinaryBuffer::DEFAULT_SIZE);
+        builder_.Reserve(BinaryBuffer::DEFAULT_SIZE);
     }
 
 private:
-    net::BinaryBuilder builder_;
+    BinaryBufferBuilder builder_;
     TargetType& target_;
 };
 } // namespace data

@@ -24,7 +24,7 @@ public:
           connection_(connection),
           id_(channel_id) { }
 
-    void Append(net::BinaryBuffer buffer)
+    void Append(BinaryBuffer buffer)
     {
         SendHeader(buffer.size());
 
