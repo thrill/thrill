@@ -28,7 +28,7 @@ namespace c7a {
 namespace core {
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
-class HashTable
+class ReducePreTable
 {
     static const bool debug = false;
 
@@ -45,7 +45,7 @@ protected:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(key_t v, const HashTable& ht)
+        hash_result(key_t v, const ReducePreTable& ht)
         {
             size_t hashed = std::hash<key_t>()(v);
 
@@ -69,7 +69,7 @@ protected:
 
 public:
 
-    HashTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
+    ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
               size_t max_num_items_per_bucket, size_t max_num_items_table,
               KeyExtractor key_extractor, ReduceFunction reduce_function,
               std::vector<EmitterFunction> emit)
@@ -86,7 +86,7 @@ public:
     }
 
     // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
-    HashTable(size_t partition_size, KeyExtractor key_extractor,
+    ReducePreTable(size_t partition_size, KeyExtractor key_extractor,
               ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
@@ -96,7 +96,7 @@ public:
         init();
     }
 
-    ~HashTable() { }
+    ~ReducePreTable() { }
 
     void init()
     {
