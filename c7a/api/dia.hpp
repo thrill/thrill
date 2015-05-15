@@ -106,10 +106,10 @@ public:
         using LOpChainNode
                   = LOpNode<T, decltype(rhs_stack)>;
 
-        std::shared_ptr<LOpChainNode> shared_node(
-            new LOpChainNode(rhs_node->get_context(),
-                             rhs_node,
-                             rhs_stack));
+        auto shared_node 
+            = std::make_shared<LOpChainNode>(rhs_node->get_context(),
+                                             rhs_node,
+                                             rhs_stack);
         node_ = std::move(shared_node);
         local_stack_ = FunctionStack<>();
     }
@@ -260,13 +260,13 @@ public:
                   = TwoZipNode<zip_arg_0_t, zip_arg_1_t, zip_result_t,
                                decltype(local_stack_), decltype(second_dia.get_stack()), zip_fn_t>;
 
-        std::shared_ptr<ZipResultNode> shared_node(
-            new ZipResultNode(node_->get_context(),
-                              node_.get(),
-                              second_dia.get_node(),
-                              local_stack_,
-                              second_dia.get_stack(),
-                              zip_fn));
+        auto shared_node 
+            = std::make_shared<ZipResultNode>(node_->get_context(),
+                                              node_.get(),
+                                              second_dia.get_node(),
+                                              local_stack_,
+                                              second_dia.get_stack(),
+                                              zip_fn);
 
         auto zip_stack = shared_node->ProduceStack();
         return DIARef<zip_result_t, decltype(zip_stack)>
@@ -360,12 +360,12 @@ private:
             using ReduceResultNode
                       = ReduceNode<T, dop_result_t, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
-            std::shared_ptr<ReduceResultNode> shared_node(
-                new ReduceResultNode(node_->get_context(),
-                                     node_,
-                                     local_stack_,
-                                     key_extractor_,
-                                     reduce_function));
+            auto shared_node 
+                = std::make_shared<ReduceResultNode>(node_->get_context(),
+                                                     node_,
+                                                     local_stack_,
+                                                     key_extractor_,
+                                                     reduce_function);
 
             auto reduce_stack = shared_node->ProduceStack();
 
@@ -388,10 +388,10 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    std::shared_ptr<ReadResultNode>
-    shared_node(new ReadResultNode(ctx,
-                                   read_fn,
-                                   filepath));
+    auto shared_node = 
+        std::make_shared<ReadResultNode>(ctx,
+                                         read_fn,
+                                         filepath);
 
     auto read_stack = shared_node->ProduceStack();
 
