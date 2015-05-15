@@ -20,6 +20,7 @@
 #include "function_stack.hpp"
 #include "../common/logger.hpp"
 #include "../core/hash_table.hpp"
+#include "../data/data_manager.hpp"
 
 namespace c7a {
 
@@ -76,6 +77,8 @@ public:
         auto pre_op_fn = [ = ](reduce_arg_t input) {
                              PreOp(input);
                          };
+
+        data::ChannelId preop_net_id_ = AllocateNetworkChannel(); 
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
 
         parent->RegisterChild(lop_chain);
@@ -90,9 +93,12 @@ public:
      */
     void execute() override
     {
+        //Flush Table to send elements over NETWORK TODO: does position of the flush operation make sense?
+        reduce_pre_table_.Flush();   
+
         MainOp();
         // get data from data manager
-        data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
+        data::BlockIterator<Output> it = context_->get_data_manager().template GetLocalBlocks<Output>(data_id_);
         // loop over input
         while (it.HasNext()) {
             const Output& item = it.Next();
@@ -134,27 +140,43 @@ private:
     ReduceFunction reduce_function_;
     //! Local storage
     std::vector<reduce_arg_t> elements_;
+    //!ChannelId to emit preop elements
+    data::ChannelId preop_net_id_;
+    //!Hashtable to do the local reduce
+    //TODO HASHTABLE NEEDS whatever auto data::GetNetworkEmitters(preop_net_id_) returns as input param or such
+    core::HashTable reduce_pre_table_(context_->number_worker, 
+                                  key_extractor_, 
+                                  reduce_function_, 
+                                  context_->get_data_manager().GetNetworkEmitters(preop_net_id_));
 
     //! Locally hash elements of the current DIA onto buckets and reduce each bucket to a single value,
     //! afterwards send data to another worker given by the shuffle algorithm.
     void PreOp(reduce_arg_t input)
     {
         LOG << "PreOp: " << input;
-        elements_.push_back(input);
+        reduce_pre_table_.Insert(input);
     }
 
     //!Recieve elements from other workers.
     auto MainOp() {
-        data::BlockEmitter<Output> emit =
-            context_.get_data_manager().template GetLocalEmitter<Output>(data_id_);
+        auto net_iterator = context_->get_data_manager().GetRemoteBlocks(preop_net_id_);
 
-        reduce_arg_t reduced = reduce_arg_t();
-        for (const reduce_arg_t& elem : elements_) {
-            reduced += elem;
+        //TODO: THIS MUST BE THE SPECIAL POST HASH TABLE
+        //TODO: TELL HASHTABLE NOT TO FLUSH
+        core::HashTable reduce_post_table_(1, 
+                                           key_extractor_, 
+                                           reduce_function_, 
+                                           context_->get_data_manager().GetLocalEmitter<Output>(data_id_));
+
+        while (net_iterator.HasNext()) {
+            reduce_post_table_.Insert(net_iterator.Next());
         }
 
+
+        // TODO: Call Callbakc in postop flush
+        reduce_post_table_.Flush();
+
         LOG << "MainOp: " << reduced;
-        emit(reduced);
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
