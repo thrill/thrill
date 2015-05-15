@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/c7a-tests.cpp
+ * tests/c7a-tests.hpp
  *
  * Google Test main program which calls tests.
  *
@@ -9,24 +9,15 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
+#pragma once
+#ifndef C7A_TESTS_C7A_TESTS_HEADER
+#define C7A_TESTS_C7A_TESTS_HEADER
 
-std::string g_workpath;
+#include <string>
 
-int main(int argc, char** argv)
-{
-    ::testing::InitGoogleTest(&argc, argv);
+//! path to test suite root during test runs (given as command line parameter)
+extern std::string g_workpath;
 
-    if (argc <= 1) {
-        std::cout << argv[0]
-                  << " requires parameter: <test input files path>"
-                  << std::endl;
-    }
-    else {
-        g_workpath = argv[1];
-    }
-
-    return RUN_ALL_TESTS();
-}
+#endif // !C7A_TESTS_C7A_TESTS_HEADER
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-exception.hpp
+ * c7a/net/exception.hpp
  *
  * Part of Project c7a.
  *
@@ -9,39 +9,37 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_EXCEPTION_HEADER
-#define C7A_NET_NET_EXCEPTION_HEADER
+#ifndef C7A_NET_EXCEPTION_HEADER
+#define C7A_NET_EXCEPTION_HEADER
+
+#include <string>
 
 namespace c7a {
 namespace net {
-namespace lowlevel {
-
 //! \addtogroup net Network Communication
 //! \{
 
 /*!
- * A NetException is thrown by NetConnection on all errors instead of returning
+ * A Exception is thrown by Connection on all errors instead of returning
  * error codes. If ever we manage to recover from network errors, we probably
  * have to rebuild most of the network objects anyway.
  */
-class NetException : public std::runtime_error
+class Exception : public std::runtime_error
 {
 public:
-    explicit NetException(const std::string& what)
+    explicit Exception(const std::string& what)
         : std::runtime_error(what)
     { }
 
-    NetException(const std::string& what, int _errno)
+    Exception(const std::string& what, int _errno)
         : std::runtime_error(what + ": " + strerror(_errno))
     { }
 };
 
 // \}
-
-} // namespace lowlevel
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_EXCEPTION_HEADER
+#endif // !C7A_NET_EXCEPTION_HEADER
 
 /******************************************************************************/

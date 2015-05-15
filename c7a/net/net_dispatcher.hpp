@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-dispatcher.hpp
+ * c7a/net/net_dispatcher.hpp
  *
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
@@ -16,6 +16,7 @@
 #define C7A_NET_NET_DISPATCHER_HEADER
 
 #include <c7a/net/net_connection.hpp>
+#include <c7a/net/buffer.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
@@ -27,7 +28,6 @@
 
 namespace c7a {
 namespace net {
-
 //! \addtogroup net Network Communication
 //! \{
 
@@ -88,7 +88,7 @@ public:
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb)
     {
         return dispatcher_.AddReadWrite(
-            c.GetSocket().fd(), c, read_cb, write_cb);
+                   c.GetSocket().fd(), c, read_cb, write_cb);
     }
 
     //! \}
@@ -96,9 +96,9 @@ public:
     //! \name Asynchronous Data Reader/Writer Callbacks
     //! \{
 
-    //! callback signature for async read callbacks
+    //! callback signature for async read callbacks, they may acquire the buffer
     typedef std::function<void (NetConnection& c,
-                                const std::string& buffer)> AsyncReadCallback;
+                                Buffer&& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
     virtual void AsyncRead(NetConnection& c, size_t n,
@@ -108,7 +108,7 @@ public:
 
         LOG << "async read on read dispatcher";
         if (n == 0) {
-            if (done_cb) done_cb(c, std::string());
+            if (done_cb) done_cb(c, Buffer());
             return;
         }
 
@@ -116,14 +116,16 @@ public:
         async_read_.emplace_back(n, done_cb);
 
         // register read callback
-        dispatcher_.AddRead(c.GetSocket().fd(), c, async_read_.back());
+        AsyncReadBuffer& arb = async_read_.back();
+        AddRead(c, [&arb](NetConnection & c) { return arb(c); });
     }
 
     //! callback signature for async write callbacks
     typedef std::function<void (NetConnection&)> AsyncWriteCallback;
 
-    //! asynchronously write buffer and callback when delivered
-    void AsyncWrite(NetConnection& c, const std::string& buffer,
+    //! asynchronously write buffer and callback when delivered. The buffer is
+    //! MOVED into the async writer.
+    void AsyncWrite(NetConnection& c, Buffer && buffer,
                     AsyncWriteCallback done_cb = nullptr)
     {
         assert(c.GetSocket().IsValid());
@@ -133,23 +135,28 @@ public:
             return;
         }
 
-        // add new async writeer object
-        async_write_.emplace_back(buffer, done_cb);
+        // add new async writer object
+        async_write_.emplace_back(std::move(buffer), done_cb);
 
         // register write callback
-        dispatcher_.AddWrite(c.GetSocket().fd(), c, async_write_.back());
+        AsyncWriteBuffer& awb = async_write_.back();
+        AddWrite(c, [&awb](NetConnection & c) { return awb(c); });
     }
 
-    //! asynchronously write buffer and callback when delivered. Copies the data
-    //! into a std::string buffer!
-    void AsyncWrite(NetConnection& c, const void* buffer, size_t size,
-                    AsyncWriteCallback done_cb = NULL)
+    //! asynchronously write buffer and callback when delivered. COPIES the data
+    //! into a Buffer!
+    void AsyncWriteCopy(NetConnection& c, const void* buffer, size_t size,
+                        AsyncWriteCallback done_cb = NULL)
     {
-        assert(c.GetSocket().IsValid());
+        return AsyncWrite(c, Buffer(buffer, size), done_cb);
+    }
 
-        return AsyncWrite(
-            c, std::string(reinterpret_cast<const char*>(buffer), size),
-            done_cb);
+    //! asynchronously write buffer and callback when delivered. COPIES the data
+    //! into a Buffer!
+    void AsyncWriteCopy(NetConnection& c, const std::string& str,
+                        AsyncWriteCallback done_cb = NULL)
+    {
+        return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
     //! \}
@@ -230,23 +237,22 @@ protected:
         //! Construct buffered reader with callback
         AsyncReadBuffer(size_t buffer_size, const AsyncReadCallback& callback)
             : callback_(callback),
-              buffer_(buffer_size, 0)
+              buffer_(buffer_size)
         { }
 
         //! Should be called when the socket is readable
         bool operator () (NetConnection& c)
         {
             int r = c.GetSocket().recv_one(
-                const_cast<char*>(buffer_.data() + size_),
-                buffer_.size() - size_);
+                buffer_.data() + size_, buffer_.size() - size_);
 
             if (r < 0)
-                throw lowlevel::NetException("AsyncReadBuffer() error in recv", errno);
+                throw Exception("AsyncReadBuffer() error in recv", errno);
 
             size_ += r;
 
             if (size_ == buffer_.size()) {
-                if (callback_) callback_(c, buffer_);
+                if (callback_) callback_(c, std::move(buffer_));
                 return false;
             }
             else {
@@ -262,7 +268,7 @@ protected:
         AsyncReadCallback callback_;
 
         //! Receive buffer
-        std::string buffer_;
+        Buffer buffer_;
     };
 
     //! deque of asynchronous readers
@@ -274,21 +280,20 @@ protected:
     {
     public:
         //! Construct buffered writer with callback
-        AsyncWriteBuffer(const std::string& buffer,
+        AsyncWriteBuffer(Buffer && buffer,
                          const AsyncWriteCallback& callback)
             : callback_(callback),
-              buffer_(buffer)
+              buffer_(std::move(buffer))
         { }
 
         //! Should be called when the socket is writable
         bool operator () (NetConnection& c)
         {
             int r = c.GetSocket().send_one(
-                const_cast<char*>(buffer_.data() + size_),
-                buffer_.size() - size_);
+                buffer_.data() + size_, buffer_.size() - size_);
 
             if (r < 0)
-                throw lowlevel::NetException("AsyncWriteBuffer() error in send", errno);
+                throw Exception("AsyncWriteBuffer() error in send", errno);
 
             size_ += r;
 
@@ -309,7 +314,7 @@ protected:
         AsyncWriteCallback callback_;
 
         //! Receive buffer
-        std::string buffer_;
+        Buffer buffer_;
     };
 
     //! deque of asynchronous writers
@@ -321,14 +326,13 @@ protected:
     static bool ExceptionCallback(NetConnection& s)
     {
         // exception on listen socket ?
-        throw lowlevel::NetException(
+        throw Exception(
                   "NetDispatcher() exception on socket fd "
                   + std::to_string(s.GetSocket().fd()) + "!", errno);
     }
 };
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net-group.cpp
+ * c7a/net/net_group.cpp
  *
  * NetGroup is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -22,7 +22,6 @@
 
 namespace c7a {
 namespace net {
-
 template <typename Functional, size_t BufferSize = 0>
 class NetReadBuffer
 {
@@ -44,7 +43,7 @@ public:
                            buffer_.size() - size_);
 
         if (r < 0)
-            throw lowlevel::NetException("NetReadBuffer() error in recv", errno);
+            throw Exception("NetReadBuffer() error in recv", errno);
 
         size_ += r;
 
@@ -72,6 +71,7 @@ NetGroup::NetGroup(ClientId my_rank, size_t group_size)
     : my_rank_(my_rank),
       connections_(group_size)
 { }
+
 void NetGroup::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(NetGroup*)>& thread_function)
@@ -109,7 +109,6 @@ void NetGroup::ExecuteLocalMock(
         threads[i].join();
     }
 }
-
 } // namespace net
 } // namespace c7a
 
