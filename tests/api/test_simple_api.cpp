@@ -39,15 +39,52 @@ TEST(API, SharedPtrTest) {
             return std::stoi(line);
         });
     auto ints = input.Map(map_fn);
-    // DIA<int> doubles = ints.Map(map_fn);
     auto doubles = ints.Map(map_fn);
-    // auto quad = doubles.Map(map_fn);
     auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
 
-    std::cout << "Input: " << input.NodeString() << " RefCount: " << input.get_node_count() << std::endl;
-    std::cout << "Ints: " << ints.NodeString() << " RefCount: " << ints.get_node_count() << std::endl;
-    std::cout << "Doubles: " << doubles.NodeString() << " RefCount: " << doubles.get_node_count() << std::endl;
-    std::cout << "Red: " << red_quad.NodeString() << " RefCount: " << red_quad.get_node_count() << std::endl;
+    std::vector<Stage> result;
+    FindStages(red_quad.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+    }
+
+    return;
+}
+
+TEST(API, TypeDeductionText) {
+    using c7a::DIARef;
+    using c7a::Context;
+
+    Context ctx;
+
+    auto to_int_fn = [](std::string in) {
+                      return std::stoi(in);
+                  };
+    auto double_int_fn = [](int in) {
+                      return 2 * in;
+                  };
+    auto filter_geq = [](int in) {
+                      return in <= 40;
+                  };
+    auto key_ex = [](int in) {
+                      return in % 2;
+                  };
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    auto lines = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+            return line;
+        });
+    auto ints = lines.Map(to_int_fn);
+    auto doubles = ints.Map(double_int_fn);
+    auto filtered = doubles.Filter(filter_geq);
+    auto red_quad = filtered.ReduceBy(key_ex).With(red_fn);
+
     std::vector<Stage> result;
     FindStages(red_quad.get_node(), result);
     for (auto s : result)

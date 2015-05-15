@@ -166,6 +166,32 @@ public:
     }
 
     /*!
+     * Filter is a LOp, which filters elements from  this DIARef 
+     * according to the filter_fn given by the
+     * user. The filter_fn maps each element to a boolean. 
+     * The DIARef returned by Filter has the same type T. 
+     * The function chain of the returned DIARef is this DIARef's
+     * local_stack_ chained with filter_fn.
+     *
+     * \tparam filter_fn_t Type of the map function.
+     *
+     * \param map_fn Filter function of type filter_fn_t, which maps each element to
+     * a boolean.
+     *
+     */
+    template <typename filter_fn_t>
+    auto Filter(const filter_fn_t &filter_fn) {
+        using filter_arg_t
+                  = typename FunctionTraits<filter_fn_t>::template arg<0>;
+        auto conv_filter_fn = [ = ](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
+               if (filter_fn(input)) emit_func(input);
+           };
+
+        auto new_stack = local_stack_.push(conv_filter_fn);
+        return DIARef<T, decltype(new_stack)>(node_, new_stack);
+    }
+
+    /*!
      * FlatMap is a LOp, which maps this DIARef according to the flatmap_fn
      * given by the user.  The flatmap_fn maps each element
      * to elements of a possibly different type. The flatmap_fn has an emitter
