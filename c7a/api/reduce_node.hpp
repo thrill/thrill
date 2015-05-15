@@ -18,9 +18,9 @@
 #include "dop_node.hpp"
 #include <c7a/api/context.hpp>
 #include "function_stack.hpp"
-#include "../common/logger.hpp"
-#include "../core/hash_table.hpp"
-#include "../data/data_manager.hpp"
+#include "c7a/common/logger.hpp"
+#include "c7a/data/data_manager.hpp"
+#include "c7a/core/reduce_pre_table.hpp"
 
 namespace c7a {
 //! \addtogroup api Interface
