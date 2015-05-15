@@ -13,12 +13,13 @@
 
 #include <c7a/net/binary_builder.hpp>
 #include "buffer_chain.hpp"
+#include "serializer.hpp"
 
 namespace c7a {
 namespace data {
 //! BlockIterator gives you access to data of a block
 //TODO specialize the emitter to be more fancy when havein fixe-length elements
-template <class T, class TargetType = BufferChain>
+template <class T, typename TargetType = BufferChain>
 class BlockEmitter
 {
 public:

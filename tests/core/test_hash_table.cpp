@@ -12,15 +12,30 @@
 #include <tests/c7a_tests.hpp>
 #include "c7a/api/context.hpp"
 #include <c7a/data/data_manager.hpp>
+#include <c7a/data/block_emitter.hpp>
+#include <c7a/net/channel_multiplexer.hpp>
 
 #include <functional>
 #include <cstdio>
 
-TEST(HashTable, CreateEmptyTable) {
-    c7a::data::DataManager manager;
-    auto id = manager.AllocateDIA();
-    auto emit = manager.GetLocalEmitter<int>(id);
+struct HashTableTest : public::testing::Test {
+    HashTableTest()
+        : dispatcher(),
+          multiplexer(dispatcher, 1),
+          manager(multiplexer),
+          id(manager.AllocateDIA()),
+          emit(manager.GetLocalEmitter<int>(id)),
+          pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) { }
 
+    c7a::net::NetDispatcher                               dispatcher;
+    c7a::net::ChannelMultiplexer                          multiplexer;
+    c7a::data::DataManager                                manager;
+    size_t                                                id = manager.AllocateDIA();
+    c7a::data::BlockEmitter<int>                          emit;
+    c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
+};
+
+TEST_F(HashTableTest, CreateEmptyTable) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
@@ -33,11 +48,7 @@ TEST(HashTable, CreateEmptyTable) {
     assert(table.Size() == 0);
 }
 
-TEST(HashTable, AddIntegers) {
-    c7a::data::DataManager manager;
-    auto id = manager.AllocateDIA();
-    auto emit = manager.GetLocalEmitter<int>(id);
-
+TEST_F(HashTableTest, AddIntegers) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
@@ -58,11 +69,7 @@ TEST(HashTable, AddIntegers) {
     assert(table.Size() == 3);
 }
 
-TEST(HashTable, PopIntegers) {
-    c7a::data::DataManager manager;
-    auto id = manager.AllocateDIA();
-    auto emit = manager.GetLocalEmitter<int>(id);
-
+TEST_F(HashTableTest, PopIntegers) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
@@ -84,11 +91,7 @@ TEST(HashTable, PopIntegers) {
     assert(table.Size() == 1);
 }
 
-TEST(HashTable, FlushIntegers) {
-    c7a::data::DataManager manager;
-    auto id = manager.AllocateDIA();
-    auto emit = manager.GetLocalEmitter<int>(id);
-
+TEST_F(HashTableTest, FlushIntegers) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
@@ -113,12 +116,8 @@ TEST(HashTable, FlushIntegers) {
     assert(table.Size() == 1);
 }
 
-TEST(HashTable, ComplexType) {
+TEST_F(HashTableTest, ComplexType) {
     using StringPair = std::pair<std::string, int>;
-
-    c7a::data::DataManager manager;
-    auto id = manager.AllocateDIA();
-    auto emit = manager.GetLocalEmitter<std::pair<std::string, int> >(id);
 
     auto key_ex = [](StringPair in) { return in.first; };
 
@@ -127,7 +126,7 @@ TEST(HashTable, ComplexType) {
                   };
 
     c7a::core::HashTable<decltype(key_ex), decltype(red_fn)>
-    table(1, key_ex, red_fn, emit);
+    table(1, key_ex, red_fn, pair_emit);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));

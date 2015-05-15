@@ -15,10 +15,11 @@
 #include <map>
 #include <c7a/net/net_dispatcher.hpp>
 #include <c7a/net/channel.hpp>
+#include <c7a/data/block_emitter.hpp>
+#include <c7a/data/socket_target.hpp>
 
 namespace c7a {
 namespace net {
-
 //! \ingroup net
 //! \{
 
@@ -43,6 +44,8 @@ public:
     //! There must exist exactly one TCP connection to each worker.
     virtual void AddSocket(NetConnection& s);
 
+    std::vector<NetConnection*> GetSockets();
+
     //! Indicates if a channel exists with the given id
     bool HasChannel(int id);
 
@@ -50,12 +53,21 @@ public:
     //! if the channel does not exist
     std::shared_ptr<Channel> PickupChannel(int id);
 
+    template <class T>
+    std::vector<data::BlockEmitter<T, data::SocketTarget> > OpenChannel(size_t id)
+    {
+        return { };
+    }
+
 private:
     static const bool debug = true;
     typedef std::shared_ptr<Channel> ChannelPtr;
 
     //! Channels have an ID in block headers
     std::map<int, ChannelPtr> channels_;
+
+    //Hols NetConnections for outgoing Channels
+    std::vector<NetConnection> connections_;
 
     NetDispatcher& dispatcher_;
     int num_connections_;
@@ -68,7 +80,6 @@ private:
     void ReadFirstHeaderPartFrom(
         NetConnection& s, const Buffer& buffer);
 };
-
 } // namespace net
 } // namespace c7a
 
