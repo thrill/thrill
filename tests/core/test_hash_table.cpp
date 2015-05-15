@@ -187,6 +187,45 @@ TEST(PostTable, FlushIntegers) {
     assert(table.Size() == 1);
 }
 
+TEST(PostTable, MultipleEmitters) {
+
+    std::vector<int> vec1;
+
+    auto emit1 = [&vec1](int in) {
+        vec1.push_back(in);
+    };
+
+    auto key_ex = [](int in) { return in; };
+
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+    };
+
+    std::vector<decltype(emit1)> emitters;
+    emitters.push_back(emit1);
+    emitters.push_back(emit1);
+    emitters.push_back(emit1);
+
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+        table(key_ex, red_fn, emitters);
+
+    table.Insert(1);
+    table.Insert(2);
+    table.Insert(3);
+
+    assert(table.Size() == 3);
+
+    table.Flush();
+
+    assert(table.Size() == 0);
+
+    table.Insert(1);
+
+    assert(table.Size() == 1);
+
+    assert(vec1.size() == 9);
+}
+
 
 
 TEST(PreTable, ComplexType) {
