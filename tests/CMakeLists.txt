@@ -11,7 +11,7 @@ macro(build_only PROGNAME)
 
   string(REPLACE "/" "-" TESTNAME "${PROGNAME}") # replace slashes
 
-  add_executable(${TESTNAME} c7a-tests.cpp ${PROGNAME}.cpp ${ARGN})
+  add_executable(${TESTNAME} c7a_tests.cpp ${PROGNAME}.cpp ${ARGN})
   target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
 
 endmacro(build_only)
@@ -34,10 +34,13 @@ build_test(data/test_data_manager)
 build_test(data/test_block_iterator)
 #build_test(data/test_dia_allocate)
 build_test(data/test_serializer)
-build_test(engine/mock-network)
-build_test(engine/test_stage_builder)
-build_test(net/test-net-group)
-build_test(net/test-channel-multiplexer)
-build_test(net/test-stream)
+build_test(net/mock_network)
+build_test(core/test_stage_builder)
+build_test(core/test_hash_table)
+build_only(net/test_net_group) #TODO(emi please fix)
+build_test(net/test_buffer)
+build_test(net/test_binary_builder)
+#build_test(net/test_channel_multiplexer)
+build_test(net/test_stream)
 
 ################################################################################

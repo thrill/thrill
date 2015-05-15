@@ -21,19 +21,19 @@
 #include "input_line_iterator.hpp"
 
 namespace c7a {
-
 namespace data {
 
 //! Identification for DIAs
-typedef int DIAId;
+typedef unsigned int DIAId;
 
 //! function Signature for an emitt function
 template <typename T>
 using BlockEmitter = std::function<void(T)>;
 
-//! Stores in-memory data
+//! Manages all kind of memory for data elements
 //!
-//! Future versions: Provide access to remote DIAs
+//!
+//! Provides Channel creation for sending / receiving data from other workers.
 class DataManager
 {
 public:
@@ -60,7 +60,7 @@ public:
     bool Contains(DIAId id)
     {
         //return data_.find(id) != data_.end();
-        return data_.size() > id && id >= 0;
+        return data_.size() > id;
     }
 
     DIAId AllocateDIA()
@@ -106,7 +106,6 @@ private:
 };
 
 } // namespace data
-
 } // namespace c7a
 
 #endif // !C7A_DATA_DATA_MANAGER_HEADER

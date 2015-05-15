@@ -40,3 +40,6 @@ lib/*
 
 # Vim swap files
 *.swp
+
+# YCM files
+*.ycm_*

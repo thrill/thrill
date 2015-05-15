@@ -17,6 +17,7 @@
 #include "dop_node.hpp"
 #include "function_stack.hpp"
 #include <string>
+#include <fstream>
 
 namespace c7a {
 
@@ -27,58 +28,60 @@ namespace c7a {
  * A DIANode which performs a Read operation. Read reads a file from the file system and
  * emits it to the DataManager according to a given read function.
  *
- * \tparam T Output type of the Read operation.
+ * \tparam Output Output type of the Read operation.
  * \tparam ReadFunction Type of the read function.
  */
-template <typename T, typename ReadFunction>
-class ReadNode : public DOpNode<T>
+template <typename Output, typename ReadFunction>
+class ReadNode : public DOpNode<Output>
 {
 public:
     /*!
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
-    * \param data_manager Reference to the DataManager, which gives iterators for data
-    * \param parents Vector of parents. Is empty, as read has no previous operations
+    * \param ctx Reference to Context, which holds references to data and network.
     * \param read_function Read function, which defines how each line of the file is read and emitted
     * \param path_in Path of the input file
     */
     ReadNode(Context& ctx,
-             const DIABaseVector& parents,
              ReadFunction read_function,
              std::string path_in)
-        : DOpNode<T>(ctx, parents),
+        : DOpNode<Output>(ctx, { }),
           read_function_(read_function),
           path_in_(path_in)
     { }
+
     virtual ~ReadNode() { }
 
     //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
     //!applying the read function on it.
     void execute()
     {
-        // BlockEmitter<T> GetLocalEmitter(DIAId id) {
+        // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "READING data with id" << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
 
-        data::InputLineIterator iter = (this->context_).get_data_manager().GetInputLineIterator(file);
-        data::BlockEmitter<T> emit = (this->context_).get_data_manager().template GetLocalEmitter<T>(this->data_id_);
+        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file);
 
-        std::string line;
-        while (iter.HasNext()) {
-            emit(read_function_(iter.Next()));
+        data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+
+        // Hook Read
+        while (it.HasNext()) {
+            auto item = it.Next();
+            for (auto func : DIANode<Output>::callbacks_) {
+                func(read_function_(item));
+            }
         }
     }
 
     /*!
-     * TODO: I have no idea..
+     * Produces an 'empty' function stack, which only contains the identity emitter function.
+     * \return Empty function stack
      */
     auto ProduceStack() {
-        using read_t
-                  = typename FunctionTraits<ReadFunction>::result_type;
-
-        auto id_fn = [ = ](read_t t, std::function<void(read_t)> emit_func) {
+        // Hook Identity
+        auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
                          return emit_func(t);
                      };
 
@@ -94,7 +97,7 @@ public:
     {
         // Create string
         std::string str
-            = std::string("[ReadNode] Id: ") + std::to_string(DIABase::data_id_);
+            = std::string("[ReadNode] Id: ") + std::to_string(this->data_id_);
         return str;
     }
 
