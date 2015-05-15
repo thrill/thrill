@@ -46,7 +46,7 @@ namespace lowlevel {
  */
 class Socket
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     //! \name Creation
@@ -476,6 +476,11 @@ public:
                 << " error=" << strerror(errno);
 
         return r;
+    }
+
+
+    ~Socket() {
+        LOG << "Socket destruction fd_=" << fd_; 
     }
 
     //! Enable sending of keep-alive messages on connection-oriented sockets.

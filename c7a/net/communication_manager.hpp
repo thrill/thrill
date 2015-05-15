@@ -31,7 +31,7 @@ namespace net {
  */
 class CommunicationManager
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 private:
     NetGroup* netGroups_[GROUP_COUNT]; //Net groups
@@ -83,6 +83,12 @@ public:
             throw new lowlevel::NetException("This communication manager has already been initialized.");
         }
 
+        connections_.reserve((endpoints.size() + 1) * GROUP_COUNT);
+
+        for(int i = 0; i < GROUP_COUNT; i++) {
+            netGroups_[i] = new NetGroup(my_rank_, endpoints.size());
+        }
+
         got_connections = 0;
         accepting = my_rank_;
 
@@ -118,9 +124,6 @@ public:
 
                 lowlevel::Socket ns = lowlevel::Socket::Create();
                 connections_.emplace_back(ns);
-
-                // initiate non-blocking TCP connection
-                ns.SetNonBlocking(true);
 
                 if (ns.connect(addressList[id]) == 0) {
                     // connect() already successful? this should not be.
@@ -168,8 +171,6 @@ public:
     {
         int err = conn.GetSocket().GetError();
 
-        NetConnection newConn = NetConnection(conn.GetSocket().accept());
-
         if (err != 0) {
             throw lowlevel::NetException(
                       "OpenConnections() could not connect to client "
@@ -177,16 +178,16 @@ public:
         }
 
         LOG << "OpenConnections() " << my_rank_ << " connected"
-            << " fd=" << newConn.GetSocket().fd()
-            << " to=" << newConn.GetSocket().GetPeerAddress();
+            << " fd=" << conn.GetSocket().fd()
+            << " to=" << conn.GetSocket().GetPeerAddress();
 
         // send welcome message
-        newConn.GetSocket().SetNonBlocking(false);
-        dispatcher.AsyncWrite(newConn, &hello, sizeof(hello));
+        // conn.GetSocket().SetNonBlocking(false);
+        dispatcher.AsyncWrite(conn, &hello, sizeof(hello));
         LOG << "sent client " << hello.id;
 
         // wait for welcome message from other side
-        dispatcher.AsyncRead(newConn, sizeof(hello), std::bind(&c7a::net::CommunicationManager::ReceiveWelcomeMessage, this, std::placeholders::_1, std::placeholders::_2));
+        dispatcher.AsyncRead(conn, sizeof(hello), std::bind(&c7a::net::CommunicationManager::ReceiveWelcomeMessage, this, std::placeholders::_1, std::placeholders::_2));
 
         return false;
     }
@@ -209,7 +210,6 @@ public:
              << "from client " << msg->id;
 
         // assign connection.
-        die_unless(!conn.GetSocket().IsValid());
         netGroups_[msg->groupId]->SetConnection(msg->id, conn);
         ++got_connections;
 
@@ -241,13 +241,17 @@ public:
     bool PassiveConnected(NetConnection& conn)
     {
         die_unless(accepting > 0);
+        connections_.emplace_back(conn.GetSocket().accept());
+        // newConn.GetSocket().SetNonBlocking(false);
+
+        die_unless(connections_.back().GetSocket().IsValid());
 
         LOG << "OpenConnections() " << my_rank_ << " accepted connection"
-            << " fd=" << conn.GetSocket().fd()
-            << " from=" << conn.GetSocket().GetPeerAddress();
+            << " fd=" << connections_.back().GetSocket().fd()
+            << " from=" << connections_.back().GetPeerAddress();
 
         // wait for welcome message from other side
-        dispatcher.AsyncRead(conn, sizeof(WelcomeMsg), std::bind(&c7a::net::CommunicationManager::ReceiveWelcomeMessageAndReply, this, std::placeholders::_1, std::placeholders::_2));
+        dispatcher.AsyncRead(connections_.back(), sizeof(WelcomeMsg), std::bind(&c7a::net::CommunicationManager::ReceiveWelcomeMessageAndReply, this, std::placeholders::_1, std::placeholders::_2));
 
         // wait for more connections?
         return (--accepting > 0);
