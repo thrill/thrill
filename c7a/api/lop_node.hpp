@@ -57,7 +57,7 @@ public:
         std::vector<Input> elements;
         auto save_fn = [&elements](Input input) {
             elements.push_back(input);
-        }
+        };
         auto lop_chain = lop_stack_.push(save_fn).emit();
 
         // loop over input
