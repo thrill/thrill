@@ -8,16 +8,16 @@
  ******************************************************************************/
 
 #include "gtest/gtest.h"
-#include <tests/c7a-tests.hpp>
+#include <tests/c7a_tests.hpp>
 #include "c7a/api/dia.hpp"
 #include "c7a/api/context.hpp"
 #include "c7a/api/function_stack.hpp"
-#include "c7a/engine/stage_builder.hpp"
+#include "c7a/core/stage_builder.hpp"
 
-using namespace c7a::engine;
+using namespace c7a::core;
 
-TEST(DIASimple, SharedPtrTest) {
-    using c7a::DIA;
+TEST(API, SharedPtrTest) {
+    using c7a::DIARef;
     using c7a::Context;
 
     Context ctx;
@@ -38,19 +38,15 @@ TEST(DIASimple, SharedPtrTest) {
         [](const std::string& line) {
             return std::stoi(line);
         });
-    DIA<int> ints = input.Map(map_fn);
+    auto ints = input.Map(map_fn);
     // DIA<int> doubles = ints.Map(map_fn);
     auto doubles = ints.Map(map_fn);
-    // Do this to keep reference count alive;
-    DIA<int> test = ints;
-    ints = doubles;
     // auto quad = doubles.Map(map_fn);
     auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
 
     std::cout << "Input: " << input.NodeString() << " RefCount: " << input.get_node_count() << std::endl;
     std::cout << "Ints: " << ints.NodeString() << " RefCount: " << ints.get_node_count() << std::endl;
     std::cout << "Doubles: " << doubles.NodeString() << " RefCount: " << doubles.get_node_count() << std::endl;
-    // std::cout << "Quad: " << quad.NodeString() << " RefCount: " << quad.get_node_count() << std::endl;
     std::cout << "Red: " << red_quad.NodeString() << " RefCount: " << red_quad.get_node_count() << std::endl;
     std::vector<Stage> result;
     FindStages(red_quad.get_node(), result);
@@ -62,7 +58,35 @@ TEST(DIASimple, SharedPtrTest) {
     return;
 }
 
-TEST(DIASimple, FunctionStackTest) {
+TEST(API, Test1Zip) {
+    auto read_int = [](std::string line) { return std::stoi(line); };
+
+    auto zip_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    c7a::Context ctx;
+
+    auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+
+    auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
+
+    auto doubled = initial2.Map([](int in) {
+                                    return 2 * in;
+                                });
+
+    auto zipped = initial1.Zip(zip_fn, doubled);
+
+    std::vector<c7a::core::Stage> result;
+    FindStages(zipped.get_node(), result);
+    for (auto s : result) {
+        s.Run();
+    }
+
+    return;
+}
+
+TEST(API, FunctionStackTest) {
     using c7a::FunctionStack;
     std::vector<double> elements;
 
