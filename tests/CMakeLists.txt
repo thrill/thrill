@@ -11,7 +11,7 @@ macro(build_only PROGNAME)
 
   string(REPLACE "/" "-" TESTNAME "${PROGNAME}") # replace slashes
 
-  add_executable(${TESTNAME} c7a-tests.cpp ${PROGNAME}.cpp ${ARGN})
+  add_executable(${TESTNAME} c7a_tests.cpp ${PROGNAME}.cpp ${ARGN})
   target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
 
 endmacro(build_only)
@@ -28,16 +28,19 @@ endmacro(build_test)
 
 ### list of tests in subdirectories
 
-build_test(api/test_simple_api)
-#build_only(api/test_wordcount)
+#build_test(api/test_simple_api)
+build_test(api/test_wordcount)
 build_test(data/test_data_manager)
 build_test(data/test_block_iterator)
 #build_test(data/test_dia_allocate)
 build_test(data/test_serializer)
-build_test(net/mock-network)
+build_test(net/mock_network)
 build_test(core/test_stage_builder)
-build_test(net/test-net-group)
-build_test(net/test-channel-multiplexer)
-build_test(net/test-stream)
+build_test(core/test_hash_table)
+build_test(net/test_net_group)
+build_test(net/test_buffer)
+build_test(net/test_binary_builder)
+#build_test(net/test_channel_multiplexer)
+build_test(net/test_stream)
 
 ################################################################################

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/select-dispatcher.hpp
+ * c7a/net/lowlevel/select_dispatcher.hpp
  *
  * Asynchronous callback wrapper around select()
  *
@@ -16,14 +16,13 @@
 
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select.hpp>
-#include <c7a/net/lowlevel/net_exception.hpp>
+#include <c7a/net/exception.hpp>
 
 #include <deque>
 
 namespace c7a {
 namespace net {
 namespace lowlevel {
-
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -101,7 +100,7 @@ public:
         int r = fdset.select_timeout(timeout);
 
         if (r < 0) {
-            throw lowlevel::NetException("OpenConnections() select() failed!", errno);
+            throw Exception("OpenConnections() select() failed!", errno);
         }
         if (r == 0) return;
 
@@ -195,9 +194,9 @@ private:
     //! struct to entries per watched file descriptor
     struct Watch
     {
-        int       fd;
-        Cookie    &cookie;
-        Callback  read_cb, write_cb, except_cb;
+        int      fd;
+        Cookie&  cookie;
+        Callback read_cb, write_cb, except_cb;
 
         Watch(int _fd, const Cookie& _cookie,
               const Callback& _read_cb, const Callback& _write_cb,
@@ -218,13 +217,12 @@ private:
     static bool DefaultExceptionCallback(const Cookie& /* c */)
     {
         // exception on listen socket ?
-        throw lowlevel::NetException("SelectDispatcher() exception on socket!",
-                           errno);
+        throw Exception("SelectDispatcher() exception on socket!",
+                        errno);
     }
 };
 
 //! \}
-
 } // namespace lowlevel
 } // namespace net
 } // namespace c7a

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication-manager.cpp
+ * c7a/net/communication_manager.cpp
  *
  * Part of Project c7a.
  *

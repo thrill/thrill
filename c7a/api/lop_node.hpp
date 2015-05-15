@@ -14,12 +14,11 @@
 #include "dia_node.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
 /*!
- * A LOpNode which performs a chain of local operations. 
+ * A LOpNode which performs a chain of local operations.
  * LOp nodes are used for caching local operation results and assignment operations.
  *
  * \tparam Input Input type of the Reduce operation
@@ -30,13 +29,11 @@ class LOpNode : public DIANode<Input>
 {
 public:
     /*!
-     * Constructor for a LOpNode. Sets the DataManager, parents and stack.
+     * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param parents Parent DIANode. 
+     * \param parent Parent DIANode.
      * \param lop_stack Function chain with all lambdas between the parent and this node
-     * \param key_extractor Key extractor function
-     * \param reduce_function Reduce function
      */
     LOpNode(Context& ctx,
             DIANode<Input>* parent,
@@ -48,7 +45,7 @@ public:
     virtual ~LOpNode() { }
 
     /*!
-     * Actually executes the local operations. 
+     * Actually executes the local operations.
      */
     void execute() override
     {
@@ -59,8 +56,8 @@ public:
 
         std::vector<Input> elements;
         auto save_fn = [&elements](Input input) {
-                           elements.push_back(input);
-                       };
+            elements.push_back(input);
+        }
         auto lop_chain = lop_stack_.push(save_fn).emit();
 
         // loop over input
@@ -91,7 +88,6 @@ private:
     //! Local stack
     LOpStack lop_stack_;
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/epoll-dispatcher.hpp
+ * c7a/net/lowlevel/epoll_dispatcher.hpp
  *
  * Asynchronous callback wrapper around epoll()
  *
@@ -22,7 +22,6 @@
 namespace c7a {
 namespace net {
 namespace lowlevel {
-
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -387,7 +386,6 @@ private:
 };
 
 //! \}
-
 } // namespace lowlevel
 } // namespace net
 } // namespace c7a
