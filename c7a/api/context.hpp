@@ -19,7 +19,6 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
 class Context
 {
 public:
@@ -30,7 +29,8 @@ public:
     {
         return data_manager_;
     }
-    int number_worker(){
+    int number_worker()
+    {
         return number_worker_;
     }
 
@@ -39,7 +39,6 @@ private:
     //stub
     int number_worker_ = 1;
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
