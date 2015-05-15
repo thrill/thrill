@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************
  * c7a/core/hash_table.hpp
  *
  * Hash table with support for reduce and partitions.
@@ -22,17 +22,15 @@
 #include <array>
 
 #include "c7a/api/function_traits.hpp"
-
-//TODO:Remove when we have block manager
 #include "c7a/data/data_manager.hpp"
 
 namespace c7a {
 namespace core {
 
-template <typename KeyExtractor, typename ReduceFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class HashTable
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using key_t = typename FunctionTraits<KeyExtractor>::result_type;
 
@@ -74,7 +72,7 @@ public:
     HashTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
               size_t max_num_items_per_bucket, size_t max_num_items_table,
               KeyExtractor key_extractor, ReduceFunction reduce_function,
-              data::BlockEmitter<value_t> emit)
+              std::vector<EmitterFunction> emit)
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -89,7 +87,7 @@ public:
 
     // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
     HashTable(size_t partition_size, KeyExtractor key_extractor,
-              ReduceFunction reduce_function, data::BlockEmitter<value_t> emit)
+              ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -177,7 +175,7 @@ public:
 
             // no item found with key
             if (curr_node == nullptr) {
-                LOG << "key doesn't exists in bucket, appending...";
+                LOG << "key doesn't exist in baguette, appending...";
 
                 // insert at first pos
                 node<key_t, value_t>* n = new node<key_t, value_t>;
@@ -191,13 +189,13 @@ public:
                 // increase total counter
                 table_size_++;
 
-                LOG << "key appendend, metrics updated!";
+                LOG << "key appended, metrics updated!";
             }
         }
 
         if (table_size_ > max_num_items_table_) {
             LOG << "spilling in progress";
-            FlashLargestPartition();
+            FlushLargestPartition();
         }
     }
 
@@ -206,7 +204,7 @@ public:
      * having the most items. Retrieved items are then forward
      * to the provided emitter.
      */
-    void FlashLargestPartition()
+    void FlushLargestPartition()
     {
         // get partition with max size
         size_t p_size_max = 0;
@@ -236,7 +234,7 @@ public:
             if (vector_[i] != nullptr) {
                 node<key_t, value_t>* curr_node = vector_[i];
                 do {
-                    emit_(curr_node->value);
+                    emit_[p_idx](curr_node->value);
                     curr_node = curr_node->next;
                 } while (curr_node != nullptr);
                 vector_[i] = nullptr;
@@ -265,7 +263,7 @@ public:
                 if (vector_[j] != nullptr) {
                     node<key_t, value_t>* curr_node = vector_[j];
                     do {
-                        emit_(curr_node->value);
+                        emit_[i](curr_node->value);
                         curr_node = curr_node->next;
                     } while (curr_node != nullptr);
                     vector_[j] = nullptr;
@@ -294,6 +292,13 @@ public:
     size_t NumBuckets()
     {
         return num_buckets_;
+    }
+
+    /*!
+     * Sets the maximum size of the hash table. We don't want to push 2⁶⁴ elements before flush happens.
+     */
+    void SetMaxSize(size_t size) {
+      max_num_items_table_ = size;
     }
 
     /*!
@@ -379,31 +384,30 @@ public:
     }
 
 private:
-    size_t num_partitions_ = 0;             // partition size
+    size_t num_partitions_;             // partition size
 
-    size_t num_buckets_ = 0;                // num buckets
+    size_t num_buckets_;                // num buckets
 
-    size_t num_buckets_per_partition_ = 0;  // num buckets per partition
+    size_t num_buckets_per_partition_ = 65536;  // num buckets per partition
 
     size_t num_buckets_init_scale_ = 2;    // set number of buckets per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
     size_t num_buckets_resize_scale_ = 2;  // resize scale on max_num_items_per_bucket_
 
-    size_t max_num_items_per_bucket_ = 10;  // max num of items per bucket before resize
+    size_t max_num_items_per_bucket_ = 256;  // max num of items per bucket before resize
 
     std::vector<size_t> items_per_partition_;           // num items per partition
 
     size_t table_size_ = 0;                 // total number of items
 
-    size_t max_num_items_table_ = 3;             // max num of items before spilling of largest partition
+    size_t max_num_items_table_ = 1048576;             // max num of items before spilling of largest partition
 
     KeyExtractor key_extractor_;
 
     ReduceFunction reduce_function_;
 
-    //TODO:Network-Emitter when it's there (:
-    data::BlockEmitter<value_t> emit_;
+    std::vector<EmitterFunction> emit_;
 
     std::vector<node<key_t, value_t>*> vector_;
 };
