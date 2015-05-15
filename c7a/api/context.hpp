@@ -30,9 +30,14 @@ public:
     {
         return data_manager_;
     }
+    int number_worker(){
+        return number_worker_;
+    }
 
 private:
     data::DataManager data_manager_;
+    //stub
+    int number_worker_ = 1;
 };
 
 } // namespace c7a
