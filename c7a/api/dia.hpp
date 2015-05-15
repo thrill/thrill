@@ -175,7 +175,7 @@ public:
      *
      * \tparam filter_fn_t Type of the map function.
      *
-     * \param map_fn Filter function of type filter_fn_t, which maps each element to
+     * \param filter_fn Filter function of type filter_fn_t, which maps each element to
      * a boolean.
      *
      */
