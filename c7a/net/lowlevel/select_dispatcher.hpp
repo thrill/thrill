@@ -35,7 +35,7 @@ namespace lowlevel {
 template <typename _Cookie>
 class SelectDispatcher : protected Select
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     //! cookie data structure for callback

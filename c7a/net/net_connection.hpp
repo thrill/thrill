@@ -52,9 +52,14 @@ class NetConnection : protected lowlevel::Socket
 
 public:
     //! Construct NetConnection from a Socket
-    explicit NetConnection(const Socket& s = Socket())
+    explicit NetConnection(const Socket& s)
         : Socket(s)
+    { } 
+
+    explicit NetConnection()
+        : Socket()
     { }
+
 
 #if !C7A_NETCONNECTION_COPYABLE
     //! move-constructor
