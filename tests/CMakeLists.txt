@@ -28,8 +28,8 @@ endmacro(build_test)
 
 ### list of tests in subdirectories
 
-build_test(api/test_simple_api)
-#build_only(api/test_wordcount)
+#build_test(api/test_simple_api)
+build_test(api/test_wordcount)
 build_test(data/test_data_manager)
 build_test(data/test_block_iterator)
 #build_test(data/test_dia_allocate)
