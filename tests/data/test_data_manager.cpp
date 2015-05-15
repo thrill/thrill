@@ -9,12 +9,22 @@
 
 #include "gtest/gtest.h"
 #include "c7a/data/data_manager.hpp"
+#include <c7a/net/net_dispatcher.hpp>
+#include <c7a/net/channel_multiplexer.hpp>
 
 using namespace c7a::data;
+using namespace c7a::net;
 
 struct DataManagerFixture : public::testing::Test {
-    DataManager manager;
-    DIAId       id = manager.AllocateDIA();
+    DataManagerFixture()
+        : dispatcher(),
+          cmp(dispatcher, 1),
+          manager(cmp) { }
+
+    NetDispatcher      dispatcher;
+    ChannelMultiplexer cmp;
+    DataManager        manager;
+    DIAId              id = manager.AllocateDIA();
 };
 
 TEST_F(DataManagerFixture, GetLocalBlock_FailsIfNotFound) {
