@@ -238,8 +238,7 @@ public:
     Buffer ToBuffer()
     {
         Buffer b = Buffer::Acquire(data_, size_);
-        data_ = nullptr;
-        size_ = capacity_ = 0;
+        Detach();
         return std::move(b);
     }
 
@@ -530,6 +529,16 @@ public:
     //! Explicit conversion to std::string (copies memory of course).
     std::string ToString() const
     { return std::string(reinterpret_cast<const char*>(data_), size_); }
+
+    //! Explicit conversion to Buffer MOVING the memory ownership.
+    Buffer ToBuffer()
+    {
+        void* addr = (void*)data_;
+        Buffer b = Buffer::Acquire(addr, size_);
+        data_ = nullptr;
+        size_ = 0;
+        return std::move(b);
+    }
 
     //! Compare contents of two BinaryBuffers.
     bool operator == (const BinaryBuffer& br) const
