@@ -12,7 +12,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include <c7a/net/channel-multiplexer.hpp>
+#include <c7a/net/channel_multiplexer.hpp>
 
 using::testing::_;
 using::testing::InvokeArgument;

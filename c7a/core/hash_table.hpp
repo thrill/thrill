@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
-//#include <cstddef>
+#include <array>
 
 #include "c7a/api/function_traits.hpp"
 
@@ -28,19 +28,6 @@
 
 namespace c7a {
 namespace core {
-
-struct hash_result {
-    std::size_t partition_id;     // which partition
-    std::size_t partition_offset; // which idx within a partition
-    std::size_t global_index;
-};
-
-template <typename key_t, typename value_t>
-struct node {
-    key_t   key;
-    value_t value;
-    node    * next;
-};
 
 template <typename KeyExtractor, typename ReduceFunction>
 class HashTable
@@ -51,27 +38,81 @@ class HashTable
 
     using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
-public:
-    HashTable(std::size_t partition_size, KeyExtractor key_extractor,
-              ReduceFunction reduce_function, data::BlockEmitter<value_t> emit) :
-        num_partitions_(partition_size),
-        key_extractor_(key_extractor),
-        reduce_function_(reduce_function),
-        emit_(emit)
-    {
-        if (partition_size > num_buckets_) {
-            throw std::invalid_argument("num partitions must be less than num buckets");
-        }
+protected:
+    struct hash_result {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the partition's sub-hashtable of this item
+        size_t partition_offset;
+        //! index within the whole hashtable
+        size_t global_index;
 
-        //num_buckets_ = num_partitions_*10; // TODO scale initial bucket size based on num of workers
-        buckets_per_part_ = num_buckets_ / num_partitions_;
-        items_in_part_ = new int[num_partitions_];
-        for (int i = 0; i < num_partitions_; i++) { // TODO: just a tmp fix
-            items_in_part_[i] = 0;
+        hash_result(key_t v, const HashTable& ht)
+        {
+            size_t hashed = std::hash<key_t>()(v);
+
+            // partition idx
+            partition_offset = hashed % ht.num_buckets_per_partition_;
+
+            // partition id
+            partition_id = hashed % ht.num_partitions_;
+
+            // global idx
+            global_index = partition_id * ht.num_buckets_per_partition_ + partition_offset;
         }
+    };
+
+    template <typename key_t, typename value_t>
+    struct node {
+        key_t   key;
+        value_t value;
+        node    * next;
+    };
+
+public:
+
+    HashTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
+              size_t max_num_items_per_bucket, size_t max_num_items_table,
+              KeyExtractor key_extractor, ReduceFunction reduce_function,
+              data::BlockEmitter<value_t> emit)
+        : num_partitions_(num_partitions),
+          num_buckets_init_scale_(num_buckets_init_scale),
+          num_buckets_resize_scale_(num_buckets_resize_scale),
+          max_num_items_per_bucket_(max_num_items_per_bucket),
+          max_num_items_table_(max_num_items_table),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(emit)
+    {
+        init();
+    }
+
+    // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
+    HashTable(size_t partition_size, KeyExtractor key_extractor,
+              ReduceFunction reduce_function, data::BlockEmitter<value_t> emit)
+        : num_partitions_(partition_size),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(emit)
+    {
+        init();
     }
 
     ~HashTable() { }
+
+    void init()
+    {
+        num_buckets_ = num_partitions_ * num_buckets_init_scale_;
+        if (num_partitions_ > num_buckets_ &&
+            num_buckets_ % num_partitions_ != 0) {
+            throw std::invalid_argument("partition_size must be less than or equal to num_buckets "
+                                                "AND partition_size a divider of num_buckets");
+        }
+        num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+
+        vector_.resize(num_buckets_, nullptr);
+        items_per_partition_.resize(num_partitions_, 0);
+    }
 
     /*!
      * Inserts a key/value pair.
@@ -83,28 +124,31 @@ public:
     {
         key_t key = key_extractor_(p);
 
-        hash_result h = hash(key);
+        hash_result h(key, *this);
 
         LOG << "key: "
             << key
             << " to idx: "
             << h.global_index;
 
+        // TODO(ms): the first nullptr case is identical. remove and use null as
+        // sentinel.
+
         // bucket is empty
-        if (a[h.global_index] == nullptr) {
+        if (vector_[h.global_index] == nullptr) {
             LOG << "bucket empty, inserting...";
 
             node<key_t, value_t>* n = new node<key_t, value_t>;
             n->key = key;
             n->value = p;
             n->next = nullptr;
-            a[h.global_index] = n;
+            vector_[h.global_index] = n;
 
             // increase counter for partition
-            items_in_part_[h.partition_id]++;
+            items_per_partition_[h.partition_id]++;
 
             // increase total counter
-            total_table_size_++;
+            table_size_++;
 
             // bucket is not empty
         }
@@ -112,7 +156,7 @@ public:
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node<key_t, value_t>* curr_node = a[h.global_index];
+            node<key_t, value_t>* curr_node = vector_[h.global_index];
             do {
                 if (key == curr_node->key) {
                     LOG << "match of key: "
@@ -139,37 +183,37 @@ public:
                 node<key_t, value_t>* n = new node<key_t, value_t>;
                 n->key = key;
                 n->value = p;
-                n->next = a[h.global_index];
-                a[h.global_index] = n;
+                n->next = vector_[h.global_index];
+                vector_[h.global_index] = n;
 
                 // increase counter for partition
-                items_in_part_[h.partition_id]++;
+                items_per_partition_[h.partition_id]++;
                 // increase total counter
-                total_table_size_++;
+                table_size_++;
 
                 LOG << "key appendend, metrics updated!";
             }
         }
 
-        // TODO should be externally configureably somehow
-        if (total_table_size_ > max_table_size_) {
+        if (table_size_ > max_num_items_table_) {
             LOG << "spilling in progress";
-            PopLargestSubtable();
+            FlashLargestPartition();
         }
     }
 
     /*!
-     * Returns a vector containing all items belonging to the partition
-     * having the most items.
+     * Retrieves all items belonging to the partition
+     * having the most items. Retrieved items are then forward
+     * to the provided emitter.
      */
-    void PopLargestSubtable()
+    void FlashLargestPartition()
     {
         // get partition with max size
-        int p_size_max = 0;
-        int p_idx = 0;
-        for (int i = 0; i < num_partitions_; i++) {
-            if (items_in_part_[i] > p_size_max) {
-                p_size_max = items_in_part_[i];
+        size_t p_size_max = 0;
+        size_t p_idx = 0;
+        for (size_t i = 0; i < num_partitions_; i++) {
+            if (items_per_partition_[i] > p_size_max) {
+                p_size_max = items_per_partition_[i];
                 p_idx = i;
             }
         }
@@ -179,74 +223,131 @@ public:
             << " currentIdx: "
             << p_idx
             << " currentIdx*p_size: "
-            << p_idx * buckets_per_part_
+            << p_idx * num_buckets_per_partition_
             << " CurrentIdx*p_size+p_size-1 "
-            << p_idx * buckets_per_part_ + buckets_per_part_ - 1;
+            << p_idx * num_buckets_per_partition_ + num_buckets_per_partition_ - 1;
+
+        // TODO(ms): use iterators instead of indexes. easier code.
 
         // retrieve items
-        for (int i = p_idx * buckets_per_part_; i <= p_idx * buckets_per_part_ + buckets_per_part_ - 1; i++) {
-            if (a[i] != nullptr) {
-                node<key_t, value_t>* curr_node = a[i];
+        for (size_t i = p_idx * num_buckets_per_partition_;
+             i != p_idx * num_buckets_per_partition_ + num_buckets_per_partition_; i++)
+        {
+            if (vector_[i] != nullptr) {
+                node<key_t, value_t>* curr_node = vector_[i];
                 do {
                     emit_(curr_node->value);
                     curr_node = curr_node->next;
                 } while (curr_node != nullptr);
-                a[i] = nullptr;
+                vector_[i] = nullptr;
             }
         }
 
         // reset partition specific counter
-        items_in_part_[p_idx] = 0;
+        items_per_partition_[p_idx] = 0;
         // reset total counter
-        total_table_size_ -= p_size_max;
+        table_size_ -= p_size_max;
     }
 
     /*!
-     * Flushes the HashTable after all elements are inserted.
+     * Flushes all items.
      */
     void Flush()
     {
         LOG << "Flushing in progress";
 
+        // TODO(ms): this smells like this should be FlushPE(), since same as above.
+
         // retrieve items
-        for (int i = 0; i < num_partitions_; i++) {
-            for (int j = i * buckets_per_part_; j <= i * buckets_per_part_ + buckets_per_part_ - 1; j++) {
-                if (a[j] != nullptr) {
-                    node<key_t, value_t>* curr_node = a[j];
+        for (size_t i = 0; i < num_partitions_; i++) {
+            for (size_t j = i * num_buckets_per_partition_;
+                 j <= i * num_buckets_per_partition_ + num_buckets_per_partition_ - 1; j++) {
+                if (vector_[j] != nullptr) {
+                    node<key_t, value_t>* curr_node = vector_[j];
                     do {
                         emit_(curr_node->value);
                         curr_node = curr_node->next;
                     } while (curr_node != nullptr);
-                    a[j] = nullptr;
+                    vector_[j] = nullptr;
                 }
             }
 
             // set size of partition to 0
-            items_in_part_[i] = 0;
+            items_per_partition_[i] = 0;
         }
 
         // reset counters
-        total_table_size_ = 0;
+        table_size_ = 0;
     }
 
     /*!
      * Returns the total num of items.
      */
-    std::size_t Size()
+    size_t Size()
     {
-        return total_table_size_;
+        return table_size_;
     }
 
-    void Resize()
+    /*!
+     * Returns the total num of items.
+     */
+    size_t NumBuckets()
     {
-        LOG << "to be implemented";
+        return num_buckets_;
+    }
+
+    /*!
+     * Resizes the table by increasing the number of buckets using some
+     * resize scale factor. All items are rehashed as part of the operation
+     */
+    void ResizeUp()
+    {
+        LOG << "Resizing";
+        num_buckets_ *= num_buckets_resize_scale_;
+        num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+        // init new array
+        std::vector<node<key_t, value_t>*> vector_old = vector_;
+        std::vector<node<key_t, value_t>*> vector_new;
+        vector_new.resize(num_buckets_, nullptr);
+        vector_ = vector_new;
+        // rehash all items in old array
+        for(auto bucket : vector_old) {
+            Insert(bucket);
+        }
+        LOG << "Resized";
+    }
+
+    /*!
+     * Removes all items in the table, but NOT flushing them.
+     */
+    void Clear()
+    {
+        LOG << "Clearing";
+        std::fill(vector_.begin(), vector_.end(), nullptr);
+        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
+        table_size_ = 0;
+        LOG << "Cleared";
+    }
+
+    /*!
+     * Removes all items in the table, but NOT flushing them.
+     */
+    void Reset()
+    {
+        LOG << "Resetting";
+        num_buckets_ = num_partitions_ * num_buckets_init_scale_;
+        num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+        vector_.resize(num_buckets_, nullptr);
+        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
+        table_size_ = 0;
+        LOG << "Resetted";
     }
 
     // prints content of hash table
     void Print()
     {
         for (int i = 0; i < num_buckets_; i++) {
-            if (a[i] == nullptr) {
+            if (vector_[i] == nullptr) {
                 LOG << "bucket "
                     << i
                     << " empty";
@@ -255,7 +356,7 @@ public:
                 std::string log = "";
 
                 // check if item with same key
-                node<key_t, value_t>* curr_node = a[i];
+                node<key_t, value_t>* curr_node = vector_[i];
                 value_t curr_item;
                 do {
                     curr_item = curr_node->value;
@@ -278,17 +379,24 @@ public:
     }
 
 private:
-    int max_table_size_ = 3;             //maximum number of elements in whole table, spill largest subtable when full
+    size_t num_partitions_ = 0;             // partition size
 
-    int num_partitions_ = 0;             // partition size
+    size_t num_buckets_ = 0;                // num buckets
 
-    int buckets_per_part_ = 0;           // num buckets per partition
+    size_t num_buckets_per_partition_ = 0;  // num buckets per partition
 
-    int* items_in_part_;                 // num items per partition
+    size_t num_buckets_init_scale_ = 2;    // set number of buckets per partition based on num_partitions
+    // multiplied with some scaling factor, must be equal to or greater than 1
 
-    int total_table_size_ = 0;           // total sum of items
+    size_t num_buckets_resize_scale_ = 2;  // resize scale on max_num_items_per_bucket_
 
-    static const int num_buckets_ = 100; // bucket size
+    size_t max_num_items_per_bucket_ = 10;  // max num of items per bucket before resize
+
+    std::vector<size_t> items_per_partition_;           // num items per partition
+
+    size_t table_size_ = 0;                 // total number of items
+
+    size_t max_num_items_table_ = 3;             // max num of items before spilling of largest partition
 
     KeyExtractor key_extractor_;
 
@@ -297,24 +405,7 @@ private:
     //TODO:Network-Emitter when it's there (:
     data::BlockEmitter<value_t> emit_;
 
-    node<key_t, value_t>* a[num_buckets_] = { nullptr }; // TODO: fix this static assignment
-
-    hash_result hash(key_t v)
-    {
-        hash_result* h = new hash_result();
-
-        // partition idx
-        std::size_t hashed = std::hash<key_t>()(v);
-        h->partition_offset = hashed % buckets_per_part_;
-
-        // partition id
-        h->partition_id = h->partition_offset % num_partitions_;
-
-        // global idx
-        h->global_index = h->partition_offset + h->partition_id * buckets_per_part_;
-
-        return *h;
-    }
+    std::vector<node<key_t, value_t>*> vector_;
 };
 }
 }

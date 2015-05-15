@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include "gtest/gtest.h"
-#include "c7a/net/mock-network.hpp"
+#include "c7a/net/mock_network.hpp"
 
 //using namespace c7a;
 

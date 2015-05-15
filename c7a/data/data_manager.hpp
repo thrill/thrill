@@ -24,7 +24,7 @@ namespace c7a {
 namespace data {
 
 //! Identification for DIAs
-typedef int DIAId;
+typedef unsigned int DIAId;
 
 //! function Signature for an emitt function
 template <typename T>
@@ -60,7 +60,7 @@ public:
     bool Contains(DIAId id)
     {
         //return data_.find(id) != data_.end();
-        return data_.size() > id && id >= 0;
+        return data_.size() > id;
     }
 
     DIAId AllocateDIA()

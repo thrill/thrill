@@ -11,7 +11,7 @@
 #ifndef C7A_NET_CHANNEL_HEADER
 #define C7A_NET_CHANNEL_HEADER
 
-#include <c7a/net/net-connection.hpp>
+#include <c7a/net/net_connection.hpp>
 #include <c7a/net/stream.hpp>
 
 namespace c7a {
@@ -102,13 +102,13 @@ private:
     //!The second part of the header (boundaries of the block) is read here
     //!
     //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(NetConnection& s, const std::string& buffer, Stream* stream)
+    void ReadSecondHeaderPartFrom(NetConnection& s, Buffer&& buffer, Stream* stream)
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
         sLOG << "read #elements on" << stream->socket << "in channel" << id_;
         assert(stream->header.num_elements > 0);
 
-        stream->header.ParseBoundaries(buffer);
+        stream->header.ParseBoundaries(buffer.ToString());
         ReadFromStream(stream);
     }
 
@@ -141,10 +141,10 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& s, const std::string& buffer, Stream* stream)
+    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream)
     {
         sLOG << "read data on" << stream->socket << "in channel" << id_;
-        data_.push_back(buffer);  //TODO give buffer to AsyncRead instead of copying data here!
+        data_.emplace_back(buffer.ToString());  // TODO(ts) use buffer from AsyncRead instead of copying data here!
         ReadFromStream(stream);
     }
 };
