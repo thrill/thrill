@@ -1,7 +1,5 @@
 /*******************************************************************************
- * tests/c7a-tests.hpp
- *
- * Google Test main program which calls tests.
+ * c7a/net/communication_manager.cpp
  *
  * Part of Project c7a.
  *
@@ -9,13 +7,12 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#pragma once
-#ifndef C7A_TESTS_C7A_TESTS_HEADER
-#define C7A_TESTS_C7A_TESTS_HEADER
+#include "communication_manager.hpp"
 
-//! path to test suite root during test runs (given as command line parameter)
-extern std::string g_workpath;
+namespace c7a {
+namespace net { } // namespace c7a
 
-#endif // !C7A_TESTS_C7A_TESTS_HEADER
+
+}                 // namespace net
 
 /******************************************************************************/

@@ -7,8 +7,12 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#ifndef DEBUG
+#define DEBUG = FALSE
+#endif
+
 #include "gtest/gtest.h"
-#include <tests/c7a-tests.hpp>
+#include <tests/c7a_tests.hpp>
 #include "c7a/api/dia_base.hpp"
 #include "c7a/core/stage_builder.hpp"
 #include "c7a/api/dia.hpp"
@@ -17,7 +21,7 @@
 using namespace c7a::core;
 
 TEST(Stage, GetStagesFromBuilder) {
-    using c7a::DIA;
+    using c7a::DIARef;
     using c7a::Context;
     Context ctx;
     auto doubles = ReadFromFileSystem(ctx,
@@ -48,12 +52,8 @@ TEST(Stage, GetStagesFromBuilder) {
 
     //SIMULATE
 
-    std::vector<Stage> result;
-    FindStages(red_duplicates2.get_node(), result);
-    for (auto s : result)
-    {
-        s.Run();
-    }
+    RunScope(red_duplicates2.get_node());
+
 }
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/channel-multiplexer.hpp
+ * c7a/net/channel_multiplexer.hpp
  *
  * Part of Project c7a.
  *
@@ -13,7 +13,7 @@
 
 #include <memory> //std::shared_ptr
 #include <map>
-#include <c7a/net/net-dispatcher.hpp>
+#include <c7a/net/net_dispatcher.hpp>
 #include <c7a/net/channel.hpp>
 
 namespace c7a {
@@ -66,7 +66,7 @@ private:
     //! parses the channel id from a header and passes it to an existing
     //! channel or creates a new channel
     void ReadFirstHeaderPartFrom(
-        NetConnection& s, const std::string& buffer);
+        NetConnection& s, const Buffer& buffer);
 };
 
 } // namespace net

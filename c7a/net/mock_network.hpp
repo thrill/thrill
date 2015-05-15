@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/mock-network.hpp
+ * c7a/net/mock_network.hpp
  *
  * Part of Project c7a.
  *

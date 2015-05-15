@@ -13,14 +13,17 @@
 
 namespace c7a {
 
-template <typename T, typename WriteFunction>
-class WriteNode : public ActionNode<T>
+template <typename Input, typename Output, typename WriteFunction>
+class WriteNode : public ActionNode<Output>
 {
 public:
     WriteNode(data::DataManager& data_manager,
-              const DIABaseVector& parents,
+              DIANode<Input>* parent,
               WriteFunction write_function)
-        : ActionNode<T>(data_manager, parents), write_function_(write_function) { }
+        : ActionNode<Output>(data_manager, { parent }),
+          write_function_(write_function)
+    { }
+
     virtual ~WriteNode() { }
 
     void execute() { }

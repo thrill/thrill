@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/channel-multiplexer.cpp
+ * c7a/net/channel_multiplexer.cpp
  *
  * Part of Project c7a.
  *
@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "channel-multiplexer.hpp"
+#include "channel_multiplexer.hpp"
 #include <c7a/common/logger.hpp>
 #include <cassert>
 
@@ -43,10 +43,10 @@ std::shared_ptr<Channel> ChannelMultiplexer::PickupChannel(int id)
 }
 
 void ChannelMultiplexer::ReadFirstHeaderPartFrom(
-    NetConnection& s, const std::string& buffer)
+    NetConnection& s, const Buffer& buffer)
 {
     struct StreamBlockHeader header;
-    header.ParseIdAndNumElem(buffer);
+    header.ParseIdAndNumElem(buffer.ToString());
 
     ChannelPtr channel;
     if (!HasChannel(header.channel_id)) {
