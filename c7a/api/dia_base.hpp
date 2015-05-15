@@ -20,7 +20,6 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
 /*!
  * Possible states a DIABase can be in.
  */
@@ -31,7 +30,6 @@ enum kState {
     CACHED,     /*!< The DIABase is cached and it's data can be accessed */
     DISPOSED    /*!< The DIABase is disposed by the user, needs to be recomputed when accessed */
 };
-
 
 //! \addtogroup api Interface
 //! \{
@@ -113,12 +111,14 @@ public:
         return data_id_;
     }
 
-    kState state() {
-      return state_;
+    kState state()
+    {
+        return state_;
     }
 
-    kState set_state(kState state) {
-      return state_ = state;
+    kState set_state(kState state)
+    {
+        return state_ = state;
     }
 
 protected:
@@ -151,7 +151,6 @@ protected:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER

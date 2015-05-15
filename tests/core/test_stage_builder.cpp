@@ -26,16 +26,20 @@ TEST(Stage, GetStagesFromBuilder) {
     Context ctx;
     auto doubles = ReadFromFileSystem(ctx,
                                       g_workpath + "/inputs/test1",
-                                      [](std::string line) {
+                                      [] (std::string line) {
                                           return std::stod(line);
                                       });
 
-    auto key = [](double in) { return (int)in; };
-    auto red_fn = [](double in1, double in2) { return in1 + in2; };
-    auto map_fn = [](double input) {
-                      std::cout << "Map" << std::endl;
-                      return input;
-                  };
+    auto key = [] (double in) {
+        return (int)in;
+    };
+    auto red_fn = [] (double in1, double in2) {
+        return in1 + in2;
+    }
+    auto map_fn = [] (double input) {
+        std::cout << "Map" << std::endl;
+        return input;
+    };
 
     /*auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
                        std::cout << "FlatMap" << std::endl;
@@ -53,7 +57,6 @@ TEST(Stage, GetStagesFromBuilder) {
     //SIMULATE
 
     RunScope(red_duplicates2.get_node());
-
 }
 
 /******************************************************************************/

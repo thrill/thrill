@@ -13,7 +13,6 @@
 
 namespace c7a {
 namespace net {
-
 ChannelMultiplexer::ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections)
     : dispatcher_(dispatcher),
       num_connections_(num_connections) { }
@@ -60,7 +59,6 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(
 
     channel->PickupStream(s, header);
 }
-
 } // namespace net
 } // namespace c7a
 

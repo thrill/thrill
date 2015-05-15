@@ -20,7 +20,6 @@
 #include <fstream>
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -82,8 +81,8 @@ public:
     auto ProduceStack() {
         // Hook Identity
         auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
-                         return emit_func(t);
-                     };
+            return emit_func(t);
+        }
 
         FunctionStack<> stack;
         return stack.push(id_fn);
@@ -107,7 +106,6 @@ private:
     //! Path of the input file.
     std::string path_in_;
 };
-
 } // namespace c7a
 
 //! \}

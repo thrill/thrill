@@ -21,7 +21,6 @@
 #include "../common/logger.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -68,11 +67,11 @@ public:
     {
         // Hook PreOp(s)
         auto pre_op1_fn = [ = ](Input1 input) {
-                              PreOp(input);
-                          };
+            PreOp(input);
+        }
         auto pre_op2_fn = [ = ](Input2 input) {
-                              PreOpSecond(input);
-                          };
+            PreOpSecond(input);
+        }
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
         auto lop_chain2 = stack2_.push(pre_op2_fn).emit();
 
@@ -103,8 +102,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-                              return PostOp(elem, emit_func);
-                          };
+            return PostOp(elem, emit_func);
+        }
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -174,7 +173,6 @@ private:
         emit_func(input);
     }
 };
-
 } // namespace c7a
 
 //! \}

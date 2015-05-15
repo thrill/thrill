@@ -22,20 +22,20 @@ TEST(API, SharedPtrTest) {
 
     Context ctx;
 
-    auto map_fn = [](int in) {
-                      return 2 * in;
-                  };
-    auto key_ex = [](int in) {
-                      return in % 2;
-                  };
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+    auto map_fn = [] (int in) {
+        return 2 * in;
+    };
+    auto key_ex = [] (int in) {
+        return in % 2;
+    };
+    auto red_fn = [] (int in1, int in2) {
+        return in1 + in2;
+    }
 
     auto input = ReadFromFileSystem(
         ctx,
         g_workpath + "/inputs/test1",
-        [](const std::string& line) {
+        [] (const std::string & line) {
             return std::stoi(line);
         });
     auto ints = input.Map(map_fn);
@@ -58,26 +58,26 @@ TEST(API, TypeDeductionText) {
 
     Context ctx;
 
-    auto to_int_fn = [](std::string in) {
-                      return std::stoi(in);
-                  };
-    auto double_int_fn = [](int in) {
-                      return 2 * in;
-                  };
-    auto filter_geq = [](int in) {
-                      return in <= 40;
-                  };
-    auto key_ex = [](int in) {
-                      return in % 2;
-                  };
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+    auto to_int_fn = [] (std::string in) {
+        return std::stoi(in);
+    };
+    auto double_int_fn = [] (int in) {
+        return 2 * in;
+    };
+    auto filter_geq = [] (int in) {
+        return in <= 40;
+    };
+    auto key_ex = [] (int in) {
+        return in % 2;
+    };
+    auto red_fn = [] (int in1, int in2) {
+        return in1 + in2;
+    }
 
     auto lines = ReadFromFileSystem(
         ctx,
         g_workpath + "/inputs/test1",
-        [](const std::string& line) {
+        [] (const std::string & line) {
             return line;
         });
     auto ints = lines.Map(to_int_fn);
@@ -96,11 +96,13 @@ TEST(API, TypeDeductionText) {
 }
 
 TEST(API, Test1Zip) {
-    auto read_int = [](std::string line) { return std::stoi(line); };
+    auto read_int = [] (std::string line) {
+        return std::stoi(line);
+    };
 
-    auto zip_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+    auto zip_fn = [] (int in1, int in2) {
+        return in1 + in2;
+    }
 
     c7a::Context ctx;
 
@@ -108,7 +110,7 @@ TEST(API, Test1Zip) {
 
     auto initial2 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
 
-    auto doubled = initial2.Map([](int in) {
+    auto doubled = initial2.Map([] (int in) {
                                     return 2 * in;
                                 });
 
@@ -129,36 +131,36 @@ TEST(API, FunctionStackTest) {
 
     // User-defined functions
     auto fmap_fn =
-        [ = ](double input, std::function<void(double)> emit_func) {
-            emit_func(input);
-            emit_func(input);
-        };
+    [ = ](double input, std::function<void(double)> emit_func) {
+        emit_func(input);
+        emit_func(input);
+    }
 
     auto map_fn =
-        [ = ](double input) {
-            return 2 * input;
-        };
+    [ = ](double input) {
+        return 2 * input;
+    }
 
     auto filter_fn =
-        [ = ](double input) {
-            return input > 80;
-        };
+    [ = ](double input) {
+        return input > 80;
+    }
 
     auto save_fn =
-        [&elements](double input) {
-            elements.push_back(input);
-        };
+    [&elements](double input) {
+        elements.push_back(input);
+    }
 
     // Converted emitter functions
     auto conv_map_fn =
-        [ = ](double input, std::function<void(double)> emit_func) {
-            emit_func(map_fn(input));
-        };
+    [ = ](double input, std::function<void(double)> emit_func) {
+        emit_func(map_fn(input));
+    }
 
     auto conv_filter_fn =
-        [ = ](double input, std::function<void(double)> emit_func) {
-            if (filter_fn(input)) emit_func(input);
-        };
+    [ = ](double input, std::function<void(double)> emit_func) {
+        if (filter_fn(input)) emit_func(input);
+    }
 
     std::cout << "==============" << std::endl;
     std::cout << "FunctionStack" << std::endl;

@@ -32,7 +32,6 @@
 #include "context.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -81,7 +80,7 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, Stack& stack)
+    DIARef(DIANodePtr && node, Stack& stack)
         : node_(std::move(node)),
           local_stack_(stack)
     { }
@@ -106,7 +105,7 @@ public:
         using LOpChainNode
                   = LOpNode<T, decltype(rhs_stack)>;
 
-        auto shared_node 
+        auto shared_node
             = std::make_shared<LOpChainNode>(rhs_node->get_context(),
                                              rhs_node,
                                              rhs_stack);
@@ -158,18 +157,18 @@ public:
         using map_result_t
                   = typename FunctionTraits<map_fn_t>::result_type;
         auto conv_map_fn = [ = ](map_arg_t input, std::function<void(map_result_t)> emit_func) {
-                               emit_func(map_fn(input));
-                           };
+            emit_func(map_fn(input));
+        }
 
         auto new_stack = local_stack_.push(conv_map_fn);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
-     * Filter is a LOp, which filters elements from  this DIARef 
+     * Filter is a LOp, which filters elements from  this DIARef
      * according to the filter_fn given by the
-     * user. The filter_fn maps each element to a boolean. 
-     * The DIARef returned by Filter has the same type T. 
+     * user. The filter_fn maps each element to a boolean.
+     * The DIARef returned by Filter has the same type T.
      * The function chain of the returned DIARef is this DIARef's
      * local_stack_ chained with filter_fn.
      *
@@ -184,8 +183,8 @@ public:
         using filter_arg_t
                   = typename FunctionTraits<filter_fn_t>::template arg<0>;
         auto conv_filter_fn = [ = ](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
-               if (filter_fn(input)) emit_func(input);
-           };
+            if (filter_fn(input)) emit_func(input);
+        }
 
         auto new_stack = local_stack_.push(conv_filter_fn);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -260,7 +259,7 @@ public:
                   = TwoZipNode<zip_arg_0_t, zip_arg_1_t, zip_result_t,
                                decltype(local_stack_), decltype(second_dia.get_stack()), zip_fn_t>;
 
-        auto shared_node 
+        auto shared_node
             = std::make_shared<ZipResultNode>(node_->get_context(),
                                               node_.get(),
                                               second_dia.get_node(),
@@ -360,7 +359,7 @@ private:
             using ReduceResultNode
                       = ReduceNode<T, dop_result_t, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
-            auto shared_node 
+            auto shared_node
                 = std::make_shared<ReduceResultNode>(node_->get_context(),
                                                      node_,
                                                      local_stack_,
@@ -388,7 +387,7 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    auto shared_node = 
+    auto shared_node =
         std::make_shared<ReadResultNode>(ctx,
                                          read_fn,
                                          filepath);
@@ -398,7 +397,6 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     return DIARef<read_result_t, decltype(read_stack)>
                (std::move(shared_node), read_stack);
 }
-
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER
