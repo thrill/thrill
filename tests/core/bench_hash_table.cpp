@@ -17,8 +17,9 @@
 #include <functional>
 #include <cstdio>
 
-TEST(BenchTable, ActualTable) {
+TEST(BenchTable, ActualTable1KKInts) {
     auto emit = [] (int in) {
+        in = in;
         //std::cout << in << std::endl;
     };
 
@@ -40,8 +41,9 @@ TEST(BenchTable, ActualTable) {
     table.Flush();
 }
 
-TEST(BenchTable, ChausTable) {
+TEST(BenchTable, ChausTable1KKInts) {
     auto emit = [] (int in) {
+        in = in;
         //std::cout << in << std::endl;
     };
 
@@ -55,6 +57,54 @@ TEST(BenchTable, ChausTable) {
 
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
+
+     for (int i = 0; i < 1000000; i++) {
+        table.Insert(i * 17);
+    }
+    
+     table.Flush();
+}
+
+TEST(BenchTable, ActualTable10Workers) {
+    auto emit = [] (int in) {
+        in = in;
+        //std::cout << in << std::endl;
+    };
+
+    auto key_ex = [] (int in) {
+        return in;
+    };
+
+    auto red_fn = [] (int in1, int in2) {
+        return in1 + in2;
+    };
+
+    c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
+    table(10, key_ex, red_fn, { emit });
+
+    for (int i = 0; i < 1000000; i++) {
+        table.Insert(i * 17);
+    }
+    
+    table.Flush();
+}
+
+TEST(BenchTable, ChausTable10Workers) {
+    auto emit = [] (int in) {
+        in = in;
+        //std::cout << in << std::endl;
+    };
+
+    auto key_ex = [] (int in) {
+        return in;
+    };
+
+    auto red_fn = [] (int in1, int in2) {
+        return in1 + in2;
+    };
+
+    c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
+    table(10, key_ex, red_fn, { emit });
 
      for (int i = 0; i < 1000000; i++) {
         table.Insert(i * 17);
