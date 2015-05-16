@@ -33,7 +33,6 @@ TEST(PreTableBench, CreateEmptyTable) {
     assert(table.Size() == 0);
 }
 
-
 TEST(PreTableBench, AddIntegers) {
     auto emit = [](int in) {
                     std::cout << in << std::endl;
@@ -58,7 +57,6 @@ TEST(PreTableBench, AddIntegers) {
 
     assert(table.Size() == 3);
 }
-
 
 TEST(PreTableBench, PopIntegers) {
     auto emit = [](int in) {
@@ -117,7 +115,6 @@ TEST(PreTableBench, FlushIntegers) {
     assert(table.Size() == 1);
 }
 
-
 TEST(PreTableBench, ComplexType) {
     using StringPair = std::pair<std::string, double>;
 
@@ -150,8 +147,6 @@ TEST(PreTableBench, ComplexType) {
 
     assert(table.Size() == 0);
 }
-
-
 
 TEST(PreTableBench, MultipleWorkers) {
     auto emit = [](int in) {
