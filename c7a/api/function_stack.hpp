@@ -22,7 +22,6 @@
 #include "function_traits.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -134,7 +133,7 @@ private:
      * Auxilary function for "folding" the chain.
      * This is needed to send all lambda functions as parameters to the
      * function that folds them together.
-     *  
+     *
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
@@ -143,7 +142,6 @@ private:
         return run_emitter(std::get<Is>(stack_) ...);
     }
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_FUNCTION_STACK_HEADER

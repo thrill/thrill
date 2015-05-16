@@ -19,8 +19,8 @@
 #include <c7a/api/context.hpp>
 #include "function_stack.hpp"
 #include "c7a/common/logger.hpp"
-#include "c7a/data/data_manager.hpp"
 #include "c7a/core/reduce_pre_table.hpp"
+#include "c7a/core/reduce_post_table.hpp"
 
 namespace c7a {
 //! \addtogroup api Interface
@@ -74,10 +74,8 @@ public:
     {
         // Hook PreOp
         auto pre_op_fn = [ = ](reduce_arg_t input) {
-                             PreOp(input);
-                         };
-
-        data::ChannelId preop_net_id_ = AllocateNetworkChannel();
+            PreOp(input);
+        };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
 
         parent->RegisterChild(lop_chain);
@@ -92,12 +90,9 @@ public:
      */
     void execute() override
     {
-        //Flush Table to send elements over NETWORK TODO: does position of the flush operation make sense?
-        reduce_pre_table_.Flush();
-
         MainOp();
         // get data from data manager
-        data::BlockIterator<Output> it = context_->get_data_manager().template GetLocalBlocks<Output>(data_id_);
+        data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
         // loop over input
         while (it.HasNext()) {
             const Output& item = it.Next();
@@ -114,8 +109,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-                              return PostOp(elem, emit_func);
-                          };
+            return PostOp(elem, emit_func);
+        };
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -139,48 +134,39 @@ private:
     ReduceFunction reduce_function_;
     //! Local storage
     std::vector<reduce_arg_t> elements_;
-    //!ChannelId to emit preop elements
-    data::ChannelId preop_net_id_;
-    //!Hashtable to do the local reduce
-    //TODO HASHTABLE NEEDS whatever auto data::GetNetworkEmitters(preop_net_id_) returns as input param or such
-    core::HashTable reduce_pre_table_(context_->number_worker,
-                                      key_extractor_,
-                                      reduce_function_,
-                                      context_->get_data_manager().GetNetworkEmitters(preop_net_id_));
 
     //! Locally hash elements of the current DIA onto buckets and reduce each bucket to a single value,
     //! afterwards send data to another worker given by the shuffle algorithm.
     void PreOp(reduce_arg_t input)
     {
-        LOG << "PreOp: " << input;
-        reduce_pre_table_.Insert(input);
+        elements_.push_back(input);
     }
 
     //!Recieve elements from other workers.
     auto MainOp() {
-        auto net_iterator = context_->get_data_manager().GetRemoteBlocks(preop_net_id_);
+        using ReduceTable
+                  = core::ReducePostTable<KeyExtractor,
+                                          ReduceFunction,
+                                          std::function<void(reduce_arg_t)> >;
 
-        //TODO: THIS MUST BE THE SPECIAL POST HASH TABLE
-        //TODO: TELL HASHTABLE NOT TO FLUSH
-        core::HashTable reduce_post_table_(1,
-                                           key_extractor_,
-                                           reduce_function_,
-                                           context_->get_data_manager().GetLocalEmitter<Output>(data_id_));
+        std::function<void(Output)> print = [] (Output elem) {
+            LOG << elem.first << " " << elem.second;
+        };
 
-        while (net_iterator.HasNext()) {
-            reduce_post_table_.Insert(net_iterator.Next());
+        auto table = ReduceTable(key_extractor_,
+                                 reduce_function_,
+                                 { print });
+
+        for (const reduce_arg_t& elem : elements_) {
+            table.Insert(elem);
         }
 
-        // TODO: Call Callbakc in postop flush
-        reduce_post_table_.Flush();
-
-        LOG << "MainOp: " << reduced;
+        table.Flush();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     void PostOp(Output input, std::function<void(Output)> emit_func)
     {
-        LOG << "PostOp: " << input;
         emit_func(input);
     }
 };
