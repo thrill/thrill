@@ -19,7 +19,6 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -101,7 +100,6 @@ protected:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_DIA_NODE_HEADER

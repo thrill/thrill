@@ -24,7 +24,6 @@
 
 namespace c7a {
 namespace net {
-
 /*!
  * Simple buffer of characters without initialization or growing functionality.
  *
@@ -86,7 +85,7 @@ public:
     Buffer& operator = (const Buffer&) = delete;
 
     //! move-construct other buffer into this one
-    Buffer(Buffer&& other)
+    Buffer(Buffer && other)
         : data_(other.data_), size_(other.size_)
     {
         other.data_ = nullptr;
@@ -94,7 +93,7 @@ public:
     }
 
     //! move-assignment of other buffer into this one
-    Buffer& operator = (Buffer&& other)
+    Buffer& operator = (Buffer && other)
     {
         assert(this != &other);
         if (data_) free(data_);
@@ -233,7 +232,6 @@ protected:
     //! size of the buffer.
     size_type size_;
 };
-
 } // namespace net
 } // namespace c7a
 

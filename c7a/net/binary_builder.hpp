@@ -27,7 +27,6 @@
 
 namespace c7a {
 namespace net {
-
 /*!
  * BinaryBuilder represents a dynamically growable area of memory, which can be
  * modified by appending integral data types via Put() and other basic
@@ -65,7 +64,7 @@ public:
     }
 
     //! Move-Constructor, moves memory area.
-    BinaryBuilder(BinaryBuilder&& other)
+    BinaryBuilder(BinaryBuilder && other)
         : data_(other.data_), size_(other.size_), capacity_(other.capacity_)
     {
         other.data_ = nullptr;
@@ -104,7 +103,7 @@ public:
     }
 
     //! Move-Assignment operator: move other's memory area into buffer.
-    BinaryBuilder& operator = (BinaryBuilder&& other)
+    BinaryBuilder& operator = (BinaryBuilder && other)
     {
         if (this != &other)
         {
@@ -740,7 +739,6 @@ public:
 
     //! \}
 };
-
 } // namespace net
 } // namespace c7a
 
