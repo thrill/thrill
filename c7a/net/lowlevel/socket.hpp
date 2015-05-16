@@ -53,9 +53,13 @@ public:
     //! \{
 
     //! Construct new Socket object from existing file descriptor.
-    explicit Socket(int fd = -1)
+    explicit Socket(int fd)
         : fd_(fd)
     { }
+
+    explicit Socket() 
+        : fd_(-1) {
+    }
 
     //! Create a new stream socket.
     static Socket Create()
@@ -255,6 +259,8 @@ public:
             << " sa=" << sa
             << " return=" << r
             << " error=" << strerror(errno);
+
+        die_unless(false);
 
         return r;
     }

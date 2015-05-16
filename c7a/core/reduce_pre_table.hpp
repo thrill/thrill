@@ -26,7 +26,6 @@
 
 namespace c7a {
 namespace core {
-
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
 {
@@ -47,8 +46,8 @@ protected:
 
         hash_result(key_t v, const ReducePreTable& ht)
         {
-            size_t hashed = std::hash<key_t>()(v);
-            
+            size_t hashed = std::hash<key_t>() (v);
+
             LOG << "hashed to " << hashed;
 
             // partition idx
@@ -70,11 +69,10 @@ protected:
     };
 
 public:
-
     ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
-              size_t max_num_items_per_bucket, size_t max_num_items_table,
-              KeyExtractor key_extractor, ReduceFunction reduce_function,
-              std::vector<EmitterFunction> emit)
+                   size_t max_num_items_per_bucket, size_t max_num_items_table,
+                   KeyExtractor key_extractor, ReduceFunction reduce_function,
+                   std::vector<EmitterFunction> emit)
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -89,7 +87,7 @@ public:
 
     // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
     ReducePreTable(size_t partition_size, KeyExtractor key_extractor,
-              ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
+                   ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -106,7 +104,7 @@ public:
         if (num_partitions_ > num_buckets_ &&
             num_buckets_ % num_partitions_ != 0) {
             throw std::invalid_argument("partition_size must be less than or equal to num_buckets "
-                                                "AND partition_size a divider of num_buckets");
+                                        "AND partition_size a divider of num_buckets");
         }
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
 
@@ -297,10 +295,11 @@ public:
     }
 
     /*!
-     * Sets the maximum size of the hash table. We don't want to push 2⁶⁴ elements before flush happens.
+     * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
      */
-    void SetMaxSize(size_t size) {
-      max_num_items_table_ = size;
+    void SetMaxSize(size_t size)
+    {
+        max_num_items_table_ = size;
     }
 
     /*!
@@ -318,7 +317,7 @@ public:
         vector_new.resize(num_buckets_, nullptr);
         vector_ = vector_new;
         // rehash all items in old array
-        for(auto bucket : vector_old) {
+        for (auto bucket : vector_old) {
             Insert(bucket);
         }
         LOG << "Resized";
@@ -386,24 +385,24 @@ public:
     }
 
 private:
-    size_t num_partitions_;             // partition size
+    size_t num_partitions_;                   // partition size
 
-    size_t num_buckets_;                // num buckets
+    size_t num_buckets_;                      // num buckets
 
-    size_t num_buckets_per_partition_;  // num buckets per partition
+    size_t num_buckets_per_partition_;        // num buckets per partition
 
-    size_t num_buckets_init_scale_ = 65536;    // set number of buckets per partition based on num_partitions
+    size_t num_buckets_init_scale_ = 65536;   // set number of buckets per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_buckets_resize_scale_ = 2;  // resize scale on max_num_items_per_bucket_
+    size_t num_buckets_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
 
-    size_t max_num_items_per_bucket_ = 256;  // max num of items per bucket before resize
+    size_t max_num_items_per_bucket_ = 256;   // max num of items per bucket before resize
 
-    std::vector<size_t> items_per_partition_;           // num items per partition
+    std::vector<size_t> items_per_partition_; // num items per partition
 
-    size_t table_size_ = 0;                 // total number of items
+    size_t table_size_ = 0;                   // total number of items
 
-    size_t max_num_items_table_ = 1048576;             // max num of items before spilling of largest partition
+    size_t max_num_items_table_ = 1048576;    // max num of items before spilling of largest partition
 
     KeyExtractor key_extractor_;
 
