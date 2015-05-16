@@ -25,54 +25,54 @@
 
 namespace c7a {
 namespace core {
-
-
 // Use this hashtable to benchmark our own hash table against
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTableBench
 {
-static const bool debug = true;
-using key_t = typename FunctionTraits<KeyExtractor>::result_type;
-using value_t = typename FunctionTraits<ReduceFunction>::result_type;
+    static const bool debug = true;
+    using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+    using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
 protected:
 public:
-    size_t Size(){
+    size_t Size()
+    {
         return table_size_;
     }
 
-    void SetMaxSize(size_t size){
+    void SetMaxSize(size_t size)
+    {
         max_num_items_table_ = size;
     }
 
-    ReducePreTableBench(size_t num_workers, 
-                        KeyExtractor key_extractor, 
-                        ReduceFunction reduce_function, 
+    ReducePreTableBench(size_t num_workers,
+                        KeyExtractor key_extractor,
+                        ReduceFunction reduce_function,
                         std::vector<EmitterFunction> emit)
-        : num_workers_(num_workers), 
-        key_extractor_(key_extractor), 
-        reduce_function_(reduce_function), 
-        emit_(emit),
-        the_hash_table_(num_workers_, std::unordered_map<key_t, value_t>()),
-        key_count_(num_workers, 0)
+        : num_workers_(num_workers),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(emit),
+          the_hash_table_(num_workers_, std::unordered_map<key_t, value_t>()),
+          key_count_(num_workers, 0)
     {
         init();
     }
 
     //set max_num_items_table in constructor just to make testing easier
-    ReducePreTableBench(size_t num_workers, 
-                        KeyExtractor key_extractor, 
-                        ReduceFunction reduce_function, 
+    ReducePreTableBench(size_t num_workers,
+                        KeyExtractor key_extractor,
+                        ReduceFunction reduce_function,
                         std::vector<EmitterFunction> emit,
                         size_t max_num_items_table)
-        : num_workers_(num_workers), 
-        key_extractor_(key_extractor), 
-        reduce_function_(reduce_function), 
-        emit_(emit),
-        the_hash_table_(num_workers_, std::unordered_map<key_t, value_t>()),
-        key_count_(num_workers, 0),
-        max_num_items_table_(max_num_items_table)
+        : num_workers_(num_workers),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(emit),
+          the_hash_table_(num_workers_, std::unordered_map<key_t, value_t>()),
+          key_count_(num_workers, 0),
+          max_num_items_table_(max_num_items_table)
     {
         init();
     }
@@ -80,9 +80,7 @@ public:
     ~ReducePreTableBench() { }
 
     void init()
-    {
-        
-    }
+    { }
 
     /*!
      * Inserts a key/value pair.
@@ -95,12 +93,12 @@ public:
         key_t key = key_extractor_(item);
         size_t hash_result = hash_fn_(key);
         size_t hash_worker = hash_result % num_workers_;
-        auto elem = the_hash_table_[hash_worker].find(key); 
-        
-        if(elem != the_hash_table_[hash_worker].end()) {
-                SpacingLogger(debug) << "[Insert] REDUCED ITEM";
-                auto new_elem = reduce_function_(item, elem->second);
-                the_hash_table_[hash_worker].at(key) = new_elem;
+        auto elem = the_hash_table_[hash_worker].find(key);
+
+        if (elem != the_hash_table_[hash_worker].end()) {
+            SpacingLogger(debug) << "[Insert] REDUCED ITEM";
+            auto new_elem = reduce_function_(item, elem->second);
+            the_hash_table_[hash_worker].at(key) = new_elem;
         }
         else {
             SpacingLogger(debug) << "[Insert] INSERTED ITEM";
@@ -108,8 +106,8 @@ public:
             ++key_count_[hash_worker];
             ++table_size_;
         }
-    
-        if(debug) Print();
+
+        if (debug) Print();
 
         if (table_size_ > max_num_items_table_) {
             FlushLargestPartition();
@@ -134,7 +132,7 @@ public:
             }
             ++index;
         }
-        assert (max_index >= 0);
+        assert(max_index >= 0);
 
         //emit all keys in table and send it to worker
         auto curr_ht = the_hash_table_[max_index];
@@ -150,7 +148,7 @@ public:
         table_size_ -= key_count_[max_index];
         key_count_[max_index] = 0;
 
-        if(debug) Print();    
+        if (debug) Print();
     }
 
     /*!
@@ -168,7 +166,7 @@ public:
             table_size_ -= key_count_[worker];
             key_count_[worker] = 0;
         }
-        if(debug) Print();
+        if (debug) Print();
     }
 
     /*!
@@ -181,7 +179,7 @@ public:
             table_size_ -= key_count_[worker];
             key_count_[worker] = 0;
         }
-        if(debug) Print();
+        if (debug) Print();
     }
 
     /*!
@@ -194,7 +192,7 @@ public:
             table_size_ -= key_count_[worker];
             key_count_[worker] = 0;
         }
-        if(debug) Print();
+        if (debug) Print();
     }
 
     // prints content of hash table
@@ -217,12 +215,10 @@ private:
     ReduceFunction reduce_function_;
     std::vector<EmitterFunction> emit_;
     std::hash<key_t> hash_fn_;
-    std::vector<std::unordered_map<key_t, value_t>> the_hash_table_;
+    std::vector<std::unordered_map<key_t, value_t> > the_hash_table_;
     std::vector<int> key_count_;
     size_t table_size_ = 0;
     size_t max_num_items_table_ = 1048576;
-
-
 };
 }
 }
