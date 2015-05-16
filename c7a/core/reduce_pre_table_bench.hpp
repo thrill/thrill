@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_HASH_TABLE_HEADER
-#define C7A_CORE_HASH_TABLE_HEADER
+#ifndef C7A_CORE1_HASH_TABLE_HEADER
+#define C7A_CORE1_HASH_TABLE_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <string>
@@ -30,7 +30,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTableBench
 {
-    static const bool debug = true;
+    static const bool debug = false;
     using key_t = typename FunctionTraits<KeyExtractor>::result_type;
     using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
