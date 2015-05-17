@@ -29,12 +29,16 @@ struct WorkerMock {
     }
 
     void               Run() {
-        dispatcher.Dispatch();
+        run = true;
+        while (run) {
+            dispatcher.Dispatch();
+        }
     }
 
     NetDispatcher      dispatcher;
     ChannelMultiplexer cmp;
     DataManager        manager;
+    bool               run;
 };
 
 struct DataManagerChannelFixture : public::testing::Test {
@@ -65,23 +69,42 @@ struct DataManagerChannelFixture : public::testing::Test {
     }
 
     void RunAll() {
-        sLOG << "starting three worker mocks";
-        auto t1 = std::thread(&WorkerMock::Run, &worker1);
-        auto t2 = std::thread(&WorkerMock::Run, &worker2);
-        auto t3 = std::thread(&WorkerMock::Run, &worker3);
-        t1.join();
-        t2.join();
-        t3.join();
+        using namespace std::literals;
+        master = std::thread([&] {
+                                 sLOG << "starting three worker mocks";
+                                 auto t1 = std::thread(&WorkerMock::Run, &worker1);
+                                 auto t2 = std::thread(&WorkerMock::Run, &worker2);
+                                 auto t3 = std::thread(&WorkerMock::Run, &worker3);
+                                 t1.join();
+                                 t2.join();
+                                 t3.join();
+                             });
+        std::this_thread::sleep_for(2s);
     }
 
-    WorkerMock worker1;
-    WorkerMock worker2;
-    WorkerMock worker3;
+    std::thread master;
+    WorkerMock  worker1;
+    WorkerMock  worker2;
+    WorkerMock  worker3;
 };
 
-TEST_F(DataManagerChannelFixture, EmptyChannels) {
-    auto channel_id = worker1.manager.AllocateNetworkChannel();
-    auto emitters = worker1.manager.GetNetworkEmitters<int>(channel_id);
+TEST_F(DataManagerChannelFixture, EmptyChannels_HasChannelIsTrue) {
+    auto channel_id1 = worker1.manager.AllocateNetworkChannel();
+    auto channel_id2 = worker2.manager.AllocateNetworkChannel();
+    auto channel_id3 = worker3.manager.AllocateNetworkChannel();
+    auto emitters1 = worker1.manager.GetNetworkEmitters<int>(channel_id1);
+    auto emitters2 = worker2.manager.GetNetworkEmitters<int>(channel_id2);
+    auto emitters3 = worker3.manager.GetNetworkEmitters<int>(channel_id3);
+    for (auto& emitter : emitters1)
+        emitter.Close();
+    for (auto& emitter : emitters2)
+        emitter.Close();
+    for (auto& emitter : emitters3)
+        emitter.Close();
+
+    RunAll();
+    auto it = worker2.manager.GetRemoteBlocks<int>(channel_id2);
+    ASSERT_TRUE(it.IsClosed());
 }
 
 /******************************************************************************/

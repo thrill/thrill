@@ -27,6 +27,8 @@
 
 namespace c7a {
 namespace data {
+struct BufferChain;
+
 //! Identification for DIAs
 typedef size_t DIAId;
 typedef size_t ChannelId;
@@ -52,7 +54,7 @@ public:
         if (!ContainsLocal(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        return BlockIterator<T>(local_buffer_chains_[id]);
+        return BlockIterator<T>(*(local_buffer_chains_[id]));
     }
 
     //! Returns iterator on the data that was / will be received on the channel
@@ -64,7 +66,7 @@ public:
             throw std::runtime_error("target channel id unknown.");
         }
 
-        return BlockIterator<T>(local_buffer_chains_[id]);
+        return BlockIterator<T>(*(incoming_buffer_chains_[id]));
     }
 
     //! Returns a number that uniquely addresses a DIA
@@ -75,7 +77,7 @@ public:
         //data_.push_back(std::vector<Blob>());
         //return data_.size() - 1;
         sLOG << "Allocate DIA" << next_local_id_;
-        local_buffer_chains_[next_local_id_] = BufferChain();
+        local_buffer_chains_[next_local_id_] = std::make_shared<BufferChain>();
         return next_local_id_++;
     }
 
@@ -85,7 +87,7 @@ public:
     ChannelId AllocateNetworkChannel() {
         if (!ContainsChannel(next_remote_id_)) {
             sLOG << "Allocate Network Channel" << next_remote_id_;
-            incoming_buffer_chains_[next_remote_id_] = BufferChain();
+            incoming_buffer_chains_[next_remote_id_] = std::make_shared<BufferChain>();
         }
         else {
             sLOG << "Allocate Network Channel" << next_remote_id_ << "already exists";
@@ -101,13 +103,17 @@ public:
         if (!ContainsLocal(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        auto& target = local_buffer_chains_[id];
+        std::shared_ptr<BufferChain> target = local_buffer_chains_[id];
         return BlockEmitter<T>(target);
     }
 
     template <class T>
-    std::vector<BlockEmitter<T, SocketTarget> > GetNetworkEmitters(ChannelId id) {
-        return cmp_.OpenChannel<T>(id);
+    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
+        if (!ContainsChannel(id)) {
+            throw std::runtime_error("target channel id unknown.");
+        }
+        auto& target = incoming_buffer_chains_[id];
+        return cmp_.OpenChannel<T>(id, target);
     }
 
     //!Returns an InputLineIterator with a given input file stream.
@@ -135,9 +141,9 @@ private:
     //May depend on the compiler. Google it.
     //std::vector<std::vector<Blob> > data_;
     //TODO(ts) check if that sutt is still a problem. if not - remove the comment
-    std::map<DIAId, BufferChain> local_buffer_chains_;
+    std::map<DIAId, std::shared_ptr<BufferChain> > local_buffer_chains_;
 
-    std::map<ChannelId, BufferChain> incoming_buffer_chains_;
+    std::map<ChannelId, std::shared_ptr<BufferChain> > incoming_buffer_chains_;
 
     //! returns true if the manager holds data of given DIA
     //!
