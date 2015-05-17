@@ -272,7 +272,7 @@ public:
                     curr_item = curr_node->value;
 
                     log += "(";
-                    log += curr_item.second;
+                    //log += curr_item.second;
                     log += ") ";
 
                     curr_node = curr_node->next;
