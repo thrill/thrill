@@ -15,6 +15,7 @@
 
 namespace c7a {
 namespace net {
+
 /**
  * @brief Provides a non-blocking collection for communication.
  * @details This should be used for system control.
@@ -115,6 +116,7 @@ public:
      */
     void notifyBackupComplete();
 };
+
 } // namespace net
 } // namespace c7a
 

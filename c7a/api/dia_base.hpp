@@ -20,6 +20,7 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
+
 /*!
  * Possible states a DIABase can be in.
  */
@@ -151,6 +152,7 @@ protected:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER

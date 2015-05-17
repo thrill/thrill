@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/c7a-tests.hpp
+ * tests/c7a_tests.hpp
  *
  * Google Test main program which calls tests.
  *

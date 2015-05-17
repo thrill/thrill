@@ -1,5 +1,5 @@
-/******************************************************************************
- * c7a/core/hash_table.hpp
+/*******************************************************************************
+ * c7a/core/reduce_post_table.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -10,6 +10,8 @@
  ******************************************************************************/
 
 #pragma once
+#ifndef C7A_CORE_REDUCE_POST_TABLE_HEADER
+#define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
 #include <map>
 #include <iostream>
@@ -24,6 +26,7 @@
 
 namespace c7a {
 namespace core {
+
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePostTable
 {
@@ -310,7 +313,10 @@ private:
 
     std::vector<node<key_t, value_t>*> vector_;
 };
-}
-}
+
+} // namespace core
+} // namespace c7a
+
+#endif // !C7A_CORE_REDUCE_POST_TABLE_HEADER
 
 /******************************************************************************/

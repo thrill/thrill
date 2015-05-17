@@ -16,6 +16,7 @@
 
 namespace c7a {
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -101,7 +102,7 @@ private:
     //!The second part of the header (boundaries of the block) is read here
     //!
     //! This is the second state of the callback state machine
-    void ReadSecondHeaderPartFrom(NetConnection& s, Buffer && buffer, Stream* stream)
+    void ReadSecondHeaderPartFrom(NetConnection& s, Buffer&& buffer, Stream* stream)
     {
         (void)s; //supress 'unused paramter' warning - needs to be in parameter list though
         sLOG << "read #elements on" << stream->socket << "in channel" << id_;
@@ -140,13 +141,14 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& s, Buffer && buffer, Stream* stream)
+    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream)
     {
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         data_.emplace_back(buffer.ToString());  // TODO(ts) use buffer from AsyncRead instead of copying data here!
         ReadFromStream(stream);
     }
 };
+
 } // namespace net
 } // namespace c7a
 

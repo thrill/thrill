@@ -23,6 +23,7 @@
 #include "c7a/core/reduce_post_table.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -74,8 +75,8 @@ public:
     {
         // Hook PreOp
         auto pre_op_fn = [ = ](reduce_arg_t input) {
-            PreOp(input);
-        };
+                             PreOp(input);
+                         };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
 
         parent->RegisterChild(lop_chain);
@@ -109,8 +110,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-            return PostOp(elem, emit_func);
-        };
+                              return PostOp(elem, emit_func);
+                          };
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -149,9 +150,9 @@ private:
                                           ReduceFunction,
                                           std::function<void(reduce_arg_t)> >;
 
-        std::function<void(Output)> print = [] (Output elem) {
-            LOG << elem.first << " " << elem.second;
-        };
+        std::function<void(Output)> print = [](Output elem) {
+                                                LOG << elem.first << " " << elem.second;
+                                            };
 
         auto table = ReduceTable(key_extractor_,
                                  reduce_function_,
@@ -172,6 +173,7 @@ private:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
