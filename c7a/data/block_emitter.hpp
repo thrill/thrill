@@ -9,7 +9,7 @@
 
 #pragma once
 #ifndef C7A_DATA_BLOCK_EMITTER_HEADER
-#define C7A_DATA_BLOCK_EMITTEr_HEADER
+#define C7A_DATA_BLOCK_EMITTER_HEADER
 
 #include "binary_buffer_builder.hpp"
 #include "buffer_chain.hpp"
@@ -19,16 +19,14 @@ namespace c7a {
 namespace data {
 //! BlockIterator gives you access to data of a block
 //TODO specialize the emitter to be more fancy when havein fixe-length elements
-template <class T, typename TargetType = BufferChain>
-class BlockEmitter
-{
+template <class T>
+class BlockEmitter {
 public:
-    BlockEmitter(TargetType& target)
+    BlockEmitter(std::shared_ptr<EmitterTarget> target)
         : builder_(BinaryBuffer::DEFAULT_SIZE),
           target_(target) { }
 
-    void operator () (T x)
-    {
+    void operator () (T x) {
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
             Flush();
         }
@@ -37,23 +35,21 @@ public:
 
     //! Flushes and closes the block (cannot be undone)
     //! No further emitt operations can be done afterwards.
-    void Close()
-    {
+    void Close() {
         Flush();
-        target_.Close();
+        target_->Close();
     }
 
     //! Writes the data to the target without closing the emitter
-    void Flush()
-    {
-        target_.Append(BinaryBuffer(builder_));
+    void Flush() {
+        target_->Append(BinaryBuffer(builder_));
         builder_.Detach();
         builder_.Reserve(BinaryBuffer::DEFAULT_SIZE);
     }
 
 private:
     BinaryBufferBuilder builder_;
-    TargetType& target_;
+    std::shared_ptr<EmitterTarget> target_;
 };
 } // namespace data
 } // namespace c7a

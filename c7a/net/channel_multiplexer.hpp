@@ -20,6 +20,9 @@
 #include <c7a/data/socket_target.hpp>
 
 namespace c7a {
+namespace data {
+struct BufferChain;
+}
 namespace net {
 //! \ingroup net
 //! \{
@@ -52,8 +55,23 @@ public:
     std::shared_ptr<Channel> PickupChannel(int id);
 
     template <class T>
-    std::vector<data::BlockEmitter<T, data::SocketTarget> > OpenChannel(size_t id) {
-        return { };
+    std::vector<data::BlockEmitter<T> > OpenChannel(size_t id, std::shared_ptr<c7a::data::BufferChain> loopback) {
+        std::vector<data::BlockEmitter<T> > result;
+        for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
+            if (worker_id == group_->MyRank()) {
+                auto target = std::make_shared<data::LoopbackTarget>(loopback);
+                result.emplace_back(data::BlockEmitter<T>(target));
+            }
+            else {
+                auto target = std::make_shared<data::SocketTarget>(
+                    &dispatcher_,
+                    &(group_->Connection(worker_id)),
+                    id);
+
+                result.emplace_back(data::BlockEmitter<T>(target));
+            }
+        }
+        return result;
     }
 
 private:
