@@ -7,12 +7,16 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
+#include <c7a/api/dia.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/core/stage_builder.hpp>
 #include <tests/c7a_tests.hpp>
-#include "c7a/api/dia.hpp"
-#include "c7a/api/context.hpp"
-#include "c7a/api/function_stack.hpp"
-#include "c7a/core/stage_builder.hpp"
+
+#include <string>
+#include <vector>
+
+#include <gtest/gtest.h>
 
 using namespace c7a::core;
 

@@ -7,8 +7,12 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/data/serializer.hpp>
+
+#include <utility>
+#include <string>
+
 #include "gtest/gtest.h"
-#include "c7a/data/serializer.hpp"
 
 using namespace c7a::data;
 

@@ -19,7 +19,8 @@
 #include <deque>
 #include <vector>
 #include <string>
-#include <stdlib.h>
+#include <tuple>
+#include <cstdlib>
 
 namespace c7a {
 namespace net {
@@ -126,7 +127,7 @@ protected:
     size_t my_id_;
 };
 
-} // namespace engine
+} // namespace net
 } // namespace c7a
 
 #endif // !C7A_NET_MOCK_NETWORK_HEADER

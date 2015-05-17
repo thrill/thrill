@@ -12,9 +12,9 @@
 namespace c7a {
 namespace net {
 
-// TODO
+// TODO(ej)
 
 }   // namespace net
-}   // namespace net
+}   // namespace c7a
 
 /******************************************************************************/

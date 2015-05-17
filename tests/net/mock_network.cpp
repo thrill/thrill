@@ -7,10 +7,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
-#include "c7a/net/mock_network.hpp"
+#include <c7a/net/mock_network.hpp>
+#include <gtest/gtest.h>
 
-//using namespace c7a;
+#include <string>
 
 TEST(TestMockNetwork, TestMockNetwork)
 {

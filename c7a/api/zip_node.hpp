@@ -13,12 +13,15 @@
 #ifndef C7A_API_ZIP_NODE_HEADER
 #define C7A_API_ZIP_NODE_HEADER
 
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
+
 #include <unordered_map>
 #include <functional>
-#include "dop_node.hpp"
-#include "context.hpp"
-#include "function_stack.hpp"
-#include "../common/logger.hpp"
+#include <string>
+#include <vector>
 
 namespace c7a {
 
