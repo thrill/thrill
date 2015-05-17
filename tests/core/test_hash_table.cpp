@@ -31,7 +31,7 @@ TEST(PreTable, CreateEmptyTable) {
     };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(1, key_ex, red_fn, { emit });
+            table(1, key_ex, red_fn, { emit });
 
     assert(table.Size() == 0);
 }
@@ -50,7 +50,7 @@ TEST(PostTable, CreateEmptyTable) {
     };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(key_ex, red_fn, { emit });
+            table(key_ex, red_fn, { emit });
 
     assert(table.Size() == 0);
 }
@@ -69,7 +69,7 @@ TEST(PreTable, AddIntegers) {
     };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(1, key_ex, red_fn, { emit });
+            table(1, key_ex, red_fn, { emit });
 
     table.Insert(1);
     table.Insert(2);
@@ -96,15 +96,19 @@ TEST(PostTable, AddIntegers) {
     };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(key_ex, red_fn, { emit });
+            table(key_ex, red_fn, { emit });
 
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
 
+    table.Print();
+
     assert(table.Size() == 3);
 
     table.Insert(2);
+
+    table.Print();
 
     assert(table.Size() == 3);
 }
@@ -123,7 +127,7 @@ TEST(PreTable, PopIntegers) {
     };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(1, key_ex, red_fn, { emit });
+            table(1, key_ex, red_fn, { emit });
 
     table.SetMaxSize(3);
 
@@ -153,7 +157,7 @@ TEST(PreTable, FlushIntegers) {
     };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(1, key_ex, red_fn, { emit });
+            table(1, key_ex, red_fn, { emit });
 
     table.Insert(1);
     table.Insert(2);
@@ -184,7 +188,7 @@ TEST(PostTable, FlushIntegers) {
     };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(key_ex, red_fn, { emit });
+            table(key_ex, red_fn, { emit });
 
     table.Insert(1);
     table.Insert(2);
@@ -222,7 +226,7 @@ TEST(PostTable, MultipleEmitters) {
     emitters.push_back(emit1);
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
-    table(key_ex, red_fn, emitters);
+            table(key_ex, red_fn, emitters);
 
     table.Insert(1);
     table.Insert(2);
@@ -257,9 +261,7 @@ TEST(PreTable, ComplexType) {
     };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(1, key_ex, red_fn, { emit });
-
-    table.SetMaxSize(3);
+            table(1, 2, 2, 10, 3, key_ex, red_fn, { emit });
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
@@ -274,6 +276,34 @@ TEST(PreTable, ComplexType) {
     table.Insert(std::make_pair("baguette", 42));
 
     assert(table.Size() == 0);
+}
+
+TEST(PreTable, Resize) {
+    using StringPair = std::pair<std::string, double>;
+
+    auto emit = [](StringPair in) {
+        std::cout << in.second << std::endl;
+    };
+
+    auto key_ex = [](StringPair in) { return in.first; };
+
+    auto red_fn = [](StringPair in1, StringPair in2) {
+        return std::make_pair(in1.first, in1.second + in2.second);
+    };
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+            table(1, 10, 2, 1, 10, key_ex, red_fn, { emit });
+
+    assert(table.NumBuckets() == 10);
+
+    table.Insert(std::make_pair("hallo", 1));
+    table.Insert(std::make_pair("hello", 2));
+
+    assert(table.NumBuckets() == 10);
+
+    table.Insert(std::make_pair("bonjour", 3));
+
+    assert(table.NumBuckets() == 20);
 }
 
 TEST(PostTable, ComplexType) {
@@ -292,7 +322,7 @@ TEST(PostTable, ComplexType) {
     };
 
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(key_ex, red_fn, { emit });
+            table(key_ex, red_fn, { emit });
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
@@ -323,7 +353,7 @@ TEST(PreTable, MultipleWorkers) {
     };
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(2, key_ex, red_fn, { emit });
+            table(2, key_ex, red_fn, { emit });
 
     assert(table.Size() == 0);
     table.SetMaxSize(5);
@@ -337,6 +367,5 @@ TEST(PreTable, MultipleWorkers) {
 }
 
 // TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
-// resize!
 
 /******************************************************************************/
