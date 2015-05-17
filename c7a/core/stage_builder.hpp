@@ -7,10 +7,6 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#ifndef DEBUG
-#define DEBUG = FALSE
-#endif
-
 #pragma once
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
@@ -25,6 +21,7 @@
 
 namespace c7a {
 namespace core {
+
 class Stage
 {
 public:
@@ -82,7 +79,8 @@ inline void RunScope(DIABase* action)
         s.Run();
     }
 }
-} // namespace engine
+
+} // namespace core
 } // namespace c7a
 
 #endif // !C7A_CORE_STAGE_BUILDER_HEADER

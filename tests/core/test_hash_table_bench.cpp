@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/test_hash_table.cpp
+ * tests/core/test_hash_table_bench.cpp
  *
  * Part of Project c7a.
  *

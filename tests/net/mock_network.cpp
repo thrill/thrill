@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/mock-network.cpp
+ * tests/net/mock_network.cpp
  *
  * Part of Project c7a.
  *

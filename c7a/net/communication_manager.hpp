@@ -24,6 +24,7 @@
 
 namespace c7a {
 namespace net {
+
 //TODO: Rename to NetManager
 /**
  * @brief Manages communication.
@@ -306,6 +307,7 @@ public:
         //TODO MUHA
     }
 };
+
 } // namespace net
 } // namespace c7a
 

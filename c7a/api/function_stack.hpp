@@ -22,6 +22,7 @@
 #include "function_traits.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -142,6 +143,7 @@ private:
         return run_emitter(std::get<Is>(stack_) ...);
     }
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_FUNCTION_STACK_HEADER
