@@ -61,11 +61,15 @@ namespace c7a {
                 }
             };
 
-            struct bucket_block
-            {
-                std::deque<std::pair<key_t, value_t>> items;
+            struct bucket_block {
+                std::vector<std::pair<key_t, value_t>> items;
 
                 bucket_block *next = NULL;
+
+                bucket_block(const ReducePreTable &ht)
+                {
+                    items.reserve(ht.bucket_block_size_);
+                }
             };
 
         public:
@@ -155,11 +159,11 @@ namespace c7a {
 
                 if (current_bucket_block == NULL)
                 {
-                    current_bucket_block = vector_[h.global_index] = new bucket_block(); // TODO: ensure new struct gets cleaned up
+                    current_bucket_block = vector_[h.global_index] = new bucket_block(*this); // TODO: ensure new struct gets deleted
 
                 } else if (current_bucket_block->items.size() == bucket_block_size_)
                 {
-                    current_bucket_block = current_bucket_block->next = new bucket_block(); // TODO: ensure new struct gets cleaned up
+                    current_bucket_block = current_bucket_block->next = new bucket_block(*this); // TODO: ensure new struct gets deleted
                 }
 
                 // insert new item in current bucket block
