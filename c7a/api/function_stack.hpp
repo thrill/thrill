@@ -87,7 +87,7 @@ public:
      *
      * \param stack Tuple of lambda functions.
      */
-    FunctionStack(std::tuple<Types ...> stack)
+    explicit FunctionStack(std::tuple<Types ...> stack)
         : stack_(stack) { }
     virtual ~FunctionStack() { }
 

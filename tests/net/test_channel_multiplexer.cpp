@@ -10,9 +10,11 @@
 // this is only because of Tobi's mocking
 #define C7A_NETCONNECTION_COPYABLE 1
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include <c7a/net/channel_multiplexer.hpp>
+
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include <string>
 
 using::testing::_;
 using::testing::InvokeArgument;

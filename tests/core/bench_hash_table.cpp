@@ -9,13 +9,13 @@
 
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_pre_table_bench.hpp>
-#include "gtest/gtest.h"
 #include <tests/c7a_tests.hpp>
-#include "c7a/api/context.hpp"
+#include <c7a/api/context.hpp>
 
-#include <stdio.h>
 #include <functional>
 #include <cstdio>
+
+#include "gtest/gtest.h"
 
 TEST(BenchTable, ActualTable1KKInts) {
     auto emit = [](int in) {

@@ -11,13 +11,15 @@
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
 
-#include "../api/dia_base.hpp"
-#include "../common/logger.hpp"
+#include <c7a/api/dia_base.hpp>
+#include <c7a/common/logger.hpp>
+
 #include <stack>
 #include <string>
 #include <utility>
 #include <algorithm>
 #include <set>
+#include <vector>
 
 namespace c7a {
 namespace core {
@@ -25,7 +27,7 @@ namespace core {
 class Stage
 {
 public:
-    Stage(DIABase* node) : node_(node)
+    explicit Stage(DIABase* node) : node_(node)
     {
         SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;
     }

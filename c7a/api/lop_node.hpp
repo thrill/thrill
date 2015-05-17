@@ -11,7 +11,10 @@
 #ifndef C7A_API_LOP_NODE_HEADER
 #define C7A_API_LOP_NODE_HEADER
 
-#include "dia_node.hpp"
+#include <c7a/api/dia_node.hpp>
+
+#include <string>
+#include <vector>
 
 namespace c7a {
 
