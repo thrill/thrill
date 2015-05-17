@@ -11,6 +11,8 @@
 #include <c7a/net/buffer.hpp>
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 using c7a::net::Buffer;
 
 TEST(Buffer, Test1) {

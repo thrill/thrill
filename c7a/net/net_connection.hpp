@@ -14,16 +14,16 @@
 #ifndef C7A_NET_NET_CONNECTION_HEADER
 #define C7A_NET_NET_CONNECTION_HEADER
 
+#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/exception.hpp>
+#include <c7a/net/buffer.hpp>
+
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
 #include <string>
-
-#include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/exception.hpp>
-#include <c7a/net/buffer.hpp>
 
 namespace c7a {
 namespace net {
@@ -57,7 +57,7 @@ public:
         : Socket(s)
     { }
 
-    explicit NetConnection()
+    NetConnection()
         : Socket()
     { }
 

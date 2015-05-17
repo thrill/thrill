@@ -15,7 +15,6 @@
 #include <c7a/net/net_connection.hpp>
 #include <c7a/net/net_dispatcher.hpp>
 #include <c7a/net/net_group.hpp>
-#include <c7a/net/net_endpoint.hpp>
 
 #include <vector>
 #include <functional>

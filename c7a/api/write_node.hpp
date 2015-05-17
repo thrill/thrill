@@ -11,6 +11,8 @@
 #ifndef C7A_API_WRITE_NODE_HEADER
 #define C7A_API_WRITE_NODE_HEADER
 
+#include <string>
+
 namespace c7a {
 
 template <typename Input, typename Output, typename WriteFunction>

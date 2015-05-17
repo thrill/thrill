@@ -7,16 +7,15 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef DEBUG
-#define DEBUG = FALSE
-#endif
+#include <c7a/api/dia_base.hpp>
+#include <c7a/core/stage_builder.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/context.hpp>
+#include <tests/c7a_tests.hpp>
+
+#include <string>
 
 #include "gtest/gtest.h"
-#include <tests/c7a_tests.hpp>
-#include "c7a/api/dia_base.hpp"
-#include "c7a/core/stage_builder.hpp"
-#include "c7a/api/dia.hpp"
-#include "c7a/api/context.hpp"
 
 using namespace c7a::core;
 
@@ -31,7 +30,7 @@ TEST(Stage, GetStagesFromBuilder) {
                                       });
 
     auto key = [](double in) {
-                   return (int)in;
+                   return static_cast<int>(in);
                };
     auto red_fn = [](double in1, double in2) {
                       return in1 + in2;

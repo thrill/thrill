@@ -13,6 +13,9 @@
 #ifndef C7A_CORE_REDUCE_PRE_TABLE_HEADER
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
+#include <c7a/api/function_traits.hpp>
+#include <c7a/data/data_manager.hpp>
+
 #include <map>
 #include <iostream>
 #include <c7a/common/logger.hpp>
@@ -21,9 +24,7 @@
 #include <stdexcept>
 #include <array>
 #include <deque>
-
-#include "c7a/api/function_traits.hpp"
-#include "c7a/data/data_manager.hpp"
+#include <utility>
 
 namespace c7a {
 namespace core {
