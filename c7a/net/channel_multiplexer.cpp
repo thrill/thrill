@@ -46,6 +46,7 @@ void ChannelMultiplexer::ReadFirstHeaderPartFrom(
     header.ParseHeader(buffer.ToString());
 
     ChannelPtr channel;
+    sLOG << "reading head for channel" << header.channel_id;
     if (!HasChannel(header.channel_id)) {
         auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
         channel = std::make_shared<Channel>(dispatcher_, callback, header.channel_id, group_->Size());

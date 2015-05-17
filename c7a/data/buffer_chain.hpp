@@ -15,6 +15,7 @@
 #include <memory> //unique_ptr
 
 #include <c7a/data/binary_buffer.hpp>
+#include <c7a/data/emitter_target.hpp>
 
 namespace c7a {
 namespace data {
@@ -30,11 +31,10 @@ struct BufferChainElement {
 
 //! A Buffer chain holds multiple immuteable buffers.
 //! Append in O(1), Delete in O(#buffers)
-struct BufferChain {
+struct BufferChain : public EmitterTarget {
     BufferChain() : head(nullptr), tail(nullptr), closed(false) { }
 
-    void                     Append(BinaryBuffer b)
-    {
+    void Append(BinaryBuffer b) {
         if (tail == nullptr) {
             head = new BufferChainElement(b);
             tail = head;
@@ -46,8 +46,7 @@ struct BufferChain {
     }
 
     //! Call buffers' destructors and deconstructs the chain
-    void                     Delete()
-    {
+    void Delete() {
         BufferChainElement* current = head;
         while (current != nullptr) {
             BufferChainElement* next = current->next;
@@ -56,8 +55,7 @@ struct BufferChain {
         }
     }
 
-    void                     Close()
-    {
+    void Close() {
         closed = true;
     }
 
