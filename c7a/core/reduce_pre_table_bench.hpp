@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/hash_table.hpp
+ * c7a/core/reduce_pre_table_bench.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE1_HASH_TABLE_HEADER
-#define C7A_CORE1_HASH_TABLE_HEADER
+#ifndef C7A_CORE_REDUCE_PRE_TABLE_BENCH_HEADER
+#define C7A_CORE_REDUCE_PRE_TABLE_BENCH_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <string>
@@ -25,6 +25,7 @@
 
 namespace c7a {
 namespace core {
+
 // Use this hashtable to benchmark our own hash table against
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
@@ -220,9 +221,10 @@ private:
     size_t table_size_ = 0;
     size_t max_num_items_table_ = 1048576;
 };
-}
-}
 
-#endif // !C7A_CORE_HASH_TABLE_HEADER
+} // namespace core
+} // namespace c7a
+
+#endif // !C7A_CORE_REDUCE_PRE_TABLE_BENCH_HEADER
 
 /******************************************************************************/

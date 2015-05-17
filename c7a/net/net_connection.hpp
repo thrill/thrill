@@ -27,6 +27,7 @@
 
 namespace c7a {
 namespace net {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -62,11 +63,11 @@ public:
 
 #if !C7A_NETCONNECTION_COPYABLE
     //! move-constructor
-    NetConnection(NetConnection && other) : Socket(other)
+    NetConnection(NetConnection&& other) : Socket(other)
     { other.fd_ = -1; }
 
     //! move assignment-operator
-    NetConnection& operator = (NetConnection && other)
+    NetConnection& operator = (NetConnection&& other)
     {
         if (IsValid()) {
             sLOG1 << "Assignment-destruction of valid NetConnection" << this;
@@ -209,7 +210,7 @@ public:
     friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
     {
         os << "[NetConnection"
-        << " fd=" << c.GetSocket().fd();
+           << " fd=" << c.GetSocket().fd();
 
         if (c.IsValid())
             os << " peer=" << c.GetPeerAddress();
@@ -219,6 +220,7 @@ public:
 };
 
 // \}
+
 } // namespace net
 } // namespace c7a
 
