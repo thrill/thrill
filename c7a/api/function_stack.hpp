@@ -63,6 +63,32 @@ auto run_emitter(L lambda, Ls ... rest)
     };
 }
 
+// Compile-time integer sequences, an implementation of std::index_sequence and
+// std::make_index_sequence, as these are not available in many current
+// libraries.
+template <size_t ... Indexes>
+struct index_sequence {
+    static size_t size() { return sizeof ... (Indexes); }
+};
+
+template <size_t CurrentIndex, size_t ... Indexes>
+struct make_index_sequence_helper;
+
+template <size_t ... Indexes>
+struct make_index_sequence_helper<0, Indexes ...>{
+    typedef index_sequence<Indexes ...> type;
+};
+
+template <size_t CurrentIndex, size_t ... Indexes>
+struct make_index_sequence_helper {
+    typedef typename make_index_sequence_helper<
+            CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type type;
+};
+
+template <size_t Length>
+struct make_index_sequence : public make_index_sequence_helper<Length>::type
+{ };
+
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single lambda functions.
  * The FunctionStack basically consists of a tuple that contains lambda functions of varying types.
@@ -122,7 +148,7 @@ public:
 
         const size_t Size = std::tuple_size<StackType>::value;
 
-        return emit_sequence(std::make_index_sequence<Size>{ });
+        return emit_sequence(make_index_sequence<Size>{ });
     }
 
 private:
@@ -137,7 +163,7 @@ private:
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
-    auto emit_sequence(std::index_sequence<Is ...>)
+    auto emit_sequence(index_sequence<Is ...>)
     {
         return run_emitter(std::get<Is>(stack_) ...);
     }
