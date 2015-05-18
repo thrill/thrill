@@ -36,7 +36,7 @@ TEST(PreTable, CreateEmptyTable) {
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 }
 
 TEST(PostTable, CreateEmptyTable) {
@@ -55,7 +55,7 @@ TEST(PostTable, CreateEmptyTable) {
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(key_ex, red_fn, { emit });
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 }
 
 TEST(PreTable, AddIntegers) {
@@ -78,11 +78,11 @@ TEST(PreTable, AddIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Insert(2);
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 }
 
 TEST(PostTable, AddIntegers) {
@@ -107,13 +107,13 @@ TEST(PostTable, AddIntegers) {
 
     table.Print();
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Insert(2);
 
     table.Print();
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 }
 
 TEST(PreTable, PopIntegers) {
@@ -139,11 +139,11 @@ TEST(PreTable, PopIntegers) {
     table.Insert(3);
     table.Insert(4);
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 
     table.Insert(1);
 
-    assert(table.Size() == 1);
+    ASSERT_EQ(1, table.Size());
 }
 
 TEST(PreTable, FlushIntegers) {
@@ -166,15 +166,15 @@ TEST(PreTable, FlushIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Flush();
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 
     table.Insert(1);
 
-    assert(table.Size() == 1);
+    ASSERT_EQ(1, table.Size());
 }
 
 TEST(PostTable, FlushIntegers) {
@@ -197,15 +197,15 @@ TEST(PostTable, FlushIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Flush();
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 
     table.Insert(1);
 
-    assert(table.Size() == 1);
+    ASSERT_EQ(1, table.Size());
 }
 
 TEST(PostTable, MultipleEmitters) {
@@ -235,17 +235,17 @@ TEST(PostTable, MultipleEmitters) {
     table.Insert(2);
     table.Insert(3);
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Flush();
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 
     table.Insert(1);
 
-    assert(table.Size() == 1);
+    ASSERT_EQ(1, table.Size());
 
-    assert(vec1.size() == 9);
+    ASSERT_EQ(9, vec1.size());
 }
 
 TEST(PreTable, ComplexType) {
@@ -270,15 +270,15 @@ TEST(PreTable, ComplexType) {
     table.Insert(std::make_pair("hello", 2));
     table.Insert(std::make_pair("bonjour", 3));
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Insert(std::make_pair("hello", 5));
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Insert(std::make_pair("baguette", 42));
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
 }
 
 TEST(PreTable, Resize) {
@@ -297,16 +297,16 @@ TEST(PreTable, Resize) {
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, 10, 2, 1, 10, key_ex, red_fn, { emit });
 
-    assert(table.NumBuckets() == 10);
+    ASSERT_EQ(10, table.NumBuckets());
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
 
-    assert(table.NumBuckets() == 10);
+    ASSERT_EQ(10, table.NumBuckets());
 
     table.Insert(std::make_pair("bonjour", 3));
 
-    assert(table.NumBuckets() == 20);
+    ASSERT_EQ(20, table.NumBuckets());
 }
 
 TEST(PostTable, ComplexType) {
@@ -331,15 +331,15 @@ TEST(PostTable, ComplexType) {
     table.Insert(std::make_pair("hello", 2));
     table.Insert(std::make_pair("bonjour", 3));
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Insert(std::make_pair("hello", 5));
 
-    assert(table.Size() == 3);
+    ASSERT_EQ(3, table.Size());
 
     table.Insert(std::make_pair("baguette", 42));
 
-    assert(table.Size() == 4);
+    ASSERT_EQ(4, table.Size());
 }
 
 TEST(PreTable, MultipleWorkers) {
@@ -358,15 +358,15 @@ TEST(PreTable, MultipleWorkers) {
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(2, key_ex, red_fn, { emit });
 
-    assert(table.Size() == 0);
+    ASSERT_EQ(0, table.Size());
     table.SetMaxSize(5);
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
     }
 
-    assert(table.Size() <= 3);
-    assert(table.Size() > 0);
+    ASSERT_LE(table.Size(), 3);
+    ASSERT_GT(table.Size(), 0);
 }
 
 // TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
