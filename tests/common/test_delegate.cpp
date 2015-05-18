@@ -1,23 +1,25 @@
 /*******************************************************************************
- * tests/c7a_tests.hpp
- *
- * Google Test main program which calls tests.
+ * tests/common/test_delegate.cpp
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#pragma once
-#ifndef C7A_TESTS_C7A_TESTS_HEADER
-#define C7A_TESTS_C7A_TESTS_HEADER
+#include <c7a/common/delegate.hpp>
 
 #include <string>
 
-//! path to test suite root during test runs (given as command line parameter)
-extern std::string g_workpath;
+#include "gtest/gtest.h"
 
-#endif // !C7A_TESTS_C7A_TESTS_HEADER
+using namespace c7a::common;
+
+TEST(Delegate, Test1) {
+    auto d1 = [](int x) { return x + 1; };
+
+    ASSERT_EQ(d1(42), 43);
+}
 
 /******************************************************************************/

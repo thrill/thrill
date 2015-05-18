@@ -10,9 +10,11 @@
 #include "communication_manager.hpp"
 
 namespace c7a {
-namespace net { } // namespace c7a
+namespace net {
 
+// TODO(ej)
 
-}                 // namespace net
+}   // namespace net
+}   // namespace c7a
 
 /******************************************************************************/

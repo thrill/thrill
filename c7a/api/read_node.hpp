@@ -13,9 +13,10 @@
 #ifndef C7A_API_READ_NODE_HEADER
 #define C7A_API_READ_NODE_HEADER
 
-#include "../common/logger.hpp"
-#include "dop_node.hpp"
-#include "function_stack.hpp"
+#include <c7a/common/logger.hpp>
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
 #include <fstream>
 
@@ -52,8 +53,8 @@ public:
 
     virtual ~ReadNode() { }
 
-    //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
-    //!applying the read function on it.
+    //! Executes the read operation. Reads a file line by line and emits it to
+    //! the DataManager after applying the read function on it.
     void execute()
     {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {

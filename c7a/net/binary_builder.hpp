@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/binary-builder.hpp
+ * c7a/net/binary_builder.hpp
  *
  * Classes BufferBuilder and BinaryReader to construct data blocks with variable
  * length content. Programs construct blocks using BufferBuilder::Put<type>()
