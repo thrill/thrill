@@ -13,16 +13,20 @@
 #ifndef C7A_API_REDUCE_NODE_HEADER
 #define C7A_API_REDUCE_NODE_HEADER
 
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
+#include <c7a/core/reduce_pre_table.hpp>
+#include <c7a/core/reduce_post_table.hpp>
+
 #include <unordered_map>
 #include <functional>
-#include "dop_node.hpp"
-#include <c7a/api/context.hpp>
-#include "function_stack.hpp"
-#include "c7a/common/logger.hpp"
-#include "c7a/core/reduce_pre_table.hpp"
-#include "c7a/core/reduce_post_table.hpp"
+#include <string>
+#include <vector>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -74,8 +78,8 @@ public:
     {
         // Hook PreOp
         auto pre_op_fn = [ = ](reduce_arg_t input) {
-            PreOp(input);
-        };
+                             PreOp(input);
+                         };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
 
         parent->RegisterChild(lop_chain);
@@ -109,8 +113,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-            return PostOp(elem, emit_func);
-        };
+                              return PostOp(elem, emit_func);
+                          };
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -149,9 +153,9 @@ private:
                                           ReduceFunction,
                                           std::function<void(reduce_arg_t)> >;
 
-        std::function<void(Output)> print = [] (Output elem) {
-            LOG << elem.first << " " << elem.second;
-        };
+        std::function<void(Output)> print = [](Output elem) {
+                                                LOG << elem.first << " " << elem.second;
+                                            };
 
         auto table = ReduceTable(key_extractor_,
                                  reduce_function_,
@@ -172,6 +176,7 @@ private:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER

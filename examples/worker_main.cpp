@@ -7,6 +7,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/engine/hash_table.hpp>
+
 #include <sstream>
 #include <unordered_map>
 #include <vector>
@@ -14,7 +16,7 @@
 #include <queue>
 #include <array>
 #include <utility>
-#include "../c7a/engine/hash_table.hpp"
+#include <string>
 
 int main()
 {

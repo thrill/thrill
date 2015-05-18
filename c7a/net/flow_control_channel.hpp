@@ -16,6 +16,7 @@
 #include "net_group.hpp"
 
 namespace c7a {
+
 #ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 /**
@@ -29,7 +30,7 @@ protected:
     NetDispatcher* dispatcher;
 
 public:
-    FlowControlChannel(NetDispatcher* dispatcher) : dispatcher(dispatcher) { }
+    explicit FlowControlChannel(NetDispatcher* dispatcher) : dispatcher(dispatcher) { }
     void SendTo(std::string message, unsigned int destination);     //TODO call-by-value is only tmp here and two lines below
     std::string ReceiveFrom(unsigned int source);
     std::string ReceiveFromAny(unsigned int* source = NULL);
@@ -45,7 +46,7 @@ public:
 class MasterFlowControlChannel : public FlowControlChannel
 {
 public:
-    MasterFlowControlChannel(NetDispatcher* dispatcher)
+    explicit MasterFlowControlChannel(NetDispatcher* dispatcher)
         : FlowControlChannel(dispatcher) { }
 
     /**
@@ -84,7 +85,8 @@ public:
 class WorkerFlowControlChannel : public FlowControlChannel
 {
 public:
-    WorkerFlowControlChannel(NetDispatcher* dispatcher) : FlowControlChannel(dispatcher) { }
+    explicit WorkerFlowControlChannel(NetDispatcher* dispatcher)
+        : FlowControlChannel(dispatcher) { }
 
     /**
      * @brief Sends a single value to the master.
@@ -115,6 +117,7 @@ public:
 };
 
 #endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
+
 } // namespace c7a
 
 #endif // !C7A_NET_FLOW_CONTROL_CHANNEL_HEADER

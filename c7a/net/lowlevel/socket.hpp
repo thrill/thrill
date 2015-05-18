@@ -57,9 +57,8 @@ public:
         : fd_(fd)
     { }
 
-    explicit Socket() 
-        : fd_(-1) {
-    }
+    Socket()
+        : fd_(-1) { }
 
     //! Create a new stream socket.
     static Socket Create()

@@ -23,6 +23,7 @@
 namespace c7a {
 namespace net {
 namespace lowlevel {
+
 //! \addtogroup netsock Low Level Socket API
 //! \{
 
@@ -223,6 +224,7 @@ private:
 };
 
 //! \}
+
 } // namespace lowlevel
 } // namespace net
 } // namespace c7a

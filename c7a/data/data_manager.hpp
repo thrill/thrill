@@ -11,17 +11,20 @@
 #ifndef C7A_DATA_DATA_MANAGER_HEADER
 #define C7A_DATA_DATA_MANAGER_HEADER
 
+#include <c7a/data/block_iterator.hpp>
+#include <c7a/common/logger.hpp>
+#include <c7a/data/input_line_iterator.hpp>
+
 #include <map>
 #include <functional>
 #include <string>
 #include <stdexcept>
-#include <memory> //unique_ptr
-#include "block_iterator.hpp"
-#include "../common/logger.hpp"
-#include "input_line_iterator.hpp"
+#include <memory>
+#include <vector>
 
 namespace c7a {
 namespace data {
+
 //! Identification for DIAs
 typedef unsigned int DIAId;
 
@@ -103,6 +106,7 @@ private:
     //May depend on the compiler. Google it.    //std::map<DIAId, std::unique_ptr<std::vector<Blob>>> data_;
     std::vector<std::vector<Blob> > data_;
 };
+
 } // namespace data
 } // namespace c7a
 
