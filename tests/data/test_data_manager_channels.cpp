@@ -35,6 +35,7 @@ struct WorkerMock {
         }
     }
 
+    static const bool  debug = true;
     NetDispatcher      dispatcher;
     ChannelMultiplexer cmp;
     DataManager        manager;
@@ -69,20 +70,31 @@ struct DataManagerChannelFixture : public::testing::Test {
     }
 
     void RunAll() {
-        using namespace std::literals;
         master = std::thread([&] {
-                                 sLOG << "starting three worker mocks";
-                                 auto t1 = std::thread(&WorkerMock::Run, &worker1);
-                                 auto t2 = std::thread(&WorkerMock::Run, &worker2);
-                                 auto t3 = std::thread(&WorkerMock::Run, &worker3);
+                                 t1 = std::thread(&WorkerMock::Run, &worker1);
+                                 t2 = std::thread(&WorkerMock::Run, &worker2);
+                                 t3 = std::thread(&WorkerMock::Run, &worker3);
                                  t1.join();
                                  t2.join();
                                  t3.join();
                              });
-        std::this_thread::sleep_for(2s);
+    }
+
+    ~DataManagerChannelFixture() {
+        DetachAll();
+    }
+
+    void DetachAll() {
+        t1.detach();
+        t2.detach();
+        t3.detach();
+        master.detach();
     }
 
     std::thread master;
+    std::thread t1;
+    std::thread t2;
+    std::thread t3;
     WorkerMock  worker1;
     WorkerMock  worker2;
     WorkerMock  worker3;
@@ -103,6 +115,8 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_HasChannelIsTrue) {
         emitter.Close();
 
     RunAll();
+    using namespace std::literals;
+    std::this_thread::sleep_for(1s); //required because JoinAll ,ust happen after threads actually started
     auto it = worker2.manager.GetRemoteBlocks<int>(channel_id2);
     ASSERT_TRUE(it.IsClosed());
 }
