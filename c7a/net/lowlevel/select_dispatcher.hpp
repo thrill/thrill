@@ -75,7 +75,7 @@ public:
         watch_.emplace_back(fd, c, read_cb, write_cb, except_cb);
     }
 
-    void Dispatch(double timeout)
+    void Dispatch(const std::chrono::milliseconds& timeout)
     {
         // copy select fdset
         Select fdset = *this;
@@ -98,7 +98,7 @@ public:
             LOG << "Performing select() on " << oss.str();
         }
 
-        int r = fdset.select_timeout(timeout);
+        int r = fdset.select_timeout(timeout.count());
 
         if (r < 0) {
             throw Exception("OpenConnections() select() failed!", errno);
