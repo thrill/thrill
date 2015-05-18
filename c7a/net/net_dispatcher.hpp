@@ -30,6 +30,7 @@
 #include <deque>
 #include <queue>
 #include <ctime>
+#include <chrono>
 
 namespace c7a {
 namespace net {
@@ -55,6 +56,12 @@ protected:
     //! import into class namespace
     typedef lowlevel::Socket Socket;
 
+    //! import into class namespace
+    typedef std::chrono::steady_clock steady_clock;
+
+    //! import into class namespace
+    typedef std::chrono::milliseconds milliseconds;
+
 public:
     //! \name Timeout Callbacks
     //! \{
@@ -63,9 +70,13 @@ public:
     typedef std::function<bool ()> TimerCallback;
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(double timeout, const TimerCallback& cb)
+    template <class Rep, class Period>
+    void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
+                            const TimerCallback& cb)
     {
-        timer_pq_.emplace(GetClock() + timeout, timeout, cb);
+        timer_pq_.emplace(steady_clock::now() + timeout,
+                          std::chrono::duration_cast<milliseconds>(timeout),
+                          cb);
     }
 
     //! \}
@@ -174,7 +185,7 @@ public:
     void Dispatch()
     {
         // process timer events that lie in the past
-        double now = GetClock();
+        steady_clock::time_point now = steady_clock::now();
 
         while (!timer_pq_.empty() && timer_pq_.top().next_timeout <= now)
         {
@@ -189,35 +200,18 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            dispatcher_.Dispatch(std::numeric_limits<double>::infinity());
+            dispatcher_.Dispatch(milliseconds(10000));
         }
         else {
-            dispatcher_.Dispatch(timer_pq_.top().next_timeout - now);
+            dispatcher_.Dispatch(
+                std::chrono::duration_cast<milliseconds>(
+                    timer_pq_.top().next_timeout - now));
         }
     }
 
     //! \}
 
 protected:
-    //! get a current monotonic clock
-    static double GetClock()
-    {
-        struct timespec ts;
-        // Use clock_gettime in linux, clock_get_time in OS X.
-#ifdef __MACH__
-        clock_serv_t cclock;
-        mach_timespec_t mts;
-        host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
-        clock_get_time(cclock, &mts);
-        mach_port_deallocate(mach_task_self(), cclock);
-        ts.tv_sec = mts.tv_sec;
-        ts.tv_nsec = mts.tv_nsec;
-#else
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-#endif
-        return ts.tv_sec + ts.tv_nsec * 1e-9;
-    }
-
     //! low-level file descriptor async processing
     Dispatcher dispatcher_;
 
@@ -225,14 +219,18 @@ protected:
     struct Timer
     {
         //! timepoint of next timeout
-        double        next_timeout;
+        steady_clock::time_point next_timeout;
         //! relative timeout for restarting
-        double        timeout;
+        milliseconds             timeout;
         //! callback
-        TimerCallback cb;
+        TimerCallback            cb;
 
-        Timer(double _next_timeout, double _timeout, const TimerCallback& _cb)
-            : next_timeout(_next_timeout), timeout(_timeout), cb(_cb)
+        Timer(const steady_clock::time_point& _next_timeout,
+              const milliseconds& _timeout,
+              const TimerCallback& _cb)
+            : next_timeout(_next_timeout),
+              timeout(_timeout),
+              cb(_cb)
         { }
 
         bool operator < (const Timer& b) const
