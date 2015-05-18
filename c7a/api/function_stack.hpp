@@ -27,12 +27,11 @@ namespace c7a {
 //! \{
 
 /*!
- * Base case for the chaining of lambda functions.
- * The last lambda function receives an input element, no emitter and should have no return type.
- * It should therefore store the input parameter externally.
+ * Base case for the chaining of lambda functions.  The last lambda function
+ * receives an input element, no emitter and should have no return type.  It
+ * should therefore store the input parameter externally.
  *
  * \param lambda Lambda function that represents the chain end.
- *
  */
 template <typename L>
 auto run_emitter(L lambda)
