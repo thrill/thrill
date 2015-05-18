@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/test_hash_table.cpp
+ * tests/core/test_hash_table_bench.cpp
  *
  * Part of Project c7a.
  *
@@ -8,13 +8,15 @@
  ******************************************************************************/
 
 #include <c7a/core/reduce_pre_table_bench.hpp>
-#include "gtest/gtest.h"
+#include <c7a/api/context.hpp>
 #include <tests/c7a_tests.hpp>
-#include "c7a/api/context.hpp"
 
-#include <stdio.h>
 #include <functional>
 #include <cstdio>
+#include <utility>
+#include <string>
+
+#include "gtest/gtest.h"
 
 TEST(PreTableBench, CreateEmptyTable) {
     auto emit = [](int in) {

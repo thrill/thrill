@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test-net-group.cpp
+ * tests/net/test_net_group.cpp
  *
  * Part of Project c7a.
  *
@@ -33,10 +33,11 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     NetDispatcher dispatcher;
 
     NetDispatcher::AsyncReadCallback callback =
-    [net, &received](NetConnection & /* s */, const Buffer &buffer) {
-        ASSERT_EQ(*((size_t*)buffer.data()), net->MyRank());
-        received++;
-    };
+        [net, &received](NetConnection& /* s */, const Buffer& buffer) {
+            ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
+                      net->MyRank());
+            received++;
+        };
 
     // add async reads to net dispatcher
     for (size_t i = 0; i != net->Size(); ++i)
@@ -138,7 +139,7 @@ static void RealNetGroupConstructAndCall(
 
 TEST(NetGroup, RealInitializeAndClose) {
     // Construct a real NetGroup of 6 workers which do nothing but terminate.
-    RealNetGroupConstructAndCall([] (NetGroup*) { });
+    RealNetGroupConstructAndCall([](NetGroup*) { });
 }
 
 TEST(NetGroup, RealInitializeSendReceive) {
