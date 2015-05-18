@@ -13,6 +13,8 @@
 
 #include <c7a/net/net_connection.hpp>
 #include <c7a/net/stream.hpp>
+#include <c7a/data/binary_buffer.hpp>
+#include <c7a/data/buffer_chain.hpp>
 
 namespace c7a {
 namespace net {
@@ -33,30 +35,33 @@ namespace net {
 //! is transfered back to the channel multiplexer.
 //!
 //! This class is the state machine for the callback-hell from NetDispatcher
-class Channel
-{
+class Channel {
 public:
     //! Called to transfer the polling responsibility back to the channel multiplexer
     typedef std::function<void (NetConnection& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
-    Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback, int id, int expected_streams)
+    Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback, int id, int expected_streams, std::shared_ptr<data::BufferChain> target)
         : dispatcher_(dispatcher),
           release_(release_callback),
           id_(id),
-          expected_streams_(expected_streams) { }
+          expected_streams_(expected_streams),
+          target_(target) { }
 
     //! Takes over the polling responsibility from the channel multiplexer
     //!
     //! This is the start state of the callback state machine.
     //! end-of-streams are handled directly
     //! all other block headers are parsed
-    void PickupStream(NetConnection& s, struct StreamBlockHeader head)
-    {
+    void PickupStream(NetConnection& s, struct StreamBlockHeader head) {
         Stream* stream = new Stream(s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
             finished_streams_++;
+            if (finished_streams_ == expected_streams_) {
+                sLOG << "end of stream on" << stream->socket << "in channel" << id_;
+                target_->Close();
+            }
         }
         else {
             sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
@@ -66,15 +71,8 @@ public:
     }
 
     //! Indicates whether all streams are finished
-    bool Finished() const
-    {
+    bool Finished() const {
         return finished_streams_ == expected_streams_;
-    }
-
-    //! Accesses the data of the channel
-    const std::vector<std::string> & Data()
-    {
-        return data_;
     }
 
 private:
@@ -86,12 +84,12 @@ private:
     int active_streams_;
     int expected_streams_;
     int finished_streams_;
-    std::vector<std::string> data_;
+
+    std::shared_ptr<data::BufferChain> target_;
 
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
-    void ReadFromStream(Stream* stream)
-    {
+    void ReadFromStream(Stream* stream) {
         if (stream->bytes_read < stream->header.expected_bytes) {
             ExpectData(stream);
         }
@@ -106,8 +104,7 @@ private:
 
     //! Expect data to arrive at the socket.
     //! Size of element is known
-    inline void ExpectData(Stream* stream)
-    {
+    inline void ExpectData(Stream* stream) {
         auto exp_size = stream->header.expected_bytes - stream->bytes_read;
         auto callback = std::bind(&Channel::ConsumeData, this, std::placeholders::_1, std::placeholders::_2, stream);
         sLOG << "expect data with" << exp_size
@@ -115,12 +112,11 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream)
-    {
+    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream) {
         (void)s;
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         stream->bytes_read += buffer.size();
-        data_.emplace_back(buffer.ToString());  // TODO(ts) use buffer from AsyncRead instead of copying data here!
+        target_->Append(data::BinaryBuffer(buffer.data(), buffer.size()));
         ReadFromStream(stream);
     }
 };
