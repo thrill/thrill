@@ -213,7 +213,7 @@ protected:
         ts.tv_sec = mts.tv_sec;
         ts.tv_nsec = mts.tv_nsec;
 #else
-        clock_gettime(CLOCK_MONOTONIC, ts);
+        clock_gettime(CLOCK_MONOTONIC, &ts);
 #endif
         return ts.tv_sec + ts.tv_nsec * 1e-9;
     }
