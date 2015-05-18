@@ -4,6 +4,8 @@
 
 namespace c7a {
 namespace data {
+class BinaryBuffer;
+
 class EmitterTarget {
 public:
     virtual void Close() = 0;

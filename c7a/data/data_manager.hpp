@@ -24,6 +24,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/socket_target.hpp>
 #include "input_line_iterator.hpp"
+#include <c7a/data/buffer_chain_manager.hpp>
 
 namespace c7a {
 namespace data {
@@ -39,7 +40,7 @@ typedef size_t ChannelId;
 //! Provides Channel creation for sending / receiving data from other workers.
 class DataManager {
 public:
-    DataManager(net::ChannelMultiplexer& cmp) : cmp_(cmp), next_local_id_(0), next_remote_id_(0) { }
+    DataManager(net::ChannelMultiplexer& cmp) : cmp_(cmp) { }
 
     DataManager(const DataManager&) = delete;
     DataManager& operator = (const DataManager&) = delete;
@@ -51,10 +52,10 @@ public:
     //! \param id ID of the DIA - determined by AllocateDIA()
     template <class T>
     BlockIterator<T> GetLocalBlocks(DIAId id) {
-        if (!ContainsLocal(id)) {
+        if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        return BlockIterator<T>(*(local_buffer_chains_[id]));
+        return BlockIterator<T>(*(dias_.Chain(id)));
     }
 
     //! Returns iterator on the data that was / will be received on the channel
@@ -62,37 +63,25 @@ public:
     //! \param id ID of the channel - determined by AllocateNetworkChannel()
     template <class T>
     BlockIterator<T> GetRemoteBlocks(ChannelId id) {
-        if (!ContainsChannel(id)) {
+        if (!cmp_.HasChannel(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
 
-        return BlockIterator<T>(*(incoming_buffer_chains_[id]));
+        return BlockIterator<T>(*(cmp_.AccessData(id)));
     }
 
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
     DIAId AllocateDIA() {
-        //sLOG << "Allocate DIA" << data_.size();
-        //data_.push_back(std::vector<Blob>());
-        //return data_.size() - 1;
-        sLOG << "Allocate DIA" << next_local_id_;
-        local_buffer_chains_[next_local_id_] = std::make_shared<BufferChain>();
-        return next_local_id_++;
+        return dias_.AllocateNext();
     }
 
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
     ChannelId AllocateNetworkChannel() {
-        if (!ContainsChannel(next_remote_id_)) {
-            sLOG << "Allocate Network Channel" << next_remote_id_;
-            incoming_buffer_chains_[next_remote_id_] = std::make_shared<BufferChain>();
-        }
-        else {
-            sLOG << "Allocate Network Channel" << next_remote_id_ << "already exists";
-        }
-        return next_remote_id_++;
+        return cmp_.AllocateNext();
     }
 
     //! Returns an emitter that can be used to fill a DIA
@@ -100,20 +89,18 @@ public:
     //! Data is only visible to the iterator if the emitter was flushed.
     template <class T>
     BlockEmitter<T> GetLocalEmitter(DIAId id) {
-        if (!ContainsLocal(id)) {
+        if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        std::shared_ptr<BufferChain> target = local_buffer_chains_[id];
-        return BlockEmitter<T>(target);
+        return BlockEmitter<T>(dias_.Chain(id));
     }
 
     template <class T>
     std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
-        if (!ContainsChannel(id)) {
+        if (!cmp_.HasChannel(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
-        auto& target = incoming_buffer_chains_[id];
-        return cmp_.OpenChannel<T>(id, target);
+        return cmp_.OpenChannel<T>(id);
     }
 
     //!Returns an InputLineIterator with a given input file stream.
@@ -133,33 +120,7 @@ private:
     static const bool debug = true;
     net::ChannelMultiplexer& cmp_;
 
-    DIAId next_local_id_;
-    ChannelId next_remote_id_;
-
-    //YES I COULD just use a map of (int, vector) BUT then I have a weird
-    //behaviour of std::map on inserts. Sometimes it randomly kills itself.
-    //May depend on the compiler. Google it.
-    //std::vector<std::vector<Blob> > data_;
-    //TODO(ts) check if that sutt is still a problem. if not - remove the comment
-    std::map<DIAId, std::shared_ptr<BufferChain> > local_buffer_chains_;
-
-    std::map<ChannelId, std::shared_ptr<BufferChain> > incoming_buffer_chains_;
-
-    //! returns true if the manager holds data of given DIA
-    //!
-    //! \param id ID of the DIA
-    bool ContainsLocal(DIAId id) {
-        return local_buffer_chains_.find(id) != local_buffer_chains_.end();
-        //return data_.size() > id && id >= 0;
-    }
-
-    //! returns true if the manager holds data of given DIA
-    //!
-    //! \param id ID of the DIA
-    bool ContainsChannel(ChannelId id) {
-        return incoming_buffer_chains_.find(id) != incoming_buffer_chains_.end();
-        //return data_.size() > id && id >= 0;
-    }
+    BufferChainManager dias_;
 };
 } // namespace data
 } // namespace c7a
