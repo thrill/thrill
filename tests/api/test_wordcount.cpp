@@ -22,7 +22,6 @@
 using namespace c7a::core;
 
 TEST(WordCount, PreOP) {
-    using c7a::DIARef;
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
 

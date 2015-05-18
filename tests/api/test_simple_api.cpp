@@ -21,7 +21,6 @@
 using namespace c7a::core;
 
 TEST(API, SharedPtrTest) {
-    using c7a::DIARef;
     using c7a::Context;
 
     Context ctx;
