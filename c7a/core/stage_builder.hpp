@@ -7,21 +7,19 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#ifndef DEBUG
-#define DEBUG = FALSE
-#endif
-
 #pragma once
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
 
-#include "../api/dia_base.hpp"
-#include "../common/logger.hpp"
+#include <c7a/api/dia_base.hpp>
+#include <c7a/common/logger.hpp>
+
 #include <stack>
 #include <string>
 #include <utility>
 #include <algorithm>
 #include <set>
+#include <vector>
 
 namespace c7a {
 namespace core {
@@ -29,7 +27,7 @@ namespace core {
 class Stage
 {
 public:
-    Stage(DIABase* node) : node_(node)
+    explicit Stage(DIABase* node) : node_(node)
     {
         SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;
     }
@@ -74,7 +72,7 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
     std::reverse(stages_result.begin(), stages_result.end());
 }
 
-inline void RunScope(DIABase* action) 
+inline void RunScope(DIABase* action)
 {
     std::vector<Stage> result;
     FindStages(action, result);
@@ -84,8 +82,7 @@ inline void RunScope(DIABase* action)
     }
 }
 
-
-} // namespace engine
+} // namespace core
 } // namespace c7a
 
 #endif // !C7A_CORE_STAGE_BUILDER_HEADER

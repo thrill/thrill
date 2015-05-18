@@ -7,17 +7,20 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
+#include <c7a/api/dia.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/core/stage_builder.hpp>
 #include <tests/c7a_tests.hpp>
-#include "c7a/api/dia.hpp"
-#include "c7a/api/context.hpp"
-#include "c7a/api/function_stack.hpp"
-#include "c7a/core/stage_builder.hpp"
+
+#include <string>
+#include <vector>
+
+#include <gtest/gtest.h>
 
 using namespace c7a::core;
 
 TEST(API, SharedPtrTest) {
-    using c7a::DIARef;
     using c7a::Context;
 
     Context ctx;
@@ -30,14 +33,14 @@ TEST(API, SharedPtrTest) {
                   };
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  };
+                  }
 
-    auto input = ReadFromFileSystem(
-        ctx,
-        g_workpath + "/inputs/test1",
-        [](const std::string& line) {
-            return std::stoi(line);
-        });
+                  auto input = ReadFromFileSystem(
+                      ctx,
+                      g_workpath + "/inputs/test1",
+                      [](const std::string& line) {
+                          return std::stoi(line);
+                      });
     auto ints = input.Map(map_fn);
     auto doubles = ints.Map(map_fn);
     auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
@@ -59,27 +62,27 @@ TEST(API, TypeDeductionText) {
     Context ctx;
 
     auto to_int_fn = [](std::string in) {
-                      return std::stoi(in);
-                  };
+                         return std::stoi(in);
+                     };
     auto double_int_fn = [](int in) {
-                      return 2 * in;
-                  };
+                             return 2 * in;
+                         };
     auto filter_geq = [](int in) {
-                      return in <= 40;
-                  };
+                          return in <= 40;
+                      };
     auto key_ex = [](int in) {
                       return in % 2;
                   };
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  };
+                  }
 
-    auto lines = ReadFromFileSystem(
-        ctx,
-        g_workpath + "/inputs/test1",
-        [](const std::string& line) {
-            return line;
-        });
+                  auto lines = ReadFromFileSystem(
+                      ctx,
+                      g_workpath + "/inputs/test1",
+                      [](const std::string& line) {
+                          return line;
+                      });
     auto ints = lines.Map(to_int_fn);
     auto doubles = ints.Map(double_int_fn);
     auto filtered = doubles.Filter(filter_geq);
@@ -96,13 +99,15 @@ TEST(API, TypeDeductionText) {
 }
 
 TEST(API, Test1Zip) {
-    auto read_int = [](std::string line) { return std::stoi(line); };
+    auto read_int = [](std::string line) {
+                        return std::stoi(line);
+                    };
 
     auto zip_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  };
+                  }
 
-    c7a::Context ctx;
+                  c7a::Context ctx;
 
     auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
 

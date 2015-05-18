@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test-channel-multiplexer.cpp
+ * tests/net/test_channel_multiplexer.cpp
  *
  * Part of Project c7a.
  *
@@ -10,9 +10,11 @@
 // this is only because of Tobi's mocking
 #define C7A_NETCONNECTION_COPYABLE 1
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include <c7a/net/channel_multiplexer.hpp>
+
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include <string>
 
 using::testing::_;
 using::testing::InvokeArgument;
@@ -27,15 +29,15 @@ struct NetDispatcherMock : public NetDispatcher {
 };
 
 struct ChannelMultiplexerTest : public::testing::Test {
-    ChannelMultiplexerTest() :
-        dispatch_mock(),
-        candidate(dispatch_mock, 1),
-        element1("foo"),
-        element2("bar22"),
-        element3("."),
-        boundaries{element1.length(), element2.length(), element3.length()},
-        boundaries2{element2.length(), element1.length(), element3.length()},
-        boundaries3{}
+    ChannelMultiplexerTest()
+        : dispatch_mock(),
+          candidate(dispatch_mock, 1),
+          element1("foo"),
+          element2("bar22"),
+          element3("."),
+          boundaries{element1.length(), element2.length(), element3.length()},
+          boundaries2{element2.length(), element1.length(), element3.length()},
+          boundaries3{}
     {
         header.num_elements = 3;
         header.channel_id = 3;

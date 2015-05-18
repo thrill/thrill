@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
-#include <cstddef>
 #include <string>
 
 namespace c7a {

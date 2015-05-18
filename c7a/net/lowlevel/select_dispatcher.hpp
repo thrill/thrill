@@ -42,7 +42,7 @@ public:
     typedef _Cookie Cookie;
 
     //! cookie type for file descriptor readiness callbacks
-    typedef std::function<bool (Cookie)> Callback;
+    typedef std::function<bool (Cookie&)> Callback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(int fd, const Cookie& c,
@@ -75,7 +75,7 @@ public:
         watch_.emplace_back(fd, c, read_cb, write_cb, except_cb);
     }
 
-    void Dispatch(double timeout)
+    void Dispatch(const std::chrono::milliseconds& timeout)
     {
         // copy select fdset
         Select fdset = *this;
@@ -98,7 +98,7 @@ public:
             LOG << "Performing select() on " << oss.str();
         }
 
-        int r = fdset.select_timeout(timeout);
+        int r = fdset.select_timeout(timeout.count());
 
         if (r < 0) {
             throw Exception("OpenConnections() select() failed!", errno);
@@ -196,7 +196,7 @@ private:
     struct Watch
     {
         int      fd;
-        Cookie   cookie;
+        Cookie&  cookie;
         Callback read_cb, write_cb, except_cb;
 
         Watch(int _fd, const Cookie& _cookie,

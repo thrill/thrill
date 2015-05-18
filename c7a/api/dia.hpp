@@ -22,6 +22,7 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
+#include <utility>
 
 #include "dia_node.hpp"
 #include "function_traits.hpp"
@@ -106,10 +107,10 @@ public:
         using LOpChainNode
                   = LOpNode<T, decltype(rhs_stack)>;
 
-        std::shared_ptr<LOpChainNode> shared_node(
-            new LOpChainNode(rhs_node->get_context(),
-                             rhs_node,
-                             rhs_stack));
+        auto shared_node
+            = std::make_shared<LOpChainNode>(rhs_node->get_context(),
+                                             rhs_node,
+                                             rhs_stack);
         node_ = std::move(shared_node);
         local_stack_ = FunctionStack<>();
     }
@@ -166,16 +167,16 @@ public:
     }
 
     /*!
-     * Filter is a LOp, which filters elements from  this DIARef 
+     * Filter is a LOp, which filters elements from  this DIARef
      * according to the filter_fn given by the
-     * user. The filter_fn maps each element to a boolean. 
-     * The DIARef returned by Filter has the same type T. 
+     * user. The filter_fn maps each element to a boolean.
+     * The DIARef returned by Filter has the same type T.
      * The function chain of the returned DIARef is this DIARef's
      * local_stack_ chained with filter_fn.
      *
      * \tparam filter_fn_t Type of the map function.
      *
-     * \param map_fn Filter function of type filter_fn_t, which maps each element to
+     * \param filter_fn Filter function of type filter_fn_t, which maps each element to
      * a boolean.
      *
      */
@@ -184,8 +185,8 @@ public:
         using filter_arg_t
                   = typename FunctionTraits<filter_fn_t>::template arg<0>;
         auto conv_filter_fn = [ = ](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
-               if (filter_fn(input)) emit_func(input);
-           };
+                                  if (filter_fn(input)) emit_func(input);
+                              };
 
         auto new_stack = local_stack_.push(conv_filter_fn);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -260,13 +261,13 @@ public:
                   = TwoZipNode<zip_arg_0_t, zip_arg_1_t, zip_result_t,
                                decltype(local_stack_), decltype(second_dia.get_stack()), zip_fn_t>;
 
-        std::shared_ptr<ZipResultNode> shared_node(
-            new ZipResultNode(node_->get_context(),
-                              node_.get(),
-                              second_dia.get_node(),
-                              local_stack_,
-                              second_dia.get_stack(),
-                              zip_fn));
+        auto shared_node
+            = std::make_shared<ZipResultNode>(node_->get_context(),
+                                              node_.get(),
+                                              second_dia.get_node(),
+                                              local_stack_,
+                                              second_dia.get_stack(),
+                                              zip_fn);
 
         auto zip_stack = shared_node->ProduceStack();
         return DIARef<zip_result_t, decltype(zip_stack)>
@@ -360,12 +361,12 @@ private:
             using ReduceResultNode
                       = ReduceNode<T, dop_result_t, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
 
-            std::shared_ptr<ReduceResultNode> shared_node(
-                new ReduceResultNode(node_->get_context(),
-                                     node_,
-                                     local_stack_,
-                                     key_extractor_,
-                                     reduce_function));
+            auto shared_node
+                = std::make_shared<ReduceResultNode>(node_->get_context(),
+                                                     node_,
+                                                     local_stack_,
+                                                     key_extractor_,
+                                                     reduce_function);
 
             auto reduce_stack = shared_node->ProduceStack();
 
@@ -388,10 +389,10 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
     using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
 
-    std::shared_ptr<ReadResultNode>
-    shared_node(new ReadResultNode(ctx,
-                                   read_fn,
-                                   filepath));
+    auto shared_node =
+        std::make_shared<ReadResultNode>(ctx,
+                                         read_fn,
+                                         filepath);
 
     auto read_stack = shared_node->ProduceStack();
 
