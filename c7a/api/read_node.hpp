@@ -53,8 +53,8 @@ public:
 
     virtual ~ReadNode() { }
 
-    //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
-    //!applying the read function on it.
+    //! Executes the read operation. Reads a file line by line and emits it to
+    //! the DataManager after applying the read function on it.
     void execute()
     {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {

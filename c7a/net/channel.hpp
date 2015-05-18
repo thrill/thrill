@@ -23,7 +23,7 @@ namespace net {
 //! \ingroup net
 //! \{
 
-//! A Chanel is a collection of \ref Stream instances and bundles them to a
+//! A Channel is a collection of \ref Stream instances and bundles them to a
 //! logical communication channel.
 //!
 //! There exists only one stream per socket at a time.
