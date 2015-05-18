@@ -20,6 +20,11 @@
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 
 #include <string>
 #include <deque>
@@ -183,7 +188,7 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            dispatcher_.Dispatch(INFINITY);
+            dispatcher_.Dispatch(std::numeric_limits<double>::infinity());
         }
         else {
             dispatcher_.Dispatch(timer_pq_.top().next_timeout - now);
@@ -197,7 +202,18 @@ protected:
     static double GetClock()
     {
         struct timespec ts;
-        ::clock_gettime(CLOCK_MONOTONIC, &ts);
+        // Use clock_gettime in linux, clock_get_time in OS X.
+#ifdef __MACH__
+        clock_serv_t cclock;
+        mach_timespec_t mts;
+        host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
+        clock_get_time(cclock, &mts);
+        mach_port_deallocate(mach_task_self(), cclock);
+        ts.tv_sec = mts.tv_sec;
+        ts.tv_nsec = mts.tv_nsec;
+#else
+        clock_gettime(CLOCK_MONOTONIC, ts);
+#endif
         return ts.tv_sec + ts.tv_nsec * 1e-9;
     }
 
