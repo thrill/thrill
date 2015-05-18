@@ -21,10 +21,15 @@
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
+#if defined(_LIBCPP_VERSION) || defined(__clang__)
+#include <c7a/common/delegate.hpp>
+#endif
+
 #include <string>
 #include <deque>
 #include <queue>
 #include <ctime>
+#include <chrono>
 
 namespace c7a {
 namespace net {
@@ -50,17 +55,35 @@ protected:
     //! import into class namespace
     typedef lowlevel::Socket Socket;
 
+    //! import into class namespace
+    typedef std::chrono::steady_clock steady_clock;
+
+    //! import into class namespace
+    typedef std::chrono::milliseconds milliseconds;
+
+#if defined(_LIBCPP_VERSION) || defined(__clang__)
+    template <typename Signature>
+    using function = common::delegate<Signature>;
+#else
+    template <typename Signature>
+    using function = std::function<Signature>;
+#endif
+
 public:
     //! \name Timeout Callbacks
     //! \{
 
     //! callback signature for timer events
-    typedef std::function<bool ()> TimerCallback;
+    typedef function<bool ()> TimerCallback;
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(double timeout, const TimerCallback& cb)
+    template <class Rep, class Period>
+    void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
+                            const TimerCallback& cb)
     {
-        timer_pq_.emplace(GetClock() + timeout, timeout, cb);
+        timer_pq_.emplace(steady_clock::now() + timeout,
+                          std::chrono::duration_cast<milliseconds>(timeout),
+                          cb);
     }
 
     //! \}
@@ -69,7 +92,7 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef std::function<bool (NetConnection&)> ConnectionCallback;
+    typedef function<bool (NetConnection&)> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(NetConnection& c, const ConnectionCallback& read_cb)
@@ -98,13 +121,15 @@ public:
     //! \{
 
     //! callback signature for async read callbacks, they may acquire the buffer
-    typedef std::function<void (NetConnection& c,
-                                Buffer&& buffer)> AsyncReadCallback;
+    typedef function<void (NetConnection& c,
+                           Buffer&& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
     virtual void AsyncRead(NetConnection& c, size_t n,
                            AsyncReadCallback done_cb)
     {
+        assert(c.GetSocket().IsValid());
+
         LOG << "async read on read dispatcher";
         if (n == 0) {
             if (done_cb) done_cb(c, Buffer());
@@ -120,13 +145,15 @@ public:
     }
 
     //! callback signature for async write callbacks
-    typedef std::function<void (NetConnection&)> AsyncWriteCallback;
+    typedef function<void (NetConnection&)> AsyncWriteCallback;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(NetConnection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr)
     {
+        assert(c.GetSocket().IsValid());
+
         if (buffer.size() == 0) {
             if (done_cb) done_cb(c);
             return;
@@ -143,7 +170,7 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(NetConnection& c, const void* buffer, size_t size,
-                    AsyncWriteCallback done_cb = NULL)
+                        AsyncWriteCallback done_cb = NULL)
     {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
@@ -165,7 +192,7 @@ public:
     void Dispatch()
     {
         // process timer events that lie in the past
-        double now = GetClock();
+        steady_clock::time_point now = steady_clock::now();
 
         while (!timer_pq_.empty() && timer_pq_.top().next_timeout <= now)
         {
@@ -180,24 +207,18 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            dispatcher_.Dispatch(INFINITY);
+            dispatcher_.Dispatch(milliseconds(10000));
         }
         else {
-            dispatcher_.Dispatch(timer_pq_.top().next_timeout - now);
+            dispatcher_.Dispatch(
+                std::chrono::duration_cast<milliseconds>(
+                    timer_pq_.top().next_timeout - now));
         }
     }
 
     //! \}
 
 protected:
-    //! get a current monotonic clock
-    static double GetClock()
-    {
-        struct timespec ts;
-        ::clock_gettime(CLOCK_MONOTONIC, &ts);
-        return ts.tv_sec + ts.tv_nsec * 1e-9;
-    }
-
     //! low-level file descriptor async processing
     Dispatcher dispatcher_;
 
@@ -205,14 +226,18 @@ protected:
     struct Timer
     {
         //! timepoint of next timeout
-        double        next_timeout;
+        steady_clock::time_point next_timeout;
         //! relative timeout for restarting
-        double        timeout;
+        milliseconds             timeout;
         //! callback
-        TimerCallback cb;
+        TimerCallback            cb;
 
-        Timer(double _next_timeout, double _timeout, const TimerCallback& _cb)
-            : next_timeout(_next_timeout), timeout(_timeout), cb(_cb)
+        Timer(const steady_clock::time_point& _next_timeout,
+              const milliseconds& _timeout,
+              const TimerCallback& _cb)
+            : next_timeout(_next_timeout),
+              timeout(_timeout),
+              cb(_cb)
         { }
 
         bool operator < (const Timer& b) const
