@@ -207,6 +207,11 @@ public:
         // wait for welcome message from other side
         dispatcher.AsyncRead(conn, sizeof(hello), std::bind(&ConnectionCallback::ReceiveWelcomeMessage, this, std::placeholders::_1, std::placeholders::_2));
 
+       //  // Example Fix
+       //  dispatcher.AsyncRead(conn, sizeof(hello), [=](NetConnection& nc, Buffer&& b) {
+       //          return ReceiveWelcomeMessage(nc, std::move(b));
+       //      });
+
         return false;
     }
 
@@ -216,7 +221,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessage(NetConnection& conn, const Buffer& buffer)
+    bool ReceiveWelcomeMessage(NetConnection& conn, Buffer&& buffer)
     {
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
@@ -243,7 +248,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, const Buffer& buffer)
+    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, Buffer&& buffer)
     {
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
