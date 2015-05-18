@@ -27,15 +27,7 @@
 #include <utility>
 
 namespace c7a {
-<<<<<<< HEAD
-    namespace core {
-        template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
-        class ReducePreTable
-        {
-            static const bool debug = true;
-=======
 namespace core {
->>>>>>> origin/master
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
