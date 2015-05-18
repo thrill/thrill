@@ -70,7 +70,7 @@ struct StreamBlockHeader {
     void        Reset()
     {
         num_elements = 0;
-        //TODO delete boundaries w/o double-freeing
+        //TODO(ts) delete boundaries w/o double-freeing
     }
 
     //! Indicates if this is the end-of-stream block header
