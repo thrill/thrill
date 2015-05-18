@@ -139,9 +139,9 @@ public:
                 }
                 else if (errno == EINPROGRESS) {
                     // connect is in progress, will wait for completion.
-                    dispatcher.AddRead(connections_.back(), [=](NetConnection& nc) {
-                        return ActiveConnected(nc, hello);
-                    });
+                    dispatcher.AddRead(connections_.back(), [ = ](NetConnection& nc) {
+                                           return ActiveConnected(nc, hello);
+                                       });
                 }
                 else {
                     throw Exception("Could not connect to client "
@@ -151,9 +151,9 @@ public:
             }
         }
 
-        dispatcher.AddRead(listenConnection_, [=](NetConnection& nc) {
-            return PassiveConnected(nc);
-        });
+        dispatcher.AddRead(listenConnection_, [ = ](NetConnection& nc) {
+                               return PassiveConnected(nc);
+                           });
 
         int helloCount = (int)((addressList.size() - 1) * GROUP_COUNT);
         while (received_hellos_ < helloCount || sent_hellos_ < helloCount)
@@ -205,15 +205,16 @@ public:
 
         // send welcome message
 
-        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [=](NetConnection& nc) {
-            return HelloSent(nc);
-        });
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection& nc) {
+                                      return HelloSent(nc);
+                                  });
 
         LOG << "Client " << my_rank_ << " sent active hello to client ?";
 
-        dispatcher.AsyncRead(conn, sizeof(hello), [=](NetConnection& nc, Buffer&& b) {
-            return ReceiveWelcomeMessage(nc, std::move(b));
-        });
+        dispatcher.AsyncRead(conn, sizeof(hello),
+                             [&](NetConnection& nc, Buffer&& b) {
+                                 ReceiveWelcomeMessage(nc, std::move(b));
+                             });
 
         return false;
     }
@@ -268,9 +269,9 @@ public:
         die_unless(connCopy.GetSocket().IsValid());
         // send welcome message
 
-        dispatcher.AsyncWriteCopy(connCopy, &hello, sizeof(hello), [=](NetConnection& nc) {
-            return HelloSent(nc);
-        });
+        dispatcher.AsyncWriteCopy(connCopy, &hello, sizeof(hello), [ = ](NetConnection& nc) {
+                                      return HelloSent(nc);
+                                  });
 
         LOG << "Client " << my_rank_ << " sent passive hello to client " << msg->id;
 
@@ -292,9 +293,10 @@ public:
             << " from=" << connections_.back().GetPeerAddress();
 
         // wait for welcome message from other side
-        dispatcher.AsyncRead(connections_.back(), sizeof(WelcomeMsg), [=](NetConnection& nc, Buffer&& b) {
-            return ReceiveWelcomeMessageAndReply(nc, std::move(b));
-        });
+        dispatcher.AsyncRead(connections_.back(), sizeof(WelcomeMsg),
+                             [&](NetConnection& nc, Buffer&& b) {
+                                 ReceiveWelcomeMessageAndReply(nc, std::move(b));
+                             });
 
         // wait for more connections?
         return (--accepting > 0);
