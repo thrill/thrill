@@ -101,7 +101,7 @@ public:
     }
 
     /*!
-     * TODO: I have no idea...
+     * TODO(an): I have no idea...
      */
     auto ProduceStack() {
         // Hook PostOp
@@ -139,7 +139,7 @@ private:
         elements1_.push_back(input);
     }
 
-    // TODO: Theoretically we need two PreOps?
+    // TODO(an): Theoretically we need two PreOps?
     void PreOpSecond(zip_arg_1_t input)
     {
         LOG << "PreOp(Second): " << input;
@@ -149,11 +149,11 @@ private:
     //!Recieve elements from other workers.
     void MainOp()
     {
-        //TODO: (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
+        //TODO(an): (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
 
-        //TODO: Deterministic computation about index to worker mapping.
+        //TODO(an): Deterministic computation about index to worker mapping.
 
-        //TODO: Use network to send and recieve data through network iterators
+        //TODO(an): Use network to send and recieve data through network iterators
 
         data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 

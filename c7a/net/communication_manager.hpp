@@ -24,7 +24,7 @@
 namespace c7a {
 namespace net {
 
-//TODO: Rename to NetManager
+//TODO(ej): Rename to NetManager
 /**
  * @brief Manages communication.
  * @details Manages communication and handles errors.
@@ -76,7 +76,7 @@ private:
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
 public:
-    //TODO: Add execute local mock.
+    //TODO(ej): Add execute local mock.
 
     void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints)
     {
@@ -319,7 +319,7 @@ public:
 
     void Dispose()
     {
-        //TODO MUHA
+        //TODO(ej) MUHA
     }
 };
 
