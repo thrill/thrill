@@ -22,6 +22,7 @@
 
 namespace c7a {
 namespace net {
+
 template <typename Functional, size_t BufferSize = 0>
 class NetReadBuffer
 {
@@ -109,6 +110,7 @@ void NetGroup::ExecuteLocalMock(
         threads[i].join();
     }
 }
+
 } // namespace net
 } // namespace c7a
 

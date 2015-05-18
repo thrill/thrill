@@ -11,10 +11,11 @@
 #ifndef C7A_NET_STREAM_HEADER
 #define C7A_NET_STREAM_HEADER
 
-#include <stdlib.h> //free
-#include <stdio.h>  //mempcy
-
 #include <c7a/net/net_connection.hpp>
+
+#include <cstdlib>
+#include <cstdio>
+#include <string>
 
 namespace c7a {
 namespace net {

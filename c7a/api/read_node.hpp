@@ -13,13 +13,15 @@
 #ifndef C7A_API_READ_NODE_HEADER
 #define C7A_API_READ_NODE_HEADER
 
-#include "../common/logger.hpp"
-#include "dop_node.hpp"
-#include "function_stack.hpp"
+#include <c7a/common/logger.hpp>
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
 #include <fstream>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -51,8 +53,8 @@ public:
 
     virtual ~ReadNode() { }
 
-    //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
-    //!applying the read function on it.
+    //! Executes the read operation. Reads a file line by line and emits it to
+    //! the DataManager after applying the read function on it.
     void execute()
     {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
@@ -81,8 +83,8 @@ public:
     auto ProduceStack() {
         // Hook Identity
         auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
-            return emit_func(t);
-        };
+                         return emit_func(t);
+                     };
 
         FunctionStack<> stack;
         return stack.push(id_fn);
@@ -106,6 +108,7 @@ private:
     //! Path of the input file.
     std::string path_in_;
 };
+
 } // namespace c7a
 
 //! \}

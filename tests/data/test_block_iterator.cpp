@@ -6,8 +6,13 @@
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
+#include <c7a/data/block_iterator.hpp>
+
+#include <vector>
+#include <string>
+
 #include "gtest/gtest.h"
-#include "c7a/data/block_iterator.hpp"
 
 using namespace c7a::data;
 

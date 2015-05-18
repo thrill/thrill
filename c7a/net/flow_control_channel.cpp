@@ -9,8 +9,11 @@
 
 #include "flow_control_channel.hpp"
 #include <cassert>
+#include <string>
+#include <vector>
 
 namespace c7a {
+
 #ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
 
 //################### Base flow control channel.
@@ -19,7 +22,7 @@ void FlowControlChannel::SendTo(std::string message, unsigned int destination)
 {
     //TODO Emi Error handling
     //Need to notify controller about failure when smth happens here.
-    assert(dispatcher->Send(destination, (void*)message.c_str(), message.length()) == NET_SERVER_SUCCESS);
+    assert(dispatcher->Send(destination, message) == NET_SERVER_SUCCESS);
 }
 
 std::string FlowControlChannel::ReceiveFrom(unsigned int source)
@@ -115,6 +118,7 @@ std::vector<std::string> WorkerFlowControlChannel::AllToAll(std::vector<std::str
 }
 
 #endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
+
 } // namespace c7a
 
 /******************************************************************************/

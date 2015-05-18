@@ -11,9 +11,13 @@
 #ifndef C7A_API_LOP_NODE_HEADER
 #define C7A_API_LOP_NODE_HEADER
 
-#include "dia_node.hpp"
+#include <c7a/api/dia_node.hpp>
+
+#include <string>
+#include <vector>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -56,8 +60,8 @@ public:
 
         std::vector<Input> elements;
         auto save_fn = [&elements](Input input) {
-            elements.push_back(input);
-        };
+                           elements.push_back(input);
+                       };
         auto lop_chain = lop_stack_.push(save_fn).emit();
 
         // loop over input
@@ -88,6 +92,7 @@ private:
     //! Local stack
     LOpStack lop_stack_;
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER
