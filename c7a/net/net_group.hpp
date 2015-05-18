@@ -77,8 +77,12 @@ public:
     NetConnection & Connection(ClientId id)
     {
         if (id >= connections_.size())
-            throw Exception("NetGroup::GetClient() requested "
+            throw Exception("NetGroup::Connection() requested "
                             "invalid client id " + std::to_string(id));
+
+        if (id == my_rank_)
+            throw Exception("NetGroup::Connection() requested "
+                            "connection to self.");
 
         return connections_[id];
     }       //! Return NetConnection to client id.
