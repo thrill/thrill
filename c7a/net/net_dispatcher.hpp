@@ -21,6 +21,10 @@
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
+#ifdef _LIBCPP_VERSION
+#include <c7a/common/delegate.hpp>
+#endif
+
 #include <string>
 #include <deque>
 #include <queue>
@@ -57,12 +61,20 @@ protected:
     //! import into class namespace
     typedef std::chrono::milliseconds milliseconds;
 
+#ifdef _LIBCPP_VERSION
+    template <typename Signature>
+    using function = common::delegate<Signature>;
+#else
+    template <typename Signature>
+    using function = std::function<Signature>;
+#endif
+
 public:
     //! \name Timeout Callbacks
     //! \{
 
     //! callback signature for timer events
-    typedef std::function<bool ()> TimerCallback;
+    typedef function<bool ()> TimerCallback;
 
     //! Register a relative timeout callback
     template <class Rep, class Period>
@@ -80,7 +92,7 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef std::function<bool (NetConnection&)> ConnectionCallback;
+    typedef function<bool (NetConnection&)> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(NetConnection& c, const ConnectionCallback& read_cb)
@@ -109,8 +121,8 @@ public:
     //! \{
 
     //! callback signature for async read callbacks, they may acquire the buffer
-    typedef std::function<void (NetConnection& c,
-                                Buffer&& buffer)> AsyncReadCallback;
+    typedef function<void (NetConnection& c,
+                           Buffer&& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
     virtual void AsyncRead(NetConnection& c, size_t n,
@@ -133,7 +145,7 @@ public:
     }
 
     //! callback signature for async write callbacks
-    typedef std::function<void (NetConnection&)> AsyncWriteCallback;
+    typedef function<void (NetConnection&)> AsyncWriteCallback;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
