@@ -21,7 +21,7 @@
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
-#ifdef _LIBCPP_VERSION
+#ifdef _LIBCPP_VERSION || __clang__
 #include <c7a/common/delegate.hpp>
 #endif
 
@@ -61,7 +61,7 @@ protected:
     //! import into class namespace
     typedef std::chrono::milliseconds milliseconds;
 
-#ifdef _LIBCPP_VERSION
+#ifdef _LIBCPP_VERSION || __clang__
     template <typename Signature>
     using function = common::delegate<Signature>;
 #else
