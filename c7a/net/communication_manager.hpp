@@ -205,7 +205,7 @@ public:
         LOG << "Client " << my_rank_ << " sent active hello to client ?";
 
         // wait for welcome message from other side
-        dispatcher.AsyncRead(conn, sizeof(hello), std::bind(&ConnectionCallback::ReceiveWelcomeMessage, this, std::placeholders::_1, std::placeholders::_2));
+        dispatcher.AsyncRead(conn, sizeof(hello), std::bind(&CommunicationManager::ReceiveWelcomeMessage, this, std::placeholders::_1, std::placeholders::_2));
 
        //  // Example Fix
        //  dispatcher.AsyncRead(conn, sizeof(hello), [=](NetConnection& nc, Buffer&& b) {
