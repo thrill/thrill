@@ -13,14 +13,18 @@
 #ifndef C7A_API_ZIP_NODE_HEADER
 #define C7A_API_ZIP_NODE_HEADER
 
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
+
 #include <unordered_map>
 #include <functional>
-#include "dop_node.hpp"
-#include "context.hpp"
-#include "function_stack.hpp"
-#include "../common/logger.hpp"
+#include <string>
+#include <vector>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -67,11 +71,11 @@ public:
     {
         // Hook PreOp(s)
         auto pre_op1_fn = [ = ](Input1 input) {
-            PreOp(input);
-        };
+                              PreOp(input);
+                          };
         auto pre_op2_fn = [ = ](Input2 input) {
-            PreOpSecond(input);
-        };
+                              PreOpSecond(input);
+                          };
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
         auto lop_chain2 = stack2_.push(pre_op2_fn).emit();
 
@@ -102,8 +106,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
-            return PostOp(elem, emit_func);
-        };
+                              return PostOp(elem, emit_func);
+                          };
 
         FunctionStack<> stack;
         return stack.push(post_op_fn);
@@ -173,6 +177,7 @@ private:
         emit_func(input);
     }
 };
+
 } // namespace c7a
 
 //! \}

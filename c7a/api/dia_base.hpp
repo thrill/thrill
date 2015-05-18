@@ -20,15 +20,21 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
+
 /*!
  * Possible states a DIABase can be in.
  */
 enum kState {
-    NEW,        /*!< The DIABase has not been computed yet. */
-    CALCULATED, /*!< The DIABase has been calculated but not explicitly cached.
-                  Data might be available or has to be recalculated when needed */
-    CACHED,     /*!< The DIABase is cached and it's data can be accessed */
-    DISPOSED    /*!< The DIABase is disposed by the user, needs to be recomputed when accessed */
+    //! The DIABase has not been computed yet.
+    NEW,
+    //! The DIABase has been calculated but not explicitly cached.  Data might
+    //! be available or has to be recalculated when needed
+    CALCULATED,
+    //! The DIABase is cached and it's data can be accessed
+    CACHED,
+    //! The DIABase is disposed by the user, needs to be recomputed when
+    //! accessed.
+    DISPOSED
 };
 
 //! \addtogroup api Interface
@@ -67,13 +73,13 @@ public:
         data_id_ = context_.get_data_manager().AllocateDIA();
     }
 
-    //!Virtual destructor for a DIABase.
+    //! Virtual destructor for a DIABase.
     virtual ~DIABase() { }
 
-    //!Virtual execution method. Triggers actual computation in sub-classes.
+    //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void execute() = 0;
 
-    //!Virtual ToString method. Returns the type of node in sub-classes.
+    //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
     //! Returns the childs of this DIABase.
@@ -151,6 +157,7 @@ protected:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER
