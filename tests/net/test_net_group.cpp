@@ -162,18 +162,6 @@ TEST(NetGroup, RealInitializeSendReceiveAsync) {
     RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
 
-TEST(NetGroup, TestAllReduce) {
-    for (size_t p = 2; p <= 8; p *= 2) {
-        // Construct NetGroup of p workers which perform an AllReduce collective
-        NetGroup::ExecuteLocalMock(
-            p, [](NetGroup* net) {
-                size_t local_value = net->MyRank();
-                net->AllReduce(local_value);
-                ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
-            });
-    }
-}
-
 TEST(NetGroup, TestPrefixSum) {
     for (size_t p = 2; p <= 8; p *= 2) {
         // Construct NetGroup of p workers which perform a PrefixSum collective
@@ -186,8 +174,20 @@ TEST(NetGroup, TestPrefixSum) {
     }
 }
 
+TEST(NetGroup, TestAllReduce) {
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform an AllReduce collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = net->MyRank();
+                net->AllReduce(local_value);
+                ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+            });
+    }
+}
+
 TEST(NetGroup, TestBroadcast) {
-    for (size_t p = 2; p <= 8; p *= 2) {
+    for (size_t p = 0; p <= 8; ++p) {
         // Construct NetGroup of p workers which perform an Broadcast collective
         NetGroup::ExecuteLocalMock(
             p, [](NetGroup* net) {
@@ -195,6 +195,19 @@ TEST(NetGroup, TestBroadcast) {
                 if (net->MyRank() == 0) local_value = 42;
                 net->Broadcast(local_value);
                 ASSERT_EQ(local_value, 42);
+            });
+    }
+}
+
+TEST(NetGroup, TestReduceToRoot) {
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform an Broadcast collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = net->MyRank();
+                net->ReduceToRoot(local_value);
+                if (net->MyRank() == 0)
+                    ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
     }
 }
