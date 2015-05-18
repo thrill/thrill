@@ -30,7 +30,7 @@ namespace c7a {
         template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
         class ReducePreTable
         {
-            static const bool debug = false;
+            static const bool debug = true;
 
             using key_t = typename FunctionTraits<KeyExtractor>::result_type;
 
