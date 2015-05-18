@@ -28,7 +28,6 @@
 
 namespace c7a {
 namespace net {
-
 //! \addtogroup net Network Communication
 //! \{
 
@@ -38,8 +37,7 @@ namespace net {
  * writability checks, buffered reads and writes with completion callbacks, and
  * also timer functions.
  */
-class NetDispatcher
-{
+class NetDispatcher {
     static const bool debug = false;
 
 protected:
@@ -58,8 +56,7 @@ public:
     typedef std::function<bool ()> TimerCallback;
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(double timeout, const TimerCallback& cb)
-    {
+    void AddRelativeTimeout(double timeout, const TimerCallback& cb) {
         timer_pq_.emplace(GetClock() + timeout, timeout, cb);
     }
 
@@ -72,22 +69,19 @@ public:
     typedef std::function<bool (NetConnection&)> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(NetConnection& c, const ConnectionCallback& read_cb)
-    {
+    void AddRead(NetConnection& c, const ConnectionCallback& read_cb) {
         return dispatcher_.AddRead(c.GetSocket().fd(), c, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(NetConnection& c, const ConnectionCallback& write_cb)
-    {
+    void AddWrite(NetConnection& c, const ConnectionCallback& write_cb) {
         return dispatcher_.AddWrite(c.GetSocket().fd(), c, write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(
         NetConnection& c,
-        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb)
-    {
+        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
         return dispatcher_.AddReadWrite(
             c.GetSocket().fd(), c, read_cb, write_cb);
     }
@@ -103,8 +97,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     virtual void AsyncRead(NetConnection& c, size_t n,
-                           AsyncReadCallback done_cb)
-    {
+                           AsyncReadCallback done_cb) {
         LOG << "async read on read dispatcher";
         if (n == 0) {
             if (done_cb) done_cb(c, Buffer());
@@ -125,8 +118,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(NetConnection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr)
-    {
+                    AsyncWriteCallback done_cb = nullptr) {
         if (buffer.size() == 0) {
             if (done_cb) done_cb(c);
             return;
@@ -143,16 +135,14 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(NetConnection& c, const void* buffer, size_t size,
-                    AsyncWriteCallback done_cb = NULL)
-    {
+                        AsyncWriteCallback done_cb = NULL) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(NetConnection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = NULL)
-    {
+                        AsyncWriteCallback done_cb = NULL) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
@@ -162,8 +152,7 @@ public:
     //! \{
 
     //! dispatch one or more events
-    void Dispatch()
-    {
+    void Dispatch(bool quit_when_empty = false) {
         // process timer events that lie in the past
         double now = GetClock();
 
@@ -180,6 +169,7 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
+            if (quit_when_empty) return;
             dispatcher_.Dispatch(INFINITY);
         }
         else {
@@ -191,8 +181,7 @@ public:
 
 protected:
     //! get a current monotonic clock
-    static double GetClock()
-    {
+    static double GetClock() {
         struct timespec ts;
         ::clock_gettime(CLOCK_MONOTONIC, &ts);
         return ts.tv_sec + ts.tv_nsec * 1e-9;
@@ -228,8 +217,7 @@ protected:
 
     /**************************************************************************/
 
-    class AsyncReadBuffer
-    {
+    class AsyncReadBuffer {
     public:
         //! Construct buffered reader with callback
         AsyncReadBuffer(size_t buffer_size, const AsyncReadCallback& callback)
@@ -238,8 +226,7 @@ protected:
         { }
 
         //! Should be called when the socket is readable
-        bool operator () (NetConnection& c)
-        {
+        bool operator () (NetConnection& c) {
             int r = c.GetSocket().recv_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
@@ -273,8 +260,7 @@ protected:
 
     /**************************************************************************/
 
-    class AsyncWriteBuffer
-    {
+    class AsyncWriteBuffer {
     public:
         //! Construct buffered writer with callback
         AsyncWriteBuffer(Buffer&& buffer,
@@ -284,8 +270,7 @@ protected:
         { }
 
         //! Should be called when the socket is writable
-        bool operator () (NetConnection& c)
-        {
+        bool operator () (NetConnection& c) {
             int r = c.GetSocket().send_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
@@ -320,8 +305,7 @@ protected:
     /**************************************************************************/
 
     //! Default exception handler
-    static bool ExceptionCallback(NetConnection& s)
-    {
+    static bool ExceptionCallback(NetConnection& s) {
         // exception on listen socket ?
         throw Exception(
                   "NetDispatcher() exception on socket fd "
@@ -330,7 +314,6 @@ protected:
 };
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 

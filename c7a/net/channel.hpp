@@ -46,7 +46,12 @@ public:
           release_(release_callback),
           id_(id),
           expected_streams_(expected_streams),
+          finished_streams_(0),
           target_(target) { }
+
+    void CloseLoopback() {
+        CloseStream();
+    }
 
     //! Takes over the polling responsibility from the channel multiplexer
     //!
@@ -57,11 +62,7 @@ public:
         Stream* stream = new Stream(s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
-            finished_streams_++;
-            if (finished_streams_ == expected_streams_) {
-                sLOG << "end of stream on" << stream->socket << "in channel" << id_;
-                target_->Close();
-            }
+            CloseStream();
         }
         else {
             sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
@@ -73,6 +74,10 @@ public:
     //! Indicates whether all streams are finished
     bool Finished() const {
         return finished_streams_ == expected_streams_;
+    }
+
+    int Id() {
+        return id_;
     }
 
 private:
@@ -99,6 +104,17 @@ private:
             stream->ResetHead();
             release_(stream->socket);
             delete stream;
+        }
+    }
+
+    void CloseStream() {
+        finished_streams_++;
+        if (finished_streams_ == expected_streams_) {
+            sLOG << "channel" << id_ << " is closed";
+            target_->Close();
+        }
+        else {
+            sLOG << "channel" << id_ << " is not closed yet (expect:" << expected_streams_ << "actual:" << finished_streams_ << ")";
         }
     }
 
