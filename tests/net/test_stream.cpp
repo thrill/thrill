@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test-stream.cpp
+ * tests/net/test_stream.cpp
  *
  * Part of Project c7a.
  *

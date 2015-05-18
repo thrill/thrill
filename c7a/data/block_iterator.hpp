@@ -23,7 +23,7 @@ class BlockIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    BlockIterator(const std::vector<Blob>& data)
+    explicit BlockIterator(const std::vector<Blob>& data)
         : data_(data), pos_(0) { }
 
     //! returns the next element if one exists

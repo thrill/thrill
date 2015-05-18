@@ -11,6 +11,7 @@
 
 namespace c7a {
 namespace net {
+
 void MasterSystemControlChannel::setCallback(MasterControlCallback callback)
 { }
 
@@ -28,6 +29,7 @@ void WorkerSystemControlChannel::requestBackupLocation()
 
 void WorkerSystemControlChannel::notifyBackupComplete()
 { }
+
 } // namespace net
 } // namespace c7a
 

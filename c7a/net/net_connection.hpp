@@ -14,6 +14,10 @@
 #ifndef C7A_NET_NET_CONNECTION_HEADER
 #define C7A_NET_NET_CONNECTION_HEADER
 
+#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/exception.hpp>
+#include <c7a/net/buffer.hpp>
+
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
@@ -21,12 +25,9 @@
 #include <stdexcept>
 #include <string>
 
-#include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/exception.hpp>
-#include <c7a/net/buffer.hpp>
-
 namespace c7a {
 namespace net {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -56,17 +57,17 @@ public:
         : Socket(s)
     { }
 
-    explicit NetConnection()
+    NetConnection()
         : Socket()
     { }
 
 #if !C7A_NETCONNECTION_COPYABLE
     //! move-constructor
-    NetConnection(NetConnection && other) : Socket(other)
+    NetConnection(NetConnection&& other) : Socket(other)
     { other.fd_ = -1; }
 
     //! move assignment-operator
-    NetConnection& operator = (NetConnection && other)
+    NetConnection& operator = (NetConnection&& other)
     {
         if (IsValid()) {
             sLOG1 << "Assignment-destruction of valid NetConnection" << this;
@@ -209,7 +210,7 @@ public:
     friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
     {
         os << "[NetConnection"
-        << " fd=" << c.GetSocket().fd();
+           << " fd=" << c.GetSocket().fd();
 
         if (c.IsValid())
             os << " peer=" << c.GetPeerAddress();
@@ -219,6 +220,7 @@ public:
 };
 
 // \}
+
 } // namespace net
 } // namespace c7a
 

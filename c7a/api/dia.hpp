@@ -22,6 +22,7 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
+#include <utility>
 
 #include "dia_node.hpp"
 #include "function_traits.hpp"
@@ -32,6 +33,7 @@
 #include "context.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -80,7 +82,7 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr && node, Stack& stack)
+    DIARef(DIANodePtr&& node, Stack& stack)
         : node_(std::move(node)),
           local_stack_(stack)
     { }
@@ -157,8 +159,8 @@ public:
         using map_result_t
                   = typename FunctionTraits<map_fn_t>::result_type;
         auto conv_map_fn = [ = ](map_arg_t input, std::function<void(map_result_t)> emit_func) {
-            emit_func(map_fn(input));
-        };
+                               emit_func(map_fn(input));
+                           };
 
         auto new_stack = local_stack_.push(conv_map_fn);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -183,8 +185,8 @@ public:
         using filter_arg_t
                   = typename FunctionTraits<filter_fn_t>::template arg<0>;
         auto conv_filter_fn = [ = ](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
-            if (filter_fn(input)) emit_func(input);
-        };
+                                  if (filter_fn(input)) emit_func(input);
+                              };
 
         auto new_stack = local_stack_.push(conv_filter_fn);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -397,6 +399,7 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
     return DIARef<read_result_t, decltype(read_stack)>
                (std::move(shared_node), read_stack);
 }
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER

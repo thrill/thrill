@@ -15,7 +15,6 @@
 #include <c7a/net/net_connection.hpp>
 #include <c7a/net/net_dispatcher.hpp>
 #include <c7a/net/net_group.hpp>
-#include <c7a/net/net_endpoint.hpp>
 
 #include <vector>
 #include <functional>
@@ -24,6 +23,7 @@
 
 namespace c7a {
 namespace net {
+
 //TODO: Rename to NetManager
 /**
  * @brief Manages communication.
@@ -306,6 +306,7 @@ public:
         //TODO MUHA
     }
 };
+
 } // namespace net
 } // namespace c7a
 

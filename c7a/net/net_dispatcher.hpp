@@ -28,6 +28,7 @@
 
 namespace c7a {
 namespace net {
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -88,7 +89,7 @@ public:
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb)
     {
         return dispatcher_.AddReadWrite(
-                   c.GetSocket().fd(), c, read_cb, write_cb);
+            c.GetSocket().fd(), c, read_cb, write_cb);
     }
 
     //! \}
@@ -117,7 +118,7 @@ public:
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, [&arb](NetConnection & c) { return arb(c); });
+        AddRead(c, [&arb](NetConnection& c) { return arb(c); });
     }
 
     //! callback signature for async write callbacks
@@ -125,7 +126,7 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(NetConnection& c, Buffer && buffer,
+    void AsyncWrite(NetConnection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr)
     {
         assert(c.GetSocket().IsValid());
@@ -140,7 +141,7 @@ public:
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, [&awb](NetConnection & c) { return awb(c); });
+        AddWrite(c, [&awb](NetConnection& c) { return awb(c); });
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
@@ -280,7 +281,7 @@ protected:
     {
     public:
         //! Construct buffered writer with callback
-        AsyncWriteBuffer(Buffer && buffer,
+        AsyncWriteBuffer(Buffer&& buffer,
                          const AsyncWriteCallback& callback)
             : callback_(callback),
               buffer_(std::move(buffer))
@@ -333,6 +334,7 @@ protected:
 };
 
 //! \}
+
 } // namespace net
 } // namespace c7a
 

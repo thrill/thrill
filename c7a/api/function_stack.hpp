@@ -22,16 +22,16 @@
 #include "function_traits.hpp"
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
 /*!
- * Base case for the chaining of lambda functions.
- * The last lambda function receives an input element, no emitter and should have no return type.
- * It should therefore store the input parameter externally.
+ * Base case for the chaining of lambda functions.  The last lambda function
+ * receives an input element, no emitter and should have no return type.  It
+ * should therefore store the input parameter externally.
  *
  * \param lambda Lambda function that represents the chain end.
- *
  */
 template <typename L>
 auto run_emitter(L lambda)
@@ -86,7 +86,7 @@ public:
      *
      * \param stack Tuple of lambda functions.
      */
-    FunctionStack(std::tuple<Types ...> stack)
+    explicit FunctionStack(std::tuple<Types ...> stack)
         : stack_(stack) { }
     virtual ~FunctionStack() { }
 
@@ -142,6 +142,7 @@ private:
         return run_emitter(std::get<Is>(stack_) ...);
     }
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_FUNCTION_STACK_HEADER
