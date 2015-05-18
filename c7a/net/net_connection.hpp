@@ -195,7 +195,6 @@ public:
     ~NetConnection()
     {
         if (IsValid()) {
-            sLOG1 << "Destruction of valid NetConnection" << this;
             Close();
         }
     }
