@@ -55,7 +55,12 @@ public:
     }
 
     //! Indicates if a channel exists with the given id
-    bool HasChannel(int id) {
+    bool HasChannel(size_t id) {
+        return channels_.find(id) != channels_.end();
+    }
+
+    //! Indicates if there is data for a certain channel
+    bool HasDataOn(size_t id) {
         return chains_.Contains(id);
     }
 
@@ -72,7 +77,8 @@ public:
         std::vector<data::BlockEmitter<T> > result;
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
-                auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id));
+                auto closer = std::bind(&ChannelMultiplexer::CloseLoopbackStream, this, id);
+                auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id), closer);
                 result.emplace_back(data::BlockEmitter<T>(target));
             }
             else {
@@ -107,18 +113,13 @@ private:
         dispatcher_.AsyncRead(s, expected_size, callback);
     }
 
-    //! parses the channel id from a header and passes it to an existing
-    //! channel or creates a new channel
-    void ReadFirstHeaderPartFrom(
-        NetConnection& s, const Buffer& buffer) {
-        struct StreamBlockHeader header;
-        header.ParseHeader(buffer.ToString());
+    void CloseLoopbackStream(int id) {
+        GetOrCreateChannel(id)->CloseLoopback();
+    }
 
+    ChannelPtr GetOrCreateChannel(int id) {
         ChannelPtr channel;
-        sLOG << "reading head for channel" << header.channel_id;
-        if (!HasChannel(header.channel_id)) {
-            auto id = header.channel_id;
-
+        if (!HasChannel(id)) {
             //create buffer chain target if it does not exist
             if (!chains_.Contains(id))
                 chains_.Allocate(id);
@@ -131,9 +132,20 @@ private:
             channels_.insert(std::make_pair(id, channel));
         }
         else {
-            channel = channels_[header.channel_id];
+            channel = channels_[id];
         }
+        return channel;
+    }
 
+    //! parses the channel id from a header and passes it to an existing
+    //! channel or creates a new channel
+    void ReadFirstHeaderPartFrom(
+        NetConnection& s, const Buffer& buffer) {
+        struct StreamBlockHeader header;
+        header.ParseHeader(buffer.ToString());
+
+        auto id = header.channel_id;
+        ChannelPtr channel = GetOrCreateChannel(id);
         channel->PickupStream(s, header);
     }
 };

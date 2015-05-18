@@ -63,7 +63,7 @@ public:
     //! \param id ID of the channel - determined by AllocateNetworkChannel()
     template <class T>
     BlockIterator<T> GetRemoteBlocks(ChannelId id) {
-        if (!cmp_.HasChannel(id)) {
+        if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
 
@@ -97,7 +97,7 @@ public:
 
     template <class T>
     std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
-        if (!cmp_.HasChannel(id)) {
+        if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
         return cmp_.OpenChannel<T>(id);

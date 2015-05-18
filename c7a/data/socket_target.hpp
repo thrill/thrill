@@ -26,7 +26,9 @@ public:
           id_(channel_id) { }
 
     virtual void Append(BinaryBuffer buffer) { //virtual does not hurt because not in tight loop
-        sLOG << "socket target appends";
+        if (buffer.size() == 0) {
+            return;
+        }
         SendHeader(buffer.size());
 
         net::Buffer payload_buf = buffer.ToBuffer();
@@ -42,11 +44,10 @@ public:
     }
 
     virtual void Close() {
-        sLOG << "socket target closes";
         SendHeader(0);
     }
 
-private:
+protected:
     static const bool debug = true;
     //need pointers because child class does not initialize them.
     //TODO(ts) do not use raw pointers
@@ -57,22 +58,27 @@ private:
 
 class LoopbackTarget : public EmitterTarget {
 public:
-    LoopbackTarget(std::shared_ptr<BufferChain> chain)
-        : chain_(chain) { }
+    typedef std::function<void ()> StreamCloser;
+
+    LoopbackTarget(std::shared_ptr<BufferChain> chain, StreamCloser closeCallback)
+        : chain_(chain),
+          closeCallback_(closeCallback) { }
 
     virtual void Append(BinaryBuffer buffer) { //virtual does not hurt because not in tight loop
-        sLOG << "loopback appends buffer";
-        chain_->Append(buffer);
+        if (buffer.size() > 0) {
+            chain_->Append(buffer);
+        }
     }
 
     virtual void Close() {
-        sLOG << "loopback closes";
+        closeCallback_();
         //We do not close the chain because the other channels are pushing to it.
         //TODO(ts) special case: if worker is alone and the loopback is the only channel, there is no one closing it.
     }
 
 private:
     std::shared_ptr<BufferChain> chain_;
+    StreamCloser closeCallback_;
     static const bool debug = true;
 };
 } // namespace data
