@@ -282,7 +282,7 @@ public:
     void ReduceToRoot(T& value, BinarySumOp sumOp = BinarySumOp());
 
     template <typename T>
-    void Broadcast(T value);
+    void Broadcast(T& value);
 
     //! \}
 
@@ -296,36 +296,6 @@ private:
     //! Socket on which to listen for incoming connections.
     NetConnection listener_;
 };
-
-template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
-{
-    // For each dimension of the hypercube, exchange data between workers with
-    // different bits at position d
-
-    for (size_t d = 1; d < Size(); d <<= 1)
-    {
-        // Send value to worker with id = id XOR d
-        if ((MyRank() ^ d) < Size()) {
-            Connection(MyRank() ^ d).Send(value);
-            sLOG << "ALL_REDUCE: Worker" << MyRank() << ": Sending" << value
-                 << "to worker" << (MyRank() ^ d);
-        }
-
-        // Receive value from worker with id = id XOR d
-        T recv_data;
-        if ((MyRank() ^ d) < Size()) {
-            Connection(MyRank() ^ d).Receive(&recv_data);
-            value = sum_op(value, recv_data);
-            sLOG << "ALL_REDUCE: Worker" << MyRank() << ": Received" << recv_data
-                 << "from worker" << (MyRank() ^ d)
-                 << "value =" << value;
-        }
-    }
-
-    sLOG << "ALL_REDUCE: Worker" << MyRank()
-         << ": value after all reduce =" << value;
-}
 
 template <typename T, typename BinarySumOp>
 void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
@@ -382,19 +352,26 @@ void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
 
 //! Binomial-broadcasts the value of the worker with index 0 to all the others
 template <typename T>
-void NetGroup::Broadcast(T value)
+void NetGroup::Broadcast(T& value)
 {   
-    sLOG << "I'm in NetGroup::Broadcast:369";
     if (MyRank() > 0) {
         ClientId from;
         ReceiveFromAny(&from, &value);
     }
-    for (size_t d = 1, i = 0; ((MyRank() >> i) & 1) == 0; d <<= 1, ++i) {
+    for (size_t d = 1, i = 0; ((MyRank() >> i) & 1) == 0 && d < Size(); d <<= 1, ++i) {
         if (MyRank() + d < Size()) {
             Connection(MyRank() + d).Send(value);
         }
     }
-    sLOG << "Worker" << MyRank() << ":" << value;
+}
+
+//! Perform an All-Reduce on the workers by aggregating all values and sending
+//! them backto all workers
+template <typename T, typename BinarySumOp>
+void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
+{
+    ReduceToRoot(value, sum_op);
+    Broadcast(value);
 }
 
 //! \}
