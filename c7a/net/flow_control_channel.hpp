@@ -31,7 +31,7 @@ protected:
 
 public:
     explicit FlowControlChannel(NetDispatcher* dispatcher) : dispatcher(dispatcher) { }
-    void SendTo(std::string message, unsigned int destination);     //TODO call-by-value is only tmp here and two lines below
+    void SendTo(std::string message, unsigned int destination);     //TODO(ej): call-by-value is only tmp here and two lines below
     std::string ReceiveFrom(unsigned int source);
     std::string ReceiveFromAny(unsigned int* source = NULL);
 };
@@ -94,7 +94,7 @@ public:
      *
      * @param value The value to send to the master.
      */
-    void SendToMaster(std::string message);     //TODO use ref again
+    void SendToMaster(std::string message);     //TODO(ej) use ref again
 
     /**
      * @brief Receives a single value from the master.

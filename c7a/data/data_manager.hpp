@@ -91,7 +91,7 @@ public:
     //! \return An InputLineIterator for a given file stream
     InputLineIterator GetInputLineIterator(std::ifstream& file)
     {
-        //TODO: get those from networks
+        //TODO(ts): get those from networks
         size_t my_id = 0;
         size_t num_work = 1;
 

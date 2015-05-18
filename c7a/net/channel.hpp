@@ -135,8 +135,8 @@ private:
     //! Size of element is known
     inline void ExpectData(Stream* stream)
     {
-        //TODO we might want to read multiple items in a batch and cut them
-        //into single pieces later...
+        // TODO(ts) we might want to read multiple items in a batch and cut them
+        // into single pieces later...
         auto exp_size = stream->header.boundaries[stream->elements_read++];
         auto callback = std::bind(&Channel::ConsumeData, this, std::placeholders::_1, std::placeholders::_2, stream);
         sLOG << "expect data with" << exp_size

@@ -306,7 +306,7 @@ TEST(PreTable, Resize) {
 
     table.Insert(std::make_pair("bonjour", 3));
 
-    //ASSERT_EQ(20, table.NumBuckets()); // TODO: fix
+    //ASSERT_EQ(20, table.NumBuckets()); // TODO(ms): fix
 }
 
 TEST(PostTable, ComplexType) {

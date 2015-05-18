@@ -161,11 +161,11 @@ public:
 
         if (current_bucket_block == NULL)
         {
-            current_bucket_block = vector_[h.global_index] = new bucket_block(*this);         // TODO: ensure new struct gets deleted
+            current_bucket_block = vector_[h.global_index] = new bucket_block(*this);         // TODO(ms): ensure new struct gets deleted
         }
         else if (current_bucket_block->items.size() == bucket_block_size_)
         {
-            current_bucket_block = current_bucket_block->next = new bucket_block(*this);      // TODO: ensure new struct gets deleted
+            current_bucket_block = current_bucket_block->next = new bucket_block(*this);      // TODO(ms): ensure new struct gets deleted
         }
 
         // insert new item in current bucket block
@@ -387,7 +387,7 @@ public:
                             log += "(";
                             log += bucket_item.first;
                             log += ", ";
-                            //log += bucket_item.second; // TODO: How to convert value_t to a string?
+                            //log += bucket_item.second; // TODO(ms): How to convert value_t to a string?
                             log += ") ";
                         }
                     }
