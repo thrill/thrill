@@ -20,11 +20,6 @@
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
-#ifdef __MACH__
-#include <mach/clock.h>
-#include <mach/mach.h>
-#endif
-
 
 #include <string>
 #include <deque>
