@@ -13,13 +13,17 @@
 #ifndef C7A_API_REDUCE_NODE_HEADER
 #define C7A_API_REDUCE_NODE_HEADER
 
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
+#include <c7a/core/reduce_pre_table.hpp>
+#include <c7a/core/reduce_post_table.hpp>
+
 #include <unordered_map>
 #include <functional>
-#include "dop_node.hpp"
-#include <c7a/api/context.hpp>
-#include "function_stack.hpp"
-#include "../common/logger.hpp"
-#include "../core/hash_table.hpp"
+#include <string>
+#include <vector>
 
 namespace c7a {
 
@@ -139,28 +143,34 @@ private:
     //! afterwards send data to another worker given by the shuffle algorithm.
     void PreOp(reduce_arg_t input)
     {
-        LOG << "PreOp: " << input;
         elements_.push_back(input);
     }
 
     //!Recieve elements from other workers.
     auto MainOp() {
-        data::BlockEmitter<Output> emit =
-            context_.get_data_manager().template GetLocalEmitter<Output>(data_id_);
+        using ReduceTable
+                  = core::ReducePostTable<KeyExtractor,
+                                          ReduceFunction,
+                                          std::function<void(reduce_arg_t)> >;
 
-        reduce_arg_t reduced = reduce_arg_t();
+        std::function<void(Output)> print = [](Output elem) {
+                                                LOG << elem.first << " " << elem.second;
+                                            };
+
+        auto table = ReduceTable(key_extractor_,
+                                 reduce_function_,
+                                 { print });
+
         for (const reduce_arg_t& elem : elements_) {
-            reduced += elem;
+            table.Insert(elem);
         }
 
-        LOG << "MainOp: " << reduced;
-        emit(reduced);
+        table.Flush();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     void PostOp(Output input, std::function<void(Output)> emit_func)
     {
-        LOG << "PostOp: " << input;
         emit_func(input);
     }
 };

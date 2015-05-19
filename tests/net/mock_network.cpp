@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/mock-network.cpp
+ * tests/net/mock_network.cpp
  *
  * Part of Project c7a.
  *
@@ -7,10 +7,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
-#include "c7a/net/mock_network.hpp"
+#include <c7a/net/mock_network.hpp>
+#include <gtest/gtest.h>
 
-//using namespace c7a;
+#include <string>
 
 TEST(TestMockNetwork, TestMockNetwork)
 {

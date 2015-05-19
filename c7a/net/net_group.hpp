@@ -82,13 +82,15 @@ public:
         return connections_[id];
     }       //! Return NetConnection to client id.
 
-    void SetConnection(ClientId id, NetConnection& connection)
+    NetConnection & SetConnection(ClientId id, NetConnection& connection)
     {
         if (id >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
                             "invalid client id " + std::to_string(id));
 
         std::swap(connections_[id], connection);
+
+        return connections_[id];
     }
 
     //! Return number of connections in this group.

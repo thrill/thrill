@@ -27,12 +27,11 @@ namespace c7a {
 //! \{
 
 /*!
- * Base case for the chaining of lambda functions.
- * The last lambda function receives an input element, no emitter and should have no return type.
- * It should therefore store the input parameter externally.
+ * Base case for the chaining of lambda functions.  The last lambda function
+ * receives an input element, no emitter and should have no return type.  It
+ * should therefore store the input parameter externally.
  *
  * \param lambda Lambda function that represents the chain end.
- *
  */
 template <typename L>
 auto run_emitter(L lambda)
@@ -64,6 +63,32 @@ auto run_emitter(L lambda, Ls ... rest)
     };
 }
 
+// Compile-time integer sequences, an implementation of std::index_sequence and
+// std::make_index_sequence, as these are not available in many current
+// libraries.
+template <size_t ... Indexes>
+struct index_sequence {
+    static size_t size() { return sizeof ... (Indexes); }
+};
+
+template <size_t CurrentIndex, size_t ... Indexes>
+struct make_index_sequence_helper;
+
+template <size_t ... Indexes>
+struct make_index_sequence_helper<0, Indexes ...>{
+    typedef index_sequence<Indexes ...> type;
+};
+
+template <size_t CurrentIndex, size_t ... Indexes>
+struct make_index_sequence_helper {
+    typedef typename make_index_sequence_helper<
+            CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type type;
+};
+
+template <size_t Length>
+struct make_index_sequence : public make_index_sequence_helper<Length>::type
+{ };
+
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single lambda functions.
  * The FunctionStack basically consists of a tuple that contains lambda functions of varying types.
@@ -87,7 +112,7 @@ public:
      *
      * \param stack Tuple of lambda functions.
      */
-    FunctionStack(std::tuple<Types ...> stack)
+    explicit FunctionStack(std::tuple<Types ...> stack)
         : stack_(stack) { }
     virtual ~FunctionStack() { }
 
@@ -123,7 +148,7 @@ public:
 
         const size_t Size = std::tuple_size<StackType>::value;
 
-        return emit_sequence(std::make_index_sequence<Size>{ });
+        return emit_sequence(make_index_sequence<Size>{ });
     }
 
 private:
@@ -135,15 +160,10 @@ private:
      * This is needed to send all lambda functions as parameters to the
      * function that folds them together.
      *
-     *
-     * \tparam Is Template list of size_t's from 0 to tuple_size - 1.
-     *
-     * \param std::index_sequence<Is ...>  List of integer values from 0 to tuple_size - 1.
-     *
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
-    auto emit_sequence(std::index_sequence<Is ...>)
+    auto emit_sequence(index_sequence<Is ...>)
     {
         return run_emitter(std::get<Is>(stack_) ...);
     }

@@ -13,7 +13,9 @@
 #ifndef C7A_API_TYPES_HEADER
 #define C7A_API_TYPES_HEADER
 
-#include "dia_base.hpp"
+#include <c7a/api/dia_base.hpp>
+
+#include <vector>
 
 namespace c7a {
 

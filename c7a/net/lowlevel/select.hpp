@@ -15,6 +15,7 @@
 #define C7A_NET_LOWLEVEL_SELECT_HEADER
 
 #include <sys/select.h>
+#include <limits>
 
 #include <algorithm>
 
@@ -105,7 +106,7 @@ public:
     //! Do a select() with timeout
     int select_timeout(double timeout)
     {
-        if (timeout == INFINITY)
+        if (timeout == std::numeric_limits<double>::infinity())
             return select(NULL);
         else {
             struct timeval tv;

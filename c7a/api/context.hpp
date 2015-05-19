@@ -27,11 +27,17 @@ public:
     data::DataManager & get_data_manager() {
         return data_manager_;
     }
+    int number_worker()
+    {
+        return number_worker_;
+    }
 
 private:
     net::NetDispatcher net_dispatcher_;
     net::ChannelMultiplexer cmp_;
     data::DataManager data_manager_;
+    //stub
+    int number_worker_ = 1;
 };
 } // namespace c7a
 

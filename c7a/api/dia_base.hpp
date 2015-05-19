@@ -21,6 +21,22 @@
 
 namespace c7a {
 
+/*!
+ * Possible states a DIABase can be in.
+ */
+enum kState {
+    //! The DIABase has not been computed yet.
+    NEW,
+    //! The DIABase has been calculated but not explicitly cached.  Data might
+    //! be available or has to be recalculated when needed
+    CALCULATED,
+    //! The DIABase is cached and it's data can be accessed
+    CACHED,
+    //! The DIABase is disposed by the user, needs to be recomputed when
+    //! accessed.
+    DISPOSED
+};
+
 //! \addtogroup api Interface
 //! \{
 
@@ -57,13 +73,13 @@ public:
         data_id_ = context_.get_data_manager().AllocateDIA();
     }
 
-    //!Virtual destructor for a DIABase.
+    //! Virtual destructor for a DIABase.
     virtual ~DIABase() { }
 
-    //!Virtual execution method. Triggers actual computation in sub-classes.
+    //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void execute() = 0;
 
-    //!Virtual ToString method. Returns the type of node in sub-classes.
+    //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
     //! Returns the childs of this DIABase.
@@ -82,7 +98,7 @@ public:
 
     //! Returns the DataManager of this DIABase.
     //! \return The DataManager of this DIABase.
-    Context & get_data_manager()
+    Context & get_context()
     {
         return context_;
     }
@@ -101,7 +117,37 @@ public:
         return data_id_;
     }
 
+    kState state()
+    {
+        return state_;
+    }
+
+    kState set_state(kState state)
+    {
+        return state_ = state;
+    }
+
 protected:
+    //! State of the DIANode. State is NEW on creation.
+    kState state_ = NEW;
+
+    //!Returns the state of this DIANode as a string. Used by ToString.
+    std::string state_string_()
+    {
+        switch (state_) {
+        case NEW:
+            return "NEW";
+        case CALCULATED:
+            return "CALCULATED";
+        case CACHED:
+            return "CACHED";
+        case DISPOSED:
+            return "DISPOSED";
+        default:
+            return "UNDEFINED";
+        }
+    }
+
     //! DataManager, which can give iterators to data.
     Context& context_;
     //! Unique ID of this DIABase. Used by the DataManager.

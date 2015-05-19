@@ -24,7 +24,7 @@ class BlockIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    BlockIterator(const BufferChain& buffers)
+    explicit BlockIterator(const BufferChain& buffers)
         : buffer_chain_(buffers),
           current_(buffers.head),
           current_reader_(nullptr, 0),

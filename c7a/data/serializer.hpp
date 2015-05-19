@@ -12,9 +12,10 @@
 #define C7A_DATA_SERIALIZER_HEADER
 
 #include <string>
-#include <cstring> //string copy
+#include <cstring>
+#include <utility>
 
-//TODO this copies data. That is bad and makes me sad.
+//TODO(ts) this copies data. That is bad and makes me sad.
 
 namespace c7a {
 namespace data {

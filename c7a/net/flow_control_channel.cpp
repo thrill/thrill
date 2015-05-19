@@ -9,6 +9,8 @@
 
 #include "flow_control_channel.hpp"
 #include <cassert>
+#include <string>
+#include <vector>
 
 namespace c7a {
 
@@ -18,9 +20,9 @@ namespace c7a {
 
 void FlowControlChannel::SendTo(std::string message, unsigned int destination)
 {
-    //TODO Emi Error handling
+    //TODO(ej) Emi Error handling
     //Need to notify controller about failure when smth happens here.
-    assert(dispatcher->Send(destination, (void*)message.c_str(), message.length()) == NET_SERVER_SUCCESS);
+    assert(dispatcher->Send(destination, message) == NET_SERVER_SUCCESS);
 }
 
 std::string FlowControlChannel::ReceiveFrom(unsigned int source)

@@ -11,6 +11,10 @@
 #ifndef C7A_DATA_DATA_MANAGER_HEADER
 #define C7A_DATA_DATA_MANAGER_HEADER
 
+#include <c7a/data/block_iterator.hpp>
+#include <c7a/common/logger.hpp>
+#include <c7a/data/input_line_iterator.hpp>
+
 #include <map>
 #include <functional>
 #include <string>
@@ -108,8 +112,9 @@ public:
     //! \param file Input file stream
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file) {
-        //TODO: get those from networks
+    InputLineIterator GetInputLineIterator(std::ifstream& file)
+    {
+        //TODO(ts): get those from networks
         size_t my_id = 0;
         size_t num_work = 1;
 

@@ -30,8 +30,8 @@ protected:
     NetDispatcher* dispatcher;
 
 public:
-    FlowControlChannel(NetDispatcher* dispatcher) : dispatcher(dispatcher) { }
-    void SendTo(std::string message, unsigned int destination);     //TODO call-by-value is only tmp here and two lines below
+    explicit FlowControlChannel(NetDispatcher* dispatcher) : dispatcher(dispatcher) { }
+    void SendTo(std::string message, unsigned int destination);     //TODO(ej): call-by-value is only tmp here and two lines below
     std::string ReceiveFrom(unsigned int source);
     std::string ReceiveFromAny(unsigned int* source = NULL);
 };
@@ -46,7 +46,7 @@ public:
 class MasterFlowControlChannel : public FlowControlChannel
 {
 public:
-    MasterFlowControlChannel(NetDispatcher* dispatcher)
+    explicit MasterFlowControlChannel(NetDispatcher* dispatcher)
         : FlowControlChannel(dispatcher) { }
 
     /**
@@ -85,7 +85,8 @@ public:
 class WorkerFlowControlChannel : public FlowControlChannel
 {
 public:
-    WorkerFlowControlChannel(NetDispatcher* dispatcher) : FlowControlChannel(dispatcher) { }
+    explicit WorkerFlowControlChannel(NetDispatcher* dispatcher)
+        : FlowControlChannel(dispatcher) { }
 
     /**
      * @brief Sends a single value to the master.
@@ -93,7 +94,7 @@ public:
      *
      * @param value The value to send to the master.
      */
-    void SendToMaster(std::string message);     //TODO use ref again
+    void SendToMaster(std::string message);     //TODO(ej) use ref again
 
     /**
      * @brief Receives a single value from the master.
