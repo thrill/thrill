@@ -37,6 +37,11 @@ if(JENKINS_BUILD)
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
   # enable UndefinedBehaviorSanitizer
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+
+  # build using libc++ with clang in Jenkins
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+  endif()
 endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
