@@ -107,7 +107,7 @@ static void RealNetGroupConstructAndCall(
 
     // randomize base port number for test
     std::default_random_engine generator;
-    std::uniform_int_distribution<int> distribution(30000,65000);
+    std::uniform_int_distribution<int> distribution(30000, 65000);
     const size_t port_base = distribution(generator);
 
     static const std::vector<NetEndpoint> endpoints = {
