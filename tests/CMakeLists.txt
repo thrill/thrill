@@ -35,6 +35,7 @@ build_test(data/test_block_iterator)
 #build_test(data/test_dia_allocate)
 build_test(data/test_serializer)
 build_test(common/test_delegate)
+build_test(common/test_stats_counter)
 build_test(net/mock_network)
 #build_test(core/test_stage_builder)
 build_only(core/bench_hash_table) #takes multiple seconds to complete
