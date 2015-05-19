@@ -20,7 +20,7 @@ TEST(StatsCounter, Test1) {
     ++counter;
     counter += 40;
 
-    ASSERT_EQ(counter.active(), true);
+    ASSERT_EQ(counter.Real(), true);
     ASSERT_EQ(counter, 42);
 
     StatsCounter<long, true> counter2 = counter;
@@ -35,7 +35,7 @@ TEST(StatsCounter, Test2) {
     ++counter;
     counter += 40;
 
-    ASSERT_EQ(counter.active(), false);
+    ASSERT_EQ(counter.Real(), false);
     ASSERT_EQ(counter, 0);
 
     StatsCounter<long, false> counter2 = counter;
