@@ -17,107 +17,101 @@
 using namespace c7a::data;
 using namespace c7a::net;
 using namespace c7a::net::lowlevel;
+using namespace std::literals;
 
 struct WorkerMock {
-    WorkerMock()
-        : dispatcher(),
-          cmp(dispatcher),
+    WorkerMock(NetDispatcher& dispatcher)
+        : cmp(dispatcher),
           manager(cmp) { }
 
     void               Connect(std::shared_ptr<NetGroup> con) {
         cmp.Connect(con);
     }
 
-    void               Run() {
-        run = true;
-        while (run) {
-            dispatcher.Dispatch();
-        }
-    }
-
-    static const bool  debug = true;
-    NetDispatcher      dispatcher;
     ChannelMultiplexer cmp;
     DataManager        manager;
     bool               run;
 };
 
 struct DataManagerChannelFixture : public::testing::Test {
-    static const bool debug = true;
-    DataManagerChannelFixture() {
+    DataManagerChannelFixture()
+        : dispatcher(),
+          worker0(dispatcher),
+          worker1(dispatcher),
+          worker2(dispatcher) {
+        auto con0_1 = Socket::CreatePair();
+        auto con0_2 = Socket::CreatePair();
         auto con1_2 = Socket::CreatePair();
-        auto con1_3 = Socket::CreatePair();
-        auto con2_3 = Socket::CreatePair();
-        auto group1 = std::make_shared<NetGroup>(0, 3);
-        auto group2 = std::make_shared<NetGroup>(1, 3);
-        auto group3 = std::make_shared<NetGroup>(2, 3);
+        auto group0 = std::make_shared<NetGroup>(0, 3);
+        auto group1 = std::make_shared<NetGroup>(1, 3);
+        auto group2 = std::make_shared<NetGroup>(2, 3);
+        auto net0_1 = NetConnection(std::get<0>(con0_1));
+        auto net1_0 = NetConnection(std::get<1>(con0_1));
         auto net1_2 = NetConnection(std::get<0>(con1_2));
         auto net2_1 = NetConnection(std::get<1>(con1_2));
-        auto net2_3 = NetConnection(std::get<0>(con2_3));
-        auto net3_2 = NetConnection(std::get<1>(con2_3));
-        auto net1_3 = NetConnection(std::get<0>(con1_3));
-        auto net3_1 = NetConnection(std::get<1>(con1_3));
-        group1->SetConnection(1, net1_2);
-        group1->SetConnection(2, net1_3);
-        group2->SetConnection(0, net2_1);
-        group2->SetConnection(2, net2_3);
-        group3->SetConnection(0, net3_1);
-        group3->SetConnection(1, net3_2);
+        auto net0_2 = NetConnection(std::get<0>(con0_2));
+        auto net2_0 = NetConnection(std::get<1>(con0_2));
+        group0->SetConnection(1, net0_1);
+        group0->SetConnection(2, net0_2);
+        group1->SetConnection(0, net1_0);
+        group1->SetConnection(2, net1_2);
+        group2->SetConnection(0, net2_0);
+        group2->SetConnection(1, net2_1);
 
+        worker0.Connect(group0);
         worker1.Connect(group1);
         worker2.Connect(group2);
-        worker3.Connect(group3);
     }
 
-    void RunAll() {
-        master = std::thread([&] {
-                                 t1 = std::thread(&WorkerMock::Run, &worker1);
-                                 t2 = std::thread(&WorkerMock::Run, &worker2);
-                                 t3 = std::thread(&WorkerMock::Run, &worker3);
-                                 t1.join();
-                                 t2.join();
-                                 t3.join();
+    void RunDispatcherLoop() {
+        master = std::thread([&]() {
+                                 sLOG << "Spinning up that dispatcher biest!";
+                                 dispatcher.Dispatch();
+                                 sLOG << "Something is wrong! Dispatcher returned";
                              });
+        //required because DetachAll, must happen *after* threads ran
+        std::this_thread::sleep_for(50000ms);
     }
 
     ~DataManagerChannelFixture() {
-        DetachAll();
-    }
-
-    void DetachAll() {
-        t1.detach();
-        t2.detach();
-        t3.detach();
         master.detach();
     }
 
-    std::thread master;
-    std::thread t1;
-    std::thread t2;
-    std::thread t3;
-    WorkerMock  worker1;
-    WorkerMock  worker2;
-    WorkerMock  worker3;
+    static const bool debug = true;
+    NetDispatcher     dispatcher;
+    std::thread       master;
+    WorkerMock        worker0;
+    WorkerMock        worker1;
+    WorkerMock        worker2;
 };
 
-TEST_F(DataManagerChannelFixture, EmptyChannels_HasChannelIsTrue) {
+TEST_F(DataManagerChannelFixture, EmptyChannelsWithOutAlloc_GetRemoteBlocksDoesNotThrow) {
+    auto channel_id = worker0.manager.AllocateNetworkChannel();
+    auto emitters = worker0.manager.GetNetworkEmitters<int>(channel_id);
+    emitters[1].Close();
+
+    RunDispatcherLoop();
+
+    //Worker 1 closed channel 0 on worker 2
+    //Worker2 never allocated the channel id
+    worker1.manager.GetRemoteBlocks<int>(channel_id);
+}
+
+TEST_F(DataManagerChannelFixture, DISABLED_GetNetworkBlocks_IsClosed) {
+    auto channel_id0 = worker0.manager.AllocateNetworkChannel();
     auto channel_id1 = worker1.manager.AllocateNetworkChannel();
     auto channel_id2 = worker2.manager.AllocateNetworkChannel();
-    auto channel_id3 = worker3.manager.AllocateNetworkChannel();
-    auto emitters1 = worker1.manager.GetNetworkEmitters<int>(channel_id1);
-    auto emitters2 = worker2.manager.GetNetworkEmitters<int>(channel_id2);
-    auto emitters3 = worker3.manager.GetNetworkEmitters<int>(channel_id3);
-    for (auto& emitter : emitters1)
-        emitter.Close();
-    for (auto& emitter : emitters2)
-        emitter.Close();
-    for (auto& emitter : emitters3)
-        emitter.Close();
+    auto emitters1 = worker0.manager.GetNetworkEmitters<int>(channel_id0);
+    auto emitters2 = worker1.manager.GetNetworkEmitters<int>(channel_id1);
+    auto emitters3 = worker2.manager.GetNetworkEmitters<int>(channel_id2);
 
-    RunAll();
-    using namespace std::literals;
-    std::this_thread::sleep_for(1s); //required because JoinAll ,ust happen after threads actually started
-    auto it = worker2.manager.GetRemoteBlocks<int>(channel_id2);
+    //close incoming stream on worker 0
+    emitters1[0].Close();
+    emitters2[0].Close();
+    emitters3[0].Close();
+
+    RunDispatcherLoop();
+    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id1);
     ASSERT_TRUE(it.IsClosed());
 }
 
