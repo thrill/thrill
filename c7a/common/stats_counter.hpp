@@ -17,8 +17,6 @@
 #ifndef C7A_COMMON_STATS_COUNTER_HEADER
 #define C7A_COMMON_STATS_COUNTER_HEADER
 
-#include <string>
-#include <utility>
 #include <algorithm>
 
 namespace c7a {
@@ -29,8 +27,6 @@ namespace common {
  * using a boolean template switch.  It's basically a wrapper for an counter
  * type, like unsigned long long value. If further operators are needed, they
  * should be added.
- *
- * \see dummy_custom_stats_counter
  */
 template <typename _ValueType, bool Active>
 class StatsCounter
@@ -49,12 +45,12 @@ protected:
 
 public:
     //! The constructor. Initializes the counter to 0.
-    StatsCounter(const ValueType& initial = ValueType())
+    StatsCounter(const ValueType& initial = ValueType()) // NOLINT
         : value_(initial)
     { }
 
     //! Whether the counter is active
-    bool active() const { return true; }
+    bool Real() const { return true; }
 
     //! Increases the counter by right.
     StatsCounter& operator += (const ValueType& right)
@@ -71,7 +67,7 @@ public:
     }
 
     //! Increases the counter by 1 (postfix).
-    StatsCounter operator ++ (int)
+    StatsCounter operator ++ (int) // NOLINT
     {
         StatsCounter copy = *this;
         ++value_;
@@ -104,11 +100,11 @@ public:
     typedef _ValueType ValueType;
 
 public:
-    StatsCounter(const ValueType& = ValueType())
+    StatsCounter(const ValueType& = ValueType()) // NOLINT
     { }
 
     //! Whether the counter is active
-    bool active() const { return false; }
+    bool Real() const { return false; }
 
     StatsCounter& operator += (const ValueType&)
     { return *this; }
@@ -116,7 +112,7 @@ public:
     StatsCounter& operator ++ ()
     { return *this; }
 
-    StatsCounter& operator ++ (int)
+    StatsCounter& operator ++ (int) // NOLINT
     { return *this; }
 
     void set_max(const ValueType&)
