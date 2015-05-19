@@ -13,9 +13,10 @@
 #ifndef C7A_API_READ_NODE_HEADER
 #define C7A_API_READ_NODE_HEADER
 
-#include "../common/logger.hpp"
-#include "dop_node.hpp"
-#include "function_stack.hpp"
+#include <c7a/common/logger.hpp>
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
 #include <fstream>
 
@@ -39,7 +40,6 @@ public:
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
     * \param ctx Reference to Context, which holds references to data and network.
-    * \param parents Vector of parents. Is empty, as read has no previous operations
     * \param read_function Read function, which defines how each line of the file is read and emitted
     * \param path_in Path of the input file
     */
@@ -53,8 +53,8 @@ public:
 
     virtual ~ReadNode() { }
 
-    //!Executes the read operation. Reads a file line by line and emits it to the DataManager after
-    //!applying the read function on it.
+    //! Executes the read operation. Reads a file line by line and emits it to
+    //! the DataManager after applying the read function on it.
     void execute()
     {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {

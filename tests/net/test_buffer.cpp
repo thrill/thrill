@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test-buffer.cpp
+ * tests/net/test_buffer.cpp
  *
  * Part of Project c7a.
  *
@@ -10,6 +10,8 @@
 
 #include <c7a/net/buffer.hpp>
 #include <gtest/gtest.h>
+
+#include <algorithm>
 
 using c7a::net::Buffer;
 

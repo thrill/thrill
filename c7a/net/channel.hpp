@@ -16,12 +16,15 @@
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
 
+#include <vector>
+#include <string>
+
 namespace c7a {
 namespace net {
 //! \ingroup net
 //! \{
 
-//! A Chanel is a collection of \ref Stream instances and bundles them to a
+//! A Channel is a collection of \ref Stream instances and bundles them to a
 //! logical communication channel.
 //!
 //! There exists only one stream per socket at a time.

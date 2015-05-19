@@ -7,12 +7,15 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
+#include <c7a/api/dia_base.hpp>
+#include <c7a/core/stage_builder.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/context.hpp>
 #include <tests/c7a_tests.hpp>
-#include "c7a/api/dia_base.hpp"
-#include "c7a/core/stage_builder.hpp"
-#include "c7a/api/dia.hpp"
-#include "c7a/api/context.hpp"
+
+#include <string>
+
+#include "gtest/gtest.h"
 
 using namespace c7a::core;
 
@@ -26,8 +29,12 @@ TEST(Stage, GetStagesFromBuilder) {
                                           return std::stod(line);
                                       });
 
-    auto key = [](double in) { return (int)in; };
-    auto red_fn = [](double in1, double in2) { return in1 + in2; };
+    auto key = [](double in) {
+                   return static_cast<int>(in);
+               };
+    auto red_fn = [](double in1, double in2) {
+                      return in1 + in2;
+                  };
     auto map_fn = [](double input) {
                       std::cout << "Map" << std::endl;
                       return input;
@@ -48,12 +55,7 @@ TEST(Stage, GetStagesFromBuilder) {
 
     //SIMULATE
 
-    std::vector<Stage> result;
-    FindStages(red_duplicates2.get_node(), result);
-    for (auto s : result)
-    {
-        s.Run();
-    }
+    RunScope(red_duplicates2.get_node());
 }
 
 /******************************************************************************/

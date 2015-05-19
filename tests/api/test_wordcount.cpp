@@ -7,38 +7,55 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
-#include <tests/c7a-tests.hpp>
-#include "c7a/api/dia_base.hpp"
-#include "c7a/engine/stage_builder.hpp"
-#include "c7a/api/dia.hpp"
-#include "c7a/api/context.hpp"
+#include <c7a/api/dia_base.hpp>
+#include <c7a/core/stage_builder.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/context.hpp>
+#include <tests/c7a_tests.hpp>
 
-using namespace c7a::engine;
+#include <vector>
+#include <string>
+#include <utility>
+
+#include "gtest/gtest.h"
+
+using namespace c7a::core;
 
 TEST(WordCount, PreOP) {
-    using c7a::DIA;
     using c7a::Context;
-
-    Context ctx;
-    auto doubles = ReadFromFileSystem(
-        ctx, g_workpath + "/inputs/wordcount.in",
-        [](const std::string& line) {
-            return std::make_pair(line, 1);
-        });
-
     using WordPair = std::pair<std::string, int>;
 
-    auto key = [](WordPair in) { return in.first; };
-    auto red_fn =
-        [](WordPair in1, WordPair in2) {
-            return std::make_pair(in1.first, in1.second + in2.second);
-        };
+    Context ctx;
 
-    auto rem_duplicates = doubles.ReduceBy(key).With(red_fn);
+    auto line_to_words = [](std::string line, std::function<void(WordPair)> emit) {
+                             std::string word;
+                             std::istringstream iss(line);
+                             while (iss >> word) {
+                                 WordPair wp = std::make_pair(word, 1);
+                                 emit(wp);
+                             }
+                         };
+    auto key = [](WordPair in) {
+                   return in.first;
+               };
+    auto red_fn = [](WordPair in1, WordPair in2) {
+                      WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
+                      return wp;
+                  };
+
+    auto lines = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/wordcount.in",
+        [](const std::string& line) {
+            return line;
+        });
+
+    auto word_pairs = lines.FlatMap(line_to_words);
+
+    auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
     std::vector<Stage> result;
-    FindStages(rem_duplicates.get_node(), result);
+    FindStages(red_words.get_node(), result);
     for (auto s : result)
     {
         s.Run();

@@ -24,6 +24,8 @@ endif()
 
 option(JENKINS_BUILD "Build all with more warnings" OFF)
 
+option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
+
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
 
@@ -35,6 +37,11 @@ if(JENKINS_BUILD)
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
   # enable UndefinedBehaviorSanitizer
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+
+  # build using libc++ with clang in Jenkins
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+  endif()
 endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
@@ -42,6 +49,61 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
   # Clang does not support debug output for auto return types yet
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g0")
 endif()
+
+###############################################################################
+# enable gcov coverage analysis with gcc
+
+if(USE_GCOV)
+  # find programs
+  find_program(GENHTML genhtml)
+  find_program(LCOV lcov)
+
+  if(NOT LCOV OR NOT GENHTML)
+    message(SEND_ERROR "Coverage analysis requires lcov and genhtml programs.")
+  endif()
+
+  # add coverage anaylsis compile and link flags
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lgcov")
+
+  # add cached variable containing parameters for lcov/genhtml
+  set(LCOV_FLAGS "" CACHE STRING "parameters for lcov")
+  set(GENHTML_FLAGS --legend --no-branch-coverage
+    CACHE STRING "parameters for genhtml")
+
+  # custom target to run before tests
+  add_custom_target(lcov-reset
+    COMMAND ${LCOV} -q --directory ${CMAKE_BINARY_DIR} --zerocounters
+    COMMENT "Resetting code coverage counters")
+
+  # custom lcov target to run tests
+  add_custom_target(lcov-runtests
+    COMMAND ${CMAKE_CTEST_COMMAND} \${ARGS} || true
+    DEPENDS lcov-reset
+    COMMENT "Running all unit tests")
+
+  # get git version description
+  execute_process(COMMAND git describe --tags
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    OUTPUT_VARIABLE GITDESC
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  # command sequence to gather, clean and generate HTML coverage report
+  add_custom_target(lcov-html
+    COMMAND ${LCOV} -q --directory . --capture --output-file lcov.info
+    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' ${LCOV_FLAGS} --output-file lcov-clean.info
+    COMMAND ${GENHTML} -q -o coverage --title "c7a ${GITDESC}" --prefix ${PROJECT_SOURCE_DIR} ${GENHTML_FLAGS} lcov-clean.info
+    DEPENDS lcov-runtests
+    COMMENT "Capturing code coverage counters and create HTML coverage report"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # top-level target to run tests and generate coverage report
+  add_custom_target(test-coverage
+    COMMENT "Generate HTML coverage report "
+    DEPENDS lcov-html)
+
+endif(USE_GCOV)
 
 ################################################################################
 ### Find Required Libraries
