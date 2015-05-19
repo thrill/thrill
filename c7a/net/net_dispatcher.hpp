@@ -152,7 +152,7 @@ public:
     //! \{
 
     //! dispatch one or more events
-    void Dispatch(bool quit_when_empty = false) {
+    void Dispatch() {
         // process timer events that lie in the past
         double now = GetClock();
 
@@ -169,7 +169,6 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            if (quit_when_empty) return;
             dispatcher_.Dispatch(INFINITY);
         }
         else {
