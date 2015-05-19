@@ -13,12 +13,15 @@
 #ifndef C7A_API_ZIP_NODE_HEADER
 #define C7A_API_ZIP_NODE_HEADER
 
+#include <c7a/api/dop_node.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
+
 #include <unordered_map>
 #include <functional>
-#include "dop_node.hpp"
-#include "context.hpp"
-#include "function_stack.hpp"
-#include "../common/logger.hpp"
+#include <string>
+#include <vector>
 
 namespace c7a {
 
@@ -49,7 +52,8 @@ public:
      * Constructor for a ZipNode.
      *
      * \param ctx Reference to the Context, which gives iterators for data
-     * \param parents Vector of parents. Has size 2, as Zip has two parents
+     * \param parent1 First parent of the ZipNode
+     * \param parent2 Second parent of the ZipNode
      * \param stack1 Function stack with all lambdas between the parent and this node for first DIA
      * \param stack2 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
@@ -97,7 +101,7 @@ public:
     }
 
     /*!
-     * TODO: I have no idea...
+     * TODO(an): I have no idea...
      */
     auto ProduceStack() {
         // Hook PostOp
@@ -135,7 +139,7 @@ private:
         elements1_.push_back(input);
     }
 
-    // TODO: Theoretically we need two PreOps?
+    // TODO(an): Theoretically we need two PreOps?
     void PreOpSecond(zip_arg_1_t input)
     {
         LOG << "PreOp(Second): " << input;
@@ -145,11 +149,11 @@ private:
     //!Recieve elements from other workers.
     void MainOp()
     {
-        //TODO: (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
+        //TODO(an): (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
 
-        //TODO: Deterministic computation about index to worker mapping.
+        //TODO(an): Deterministic computation about index to worker mapping.
 
-        //TODO: Use network to send and recieve data through network iterators
+        //TODO(an): Use network to send and recieve data through network iterators
 
         data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 

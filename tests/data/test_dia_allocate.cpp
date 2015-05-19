@@ -19,7 +19,7 @@ TEST(DIAAllocate, ForReal) {
     class TNode
     {
     public:
-        TNode(DataManager& dm) : dm_(dm)
+        explicit TNode(DataManager& dm) : dm_(dm)
         {
             dm_.AllocateDIA();
         }

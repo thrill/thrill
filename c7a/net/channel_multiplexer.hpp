@@ -11,14 +11,15 @@
 #ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 
-#include <memory> //std::shared_ptr
-#include <map>
 #include <c7a/net/net_dispatcher.hpp>
 #include <c7a/net/net_group.hpp>
 #include <c7a/net/channel.hpp>
 #include <c7a/data/block_emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
+
+#include <memory>
+#include <map>
 
 namespace c7a {
 namespace data {

@@ -11,13 +11,15 @@
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
 
-#include "../api/dia_base.hpp"
-#include "../common/logger.hpp"
+#include <c7a/api/dia_base.hpp>
+#include <c7a/common/logger.hpp>
+
 #include <stack>
 #include <string>
 #include <utility>
 #include <algorithm>
 #include <set>
+#include <vector>
 
 namespace c7a {
 namespace core {
@@ -25,14 +27,13 @@ namespace core {
 class Stage
 {
 public:
-    Stage(DIABase* node) : node_(node)
+    explicit Stage(DIABase* node) : node_(node)
     {
         SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;
     }
     void Run()
     {
         SpacingLogger(true) << "RUNNING stage " << node_->ToString() << "node" << node_;
-        //GOAL: Make sure the stage is executed efficiently.
         node_->execute();
     }
 
@@ -47,6 +48,8 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
     std::set<DIABase*> stages_found;
     // GOAL: Returns a vector with stages
     // TEMP SOLUTION: Every node is a stage
+
+    // Do a reverse DFS and find all stages
     std::stack<DIABase*> dia_stack;
     dia_stack.push(action);
     stages_found.insert(action);
@@ -54,9 +57,11 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
         DIABase* curr = dia_stack.top();
         dia_stack.pop();
         stages_result.emplace_back(Stage(curr));
+
         std::vector<DIABase*> parents = curr->get_parents();
         for (DIABase* p : parents) {
-            if (p && (stages_found.find(p) == stages_found.end())) {
+            // if p is not a nullpointer and p is not cached mark it and save stage
+            if (p && (stages_found.find(p) == stages_found.end()) && p->state() != CACHED) {
                 dia_stack.push(p);
                 stages_found.insert(p);
             }
@@ -67,7 +72,17 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
     std::reverse(stages_result.begin(), stages_result.end());
 }
 
-} // namespace engine
+inline void RunScope(DIABase* action)
+{
+    std::vector<Stage> result;
+    FindStages(action, result);
+    for (auto s : result)
+    {
+        s.Run();
+    }
+}
+
+} // namespace core
 } // namespace c7a
 
 #endif // !C7A_CORE_STAGE_BUILDER_HEADER
