@@ -19,7 +19,6 @@
 
 namespace c7a {
 namespace net {
-
 //! \ingroup net
 //! \{
 
@@ -31,60 +30,44 @@ namespace net {
 //! A StreamBlockHeader with num_elements = 0 marks the end of a stream
 struct StreamBlockHeader {
     size_t      channel_id;
-    size_t      num_elements;
-    size_t      * boundaries = nullptr;
+    size_t      expected_bytes;
 
     //! Reads the channel id and the number of elements in this block
-    void        ParseIdAndNumElem(const std::string& buffer)
+    void        ParseHeader(const std::string& buffer)
     {
         memcpy(&channel_id, buffer.c_str(), sizeof(channel_id));
-        memcpy(&num_elements, buffer.c_str() + sizeof(channel_id), sizeof(num_elements));
-        boundaries = new size_t[sizeof(size_t) * num_elements];
-    }
-
-    //! Reads the lengths of each element in this block
-    void        ParseBoundaries(const std::string& buffer)
-    {
-        if (num_elements > 0) {
-            memcpy(boundaries, buffer.c_str(), sizeof(size_t) * num_elements);
-        }
+        memcpy(&expected_bytes, buffer.c_str() + sizeof(channel_id), sizeof(expected_bytes));
     }
 
     //! Serializes the whole block struct into a buffer
     std::string Serialize()
     {
-        size_t size = sizeof(size_t) * (num_elements + 2);
+        size_t size = sizeof(size_t) * (channel_id + 2);
         char* result = new char[size];
         char* offset0 = result;
         char* offset1 = offset0 + sizeof(channel_id);
-        char* offset2 = offset1 + sizeof(num_elements);
 
         memcpy(offset0, &channel_id, sizeof(channel_id));
-        memcpy(offset1, &num_elements, sizeof(num_elements));
-        if (boundaries)
-            memcpy(offset2, boundaries, sizeof(*boundaries) * num_elements);
+        memcpy(offset1, &expected_bytes, sizeof(expected_bytes));
         return std::string(result, size);
     }
 
     //! resets to a End-of-Stream block header
     void        Reset()
     {
-        num_elements = 0;
-        //TODO(ts) delete boundaries w/o double-freeing
+        expected_bytes = 0;
     }
 
     //! Indicates if this is the end-of-stream block header
     bool        IsStreamEnd() const
     {
-        return num_elements == 0;
+        return expected_bytes == 0;
     }
 
     //! Frees all memory of the block struct
     ~StreamBlockHeader()
     {
         Reset();
-        //if (boundaries)
-        //delete [] boundaries;
     }
 };
 
@@ -102,7 +85,8 @@ class Stream
 public:
     struct StreamBlockHeader header;
     NetConnection& socket;
-    int elements_read = 0;
+    size_t elements_read = 0;
+    size_t bytes_read = 0;
 
     //!attaches a stream to a socket and initializes the current header
     Stream(NetConnection& socket, struct StreamBlockHeader& header)
@@ -113,6 +97,7 @@ public:
     void ResetHead()
     {
         elements_read = 0;
+        bytes_read = 0;
         header.Reset();
     }
 
@@ -124,7 +109,6 @@ public:
 };
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 

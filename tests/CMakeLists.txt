@@ -31,6 +31,8 @@ endmacro(build_test)
 #build_test(api/test_simple_api)
 build_test(api/test_wordcount)
 build_test(data/test_data_manager)
+build_test(data/test_block_emitter_iterator)
+#build_test(data/test_data_manager_channels) //TODO(ts) make them work
 build_test(data/test_block_iterator)
 #build_test(data/test_dia_allocate)
 build_test(data/test_serializer)
@@ -40,11 +42,12 @@ build_test(common/test_stats_timer)
 build_test(net/mock_network)
 #build_test(core/test_stage_builder)
 build_only(core/bench_hash_table) #takes multiple seconds to complete
-build_test(core/test_hash_table)
+build_test(core/test_post_hash_table)
+build_test(core/test_pre_hash_table)
 build_test(net/test_net_group)
 build_test(net/test_buffer)
-build_test(net/test_binary_builder)
-#build_test(net/test_channel_multiplexer)
+build_test(data/test_binary_builder)
+#build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_test(net/test_stream)
 
 ################################################################################
