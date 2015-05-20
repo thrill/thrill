@@ -185,6 +185,12 @@ public:
             }
         }
 
+
+        //flush emitters
+        //for (auto& emitter : emit_) {
+            //TODO call this, as soon as API gives us the 'real' emitter objects: emitter.Flush();
+        //}
+
         // reset counters
         table_size_ = 0;
     }

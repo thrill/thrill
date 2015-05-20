@@ -19,15 +19,12 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
-class Context
-{
+class Context {
 public:
-    Context() { }
+    Context() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) { }
     virtual ~Context() { }
 
-    data::DataManager & get_data_manager()
-    {
+    data::DataManager & get_data_manager() {
         return data_manager_;
     }
     int number_worker()
@@ -36,11 +33,12 @@ public:
     }
 
 private:
+    net::NetDispatcher net_dispatcher_;
+    net::ChannelMultiplexer cmp_;
     data::DataManager data_manager_;
     //stub
     int number_worker_ = 1;
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
