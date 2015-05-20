@@ -36,6 +36,9 @@ namespace net {
 
 typedef unsigned int ClientId;
 
+//TODO(ej) Cleanup the NetGroup. Make to a sole collection holding a bunch of connections.
+//Move everything else into appropriate channel. 
+
 /*!
  * Collection of NetConnections to workers, allow point-to-point client
  * communication and simple collectives like MPI.
