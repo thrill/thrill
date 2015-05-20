@@ -11,7 +11,7 @@
 #include <c7a/net/net_group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/net_dispatcher.hpp>
-#include <c7a/net/communication_manager.hpp>
+#include <c7a/net/net_manager.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -125,7 +125,7 @@ static void RealNetGroupConstructAndCall(
 
     // lambda to construct NetGroup and call user thread function.
 
-    std::vector<CommunicationManager> groups(count);
+    std::vector<NetManager> groups(count);
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
