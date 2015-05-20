@@ -83,7 +83,33 @@ private:
     }
 
 public:
-    //TODO(ej): Add execute local mock.
+    /**
+     * @brief Spawns theads for each NetGroup and calls the given thread 
+     * function for each client to simulate.
+     */
+    static void ExecuteLocalMock(
+    size_t num_clients,
+    const std::function<void(NetGroup*)>& systemThreadFunction,
+    const std::function<void(NetGroup*)>& flowThreadFunction,
+    const std::function<void(NetGroup*)>& dataThreadFunction) {
+
+        die_unless(GROUP_COUNT == 3); //Adjust this method too if groupcount is different
+        std::vector<std::thread> threads(GROUP_COUNT);
+
+        threads[0] = std::thread([=] {
+            NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction):
+        });
+        threads[1] = std::thread([=] {
+            NetGroup::ExecuteLocalMock(num_clients, flowThreadFunction):
+        });
+        threads[2] = std::thread([=] {
+            NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction):
+        });
+
+        for (size_t i = 0; i != thread.size(); ++i) {
+            threads[i].join();
+        }
+    }
 
     void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints)
     {
