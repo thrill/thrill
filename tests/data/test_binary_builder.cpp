@@ -8,17 +8,19 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/binary_builder.hpp>
+#include <c7a/data/binary_buffer_builder.hpp>
+#include <c7a/data/binary_buffer.hpp>
+#include <c7a/data/binary_buffer_reader.hpp>
 #include <gtest/gtest.h>
 
-using c7a::net::BinaryBuilder;
-using c7a::net::BinaryBuffer;
-using c7a::net::BinaryReader;
+using c7a::data::BinaryBufferBuilder;
+using c7a::data::BinaryBuffer;
+using c7a::data::BinaryBufferReader;
 using c7a::net::Buffer;
 
-TEST(BinaryBuilder, Test1) {
+TEST(BinaryBufferBuilder, Test1) {
     // construct a binary blob
-    BinaryBuilder bb;
+    BinaryBufferBuilder bb;
     {
         bb.Put<unsigned int>(1);
         bb.PutString("test");
@@ -27,7 +29,7 @@ TEST(BinaryBuilder, Test1) {
         bb.PutVarint(12345678);
 
         // add a sub block
-        BinaryBuilder sub;
+        BinaryBufferBuilder sub;
         sub.PutString("sub block");
         sub.PutVarint(6 * 9);
 
@@ -64,7 +66,7 @@ TEST(BinaryBuilder, Test1) {
 
     // read binary block using binary_reader
 
-    BinaryReader br = BinaryBuffer(bb);
+    BinaryBufferReader br = BinaryBuffer(bb);
 
     ASSERT_EQ(br.Get<unsigned int>(), 1u);
     ASSERT_EQ(br.GetString(), "test");
@@ -72,7 +74,7 @@ TEST(BinaryBuilder, Test1) {
     ASSERT_EQ(br.GetVarint(), 12345678u);
 
     {
-        BinaryReader sub_br = br.GetBinaryBuffer();
+        BinaryBufferReader sub_br = br.GetBinaryBuffer();
         ASSERT_EQ(sub_br.GetString(), "sub block");
         ASSERT_EQ(sub_br.GetVarint(), 6 * 9u);
         ASSERT_TRUE(sub_br.empty());

@@ -12,14 +12,20 @@
 #define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 
 #include <c7a/net/net_dispatcher.hpp>
+#include <c7a/net/net_group.hpp>
 #include <c7a/net/channel.hpp>
+#include <c7a/data/block_emitter.hpp>
+#include <c7a/data/buffer_chain_manager.hpp>
+#include <c7a/data/socket_target.hpp>
 
 #include <memory>
 #include <map>
 
 namespace c7a {
+namespace data {
+struct BufferChain;
+}
 namespace net {
-
 //! \ingroup net
 //! \{
 
@@ -35,21 +41,58 @@ namespace net {
 //! All sockets are polled for headers. As soon as the a header arrives it is
 //! either attached to an existing channel or a new channel instance is
 //! created.
-class ChannelMultiplexer
-{
+class ChannelMultiplexer {
 public:
-    ChannelMultiplexer(NetDispatcher& dispatcher, int num_connections);
+    ChannelMultiplexer(NetDispatcher& dispatcher)
+        : group_(nullptr),
+          dispatcher_(dispatcher) { }
 
-    //! Adds a connected TCP socket to another worker
-    //! There must exist exactly one TCP connection to each worker.
-    virtual void AddSocket(NetConnection& s);
+    void Connect(std::shared_ptr<NetGroup> s) {
+        group_ = s;
+        for (size_t id = 0; id < group_->Size(); id++) {
+            if (id == group_->MyRank()) continue;
+            ExpectHeaderFrom(group_->Connection(id));
+        }
+    }
 
     //! Indicates if a channel exists with the given id
-    bool HasChannel(int id);
+    bool HasChannel(size_t id) {
+        return channels_.find(id) != channels_.end();
+    }
 
-    //! Returns the channel with the given ID or an onvalid pointer
-    //! if the channel does not exist
-    std::shared_ptr<Channel> PickupChannel(int id);
+    //! Indicates if there is data for a certain channel
+    bool HasDataOn(size_t id) {
+        return chains_.Contains(id);
+    }
+
+    std::shared_ptr<data::BufferChain> AccessData(size_t id) {
+        return chains_.Chain(id);
+    }
+
+    size_t AllocateNext() {
+        return chains_.AllocateNext();
+    }
+
+    template <class T>
+    std::vector<data::BlockEmitter<T> > OpenChannel(size_t id) {
+        std::vector<data::BlockEmitter<T> > result;
+        for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
+            if (worker_id == group_->MyRank()) {
+                auto closer = std::bind(&ChannelMultiplexer::CloseLoopbackStream, this, id);
+                auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id), closer);
+                result.emplace_back(data::BlockEmitter<T>(target));
+            }
+            else {
+                auto target = std::make_shared<data::SocketTarget>(
+                    &dispatcher_,
+                    &(group_->Connection(worker_id)),
+                    id);
+
+                result.emplace_back(data::BlockEmitter<T>(target));
+            }
+        }
+        return result;
+    }
 
 private:
     static const bool debug = true;
@@ -57,19 +100,56 @@ private:
 
     //! Channels have an ID in block headers
     std::map<int, ChannelPtr> channels_;
+    data::BufferChainManager chains_;
+
+    //Hols NetConnections for outgoing Channels
+    std::shared_ptr<NetGroup> group_;
 
     NetDispatcher& dispatcher_;
-    int num_connections_;
 
     //! expects the next header from a socket
-    void ExpectHeaderFrom(NetConnection& s);
+    void ExpectHeaderFrom(NetConnection& s) {
+        auto expected_size = sizeof(StreamBlockHeader::expected_bytes) + sizeof(StreamBlockHeader::channel_id);
+        auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
+        dispatcher_.AsyncRead(s, expected_size, callback);
+    }
+
+    void CloseLoopbackStream(int id) {
+        GetOrCreateChannel(id)->CloseLoopback();
+    }
+
+    ChannelPtr GetOrCreateChannel(int id) {
+        ChannelPtr channel;
+        if (!HasChannel(id)) {
+            //create buffer chain target if it does not exist
+            if (!chains_.Contains(id))
+                chains_.Allocate(id);
+            auto targetChain = chains_.Chain(id);
+
+            //build params for Channel ctor
+            auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
+            auto expected_peers = group_->Size();
+            channel = std::make_shared<Channel>(dispatcher_, callback, id, expected_peers, targetChain);
+            channels_.insert(std::make_pair(id, channel));
+        }
+        else {
+            channel = channels_[id];
+        }
+        return channel;
+    }
 
     //! parses the channel id from a header and passes it to an existing
     //! channel or creates a new channel
     void ReadFirstHeaderPartFrom(
-        NetConnection& s, const Buffer& buffer);
-};
+        NetConnection& s, const Buffer& buffer) {
+        struct StreamBlockHeader header;
+        header.ParseHeader(buffer.ToString());
 
+        auto id = header.channel_id;
+        ChannelPtr channel = GetOrCreateChannel(id);
+        channel->PickupStream(s, header);
+    }
+};
 } // namespace net
 } // namespace c7a
 

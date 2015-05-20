@@ -9,12 +9,22 @@
 
 #include "gtest/gtest.h"
 #include "c7a/data/data_manager.hpp"
+#include <c7a/net/net_dispatcher.hpp>
+#include <c7a/net/channel_multiplexer.hpp>
 
 using namespace c7a::data;
+using namespace c7a::net;
 
 struct DataManagerFixture : public::testing::Test {
-    DataManager manager;
-    DIAId       id = manager.AllocateDIA();
+    DataManagerFixture()
+        : dispatcher(),
+          cmp(dispatcher),
+          manager(cmp) { }
+
+    NetDispatcher      dispatcher;
+    ChannelMultiplexer cmp;
+    DataManager        manager;
+    DIAId              id = manager.AllocateDIA();
 };
 
 TEST_F(DataManagerFixture, GetLocalBlock_FailsIfNotFound) {
@@ -34,11 +44,12 @@ TEST_F(DataManagerFixture, AllocateTwice) {
     manager.AllocateDIA();
 }
 TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
-    auto id = manager.AllocateDIA();
     auto emitFn = manager.GetLocalEmitter<int>(id);
     emitFn(123);
     emitFn(22);
+    emitFn.Flush();
     auto it = manager.GetLocalBlocks<int>(id);
+    ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(123, it.Next());
     ASSERT_EQ(22, it.Next());
 }
@@ -52,14 +63,16 @@ TEST_F(DataManagerFixture, AllocateMultiple) {
 }
 
 TEST_F(DataManagerFixture, EmittAndIterate_ConcurrentAccess) {
-    auto id = manager.AllocateDIA();
-    auto emitFn = manager.GetLocalEmitter<int>(id);
     auto it = manager.GetLocalBlocks<int>(id);
+    auto emitFn = manager.GetLocalEmitter<int>(id);
     emitFn(123);
+    emitFn.Flush();
+    ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(123, it.Next());
     ASSERT_FALSE(it.HasNext());
 
     emitFn(22);
+    emitFn.Flush();
     ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(22, it.Next());
 }
