@@ -82,15 +82,23 @@ public:
         return connections_[id];
     }       //! Return NetConnection to client id.
 
-    NetConnection & SetConnection(ClientId id, NetConnection& connection)
+    /**
+     * @brief Assigns a connection to this net group.
+     * @details This method swaps the net connection to memory managed by this group. 
+     *          The reference given to that method will be invalid afterwards. 
+     * 
+     * @param connection 
+     * @return
+     */
+    NetConnection & AssignConnection(NetConnection& connection)
     {
-        if (id >= connections_.size())
+        if (connection->GetPeerId() >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
-                            "invalid client id " + std::to_string(id));
+                            "invalid client id " + std::to_string(connection->GetPeerId()));
 
-        std::swap(connections_[id], connection);
+        std::swap(connections_[connection->GetPeerId()], connection);
 
-        return connections_[id];
+        return connections_[connection->GetPeerId()];
     }
 
     //! Return number of connections in this group.

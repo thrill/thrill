@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_COMMUNICATION_MANAGER_HEADER
-#define C7A_NET_COMMUNICATION_MANAGER_HEADER
+#ifndef C7A_NET_MANAGER_HEADER
+#define C7A_NET_MANAGER_HEADER
 
 #include <c7a/net/net_endpoint.hpp>
 #include <c7a/net/net_connection.hpp>
@@ -24,12 +24,11 @@
 namespace c7a {
 namespace net {
 
-//TODO(ej): Rename to NetManager
 /**
  * @brief Manages communication.
  * @details Manages communication and handles errors.
  */
-class CommunicationManager
+class NetManager
 {
     static const bool debug = false;
 
@@ -38,9 +37,6 @@ private:
     lowlevel::Socket listenSocket_;
     NetConnection listenConnection_;
     size_t my_rank_;
-    int received_hellos_ = -1;         //-1 mens uninitialized
-    unsigned int sent_hellos_;
-    unsigned int accepting;
     NetDispatcher dispatcher;
     std::vector<NetConnection> connections_;
 
@@ -75,6 +71,17 @@ private:
     };
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
+    bool InitializationFinished() {
+        if(connections_.size() != (endpoints.size() - 1) * GROUP_COUNT)
+            return false;
+
+        for(int i = 0; i < connections_.size(); i++) 
+            if(connections_[i].GetState() != ConnectionState::Connected)
+                return false;
+        
+        return true;
+    }
+
 public:
     //TODO(ej): Add execute local mock.
 
@@ -82,8 +89,8 @@ public:
     {
         this->my_rank_ = my_rank_;
 
-        if (received_hellos_ != -1) {
-            throw new Exception("This communication manager has already been initialized.");
+        if (connections_.size() != 0) {
+            throw new Exception("This net manager has already been initialized.");
         }
 
         connections_.reserve(endpoints.size() * GROUP_COUNT);
@@ -91,10 +98,6 @@ public:
         for (int i = 0; i < GROUP_COUNT; i++) {
             netGroups_[i] = new NetGroup(my_rank_, endpoints.size());
         }
-
-        received_hellos_ = 0;
-        sent_hellos_ = 0;
-        accepting = my_rank_ * GROUP_COUNT;
 
         die_unless(my_rank_ < endpoints.size());
 
@@ -115,54 +118,35 @@ public:
 
         listenConnection_ = std::move(NetConnection(listenSocket_));
 
-        // TODO(tb): this sleep waits for other clients to open their ports. do this
-        // differently.
-        sleep(1);
-
         // initiate connections to all hosts with higher id.
 
         for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id)
         {
             for (uint32_t group = 0; group < GROUP_COUNT; group++) {
-                const WelcomeMsg hello = { c7a_sign, group, (ClientId)my_rank_ };
 
-                lowlevel::Socket ns = lowlevel::Socket::Create();
-
-                connections_.emplace_back(ns);
-
-                die_unless(connections_.back().GetSocket().fd() > 0);
-                die_unless(connections_.back().GetSocket().IsValid());
-
-                if (ns.connect(addressList[id]) == 0) {
-                    // connect() already successful? this should not be.
-                    ActiveConnected(connections_.back(), hello);
-                }
-                else if (errno == EINPROGRESS) {
-                    // connect is in progress, will wait for completion.
-                    dispatcher.AddRead(connections_.back(), [ = ](NetConnection& nc) {
-                                           return ActiveConnected(nc, hello);
-                                       });
-                }
-                else {
-                    throw Exception("Could not connect to client "
-                                    + std::to_string(id) + " via "
-                                    + addressList[id].ToStringHostPort(), errno);
-                }
+                Connect(id, group);
             }
         }
 
         dispatcher.AddRead(listenConnection_, [ = ](NetConnection& nc) {
-                               return PassiveConnected(nc);
+                               return ConnectionReceived(nc);
                            });
 
         int helloCount = (int)((addressList.size() - 1) * GROUP_COUNT);
-        while (received_hellos_ < helloCount || sent_hellos_ < helloCount)
+        while (!InitializationFinished())
         {
             LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher.Dispatch();
         }
 
+        for(size_t i = 0; i < connections_.size(); i++) {
+            int groupId = connections_[i].GetGroupId();
+            die_unless(groupId >= 0 && groupId < GROUP_COUNT)
+            netGroups_[groupId]->AssignConnection(connections_[i]);
+        }
+
         //Could dispose listen connection here.
+        listenConnection_.Close();
 
         LOG << "Client " << my_rank_ << " done";
 
@@ -176,28 +160,79 @@ public:
         }
     }
 
-    void HelloSent(NetConnection& conn)
+    void Connect(size_t id, size_t group) {
+        const WelcomeMsg hello = { c7a_sign, group, (ClientId)my_rank_ };
+
+        lowlevel::Socket ns = lowlevel::Socket::Create();
+        connections_.emplace_back(ns);
+        connections_.back().SetState(ConnectionState::Disconnected);
+
+        Connect(connections_.back(), hello)
+    }
+
+    void Connect(const NetConnection& connection, const WelcomeMsg &hello) {
+
+        die_unless(connection.GetSocket().fd() > 0);
+        die_unless(connection.GetSocket().IsValid());
+        die_unless(connection.GetState() != ConnectionState::Disconnected)
+
+        int res = connection.GetSocket().connect(addressList[id]);
+
+        connection.SetState(ConnectionState::Connecting);
+
+        if (res == 0) {
+            // connect() already successful? this should not be.
+            Connected(connection, hello);
+        }
+        else if (errno == EINPROGRESS) {
+            // connect is in progress, will wait for completion.
+            dispatcher.AddRead(connection, [ = ](NetConnection& nc) {
+                                   return Connected(nc, hello);
+                               });
+        }
+        else {
+            //Failed to even try the connection - this might be a permanent error. 
+            connection.SetState(ConnectionState::Invalid);
+
+            throw Exception("Could not connect to client "
+                            + std::to_string(id) + " via "
+                            + addressList[id].ToStringHostPort(), errno);
+        }
+    }
+
+    void HelloSent(const NetConnection& conn)
     {
-        sent_hellos_++;
+        if(conn.GetState() == ConnectionState::Connecting) {
+            conn.SetState(ConnectionState::HelloSent);
+        } else if(conn.GetState() == ConnectionState::HelloReceived) {
+            conn.SetState(ConnectionState::Connected);
+        } else {
+            die("State mismatch");
+        }
     }
 
     /**
-     * @brief Called when a socket connects.
+     * @brief Called when a connection initiated by us succeeds. 
      * @details
      * @return
      */
-    bool ActiveConnected(NetConnection& conn, const WelcomeMsg& hello)
+    bool Connected(NetConnection& conn, const WelcomeMsg& hello)
     {
         int err = conn.GetSocket().GetError();
 
         if (err != 0) {
-            throw Exception(
-                      "OpenConnections() could not connect to client "
-                      + std::to_string(hello.id), err);
+            conn.SetState(ConnectionState::Disconnected);
+            //Try a reconnect
+            //TODO(ej): Figure out if we need a timer here.
+            Connect(conn, hello);
         }
 
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
+
+        conn.SetState(ConnectionState::TransportConnected)
+        conn.SetPeerId(hello.id);
+        conn.SetGroupId(hello.groupId);
 
         LOG << "OpenConnections() " << my_rank_ << " connected"
             << " fd=" << conn.GetSocket().fd()
@@ -235,13 +270,16 @@ public:
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg->c7a, c7a_sign);
 
+        if(conn.GetState() == ConnectionState::HelloSent) {
+            conn.SetGroupId(msg->groupId);
+            conn.SetPeerId(msg->id);
+            conn.SetState(ConnectionState::Connected);
+        } else {
+            die("State mismatch.");
+        }
+
         LOG << "client " << my_rank_ << " got signature "
             << "from client " << msg->id;
-
-        // assign connection.
-        netGroups_[msg->groupId]->SetConnection(msg->id, conn);
-
-        ++received_hellos_;
 
         return false;
     }
@@ -264,29 +302,27 @@ public:
 
         const WelcomeMsg hello = { c7a_sign, msg->groupId, (ClientId)my_rank_ };
 
-        NetConnection& connCopy = netGroups_[msg->groupId]->SetConnection(msg->id, conn);
-
-        die_unless(connCopy.GetSocket().IsValid());
+        die_unless(conn.GetSocket().IsValid());
         // send welcome message
 
-        dispatcher.AsyncWriteCopy(connCopy, &hello, sizeof(hello), [ = ](NetConnection& nc) {
+        conn.SetPeerId(msg->id);
+        conn.SetGroupId(msg->groupId);
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection& nc) {
                                       return HelloSent(nc);
                                   });
 
         LOG << "Client " << my_rank_ << " sent passive hello to client " << msg->id;
 
-        ++received_hellos_;
-
         return false;
     }
 
-    bool PassiveConnected(NetConnection& conn)
+    bool ConnectionReceived(NetConnection& conn)
     {
-        die_unless(accepting > 0);
         connections_.emplace_back(conn.GetSocket().accept());
         die_unless(connections_.back().GetSocket().fd() > 0);
         die_unless(connections_.back().GetSocket().IsValid());
-        // newConn.GetSocket().SetNonBlocking(false);
+        
+        conn.SetState(ConnectionState::TransportConnected)
 
         LOG << "OpenConnections() " << my_rank_ << " accepted connection"
             << " fd=" << connections_.back().GetSocket().fd()
@@ -299,7 +335,7 @@ public:
                              });
 
         // wait for more connections?
-        return (--accepting > 0);
+        return true;
     }
 
     NetGroup * GetSystemNetGroup()
@@ -316,16 +352,11 @@ public:
     {
         return netGroups_[2];
     }
-
-    void Dispose()
-    {
-        //TODO(ej) MUHA
-    }
 };
 
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_COMMUNICATION_MANAGER_HEADER
+#endif // !C7A_NET_MANAGER_HEADER
 
 /******************************************************************************/
