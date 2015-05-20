@@ -10,11 +10,13 @@
  ******************************************************************************/
 
 namespace c7a {
+namespace common {
 
 /******************************************************************************/
 /** \page common Common Utilities and Helpers
 
 - \subpage common_logger
+- \subpage common_stats
 
 
 */
@@ -66,6 +68,23 @@ The macros are only for rapid module-based development. It cannot be used as an 
 
 */
 
+/******************************************************************************/
+/** \page common_stats StatsCounter and StatsTimer for Compile-Out Statistics
+
+When developing time critical algorithms, one often needs timers and counters that should later disabled during production. This usually means that the corresponding timer/counter lines are just removed. If later a bug is found, the timer lines have to be readded.
+
+The StatsCounter and StatsTimer classes provide a solution to this problem: they can be disabled using a boolean template switch, and when disabled, all operations on the object are no-operations. Hence, in production mode they are compiled-out.
+
+See the example in \ref tests/common/test_stats_timer.cpp
+
+and \ref tests/common/test_stats_counter.cpp
+
+\example tests/common/test_stats_timer.cpp
+\example tests/common/test_stats_counter.cpp
+
+ */
+
+} // namespace common
 } // namespace c7a
 
 /******************************************************************************/
