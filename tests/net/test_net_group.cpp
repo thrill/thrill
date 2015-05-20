@@ -17,6 +17,7 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <random>
 
 using namespace c7a::net;
 
@@ -104,13 +105,18 @@ static void RealNetGroupConstructAndCall(
 {
     static const bool debug = false;
 
+    // randomize base port number for test
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> distribution(30000, 65000);
+    const size_t port_base = distribution(generator);
+
     static const std::vector<NetEndpoint> endpoints = {
-        NetEndpoint("127.0.0.1:11234"),
-        NetEndpoint("127.0.0.1:11235"),
-        NetEndpoint("127.0.0.1:11236"),
-        NetEndpoint("127.0.0.1:11237"),
-        NetEndpoint("127.0.0.1:11238"),
-        NetEndpoint("127.0.0.1:11239")
+        NetEndpoint("127.0.0.1:" + std::to_string(port_base + 0)),
+        NetEndpoint("127.0.0.1:" + std::to_string(port_base + 1)),
+        NetEndpoint("127.0.0.1:" + std::to_string(port_base + 2)),
+        NetEndpoint("127.0.0.1:" + std::to_string(port_base + 3)),
+        NetEndpoint("127.0.0.1:" + std::to_string(port_base + 4)),
+        NetEndpoint("127.0.0.1:" + std::to_string(port_base + 5))
     };
 
     static const int count = endpoints.size();
