@@ -28,6 +28,21 @@
 namespace c7a {
 namespace net {
 
+struct ConnectionState {
+public:
+    static const ConnectionState Invalid(0);
+    static const ConnectionState Connecting(1);
+    static const ConnectionState TransportConnected(2);
+    static const ConnectionState HelloSent(3);
+    static const ConnectionState WaitingForHello(4);
+    static const ConnectionState Connected(5);
+    static const ConnectionState Disconnected(6);
+    ConnectionState(const ConnectionState& state) : state(state.state) { }
+private: 
+    int state;
+    ConnectionState(int state) : state(state) { }
+};
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -50,6 +65,10 @@ class NetConnection : protected lowlevel::Socket
     static const bool debug = false;
 
     static const bool self_verify_ = true;
+
+    ConnectionState state_ = ConnectionState::Invalid;
+    size_t peerId_;
+    size_t groupId_;
 
 public:
     //! Construct NetConnection from a Socket
@@ -78,6 +97,31 @@ public:
         return *this;
     }
 #endif
+
+    ConnectionState GetState() const {
+        return state_;
+    }
+
+    size_t GetPeerId() const {
+        return peerId_;
+    }
+
+    size_t GetGroupId() const {
+        return groupId_;
+    }
+
+    //TODO(ej) Make setters internal/friend NetManager
+    void SetState(ConnectionState state) {
+        this->state_ = state;
+    }
+
+    void SetPeerId(size_t peerId) {
+        this->peerId_ = peerId;
+    }
+
+    void SetGroupId(size_t groupId) {
+        this->groupId_ = groupId;
+    }
 
     //! Check whether the contained file descriptor is valid.
     bool IsValid() const
