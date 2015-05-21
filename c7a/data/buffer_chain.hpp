@@ -29,10 +29,6 @@ struct BufferChainElement {
     BinaryBuffer             buffer;
 };
 
-// TODO(ts): this can probably be done using std::list<>... It is usual bad to
-// reimplement linked links or other basic data structures, there is always a
-// better way.
-
 //! A Buffer chain holds multiple immuteable buffers.
 //! Append in O(1), Delete in O(#buffers)
 struct BufferChain : public EmitterTarget {
