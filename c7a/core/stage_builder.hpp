@@ -29,6 +29,8 @@ class Stage
 public:
     explicit Stage(DIABase* node) : node_(node)
     {
+        // TODO(ch): use debug constant and macros!
+
         SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;
     }
     void Run()
@@ -40,6 +42,8 @@ public:
 private:
     DIABase* node_;
 };
+
+// TODO(ch): why is this a free method?
 
 // Returns a list of stages of graph scope
 inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)

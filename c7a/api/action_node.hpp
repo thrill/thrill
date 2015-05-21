@@ -20,6 +20,7 @@ public:
     ActionNode(data::DataManager& data_manager,
                const DIABaseVector& parents)
         : DIANode<T>(data_manager, parents) { }
+
     virtual ~ActionNode() { }
 };
 

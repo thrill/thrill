@@ -44,7 +44,8 @@ public:
     typedef std::function<void (NetConnection& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
-    Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback, int id, int expected_streams, std::shared_ptr<data::BufferChain> target)
+    Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback,
+            int id, int expected_streams, std::shared_ptr<data::BufferChain> target)
         : dispatcher_(dispatcher),
           release_(release_callback),
           id_(id),

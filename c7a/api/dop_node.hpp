@@ -22,8 +22,8 @@ namespace c7a {
 //! \{
 
 /*!
- * A DOpNode is a typed node representing and distributed operations in c7a.
- * It is the super class for all distributed operation nodes.
+ * A DOpNode is a typed node representing and distributed operations in c7a.  It
+ * is the super class for all distributed operation nodes.
  *
  * \tparam T Type of the corresponding DIANode
  */
@@ -32,12 +32,14 @@ class DOpNode : public DIANode<T>
 {
 public:
     /*!
-     * Constructor for a DOpNode, which sets references to the DataManager and parent nodes.
-     * Calls the constructor of DIANode with the same parameters.
+     * Constructor for a DOpNode, which sets references to the DataManager and
+     * parent nodes.  Calls the constructor of DIANode with the same parameters.
      *
-     * \param ctx Reference to Context, which holds references to data and network.
+     * \param ctx Reference to Context, which holds references to data and
+     * network.
      *
-     * \param parents Reference to parents of this node, which have to be computed previously
+     * \param parents Reference to parents of this node, which have to be
+     * computed previously
      */
     DOpNode(Context& ctx,
             const DIABaseVector& parents)
@@ -49,10 +51,7 @@ public:
     //! ToString-method. Returns DOpNode as a string.
     std::string ToString() override
     {
-        // Create string
-        std::string str
-            = std::string("[DOpNode]");
-        return str;
+        return "[DOpNode]";
     }
 };
 

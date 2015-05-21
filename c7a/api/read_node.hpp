@@ -96,10 +96,7 @@ public:
      */
     std::string ToString() override
     {
-        // Create string
-        std::string str
-            = std::string("[ReadNode] Id: ") + std::to_string(this->data_id_);
-        return str;
+        return "[ReadNode] Id: " + std::to_string(this->data_id_);
     }
 
 private:

@@ -31,10 +31,11 @@ namespace c7a {
 //! \{
 
 /*!
- * A DIANode which performs a Reduce operation. Reduce groups the elements in a DIA by their
- * key and reduces every key bucket to a single element each. The ReduceNode stores the
- * key_extractor and the reduce_function UDFs. The chainable LOps ahead of the Reduce operation
- * are stored in the Stack. The ReduceNode has the type Output, which is the result type of the
+ * A DIANode which performs a Reduce operation. Reduce groups the elements in a
+ * DIA by their key and reduces every key bucket to a single element each. The
+ * ReduceNode stores the key_extractor and the reduce_function UDFs. The
+ * chainable LOps ahead of the Reduce operation are stored in the Stack. The
+ * ReduceNode has the type Output, which is the result type of the
  * reduce_function.
  *
  * \tparam Input Input type of the Reduce operation
@@ -57,7 +58,8 @@ class ReduceNode : public DOpNode<Output>
 
 public:
     /*!
-     * Constructor for a ReduceNode. Sets the DataManager, parent, stack, key_extractor and reduce_function.
+     * Constructor for a ReduceNode. Sets the DataManager, parent, stack,
+     * key_extractor and reduce_function.
      *
      * \param ctx Reference to Context, which holds references to data and network.
      * \param parent Parent DIANode.
@@ -126,7 +128,7 @@ public:
      */
     std::string ToString() override
     {
-        return std::string("[ReduceNode id=") + std::to_string(data_id_) + "]";
+        return "[ReduceNode id=" + std::to_string(data_id_) + "]";
     }
 
 private:
@@ -139,8 +141,9 @@ private:
     //! Local storage
     std::vector<reduce_arg_t> elements_;
 
-    //! Locally hash elements of the current DIA onto buckets and reduce each bucket to a single value,
-    //! afterwards send data to another worker given by the shuffle algorithm.
+    //! Locally hash elements of the current DIA onto buckets and reduce each
+    //! bucket to a single value, afterwards send data to another worker given
+    //! by the shuffle algorithm.
     void PreOp(reduce_arg_t input)
     {
         elements_.push_back(input);
@@ -153,13 +156,13 @@ private:
                                           ReduceFunction,
                                           std::function<void(reduce_arg_t)> >;
 
-        std::function<void(Output)> print = [](Output elem) {
-                                                LOG << elem.first << " " << elem.second;
-                                            };
+        std::function<void(Output)> print =
+            [](Output elem) {
+            LOG << elem.first << " " << elem.second;
+        };
 
-        auto table = ReduceTable(key_extractor_,
-                                 reduce_function_,
-                                 { print });
+        ReduceTable table(key_extractor_, reduce_function_,
+                          { print });
 
         for (const reduce_arg_t& elem : elements_) {
             table.Insert(elem);

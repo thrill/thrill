@@ -23,6 +23,8 @@ namespace c7a {
 
 /*!
  * Possible states a DIABase can be in.
+ * TODO(ch): turn this enum into an "enum class" within DIABase. These are
+ * c7a-global identifiers atm.
  */
 enum kState {
     //! The DIABase has not been computed yet.

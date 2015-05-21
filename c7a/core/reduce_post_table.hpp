@@ -32,6 +32,7 @@ class ReducePostTable
 {
     static const bool debug = false;
 
+    // TODO(ms): according to coding style: Types are CamelCase.
     using key_t = typename FunctionTraits<KeyExtractor>::result_type;
 
     using value_t = typename FunctionTraits<ReduceFunction>::result_type;
@@ -298,9 +299,14 @@ public:
     }
 
 private:
-    size_t num_buckets_;                    // num buckets
+    // TODO(ms): reformat using doxygen-style comments
 
-    size_t num_buckets_init_scale_ = 65536; // set number of buckets per partition based on num_partitions
+    //! num buckets
+    size_t num_buckets_;
+
+    //! set number of buckets per partition based on num_partitions
+    size_t num_buckets_init_scale_ = 65536;
+
     // multiplied with some scaling factor, must be equal to or greater than 1
 
     size_t num_buckets_resize_scale_ = 2;   // resize scale on max_num_items_per_bucket_
