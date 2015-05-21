@@ -28,19 +28,9 @@
 namespace c7a {
 namespace net {
 
-struct ConnectionState {
-public:
-    static const ConnectionState Invalid(0);
-    static const ConnectionState Connecting(1);
-    static const ConnectionState TransportConnected(2);
-    static const ConnectionState HelloSent(3);
-    static const ConnectionState WaitingForHello(4);
-    static const ConnectionState Connected(5);
-    static const ConnectionState Disconnected(6);
-    ConnectionState(const ConnectionState& state) : state(state.state) { }
-private: 
-    int state;
-    ConnectionState(int state) : state(state) { }
+enum ConnectionState {
+    Invalid, Connecting, TransportConnected, HelloReceived,
+    HelloSent, WaitingForHello, Connected, Disconnected
 };
 
 //! \addtogroup net Network Communication
