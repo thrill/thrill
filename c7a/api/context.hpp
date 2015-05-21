@@ -16,16 +16,19 @@
 #include <string>
 #include <vector>
 
-#include "../data/data_manager.hpp"
+#include "c7a/data/data_manager.hpp"
+#include "c7a/core/job_manager.hpp"
 
 namespace c7a {
-class Context {
+class Context
+{
 public:
-    Context() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) { }
+    Context() : job_manager_() { }
     virtual ~Context() { }
 
-    data::DataManager & get_data_manager() {
-        return data_manager_;
+    data::DataManager & get_data_manager()
+    {
+        return job_manager_.get_data_manager();
     }
     int number_worker()
     {
@@ -33,13 +36,11 @@ public:
     }
 
 private:
-    net::NetDispatcher net_dispatcher_;
-    net::ChannelMultiplexer cmp_;
-    data::DataManager data_manager_;
+    core::JobManager job_manager_;
     //stub
     int number_worker_ = 1;
 };
-} // namespace c7a
+}  // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
 
