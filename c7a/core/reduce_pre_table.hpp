@@ -315,7 +315,7 @@ public:
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
         // init new array
         std::vector<bucket_block*> vector_old = vector_;
-        std::vector<bucket_block*> vector_new; // TODO(ms): vector_new not needed?
+        std::vector<bucket_block*> vector_new; // TODO(ms): 3 vectors? come on! -> make it happen with one vector only!
         vector_new.resize(num_buckets_, NULL);
         vector_ = vector_new;
         // rehash all items in old array
@@ -417,7 +417,7 @@ private:
 
     size_t num_buckets_per_partition_;        // num buckets per partition
 
-    size_t num_buckets_init_scale_ = 65536;   // set number of buckets per partition based on num_partitions
+    size_t num_buckets_init_scale_ = 10;   // set number of buckets per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
     size_t num_buckets_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
