@@ -17,15 +17,23 @@
 
 namespace c7a {
 namespace data {
-//! BlockIterator gives you access to data of a block
-//TODO specialize the emitter to be more fancy when havein fixe-length elements
+//! BlockEmitter lets you push elements to a downstream operation or network channel.
+//! Template parameter specifies the type of element that is accepted.
+//! The emitter will serialize the data and put it into the emitter target.
+//! Emitters can be flushed to enforce data movement to the sink.
+//! Emitters can be closed exacly once.
+//! Data sinks can chekc whether all emitters to that sink are closed.
+//
+// TODO(ts): make special version for fix-length elements
 template <class T>
-class BlockEmitter {
+class BlockEmitter
+{
 public:
     BlockEmitter(std::shared_ptr<EmitterTarget> target)
         : builder_(BinaryBuffer::DEFAULT_SIZE),
           target_(target) { }
 
+    //! Emitts an element
     void operator () (T x) {
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
             Flush();
