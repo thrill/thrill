@@ -41,7 +41,8 @@ namespace net {
 //! All sockets are polled for headers. As soon as the a header arrives it is
 //! either attached to an existing channel or a new channel instance is
 //! created.
-class ChannelMultiplexer {
+class ChannelMultiplexer
+{
 public:
     ChannelMultiplexer(NetDispatcher& dispatcher)
         : group_(nullptr),
@@ -92,6 +93,13 @@ public:
             }
         }
         return result;
+    }
+
+    //! Closes all client connections
+    //!
+    //! Requires new call to Connect() afterwards
+    void Close() {
+        group_->Close();
     }
 
 private:

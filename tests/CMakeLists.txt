@@ -32,7 +32,7 @@ endmacro(build_test)
 build_test(api/test_wordcount)
 build_test(data/test_data_manager)
 build_test(data/test_block_emitter_iterator)
-#build_test(data/test_data_manager_channels) //TODO(ts) make them work
+build_test(data/test_data_manager_channels) #TODO(tb, ej, ts): where do the invalid fd come from?
 build_test(data/test_block_iterator)
 #build_test(data/test_dia_allocate)
 build_test(data/test_serializer)
