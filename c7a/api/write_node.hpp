@@ -17,7 +17,6 @@
 #include "function_stack.hpp"
 
 namespace c7a {
-
 template <typename Input, typename Output, typename WriteFunction>
 class WriteNode : public ActionNode<Output>
 {
@@ -43,7 +42,8 @@ public:
 
     //! Executes the write operation. Writes a file line by line and emits it to
     //! the DataManager after applying the write function on it.
-    void execute() {
+    void execute()
+    {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
         SpacingLogger(true) << "Writing data with id" << this->data_id_;
 
@@ -51,7 +51,7 @@ public:
         assert(file.good());
 
         // Todo(ms):
-        //data::OutputLineEmitter emit = (this->context_).get_data_manager().template GetOutputLineEmitter(file);
+        auto emit = (this->context_).get_data_manager().template GetOutputLineEmitter<Output>(file);
 
         // get data from data manager
         data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
@@ -69,8 +69,8 @@ public:
     auto ProduceStack() {
         // Hook Identity
         auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
-            return emit_func(t);
-        };
+                         return emit_func(t);
+                     };
 
         FunctionStack<> stack;
         return stack.push(id_fn);
@@ -91,7 +91,6 @@ private:
     //! Path of the output file.
     std::string path_out_;
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER
