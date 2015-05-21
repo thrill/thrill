@@ -8,18 +8,6 @@
  ******************************************************************************/
 
 #include <c7a/core/reduce_pre_table.hpp>
-#include <c7a/core/reduce_post_table.hpp>
-#include <tests/c7a_tests.hpp>
-#include "c7a/api/context.hpp"
-#include <c7a/data/data_manager.hpp>
-#include <c7a/data/block_emitter.hpp>
-#include <c7a/net/channel_multiplexer.hpp>
-
-#include <functional>
-#include <cstdio>
-#include <utility>
-#include <vector>
-#include <string>
 
 #include "gtest/gtest.h"
 
@@ -210,8 +198,12 @@ TEST_F(PreTable, Resize) {
 
     ASSERT_EQ(10, table.NumBuckets());
 
+    table.Print();
+
     table.Insert(std::make_pair("bonjour", 3));
 
-    //ASSERT_EQ(20, table.NumBuckets()); // TODO(ms): fix
+    table.Print();
+
+    ASSERT_EQ(20, table.NumBuckets()); // TODO(ms): fix
 }
 
