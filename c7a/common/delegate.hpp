@@ -264,7 +264,7 @@ public:
 
     R operator () (A ... args) const
     {
-//  assert(stub_ptr);
+        assert(stub_ptr_);
         return stub_ptr_(object_ptr_, std::forward<A>(args) ...);
     }
 

@@ -24,9 +24,10 @@ namespace c7a {
 //! \{
 
 /*!
- * A DIANode is a typed node representing and operation in c7a. It is the super class for
- * all operation nodes and stores the state of the operation. The type of a DIANode is the type,
- * in which the DIA is after the last global barrier in the operation (between MainOp and PostOp).
+ * A DIANode is a typed node representing and operation in c7a. It is the super
+ * class for all operation nodes and stores the state of the operation. The type
+ * of a DIANode is the type, in which the DIA is after the last global barrier
+ * in the operation (between MainOp and PostOp).
  *
  * \tparam T Type of the DIA between MainOp and PostOp
  */
@@ -40,12 +41,14 @@ public:
     DIANode() { }
 
     /*!
-     * Constructor for a DIANode, which sets references to the DataManager and parent nodes. Calls the constructor of DIABase
-     * with the same parameters.
+     * Constructor for a DIANode, which sets references to the DataManager and
+     * parent nodes. Calls the constructor of DIABase with the same parameters.
      *
-     * \param ctx Reference to Context, which holds references to data and network.
+     * \param ctx Reference to Context, which holds references to data and
+     * network.
      *
-     * \param parents Reference to parents of this node, which have to be computed previously
+     * \param parents Reference to parents of this node, which have to be
+     * computed previously
      */
     DIANode(Context& ctx, const DIABaseVector& parents)
         : DIABase(ctx, parents)
@@ -57,15 +60,13 @@ public:
     //! ToString-method. Returns DIANode and it's state as a string.
     std::string ToString() override
     {
-        std::string str;
-        str = std::string("[DIANode/State:") + state_string_() + "]";
-        return str;
+        return "[DIANode/State:" + state_string_() + "]";
     }
 
     /*!
      * Enables children to push their "folded" function chains to their parent.
-     * This way the parent can push all its result elements to each of the children.
-     * This procedure enables the minimization of IO-accesses.
+     * This way the parent can push all its result elements to each of the
+     * children.  This procedure enables the minimization of IO-accesses.
      *
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
