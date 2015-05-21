@@ -32,7 +32,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using key_t = typename FunctionTraits<KeyExtractor>::result_type;
 
@@ -162,11 +162,11 @@ public:
 
         if (current_bucket_block == NULL)
         {
-            current_bucket_block = vector_[h.global_index] = new bucket_block(*this);         // TODO(ms): ensure new struct gets deleted
+            current_bucket_block = vector_[h.global_index] = new bucket_block(*this);
         }
         else if (current_bucket_block->items.size() == bucket_block_size_)
         {
-            current_bucket_block = current_bucket_block->next = new bucket_block(*this);      // TODO(ms): ensure new struct gets deleted
+            current_bucket_block = current_bucket_block->next = new bucket_block(*this);
         }
 
         // insert new item in current bucket block
@@ -263,8 +263,11 @@ public:
                 {
                     emit_[partition_id](bucket_item.second);
                 }
-                current_bucket_block = current_bucket_block->next;
+                bucket_block* tmp_current_bucket_block = current_bucket_block->next;
+                delete current_bucket_block;
+                current_bucket_block = tmp_current_bucket_block;
             }
+
             vector_[i] = NULL;
         }
 
@@ -312,7 +315,7 @@ public:
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
         // init new array
         std::vector<bucket_block*> vector_old = vector_;
-        std::vector<bucket_block*> vector_new;
+        std::vector<bucket_block*> vector_new; // TODO(ms): vector_new not needed?
         vector_new.resize(num_buckets_, NULL);
         vector_ = vector_new;
         // rehash all items in old array
@@ -325,7 +328,9 @@ public:
                 {
                     Insert(bucket_item.second);
                 }
-                current_bucket_block = current_bucket_block->next;
+                bucket_block* tmp_current_bucket_block = current_bucket_block->next;
+                delete current_bucket_block;
+                current_bucket_block = tmp_current_bucket_block;
             }
         }
         LOG << "Resized";
