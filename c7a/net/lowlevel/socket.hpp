@@ -259,8 +259,6 @@ public:
             << " return=" << r
             << " error=" << strerror(errno);
 
-        die_unless(false);
-
         return r;
     }
 
