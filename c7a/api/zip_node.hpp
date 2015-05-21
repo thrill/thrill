@@ -29,17 +29,22 @@ namespace c7a {
 //! \{
 
 /*!
- * A DIANode which performs a Zip operation. Zip combines two DIAs element-by-element. The ZipNode
- * stores the zip_function UDF. The chainable LOps are stored in the Stack.
+ * A DIANode which performs a Zip operation. Zip combines two DIAs
+ * element-by-element. The ZipNode stores the zip_function UDF. The chainable
+ * LOps are stored in the Stack.
  *
  * \tparam Output Output type of the Zip operation.
- * \tparam Stack1 Function stack, which contains the chained lambdas between the last and this DIANode
- * for first input DIA.
- * \tparam Stack2 Function stack, which contains the chained lambdas between the last and this DIANode
- * for secondt input DIA.
+ *
+ * \tparam Stack1 Function stack, which contains the chained lambdas between the
+ * last and this DIANode for first input DIA.
+ *
+ * \tparam Stack2 Function stack, which contains the chained lambdas between the
+ * last and this DIANode for secondt input DIA.
+ *
  * \tparam Zip_Function Type of the ZipFunction.
  */
-template <typename Input1, typename Input2, typename Output, typename Stack1, typename Stack2, typename ZipFunction>
+template <typename Input1, typename Input2, typename Output,
+          typename Stack1, typename Stack2, typename ZipFunction>
 class TwoZipNode : public DOpNode<Output>
 {
     static const bool debug = true;
@@ -84,7 +89,8 @@ public:
     }
 
     /*!
-     * Actually executes the zip operation. Uses the member functions PreOp, MainOp and PostOp.
+     * Actually executes the zip operation. Uses the member functions PreOp,
+     * MainOp and PostOp.
      */
     void execute() override
     {
@@ -132,7 +138,8 @@ private:
     std::vector<zip_arg_0_t> elements1_;
     std::vector<zip_arg_1_t> elements2_;
 
-    //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a global barrier.
+    //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a
+    //! global barrier.
     void PreOp(zip_arg_0_t input)
     {
         LOG << "PreOp(First): " << input;

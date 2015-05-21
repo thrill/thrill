@@ -22,11 +22,13 @@ namespace c7a {
 //! \{
 
 /*!
- * A LOpNode which performs a chain of local operations.
- * LOp nodes are used for caching local operation results and assignment operations.
+ * A LOpNode which performs a chain of local operations.  LOp nodes are used for
+ * caching local operation results and assignment operations.
  *
  * \tparam Input Input type of the Reduce operation
- * \tparam LOpStack Function chain, which contains the chained lambdas between the last and this DIANode.
+ *
+ * \tparam LOpStack Function chain, which contains the chained lambdas between
+ * the last and this DIANode.
  */
 template <typename Input, typename LOpStack>
 class LOpNode : public DIANode<Input>
@@ -43,7 +45,8 @@ public:
             DIANode<Input>* parent,
             LOpStack& lop_stack)
         : DIANode<Input>(ctx, { parent }),
-          lop_stack_(lop_stack) { }
+          lop_stack_(lop_stack)
+    { }
 
     //! Virtual destructor for a LOpNode.
     virtual ~LOpNode() { }
@@ -82,10 +85,7 @@ public:
      */
     std::string ToString() override
     {
-        // Create string
-        std::string str
-            = std::string("[LOpNode] Id: ") + std::to_string(DIABase::data_id_);
-        return str;
+        return "[LOpNode] Id: " + std::to_string(DIABase::data_id_);
     }
 
 private:

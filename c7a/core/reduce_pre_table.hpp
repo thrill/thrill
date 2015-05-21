@@ -64,6 +64,7 @@ protected:
     };
 
     struct bucket_block {
+        // TODO(ms): use a new/delete here instead of a vector, it is faster.
         std::vector<std::pair<key_t, value_t> > items;
 
         bucket_block                            * next = NULL;

@@ -20,6 +20,8 @@
 namespace c7a {
 namespace data {
 
+// TODO(an): this belongs to the LineReaderNode.
+
 //! InputLineIterator gives you access to lines of a file
 class InputLineIterator
 {

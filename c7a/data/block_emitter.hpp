@@ -30,6 +30,8 @@ public:
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
             Flush();
         }
+        // TODO(ts): the String content may be a lot bigger than
+        // sizeof(T). hence the block may overflow/reallocate.
         builder_.PutString(Serialize<T>(x));
     }
 

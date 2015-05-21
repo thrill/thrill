@@ -45,9 +45,10 @@ auto run_emitter(L lambda)
 }
 
 /*!
- * Recursive case for the chaining of lambda functions.
- * The given lambda function receives an input element, an emitter and should have no return type.
- * The emitter will be built using the chain of remaining lambda functions.
+ * Recursive case for the chaining of lambda functions.  The given lambda
+ * function receives an input element, an emitter and should have no return
+ * type.  The emitter will be built using the chain of remaining lambda
+ * functions.
  *
  * \param lambda Current lambda function to be chained.
  *
@@ -90,11 +91,12 @@ struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
 
 /*!
- * A FunctionStack is a chain of lambda functions that can be folded to a single lambda functions.
- * The FunctionStack basically consists of a tuple that contains lambda functions of varying types.
- * All lambda functions within the chain receive a single input value and a emitter function.
- * The emitter function is used for chaining lambdas together.
- * The single exception to this is the last lambda function, which receives no emitter.
+ * A FunctionStack is a chain of lambda functions that can be folded to a single
+ * lambda functions.  The FunctionStack basically consists of a tuple that
+ * contains lambda functions of varying types.  All lambda functions within the
+ * chain receive a single input value and a emitter function.  The emitter
+ * function is used for chaining lambdas together.  The single exception to this
+ * is the last lambda function, which receives no emitter.
  *
  * \tparam Types Types of the different lambda functions.
  */
