@@ -35,14 +35,14 @@ namespace data {
 struct BufferChain;
 
 //! Identification for DIAs
-typedef size_t DIAId;
-typedef size_t ChannelId;
-
+typedef ChainId DIAId;
+using c7a::net::ChannelId;
 //! Manages all kind of memory for data elements
 //!
 //!
 //! Provides Channel creation for sending / receiving data from other workers.
-class DataManager {
+class DataManager
+{
 public:
     DataManager(net::ChannelMultiplexer& cmp) : cmp_(cmp) { }
 
@@ -112,8 +112,7 @@ public:
     //! \param file Input file stream
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file)
-    {
+    InputLineIterator GetInputLineIterator(std::ifstream& file) {
         //TODO(ts): get those from networks
         size_t my_id = 0;
         size_t num_work = 1;
@@ -122,7 +121,7 @@ public:
     }
 
 private:
-    static const bool debug = true;
+    static const bool debug = false;
     net::ChannelMultiplexer& cmp_;
 
     BufferChainManager dias_;
