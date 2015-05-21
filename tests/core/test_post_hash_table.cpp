@@ -7,19 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
-#include <tests/c7a_tests.hpp>
-#include "c7a/api/context.hpp"
-#include <c7a/data/data_manager.hpp>
-#include <c7a/data/block_emitter.hpp>
-#include <c7a/net/channel_multiplexer.hpp>
-
-#include <functional>
-#include <cstdio>
-#include <utility>
-#include <vector>
-#include <string>
 
 #include "gtest/gtest.h"
 
