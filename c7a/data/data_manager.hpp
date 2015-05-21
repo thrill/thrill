@@ -14,6 +14,7 @@
 #include <c7a/data/block_iterator.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/input_line_iterator.hpp>
+#include <c7a/data/output_line_emitter.hpp>
 
 #include <map>
 #include <functional>
@@ -22,12 +23,9 @@
 #include <memory> //unique_ptr
 
 #include <c7a/net/channel_multiplexer.hpp>
-#include "block_iterator.hpp"
 #include "block_emitter.hpp"
 #include "buffer_chain.hpp"
-#include <c7a/common/logger.hpp>
 #include <c7a/data/socket_target.hpp>
-#include "input_line_iterator.hpp"
 #include <c7a/data/buffer_chain_manager.hpp>
 
 namespace c7a {
@@ -42,7 +40,8 @@ typedef size_t ChannelId;
 //!
 //!
 //! Provides Channel creation for sending / receiving data from other workers.
-class DataManager {
+class DataManager
+{
 public:
     DataManager(net::ChannelMultiplexer& cmp) : cmp_(cmp) { }
 
@@ -55,7 +54,8 @@ public:
     //!
     //! \param id ID of the DIA - determined by AllocateDIA()
     template <class T>
-    BlockIterator<T> GetLocalBlocks(DIAId id) {
+    BlockIterator<T> GetLocalBlocks(DIAId id)
+    {
         if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -66,7 +66,8 @@ public:
     //!
     //! \param id ID of the channel - determined by AllocateNetworkChannel()
     template <class T>
-    BlockIterator<T> GetRemoteBlocks(ChannelId id) {
+    BlockIterator<T> GetRemoteBlocks(ChannelId id)
+    {
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
@@ -77,14 +78,16 @@ public:
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    DIAId AllocateDIA() {
+    DIAId AllocateDIA()
+    {
         return dias_.AllocateNext();
     }
 
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    ChannelId AllocateNetworkChannel() {
+    ChannelId AllocateNetworkChannel()
+    {
         return cmp_.AllocateNext();
     }
 
@@ -92,7 +95,8 @@ public:
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
     template <class T>
-    BlockEmitter<T> GetLocalEmitter(DIAId id) {
+    BlockEmitter<T> GetLocalEmitter(DIAId id)
+    {
         if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -100,7 +104,8 @@ public:
     }
 
     template <class T>
-    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
+    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id)
+    {
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
@@ -119,6 +124,13 @@ public:
         size_t num_work = 1;
 
         return InputLineIterator(file, my_id, num_work);
+    }
+
+    //! Returns an OutputLineIterator with a given output file stream.
+    template <typename T>
+    OutputLineEmitter<T> GetOutputLineEmitter(std::ofstream& file)
+    {
+        return OutputLineEmitter<T>(file);
     }
 
 private:
