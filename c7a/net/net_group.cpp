@@ -73,7 +73,7 @@ NetGroup::NetGroup(ClientId my_rank, size_t group_size)
       connections_(group_size)
 { }
 
-void NetGroup::ExecuteLocalMockAsync(
+void NetGroup::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(NetGroup*)>& thread_function)
 {

@@ -95,13 +95,13 @@ public:
      */
     NetConnection & AssignConnection(NetConnection& connection)
     {
-        if (connection->GetPeerId() >= connections_.size())
+        if (connection.GetPeerId() >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
-                            "invalid client id " + std::to_string(connection->GetPeerId()));
+                            "invalid client id " + std::to_string(connection.GetPeerId()));
 
-        std::swap(connections_[connection->GetPeerId()], connection);
+        std::swap(connections_[connection.GetPeerId()], connection);
 
-        return connections_[connection->GetPeerId()];
+        return connections_[connection.GetPeerId()];
     }
 
     //! Return number of connections in this group.

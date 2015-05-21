@@ -30,7 +30,7 @@ namespace net {
  */
 class NetManager
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 private:
     NetGroup* netGroups_[GROUP_COUNT]; //Net groups
@@ -71,11 +71,11 @@ private:
     };
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
-    bool InitializationFinished() {
-        if(connections_.size() != (endpoints.size() - 1) * GROUP_COUNT)
+    bool InitializationFinished(size_t endpointCount) {
+        if(connections_.size() != (endpointCount - 1) * GROUP_COUNT)
             return false;
 
-        for(int i = 0; i < connections_.size(); i++) 
+        for(size_t i = 0; i < connections_.size(); i++) 
             if(connections_[i].GetState() != ConnectionState::Connected)
                 return false;
         
@@ -94,20 +94,21 @@ public:
     const std::function<void(NetGroup*)>& dataThreadFunction) {
 
         die_unless(GROUP_COUNT == 3); //Adjust this method too if groupcount is different
-        std::vector<std::thread> threads(GROUP_COUNT);
+        std::vector<std::thread*> threads(GROUP_COUNT);
 
-        threads[0] = std::thread([=] {
-            NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction):
+        threads[0] = new std::thread([=] {
+            NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction);
         });
-        threads[1] = std::thread([=] {
-            NetGroup::ExecuteLocalMock(num_clients, flowThreadFunction):
+        threads[1] = new std::thread([=] {
+            NetGroup::ExecuteLocalMock(num_clients, flowThreadFunction);
         });
-        threads[2] = std::thread([=] {
-            NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction):
+        threads[2] = new std::thread([=] {
+            NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction);
         });
 
-        for (size_t i = 0; i != thread.size(); ++i) {
-            threads[i].join();
+        for (size_t i = 0; i != threads.size(); ++i) {
+            threads[i]->join();
+            delete threads[i];
         }
     }
 
@@ -150,7 +151,7 @@ public:
         {
             for (uint32_t group = 0; group < GROUP_COUNT; group++) {
 
-                Connect(id, group);
+                CreateAndConnect(id, addressList[id], group);
             }
         }
 
@@ -158,8 +159,7 @@ public:
                                return ConnectionReceived(nc);
                            });
 
-        int helloCount = (int)((addressList.size() - 1) * GROUP_COUNT);
-        while (!InitializationFinished())
+        while (!InitializationFinished(endpoints.size()))
         {
             LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher.Dispatch();
@@ -167,7 +167,7 @@ public:
 
         for(size_t i = 0; i < connections_.size(); i++) {
             int groupId = connections_[i].GetGroupId();
-            die_unless(groupId >= 0 && groupId < GROUP_COUNT)
+            die_unless(groupId >= 0 && groupId < GROUP_COUNT);
             netGroups_[groupId]->AssignConnection(connections_[i]);
         }
 
@@ -186,34 +186,38 @@ public:
         }
     }
 
-    void Connect(size_t id, size_t group) {
-        const WelcomeMsg hello = { c7a_sign, group, (ClientId)my_rank_ };
+    void CreateAndConnect(size_t id, lowlevel::SocketAddress &address, size_t group) {
+        const WelcomeMsg hello = { c7a_sign, (uint32_t)group, (uint32_t)my_rank_ };
 
         lowlevel::Socket ns = lowlevel::Socket::Create();
+        ns.SetNonBlocking(true);
         connections_.emplace_back(ns);
         connections_.back().SetState(ConnectionState::Disconnected);
+        connections_.back().SetGroupId(group);
+        connections_.back().SetPeerId(id);
 
-        Connect(connections_.back(), hello)
+        Connect(connections_.back(), address, hello);
     }
 
-    void Connect(const NetConnection& connection, const WelcomeMsg &hello) {
+    void Connect(NetConnection& connection, lowlevel::SocketAddress &address, const WelcomeMsg &hello) {
 
         die_unless(connection.GetSocket().fd() > 0);
         die_unless(connection.GetSocket().IsValid());
-        die_unless(connection.GetState() != ConnectionState::Disconnected)
+        die_unless(connection.GetState() == ConnectionState::Disconnected);
 
-        int res = connection.GetSocket().connect(addressList[id]);
+        int res = connection.GetSocket().connect(address);
 
         connection.SetState(ConnectionState::Connecting);
 
         if (res == 0) {
+            LOG << "Early connect  success. This should not happen."; 
             // connect() already successful? this should not be.
-            Connected(connection, hello);
+            Connected(connection, address, hello);
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
             dispatcher.AddRead(connection, [ = ](NetConnection& nc) {
-                                   return Connected(nc, hello);
+                                   return Connected(nc, address, hello);
                                });
         }
         else {
@@ -221,12 +225,12 @@ public:
             connection.SetState(ConnectionState::Invalid);
 
             throw Exception("Could not connect to client "
-                            + std::to_string(id) + " via "
-                            + addressList[id].ToStringHostPort(), errno);
+                            + std::to_string(connection.GetPeerId()) + " via "
+                            + address.ToStringHostPort(), errno);
         }
     }
 
-    void HelloSent(const NetConnection& conn)
+    void HelloSent(NetConnection& conn)
     {
         if(conn.GetState() == ConnectionState::Connecting) {
             conn.SetState(ConnectionState::HelloSent);
@@ -242,7 +246,7 @@ public:
      * @details
      * @return
      */
-    bool Connected(NetConnection& conn, const WelcomeMsg& hello)
+    bool Connected(NetConnection& conn, lowlevel::SocketAddress address, const WelcomeMsg& hello)
     {
         int err = conn.GetSocket().GetError();
 
@@ -250,13 +254,13 @@ public:
             conn.SetState(ConnectionState::Disconnected);
             //Try a reconnect
             //TODO(ej): Figure out if we need a timer here.
-            Connect(conn, hello);
+            Connect(conn, address, hello);
         }
 
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
 
-        conn.SetState(ConnectionState::TransportConnected)
+        conn.SetState(ConnectionState::TransportConnected);
         conn.SetPeerId(hello.id);
         conn.SetGroupId(hello.groupId);
 
@@ -290,19 +294,17 @@ public:
     {
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
-
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
+        die_unequal(conn.GetState(), ConnectionState::HelloSent);
 
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg->c7a, c7a_sign);
+        //We already know those values since we connected actively.
+        //So, check for any errors. 
+        die_unequal(conn.GetPeerId(), msg->id);
+        die_unequal(conn.GetGroupId(), msg->groupId);
 
-        if(conn.GetState() == ConnectionState::HelloSent) {
-            conn.SetGroupId(msg->groupId);
-            conn.SetPeerId(msg->id);
-            conn.SetState(ConnectionState::Connected);
-        } else {
-            die("State mismatch.");
-        }
+        conn.SetState(ConnectionState::Connected);
 
         LOG << "client " << my_rank_ << " got signature "
             << "from client " << msg->id;
@@ -320,15 +322,18 @@ public:
     {
         die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
+        LOG << "connection state: " << conn.GetState();
+        die_unequal(conn.GetState(), ConnectionState::TransportConnected);
 
         const WelcomeMsg* msg = reinterpret_cast<const WelcomeMsg*>(buffer.data());
         die_unequal(msg->c7a, c7a_sign);
         LOG << "client " << my_rank_ << " got signature "
             << "from client " << msg->id;
 
+        conn.SetState(ConnectionState::HelloReceived);
+
         const WelcomeMsg hello = { c7a_sign, msg->groupId, (ClientId)my_rank_ };
 
-        die_unless(conn.GetSocket().IsValid());
         // send welcome message
 
         conn.SetPeerId(msg->id);
@@ -348,7 +353,7 @@ public:
         die_unless(connections_.back().GetSocket().fd() > 0);
         die_unless(connections_.back().GetSocket().IsValid());
         
-        conn.SetState(ConnectionState::TransportConnected)
+        conn.SetState(ConnectionState::TransportConnected);
 
         LOG << "OpenConnections() " << my_rank_ << " accepted connection"
             << " fd=" << connections_.back().GetSocket().fd()
