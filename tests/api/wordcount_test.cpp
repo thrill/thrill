@@ -8,18 +8,24 @@
  ******************************************************************************/
 
 #include <c7a/api/dia_base.hpp>
+#include <c7a/net/net_endpoint.hpp>
+#include <c7a/core/job_manager.hpp>
+#include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
 #include <tests/c7a_tests.hpp>
 
 #include "gtest/gtest.h"
 
 using namespace c7a::core;
+using namespace c7a::net;
 
 TEST(WordCount, PreOP) {
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
 
     Context ctx;
+    std::vector<std::string> self = { "127.0.0.1:1234" };
+    ctx.job_manager().Connect(0, NetEndpoint::ParseEndpointList(self));
 
     auto line_to_words = [](std::string line, std::function<void(WordPair)> emit) {
                              std::string word;
