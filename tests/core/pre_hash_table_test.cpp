@@ -157,26 +157,49 @@ TEST_F(PreTable, ComplexType) {
 }
 
 TEST_F(PreTable, BigTest) {
-    using StringPair = std::pair<int, int>;
 
-    auto key_ex = [](StringPair in) {
-                      return in.first % 501;
+    struct MyStruct
+    {
+        int key;
+        int count;
+
+        // only initializing constructor, no default construction possible.
+        explicit MyStruct(int k, int c) : key(k), count(c)
+        { }
+    };
+
+    auto key_ex = [](const MyStruct& in) {
+                      return in.key % 500;
                   };
 
-    auto red_fn = [](StringPair in1, StringPair in2) {
-                      return std::make_pair(in1.first, in1.second + in2.second);
-                  };
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+        return MyStruct(in1.key, in1.count + in2.count);
+    };
+
+    size_t total_sum = 0, total_count = 0;
+
+    auto emit_fn = [&](const MyStruct& in) {
+        total_count++;
+        total_sum += in.count;
+    };
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              decltype(int_pair_emit), 16* 1024>
+                              decltype(emit_fn), 16* 1024>
     table(1, 2, 2, 128 * 1024, 1024 * 1024,
-          key_ex, red_fn, { int_pair_emit });
+          key_ex, red_fn, { emit_fn });
 
     // insert lots of items
-    for (size_t i = 0; i != 1 * 1024 * 1024; ++i) {
-        table.Insert(std::make_pair(i, i));
+    size_t nitems = 1 * 1024 * 1024;
+    for (size_t i = 0; i != nitems; ++i) {
+        table.Insert(MyStruct(i, 1));
     }
+
+    table.Flush();
+
+    // actually check that the reduction worked
+    ASSERT_EQ(total_count, 500);
+    ASSERT_EQ(total_sum, nitems);
 }
 
 TEST_F(PreTable, MultipleWorkers) {
