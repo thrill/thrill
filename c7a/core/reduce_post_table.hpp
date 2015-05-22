@@ -26,7 +26,6 @@
 
 namespace c7a {
 namespace core {
-
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePostTable
 {
@@ -60,7 +59,6 @@ public:
         init();
     }
 
-    // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
     ReducePostTable(KeyExtractor key_extractor,
                     ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : key_extractor_(key_extractor),
@@ -311,7 +309,6 @@ private:
 
     std::vector<node<key_t, value_t>*> vector_;
 };
-
 } // namespace core
 } // namespace c7a
 

@@ -19,7 +19,6 @@
 #include "../data/data_manager.hpp"
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -74,6 +73,10 @@ public:
         callbacks_.push_back(callback);
     }
 
+    std::vector<std::function<void(T)> > & callbacks() {
+        return callbacks_;
+    }
+
 protected:
     //! State of the DIANode. State is NEW on creation.
     kState state_ = NEW;
@@ -99,7 +102,6 @@ protected:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_DIA_NODE_HEADER

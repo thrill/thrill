@@ -26,7 +26,6 @@
 #include <vector>
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -76,7 +75,8 @@ public:
           local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          elements_()
+          channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
+          reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, ctx.get_data_manager().template GetNetworkEmitters<Output>(channel_id_))
     {
         // Hook PreOp
         auto pre_op_fn = [ = ](reduce_arg_t input) {
@@ -95,16 +95,19 @@ public:
      * MainOp and PostOp.
      */
     void execute() override {
+        //Flush hash table to send data before main op begins
+        reduce_pre_table_.Flush();
+
         MainOp();
-        // get data from data manager
-        data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
-        // loop over input
-        while (it.HasNext()) {
-            const Output& item = it.Next();
-            for (auto func : DIANode<Output>::callbacks_) {
-                func(item);
-            }
-        }
+        // // get data from data manager
+        // data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
+        // // loop over input
+        // while (it.HasNext()) {
+        //     const Output& item = it.Next();
+        //     for (auto func : DIANode<Output>::callbacks_) {
+        //         func(item);
+        //     }
+        // }
     }
 
     /*!
@@ -136,33 +139,36 @@ private:
     KeyExtractor key_extractor_;
     //!Reduce function
     ReduceFunction reduce_function_;
-    //! Local storage
-    std::vector<reduce_arg_t> elements_;
+
+    data::ChannelId channel_id_;
+
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::BlockEmitter<Output> > reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
     void PreOp(reduce_arg_t input) {
-        elements_.push_back(input);
+        reduce_pre_table_.Insert(input);
     }
 
     //!Recieve elements from other workers.
     auto MainOp() {
-        using ReduceTable
-                  = core::ReducePostTable<KeyExtractor,
-                                          ReduceFunction,
-                                          std::function<void(reduce_arg_t)> >;
-
         std::function<void(Output)> print =
             [](Output elem) {
                 LOG << elem.first << " " << elem.second;
             };
 
-        ReduceTable table(key_extractor_, reduce_function_,
-                          { print });
+        using ReduceTable
+                  = core::ReducePostTable<KeyExtractor,
+                                          ReduceFunction,
+                                          std::function<void(Output)> >;
 
-        for (const reduce_arg_t& elem : elements_) {
-            table.Insert(elem);
+        ReduceTable table(key_extractor_, reduce_function_, DIANode<Output>::callbacks());
+
+        auto it = context_.get_data_manager().template GetRemoteBlocks<Output>(channel_id_);
+
+        while (it.HasNext()) {
+            table.Insert(it.Next());
         }
 
         table.Flush();
@@ -175,7 +181,6 @@ private:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
