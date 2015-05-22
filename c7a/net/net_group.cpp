@@ -31,15 +31,13 @@ public:
     NetReadBuffer(lowlevel::Socket& socket, size_t buffer_size = BufferSize,
                   const Functional& functional = Functional())
         : functional_(functional),
-          buffer_(buffer_size, 0)
-    {
+          buffer_(buffer_size, 0) {
         if (buffer_size == 0)
             functional_(socket, buffer_);
     }
 
     //! Should be called when the socket is readable
-    bool operator () (lowlevel::Socket& s)
-    {
+    bool operator () (lowlevel::Socket& s) {
         int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
                            buffer_.size() - size_);
 
@@ -70,8 +68,7 @@ private:
 
 void NetGroup::ExecuteLocalMock(
     size_t num_clients,
-    const std::function<void(NetGroup*)>& thread_function)
-{
+    const std::function<void(NetGroup*)>& thread_function) {
     using lowlevel::Socket;
 
     // construct a group of num_clients

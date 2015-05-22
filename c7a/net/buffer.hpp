@@ -73,8 +73,7 @@ public:
 
     //! allocate buffer and COPY data into it.
     explicit Buffer(const void* data, size_type size)
-        : Buffer(true, malloc(size), size)
-    {
+        : Buffer(true, malloc(size), size) {
         const value_type* cdata = reinterpret_cast<const value_type*>(data);
         std::copy(cdata, cdata + size, data_);
     }
@@ -86,15 +85,13 @@ public:
 
     //! move-construct other buffer into this one
     Buffer(Buffer&& other)
-        : data_(other.data_), size_(other.size_)
-    {
+        : data_(other.data_), size_(other.size_) {
         other.data_ = nullptr;
         other.size_ = 0;
     }
 
     //! move-assignment of other buffer into this one
-    Buffer& operator = (Buffer&& other)
-    {
+    Buffer& operator = (Buffer&& other) {
         assert(this != &other);
         if (data_) free(data_);
         data_ = other.data_;
@@ -110,14 +107,12 @@ public:
     { return Buffer(true, data, size); }
 
     //! delete buffer
-    ~Buffer()
-    {
+    ~Buffer() {
         if (data_) free(data_);
     }
 
     //! swap buffer with another one
-    friend void swap(Buffer& a, Buffer& b)
-    {
+    friend void swap(Buffer& a, Buffer& b) {
         using std::swap;
         swap(a.data_, b.data_);
         swap(a.size_, b.size_);
@@ -140,14 +135,12 @@ public:
     { return size_; }
 
     //! return the i-th position of the vector
-    reference operator [] (size_type i)
-    {
+    reference operator [] (size_type i) {
         assert(i < size_);
         return *(begin() + i);
     }
     //! return constant reference to the i-th position of the vector
-    const_reference operator [] (size_type i) const
-    {
+    const_reference operator [] (size_type i) const {
         assert(i < size_);
         return *(begin() + i);
     }
@@ -182,16 +175,14 @@ public:
     //! \{
 
     //! Zero the whole array content.
-    void Zero()
-    {
+    void Zero() {
         std::fill(data_, data_ + size_, value_type(0));
     }
 
     //! resize the array to contain exactly new_size items. This should only be
     //! used if the Buffer was default constructed containing an empty array. It
     //! should NOT be used to resizing it, since this requires it to copy data.
-    void Resize(size_type new_size)
-    {
+    void Resize(size_type new_size) {
         if (data_)
         {
             LOG1 << "Warning: resizing non-empty simple_vector";
@@ -211,15 +202,13 @@ public:
     //! \{
 
     //! copy contents into std::string
-    std::string ToString() const
-    {
+    std::string ToString() const {
         if (!data_) return std::string();
         return std::string(reinterpret_cast<const char*>(data_), size_);
     }
 
     //! make ostream-able
-    friend std::ostream& operator << (std::ostream& os, const Buffer& b)
-    {
+    friend std::ostream& operator << (std::ostream& os, const Buffer& b) {
         return os << "[Buffer size=" << b.size() << "]";
     }
 

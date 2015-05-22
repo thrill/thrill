@@ -30,8 +30,7 @@ public:
 
     void execute() { }
 
-    std::string toString() override
-    {
+    std::string toString() override {
         return "[WriteNode] Id: " + std::to_string(DIABase::data_id_);
     }
 

@@ -59,15 +59,13 @@ public:
 
     //! Copy-Constructor, duplicates memory content.
     BinaryBufferBuilder(const BinaryBufferBuilder& other)
-        : data_(nullptr), size_(0), capacity_(0)
-    {
+        : data_(nullptr), size_(0), capacity_(0) {
         Assign(other);
     }
 
     //! Move-Constructor, moves memory area.
     BinaryBufferBuilder(BinaryBufferBuilder&& other)
-        : data_(other.data_), size_(other.size_), capacity_(other.capacity_)
-    {
+        : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {
         other.data_ = nullptr;
         other.size_ = 0;
         other.capacity_ = 0;
@@ -75,28 +73,24 @@ public:
 
     //! Constructor, copy memory area.
     BinaryBufferBuilder(const void* data, size_t n)
-        : data_(nullptr), size_(0), capacity_(0)
-    {
+        : data_(nullptr), size_(0), capacity_(0) {
         Assign(data, n);
     }
 
     //! Constructor, create object with n bytes pre-allocated.
     explicit BinaryBufferBuilder(size_t n)
-        : data_(nullptr), size_(0), capacity_(0)
-    {
+        : data_(nullptr), size_(0), capacity_(0) {
         Reserve(n);
     }
 
     //! Constructor from std::string, COPIES string content.
     explicit BinaryBufferBuilder(const std::string& str)
-        : data_(nullptr), size_(0), capacity_(0)
-    {
+        : data_(nullptr), size_(0), capacity_(0) {
         Assign(str.data(), str.size());
     }
 
     //! Assignment operator: copy other's memory range into buffer.
-    BinaryBufferBuilder& operator = (const BinaryBufferBuilder& other)
-    {
+    BinaryBufferBuilder& operator = (const BinaryBufferBuilder& other) {
         if (&other != this)
             Assign(other.data(), other.size());
 
@@ -104,8 +98,7 @@ public:
     }
 
     //! Move-Assignment operator: move other's memory area into buffer.
-    BinaryBufferBuilder& operator = (BinaryBufferBuilder&& other)
-    {
+    BinaryBufferBuilder& operator = (BinaryBufferBuilder&& other) {
         if (this != &other)
         {
             if (data_) delete[] data_;
@@ -120,15 +113,13 @@ public:
     }
 
     //! Destroys the memory space.
-    ~BinaryBufferBuilder()
-    {
+    ~BinaryBufferBuilder() {
         Deallocate();
     }
 
     //! Deallocates the kept memory space (we use dealloc() instead of free()
     //! as a name, because sometimes "free" is replaced by the preprocessor)
-    BinaryBufferBuilder & Deallocate()
-    {
+    BinaryBufferBuilder & Deallocate() {
         if (data_) free(data_);
         data_ = nullptr;
         size_ = capacity_ = 0;
@@ -142,26 +133,22 @@ public:
     //! \{
 
     //! Return a pointer to the currently kept memory area.
-    const Byte * data() const
-    {
+    const Byte * data() const {
         return data_;
     }
 
     //! Return a writeable pointer to the currently kept memory area.
-    Byte * data()
-    {
+    Byte * data() {
         return data_;
     }
 
     //! Return the currently used length in bytes.
-    size_t size() const
-    {
+    size_t size() const {
         return size_;
     }
 
     //! Return the currently allocated buffer capacity.
-    size_t capacity() const
-    {
+    size_t capacity() const {
         return capacity_;
     }
 
@@ -171,16 +158,14 @@ public:
     //! \{
 
     //! Clears the memory contents, does not deallocate the memory.
-    BinaryBufferBuilder & Clear()
-    {
+    BinaryBufferBuilder & Clear() {
         size_ = 0;
         return *this;
     }
 
     //! Set the valid bytes in the buffer, use if the buffer is filled
     //! directly.
-    BinaryBufferBuilder & set_size(size_t n)
-    {
+    BinaryBufferBuilder & set_size(size_t n) {
         assert(n <= capacity_);
         size_ = n;
 
@@ -188,8 +173,7 @@ public:
     }
 
     //! Make sure that at least n bytes are allocated.
-    BinaryBufferBuilder & Reserve(size_t n)
-    {
+    BinaryBufferBuilder & Reserve(size_t n) {
         if (capacity_ < n)
         {
             capacity_ = n;
@@ -201,8 +185,7 @@ public:
 
     //! Dynamically allocate more memory. At least n bytes will be available,
     //! probably more to compensate future growth.
-    BinaryBufferBuilder & DynReserve(size_t n)
-    {
+    BinaryBufferBuilder & DynReserve(size_t n) {
         if (capacity_ < n)
         {
             // place to adapt the buffer growing algorithm as need.
@@ -221,8 +204,7 @@ public:
     }
 
     //! Detach the memory from the object, returns the memory pointer.
-    const Byte * Detach()
-    {
+    const Byte * Detach() {
         const Byte* data = data_;
         data_ = nullptr;
         size_ = capacity_ = 0;
@@ -230,14 +212,12 @@ public:
     }
 
     //! Explicit conversion to std::string (copies memory of course).
-    std::string ToString() const
-    {
+    std::string ToString() const {
         return std::string(reinterpret_cast<const char*>(data_), size_);
     }
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
-    net::Buffer ToBuffer()
-    {
+    net::Buffer ToBuffer() {
         net::Buffer b = net::Buffer::Acquire(data_, size_);
         Detach();
         return std::move(b);
@@ -250,8 +230,7 @@ public:
 
     //! Copy a memory range into the buffer, overwrites all current
     //! data. Roughly equivalent to clear() followed by append().
-    BinaryBufferBuilder & Assign(const void* data, size_t len)
-    {
+    BinaryBufferBuilder & Assign(const void* data, size_t len) {
         if (len > capacity_) Reserve(len);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -263,8 +242,7 @@ public:
 
     //! Copy the contents of another buffer object into this buffer, overwrites
     //! all current data. Roughly equivalent to clear() followed by append().
-    BinaryBufferBuilder & Assign(const BinaryBufferBuilder& other)
-    {
+    BinaryBufferBuilder & Assign(const BinaryBufferBuilder& other) {
         if (&other != this)
             Assign(other.data(), other.size());
 
@@ -272,8 +250,7 @@ public:
     }
 
     //! Align the size of the buffer to a multiple of n. Fills up with 0s.
-    BinaryBufferBuilder & Align(size_t n)
-    {
+    BinaryBufferBuilder & Align(size_t n) {
         assert(n > 0);
         size_t rem = size_ % n;
         if (rem != 0)
@@ -294,8 +271,7 @@ public:
     //! \{
 
     //! Append a memory range to the buffer
-    BinaryBufferBuilder & Append(const void* data, size_t len)
-    {
+    BinaryBufferBuilder & Append(const void* data, size_t len) {
         if (size_ + len > capacity_) DynReserve(size_ + len);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -306,23 +282,20 @@ public:
     }
 
     //! Append the contents of a different buffer object to this one.
-    BinaryBufferBuilder & Append(const class BinaryBufferBuilder& bb)
-    {
+    BinaryBufferBuilder & Append(const class BinaryBufferBuilder& bb) {
         return Append(bb.data(), bb.size());
     }
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    BinaryBufferBuilder & Append(const std::string& s)
-    {
+    BinaryBufferBuilder & Append(const std::string& s) {
         return Append(s.data(), s.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BinaryBufferBuilder & Put(const Type item)
-    {
+    BinaryBufferBuilder & Put(const Type item) {
         static_assert(std::is_integral<Type>::value,
                       "You only want to Put() integral types as raw values.");
 
@@ -335,8 +308,7 @@ public:
     }
 
     //! Append a varint to the buffer.
-    BinaryBufferBuilder & PutVarint(uint32_t v)
-    {
+    BinaryBufferBuilder & PutVarint(uint32_t v) {
         if (v < 128) {
             Put<uint8_t>(uint8_t(v));
         }
@@ -367,14 +339,12 @@ public:
     }
 
     //! Append a varint to the buffer.
-    BinaryBufferBuilder & PutVarint(int v)
-    {
+    BinaryBufferBuilder & PutVarint(int v) {
         return PutVarint((uint32_t)v);
     }
 
     //! Append a varint to the buffer.
-    BinaryBufferBuilder & PutVarint(uint64_t v)
-    {
+    BinaryBufferBuilder & PutVarint(uint64_t v) {
         if (v < 128) {
             Put<uint8_t>(uint8_t(v));
         }
@@ -457,26 +427,22 @@ public:
     }
 
     //! Put a string by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const char* data, size_t len)
-    {
+    BinaryBufferBuilder & PutString(const char* data, size_t len) {
         return PutVarint((uint32_t)len).Append(data, len);
     }
 
     //! Put a string by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const Byte* data, size_t len)
-    {
+    BinaryBufferBuilder & PutString(const Byte* data, size_t len) {
         return PutVarint((uint32_t)len).Append(data, len);
     }
 
     //! Put a string by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const std::string& str)
-    {
+    BinaryBufferBuilder & PutString(const std::string& str) {
         return PutString(str.data(), str.size());
     }
 
     //! Put a BinaryBufferBuilder by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const BinaryBufferBuilder& bb)
-    {
+    BinaryBufferBuilder & PutString(const BinaryBufferBuilder& bb) {
         return PutString(bb.data(), bb.size());
     }
 

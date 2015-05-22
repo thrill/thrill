@@ -94,8 +94,7 @@ public:
      * Actually executes the reduce operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override
-    {
+    void execute() override {
         MainOp();
         // get data from data manager
         data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
@@ -126,8 +125,7 @@ public:
      * Returns "[ReduceNode]" and its id as a string.
      * \return "[ReduceNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[ReduceNode id=" + std::to_string(data_id_) + "]";
     }
 
@@ -144,8 +142,7 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(reduce_arg_t input)
-    {
+    void PreOp(reduce_arg_t input) {
         elements_.push_back(input);
     }
 
@@ -172,8 +169,7 @@ private:
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
-    void PostOp(Output input, std::function<void(Output)> emit_func)
-    {
+    void PostOp(Output input, std::function<void(Output)> emit_func) {
         emit_func(input);
     }
 };

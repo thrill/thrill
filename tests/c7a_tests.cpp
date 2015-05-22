@@ -14,8 +14,7 @@
 
 std::string g_workpath;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
     if (argc <= 1) {

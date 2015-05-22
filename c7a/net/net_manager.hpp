@@ -47,8 +47,7 @@ private:
      * @param endpoints The endpoint list to convert.
      * @return The socket addresses to use internally.
      */
-    std::vector<lowlevel::SocketAddress> GetAddressList(const std::vector<NetEndpoint>& endpoints)
-    {
+    std::vector<lowlevel::SocketAddress> GetAddressList(const std::vector<NetEndpoint>& endpoints) {
         std::vector<lowlevel::SocketAddress> addressList;
 
         for (const NetEndpoint& ne : endpoints)
@@ -72,8 +71,7 @@ private:
     };
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
-    bool InitializationFinished(size_t endpointCount)
-    {
+    bool InitializationFinished(size_t endpointCount) {
         if (connections_.size() != (endpointCount - 1) * kGroupCount)
             return false;
 
@@ -93,8 +91,7 @@ public:
         size_t num_clients,
         const std::function<void(NetGroup*)>& systemThreadFunction,
         const std::function<void(NetGroup*)>& flowThreadFunction,
-        const std::function<void(NetGroup*)>& dataThreadFunction)
-    {
+        const std::function<void(NetGroup*)>& dataThreadFunction) {
         die_unless(kGroupCount == 3); //Adjust this method too if groupcount is different
         std::vector<std::thread*> threads(kGroupCount);
 
@@ -114,8 +111,7 @@ public:
         }
     }
 
-    void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints)
-    {
+    void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints) {
         this->my_rank_ = my_rank_;
 
         if (connections_.size() != 0) {
@@ -190,8 +186,7 @@ public:
         }
     }
 
-    void CreateAndConnect(size_t id, lowlevel::SocketAddress& address, size_t group)
-    {
+    void CreateAndConnect(size_t id, lowlevel::SocketAddress& address, size_t group) {
         lowlevel::Socket ns = lowlevel::Socket::Create();
         connections_.emplace_back(ns, group, id);
         connections_.back().SetState(ConnectionState::Disconnected);
@@ -199,8 +194,7 @@ public:
         Connect(connections_.back(), address);
     }
 
-    void Connect(NetConnection& connection, lowlevel::SocketAddress& address)
-    {
+    void Connect(NetConnection& connection, lowlevel::SocketAddress& address) {
         die_unless(connection.GetSocket().IsValid());
         die_unless(connection.GetState() == ConnectionState::Disconnected);
 
@@ -230,8 +224,7 @@ public:
         }
     }
 
-    void HelloSent(NetConnection& conn)
-    {
+    void HelloSent(NetConnection& conn) {
         if (conn.GetState() == ConnectionState::TransportConnected) {
             conn.SetState(ConnectionState::HelloSent);
         }
@@ -248,8 +241,7 @@ public:
      * @details
      * @return
      */
-    bool Connected(NetConnection& conn, lowlevel::SocketAddress address)
-    {
+    bool Connected(NetConnection& conn, lowlevel::SocketAddress address) {
         int err = conn.GetSocket().GetError();
 
         if (err != 0) {
@@ -290,8 +282,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessage(NetConnection& conn, Buffer&& buffer)
-    {
+    bool ReceiveWelcomeMessage(NetConnection& conn, Buffer&& buffer) {
         die_unless(conn.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
         die_unequal(conn.GetState(), ConnectionState::HelloSent);
@@ -317,8 +308,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, Buffer&& buffer)
-    {
+    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, Buffer&& buffer) {
         die_unless(conn.GetSocket().IsValid());
         die_unless(conn.GetState() != ConnectionState::TransportConnected);
 
@@ -344,8 +334,7 @@ public:
         return false;
     }
 
-    bool ConnectionReceived(NetConnection& conn)
-    {
+    bool ConnectionReceived(NetConnection& conn) {
         connections_.emplace_back(conn.GetSocket().accept());
         die_unless(connections_.back().GetSocket().IsValid());
 
@@ -365,18 +354,15 @@ public:
         return true;
     }
 
-    NetGroup & GetSystemNetGroup()
-    {
+    NetGroup & GetSystemNetGroup() {
         return netGroups_[0];
     }
 
-    NetGroup & GetFlowNetGroup()
-    {
+    NetGroup & GetFlowNetGroup() {
         return netGroups_[1];
     }
 
-    NetGroup & GetDataNetGroup()
-    {
+    NetGroup & GetDataNetGroup() {
         return netGroups_[2];
     }
 };

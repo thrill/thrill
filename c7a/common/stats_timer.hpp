@@ -58,8 +58,7 @@ protected:
 public:
     //! Initialize and optionally immediately start the timer
     explicit StatsTimer(bool start_immediately = false)
-        : running_(false)
-    {
+        : running_(false) {
         if (start_immediately) Start();
     }
 
@@ -67,16 +66,14 @@ public:
     bool Real() const { return true; }
 
     //! start timer
-    void Start()
-    {
+    void Start() {
         assert(!running_);
         running_ = true;
         last_start_ = steady_clock::now();
     }
 
     //! stop timer
-    void Stop()
-    {
+    void Stop() {
         assert(running_);
         running_ = false;
         accumulated_ += std::chrono::duration_cast<duration>(
@@ -84,15 +81,13 @@ public:
     }
 
     //! return accumulated time
-    void Reset()
-    {
+    void Reset() {
         accumulated_ = duration(0);
         last_start_ = steady_clock::now();
     }
 
     //! return currently accumulated time
-    duration Accumulated() const
-    {
+    duration Accumulated() const {
         duration d = accumulated_;
 
         if (running_)
@@ -103,36 +98,31 @@ public:
     }
 
     //! return currently accumulated time in microseconds
-    std::chrono::microseconds::rep Microseconds() const
-    {
+    std::chrono::microseconds::rep Microseconds() const {
         return std::chrono::duration_cast<std::chrono::microseconds>(
             Accumulated()).count();
     }
 
     //! return currently accumulated time in milliseconds
-    std::chrono::milliseconds::rep Milliseconds() const
-    {
+    std::chrono::milliseconds::rep Milliseconds() const {
         return std::chrono::duration_cast<std::chrono::milliseconds>(
             Accumulated()).count();
     }
 
     //! return currently accumulated time in milliseconds
-    std::chrono::seconds::rep Seconds() const
-    {
+    std::chrono::seconds::rep Seconds() const {
         return std::chrono::duration_cast<std::chrono::seconds>(
             Accumulated()).count();
     }
 
     //! accumulate elapsed time from another timer
-    StatsTimer& operator += (const StatsTimer& tm)
-    {
+    StatsTimer& operator += (const StatsTimer& tm) {
         accumulated_ += tm.accumulated_;
         return *this;
     }
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
-    friend std::ostream& operator << (std::ostream& os, const StatsTimer& t)
-    {
+    friend std::ostream& operator << (std::ostream& os, const StatsTimer& t) {
         return os << t.Milliseconds() << "ms";
     }
 };
@@ -167,38 +157,32 @@ public:
     { }
 
     //! return currently accumulated time
-    duration Accumulated() const
-    {
+    duration Accumulated() const {
         return duration();
     }
 
     //! return currently accumulated time in microseconds
-    std::chrono::microseconds::rep Microseconds() const
-    {
+    std::chrono::microseconds::rep Microseconds() const {
         return 0;
     }
 
     //! return currently accumulated time in milliseconds
-    std::chrono::milliseconds::rep Milliseconds() const
-    {
+    std::chrono::milliseconds::rep Milliseconds() const {
         return 0;
     }
 
     //! return currently accumulated time in milliseconds
-    std::chrono::seconds::rep Seconds() const
-    {
+    std::chrono::seconds::rep Seconds() const {
         return 0;
     }
 
     //! accumulate elapsed time from another timer
-    StatsTimer& operator += (const StatsTimer&)
-    {
+    StatsTimer& operator += (const StatsTimer&) {
         return *this;
     }
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
-    friend std::ostream& operator << (std::ostream& os, const StatsTimer&)
-    {
+    friend std::ostream& operator << (std::ostream& os, const StatsTimer&) {
         return os << "<invalid>" << "ms";
     }
 };

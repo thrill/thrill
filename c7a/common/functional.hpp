@@ -17,8 +17,7 @@ namespace c7a {
 template <typename T>
 struct SumOp {
     //! returns the sum of a and b
-    T operator () (const T& a, const T& b)
-    {
+    T operator () (const T& a, const T& b) {
         return a + b;
     }
 };
