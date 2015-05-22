@@ -34,6 +34,10 @@ public:
         return number_worker_;
     }
 
+    core::JobManager & GetJobManager() {
+        return job_manager_;
+    }
+
 private:
     core::JobManager job_manager_;
     //stub

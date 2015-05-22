@@ -53,11 +53,10 @@ class ChannelMultiplexer
 {
 public:
     ChannelMultiplexer(NetDispatcher& dispatcher)
-        : group_(nullptr),
-          dispatcher_(dispatcher) { }
+        : dispatcher_(dispatcher) { }
 
-    void Connect(std::shared_ptr<NetGroup> s) {
-        group_ = s;
+    void Connect(NetGroup* group) {
+        group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
             ExpectHeaderFrom(group_->Connection(id));
@@ -128,7 +127,7 @@ private:
     data::BufferChainManager chains_;
 
     //Hols NetConnections for outgoing Channels
-    std::shared_ptr<NetGroup> group_;
+    NetGroup* group_;
 
     NetDispatcher& dispatcher_;
 
