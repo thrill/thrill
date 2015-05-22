@@ -92,7 +92,7 @@ if(USE_GCOV)
   # command sequence to gather, clean and generate HTML coverage report
   add_custom_target(lcov-html
     COMMAND ${LCOV} -q --directory . --capture --output-file lcov.info
-    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' ${LCOV_FLAGS} --output-file lcov-clean.info
+    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' '*/tests/c7a_tests.cpp' ${LCOV_FLAGS} --output-file lcov-clean.info
     COMMAND ${GENHTML} -q -o coverage --title "c7a ${GITDESC}" --prefix ${PROJECT_SOURCE_DIR} ${GENHTML_FLAGS} lcov-clean.info
     DEPENDS lcov-runtests
     COMMENT "Capturing code coverage counters and create HTML coverage report"
