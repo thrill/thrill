@@ -55,8 +55,8 @@ private:
      */
     std::vector<SocketAddress> GetAddressList(
         const std::vector<NetEndpoint>& endpoints) {
-        std::vector<SocketAddress> addressList;
 
+        std::vector<SocketAddress> addressList;
         for (const NetEndpoint& ne : endpoints)
         {
             addressList.push_back(SocketAddress(ne.hostport));
@@ -80,6 +80,7 @@ private:
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
     bool InitializationFinished(size_t endpointCount) {
+
         for (uint32_t g = 0; g < kGroupCount; g++) {
             for (ClientId id = 0; id < groups_[g].Size(); ++id) {
                 if (id == my_rank_) continue;
@@ -103,6 +104,7 @@ public:
         const std::function<void(NetGroup*)>& systemThreadFunction,
         const std::function<void(NetGroup*)>& flowThreadFunction,
         const std::function<void(NetGroup*)>& dataThreadFunction) {
+
         // Adjust this method too if groupcount is different
         die_unless(kGroupCount == 3);
 
@@ -127,7 +129,9 @@ public:
         }
     }
 
-    void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints) {
+    void Initialize(size_t my_rank_,
+                    const std::vector<NetEndpoint>& endpoints) {
+
         this->my_rank_ = my_rank_;
 
         if (connections_.size() != 0) {
@@ -205,6 +209,7 @@ public:
      */
     void AsyncConnect(
         uint32_t group, size_t id, SocketAddress& address) {
+
         // construct a new socket (old one is destroyed)
         NetConnection& nc = groups_[group].Connection(id);
         if (nc.IsValid()) nc.Close();
@@ -260,6 +265,7 @@ public:
      */
     bool OnConnected(
         NetConnection& conn, uint32_t group, size_t id, SocketAddress address) {
+
         int err = conn.GetSocket().GetError();
 
         if (err != 0) {
@@ -307,6 +313,7 @@ public:
      * @return
      */
     bool OnOutgoingWelcome(NetConnection& conn, Buffer&& buffer) {
+
         die_unless(conn.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
         die_unequal(conn.state(), ConnectionState::HelloSent);
@@ -329,6 +336,7 @@ public:
 
     //! Receives and handles a hello message of fixed size.
     bool OnIncomingWelcomeAndReply(NetConnection& conn, Buffer&& buffer) {
+
         die_unless(conn.GetSocket().IsValid());
         die_unless(conn.state() != ConnectionState::TransportConnected);
 
