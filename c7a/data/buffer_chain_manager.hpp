@@ -30,8 +30,7 @@ public:
     //! Allocates the next BufferChain.
     //! Calls to this method alter the internal state -> order of call is
     //! important and must be deterministic
-    ChainId AllocateNext()
-    {
+    ChainId AllocateNext() {
         ChainId result = next_id_;
         if (!Contains(next_id_))
             Allocate(next_id_++);
@@ -42,8 +41,7 @@ public:
     //! Use this only for internal stuff.
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
-    ChainId Allocate(ChainId id)
-    {
+    ChainId Allocate(ChainId id) {
         if (Contains(id)) {
             throw new std::runtime_error("duplicate chain allocation with explicit id");
         }
@@ -52,16 +50,14 @@ public:
     }
 
     //! Indicates if a Bufferchain exists with the given ID
-    bool Contains(ChainId id)
-    {
+    bool Contains(ChainId id) {
         return chains_.find(id) != chains_.end();
     }
 
     //! Returns the BufferChain with the given ID
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
-    std::shared_ptr<BufferChain> Chain(ChainId id)
-    {
+    std::shared_ptr<BufferChain> Chain(ChainId id) {
         if (!Contains(id)) {
             throw new std::runtime_error("chain id is unknown");
         }

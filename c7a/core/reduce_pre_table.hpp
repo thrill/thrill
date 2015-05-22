@@ -48,8 +48,7 @@ protected:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(key_t v, const ReducePreTable& ht)
-        {
+        hash_result(key_t v, const ReducePreTable& ht) {
             size_t hashed = std::hash<key_t>() (v);
 
             // partition idx
@@ -69,8 +68,7 @@ protected:
 
         bucket_block                            * next = NULL;
 
-        bucket_block(const ReducePreTable& ht)
-        {
+        bucket_block(const ReducePreTable& ht) {
             items.reserve(ht.bucket_block_size_);
         }
     };
@@ -87,8 +85,7 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit)
-    {
+          emit_(emit) {
         init();
     }
 
@@ -97,15 +94,13 @@ public:
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit)
-    {
+          emit_(emit) {
         init();
     }
 
     ~ReducePreTable() { }
 
-    void init()
-    {
+    void init() {
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
         if (num_partitions_ > num_buckets_ &&
             num_buckets_ % num_partitions_ != 0) {
@@ -124,8 +119,7 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const value_t& p)
-    {
+    void Insert(const value_t& p) {
         key_t key = key_extractor_(p);
 
         hash_result h(key, *this);
@@ -194,8 +188,7 @@ public:
     /*!
      * Flushes all items.
      */
-    void Flush()
-    {
+    void Flush() {
         LOG << "Flushing all items";
 
         // retrieve items
@@ -212,8 +205,7 @@ public:
      * having the most items. Retrieved items are then forward
      * to the provided emitter.
      */
-    void FlushLargestPartition()
-    {
+    void FlushLargestPartition() {
         LOG << "Flushing items of largest partition";
 
         // get partition with max size
@@ -248,8 +240,7 @@ public:
     /*!
      * Flushes all items of a partition.
      */
-    void FlushPartition(size_t partition_id)
-    {
+    void FlushPartition(size_t partition_id) {
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
@@ -283,24 +274,21 @@ public:
     /*!
      * Returns the total num of items.
      */
-    size_t Size()
-    {
+    size_t Size() {
         return table_size_;
     }
 
     /*!
      * Returns the total num of items.
      */
-    size_t NumBuckets()
-    {
+    size_t NumBuckets() {
         return num_buckets_;
     }
 
     /*!
      * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
      */
-    void SetMaxSize(size_t size)
-    {
+    void SetMaxSize(size_t size) {
         max_num_items_table_ = size;
     }
 
@@ -308,8 +296,7 @@ public:
      * Resizes the table by increasing the number of buckets using some
      * resize scale factor. All items are rehashed as part of the operation.
      */
-    void ResizeUp()
-    {
+    void ResizeUp() {
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
@@ -339,8 +326,7 @@ public:
     /*!
      * Removes all items in the table, but NOT flushing them.
      */
-    void Clear()
-    {
+    void Clear() {
         LOG << "Clearing";
         std::fill(vector_.begin(), vector_.end(), NULL);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
@@ -351,8 +337,7 @@ public:
     /*!
      * Removes all items in the table, but NOT flushing them.
      */
-    void Reset()
-    {
+    void Reset() {
         LOG << "Resetting";
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
@@ -365,8 +350,7 @@ public:
     /*!
      * Prints content of hash table.
      */
-    void Print()
-    {
+    void Print() {
         LOG << "Printing";
 
         for (int i = 0; i < num_buckets_; i++)

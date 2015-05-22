@@ -67,8 +67,7 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx, const DIABaseVector& parents)
-        : context_(ctx), parents_(parents)
-    {
+        : context_(ctx), parents_(parents) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -86,46 +85,39 @@ public:
 
     //! Returns the childs of this DIABase.
     //! \return A vector of all childs
-    const DIABaseVector & get_childs()
-    {
+    const DIABaseVector & get_childs() {
         return childs_;
     }
 
     //! Returns the parents of this DIABase.
     //! \return A vector of all parents
-    const DIABaseVector & get_parents()
-    {
+    const DIABaseVector & get_parents() {
         return parents_;
     }
 
     //! Returns the DataManager of this DIABase.
     //! \return The DataManager of this DIABase.
-    Context & get_context()
-    {
+    Context & get_context() {
         return context_;
     }
 
     //! Adds a child to the vector of childs. This method is called in the constructor.
     //! \param child The child to add.
-    void add_child(DIABasePtr child)
-    {
+    void add_child(DIABasePtr child) {
         childs_.push_back(child);
     }
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId get_data_id()
-    {
+    data::DIAId get_data_id() {
         return data_id_;
     }
 
-    kState state()
-    {
+    kState state() {
         return state_;
     }
 
-    kState set_state(kState state)
-    {
+    kState set_state(kState state) {
         return state_ = state;
     }
 
@@ -134,8 +126,7 @@ protected:
     kState state_ = NEW;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_()
-    {
+    std::string state_string_() {
         switch (state_) {
         case NEW:
             return "NEW";

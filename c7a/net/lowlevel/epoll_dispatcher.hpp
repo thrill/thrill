@@ -37,8 +37,7 @@ class EPollDispatcher
 
 public:
     //! construct epoll() dispatcher
-    EPollDispatcher()
-    {
+    EPollDispatcher() {
         epollfd_ = epoll_create1(0);
 
         if (epollfd_ == -1)
@@ -47,8 +46,7 @@ public:
     }
 
     //! free epoll() dispatcher
-    ~EPollDispatcher()
-    {
+    ~EPollDispatcher() {
         if (epollfd_ >= 0)
             close(epollfd_);
     }
@@ -56,8 +54,7 @@ public:
     typedef std::function<bool (Socket&)> Callback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Socket& s, const Callback& read_cb)
-    {
+    void AddRead(Socket& s, const Callback& read_cb) {
         int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
@@ -96,8 +93,7 @@ public:
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Socket& s, const Callback& write_cb)
-    {
+    void AddWrite(Socket& s, const Callback& write_cb) {
         int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
@@ -137,8 +133,7 @@ public:
 
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(Socket& s,
-                      const Callback& read_cb, const Callback& write_cb)
-    {
+                      const Callback& read_cb, const Callback& write_cb) {
         int fd = s.fd();
 
         WatchMap::iterator it = watch_.find(fd);
@@ -181,8 +176,7 @@ public:
         }
     }
 
-    void Dispatch(double timeout)
-    {
+    void Dispatch(double timeout) {
         if (watch_.size() == 0)
             LOG << "EPollDispatcher() called without any file descriptor to wait on";
 
@@ -377,8 +371,7 @@ private:
     WatchMap watch_;
 
     //! Default exception handler
-    static bool ExceptionCallback(Socket& s)
-    {
+    static bool ExceptionCallback(Socket& s) {
         // exception on listen socket ?
         throw NetException("EPollDispatcher() exception on socket fd "
                            + std::to_string(s.fd()) + "!",

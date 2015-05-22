@@ -41,8 +41,7 @@ public:
 
     //! Converts strings with space-separated host:ports
     //! to vector of NetEndpoint instances
-    static std::vector<NetEndpoint> ParseEndpointList(std::string str)
-    {
+    static std::vector<NetEndpoint> ParseEndpointList(std::string str) {
         std::stringstream stream;
         stream << str;
         std::vector<NetEndpoint> endpoints;
@@ -65,8 +64,7 @@ public:
     }
 };
 
-static inline std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint)
-{
+static inline std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint) {
     return os << endpoint.hostport;
 }
 

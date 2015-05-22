@@ -10,8 +10,7 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/context.hpp>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     return 0;
 }
 

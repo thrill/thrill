@@ -69,8 +69,7 @@ public:
     { return std::string(reinterpret_cast<const char*>(data_), size_); }
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
-    net::Buffer ToBuffer()
-    {
+    net::Buffer ToBuffer() {
         void* addr = (void*)data_;
         net::Buffer b = net::Buffer::Acquire(addr, size_);
         data_ = nullptr;
@@ -79,21 +78,18 @@ public:
     }
 
     //! Compare contents of two BinaryBuffers.
-    bool operator == (const BinaryBuffer& br) const
-    {
+    bool operator == (const BinaryBuffer& br) const {
         if (size_ != br.size_) return false;
         return std::equal(data_, data_ + size_, br.data_);
     }
 
     //! Compare contents of two BinaryBuffers.
-    bool operator != (const BinaryBuffer& br) const
-    {
+    bool operator != (const BinaryBuffer& br) const {
         if (size_ != br.size_) return true;
         return !std::equal(data_, data_ + size_, br.data_);
     }
 
-    void Delete()
-    {
+    void Delete() {
         if (data_)
             free((void*)data_);
     }

@@ -55,10 +55,9 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void execute()
-    {
+    void execute() {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
-        SpacingLogger(true) << "READING data with id" << this->data_id_;
+        LOG1 << "READING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -82,7 +81,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
+        auto id_fn = [=](Output t, std::function<void(Output)> emit_func) {
                          return emit_func(t);
                      };
 
@@ -94,8 +93,7 @@ public:
      * Returns "[ReadNode]" as a string.
      * \return "[ReadNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[ReadNode] Id: " + std::to_string(this->data_id_);
     }
 
