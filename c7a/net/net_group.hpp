@@ -37,7 +37,7 @@ namespace net {
 typedef unsigned int ClientId;
 
 //TODO(ej) Cleanup the NetGroup. Make to a sole collection holding a bunch of connections.
-//Move everything else into appropriate channel. 
+//Move everything else into appropriate channel.
 
 /*!
  * Collection of NetConnections to workers, allow point-to-point client
@@ -48,7 +48,7 @@ class NetGroup
     static const bool debug = false;
 
 public:
-    //! \name Construction
+    //! \name Construction and Initialization
     //! \{
 
     //! Construct a mock NetGroup using a complete graph of local stream sockets
@@ -59,12 +59,24 @@ public:
         size_t num_clients,
         const std::function<void(NetGroup*)>& thread_function);
 
-    //! Construct a remote NetGroup using a list of NetEndpoints of which this
-    //! object will be the my_rank-th item. The NetGroup opens a listening port
-    //! on the my_rank-th NetEndpoint, which hence must be local. If
-    //! construction or any connection fails, a NetException is thrown.
-    NetGroup(ClientId my_rank,
-             size_t group_size);
+    //! Default empty constructor, must be Initialize()d later.
+    NetGroup()
+    {}
+
+    //! Initialize a real NetGroup for construction from the NetManager.
+    void Initialize(ClientId my_rank, size_t group_size)
+    {
+        assert(my_rank_ == -1u);
+        my_rank_ = my_rank;
+        connections_.resize(group_size);
+    }
+
+    //! Initializing constructor, used by tests for creating NetGroups.
+    NetGroup(ClientId my_rank, size_t group_size)
+    {
+        Initialize(my_rank, group_size);
+    }
+
     //! \}
 
     //! non-copyable: delete copy-constructor
@@ -87,10 +99,10 @@ public:
 
     /**
      * @brief Assigns a connection to this net group.
-     * @details This method swaps the net connection to memory managed by this group. 
-     *          The reference given to that method will be invalid afterwards. 
-     * 
-     * @param connection 
+     * @details This method swaps the net connection to memory managed by this group.
+     *          The reference given to that method will be invalid afterwards.
+     *
+     * @param connection
      * @return
      */
     NetConnection & AssignConnection(NetConnection& connection)
@@ -131,7 +143,7 @@ public:
         }
 
         connections_.clear();
-        my_rank_ = -1;
+        my_rank_ = -1u;
     }
 
     //! Closes all client connections
@@ -287,7 +299,7 @@ public:
 
 private:
     //! The client id of this object in the NetGroup.
-    ClientId my_rank_;
+    ClientId my_rank_ = -1;
 
     //! Connections to all other clients in the NetGroup.
     std::vector<NetConnection> connections_;

@@ -19,8 +19,6 @@
 #include <vector>
 #include <functional>
 
-#define GROUP_COUNT 3
-
 namespace c7a {
 namespace net {
 /**
@@ -30,9 +28,12 @@ namespace net {
 class NetManager
 {
     static const bool debug = false;
+public:
+
+    static const size_t kGroupCount = 3;
 
 private:
-    NetGroup* netGroups_[GROUP_COUNT]; //Net groups
+    NetGroup netGroups_[kGroupCount];
     lowlevel::Socket listenSocket_;
     NetConnection listenConnection_;
     size_t my_rank_;
@@ -72,7 +73,7 @@ private:
 
     bool InitializationFinished(size_t endpointCount)
     {
-        if (connections_.size() != (endpointCount - 1) * GROUP_COUNT)
+        if (connections_.size() != (endpointCount - 1) * kGroupCount)
             return false;
 
         for (size_t i = 0; i < connections_.size(); i++)
@@ -93,8 +94,8 @@ public:
         const std::function<void(NetGroup*)>& flowThreadFunction,
         const std::function<void(NetGroup*)>& dataThreadFunction)
     {
-        die_unless(GROUP_COUNT == 3); //Adjust this method too if groupcount is different
-        std::vector<std::thread*> threads(GROUP_COUNT);
+        die_unless(kGroupCount == 3); //Adjust this method too if groupcount is different
+        std::vector<std::thread*> threads(kGroupCount);
 
         threads[0] = new std::thread([ = ] {
                                          NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction);
@@ -120,10 +121,10 @@ public:
             throw new Exception("This net manager has already been initialized.");
         }
 
-        connections_.reserve(endpoints.size() * GROUP_COUNT);
+        connections_.reserve(endpoints.size() * kGroupCount);
 
-        for (int i = 0; i < GROUP_COUNT; i++) {
-            netGroups_[i] = new NetGroup(my_rank_, endpoints.size());
+        for (size_t i = 0; i < kGroupCount; i++) {
+            netGroups_[i].Initialize(my_rank_, endpoints.size());
         }
 
         die_unless(my_rank_ < endpoints.size());
@@ -152,7 +153,7 @@ public:
 
         for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id)
         {
-            for (uint32_t group = 0; group < GROUP_COUNT; group++) {
+            for (uint32_t group = 0; group < kGroupCount; group++) {
                 CreateAndConnect(id, addressList[id], group);
             }
         }
@@ -168,9 +169,9 @@ public:
         }
 
         for (size_t i = 0; i < connections_.size(); i++) {
-            int groupId = connections_[i].GetGroupId();
-            die_unless(groupId >= 0 && groupId < GROUP_COUNT);
-            netGroups_[groupId]->AssignConnection(connections_[i]);
+            size_t groupId = connections_[i].GetGroupId();
+            die_unless(groupId < kGroupCount);
+            netGroups_[groupId].AssignConnection(connections_[i]);
         }
 
         //Could dispose listen connection here.
@@ -178,12 +179,12 @@ public:
 
         LOG << "Client " << my_rank_ << " done";
 
-        for (uint32_t j = 0; j < GROUP_COUNT; j++) {
+        for (uint32_t j = 0; j < kGroupCount; j++) {
             // output list of file descriptors connected to partners
             for (size_t i = 0; i != addressList.size(); ++i) {
                 if (i == my_rank_) continue;
                 LOG << "NetGroup " << j << " link " << my_rank_ << " -> " << i << " = fd "
-                    << netGroups_[j]->Connection(i).GetSocket().fd();
+                    << netGroups_[j].Connection(i).GetSocket().fd();
             }
         }
     }
@@ -199,7 +200,6 @@ public:
 
     void Connect(NetConnection& connection, lowlevel::SocketAddress& address)
     {
-        die_unless(connection.GetSocket().fd() > 0);
         die_unless(connection.GetSocket().IsValid());
         die_unless(connection.GetState() == ConnectionState::Disconnected);
 
@@ -258,7 +258,6 @@ public:
             Connect(conn, address);
         }
 
-        die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
 
         conn.SetState(ConnectionState::TransportConnected);
@@ -292,7 +291,6 @@ public:
      */
     bool ReceiveWelcomeMessage(NetConnection& conn, Buffer && buffer)
     {
-        die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
         die_unequal(conn.GetState(), ConnectionState::HelloSent);
@@ -320,7 +318,6 @@ public:
      */
     bool ReceiveWelcomeMessageAndReply(NetConnection& conn, Buffer && buffer)
     {
-        die_unless(conn.GetSocket().fd() > 0);
         die_unless(conn.GetSocket().IsValid());
         die_unless(conn.GetState() != ConnectionState::TransportConnected);
 
@@ -349,7 +346,6 @@ public:
     bool ConnectionReceived(NetConnection& conn)
     {
         connections_.emplace_back(conn.GetSocket().accept());
-        die_unless(connections_.back().GetSocket().fd() > 0);
         die_unless(connections_.back().GetSocket().IsValid());
 
         conn.SetState(ConnectionState::TransportConnected);
@@ -368,17 +364,17 @@ public:
         return true;
     }
 
-    NetGroup * GetSystemNetGroup()
+    NetGroup & GetSystemNetGroup()
     {
         return netGroups_[0];
     }
 
-    NetGroup * GetFlowNetGroup()
+    NetGroup & GetFlowNetGroup()
     {
         return netGroups_[1];
     }
 
-    NetGroup * GetDataNetGroup()
+    NetGroup & GetDataNetGroup()
     {
         return netGroups_[2];
     }
