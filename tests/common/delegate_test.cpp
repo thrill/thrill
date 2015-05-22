@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/test_delegate.cpp
+ * tests/common/delegate_test.cpp
  *
  * Part of Project c7a.
  *

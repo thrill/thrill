@@ -57,7 +57,7 @@ public:
     //! the DataManager after applying the read function on it.
     void execute() {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
-        LOG1 << "READING data with id" << this->data_id_;
+        LOG1 << "READING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -81,7 +81,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
+        auto id_fn = [=](Output t, std::function<void(Output)> emit_func) {
                          return emit_func(t);
                      };
 
