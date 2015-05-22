@@ -29,13 +29,11 @@ class Stage
 public:
     explicit Stage(DIABase* node) : node_(node)
     {
-        // TODO(ch): use debug constant and macros!
-
-        SpacingLogger(true) << "CREATING stage" << node_->ToString() << "node" << node_;
+        LOG1 << "CREATING stage" << node_->ToString() << "node" << node_;
     }
     void Run()
     {
-        SpacingLogger(true) << "RUNNING stage " << node_->ToString() << "node" << node_;
+        LOG1 << "RUNNING stage " << node_->ToString() << "node" << node_;
         node_->execute();
     }
 
@@ -48,7 +46,7 @@ private:
 // Returns a list of stages of graph scope
 inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
 {
-    SpacingLogger(true) << "FINDING stages:";
+    LOG1 << "FINDING stages:";
     std::set<DIABase*> stages_found;
     // GOAL: Returns a vector with stages
     // TEMP SOLUTION: Every node is a stage
@@ -69,7 +67,7 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
                 dia_stack.push(p);
                 stages_found.insert(p);
             }
-            else SpacingLogger(true) << "OMG NULLPTR";
+            else LOG1 << "OMG NULLPTR";
         }
     }
 
