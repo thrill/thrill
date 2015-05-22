@@ -26,6 +26,7 @@
 
 namespace c7a {
 namespace core {
+
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePostTable
 {
@@ -309,6 +310,7 @@ private:
 
     std::vector<node<key_t, value_t>*> vector_;
 };
+
 } // namespace core
 } // namespace c7a
 
