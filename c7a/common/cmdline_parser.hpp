@@ -15,8 +15,10 @@
 #include <cstddef>
 #include <cstdio>
 #include <iostream>
-#include <string>
 #include <vector>
+#include <sstream>
+#include <string>
+#include <algorithm>
 
 namespace c7a {
 namespace common {
@@ -411,13 +413,13 @@ protected:
 private:
     //! update maximum formatting width for new option
     void CalcOptMax(const Argument* arg) {
-        opt_maxlong_ = std::max((int)arg->OptionText().size() + 2,
+        opt_maxlong_ = std::max(static_cast<int>(arg->OptionText().size() + 2),
                                 opt_maxlong_);
     }
 
     //! update maximum formatting width for new parameter
     void CalcParamMax(const Argument* arg) {
-        param_maxlong_ = std::max((int)arg->ParamText().size() + 2,
+        param_maxlong_ = std::max(static_cast<int>(arg->ParamText().size() + 2),
                                   param_maxlong_);
     }
 
@@ -474,8 +476,7 @@ public:
                  const std::string& keytype, bool& dest,
                  const std::string& desc) {
         optlist_.push_back(
-            new ArgumentFlag(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentFlag(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -485,8 +486,7 @@ public:
                 const std::string& keytype, int& dest,
                 const std::string& desc) {
         optlist_.push_back(
-            new ArgumentInt(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentInt(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -496,8 +496,7 @@ public:
                  const std::string& keytype, unsigned int& dest,
                  const std::string& desc) {
         optlist_.push_back(
-            new ArgumentUInt(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentUInt(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -507,8 +506,7 @@ public:
                    const std::string& keytype, double& dest,
                    const std::string& desc) {
         optlist_.push_back(
-            new ArgumentDouble(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentDouble(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -518,8 +516,7 @@ public:
                   const std::string& keytype, uint32_t& dest,
                   const std::string& desc) {
         optlist_.push_back(
-            new ArgumentBytes32(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentBytes32(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -529,8 +526,7 @@ public:
                   const std::string& keytype, uint64_t& dest,
                   const std::string& desc) {
         optlist_.push_back(
-            new ArgumentBytes64(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentBytes64(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -539,8 +535,7 @@ public:
                    const std::string& keytype, std::string& dest,
                    const std::string& desc) {
         optlist_.push_back(
-            new ArgumentString(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentString(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -550,8 +545,7 @@ public:
                        std::vector<std::string>& dest,
                        const std::string& desc) {
         optlist_.push_back(
-            new ArgumentStringlist(key, longkey, keytype, desc, false, dest)
-            );
+            new ArgumentStringlist(key, longkey, keytype, desc, false, dest));
         CalcOptMax(optlist_.back());
     }
 
@@ -607,8 +601,7 @@ public:
     void AddParamInt(const std::string& name, int& dest,
                      const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentInt(0, name, "", desc, true, dest)
-            );
+            new ArgumentInt(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -616,8 +609,7 @@ public:
     void AddParamUInt(const std::string& name, unsigned int& dest,
                       const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentUInt(0, name, "", desc, true, dest)
-            );
+            new ArgumentUInt(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -625,8 +617,7 @@ public:
     void AddParamDouble(const std::string& name, double& dest,
                         const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentDouble(0, name, "", desc, true, dest)
-            );
+            new ArgumentDouble(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -635,8 +626,7 @@ public:
     void AddParamBytes(const std::string& name, uint32_t& dest,
                        const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentBytes32(0, name, "", desc, true, dest)
-            );
+            new ArgumentBytes32(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -645,8 +635,7 @@ public:
     void AddParamBytes(const std::string& name, uint64_t& dest,
                        const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentBytes64(0, name, "", desc, true, dest)
-            );
+            new ArgumentBytes64(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -654,8 +643,7 @@ public:
     void AddParamString(const std::string& name, std::string& dest,
                         const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentString(0, name, "", desc, true, dest)
-            );
+            new ArgumentString(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -666,8 +654,7 @@ public:
                             std::vector<std::string>& dest,
                             const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentStringlist(0, name, "", desc, true, dest)
-            );
+            new ArgumentStringlist(0, name, "", desc, true, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -678,8 +665,7 @@ public:
     void AddOptParamInt(const std::string& name, int& dest,
                         const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentInt(0, name, "", desc, false, dest)
-            );
+            new ArgumentInt(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -688,8 +674,7 @@ public:
     void AddOptParamUInt(const std::string& name, unsigned int& dest,
                          const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentUInt(0, name, "", desc, false, dest)
-            );
+            new ArgumentUInt(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -697,8 +682,7 @@ public:
     void AddOptParamDouble(const std::string& name, double& dest,
                            const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentDouble(0, name, "", desc, false, dest)
-            );
+            new ArgumentDouble(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -707,8 +691,7 @@ public:
     void AddOptParamBytes(const std::string& name, uint32_t& dest,
                           const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentBytes32(0, name, "", desc, false, dest)
-            );
+            new ArgumentBytes32(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -717,8 +700,7 @@ public:
     void AddOptParamBytes(const std::string& name, uint64_t& dest,
                           const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentBytes64(0, name, "", desc, false, dest)
-            );
+            new ArgumentBytes64(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -726,8 +708,7 @@ public:
     void AddOptParamString(const std::string& name, std::string& dest,
                            const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentString(0, name, "", desc, false, dest)
-            );
+            new ArgumentString(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 
@@ -738,8 +719,7 @@ public:
                                std::vector<std::string>& dest,
                                const std::string& desc) {
         paramlist_.push_back(
-            new ArgumentStringlist(0, name, "", desc, false, dest)
-            );
+            new ArgumentStringlist(0, name, "", desc, false, dest));
         CalcParamMax(paramlist_.back());
     }
 

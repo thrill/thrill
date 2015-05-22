@@ -12,6 +12,8 @@
 
 #include <iomanip>
 #include <cstring>
+#include <string>
+#include <algorithm>
 
 namespace c7a {
 namespace common {
@@ -432,7 +434,7 @@ std::string FormatSiUnits(uint64_t number) {
         "", "k", "M", "G", "T", "P", "E"
     };
     unsigned int scale = 0;
-    double number_d = (double)number;
+    double number_d = static_cast<double>(number);
     while (number_d >= multiplier) {
         number_d /= multiplier;
         ++scale;
@@ -451,7 +453,7 @@ std::string FormatIecUnits(uint64_t number) {
         "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"
     };
     unsigned int scale = 0;
-    double number_d = (double)number;
+    double number_d = static_cast<double>(number);
     while (number_d >= multiplier) {
         number_d /= multiplier;
         ++scale;
