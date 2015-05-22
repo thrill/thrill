@@ -64,16 +64,14 @@ public:
     { }
 
     //! Initialize a real NetGroup for construction from the NetManager.
-    void Initialize(ClientId my_rank, size_t group_size)
-    {
+    void Initialize(ClientId my_rank, size_t group_size) {
         assert(my_rank_ == -1u);
         my_rank_ = my_rank;
         connections_.resize(group_size);
     }
 
     //! Initializing constructor, used by tests for creating NetGroups.
-    NetGroup(ClientId my_rank, size_t group_size)
-    {
+    NetGroup(ClientId my_rank, size_t group_size) {
         Initialize(my_rank, group_size);
     }
 
@@ -88,8 +86,7 @@ public:
     //! \{
 
     //! Return NetConnection to client id.
-    NetConnection & Connection(ClientId id)
-    {
+    NetConnection & Connection(ClientId id) {
         if (id >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
                             "invalid client id " + std::to_string(id));
@@ -105,8 +102,7 @@ public:
      * @param connection
      * @return
      */
-    NetConnection & AssignConnection(NetConnection& connection)
-    {
+    NetConnection & AssignConnection(NetConnection& connection) {
         if (connection.GetPeerId() >= connections_.size())
             throw Exception("NetGroup::GetClient() requested "
                             "invalid client id " + std::to_string(connection.GetPeerId()));
@@ -117,20 +113,17 @@ public:
     }
 
     //! Return number of connections in this group.
-    size_t Size() const
-    {
+    size_t Size() const {
         return connections_.size();
     }
 
     //! Return my rank in the connection group
-    size_t MyRank() const
-    {
+    size_t MyRank() const {
         return my_rank_;
     }
 
     //! Closes all client connections
-    void Close()
-    {
+    void Close() {
         if (listener_.IsValid())
             listener_.Close();
 
@@ -147,8 +140,7 @@ public:
     }
 
     //! Closes all client connections
-    ~NetGroup()
-    {
+    ~NetGroup() {
         Close();
     }
 
@@ -163,8 +155,7 @@ public:
      */
 
     template <typename T>
-    void ReceiveFromAny(ClientId* out_src, T* out_value)
-    {
+    void ReceiveFromAny(ClientId* out_src, T* out_value) {
         fd_set fd_set;
         int max_fd = 0;
 
@@ -220,8 +211,7 @@ public:
      * Receives a string message from any worker into out_data, which will be
      * resized as needed, puts worker id in *src.
      */
-    void ReceiveStringFromAny(ClientId* out_src, std::string* out_data)
-    {
+    void ReceiveStringFromAny(ClientId* out_src, std::string* out_data) {
         fd_set fd_set;
         int max_fd = 0;
 
@@ -273,13 +263,11 @@ public:
         return ReceiveStringFromAny(out_src, out_data);
     }
 
-    void SendStringTo(ClientId dest, const std::string& data)
-    {
+    void SendStringTo(ClientId dest, const std::string& data) {
         this->Connection(dest).SendString(data);
     }
 
-    void BroadcastString(const std::string& data)
-    {
+    void BroadcastString(const std::string& data) {
         for (size_t i = 0; i < connections_.size(); i++)
         {
             if (i == my_rank_) continue;
@@ -309,8 +297,7 @@ private:
 };
 
 template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
-{
+void NetGroup::AllReduce(T& value, BinarySumOp sum_op) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/test_simple_api.cpp
+ * tests/api/simple_api_test.cpp
  *
  * Part of Project c7a.
  *
@@ -134,18 +134,18 @@ TEST(API, FunctionStackTest) {
 
     // User-defined functions
     auto fmap_fn =
-        [ = ](double input, std::function<void(double)> emit_func) {
+        [=](double input, std::function<void(double)> emit_func) {
             emit_func(input);
             emit_func(input);
         };
 
     auto map_fn =
-        [ = ](double input) {
+        [=](double input) {
             return 2 * input;
         };
 
     auto filter_fn =
-        [ = ](double input) {
+        [=](double input) {
             return input > 80;
         };
 
@@ -156,12 +156,12 @@ TEST(API, FunctionStackTest) {
 
     // Converted emitter functions
     auto conv_map_fn =
-        [ = ](double input, std::function<void(double)> emit_func) {
+        [=](double input, std::function<void(double)> emit_func) {
             emit_func(map_fn(input));
         };
 
     auto conv_filter_fn =
-        [ = ](double input, std::function<void(double)> emit_func) {
+        [=](double input, std::function<void(double)> emit_func) {
             if (filter_fn(input)) emit_func(input);
         };
 

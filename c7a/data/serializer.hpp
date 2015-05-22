@@ -32,13 +32,11 @@ struct Impl;
 //! identity serializer from string to string
 template <>
 struct Impl<std::string>{
-    static std::string Serialize(const std::string& x)
-    {
+    static std::string Serialize(const std::string& x) {
         return x;
     }
 
-    static std::string Deserialize(const std::string& x)
-    {
+    static std::string Deserialize(const std::string& x) {
         return x;
     }
 };
@@ -46,13 +44,11 @@ struct Impl<std::string>{
 //! serializer for int
 template <>
 struct Impl<int>{
-    static std::string Serialize(const int& x)
-    {
+    static std::string Serialize(const int& x) {
         return std::to_string(x);
     }
 
-    static int Deserialize(const std::string& x)
-    {
+    static int Deserialize(const std::string& x) {
         return std::stoi(x);
     }
 };
@@ -60,13 +56,11 @@ struct Impl<int>{
 //! serializer for double
 template <>
 struct Impl<double>{
-    static std::string Serialize(const double& x)
-    {
+    static std::string Serialize(const double& x) {
         return std::to_string(x);
     }
 
-    static double Deserialize(const std::string& x)
-    {
+    static double Deserialize(const std::string& x) {
         return std::stod(x);
     }
 };
@@ -74,8 +68,7 @@ struct Impl<double>{
 //! serializer for (string, int) tuples
 template <>
 struct Impl<std::pair<std::string, int> >{
-    static std::string Serialize(const std::pair<std::string, int>& x)
-    {
+    static std::string Serialize(const std::pair<std::string, int>& x) {
         std::size_t len = sizeof(int) + x.first.size();
         char result[len];
         std::memcpy(result, &(x.second), sizeof(int));
@@ -83,8 +76,7 @@ struct Impl<std::pair<std::string, int> >{
         return std::string(result, len);
     }
 
-    static std::pair<std::string, int> Deserialize(const std::string& x)
-    {
+    static std::pair<std::string, int> Deserialize(const std::string& x) {
         int i;
         std::size_t str_len = x.size() - sizeof(int);
         std::memcpy(&i, x.c_str(), sizeof(int));
@@ -97,15 +89,13 @@ struct Impl<std::pair<std::string, int> >{
 
 //! Serialize the type to std::string
 template <class T>
-inline std::string Serialize(const T& x)
-{
+inline std::string Serialize(const T& x) {
     return serializers::Impl<T>::Serialize(x);
 }
 
 //! Deserialize the std::string to the given type
 template <class T>
-inline T Deserialize(const std::string& x)
-{
+inline T Deserialize(const std::string& x) {
     return serializers::Impl<T>::Deserialize(x);
 }
 

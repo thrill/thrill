@@ -14,7 +14,7 @@
 
 namespace c7a {
 
-std::mutex Logger::mutex_;
+std::mutex Logger<true>::mutex_;
 
 } // namespace c7a
 

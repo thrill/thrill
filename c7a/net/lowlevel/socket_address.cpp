@@ -29,13 +29,11 @@ namespace lowlevel {
 /******************************************************************************/
 
 SocketAddress::SocketAddress(struct sockaddr* sa, socklen_t salen)
-    : resolve_error_(0)
-{
+    : resolve_error_(0) {
     memcpy(&sockaddr_, sa, std::min<socklen_t>(salen, sizeof(sockaddr_)));
 }
 
-SocketAddress::SocketAddress(const std::string& hostport)
-{
+SocketAddress::SocketAddress(const std::string& hostport) {
     std::string host = hostport;
     size_t colonpos = host.rfind(':');
     if (colonpos == std::string::npos)
@@ -50,13 +48,11 @@ SocketAddress::SocketAddress(const std::string& hostport)
     }
 }
 
-SocketAddress::SocketAddress(const char* hostname, const char* servicename)
-{
+SocketAddress::SocketAddress(const char* hostname, const char* servicename) {
     Resolve(hostname, servicename);
 }
 
-std::string SocketAddress::ToStringHost() const
-{
+std::string SocketAddress::ToStringHost() const {
     char str[64];
     if (sockaddr()->sa_family == AF_INET)
     {
@@ -82,18 +78,15 @@ std::string SocketAddress::ToStringHost() const
         return "<invalid>";
 }
 
-std::string SocketAddress::ToStringHostPort() const
-{
+std::string SocketAddress::ToStringHostPort() const {
     return ToStringHost() + ":" + std::to_string(GetPort());
 }
 
-std::ostream& operator << (std::ostream& os, const SocketAddress& sa)
-{
+std::ostream& operator << (std::ostream& os, const SocketAddress& sa) {
     return os << sa.ToStringHostPort();
 }
 
-bool SocketAddress::Resolve(const char* hostname, const char* servicename)
-{
+bool SocketAddress::Resolve(const char* hostname, const char* servicename) {
     struct addrinfo* result;
     struct addrinfo hints;
 
@@ -118,14 +111,12 @@ bool SocketAddress::Resolve(const char* hostname, const char* servicename)
     }
 }
 
-const char* SocketAddress::GetResolveError() const
-{
+const char* SocketAddress::GetResolveError() const {
     return gai_strerror(resolve_error_);
 }
 
 SocketAddress
-SocketAddress::ResolveOne(const char* hostname, const char* servicename)
-{
+SocketAddress::ResolveOne(const char* hostname, const char* servicename) {
     struct addrinfo* result;
     struct addrinfo hints;
 
@@ -149,8 +140,7 @@ SocketAddress::ResolveOne(const char* hostname, const char* servicename)
 
 SocketAddress
 SocketAddress::ResolveWithPort(const char* hostname,
-                               const char* defaultservice)
-{
+                               const char* defaultservice) {
     std::string host = hostname;
 
     std::string::size_type colonpos = host.rfind(':');
@@ -164,8 +154,7 @@ SocketAddress::ResolveWithPort(const char* hostname,
 }
 
 std::vector<SocketAddress>
-SocketAddress::ResolveAll(const char* hostname, const char* servicename)
-{
+SocketAddress::ResolveAll(const char* hostname, const char* servicename) {
     std::vector<SocketAddress> salist;
 
     struct addrinfo* result;
@@ -195,8 +184,7 @@ SocketAddress::ResolveAll(const char* hostname, const char* servicename)
 /******************************************************************************/
 
 IPv4Address::IPv4Address(const char* ipstring, uint16_t port)
-    : SocketAddress()
-{
+    : SocketAddress() {
     struct sockaddr_in* sin = sockaddr_in();
     sin->sin_family = AF_INET;
     if (inet_pton(AF_INET, ipstring, &sin->sin_addr) <= 0) {
@@ -209,8 +197,7 @@ IPv4Address::IPv4Address(const char* ipstring, uint16_t port)
 /******************************************************************************/
 
 IPv6Address::IPv6Address(const char* ipstring, uint16_t port)
-    : SocketAddress()
-{
+    : SocketAddress() {
     struct sockaddr_in6* sin6 = sockaddr_in6();
     sin6->sin6_family = AF_INET6;
     if (inet_pton(AF_INET6, ipstring, &sin6->sin6_addr) <= 0) {

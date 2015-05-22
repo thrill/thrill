@@ -59,8 +59,7 @@ protected:
 public:
     //! Create empty invalid address object by clearing all bytes.
     SocketAddress()
-        : resolve_error_(0)
-    {
+        : resolve_error_(0) {
         memset(&sockaddr_, 0, sizeof(sockaddr_));
     }
 
@@ -76,60 +75,51 @@ public:
     SocketAddress(const char* hostname, const char* servicename);
 
     //! Return pointer to enclosed address as a generic sockattr struct.
-    const struct sockaddr * sockaddr() const
-    {
+    const struct sockaddr * sockaddr() const {
         return &sockaddr_.generic;
     }
 
     //! Return total length of enclosed sockaddr structure.
-    socklen_t socklen() const
-    {
+    socklen_t socklen() const {
         return sizeof(sockaddr_);
     }
 
     //! Returns true if the enclosed socket address is a valid IPv4 or IPv6
     //! address.
-    bool IsValid() const
-    {
+    bool IsValid() const {
         return (sockaddr()->sa_family == AF_INET) ||
                (sockaddr()->sa_family == AF_INET6);
     }
 
     //! Returns true if the enclosed socket address is a IPv4 address.
-    bool IsIPv4() const
-    {
+    bool IsIPv4() const {
         return (sockaddr()->sa_family == AF_INET);
     }
 
     //! Returns true if the enclosed socket address is a IPv6 address.
-    bool IsIPv6() const
-    {
+    bool IsIPv6() const {
         return (sockaddr()->sa_family == AF_INET6);
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in IPv4 structure.
-    struct sockaddr_in * sockaddr_in()
-    {
+    struct sockaddr_in * sockaddr_in() {
         return &sockaddr_.in;
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in IPv4 structure. Const
     //! version.
-    const struct sockaddr_in * sockaddr_in() const
-    {
+    const struct sockaddr_in * sockaddr_in() const {
         return &sockaddr_.in;
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in6 IPv6 structure.
-    struct sockaddr_in6 * sockaddr_in6()
-    {
+    struct sockaddr_in6 * sockaddr_in6() {
         return &sockaddr_.in6;
     }
 
     //! Cast the enclosed sockaddr into the sockaddr_in6 IPv6 structure. Const
     //! version.
-    const struct sockaddr_in6 * sockaddr_in6() const
-    {
+    const struct sockaddr_in6 * sockaddr_in6() const {
         return &sockaddr_.in6;
     }
 
@@ -144,8 +134,7 @@ public:
                                       const SocketAddress& sa);
 
     //! Return the currently set port address in host byte-order.
-    uint16_t GetPort() const
-    {
+    uint16_t GetPort() const {
         if (sockaddr()->sa_family == AF_INET)
         {
             return ntohs(sockaddr_in()->sin_port);
@@ -159,8 +148,7 @@ public:
     }
 
     //! Change the currently set port address.
-    void SetPort(uint16_t port)
-    {
+    void SetPort(uint16_t port) {
         if (sockaddr()->sa_family == AF_INET)
         {
             sockaddr_in()->sin_port = htons(port);
@@ -208,16 +196,14 @@ class IPv4Address : public SocketAddress
 public:
     //! Create an IPv4 address and initialize only the port part.
     explicit IPv4Address(uint16_t port)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in.sin_family = AF_INET;
         sockaddr_.in.sin_port = htons(port);
     }
 
     //! Create an IPv4 address object with initialized address and port parts.
     IPv4Address(uint32_t addr, uint16_t port)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in.sin_family = AF_INET;
         sockaddr_.in.sin_addr.s_addr = addr;
         sockaddr_.in.sin_port = htons(port);
@@ -225,8 +211,7 @@ public:
 
     //! Create an IPv4 address object with initialized address and port parts.
     IPv4Address(struct in_addr& addr, uint16_t port)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in.sin_family = AF_INET;
         sockaddr_.in.sin_addr = addr;
         sockaddr_.in.sin_port = htons(port);
@@ -234,8 +219,7 @@ public:
 
     //! Create an IPv4 address object and copy the given sockaddr_in structure.
     explicit IPv4Address(struct sockaddr_in& sa)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in = sa;
     }
 
@@ -255,16 +239,14 @@ class IPv6Address : public SocketAddress
 public:
     //! Create an IPv6 address and initialize only the port part.
     explicit IPv6Address(uint16_t port)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in6.sin6_family = AF_INET6;
         sockaddr_.in6.sin6_port = htons(port);
     }
 
     //! Create an IPv6 address object with initialized address and port parts.
     IPv6Address(uint8_t addr[16], uint16_t port)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in6.sin6_family = AF_INET6;
         memcpy(&sockaddr_.in6.sin6_addr, addr, 16 * sizeof(uint8_t));
         sockaddr_.in6.sin6_port = htons(port);
@@ -272,8 +254,7 @@ public:
 
     //! Create an IPv4 address object with initialized address and port parts.
     IPv6Address(struct in6_addr& addr, uint16_t port)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in6.sin6_family = AF_INET6;
         sockaddr_.in6.sin6_addr = addr;
         sockaddr_.in6.sin6_port = htons(port);
@@ -281,8 +262,7 @@ public:
 
     //! Create an IPv4 address object and copy the given sockaddr_in structure.
     explicit IPv6Address(struct sockaddr_in6& sa)
-        : SocketAddress()
-    {
+        : SocketAddress() {
         sockaddr_.in6 = sa;
     }
 

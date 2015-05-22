@@ -24,8 +24,7 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_)
-    {
+    JobManager() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) {
         //OVERALL TODO(cn): Run Dispatcher in own thread
 
         //TODO(cn): find out how to run the dispatcher. Is it like this?
@@ -35,14 +34,12 @@ public:
         //std::thread(net_dispatcher_.Dispatch());
     }
 
-    data::DataManager & get_data_manager()
-    {
+    data::DataManager & get_data_manager() {
         return data_manager_;
     }
 
     //When a DIA calls HasNext() on the data manager but HasNext() returns false and IsClosed() returns false too, then the DIA needs to wait. Therefore, this function is needed
-    void WaitOnData()
-    {
+    void WaitOnData() {
         while (!new_data_arrived_) {
             //TODO(cn): Call on wait and as soon as data manager has data, it needs to signal the DIA to continue
             //Use Condition Variables to do this.

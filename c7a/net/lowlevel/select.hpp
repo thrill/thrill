@@ -34,16 +34,14 @@ class Select
 {
 public:
     //! constructor
-    Select()
-    {
+    Select() {
         FD_ZERO(&read_set_);
         FD_ZERO(&write_set_);
         FD_ZERO(&except_set_);
     }
 
     //! Add a socket to the read and exception selection set
-    Select & SetRead(int fd)
-    {
+    Select & SetRead(int fd) {
         assert(fd >= 0);
         FD_SET(fd, &read_set_);
         max_fd_ = std::max(max_fd_, fd);
@@ -51,8 +49,7 @@ public:
     }
 
     //! Add a socket to the write and exception selection set
-    Select & SetWrite(int fd)
-    {
+    Select & SetWrite(int fd) {
         assert(fd >= 0);
         FD_SET(fd, &write_set_);
         max_fd_ = std::max(max_fd_, fd);
@@ -60,8 +57,7 @@ public:
     }
 
     //! Add a socket to the exception selection set
-    Select & SetException(int fd)
-    {
+    Select & SetException(int fd) {
         assert(fd >= 0);
         FD_SET(fd, &except_set_);
         max_fd_ = std::max(max_fd_, fd);
@@ -97,15 +93,13 @@ public:
     { return ClearRead(fd).ClearWrite(fd).ClearException(fd); }
 
     //! Do a select(), which modifies the enclosed file descriptor objects.
-    int select(struct timeval* timeout = NULL)
-    {
+    int select(struct timeval* timeout = NULL) {
         return ::select(max_fd_ + 1,
                         &read_set_, &write_set_, &except_set_, timeout);
     }
 
     //! Do a select() with timeout
-    int select_timeout(double timeout)
-    {
+    int select_timeout(double timeout) {
         if (timeout == std::numeric_limits<double>::infinity())
             return select(NULL);
         else {

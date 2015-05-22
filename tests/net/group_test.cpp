@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test_net_group.cpp
+ * tests/net/group_test.cpp
  *
  * Part of Project c7a.
  *
@@ -21,8 +21,7 @@
 
 using namespace c7a::net;
 
-static void ThreadInitializeAsyncRead(NetGroup* net)
-{
+static void ThreadInitializeAsyncRead(NetGroup* net) {
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i != net->Size(); ++i)
     {
@@ -52,8 +51,7 @@ static void ThreadInitializeAsyncRead(NetGroup* net)
     }
 }
 
-static void ThreadInitializeSendReceive(NetGroup* net)
-{
+static void ThreadInitializeSendReceive(NetGroup* net) {
     static const bool debug = false;
 
     // send a message to all other clients except ourselves.
@@ -101,8 +99,7 @@ static void ThreadInitializeSendReceive(NetGroup* net)
 }
 
 static void RealNetGroupConstructAndCall(
-    std::function<void(NetGroup*)> thread_function)
-{
+    std::function<void(NetGroup*)> thread_function) {
     // randomize base port number for test
     std::default_random_engine generator;
     std::uniform_int_distribution<int> distribution(30000, 65000);

@@ -75,10 +75,10 @@ public:
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [ = ](Input1 input) {
+        auto pre_op1_fn = [=](Input1 input) {
                               PreOp(input);
                           };
-        auto pre_op2_fn = [ = ](Input2 input) {
+        auto pre_op2_fn = [=](Input2 input) {
                               PreOpSecond(input);
                           };
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
@@ -92,8 +92,7 @@ public:
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override
-    {
+    void execute() override {
         MainOp();
         // get data from data manager
         data::BlockIterator<Output> it = (this->context_).get_data_manager().template GetLocalBlocks<Output>(this->data_id_);
@@ -111,7 +110,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
+        auto post_op_fn = [=](Output elem, std::function<void(Output)> emit_func) {
                               return PostOp(elem, emit_func);
                           };
 
@@ -123,8 +122,7 @@ public:
      * Returns "[ZipNode]" as a string.
      * \return "[ZipNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[ZipNode]";
     }
 
@@ -140,22 +138,19 @@ private:
 
     //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a
     //! global barrier.
-    void PreOp(zip_arg_0_t input)
-    {
+    void PreOp(zip_arg_0_t input) {
         LOG << "PreOp(First): " << input;
         elements1_.push_back(input);
     }
 
     // TODO(an): Theoretically we need two PreOps?
-    void PreOpSecond(zip_arg_1_t input)
-    {
+    void PreOpSecond(zip_arg_1_t input) {
         LOG << "PreOp(Second): " << input;
         elements2_.push_back(input);
     }
 
     //!Recieve elements from other workers.
-    void MainOp()
-    {
+    void MainOp() {
         //TODO(an): (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
 
         //TODO(an): Deterministic computation about index to worker mapping.
@@ -178,8 +173,7 @@ private:
     }
 
     //! Use the ZipFunction to Zip workers
-    void PostOp(Output input, std::function<void(Output)> emit_func)
-    {
+    void PostOp(Output input, std::function<void(Output)> emit_func) {
         LOG << "PostOp: " << input;
         emit_func(input);
     }

@@ -31,6 +31,7 @@
 #include "read_node.hpp"
 #include "reduce_node.hpp"
 #include "context.hpp"
+#include "write_node.hpp"
 
 namespace c7a {
 
@@ -97,8 +98,7 @@ public:
      * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
-    DIARef(const DIARef<T, AnyStack>& rhs)
-    {
+    DIARef(const DIARef<T, AnyStack>& rhs) {
         // Create new LOpNode
         // Transfer stack from rhs to LOpNode
         // Build new DIARef with empty stack and LOpNode
@@ -118,24 +118,21 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T> * get_node() const
-    {
+    DIANode<T> * get_node() const {
         return node_.get();
     }
 
     /*!
      * Returns the number of references to the according DIANode.
      */
-    int get_node_count() const
-    {
+    int get_node_count() const {
         return node_.use_count();
     }
 
     /*!
      * Returns the stored function chain.
      */
-    Stack & get_stack()
-    {
+    Stack & get_stack() {
         return local_stack_;
     }
 
@@ -158,7 +155,7 @@ public:
                   = typename FunctionTraits<map_fn_t>::template arg<0>;
         using map_result_t
                   = typename FunctionTraits<map_fn_t>::result_type;
-        auto conv_map_fn = [ = ](map_arg_t input, std::function<void(map_result_t)> emit_func) {
+        auto conv_map_fn = [=](map_arg_t input, std::function<void(map_result_t)> emit_func) {
                                emit_func(map_fn(input));
                            };
 
@@ -184,7 +181,7 @@ public:
     auto Filter(const filter_fn_t &filter_fn) {
         using filter_arg_t
                   = typename FunctionTraits<filter_fn_t>::template arg<0>;
-        auto conv_filter_fn = [ = ](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
+        auto conv_filter_fn = [=](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
                                   if (filter_fn(input)) emit_func(input);
                               };
 
@@ -274,13 +271,28 @@ public:
                    (std::move(shared_node), zip_stack);
     }
 
+    template <typename write_fn_t>
+    void WriteToFileSystem(std::string filepath,
+                           const write_fn_t &write_fn) {
+        using write_result_t = typename FunctionTraits<write_fn_t>::result_type;
+
+        using WriteResultNode = WriteNode<T, write_result_t, write_fn_t>;
+
+        auto shared_node =
+                std::make_shared<WriteResultNode>(node_->get_context(),
+                                                  node_.get(),
+                                                  write_fn,
+                                                  filepath);
+
+        shared_node->ProduceStack();
+    }
+
     /*!
      * Returns Chuck Norris!
      *
      * \return Chuck Norris
      */
-    const std::vector<T> & evil_get_data() const
-    {
+    const std::vector<T> & evil_get_data() const {
         return (std::vector<T>{ T() });
     }
 
@@ -289,8 +301,7 @@ public:
      *
      * \return The string of node_
      */
-    std::string NodeString()
-    {
+    std::string NodeString() {
         return node_->ToString();
     }
 
@@ -298,8 +309,7 @@ public:
      * Prints the DIANode and all it's children recursively. The printing is
      * performed tree-style.
      */
-    void PrintNodes()
-    {
+    void PrintNodes() {
         using BasePair = std::pair<DIABase*, int>;
         std::stack<BasePair> dia_stack;
         dia_stack.push(std::make_pair(node_, 0));

@@ -20,8 +20,7 @@ namespace c7a {
 namespace net {
 namespace lowlevel {
 
-void Socket::SetKeepAlive(bool activate)
-{
+void Socket::SetKeepAlive(bool activate) {
     assert(IsValid());
 
     int sockoptflag = (activate ? 1 : 0);
@@ -35,8 +34,7 @@ void Socket::SetKeepAlive(bool activate)
     }
 }
 
-void Socket::SetReuseAddr(bool activate)
-{
+void Socket::SetReuseAddr(bool activate) {
     assert(IsValid());
 
     int sockoptflag = (activate ? 1 : 0);
@@ -59,8 +57,7 @@ void Socket::SetReuseAddr(bool activate)
 #endif
 }
 
-void Socket::SetNoDelay(bool activate)
-{
+void Socket::SetNoDelay(bool activate) {
     assert(IsValid());
 
     int sockoptflag = (activate ? 1 : 0);

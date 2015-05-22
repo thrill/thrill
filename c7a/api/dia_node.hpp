@@ -58,8 +58,7 @@ public:
     virtual ~DIANode() { }
 
     //! ToString-method. Returns DIANode and it's state as a string.
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[DIANode/State:" + state_string_() + "]";
     }
 
@@ -71,8 +70,7 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(std::function<void(T)> callback)
-    {
+    void RegisterChild(std::function<void(T)> callback) {
         callbacks_.push_back(callback);
     }
 
@@ -84,8 +82,7 @@ protected:
     std::vector<std::function<void(T)> > callbacks_;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_()
-    {
+    std::string state_string_() {
         switch (state_) {
         case NEW:
             return "NEW";

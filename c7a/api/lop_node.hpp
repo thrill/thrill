@@ -54,8 +54,7 @@ public:
     /*!
      * Actually executes the local operations.
      */
-    void execute() override
-    {
+    void execute() override {
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
@@ -83,8 +82,7 @@ public:
      * Returns "[LOpNode]" and its id as a string.
      * \return "[LOpNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[LOpNode] Id: " + std::to_string(DIABase::data_id_);
     }
 
