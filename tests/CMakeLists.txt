@@ -9,7 +9,7 @@ set(C7A_LIBRARIES c7a gtest gmock pthread)
 # macro for building test programs
 macro(build_only PROGNAME)
 
-  string(REPLACE "/" "-" TESTNAME "${PROGNAME}") # replace slashes
+  string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
   add_executable(${TESTNAME} c7a_tests.cpp ${PROGNAME}.cpp ${ARGN})
   target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
@@ -21,7 +21,7 @@ macro(build_test PROGNAME)
 
   build_only(${PROGNAME})
 
-  string(REPLACE "/" "-" TESTNAME "${PROGNAME}") # replace slashes
+  string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
   add_test(${TESTNAME} ${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
 
 endmacro(build_test)
