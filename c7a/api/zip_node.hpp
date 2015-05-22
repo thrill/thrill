@@ -75,10 +75,10 @@ public:
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [ = ](Input1 input) {
+        auto pre_op1_fn = [=](Input1 input) {
                               PreOp(input);
                           };
-        auto pre_op2_fn = [ = ](Input2 input) {
+        auto pre_op2_fn = [=](Input2 input) {
                               PreOpSecond(input);
                           };
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
@@ -110,7 +110,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
+        auto post_op_fn = [=](Output elem, std::function<void(Output)> emit_func) {
                               return PostOp(elem, emit_func);
                           };
 

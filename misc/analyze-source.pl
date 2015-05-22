@@ -272,6 +272,11 @@ sub process_cpp {
             print "    NAMESPACE UNBALANCED!\n";
             #system("emacsclient -n $path");
         }
+
+        # change misformatted [ = ] of lambdas to [=]
+        for(my $i = 0; $i < @data-1; ++$i) {
+            $data[$i] =~ s/\[ = \]/[=]/g;
+        }
     }
 
     return if array_equal(\@data, \@origdata);
