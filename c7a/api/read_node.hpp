@@ -81,7 +81,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](Output t, std::function<void(Output)> emit_func) {
+        auto id_fn = [=](Output t, std::function<void(Output)> emit_func) {
                          return emit_func(t);
                      };
 
