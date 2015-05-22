@@ -27,6 +27,9 @@ typedef size_t ChainId;
 class BufferChainManager
 {
 public:
+
+    BufferChainManager() : next_id_(0) { }
+
     //! Allocates the next BufferChain.
     //! Calls to this method alter the internal state -> order of call is
     //! important and must be deterministic

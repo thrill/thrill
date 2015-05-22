@@ -14,6 +14,7 @@
 #include <c7a/data/block_iterator.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/input_line_iterator.hpp>
+#include <c7a/data/output_line_emitter.hpp>
 
 #include <map>
 #include <functional>
@@ -22,12 +23,9 @@
 #include <memory> //unique_ptr
 
 #include <c7a/net/channel_multiplexer.hpp>
-#include "block_iterator.hpp"
 #include "block_emitter.hpp"
 #include "buffer_chain.hpp"
-#include <c7a/common/logger.hpp>
 #include <c7a/data/socket_target.hpp>
-#include "input_line_iterator.hpp"
 #include <c7a/data/buffer_chain_manager.hpp>
 
 namespace c7a {
@@ -119,6 +117,12 @@ public:
         size_t num_work = 1;
 
         return InputLineIterator(file, my_id, num_work);
+    }
+
+    //! Returns an OutputLineIterator with a given output file stream.
+    template <typename T>
+    OutputLineEmitter<T> GetOutputLineEmitter(std::ofstream& file) {
+        return OutputLineEmitter<T>(file);
     }
 
 private:
