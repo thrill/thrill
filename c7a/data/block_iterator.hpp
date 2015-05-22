@@ -29,8 +29,7 @@ public:
         : buffer_chain_(buffers),
           current_(buffers.head),
           current_reader_(nullptr, 0),
-          late_init_(false)
-    {
+          late_init_(false) {
         if (current_ != nullptr) {
             current_reader_ = BinaryBufferReader(current_->buffer);
         }
@@ -42,8 +41,7 @@ public:
     //! returns the next element if one exists
     //!
     //! does no checks whether a next element exists!
-    inline const T Next()
-    {
+    inline const T Next() {
         if (current_reader_.empty()) {
             if (current_ != nullptr && !current_->IsEnd()) {
                 MoveToNextBuffer();
@@ -58,14 +56,12 @@ public:
     //! returns true if currently at least one element is available
     //! If concurrent read and writes operate on this block, this method might
     //! once return false and then true, if new data arrived.
-    inline bool HasNext()
-    {
+    inline bool HasNext() {
         check_late_init();
         return !current_reader_.empty() || (current_ != nullptr && !current_->IsEnd());
     }
 
-    inline void check_late_init()
-    {
+    inline void check_late_init() {
         if (late_init_)
         {
             current_ = buffer_chain_.head;
@@ -78,8 +74,7 @@ public:
 
     //! Indicates whether elements can be appended (not closed) or not (closed).
     //! Blocks that are closed once cannot be opened again
-    inline bool IsClosed() const
-    {
+    inline bool IsClosed() const {
         return buffer_chain_.closed;
     }
 
@@ -89,8 +84,7 @@ private:
     BinaryBufferReader current_reader_;
     bool late_init_; //problem when iterator is created before emitter has flushed values
 
-    void MoveToNextBuffer()
-    {
+    void MoveToNextBuffer() {
         assert(!current_->IsEnd());
         current_ = current_->next;
         current_reader_ = BinaryBufferReader(current_->buffer);

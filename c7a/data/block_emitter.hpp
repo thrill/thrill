@@ -35,8 +35,7 @@ public:
           target_(target) { }
 
     //! Emitts an element
-    void operator () (T x)
-    {
+    void operator () (T x) {
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
             Flush();
         }
@@ -47,15 +46,13 @@ public:
 
     //! Flushes and closes the block (cannot be undone)
     //! No further emitt operations can be done afterwards.
-    void Close()
-    {
+    void Close() {
         Flush();
         target_->Close();
     }
 
     //! Writes the data to the target without closing the emitter
-    void Flush()
-    {
+    void Flush() {
         target_->Append(BinaryBuffer(builder_));
         builder_.Detach();
         builder_.Reserve(BinaryBuffer::DEFAULT_SIZE);

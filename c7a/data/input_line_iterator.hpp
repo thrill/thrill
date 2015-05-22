@@ -32,8 +32,7 @@ public:
                       size_t num_workers)
         : file_(file),
           my_id_(my_id),
-          num_workers_(num_workers)
-    {
+          num_workers_(num_workers) {
         //Find file size and save it
         file_.seekg(0, std::ios::end);
         file_size_ = file_.tellg();
@@ -56,16 +55,14 @@ public:
     //! returns the next element if one exists
     //!
     //! does no checks whether a next element exists!
-    inline const std::string Next()
-    {
+    inline const std::string Next() {
         std::string line;
         std::getline(file_, line);
         return line;
     }
 
     //! returns true, if an element is available in local part
-    inline bool HasNext()
-    {
+    inline bool HasNext() {
         std::streampos per_worker = file_size_ / num_workers_;
         std::streampos my_end = per_worker * (my_id_ + 1) - 1;
 

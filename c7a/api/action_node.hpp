@@ -11,15 +11,19 @@
 #ifndef C7A_API_ACTION_NODE_HEADER
 #define C7A_API_ACTION_NODE_HEADER
 
+#include "dia_node.hpp"
+#include <c7a/core/stage_builder.hpp>
+
 namespace c7a {
 
 template <typename T>
 class ActionNode : public DIANode<T>
 {
 public:
-    ActionNode(data::DataManager& data_manager,
+    ActionNode(Context& ctx,
                const DIABaseVector& parents)
-        : DIANode<T>(data_manager, parents) { }
+        : DIANode<T>(ctx, parents) {
+    }
 
     virtual ~ActionNode() { }
 };

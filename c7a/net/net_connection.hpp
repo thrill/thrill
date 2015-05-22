@@ -83,8 +83,7 @@ public:
     { other.fd_ = -1; }
 
     //! move assignment-operator
-    NetConnection& operator = (NetConnection&& other)
-    {
+    NetConnection& operator = (NetConnection&& other) {
         if (IsValid()) {
             sLOG1 << "Assignment-destruction of valid NetConnection" << this;
             Close();
@@ -95,34 +94,28 @@ public:
     }
 #endif
 
-    ConnectionState GetState() const
-    {
+    ConnectionState GetState() const {
         return state_;
     }
 
-    size_t GetGroupId() const
-    {
+    size_t GetGroupId() const {
         return group_id_;
     }
 
-    size_t GetPeerId() const
-    {
+    size_t GetPeerId() const {
         return peer_id_;
     }
 
     //TODO(ej) Make setters internal/friend NetManager
-    void SetState(ConnectionState state)
-    {
+    void SetState(ConnectionState state) {
         this->state_ = state;
     }
 
-    void SetGroupId(size_t groupId)
-    {
+    void SetGroupId(size_t groupId) {
         this->group_id_ = groupId;
     }
 
-    void SetPeerId(size_t peerId)
-    {
+    void SetPeerId(size_t peerId) {
         this->peer_id_ = peerId;
     }
 
@@ -158,8 +151,7 @@ public:
 
     //! Send a fixed-length type T (possibly without length header).
     template <typename T>
-    void Send(const T& value)
-    {
+    void Send(const T& value) {
         static_assert(std::is_integral<T>::value,
                       "You only want to send integral types as raw values.");
 
@@ -175,8 +167,7 @@ public:
     }
 
     //! Send a string buffer
-    void SendString(const void* data, size_t len)
-    {
+    void SendString(const void* data, size_t len) {
         if (send(&len, sizeof(len), MSG_MORE) != sizeof(len))
             throw Exception("Error during SendString", errno);
 
@@ -185,8 +176,7 @@ public:
     }
 
     //! Send a string message.
-    void SendString(const std::string& message)
-    {
+    void SendString(const std::string& message) {
         SendString(message.data(), message.size());
     }
 
@@ -197,8 +187,7 @@ public:
 
     //! Receive a fixed-length type, possibly without length header.
     template <typename T>
-    void Receive(T* out_value)
-    {
+    void Receive(T* out_value) {
         static_assert(std::is_integral<T>::value,
                       "You only want to receive integral types as raw values.");
 
@@ -217,8 +206,7 @@ public:
     }
 
     //! Blocking receive string message from the connected socket.
-    void ReceiveString(std::string* outdata)
-    {
+    void ReceiveString(std::string* outdata) {
         size_t len = 0;
 
         if (recv(&len, sizeof(len)) != sizeof(len))
@@ -239,22 +227,19 @@ public:
 
     //! Destruction of NetConnection should be explicitly done by a NetGroup or
     //! other network class.
-    ~NetConnection()
-    {
+    ~NetConnection() {
         if (IsValid()) {
             Close();
         }
     }
 
     //! Close this NetConnection
-    void Close()
-    {
+    void Close() {
         Socket::close();
     }
 
     //! make ostreamable
-    friend std::ostream& operator << (std::ostream& os, const NetConnection& c)
-    {
+    friend std::ostream& operator << (std::ostream& os, const NetConnection& c) {
         os << "[NetConnection"
            << " fd=" << c.GetSocket().fd();
 

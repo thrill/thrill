@@ -34,15 +34,13 @@ struct StreamBlockHeader {
     size_t      expected_bytes;
 
     //! Reads the channel id and the number of elements in this block
-    void        ParseHeader(const std::string& buffer)
-    {
+    void        ParseHeader(const std::string& buffer) {
         memcpy(&channel_id, buffer.c_str(), sizeof(channel_id));
         memcpy(&expected_bytes, buffer.c_str() + sizeof(channel_id), sizeof(expected_bytes));
     }
 
     //! Serializes the whole block struct into a buffer
-    std::string Serialize()
-    {
+    std::string Serialize() {
         size_t size = sizeof(size_t) * (channel_id + 2);
         char* result = new char[size];
         char* offset0 = result;
@@ -54,20 +52,17 @@ struct StreamBlockHeader {
     }
 
     //! resets to a End-of-Stream block header
-    void        Reset()
-    {
+    void        Reset() {
         expected_bytes = 0;
     }
 
     //! Indicates if this is the end-of-stream block header
-    bool        IsStreamEnd() const
-    {
+    bool        IsStreamEnd() const {
         return expected_bytes == 0;
     }
 
     //! Frees all memory of the block struct
-    ~StreamBlockHeader()
-    {
+    ~StreamBlockHeader() {
         Reset();
     }
 };
@@ -95,16 +90,14 @@ public:
           socket(socket) { }
 
     //! replaces the current head with the end-of-stream header
-    void ResetHead()
-    {
+    void ResetHead() {
         elements_read = 0;
         bytes_read = 0;
         header.Reset();
     }
 
     //! indicates if all data of this stream has arrived
-    bool IsFinished() const
-    {
+    bool IsFinished() const {
         return header.IsStreamEnd();
     }
 };
