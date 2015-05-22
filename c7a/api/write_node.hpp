@@ -16,8 +16,8 @@
 #include "dia_node.hpp"
 #include "function_stack.hpp"
 
-
 namespace c7a {
+
 template <typename Input, typename Output, typename WriteFunction>
 class WriteNode : public ActionNode<Input>
 {
@@ -38,8 +38,7 @@ public:
 
     //! Executes the write operation. Writes a file line by line and emits it to
     //! the DataManager after applying the write function on it.
-    void execute() override
-    {
+    void execute() override {
         LOG1 << "WRITING data with id " << this->data_id_;
 
         std::ofstream file(path_out_);
@@ -49,7 +48,7 @@ public:
         // get data from data manager
         assert(this->get_parents().size() == 1);
         data::BlockIterator<Input> it = this->context_.get_data_manager().template GetLocalBlocks<Input>(
-                this->get_parents().front()->get_data_id());
+            this->get_parents().front()->get_data_id());
         // loop over output
         while (it.HasNext()) {
             const Input& item = it.Next();
@@ -65,7 +64,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](Input t, std::function<void(Input)> emit_func) {
+        auto id_fn = [=](Input t, std::function<void(Input)> emit_func) {
                          return emit_func(t);
                      };
 
@@ -77,8 +76,7 @@ public:
      * Returns "[WriteNode]" as a string.
      * \return "[WriteNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[WriteNode] Id: " + std::to_string(this->data_id_);
     }
 
@@ -88,6 +86,7 @@ private:
     //! Path of the output file.
     std::string path_out_;
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER

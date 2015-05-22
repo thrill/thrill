@@ -55,8 +55,7 @@ public:
     }
 
     //! Converts vector of strings to vector of NetEndpoint instances
-    static std::vector<NetEndpoint> ParseEndpointList(std::vector<std::string> str)
-    {
+    static std::vector<NetEndpoint> ParseEndpointList(std::vector<std::string> str) {
         std::vector<NetEndpoint> endpoints;
         for (const auto& s : str)
             endpoints.push_back(NetEndpoint(s));
