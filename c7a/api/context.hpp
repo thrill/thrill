@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#define GetCurrentDir getcwd
 
 namespace c7a {
 
@@ -46,11 +45,11 @@ public:
     std::string get_current_dir() {
         char cCurrentPath[FILENAME_MAX];
 
-        if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath))) {
+        if (!getcwd(cCurrentPath, sizeof(cCurrentPath))) {
             throw "unable to retrieve current directory";
         }
 
-        return GetCurrentDir(cCurrentPath, sizeof(cCurrentPath));
+        return getcwd(cCurrentPath, sizeof(cCurrentPath));
     }
 
 private:
