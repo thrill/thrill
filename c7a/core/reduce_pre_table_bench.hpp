@@ -37,13 +37,11 @@ class ReducePreTableBench
 
 protected:
 public:
-    size_t Size()
-    {
+    size_t Size() {
         return table_size_;
     }
 
-    void SetMaxSize(size_t size)
-    {
+    void SetMaxSize(size_t size) {
         max_num_items_table_ = size;
     }
 
@@ -56,8 +54,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           the_hash_table_(num_workers_, std::unordered_map<key_t, value_t>()),
-          key_count_(num_workers, 0)
-    {
+          key_count_(num_workers, 0) {
         init();
     }
 
@@ -73,8 +70,7 @@ public:
           emit_(emit),
           the_hash_table_(num_workers_, std::unordered_map<key_t, value_t>()),
           key_count_(num_workers, 0),
-          max_num_items_table_(max_num_items_table)
-    {
+          max_num_items_table_(max_num_items_table) {
         init();
     }
 
@@ -89,8 +85,7 @@ public:
      * Item will be reduced immediately using the reduce function
      * in case the key already exists.
      */
-    void Insert(const value_t& item)
-    {
+    void Insert(const value_t& item) {
         key_t key = key_extractor_(item);
         size_t hash_result = hash_fn_(key);
         size_t hash_worker = hash_result % num_workers_;
@@ -120,8 +115,7 @@ public:
      * having the most items. Retrieved items are then forward
      * to the provided emitter.
      */
-    void FlushLargestPartition()
-    {
+    void FlushLargestPartition() {
         //find the worker with the most assigned keys
         int max_count = 0;
         int max_index = -1;
@@ -155,8 +149,7 @@ public:
     /*!
      * Flushes all items.
      */
-    void Flush()
-    {
+    void Flush() {
         for (size_t worker = 0; worker < num_workers_; ++worker) {
             //emit all keys in table and send it to worker
             for (auto elem = the_hash_table_[worker].begin(); elem != the_hash_table_[worker].end(); ++elem) {
@@ -173,8 +166,7 @@ public:
     /*!
      * Removes all items in the table, but NOT flushing them.
      */
-    void Clear()
-    {
+    void Clear() {
         for (size_t worker = 0; worker < num_workers_; ++worker) {
             the_hash_table_[worker].clear();
             table_size_ -= key_count_[worker];
@@ -186,8 +178,7 @@ public:
     /*!
      * Removes all items in the table, but NOT flushing them.
      */
-    void Reset()
-    {
+    void Reset() {
         for (size_t worker = 0; worker < num_workers_; ++worker) {
             the_hash_table_[worker].clear();
             table_size_ -= key_count_[worker];
@@ -197,8 +188,7 @@ public:
     }
 
     // prints content of hash table
-    void Print()
-    {
+    void Print() {
         LOG1 << "[THE HORROR] Current hash table";
         for (auto worker : the_hash_table_) {
             LOG1 << "WORKER";

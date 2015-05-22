@@ -24,13 +24,11 @@ struct WorkerMock {
         : cmp(dispatcher),
           manager(cmp) { }
 
-    void               Connect(std::shared_ptr<NetGroup> con)
-    {
+    void               Connect(std::shared_ptr<NetGroup> con) {
         cmp.Connect(con);
     }
 
-    ~WorkerMock()
-    {
+    ~WorkerMock() {
         cmp.Close();
     }
 
@@ -44,8 +42,7 @@ struct DataManagerChannelFixture : public::testing::Test {
         : dispatcher(),
           worker0(dispatcher),
           worker1(dispatcher),
-          worker2(dispatcher)
-    {
+          worker2(dispatcher) {
         auto con0_1 = Socket::CreatePair();
         auto con0_2 = Socket::CreatePair();
         auto con1_2 = Socket::CreatePair();
@@ -70,8 +67,7 @@ struct DataManagerChannelFixture : public::testing::Test {
         worker2.Connect(group2);
     }
 
-    void RunDispatcherLoop()
-    {
+    void RunDispatcherLoop() {
         master = std::thread([&]() {
                                  sLOG << "Spinning up that dispatcher biest!";
                                  run = true;
@@ -83,8 +79,7 @@ struct DataManagerChannelFixture : public::testing::Test {
         std::this_thread::sleep_for(100ms);
     }
 
-    size_t AllocateChannel()
-    {
+    size_t AllocateChannel() {
         //all managers need to allocate the same id
         auto channel_id = worker0.manager.AllocateNetworkChannel();
         channel_id = worker1.manager.AllocateNetworkChannel();
@@ -93,8 +88,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     }
 
     template <class T>
-    std::vector<T> ReadIterator(BlockIterator<T>& it)
-    {
+    std::vector<T> ReadIterator(BlockIterator<T>& it) {
         std::vector<T> result;
         while (it.HasNext())
             result.push_back(it.Next());
@@ -102,8 +96,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     }
 
     template <class T>
-    bool VectorCompare(std::vector<T> a, std::vector<T> b)
-    {
+    bool VectorCompare(std::vector<T> a, std::vector<T> b) {
         if (a.size() != b.size())
             return false;
         for (auto& x : a) {
@@ -113,8 +106,7 @@ struct DataManagerChannelFixture : public::testing::Test {
         return true;
     }
 
-    ~DataManagerChannelFixture()
-    {
+    ~DataManagerChannelFixture() {
         run = false;
         master.detach();
     }

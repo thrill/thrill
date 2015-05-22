@@ -37,8 +37,7 @@ struct ChannelMultiplexerTest : public::testing::Test {
           element3("."),
           boundaries{element1.length(), element2.length(), element3.length()},
           boundaries2{element2.length(), element1.length(), element3.length()},
-          boundaries3{}
-    {
+          boundaries3{} {
         header.num_elements = 3;
         header.channel_id = 3;
         header.boundaries = boundaries;
@@ -54,8 +53,7 @@ struct ChannelMultiplexerTest : public::testing::Test {
     }
 
     //tests can call this if they need to change the headers and re-genenerate
-    void serializeHeaders()
-    {
+    void serializeHeaders() {
         std::string data = header.Serialize();
         header_part1 = data.substr(0, sizeof(size_t) * 2);
         header_part2 = data.substr(header_part1.length(), data.length() - header_part1.length());

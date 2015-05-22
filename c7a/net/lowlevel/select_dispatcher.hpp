@@ -47,8 +47,7 @@ public:
     //! Register a buffered read callback and a default exception callback.
     void AddRead(int fd, const Cookie& c,
                  const Callback& read_cb,
-                 const Callback& except_cb = DefaultExceptionCallback)
-    {
+                 const Callback& except_cb = DefaultExceptionCallback) {
         Select::SetRead(fd);
         Select::SetException(fd);
         watch_.emplace_back(fd, c, read_cb, nullptr, except_cb);
@@ -57,8 +56,7 @@ public:
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(int fd, const Cookie& c,
                   const Callback& write_cb,
-                  const Callback& except_cb = DefaultExceptionCallback)
-    {
+                  const Callback& except_cb = DefaultExceptionCallback) {
         Select::SetWrite(fd);
         Select::SetException(fd);
         watch_.emplace_back(fd, c, nullptr, write_cb, except_cb);
@@ -67,16 +65,14 @@ public:
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(int fd, const Cookie& c,
                       const Callback& read_cb, const Callback& write_cb,
-                      const Callback& except_cb = DefaultExceptionCallback)
-    {
+                      const Callback& except_cb = DefaultExceptionCallback) {
         Select::SetRead(fd);
         Select::SetWrite(fd);
         Select::SetException(fd);
         watch_.emplace_back(fd, c, read_cb, write_cb, except_cb);
     }
 
-    void Dispatch(const std::chrono::milliseconds& timeout)
-    {
+    void Dispatch(const std::chrono::milliseconds& timeout) {
         // copy select fdset
         Select fdset = *this;
 
@@ -215,8 +211,7 @@ private:
     std::deque<Watch> watch_;
 
     //! Default exception handler
-    static bool DefaultExceptionCallback(const Cookie& /* c */)
-    {
+    static bool DefaultExceptionCallback(const Cookie& /* c */) {
         // exception on listen socket ?
         throw Exception("SelectDispatcher() exception on socket!",
                         errno);

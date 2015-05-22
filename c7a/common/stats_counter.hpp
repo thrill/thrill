@@ -53,22 +53,19 @@ public:
     bool Real() const { return true; }
 
     //! Increases the counter by right.
-    StatsCounter& operator += (const ValueType& right)
-    {
+    StatsCounter& operator += (const ValueType& right) {
         value_ += right;
         return *this;
     }
 
     //! Increases the counter by 1 (prefix).
-    StatsCounter& operator ++ ()
-    {
+    StatsCounter& operator ++ () {
         ++value_;
         return *this;
     }
 
     //! Increases the counter by 1 (postfix).
-    StatsCounter operator ++ (int) // NOLINT
-    {
+    StatsCounter operator ++ (int) { // NOLINT
         StatsCounter copy = *this;
         ++value_;
         return copy;
@@ -76,8 +73,7 @@ public:
 
     //! Set the counter to other if other is larger than the current counter
     //! value.
-    void set_max(const ValueType& other)
-    {
+    void set_max(const ValueType& other) {
         value_ = std::max(value_, other);
     }
 

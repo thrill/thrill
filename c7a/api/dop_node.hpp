@@ -49,8 +49,7 @@ public:
     virtual ~DOpNode() { }
 
     //! ToString-method. Returns DOpNode as a string.
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[DOpNode]";
     }
 };

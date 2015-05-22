@@ -19,12 +19,10 @@ TEST(DIAAllocate, ForReal) {
     class TNode
     {
     public:
-        explicit TNode(DataManager& dm) : dm_(dm)
-        {
+        explicit TNode(DataManager& dm) : dm_(dm) {
             dm_.AllocateDIA();
         }
-        TNode CreateChildNode()
-        {
+        TNode CreateChildNode() {
             return TNode(dm_);
         }
 
@@ -36,8 +34,7 @@ TEST(DIAAllocate, ForReal) {
     {
     public:
         TContext() : dm_() { }
-        TNode CreateNode()
-        {
+        TNode CreateNode() {
             return TNode(dm_);
         }
 

@@ -55,8 +55,7 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void execute()
-    {
+    void execute() {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
         LOG1 << "READING data with id" << this->data_id_;
 
@@ -94,8 +93,7 @@ public:
      * Returns "[ReadNode]" as a string.
      * \return "[ReadNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[ReadNode] Id: " + std::to_string(this->data_id_);
     }
 
