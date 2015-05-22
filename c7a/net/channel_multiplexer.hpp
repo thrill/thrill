@@ -93,6 +93,7 @@ public:
     //! \param id the channel to use
     template <class T>
     std::vector<data::BlockEmitter<T> > OpenChannel(ChannelId id) {
+        assert(group_ != nullptr);
         std::vector<data::BlockEmitter<T> > result;
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
