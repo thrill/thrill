@@ -38,6 +38,7 @@ build_test(data/block_iterator_test)
 build_test(data/serializer_test)
 build_test(common/delegate_test)
 build_test(common/stats_counter_test)
+build_test(common/cmdline_parser_test)
 build_test(common/stats_timer_test)
 #build_test(core/stage_builder_test)
 build_only(core/hash_table_bench) #takes multiple seconds to complete
