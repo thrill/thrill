@@ -14,6 +14,7 @@
 #include <string>
 #include <cstring>
 #include <utility>
+#include <cassert>
 
 //TODO(ts) this copies data. That is bad and makes me sad.
 
@@ -84,6 +85,23 @@ struct Impl<std::pair<std::string, int> >{
         return std::pair<std::string, int>(s, i);
     }
 };
+
+//! binary serializer for any integral type, usable as template.
+template <typename Type>
+struct GenericImpl {
+    static std::string Serialize(const Type& v) {
+        return std::string(reinterpret_cast<const char*>(&v), sizeof(v));
+    }
+
+    static Type        Deserialize(const std::string& s) {
+        assert(s.size() == sizeof(Type));
+        return Type(*reinterpret_cast<const Type*>(s.data()));
+    }
+};
+
+template <>
+struct Impl<std::pair<int, int> >: public GenericImpl<std::pair<int, int> >
+{ };
 
 } // namespace serializers
 
