@@ -23,7 +23,8 @@ typedef size_t ChainId;
 //!
 //! Required for DIAs and for incoming net channels.
 //! This cannot be in the DataManger, because that would cause cyclic dependencies
-class BufferChainManager {
+class BufferChainManager
+{
 public:
     //! Allocates the next BufferChain.
     //! Calls to this method alter the internal state -> order of call is
@@ -37,6 +38,8 @@ public:
 
     //! Allocates a BufferChain with the given ID
     //! Use this only for internal stuff.
+    //! \param id id of the chain to retrieve
+    //! \exception std::runtime_error if id is not contained
     ChainId Allocate(ChainId id) {
         if (Contains(id)) {
             throw new std::runtime_error("duplicate chain allocation with explicit id");
@@ -51,7 +54,8 @@ public:
     }
 
     //! Returns the BufferChain with the given ID
-    //! Throws if the BufferChain was not allocated before
+    //! \param id id of the chain to retrieve
+    //! \exception std::runtime_error if id is not contained
     std::shared_ptr<BufferChain> Chain(ChainId id) {
         if (!Contains(id)) {
             throw new std::runtime_error("chain id is unknown");

@@ -6,7 +6,13 @@ namespace c7a {
 namespace data {
 class BinaryBuffer;
 
-class EmitterTarget {
+//! Emitter Targets specify the behaviour of an emitter when data is flushed.
+//!
+//! EmitterTargets can append arbitrary binary buffer instances until they are closed.
+//! EmitterTargets can be closed exaclty once.
+//! Data that has been appended to a target must be visible at the sink ASAP.
+class EmitterTarget
+{
 public:
     virtual void Close() = 0;
     virtual void Append(BinaryBuffer buffer) = 0;
