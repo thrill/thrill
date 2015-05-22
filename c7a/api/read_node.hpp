@@ -58,7 +58,7 @@ public:
     void execute()
     {
         // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
-        SpacingLogger(true) << "READING data with id" << this->data_id_;
+        LOG1 << "READING data with id" << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
