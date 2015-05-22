@@ -127,7 +127,7 @@ public:
         }
     }
 
-    void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints) {
+    void Initialize(size_t my_rank, const std::vector<NetEndpoint>& endpoints) {
         my_rank_ = my_rank;
 
         if (connections_.size() != 0) {
