@@ -103,8 +103,6 @@ static void ThreadInitializeSendReceive(NetGroup* net)
 static void RealNetGroupConstructAndCall(
     std::function<void(NetGroup*)> thread_function)
 {
-    static const bool debug = false;
-
     // randomize base port number for test
     std::default_random_engine generator;
     std::uniform_int_distribution<int> distribution(30000, 65000);
@@ -133,7 +131,7 @@ static void RealNetGroupConstructAndCall(
                 // construct NetGroup i with endpoints
                 groups[i].Initialize(i, endpoints);
                 // run thread function
-                thread_function(groups[i].GetFlowNetGroup());
+                thread_function(&groups[i].GetFlowNetGroup());
             });
     }
 
