@@ -22,28 +22,28 @@ int word_count(c7a::Context& ctx) {
     using WordPair = std::pair<std::string, int>;
 
     auto line_to_words = [](std::string line, std::function<void(WordPair)> emit) {
-        std::string word;
-        std::istringstream iss(line);
-        while (iss >> word) {
-            WordPair wp = std::make_pair(word, 1);
-            emit(wp);
-        }
-    };
+                             std::string word;
+                             std::istringstream iss(line);
+                             while (iss >> word) {
+                                 WordPair wp = std::make_pair(word, 1);
+                                 emit(wp);
+                             }
+                         };
     auto key = [](WordPair in) {
-        return in.first;
-    };
+                   return in.first;
+               };
     auto red_fn = [](WordPair in1, WordPair in2) {
-        WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
-        return wp;
-    };
+                      WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
+                      return wp;
+                  };
 
     std::cout << ctx.get_current_dir() + "/tests/inputs/wordcount.in" << std::endl;
     auto lines = ReadFromFileSystem(
-            ctx,
-            ctx.get_current_dir() + "/tests/inputs/wordcount.in",
-            [](const std::string& line) {
-                return line;
-            });
+        ctx,
+        ctx.get_current_dir() + "/tests/inputs/wordcount.in",
+        [](const std::string& line) {
+            return line;
+        });
 
     auto word_pairs = lines.FlatMap(line_to_words);
 

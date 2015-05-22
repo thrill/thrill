@@ -27,7 +27,6 @@ typedef size_t ChainId;
 class BufferChainManager
 {
 public:
-
     BufferChainManager() : next_id_(0) { }
 
     //! Allocates the next BufferChain.
