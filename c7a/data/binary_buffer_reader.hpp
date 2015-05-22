@@ -9,12 +9,16 @@
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
 #pragma once
+#ifndef C7A_DATA_BINARY_BUFFER_READER_HEADER
+#define C7A_DATA_BINARY_BUFFER_READER_HEADER
 
 #include "binary_buffer.hpp"
 
 namespace c7a {
 namespace data {
+
 /*!
  * BinaryBufferReader represents a BinaryBuffer with an additional cursor with which
  * the memory can be read incrementally.
@@ -212,3 +216,7 @@ public:
 };
 } //namespace data
 } //namespace c7a
+
+#endif // !C7A_DATA_BINARY_BUFFER_READER_HEADER
+
+/******************************************************************************/

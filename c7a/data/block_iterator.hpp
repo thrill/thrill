@@ -18,6 +18,7 @@
 
 namespace c7a {
 namespace data {
+
 //! BlockIterator gives you access to data of a block
 template <class T>
 class BlockIterator
@@ -95,6 +96,7 @@ private:
         current_reader_ = BinaryBufferReader(current_->buffer);
     }
 };
+
 } // namespace data
 } // namespace c7a
 

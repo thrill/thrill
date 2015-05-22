@@ -19,6 +19,7 @@
 
 namespace c7a {
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -109,6 +110,7 @@ public:
 };
 
 //! \}
+
 } // namespace net
 } // namespace c7a
 

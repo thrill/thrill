@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/test_hash_table.cpp
+ * tests/core/test_pre_hash_table.cpp
  *
  * Part of Project c7a.
  *
@@ -73,7 +73,6 @@ TEST_F(PreTable, CreateEmptyTable) {
 }
 
 TEST_F(PreTable, PopIntegers) {
-
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
                   };
@@ -179,14 +178,13 @@ TEST_F(PreTable, MultipleWorkers) {
 TEST_F(PreTable, Resize) {
     using StringPair = std::pair<std::string, int>;
 
-
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    std::vector<c7a::data::BlockEmitter<StringPair>> emitters;
+    std::vector<c7a::data::BlockEmitter<StringPair> > emitters;
     emitters.push_back(pair_emit);
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(pair_emit)>
     table(1, 10, 2, 1, 10, key_ex, red_fn, emitters);
@@ -207,3 +205,4 @@ TEST_F(PreTable, Resize) {
     //ASSERT_EQ(20, table.NumBuckets()); // TODO(ms): fix (strange, passes locally)
 }
 
+/******************************************************************************/

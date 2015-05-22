@@ -17,6 +17,7 @@
 
 namespace c7a {
 namespace data {
+
 //! BlockEmitter lets you push elements to a downstream operation or network channel.
 //! Template parameter specifies the type of element that is accepted.
 //! The emitter will serialize the data and put it into the emitter target.
@@ -34,7 +35,8 @@ public:
           target_(target) { }
 
     //! Emitts an element
-    void operator () (T x) {
+    void operator () (T x)
+    {
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
             Flush();
         }
@@ -45,13 +47,15 @@ public:
 
     //! Flushes and closes the block (cannot be undone)
     //! No further emitt operations can be done afterwards.
-    void Close() {
+    void Close()
+    {
         Flush();
         target_->Close();
     }
 
     //! Writes the data to the target without closing the emitter
-    void Flush() {
+    void Flush()
+    {
         target_->Append(BinaryBuffer(builder_));
         builder_.Detach();
         builder_.Reserve(BinaryBuffer::DEFAULT_SIZE);
@@ -61,6 +65,7 @@ private:
     BinaryBufferBuilder builder_;
     std::shared_ptr<EmitterTarget> target_;
 };
+
 } // namespace data
 } // namespace c7a
 

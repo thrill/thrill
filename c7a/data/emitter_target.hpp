@@ -1,9 +1,19 @@
+/*******************************************************************************
+ * c7a/data/emitter_target.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
+
 #pragma once
 #ifndef C7A_DATA_EMITTER_TARGET_HEADER
 #define C7A_DATA_EMITTER_TARGET_HEADER
 
 namespace c7a {
 namespace data {
+
 class BinaryBuffer;
 
 //! Emitter Targets specify the behaviour of an emitter when data is flushed.
@@ -19,4 +29,7 @@ public:
 };
 } //namespace data
 } //namespace c7a
+
 #endif // !C7A_DATA_EMITTER_TARGET_HEADER
+
+/******************************************************************************/

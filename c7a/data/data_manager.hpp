@@ -32,6 +32,7 @@
 
 namespace c7a {
 namespace data {
+
 struct BufferChain;
 
 //! Identification for DIAs
@@ -55,7 +56,8 @@ public:
     //!
     //! \param id ID of the DIA - determined by AllocateDIA()
     template <class T>
-    BlockIterator<T> GetLocalBlocks(DIAId id) {
+    BlockIterator<T> GetLocalBlocks(DIAId id)
+    {
         if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -66,7 +68,8 @@ public:
     //!
     //! \param id ID of the channel - determined by AllocateNetworkChannel()
     template <class T>
-    BlockIterator<T> GetRemoteBlocks(ChannelId id) {
+    BlockIterator<T> GetRemoteBlocks(ChannelId id)
+    {
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
@@ -77,14 +80,16 @@ public:
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    DIAId AllocateDIA() {
+    DIAId AllocateDIA()
+    {
         return dias_.AllocateNext();
     }
 
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    ChannelId AllocateNetworkChannel() {
+    ChannelId AllocateNetworkChannel()
+    {
         return cmp_.AllocateNext();
     }
 
@@ -92,7 +97,8 @@ public:
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
     template <class T>
-    BlockEmitter<T> GetLocalEmitter(DIAId id) {
+    BlockEmitter<T> GetLocalEmitter(DIAId id)
+    {
         if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -100,7 +106,8 @@ public:
     }
 
     template <class T>
-    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
+    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id)
+    {
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
@@ -112,7 +119,8 @@ public:
     //! \param file Input file stream
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file) {
+    InputLineIterator GetInputLineIterator(std::ifstream& file)
+    {
         //TODO(ts): get those from networks
         size_t my_id = 0;
         size_t num_work = 1;
@@ -126,6 +134,7 @@ private:
 
     BufferChainManager dias_;
 };
+
 } // namespace data
 } // namespace c7a
 
