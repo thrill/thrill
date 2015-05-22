@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/communication_manager.hpp
+ * c7a/net/net_manager.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_MANAGER_HEADER
-#define C7A_NET_MANAGER_HEADER
+#ifndef C7A_NET_NET_MANAGER_HEADER
+#define C7A_NET_NET_MANAGER_HEADER
 
 #include <c7a/net/net_endpoint.hpp>
 #include <c7a/net/net_connection.hpp>
@@ -21,6 +21,7 @@
 
 namespace c7a {
 namespace net {
+
 /**
  * @brief Manages communication.
  * @details Manages communication and handles errors.
@@ -28,8 +29,8 @@ namespace net {
 class NetManager
 {
     static const bool debug = false;
-public:
 
+public:
     static const size_t kGroupCount = 3;
 
 private:
@@ -158,7 +159,7 @@ public:
             }
         }
 
-        dispatcher.AddRead(listenConnection_, [ = ](NetConnection & nc) {
+        dispatcher.AddRead(listenConnection_, [ = ](NetConnection& nc) {
                                return ConnectionReceived(nc);
                            });
 
@@ -215,7 +216,7 @@ public:
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            dispatcher.AddRead(connection, [ = ](NetConnection & nc) {
+            dispatcher.AddRead(connection, [ = ](NetConnection& nc) {
                                    return Connected(nc, address);
                                });
         }
@@ -269,14 +270,14 @@ public:
         // send welcome message
         const WelcomeMsg hello = { c7a_sign, (uint32_t)conn.GetGroupId(), (uint32_t)my_rank_ };
 
-        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection & nc) {
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection& nc) {
                                       return HelloSent(nc);
                                   });
 
         LOG << "Client " << my_rank_ << " sent active hello to client ?";
 
         dispatcher.AsyncRead(conn, sizeof(hello),
-                             [&](NetConnection & nc, Buffer && b) {
+                             [&](NetConnection& nc, Buffer&& b) {
                                  ReceiveWelcomeMessage(nc, std::move(b));
                              });
 
@@ -289,7 +290,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessage(NetConnection& conn, Buffer && buffer)
+    bool ReceiveWelcomeMessage(NetConnection& conn, Buffer&& buffer)
     {
         die_unless(conn.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
@@ -316,7 +317,7 @@ public:
      *
      * @return
      */
-    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, Buffer && buffer)
+    bool ReceiveWelcomeMessageAndReply(NetConnection& conn, Buffer&& buffer)
     {
         die_unless(conn.GetSocket().IsValid());
         die_unless(conn.GetState() != ConnectionState::TransportConnected);
@@ -334,7 +335,7 @@ public:
 
         conn.SetPeerId(msg->id);
         conn.SetGroupId(msg->groupId);
-        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection & nc) {
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection& nc) {
                                       return HelloSent(nc);
                                   });
 
@@ -356,7 +357,7 @@ public:
 
         // wait for welcome message from other side
         dispatcher.AsyncRead(connections_.back(), sizeof(WelcomeMsg),
-                             [&](NetConnection & nc, Buffer && b) {
+                             [&](NetConnection& nc, Buffer&& b) {
                                  ReceiveWelcomeMessageAndReply(nc, std::move(b));
                              });
 
@@ -379,9 +380,10 @@ public:
         return netGroups_[2];
     }
 };
+
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_MANAGER_HEADER
+#endif // !C7A_NET_NET_MANAGER_HEADER
 
 /******************************************************************************/

@@ -21,6 +21,7 @@
 
 namespace c7a {
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -38,7 +39,8 @@ namespace net {
 //! is transfered back to the channel multiplexer.
 //!
 //! This class is the state machine for the callback-hell from NetDispatcher
-class Channel {
+class Channel
+{
 public:
     //! Called to transfer the polling responsibility back to the channel multiplexer
     typedef std::function<void (NetConnection& s)> ReleaseSocketCallback;
@@ -53,7 +55,8 @@ public:
           finished_streams_(0),
           target_(target) { }
 
-    void CloseLoopback() {
+    void CloseLoopback()
+    {
         CloseStream();
     }
 
@@ -62,7 +65,8 @@ public:
     //! This is the start state of the callback state machine.
     //! end-of-streams are handled directly
     //! all other block headers are parsed
-    void PickupStream(NetConnection& s, struct StreamBlockHeader head) {
+    void PickupStream(NetConnection& s, struct StreamBlockHeader head)
+    {
         Stream* stream = new Stream(s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
@@ -76,11 +80,13 @@ public:
     }
 
     //! Indicates whether all streams are finished
-    bool Finished() const {
+    bool Finished() const
+    {
         return finished_streams_ == expected_streams_;
     }
 
-    int Id() {
+    int Id()
+    {
         return id_;
     }
 
@@ -98,7 +104,8 @@ private:
 
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
-    void ReadFromStream(Stream* stream) {
+    void ReadFromStream(Stream* stream)
+    {
         if (stream->bytes_read < stream->header.expected_bytes) {
             ExpectData(stream);
         }
@@ -111,7 +118,8 @@ private:
         }
     }
 
-    void CloseStream() {
+    void CloseStream()
+    {
         finished_streams_++;
         if (finished_streams_ == expected_streams_) {
             sLOG << "channel" << id_ << " is closed";
@@ -124,7 +132,8 @@ private:
 
     //! Expect data to arrive at the socket.
     //! Size of element is known
-    inline void ExpectData(Stream* stream) {
+    inline void ExpectData(Stream* stream)
+    {
         auto exp_size = stream->header.expected_bytes - stream->bytes_read;
         auto callback = std::bind(&Channel::ConsumeData, this, std::placeholders::_1, std::placeholders::_2, stream);
         sLOG << "expect data with" << exp_size
@@ -132,7 +141,8 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream) {
+    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream)
+    {
         (void)s;
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         stream->bytes_read += buffer.size();
@@ -140,6 +150,7 @@ private:
         ReadFromStream(stream);
     }
 };
+
 } // namespace net
 } // namespace c7a
 

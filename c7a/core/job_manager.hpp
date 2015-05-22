@@ -7,6 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#pragma once
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
@@ -19,6 +20,7 @@
 
 namespace c7a {
 namespace core {
+
 class JobManager
 {
 public:
@@ -59,6 +61,7 @@ private:
     std::condition_variable idontknowhowtonameit_;
     bool new_data_arrived_;
 };
+
 }  // namespace core
 }  // namespace c7a
 

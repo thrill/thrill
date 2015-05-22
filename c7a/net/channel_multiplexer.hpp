@@ -23,9 +23,11 @@
 
 namespace c7a {
 namespace data {
+
 struct BufferChain;
 }
 namespace net {
+
 //! \ingroup net
 //! \{
 
@@ -52,7 +54,8 @@ public:
         : group_(nullptr),
           dispatcher_(dispatcher) { }
 
-    void Connect(std::shared_ptr<NetGroup> s) {
+    void Connect(std::shared_ptr<NetGroup> s)
+    {
         group_ = s;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
@@ -62,24 +65,28 @@ public:
 
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
-    bool HasChannel(ChannelId id) {
+    bool HasChannel(ChannelId id)
+    {
         return channels_.find(id) != channels_.end();
     }
 
     //! Indicates if there is data for a certain channel
     //! Data exists as soon as either a channel has been allocated or data arrived
     //! on this worker with the given id
-    bool HasDataOn(ChannelId id) {
+    bool HasDataOn(ChannelId id)
+    {
         return chains_.Contains(id);
     }
 
     //! Returns the buffer chain that contains the data for the channel with the given id
-    std::shared_ptr<data::BufferChain> AccessData(ChannelId id) {
+    std::shared_ptr<data::BufferChain> AccessData(ChannelId id)
+    {
         return chains_.Chain(id);
     }
 
     //! Allocate the next channel
-    ChannelId AllocateNext() {
+    ChannelId AllocateNext()
+    {
         return chains_.AllocateNext();
     }
 
@@ -88,7 +95,8 @@ public:
     //! Behaviour on multiple calls to OpenChannel is undefined.
     //! \param id the channel to use
     template <class T>
-    std::vector<data::BlockEmitter<T> > OpenChannel(ChannelId id) {
+    std::vector<data::BlockEmitter<T> > OpenChannel(ChannelId id)
+    {
         std::vector<data::BlockEmitter<T> > result;
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
@@ -111,7 +119,8 @@ public:
     //! Closes all client connections
     //!
     //! Requires new call to Connect() afterwards
-    void Close() {
+    void Close()
+    {
         group_->Close();
     }
 
@@ -129,18 +138,21 @@ private:
     NetDispatcher& dispatcher_;
 
     //! expects the next header from a socket and passes to ReadFirstHeaderPartFrom
-    void ExpectHeaderFrom(NetConnection& s) {
+    void ExpectHeaderFrom(NetConnection& s)
+    {
         auto expected_size = sizeof(StreamBlockHeader::expected_bytes) + sizeof(StreamBlockHeader::channel_id);
         auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
         dispatcher_.AsyncRead(s, expected_size, callback);
     }
 
     //! Nasty hack because LoopbackTarget cannot send a end-of-stream header
-    void CloseLoopbackStream(int id) {
+    void CloseLoopbackStream(int id)
+    {
         GetOrCreateChannel(id)->CloseLoopback();
     }
 
-    ChannelPtr GetOrCreateChannel(int id) {
+    ChannelPtr GetOrCreateChannel(int id)
+    {
         ChannelPtr channel;
         if (!HasChannel(id)) {
             //create buffer chain target if it does not exist
@@ -163,7 +175,8 @@ private:
     //! parses the channel id from a header and passes it to an existing
     //! channel or creates a new channel
     void ReadFirstHeaderPartFrom(
-        NetConnection& s, const Buffer& buffer) {
+        NetConnection& s, const Buffer& buffer)
+    {
         struct StreamBlockHeader header;
         header.ParseHeader(buffer.ToString());
 
@@ -172,6 +185,7 @@ private:
         channel->PickupStream(s, header);
     }
 };
+
 } // namespace net
 } // namespace c7a
 

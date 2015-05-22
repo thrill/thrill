@@ -95,28 +95,34 @@ public:
     }
 #endif
 
-    ConnectionState GetState() const {
+    ConnectionState GetState() const
+    {
         return state_;
     }
 
-    size_t GetGroupId() const {
+    size_t GetGroupId() const
+    {
         return group_id_;
     }
 
-    size_t GetPeerId() const {
+    size_t GetPeerId() const
+    {
         return peer_id_;
     }
 
     //TODO(ej) Make setters internal/friend NetManager
-    void SetState(ConnectionState state) {
+    void SetState(ConnectionState state)
+    {
         this->state_ = state;
     }
 
-    void SetGroupId(size_t groupId) {
+    void SetGroupId(size_t groupId)
+    {
         this->group_id_ = groupId;
     }
 
-    void SetPeerId(size_t peerId) {
+    void SetPeerId(size_t peerId)
+    {
         this->peer_id_ = peerId;
     }
 

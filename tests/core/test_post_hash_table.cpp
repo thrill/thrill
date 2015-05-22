@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/test_hash_table.cpp
+ * tests/core/test_post_hash_table.cpp
  *
  * Part of Project c7a.
  *
@@ -29,9 +29,10 @@ struct PostTable : public::testing::Test {
     c7a::data::BlockIterator<int>                         iterator;
     c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
 
-    size_t CountIteratorElements() {
+    size_t CountIteratorElements()
+    {
         size_t result = 0;
-        while(iterator.HasNext()) {
+        while (iterator.HasNext()) {
             result++;
             iterator.Next();
         }
@@ -40,7 +41,6 @@ struct PostTable : public::testing::Test {
 };
 
 TEST_F(PostTable, AddIntegers) {
-
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -68,7 +68,6 @@ TEST_F(PostTable, AddIntegers) {
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
-
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -173,7 +172,6 @@ TEST_F(PostTable, ComplexType) {
 
     ASSERT_EQ(4, table.Size());
 }
-
 
 // TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
 

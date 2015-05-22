@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/binary_builder.hpp
+ * c7a/data/binary_buffer_builder.hpp
  *
  * Classes BufferBuilder and BinaryBufferReader to construct data blocks with variable
  * length content. Programs construct blocks using BufferBuilder::Put<type>()
@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_BINARY_BUILDER_HEADER
-#define C7A_NET_BINARY_BUILDER_HEADER
+#ifndef C7A_DATA_BINARY_BUFFER_BUILDER_HEADER
+#define C7A_DATA_BINARY_BUFFER_BUILDER_HEADER
 
 #include <c7a/net/buffer.hpp>
 
@@ -27,6 +27,7 @@
 
 namespace c7a  {
 namespace data {
+
 /*!
  * BinaryBufferBuilder represents a dynamically growable area of memory, which can be
  * modified by appending integral data types via Put() and other basic
@@ -481,9 +482,10 @@ public:
 
     //! \}
 };
+
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_BINARY_BUILDER_HEADER
+#endif // !C7A_DATA_BINARY_BUFFER_BUILDER_HEADER
 
 /******************************************************************************/

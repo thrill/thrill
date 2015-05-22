@@ -158,8 +158,8 @@ private:
 
         std::function<void(Output)> print =
             [](Output elem) {
-            LOG << elem.first << " " << elem.second;
-        };
+                LOG << elem.first << " " << elem.second;
+            };
 
         ReduceTable table(key_extractor_, reduce_function_,
                           { print });
