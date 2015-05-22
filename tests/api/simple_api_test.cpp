@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/test_simple_api.cpp
+ * tests/api/simple_api_test.cpp
  *
  * Part of Project c7a.
  *

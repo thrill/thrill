@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/test_serializer.cpp
+ * tests/data/serializer_test.cpp
  *
  * Part of Project c7a.
  *
