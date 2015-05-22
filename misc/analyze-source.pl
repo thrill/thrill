@@ -246,7 +246,7 @@ sub process_cpp {
             if ($data[$i] =~ m!^namespace\s*(\S+) {!) {
                 push(@namespace, $1);
                 if ($data[$i+1] !~ m!^namespace \S+ {!) {
-                    splice(@data, $i+1, 0, "\n");
+                    #splice(@data, $i+1, 0, "\n");
                 }
             }
             elsif ($data[$i] =~ m!^}\s+// namespace (\S+)!) {
