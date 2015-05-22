@@ -26,7 +26,6 @@
 #include <vector>
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -80,7 +79,7 @@ public:
           reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, ctx.get_data_manager().template GetNetworkEmitters<Output>(channel_id_))
     {
         // Hook PreOp
-        auto pre_op_fn = [=](reduce_arg_t input) {
+        auto pre_op_fn = [ = ](reduce_arg_t input) {
                              PreOp(input);
                          };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
@@ -98,6 +97,7 @@ public:
     void execute() override {
         //Flush hash table to send data before main op begins
         reduce_pre_table_.Flush();
+        reduce_pre_table_.CloseEmitter();
 
         MainOp();
     }
@@ -108,7 +108,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, std::function<void(Output)> emit_func) {
+        auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
                               return PostOp(elem, emit_func);
                           };
 
@@ -173,7 +173,6 @@ private:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
