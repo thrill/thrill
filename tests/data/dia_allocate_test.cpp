@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/test_dia_allocate.cpp
+ * tests/data/dia_allocate_test.cpp
  *
  * Part of Project c7a.
  *
