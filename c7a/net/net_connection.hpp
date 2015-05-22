@@ -57,8 +57,8 @@ class NetConnection : protected lowlevel::Socket
     static const bool self_verify_ = true;
 
     ConnectionState state_ = ConnectionState::Invalid;
-    size_t peer_id_ = -1;
     size_t group_id_ = -1;
+    size_t peer_id_ = -1;
 
 public:
     //! default construction, contains invalid socket
@@ -73,8 +73,8 @@ public:
 
     //! Construct NetConnection from a Socket, with immediate
     //! initialization. (Currently used by tests).
-    NetConnection(const Socket& s, size_t peer_id, size_t group_id)
-        : Socket(s), peer_id_(peer_id), group_id_(group_id)
+    NetConnection(const Socket& s, size_t group_id, size_t peer_id)
+        : Socket(s), group_id_(group_id), peer_id_(peer_id)
     { }
 
 #if !C7A_NETCONNECTION_COPYABLE
@@ -99,12 +99,12 @@ public:
         return state_;
     }
 
-    size_t GetPeerId() const {
-        return peer_id_;
-    }
-
     size_t GetGroupId() const {
         return group_id_;
+    }
+
+    size_t GetPeerId() const {
+        return peer_id_;
     }
 
     //TODO(ej) Make setters internal/friend NetManager
@@ -112,12 +112,12 @@ public:
         this->state_ = state;
     }
 
-    void SetPeerId(size_t peerId) {
-        this->peer_id_ = peerId;
-    }
-
     void SetGroupId(size_t groupId) {
         this->group_id_ = groupId;
+    }
+
+    void SetPeerId(size_t peerId) {
+        this->peer_id_ = peerId;
     }
 
     //! Check whether the contained file descriptor is valid.
