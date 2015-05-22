@@ -31,6 +31,7 @@
 #include "read_node.hpp"
 #include "reduce_node.hpp"
 #include "context.hpp"
+#include "write_node.hpp"
 
 namespace c7a {
 
@@ -268,6 +269,22 @@ public:
         auto zip_stack = shared_node->ProduceStack();
         return DIARef<zip_result_t, decltype(zip_stack)>
                    (std::move(shared_node), zip_stack);
+    }
+
+    template <typename write_fn_t>
+    void WriteToFileSystem(std::string filepath,
+                           const write_fn_t &write_fn) {
+        using write_result_t = typename FunctionTraits<write_fn_t>::result_type;
+
+        using WriteResultNode = WriteNode<T, write_result_t, write_fn_t>;
+
+        auto shared_node =
+                std::make_shared<WriteResultNode>(node_->get_context(),
+                                                  node_.get(),
+                                                  write_fn,
+                                                  filepath);
+
+        shared_node->ProduceStack();
     }
 
     /*!
