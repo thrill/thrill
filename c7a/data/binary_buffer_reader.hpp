@@ -214,8 +214,9 @@ public:
 
     //! \}
 };
-} //namespace data
-} //namespace c7a
+
+} // namespace data
+} // namespace c7a
 
 #endif // !C7A_DATA_BINARY_BUFFER_READER_HEADER
 

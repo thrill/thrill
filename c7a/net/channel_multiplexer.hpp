@@ -25,7 +25,9 @@ namespace c7a {
 namespace data {
 
 struct BufferChain;
-}
+
+} // namespace data
+
 namespace net {
 
 //! \ingroup net
@@ -45,7 +47,7 @@ typedef c7a::data::ChainId ChannelId;
 //! All sockets are polled for headers. As soon as the a header arrives it is
 //! either attached to an existing channel or a new channel instance is
 //! created.
-//
+//!
 //! OpenChannel returns a set of emitters that can be used to emitt data to other workers.
 class ChannelMultiplexer
 {
