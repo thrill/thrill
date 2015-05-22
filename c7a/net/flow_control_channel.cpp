@@ -18,15 +18,13 @@ namespace c7a {
 
 //################### Base flow control channel.
 
-void FlowControlChannel::SendTo(std::string message, unsigned int destination)
-{
+void FlowControlChannel::SendTo(std::string message, unsigned int destination) {
     //TODO(ej) Emi Error handling
     //Need to notify controller about failure when smth happens here.
     assert(dispatcher->Send(destination, message) == NET_SERVER_SUCCESS);
 }
 
-std::string FlowControlChannel::ReceiveFrom(unsigned int source)
-{
+std::string FlowControlChannel::ReceiveFrom(unsigned int source) {
     std::string message;
 
     int r = dispatcher->Receive(source, &message);
@@ -35,8 +33,7 @@ std::string FlowControlChannel::ReceiveFrom(unsigned int source)
     return message;
 }
 
-std::string FlowControlChannel::ReceiveFromAny(unsigned int* source)
-{
+std::string FlowControlChannel::ReceiveFromAny(unsigned int* source) {
     std::string message;
 
     int ret = dispatcher->ReceiveFromAny(source, &message);
@@ -47,8 +44,7 @@ std::string FlowControlChannel::ReceiveFromAny(unsigned int* source)
 
 //################### Master flow control channel
 
-std::vector<std::string> MasterFlowControlChannel::ReceiveFromWorkers()
-{
+std::vector<std::string> MasterFlowControlChannel::ReceiveFromWorkers() {
     unsigned int id;
     std::vector<std::string> result(dispatcher->endpoints.size());
     for (unsigned int i = 0; i < dispatcher->endpoints.size(); i++)
@@ -62,8 +58,7 @@ std::vector<std::string> MasterFlowControlChannel::ReceiveFromWorkers()
     return result;
 }
 
-void MasterFlowControlChannel::BroadcastToWorkers(const std::string& value)
-{
+void MasterFlowControlChannel::BroadcastToWorkers(const std::string& value) {
     for (ExecutionEndpoint endpoint : dispatcher->endpoints) {
         if (endpoint.id != dispatcher->localId) {
             SendTo(value, endpoint.id);
@@ -71,8 +66,7 @@ void MasterFlowControlChannel::BroadcastToWorkers(const std::string& value)
     }
 }
 
-std::vector<std::vector<std::string> > MasterFlowControlChannel::AllToAll()
-{
+std::vector<std::vector<std::string> > MasterFlowControlChannel::AllToAll() {
     unsigned int count = dispatcher->endpoints.size() - 1;
     std::vector<std::vector<std::string> > results(count + 1);
 
@@ -89,18 +83,15 @@ std::vector<std::vector<std::string> > MasterFlowControlChannel::AllToAll()
 
 //################### Worker flow control channel
 
-void WorkerFlowControlChannel::SendToMaster(std::string value)
-{
+void WorkerFlowControlChannel::SendToMaster(std::string value) {
     SendTo(value, dispatcher->masterId);
 }
 
-std::string WorkerFlowControlChannel::ReceiveFromMaster()
-{
+std::string WorkerFlowControlChannel::ReceiveFromMaster() {
     return ReceiveFrom(dispatcher->masterId);
 }
 
-std::vector<std::string> WorkerFlowControlChannel::AllToAll(std::vector<std::string> messages)
-{
+std::vector<std::string> WorkerFlowControlChannel::AllToAll(std::vector<std::string> messages) {
     for (ExecutionEndpoint endpoint : dispatcher->endpoints) {
         if (endpoint.id != dispatcher->localId) {
             SendTo(messages[endpoint.id], endpoint.id);

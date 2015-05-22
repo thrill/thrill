@@ -25,8 +25,7 @@ namespace c7a {
  * \param size  length of binary data
  * \return      string of hexadecimal pairs
  */
-static inline std::string hexdump(const void* data, size_t size)
-{
+static inline std::string hexdump(const void* data, size_t size) {
     const unsigned char* cdata = static_cast<const unsigned char*>(data);
 
     std::string out;
@@ -47,8 +46,7 @@ static inline std::string hexdump(const void* data, size_t size)
     return out;
 }
 
-static inline std::string hexdump(const std::string& str)
-{
+static inline std::string hexdump(const std::string& str) {
     return hexdump(str.data(), str.size());
 }
 

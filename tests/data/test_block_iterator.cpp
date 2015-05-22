@@ -25,8 +25,7 @@ struct TestBlockIterator : public::testing::Test {
         threeStringsBuffer(StringsToBuffer(threeStrings)),
         oneStringBuffer(StringsToBuffer(oneString)) { }
 
-    BinaryBuffer StringsToBuffer(std::vector<std::string> strings) const
-    {
+    BinaryBuffer StringsToBuffer(std::vector<std::string> strings) const {
         BinaryBufferBuilder builder;
         for (std::string s : strings) {
             builder.PutString(s);

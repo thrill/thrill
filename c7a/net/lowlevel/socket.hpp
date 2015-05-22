@@ -61,8 +61,7 @@ public:
         : fd_(-1) { }
 
     //! Create a new stream socket.
-    static Socket Create()
-    {
+    static Socket Create() {
         int fd = ::socket(AF_INET, SOCK_STREAM, 0);
 
         if (fd < 0) {
@@ -76,8 +75,7 @@ public:
 
     //! Create a pair of connected stream sockets. Use this for internal local
     //! test connection pairs.
-    static std::pair<Socket, Socket> CreatePair()
-    {
+    static std::pair<Socket, Socket> CreatePair() {
         int fds[2];
         int r = socketpair(PF_UNIX, SOCK_STREAM, 0, fds);
 
@@ -103,8 +101,7 @@ public:
     int fd() const { return fd_; }
 
     //! Query socket for its current error state.
-    int GetError() const
-    {
+    int GetError() const {
         int socket_error;
         socklen_t len = sizeof(socket_error);
         getsockopt(SOL_SOCKET, SO_ERROR, &socket_error, &len);
@@ -113,8 +110,7 @@ public:
 
     //! Turn socket into non-blocking state.
     //! \return old blocking value (0 or 1) or -1 for error
-    int SetNonBlocking(bool non_blocking) const
-    {
+    int SetNonBlocking(bool non_blocking) const {
         assert(IsValid());
 
         if (non_blocking == non_blocking_) return 1;
@@ -138,8 +134,7 @@ public:
     }
 
     //! Return the current local socket address.
-    SocketAddress GetLocalAddress() const
-    {
+    SocketAddress GetLocalAddress() const {
         assert(IsValid());
 
         struct sockaddr_in6 sa;
@@ -158,8 +153,7 @@ public:
     }
 
     //! Return the current peer socket address.
-    SocketAddress GetPeerAddress() const
-    {
+    SocketAddress GetPeerAddress() const {
         assert(IsValid());
 
         struct sockaddr_in6 sa;
@@ -183,8 +177,7 @@ public:
     //! \{
 
     //! Close socket.
-    bool close()
-    {
+    bool close() {
         assert(IsValid());
 
         if (::close(fd_) != 0)
@@ -201,8 +194,7 @@ public:
     }
 
     //! Shutdown one or both directions of socket.
-    bool shutdown(int how = SHUT_RDWR)
-    {
+    bool shutdown(int how = SHUT_RDWR) {
         assert(IsValid());
 
         if (::shutdown(fd_, how) != 0)
@@ -224,8 +216,7 @@ public:
     //! \{
 
     //! Bind socket to given SocketAddress for listening or connecting.
-    bool bind(const SocketAddress& sa)
-    {
+    bool bind(const SocketAddress& sa) {
         assert(IsValid());
 
         int r = ::bind(fd_, sa.sockaddr(), sa.socklen());
@@ -242,8 +233,7 @@ public:
     }
 
     //! Initial socket connection to address
-    int connect(const SocketAddress& sa)
-    {
+    int connect(const SocketAddress& sa) {
         assert(IsValid());
 
         int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
@@ -263,8 +253,7 @@ public:
     }
 
     //! Turn socket into listener state to accept incoming connections.
-    bool listen(int backlog = 0)
-    {
+    bool listen(int backlog = 0) {
         assert(IsValid());
 
         if (backlog == 0) backlog = SOMAXCONN;
@@ -286,8 +275,7 @@ public:
     }
 
     //! Wait on socket until a new connection comes in.
-    Socket accept() const
-    {
+    Socket accept() const {
         assert(IsValid());
         assert(is_listensocket_);
 
@@ -318,8 +306,7 @@ public:
     //! Send (data,size) to socket (BSD socket API function wrapper), for
     //! blocking sockets one should probably use send() instead of this
     //! lower-layer functions.
-    ssize_t send_one(const void* data, size_t size, int flags = 0)
-    {
+    ssize_t send_one(const void* data, size_t size, int flags = 0) {
         assert(IsValid());
 
         LOG << "Socket::send_one()"
@@ -338,8 +325,7 @@ public:
     }
 
     //! Send (data,size) to socket, retry sends if short-sends occur.
-    ssize_t send(const void* data, size_t size, int flags = 0)
-    {
+    ssize_t send(const void* data, size_t size, int flags = 0) {
         assert(IsValid());
 
         LOG << "Socket::send()"
@@ -377,8 +363,7 @@ public:
     }
 
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
-    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0)
-    {
+    ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0) {
         assert(IsValid());
 
         LOG << "Socket::recv_one()"
@@ -397,8 +382,7 @@ public:
     }
 
     //! Receive (data,size) from socket, retry recvs if short-reads occur.
-    ssize_t recv(void* outdata, size_t size, int flags = 0)
-    {
+    ssize_t recv(void* outdata, size_t size, int flags = 0) {
         assert(IsValid());
 
         LOG << "Socket::recv()"
@@ -443,8 +427,7 @@ public:
 
     //! Perform raw getsockopt() operation on socket.
     int getsockopt(int level, int optname,
-                   void* optval, socklen_t* optlen) const
-    {
+                   void* optval, socklen_t* optlen) const {
         assert(IsValid());
 
         int r = ::getsockopt(fd_, level, optname, optval, optlen);
@@ -463,8 +446,7 @@ public:
 
     //! Perform raw setsockopt() operation on socket.
     int setsockopt(int level, int optname,
-                   const void* optval, socklen_t optlen)
-    {
+                   const void* optval, socklen_t optlen) {
         assert(IsValid());
 
         int r = ::setsockopt(fd_, level, optname, optval, optlen);

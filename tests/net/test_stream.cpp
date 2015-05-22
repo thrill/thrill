@@ -20,8 +20,7 @@ using namespace c7a;
 using namespace c7a::net;
 
 struct StreamTest : public::testing::Test {
-    StreamTest()
-    {
+    StreamTest() {
         candidate.channel_id = 2;
         candidate.expected_bytes = 4;
     }

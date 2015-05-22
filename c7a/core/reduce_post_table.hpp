@@ -56,8 +56,7 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit)
-    {
+          emit_(emit) {
         init();
     }
 
@@ -66,15 +65,13 @@ public:
                     ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit)
-    {
+          emit_(emit) {
         init();
     }
 
     ~ReducePostTable() { }
 
-    void init()
-    {
+    void init() {
         num_buckets_ = num_buckets_init_scale_;
         vector_.resize(num_buckets_, nullptr);
     }
@@ -85,8 +82,7 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const value_t& p)
-    {
+    void Insert(const value_t& p) {
         key_t key = key_extractor_(p);
 
         size_t hashed_key = std::hash<key_t>() (key) % num_buckets_;
@@ -161,8 +157,7 @@ public:
     /*!
      * Emits element to all childs
      */
-    void EmitAll(value_t& element)
-    {
+    void EmitAll(value_t& element) {
         for (auto emitter : emit_) {
             emitter(element);
         }
@@ -170,8 +165,7 @@ public:
     /*!
      * Flushes all items.
      */
-    void Flush()
-    {
+    void Flush() {
         LOG << "Flushing in progress";
 
         // retrieve items
@@ -198,24 +192,21 @@ public:
     /*!
      * Returns the total num of items.
      */
-    size_t Size()
-    {
+    size_t Size() {
         return table_size_;
     }
 
     /*!
      * Returns the total num of buckets.
      */
-    size_t NumBuckets()
-    {
+    size_t NumBuckets() {
         return num_buckets_;
     }
 
     /*!
      * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
      */
-    void SetMaxSize(size_t size)
-    {
+    void SetMaxSize(size_t size) {
         max_num_items_table_ = size;
     }
 
@@ -223,8 +214,7 @@ public:
      * Resizes the table by increasing the number of buckets using some
      * resize scale factor. All items are rehashed as part of the operation
      */
-    void ResizeUp()
-    {
+    void ResizeUp() {
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
         // init new array
@@ -242,8 +232,7 @@ public:
     /*!
      * Removes all items in the table, but NOT flushing them.
      */
-    void Clear()
-    {
+    void Clear() {
         LOG << "Clearing";
         std::fill(vector_.begin(), vector_.end(), nullptr);
         table_size_ = 0;
@@ -253,8 +242,7 @@ public:
     /*!
      * Removes all items in the table, but NOT flushing them.
      */
-    void Reset()
-    {
+    void Reset() {
         LOG << "Resetting";
         num_buckets_ = num_buckets_init_scale_;
         vector_.resize(num_buckets_, nullptr);
@@ -263,8 +251,7 @@ public:
     }
 
     // prints content of hash table
-    void Print()
-    {
+    void Print() {
         for (int i = 0; i < num_buckets_; i++) {
             if (vector_[i] == nullptr) {
                 LOG << "bucket "

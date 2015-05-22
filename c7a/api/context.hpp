@@ -27,12 +27,10 @@ public:
     Context() : job_manager_() { }
     virtual ~Context() { }
 
-    data::DataManager & get_data_manager()
-    {
+    data::DataManager & get_data_manager() {
         return job_manager_.get_data_manager();
     }
-    int number_worker()
-    {
+    int number_worker() {
         return number_worker_;
     }
 

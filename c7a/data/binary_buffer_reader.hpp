@@ -54,20 +54,17 @@ public:
     //! \{
 
     //! Return the current read cursor.
-    size_t cursor() const
-    {
+    size_t cursor() const {
         return cursor_;
     }
 
     //! Return the number of bytes still available at the cursor.
-    bool available(size_t n) const
-    {
+    bool available(size_t n) const {
         return (cursor_ + n <= size_);
     }
 
     //! Return true if the cursor is at the end of the buffer.
-    bool empty() const
-    {
+    bool empty() const {
         return (cursor_ == size_);
     }
 
@@ -77,23 +74,20 @@ public:
     //! \{
 
     //! Reset the read cursor.
-    BinaryBufferReader & Rewind()
-    {
+    BinaryBufferReader & Rewind() {
         cursor_ = 0;
         return *this;
     }
 
     //! Throws a std::underflow_error unless n bytes are available at the
     //! cursor.
-    void CheckAvailable(size_t n) const
-    {
+    void CheckAvailable(size_t n) const {
         if (!available(n))
             throw std::underflow_error("BinaryBufferReader underrun");
     }
 
     //! Advance the cursor given number of bytes without reading them.
-    BinaryBufferReader & Skip(size_t n)
-    {
+    BinaryBufferReader & Skip(size_t n) {
         CheckAvailable(n);
         cursor_ += n;
 
@@ -107,8 +101,7 @@ public:
 
     //! Fetch a number of unstructured bytes from the buffer, advancing the
     //! cursor.
-    BinaryBufferReader & Read(void* outdata, size_t datalen)
-    {
+    BinaryBufferReader & Read(void* outdata, size_t datalen) {
         CheckAvailable(datalen);
 
         Byte* coutdata = reinterpret_cast<Byte*>(outdata);
@@ -120,8 +113,7 @@ public:
 
     //! Fetch a number of unstructured bytes from the buffer as std::string,
     //! advancing the cursor.
-    std::string Read(size_t datalen)
-    {
+    std::string Read(size_t datalen) {
         CheckAvailable(datalen);
         std::string out(
             reinterpret_cast<const char*>(data_ + cursor_), datalen);
@@ -132,8 +124,7 @@ public:
     //! Fetch a single item of the template type Type from the buffer,
     //! advancing the cursor. Be careful with implicit type conversions!
     template <typename Type>
-    Type Get()
-    {
+    Type Get() {
         static_assert(std::is_integral<Type>::value,
                       "You only want to Get() integral types as raw values.");
 
@@ -146,8 +137,7 @@ public:
     }
 
     //! Fetch a varint with up to 32-bit from the buffer at the cursor.
-    uint32_t GetVarint()
-    {
+    uint32_t GetVarint() {
         uint32_t u, v = Get<uint8_t>();
         if (!(v & 0x80)) return v;
         v &= 0x7F;
@@ -165,8 +155,7 @@ public:
     }
 
     //! Fetch a 64-bit varint from the buffer at the cursor.
-    uint64_t GetVarint64()
-    {
+    uint64_t GetVarint64() {
         uint64_t u, v = Get<uint8_t>();
         if (!(v & 0x80)) return v;
         v &= 0x7F;
@@ -194,16 +183,14 @@ public:
     }
 
     //! Fetch a string which was Put via Put_string().
-    std::string GetString()
-    {
+    std::string GetString() {
         uint32_t len = GetVarint();
         return Read(len);
     }
 
     //! Fetch a BinaryBuffer to a binary string or blob which was Put via
     //! Put_string(). Does NOT copy the data.
-    BinaryBuffer GetBinaryBuffer()
-    {
+    BinaryBuffer GetBinaryBuffer() {
         uint32_t len = GetVarint();
         // save object
         BinaryBuffer br(data_ + cursor_, len);

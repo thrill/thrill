@@ -32,8 +32,7 @@ public:
 
     //! Appends data to the SocketTarget.
     //! Data may be sent but may be delayed.
-    virtual void Append(BinaryBuffer buffer)   //virtual does not hurt because not in tight loop
-    {
+    virtual void Append(BinaryBuffer buffer) { //virtual does not hurt because not in tight loop
         if (buffer.size() == 0) {
             return;
         }
@@ -44,8 +43,7 @@ public:
     }
 
     //! Closes the connection
-    virtual void Close()
-    {
+    virtual void Close() {
         assert(!closed_);
         closed_ = true;
         SendHeader(0);
@@ -60,8 +58,7 @@ protected:
     size_t id_;
     bool closed_;
 
-    void SendHeader(size_t num_bytes)
-    {
+    void SendHeader(size_t num_bytes) {
         net::StreamBlockHeader header;
         header.channel_id = id_;
         header.expected_bytes = num_bytes;
@@ -89,16 +86,14 @@ public:
           closed_(false) { }
 
     //! Appends data directly to the target BufferChain
-    virtual void Append(BinaryBuffer buffer)   //virtual does not hurt because not in tight loop
-    {
+    virtual void Append(BinaryBuffer buffer) { //virtual does not hurt because not in tight loop
         if (buffer.size() > 0) {
             chain_->Append(buffer);
         }
     }
 
     //! Closes the LoopbackTarget. Can be called once.
-    virtual void Close()
-    {
+    virtual void Close() {
         assert(!closed_);
         closeCallback_();
         closed_ = true;

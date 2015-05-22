@@ -49,15 +49,13 @@ public:
 
     //! output any type, including io manipulators
     template <typename AnyType>
-    Logger& operator << (const AnyType& at)
-    {
+    Logger& operator << (const AnyType& at) {
         oss_ << at;
         return *this;
     }
 
     //! destructor: output a newline
-    ~Logger()
-    {
+    ~Logger() {
         oss_ << "\n";
         // lock the global mutex of logger for serialized output in
         // multi-threaded programs.
@@ -76,8 +74,7 @@ public:
 
     //! output any type, including io manipulators
     template <typename AnyType>
-    Logger& operator << (const AnyType&)
-    {
+    Logger& operator << (const AnyType&) {
         return *this;
     }
 };
@@ -111,8 +108,7 @@ public:
 
     //! output any type, including io manipulators
     template <typename AnyType>
-    SpacingLogger& operator << (const AnyType& at)
-    {
+    SpacingLogger& operator << (const AnyType& at) {
         if (!first_) oss_ << ' ';
         else first_ = false;
 
@@ -122,8 +118,7 @@ public:
     }
 
     //! destructor: output a newline
-    ~SpacingLogger()
-    {
+    ~SpacingLogger() {
         oss_ << "\n";
         // lock the global mutex of logger for serialized output in
         // multi-threaded programs.
@@ -142,8 +137,7 @@ public:
 
     //! output any type, including io manipulators
     template <typename AnyType>
-    SpacingLogger& operator << (const AnyType&)
-    {
+    SpacingLogger& operator << (const AnyType&) {
         return *this;
     }
 };

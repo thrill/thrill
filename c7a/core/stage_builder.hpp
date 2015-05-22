@@ -27,12 +27,10 @@ namespace core {
 class Stage
 {
 public:
-    explicit Stage(DIABase* node) : node_(node)
-    {
+    explicit Stage(DIABase* node) : node_(node) {
         LOG1 << "CREATING stage" << node_->ToString() << "node" << node_;
     }
-    void Run()
-    {
+    void Run() {
         LOG1 << "RUNNING stage " << node_->ToString() << "node" << node_;
         node_->execute();
     }
@@ -44,8 +42,7 @@ private:
 // TODO(ch): why is this a free method?
 
 // Returns a list of stages of graph scope
-inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
-{
+inline void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
     LOG1 << "FINDING stages:";
     std::set<DIABase*> stages_found;
     // GOAL: Returns a vector with stages
@@ -74,8 +71,7 @@ inline void FindStages(DIABase* action, std::vector<Stage>& stages_result)
     std::reverse(stages_result.begin(), stages_result.end());
 }
 
-inline void RunScope(DIABase* action)
-{
+inline void RunScope(DIABase* action) {
     std::vector<Stage> result;
     FindStages(action, result);
     for (auto s : result)

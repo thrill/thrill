@@ -97,8 +97,7 @@ public:
      * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
-    DIARef(const DIARef<T, AnyStack>& rhs)
-    {
+    DIARef(const DIARef<T, AnyStack>& rhs) {
         // Create new LOpNode
         // Transfer stack from rhs to LOpNode
         // Build new DIARef with empty stack and LOpNode
@@ -118,24 +117,21 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T> * get_node() const
-    {
+    DIANode<T> * get_node() const {
         return node_.get();
     }
 
     /*!
      * Returns the number of references to the according DIANode.
      */
-    int get_node_count() const
-    {
+    int get_node_count() const {
         return node_.use_count();
     }
 
     /*!
      * Returns the stored function chain.
      */
-    Stack & get_stack()
-    {
+    Stack & get_stack() {
         return local_stack_;
     }
 
@@ -279,8 +275,7 @@ public:
      *
      * \return Chuck Norris
      */
-    const std::vector<T> & evil_get_data() const
-    {
+    const std::vector<T> & evil_get_data() const {
         return (std::vector<T>{ T() });
     }
 
@@ -289,8 +284,7 @@ public:
      *
      * \return The string of node_
      */
-    std::string NodeString()
-    {
+    std::string NodeString() {
         return node_->ToString();
     }
 
@@ -298,8 +292,7 @@ public:
      * Prints the DIANode and all it's children recursively. The printing is
      * performed tree-style.
      */
-    void PrintNodes()
-    {
+    void PrintNodes() {
         using BasePair = std::pair<DIABase*, int>;
         std::stack<BasePair> dia_stack;
         dia_stack.push(std::make_pair(node_, 0));

@@ -79,8 +79,7 @@ public:
     //! Register a relative timeout callback
     template <class Rep, class Period>
     void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
-                            const TimerCallback& cb)
-    {
+                            const TimerCallback& cb) {
         timer_pq_.emplace(steady_clock::now() + timeout,
                           std::chrono::duration_cast<milliseconds>(timeout),
                           cb);
@@ -95,22 +94,19 @@ public:
     typedef function<bool (NetConnection&)> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(NetConnection& c, const ConnectionCallback& read_cb)
-    {
+    void AddRead(NetConnection& c, const ConnectionCallback& read_cb) {
         return dispatcher_.AddRead(c.GetSocket().fd(), c, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(NetConnection& c, const ConnectionCallback& write_cb)
-    {
+    void AddWrite(NetConnection& c, const ConnectionCallback& write_cb) {
         return dispatcher_.AddWrite(c.GetSocket().fd(), c, write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(
         NetConnection& c,
-        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb)
-    {
+        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
         return dispatcher_.AddReadWrite(
             c.GetSocket().fd(), c, read_cb, write_cb);
     }
@@ -126,8 +122,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     virtual void AsyncRead(NetConnection& c, size_t n,
-                           AsyncReadCallback done_cb)
-    {
+                           AsyncReadCallback done_cb) {
         assert(c.GetSocket().IsValid());
 
         LOG << "async read on read dispatcher";
@@ -150,8 +145,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(NetConnection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr)
-    {
+                    AsyncWriteCallback done_cb = nullptr) {
         assert(c.GetSocket().IsValid());
 
         if (buffer.size() == 0) {
@@ -170,16 +164,14 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(NetConnection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = NULL)
-    {
+                        AsyncWriteCallback done_cb = NULL) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(NetConnection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = NULL)
-    {
+                        AsyncWriteCallback done_cb = NULL) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
@@ -189,8 +181,7 @@ public:
     //! \{
 
     //! dispatch one or more events
-    void Dispatch()
-    {
+    void Dispatch() {
         // process timer events that lie in the past
         steady_clock::time_point now = steady_clock::now();
 
@@ -263,8 +254,7 @@ protected:
         { }
 
         //! Should be called when the socket is readable
-        bool operator () (NetConnection& c)
-        {
+        bool operator () (NetConnection& c) {
             int r = c.GetSocket().recv_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
@@ -309,8 +299,7 @@ protected:
         { }
 
         //! Should be called when the socket is writable
-        bool operator () (NetConnection& c)
-        {
+        bool operator () (NetConnection& c) {
             int r = c.GetSocket().send_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
@@ -345,8 +334,7 @@ protected:
     /**************************************************************************/
 
     //! Default exception handler
-    static bool ExceptionCallback(NetConnection& s)
-    {
+    static bool ExceptionCallback(NetConnection& s) {
         // exception on listen socket ?
         throw Exception(
                   "NetDispatcher() exception on socket fd "
