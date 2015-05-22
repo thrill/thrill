@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test_channel_multiplexer.cpp
+ * tests/net/channel_multiplexer_test.cpp
  *
  * Part of Project c7a.
  *

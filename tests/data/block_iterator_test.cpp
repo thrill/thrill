@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/test_block_iterator.cpp
+ * tests/data/block_iterator_test.cpp
  *
  * Part of Project c7a.
  *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/test_stats_timer.cpp
+ * tests/common/stats_timer_test.cpp
  *
  * Part of Project c7a.
  *
