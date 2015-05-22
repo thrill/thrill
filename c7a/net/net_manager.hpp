@@ -191,10 +191,8 @@ public:
     void CreateAndConnect(size_t id, lowlevel::SocketAddress& address, size_t group)
     {
         lowlevel::Socket ns = lowlevel::Socket::Create();
-        connections_.emplace_back(ns);
+        connections_.emplace_back(ns, group, id);
         connections_.back().SetState(ConnectionState::Disconnected);
-        connections_.back().SetGroupId(group);
-        connections_.back().SetPeerId(id);
 
         Connect(connections_.back(), address);
     }
