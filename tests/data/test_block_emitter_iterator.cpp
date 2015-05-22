@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/test_block_iterator.cpp
+ * tests/data/test_block_emitter_iterator.cpp
  *
  * Part of Project c7a.
  *
@@ -86,3 +86,5 @@ TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
     }
     ASSERT_FALSE(it.HasNext());
 }
+
+/******************************************************************************/

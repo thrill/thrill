@@ -20,6 +20,7 @@
 #include "c7a/core/job_manager.hpp"
 
 namespace c7a {
+
 class Context
 {
 public:
@@ -40,6 +41,7 @@ private:
     //stub
     int number_worker_ = 1;
 };
+
 }  // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER

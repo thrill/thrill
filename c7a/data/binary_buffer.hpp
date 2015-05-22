@@ -9,13 +9,17 @@
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
+
 #pragma once
+#ifndef C7A_DATA_BINARY_BUFFER_HEADER
+#define C7A_DATA_BINARY_BUFFER_HEADER
 
 #include <c7a/net/buffer.hpp>
 #include <c7a/data/binary_buffer_builder.hpp>
 
 namespace c7a {
 namespace data {
+
 /*!
  * BinaryBuffer represents a memory area as pointer and valid length. It
  * is not deallocated or otherwise managed. This class can be used to pass
@@ -96,3 +100,7 @@ public:
 };
 } //namespace data
 } //namespace c7a
+
+#endif // !C7A_DATA_BINARY_BUFFER_HEADER
+
+/******************************************************************************/

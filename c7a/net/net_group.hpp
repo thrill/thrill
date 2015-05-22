@@ -61,7 +61,7 @@ public:
 
     //! Default empty constructor, must be Initialize()d later.
     NetGroup()
-    {}
+    { }
 
     //! Initialize a real NetGroup for construction from the NetManager.
     void Initialize(ClientId my_rank, size_t group_size)

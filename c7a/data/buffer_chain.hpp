@@ -19,6 +19,7 @@
 
 namespace c7a {
 namespace data {
+
 //! Elements of a singly linked list, holding a immuteable buffer
 struct BufferChainElement {
     BufferChainElement(BinaryBuffer b) : next(nullptr), buffer(b) { }
@@ -34,7 +35,8 @@ struct BufferChainElement {
 struct BufferChain : public EmitterTarget {
     BufferChain() : head(nullptr), tail(nullptr), closed(false) { }
 
-    void Append(BinaryBuffer b) {
+    void Append(BinaryBuffer b)
+    {
         if (tail == nullptr) {
             head = new BufferChainElement(b);
             tail = head;
@@ -46,7 +48,8 @@ struct BufferChain : public EmitterTarget {
     }
 
     //! Call buffers' destructors and deconstructs the chain
-    void Delete() {
+    void Delete()
+    {
         BufferChainElement* current = head;
         while (current != nullptr) {
             BufferChainElement* next = current->next;
@@ -55,7 +58,8 @@ struct BufferChain : public EmitterTarget {
         }
     }
 
-    void Close() {
+    void Close()
+    {
         closed = true;
     }
 
@@ -63,6 +67,7 @@ struct BufferChain : public EmitterTarget {
     struct BufferChainElement* tail;
     bool                     closed;
 };
+
 } // namespace data
 } // namespace c7a
 
