@@ -45,7 +45,7 @@ build_only(core/post_hash_table_test)
 build_only(core/pre_hash_table_test)
 build_only(net/group_test)
 build_only(net/buffer_test)
-build_test(data/binary_builder_test)
+build_only(data/binary_builder_test)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_only(net/stream_test)
 
