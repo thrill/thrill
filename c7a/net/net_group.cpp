@@ -68,11 +68,6 @@ private:
     std::string buffer_;
 };
 
-NetGroup::NetGroup(ClientId my_rank, size_t group_size)
-    : my_rank_(my_rank),
-      connections_(group_size)
-{ }
-
 void NetGroup::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(NetGroup*)>& thread_function)
