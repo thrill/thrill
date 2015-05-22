@@ -93,7 +93,7 @@ struct Impl<std::pair<std::string, int> >{
     }
 };
 
-}       // namespace serializers
+} // namespace serializers
 
 //! Serialize the type to std::string
 template <class T>

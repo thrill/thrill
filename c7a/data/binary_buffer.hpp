@@ -98,8 +98,9 @@ public:
             free((void*)data_);
     }
 };
-} //namespace data
-} //namespace c7a
+
+} // namespace data
+} // namespace c7a
 
 #endif // !C7A_DATA_BINARY_BUFFER_HEADER
 

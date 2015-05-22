@@ -73,8 +73,9 @@ private:
     ChainId next_id_;
     std::map<ChainId, std::shared_ptr<BufferChain> > chains_;
 };
-} //namespace data
-} //namespace c7a
+
+} // namespace data
+} // namespace c7a
 
 #endif // !C7A_DATA_BUFFER_CHAIN_MANAGER_HEADER
 
