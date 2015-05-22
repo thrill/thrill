@@ -169,14 +169,56 @@ TEST(NetGroup, InitializeSendReceive) {
     NetGroup::ExecuteLocalMock(6, ThreadInitializeSendReceive);
 }
 
+/*
+TEST(NetGroup, TestPrefixSum) {
+    for (size_t p = 2; p <= 8; p *= 2) {
+        // Construct NetGroup of p workers which perform a PrefixSum collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = 1;
+                net->PrefixSum(local_value);
+                ASSERT_EQ(local_value, net->MyRank() + 1);
+            });
+    }
+}
+*/
+
 TEST(NetGroup, TestAllReduce) {
-    // Construct a NetGroup of 8 workers which perform an AllReduce collective
-    NetGroup::ExecuteLocalMock(
-        8, [](NetGroup* net) {
-            size_t local_value = net->MyRank();
-            net->AllReduce(local_value);
-            ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
-        });
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform an AllReduce collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = net->MyRank();
+                net->AllReduce(local_value);
+                ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+            });
+    }
+}
+
+TEST(NetGroup, TestBroadcast) {
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform an Broadcast collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value;
+                if (net->MyRank() == 0) local_value = 42;
+                net->Broadcast(local_value);
+                ASSERT_EQ(local_value, 42);
+            });
+    }
+}
+
+TEST(NetGroup, TestReduceToRoot) {
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct NetGroup of p workers which perform an Broadcast collective
+        NetGroup::ExecuteLocalMock(
+            p, [](NetGroup* net) {
+                size_t local_value = net->MyRank();
+                net->ReduceToRoot(local_value);
+                if (net->MyRank() == 0)
+                    ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+            });
+    }
 }
 
 /******************************************************************************/
