@@ -6,6 +6,16 @@
 
 set(C7A_LIBRARIES c7a gtest gmock pthread)
 
+# macro for building test programs, without main() in c7a_tests.cpp
+macro(build_plain PROGNAME)
+
+  string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
+
+  add_executable(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
+  target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
+
+endmacro(build_only)
+
 # macro for building test programs
 macro(build_only PROGNAME)
 
@@ -37,6 +47,7 @@ build_test(data/block_iterator_test)
 #build_test(data/dia_allocate_test)
 build_test(data/serializer_test)
 build_test(common/delegate_test)
+build_plain(common/cmdline_parser_example)
 build_test(common/stats_counter_test)
 build_test(common/cmdline_parser_test)
 build_test(common/stats_timer_test)
@@ -49,5 +60,6 @@ build_test(net/buffer_test)
 build_test(data/binary_builder_test)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_test(net/stream_test)
+
 
 ################################################################################
