@@ -18,14 +18,18 @@ struct PreTable : public::testing::Test {
           manager(multiplexer),
           id(manager.AllocateDIA()),
           emit(manager.GetLocalEmitter<int>(id)),
-          pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) { }
+          pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)),
+          int_pair_emit(manager.GetLocalEmitter<std::pair<int, int> >(id))
+    { }
 
     c7a::net::NetDispatcher                               dispatcher;
     c7a::net::ChannelMultiplexer                          multiplexer;
     c7a::data::DataManager                                manager;
     size_t                                                id = manager.AllocateDIA();
     c7a::data::BlockEmitter<int>                          emit;
-    c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
+    // all emitters access the same dia id, which is bad if you use them both
+    c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit;
+    c7a::data::BlockEmitter<std::pair<int, int> >         int_pair_emit;
 };
 
 TEST_F(PreTable, AddIntegers) {
@@ -150,6 +154,29 @@ TEST_F(PreTable, ComplexType) {
     table.Insert(std::make_pair("baguette", 42));
 
     ASSERT_EQ(0, table.Size());
+}
+
+TEST_F(PreTable, BigTest) {
+    using StringPair = std::pair<int, int>;
+
+    auto key_ex = [](StringPair in) {
+                      return in.first % 501;
+                  };
+
+    auto red_fn = [](StringPair in1, StringPair in2) {
+                      return std::make_pair(in1.first, in1.second + in2.second);
+                  };
+
+    // Hashtable with smaller block size for testing.
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+                              decltype(int_pair_emit), 16* 1024>
+    table(1, 2, 2, 128 * 1024, 1024 * 1024,
+          key_ex, red_fn, { int_pair_emit });
+
+    // insert lots of items
+    for (size_t i = 0; i != 1 * 1024 * 1024; ++i) {
+        table.Insert(std::make_pair(i, i));
+    }
 }
 
 TEST_F(PreTable, MultipleWorkers) {
