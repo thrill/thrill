@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test_buffer.cpp
+ * tests/net/buffer_test.cpp
  *
  * Part of Project c7a.
  *

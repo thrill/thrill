@@ -11,7 +11,8 @@
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
-#include "c7a/data/data_manager.hpp"
+#include <c7a/data/data_manager.hpp>
+#include <c7a/net/net_manager.hpp>
 
 //includes for thread and condition variables magic
 #include <thread>
@@ -24,7 +25,7 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) {
+    JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) {
         //OVERALL TODO(cn): Run Dispatcher in own thread
 
         //TODO(cn): find out how to run the dispatcher. Is it like this?
@@ -32,6 +33,13 @@ public:
 
         //TODO(cn): now run it in an owen threeeead. like this?
         //std::thread(net_dispatcher_.Dispatch());
+    }
+
+    bool Connect(size_t my_rank, const std::vector<net::NetEndpoint>& endpoints) {
+        net_manager_.Initialize(my_rank, endpoints);
+        cmp_.Connect(&net_manager_.GetDataNetGroup());
+        //TODO(??) connect control flow and system control channels here
+        return true;
     }
 
     data::DataManager & get_data_manager() {
@@ -51,6 +59,7 @@ public:
     }
 
 private:
+    net::NetManager net_manager_;
     net::NetDispatcher net_dispatcher_;
     net::ChannelMultiplexer cmp_;
     data::DataManager data_manager_;

@@ -19,6 +19,9 @@
 #include "c7a/data/data_manager.hpp"
 #include "c7a/core/job_manager.hpp"
 
+#include <stdio.h>
+#include <unistd.h>
+
 namespace c7a {
 
 class Context
@@ -30,8 +33,23 @@ public:
     data::DataManager & get_data_manager() {
         return job_manager_.get_data_manager();
     }
+
     int number_worker() {
         return number_worker_;
+    }
+
+    core::JobManager & job_manager() {
+        return job_manager_;
+    }
+
+    std::string get_current_dir() {
+        char cCurrentPath[FILENAME_MAX];
+
+        if (!getcwd(cCurrentPath, sizeof(cCurrentPath))) {
+            throw "unable to retrieve current directory";
+        }
+
+        return getcwd(cCurrentPath, sizeof(cCurrentPath));
     }
 
 private:

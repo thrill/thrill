@@ -77,10 +77,15 @@ public:
         : Socket(s), group_id_(group_id), peer_id_(peer_id)
     { }
 
-#if !C7A_NETCONNECTION_COPYABLE
     //! move-constructor
-    NetConnection(NetConnection&& other) : Socket(other)
-    { other.fd_ = -1; }
+    NetConnection(NetConnection&& other)
+        : Socket(other),
+          state_(other.state_),
+          group_id_(other.group_id_),
+          peer_id_(other.peer_id_) {
+        other.fd_ = -1;
+        other.state_ = ConnectionState::Invalid;
+    }
 
     //! move assignment-operator
     NetConnection& operator = (NetConnection&& other) {
@@ -90,32 +95,35 @@ public:
         }
         Socket::operator = (other);
         other.fd_ = -1;
+        state_ = other.state_;
+        group_id_ = other.group_id_;
+        peer_id_ = other.peer_id_;
+        other.state_ = ConnectionState::Invalid;
         return *this;
     }
-#endif
 
-    ConnectionState GetState() const {
+    ConnectionState state() const {
         return state_;
     }
 
-    size_t GetGroupId() const {
+    size_t group_id() const {
         return group_id_;
     }
 
-    size_t GetPeerId() const {
+    size_t peer_id() const {
         return peer_id_;
     }
 
     //TODO(ej) Make setters internal/friend NetManager
-    void SetState(ConnectionState state) {
+    void set_state(ConnectionState state) {
         this->state_ = state;
     }
 
-    void SetGroupId(size_t groupId) {
+    void set_group_id(size_t groupId) {
         this->group_id_ = groupId;
     }
 
-    void SetPeerId(size_t peerId) {
+    void set_peer_id(size_t peerId) {
         this->peer_id_ = peerId;
     }
 
