@@ -27,7 +27,7 @@ option(JENKINS_BUILD "Build all with more warnings" OFF)
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)

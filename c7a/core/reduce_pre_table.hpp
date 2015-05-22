@@ -32,7 +32,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using key_t = typename FunctionTraits<KeyExtractor>::result_type;
 
