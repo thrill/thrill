@@ -34,7 +34,7 @@ public:
         return number_worker_;
     }
 
-    core::JobManager & GetJobManager() {
+    core::JobManager & job_manager() {
         return job_manager_;
     }
 
