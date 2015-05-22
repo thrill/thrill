@@ -54,12 +54,7 @@ TEST(WordCount, PreOP) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    std::vector<Stage> result;
-    FindStages(red_words.get_node(), result);
-    for (auto s : result)
-    {
-        s.Run();
-    }
+    RunScope(red_words.get_node());
 }
 
 /******************************************************************************/
