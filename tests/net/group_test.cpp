@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/test_net_group.cpp
+ * tests/net/group_test.cpp
  *
  * Part of Project c7a.
  *

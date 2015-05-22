@@ -95,13 +95,13 @@ public:
         die_unless(kGroupCount == 3); //Adjust this method too if groupcount is different
         std::vector<std::thread*> threads(kGroupCount);
 
-        threads[0] = new std::thread([ = ] {
+        threads[0] = new std::thread([=] {
                                          NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction);
                                      });
-        threads[1] = new std::thread([ = ] {
+        threads[1] = new std::thread([=] {
                                          NetGroup::ExecuteLocalMock(num_clients, flowThreadFunction);
                                      });
-        threads[2] = new std::thread([ = ] {
+        threads[2] = new std::thread([=] {
                                          NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction);
                                      });
 
@@ -155,7 +155,7 @@ public:
             }
         }
 
-        dispatcher.AddRead(listenConnection_, [ = ](NetConnection& nc) {
+        dispatcher.AddRead(listenConnection_, [=](NetConnection& nc) {
                                return ConnectionReceived(nc);
                            });
 
@@ -210,7 +210,7 @@ public:
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            dispatcher.AddRead(connection, [ = ](NetConnection& nc) {
+            dispatcher.AddRead(connection, [=](NetConnection& nc) {
                                    return Connected(nc, address);
                                });
         }
@@ -262,7 +262,7 @@ public:
         // send welcome message
         const WelcomeMsg hello = { c7a_sign, (uint32_t)conn.GetGroupId(), (uint32_t)my_rank_ };
 
-        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection& nc) {
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [=](NetConnection& nc) {
                                       return HelloSent(nc);
                                   });
 
@@ -325,7 +325,7 @@ public:
 
         conn.SetPeerId(msg->id);
         conn.SetGroupId(msg->groupId);
-        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [ = ](NetConnection& nc) {
+        dispatcher.AsyncWriteCopy(conn, &hello, sizeof(hello), [=](NetConnection& nc) {
                                       return HelloSent(nc);
                                   });
 

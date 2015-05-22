@@ -79,7 +79,7 @@ public:
           elements_()
     {
         // Hook PreOp
-        auto pre_op_fn = [ = ](reduce_arg_t input) {
+        auto pre_op_fn = [=](reduce_arg_t input) {
                              PreOp(input);
                          };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
@@ -113,7 +113,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [ = ](Output elem, std::function<void(Output)> emit_func) {
+        auto post_op_fn = [=](Output elem, std::function<void(Output)> emit_func) {
                               return PostOp(elem, emit_func);
                           };
 

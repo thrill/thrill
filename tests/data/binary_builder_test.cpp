@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/test_binary_builder.cpp
+ * tests/data/binary_builder_test.cpp
  *
  * Part of Project c7a.
  *

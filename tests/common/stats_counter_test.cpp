@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/test_stats_counter.cpp
+ * tests/common/stats_counter_test.cpp
  *
  * Part of Project c7a.
  *
