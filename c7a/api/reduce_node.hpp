@@ -26,6 +26,7 @@
 #include <vector>
 
 namespace c7a {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -99,15 +100,6 @@ public:
         reduce_pre_table_.Flush();
 
         MainOp();
-        // // get data from data manager
-        // data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
-        // // loop over input
-        // while (it.HasNext()) {
-        //     const Output& item = it.Next();
-        //     for (auto func : DIANode<Output>::callbacks_) {
-        //         func(item);
-        //     }
-        // }
     }
 
     /*!
@@ -181,6 +173,7 @@ private:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
