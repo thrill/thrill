@@ -97,12 +97,12 @@ public:
         auto elem = the_hash_table_[hash_worker].find(key);
 
         if (elem != the_hash_table_[hash_worker].end()) {
-            SpacingLogger(debug) << "[Insert] REDUCED ITEM";
+            LOG << "[Insert] REDUCED ITEM";
             auto new_elem = reduce_function_(item, elem->second);
             the_hash_table_[hash_worker].at(key) = new_elem;
         }
         else {
-            SpacingLogger(debug) << "[Insert] INSERTED ITEM";
+            LOG << "[Insert] INSERTED ITEM";
             the_hash_table_[hash_worker].insert(std::make_pair(key, item));
             ++key_count_[hash_worker];
             ++table_size_;
@@ -140,7 +140,7 @@ public:
         auto start = curr_ht.begin();
         auto end = curr_ht.end();
         for (auto it = start; it != end; ++it) {
-            SpacingLogger(debug) << "[FlushLargestPartition] FLUSHED";
+            LOG << "[FlushLargestPartition] FLUSHED";
             emit_[max_index](it->second);
         }
         the_hash_table_[max_index].clear();
@@ -199,15 +199,15 @@ public:
     // prints content of hash table
     void Print()
     {
-        SpacingLogger(true) << "[THE HORROR] Current hash table";
+        LOG1 << "[THE HORROR] Current hash table";
         for (auto worker : the_hash_table_) {
-            SpacingLogger(true) << "WORKER";
+            LOG1 << "WORKER";
             for (auto it = worker.begin(); it != worker.end(); ++it) {
-                SpacingLogger(true) << "elem";
+                LOG1 << "elem";
             }
         }
-        SpacingLogger(true) << "TABLE SIZE " << table_size_;
-        SpacingLogger(true) << "\n";
+        LOG1 << "TABLE SIZE " << table_size_;
+        LOG1 << "\n";
     }
 
 private:
