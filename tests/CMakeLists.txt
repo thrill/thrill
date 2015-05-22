@@ -39,7 +39,6 @@ build_test(data/test_serializer)
 build_test(common/test_delegate)
 build_test(common/test_stats_counter)
 build_test(common/test_stats_timer)
-build_test(net/mock_network)
 #build_test(core/test_stage_builder)
 build_only(core/bench_hash_table) #takes multiple seconds to complete
 build_test(core/test_post_hash_table)

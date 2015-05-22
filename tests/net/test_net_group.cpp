@@ -11,7 +11,7 @@
 #include <c7a/net/net_group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/net_dispatcher.hpp>
-#include <c7a/net/communication_manager.hpp>
+#include <c7a/net/net_manager.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -125,7 +125,7 @@ static void RealNetGroupConstructAndCall(
 
     // lambda to construct NetGroup and call user thread function.
 
-    std::vector<CommunicationManager> groups(count);
+    std::vector<NetManager> groups(count);
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
@@ -139,7 +139,6 @@ static void RealNetGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i].join();
-        groups[i].Dispose();
     }
 }
 
@@ -160,10 +159,14 @@ TEST(NetGroup, RealInitializeSendReceiveAsync) {
     RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
 
-/*
 TEST(NetGroup, InitializeAndClose) {
     // Construct a NetGroup of 6 workers which do nothing but terminate.
     NetGroup::ExecuteLocalMock(6, [](NetGroup*) { });
+}
+
+TEST(NetManager, InitializeAndClose) {
+    // Construct a NetGroup of 6 workers which do nothing but terminate.
+    NetManager::ExecuteLocalMock(6, [](NetGroup*) { }, [](NetGroup*) { }, [](NetGroup*) { });
 }
 
 TEST(NetGroup, InitializeSendReceive) {
@@ -180,5 +183,5 @@ TEST(NetGroup, TestAllReduce) {
             ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
         });
 }
-*/
+
 /******************************************************************************/

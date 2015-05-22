@@ -7,7 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "communication_manager.hpp"
+#include "net_manager.hpp"
 
 namespace c7a {
 namespace net {

@@ -28,6 +28,11 @@
 namespace c7a {
 namespace net {
 
+enum ConnectionState {
+    Invalid, Connecting, TransportConnected, HelloReceived,
+    HelloSent, WaitingForHello, Connected, Disconnected
+};
+
 //! \addtogroup net Network Communication
 //! \{
 
@@ -50,6 +55,10 @@ class NetConnection : protected lowlevel::Socket
     static const bool debug = false;
 
     static const bool self_verify_ = true;
+
+    ConnectionState state_ = ConnectionState::Invalid;
+    size_t peerId_;
+    size_t groupId_;
 
 public:
     //! Construct NetConnection from a Socket
@@ -78,6 +87,31 @@ public:
         return *this;
     }
 #endif
+
+    ConnectionState GetState() const {
+        return state_;
+    }
+
+    size_t GetPeerId() const {
+        return peerId_;
+    }
+
+    size_t GetGroupId() const {
+        return groupId_;
+    }
+
+    //TODO(ej) Make setters internal/friend NetManager
+    void SetState(ConnectionState state) {
+        this->state_ = state;
+    }
+
+    void SetPeerId(size_t peerId) {
+        this->peerId_ = peerId;
+    }
+
+    void SetGroupId(size_t groupId) {
+        this->groupId_ = groupId;
+    }
 
     //! Check whether the contained file descriptor is valid.
     bool IsValid() const
