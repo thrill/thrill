@@ -42,7 +42,7 @@ private:
     int number_worker_ = 1;
 };
 
-}  // namespace c7a
+} // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
 

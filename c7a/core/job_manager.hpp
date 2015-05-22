@@ -62,8 +62,8 @@ private:
     bool new_data_arrived_;
 };
 
-}  // namespace core
-}  // namespace c7a
+} // namespace core
+} // namespace c7a
 
 #endif // !C7A_CORE_JOB_MANAGER_HEADER
 

@@ -240,25 +240,36 @@ sub process_cpp {
         @data = filter_program($data, "uncrustify", "-q", "-c", "misc/uncrustify.cfg", "-l", "CPP");
 
         # manually add blank line after "namespace xyz {" and before "} // namespace xyz"
-        my $namespace = 0;
+        my @namespace;
         for(my $i = 0; $i < @data-1; ++$i)
         {
-            if ($data[$i] =~ m!^namespace \S+ {!) {
+            if ($data[$i] =~ m!^namespace\s*(\S+) {!) {
+                push(@namespace, $1);
                 if ($data[$i+1] !~ m!^namespace \S+ {!) {
                     splice(@data, $i+1, 0, "\n");
                 }
-                ++$namespace;
             }
-            if ($data[$i] =~ m!^}\s+// namespace!) {
+            elsif ($data[$i] =~ m!^}\s+// namespace (\S+)!) {
+                if (@namespace == 0) {
+                    print "$path\n";
+                    print "    NAMESPACE UNBALANCED! @ $i\n";
+                    #system("emacsclient -n $path");
+                }
+                else {
+                    # quiets wrong uncrustify indentation
+                    $data[$i] =~ s!}\s+// namespace!} // namespace!;
+                    expectr($path, $i, @data, "} // namespace ".$namespace[-1]."\n",
+                            qr!^}\s+//\s+namespace!);
+                }
                 if ($data[$i-1] !~ m!^}\s+// namespace!) {
                     splice(@data, $i, 0, "\n"); ++$i;
                 }
-                --$namespace;
+                pop(@namespace);
             }
         }
-        if ($namespace != 0) {
+        if (@namespace != 0) {
             print "$path\n";
-            print "    NAMESPACE MISMATCH!\n";
+            print "    NAMESPACE UNBALANCED!\n";
             #system("emacsclient -n $path");
         }
     }
