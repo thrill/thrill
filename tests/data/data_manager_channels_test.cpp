@@ -24,7 +24,7 @@ struct WorkerMock {
         : cmp(dispatcher),
           manager(cmp) { }
 
-    void               Connect(std::shared_ptr<NetGroup> con) {
+    void               Connect(NetGroup* con) {
         cmp.Connect(con);
     }
 
@@ -42,29 +42,29 @@ struct DataManagerChannelFixture : public::testing::Test {
         : dispatcher(),
           worker0(dispatcher),
           worker1(dispatcher),
-          worker2(dispatcher) {
+          worker2(dispatcher),
+          group0(0, 3),
+          group1(1, 3),
+          group2(2, 3) {
         auto con0_1 = Socket::CreatePair();
         auto con0_2 = Socket::CreatePair();
         auto con1_2 = Socket::CreatePair();
-        auto group0 = std::make_shared<NetGroup>(0, 3);
-        auto group1 = std::make_shared<NetGroup>(1, 3);
-        auto group2 = std::make_shared<NetGroup>(2, 3);
         auto net0_1 = NetConnection(std::get<0>(con0_1), 0, 1);
         auto net1_0 = NetConnection(std::get<1>(con0_1), 1, 0);
         auto net1_2 = NetConnection(std::get<0>(con1_2), 1, 2);
         auto net2_1 = NetConnection(std::get<1>(con1_2), 2, 1);
         auto net0_2 = NetConnection(std::get<0>(con0_2), 0, 2);
         auto net2_0 = NetConnection(std::get<1>(con0_2), 2, 0);
-        group0->AssignConnection(net0_1);
-        group0->AssignConnection(net0_2);
-        group1->AssignConnection(net1_0);
-        group1->AssignConnection(net1_2);
-        group2->AssignConnection(net2_0);
-        group2->AssignConnection(net2_1);
+        group0.AssignConnection(net0_1);
+        group0.AssignConnection(net0_2);
+        group1.AssignConnection(net1_0);
+        group1.AssignConnection(net1_2);
+        group2.AssignConnection(net2_0);
+        group2.AssignConnection(net2_1);
 
-        worker0.Connect(group0);
-        worker1.Connect(group1);
-        worker2.Connect(group2);
+        worker0.Connect(&group0);
+        worker1.Connect(&group1);
+        worker2.Connect(&group2);
     }
 
     void RunDispatcherLoop() {
@@ -118,6 +118,9 @@ struct DataManagerChannelFixture : public::testing::Test {
     WorkerMock        worker0;
     WorkerMock        worker1;
     WorkerMock        worker2;
+    NetGroup          group0;
+    NetGroup          group1;
+    NetGroup          group2;
 };
 
 TEST_F(DataManagerChannelFixture, EmptyChannels_GetRemoteBlocksDoesNotThrow) {

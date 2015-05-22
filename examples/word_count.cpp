@@ -11,14 +11,12 @@
 
 int word_count(c7a::Context& context);
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     return c7a::Execute(argc, argv, word_count);
 }
 
 //! The WordCount user program
-int word_count(c7a::Context& context)
-{
+int word_count(c7a::Context& context) {
     return 0;
 }
 

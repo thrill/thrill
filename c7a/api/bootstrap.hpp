@@ -18,8 +18,7 @@
 namespace c7a {
 namespace bootstrap {
 
-std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[])
-{
+std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
     //replace with arbitrary compex implementation
     size_t my_rank;
     std::vector<std::string> endpoints;
@@ -44,8 +43,7 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 //! different context instances.
 //!
 //! \returns result of word_count if bootstrapping was successfull, -1 otherwise.
-static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint)
-{
+static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint) {
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result;
@@ -67,6 +65,9 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     std::cout << std::endl;
 
     Context ctx;
+    std::cout << "connecting to peers" << std::endl;
+    ctx.GetJobManager().Connect(my_rank, net::NetEndpoint::ParseEndpointList(endpoints));
+    std::cout << "starting job" << std::endl;
     return job_startpoint(ctx);
 }
 

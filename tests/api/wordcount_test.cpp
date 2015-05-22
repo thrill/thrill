@@ -49,13 +49,13 @@ TEST(WordCount, PreOP) {
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
     red_words.WriteToFileSystem(g_workpath + "/outputs/wordcount.out",
-                      [](const WordPair& item) {
-                          std::string str;
-                          str += item.first;
-                          str += ": ";
-                          str += item.second;
-                          return str;
-                      });
+                                [](const WordPair& item) {
+                                    std::string str;
+                                    str += item.first;
+                                    str += ": ";
+                                    str += item.second;
+                                    return str;
+                                });
 }
 
 /******************************************************************************/
