@@ -12,6 +12,16 @@
 #define C7A_COMMON_FUNCTIONAL_HEADER
 
 namespace c7a {
+namespace common {
+
+//! Identity functor, very useful for default parameters.
+struct Identity {
+    template<typename Type>
+    constexpr auto operator()(Type&& v) const noexcept
+        -> decltype(std::forward<Type>(v)) {
+        return std::forward<Type>(v);
+    }
+};
 
 //! Simple sum operator
 template <typename T>
@@ -22,6 +32,7 @@ struct SumOp {
     }
 };
 
+} // namespace common
 } // namespace c7a
 
 #endif // !C7A_COMMON_FUNCTIONAL_HEADER
