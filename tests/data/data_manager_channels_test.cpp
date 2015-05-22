@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/test_data_manager_channels.cpp
+ * tests/data/data_manager_channels_test.cpp
  *
  * Part of Project c7a.
  *

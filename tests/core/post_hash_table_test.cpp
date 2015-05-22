@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/test_post_hash_table.cpp
+ * tests/core/post_hash_table_test.cpp
  *
  * Part of Project c7a.
  *

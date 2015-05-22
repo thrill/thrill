@@ -155,7 +155,7 @@ public:
                   = typename FunctionTraits<map_fn_t>::template arg<0>;
         using map_result_t
                   = typename FunctionTraits<map_fn_t>::result_type;
-        auto conv_map_fn = [ = ](map_arg_t input, std::function<void(map_result_t)> emit_func) {
+        auto conv_map_fn = [=](map_arg_t input, std::function<void(map_result_t)> emit_func) {
                                emit_func(map_fn(input));
                            };
 
@@ -181,7 +181,7 @@ public:
     auto Filter(const filter_fn_t &filter_fn) {
         using filter_arg_t
                   = typename FunctionTraits<filter_fn_t>::template arg<0>;
-        auto conv_filter_fn = [ = ](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
+        auto conv_filter_fn = [=](filter_arg_t input, std::function<void(filter_arg_t)> emit_func) {
                                   if (filter_fn(input)) emit_func(input);
                               };
 
