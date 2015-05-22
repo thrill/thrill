@@ -35,9 +35,12 @@ public:
     //store some kind of endpoint information here
     const std::string hostport;
 
+    //! Creates NetEndpoint instance from host:port string
     explicit NetEndpoint(const std::string& hostport)
         : hostport(hostport) { }
 
+    //! Converts strings with space-separated host:ports
+    //! to vector of NetEndpoint instances
     static std::vector<NetEndpoint> ParseEndpointList(std::string str)
     {
         std::stringstream stream;
@@ -49,6 +52,15 @@ public:
         while (stream >> hostport) {
             endpoints.push_back(NetEndpoint(hostport));
         }
+        return endpoints;
+    }
+
+    //! Converts vector of strings to vector of NetEndpoint instances
+    static std::vector<NetEndpoint> ParseEndpointList(std::vector<std::string> str)
+    {
+        std::vector<NetEndpoint> endpoints;
+        for (const auto& s : str)
+            endpoints.push_back(NetEndpoint(s));
         return endpoints;
     }
 };
