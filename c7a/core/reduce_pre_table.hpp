@@ -29,14 +29,17 @@
 namespace c7a {
 namespace core {
 
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
+template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
+          size_t TargetBlockSize = 1024* 1024>
 class ReducePreTable
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
-    using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
-    using value_t = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+
+    typedef std::pair<Key, Value> KeyValuePair;
 
 protected:
     struct hash_result
@@ -48,8 +51,8 @@ protected:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(key_t v, const ReducePreTable& ht) {
-            size_t hashed = std::hash<key_t>() (v);
+        hash_result(Key v, const ReducePreTable& ht) {
+            size_t hashed = std::hash<Key>() (v);
 
             // partition idx
             partition_offset = hashed % ht.num_buckets_per_partition_;
@@ -62,19 +65,40 @@ protected:
         }
     };
 
-    struct bucket_block {
-        // TODO(ms): use a new/delete here instead of a vector, it is faster.
-        std::vector<std::pair<key_t, value_t> > items;
+    //! template for constexpr max, because std::max is not good enough.
+    template <typename T>
+    constexpr
+    static const T & max(const T& a, const T& b) {
+        return a > b ? a : b;
+    }
 
-        bucket_block                            * next = NULL;
+    //! calculate number of items such that each BucketBlock has about 1 MiB of
+    //! size, or at least 8 items.
+    static constexpr size_t block_size_ =
+        max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
-        bucket_block(const ReducePreTable& ht) {
-            items.reserve(ht.bucket_block_size_);
+    //! Block holding reduce key/value pairs.
+    struct BucketBlock {
+        //! number of _used_/constructed items in this block. next is unused if
+        //! size != block_size.
+        size_t       size;
+
+        //! link of linked list to next block
+        BucketBlock  * next;
+
+        //! memory area of items
+        KeyValuePair items[block_size_];
+
+        //! helper to destroy all allocated items
+        void         destroy_items() {
+            for (KeyValuePair* i = items; i != items + size; ++i)
+                i->~KeyValuePair();
         }
     };
 
 public:
-    ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale, size_t num_buckets_resize_scale,
+    ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale,
+                   size_t num_buckets_resize_scale,
                    size_t max_num_items_per_bucket, size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<EmitterFunction> emit)
@@ -98,7 +122,26 @@ public:
         init();
     }
 
-    ~ReducePreTable() { }
+    //! non-copyable: delete copy-constructor
+    ReducePreTable(const ReducePreTable&) = delete;
+    //! non-copyable: delete assignment operator
+    ReducePreTable& operator = (const ReducePreTable&) = delete;
+
+    ~ReducePreTable() {
+        // destroy all block chains
+        for (BucketBlock* b_block : vector_)
+        {
+            BucketBlock* current = b_block;
+            while (current != NULL)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+        }
+    }
 
     void init() {
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
@@ -119,25 +162,30 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const value_t& p) {
-        key_t key = key_extractor_(p);
+    void Insert(Value&& p) {
+        Key key = key_extractor_(p);
 
         hash_result h(key, *this);
 
         LOG << "key: " << key << " to bucket id: " << h.global_index;
 
-        long num_items_bucket = 0;
-        bucket_block* current_bucket_block = vector_[h.global_index];
-        while (current_bucket_block != NULL)
+        size_t num_items_bucket = 0;
+        BucketBlock* current = vector_[h.global_index];
+
+        while (current != NULL)
         {
-            for (auto& bucket_item : current_bucket_block->items)
+            // iterate over valid items in a block
+            for (KeyValuePair* bi = current->items;
+                 bi != current->items + current->size; ++bi)
             {
-                // if item and key equals
-                // then reduce
-                if (key == bucket_item.first)
+                // if item and key equals, then reduce.
+                if (key == bi->first)
                 {
-                    LOG << "match of key: " << key << " and " << bucket_item.first << " ... reducing...";
-                    bucket_item.second = reduce_function_(bucket_item.second, p);
+                    LOG << "match of key: " << key
+                        << " and " << bi->first << " ... reducing...";
+
+                    bi->second = reduce_function_(bi->second, p);
+
                     LOG << "...finished reduce!";
                     return;
                 }
@@ -146,25 +194,29 @@ public:
                 num_items_bucket++;
             }
 
-            if (current_bucket_block->next == NULL)
-            {
+            if (current->next == NULL)
                 break;
-            }
 
-            current_bucket_block = current_bucket_block->next;
+            current = current->next;
         }
 
-        if (current_bucket_block == NULL)
+        // have an item that needs to be added.
+
+        if (current == NULL ||
+            current->size == block_size_)
         {
-            current_bucket_block = vector_[h.global_index] = new bucket_block(*this);
-        }
-        else if (current_bucket_block->items.size() == bucket_block_size_)
-        {
-            current_bucket_block = current_bucket_block->next = new bucket_block(*this);
+            // allocate a new block of uninitialized items, prepend to bucket
+            current =
+                static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+
+            current->size = 0;
+            current->next = vector_[h.global_index];
+            vector_[h.global_index] = current;
         }
 
-        // insert new item in current bucket block
-        current_bucket_block->items.push_back(std::pair<key_t, value_t>(key, p));
+        // in-place construct/insert new item in current bucket block
+        new (current->items + current->size++)KeyValuePair(key, std::move(p));
+
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
         // increase total counter
@@ -206,6 +258,8 @@ public:
      * to the provided emitter.
      */
     void FlushLargestPartition() {
+        static const bool debug = true;
+
         LOG << "Flushing items of largest partition";
 
         // get partition with max size
@@ -245,18 +299,23 @@ public:
             << partition_id;
 
         for (size_t i = partition_id * num_buckets_per_partition_;
-             i <= partition_id * num_buckets_per_partition_ + num_buckets_per_partition_ - 1; i++)
+             i < partition_id * num_buckets_per_partition_ + num_buckets_per_partition_; i++)
         {
-            bucket_block* current_bucket_block = vector_[i];
-            while (current_bucket_block != NULL)
+            BucketBlock* current = vector_[i];
+
+            while (current != NULL)
             {
-                for (std::pair<key_t, value_t>& bucket_item : current_bucket_block->items)
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](bucket_item.second);
+                    emit_[partition_id](std::move(bi->second));
                 }
-                bucket_block* tmp_current_bucket_block = current_bucket_block->next;
-                delete current_bucket_block;
-                current_bucket_block = tmp_current_bucket_block;
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
             }
 
             vector_[i] = NULL;
@@ -286,7 +345,8 @@ public:
     }
 
     /*!
-     * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
+     * Sets the maximum size of the hash table. We don't want to push 2vt
+     * elements before flush happens.
      */
     void SetMaxSize(size_t size) {
         max_num_items_table_ = size;
@@ -300,24 +360,31 @@ public:
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
-        // init new array
-        std::vector<bucket_block*> vector_old = vector_;
-        std::vector<bucket_block*> vector_new; // TODO(ms): 3 vectors? come on! -> make it happen with one vector only!
-        vector_new.resize(num_buckets_, NULL);
-        vector_ = vector_new;
+
+        // move old hash array
+        std::vector<BucketBlock*> vector_old;
+        std::swap(vector_old, vector_);
+
+        // init new hash array
+        vector_.resize(num_buckets_, NULL);
+
         // rehash all items in old array
-        for (bucket_block* b_block : vector_old)
+        for (BucketBlock* b_block : vector_old)
         {
-            bucket_block* current_bucket_block = b_block;
-            while (current_bucket_block != NULL)
+            BucketBlock* current = b_block;
+            while (current != NULL)
             {
-                for (std::pair<key_t, value_t>& bucket_item : current_bucket_block->items)
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
                 {
-                    Insert(bucket_item.second);
+                    Insert(std::move(bi->second));
                 }
-                bucket_block* tmp_current_bucket_block = current_bucket_block->next;
-                delete current_bucket_block;
-                current_bucket_block = tmp_current_bucket_block;
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
             }
         }
         LOG << "Resized";
@@ -328,7 +395,21 @@ public:
      */
     void Clear() {
         LOG << "Clearing";
-        std::fill(vector_.begin(), vector_.end(), NULL);
+
+        for (BucketBlock* b_block : vector_)
+        {
+            BucketBlock* current = b_block;
+            while (current != NULL)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+            b_block = NULL;
+        }
+
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         table_size_ = 0;
         LOG << "Cleared";
@@ -341,6 +422,21 @@ public:
         LOG << "Resetting";
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+
+        for (BucketBlock*& b_block : vector_)
+        {
+            BucketBlock* current = b_block;
+            while (current != NULL)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+            b_block = NULL;
+        }
+
         vector_.resize(num_buckets_, NULL);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         table_size_ = 0;
@@ -360,35 +456,32 @@ public:
                 LOG << "bucket id: "
                     << i
                     << " empty";
+                continue;
             }
-            else
+
+            std::string log = "";
+
+            BucketBlock* current = vector_[i];
+            while (current != NULL)
             {
-                std::string log = "";
+                log += "block: ";
 
-                bucket_block* current_bucket_block = vector_[i];
-                while (current_bucket_block != NULL)
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
                 {
-                    log += "block: ";
-
-                    for (std::pair<key_t, value_t> bucket_item : current_bucket_block->items)
-                    {
-                        if (&bucket_item != NULL)
-                        {
-                            log += "(";
-                            log += bucket_item.first;
-                            log += ", ";
-                            //log += bucket_item.second; // TODO(ms): How to convert value_t to a string?
-                            log += ") ";
-                        }
-                    }
-                    current_bucket_block = current_bucket_block->next;
+                    log += "(";
+                    log += bi->first;
+                    log += ", ";
+                    //log += bucket_item.second; // TODO(ms): How to convert Value to a string?
+                    log += ") ";
                 }
-
-                LOG << "bucket id: "
-                    << i
-                    << " "
-                    << log;
+                current = current->next;
             }
+
+            LOG << "bucket id: "
+                << i
+                << " "
+                << log;
         }
 
         return;
@@ -406,8 +499,6 @@ private:
 
     size_t num_buckets_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
 
-    size_t bucket_block_size_ = 32;           // size of bucket blocks
-
     size_t max_num_items_per_bucket_ = 256;   // max num of items per bucket before resize
 
     std::vector<size_t> items_per_partition_; // num items per partition
@@ -422,7 +513,7 @@ private:
 
     std::vector<EmitterFunction> emit_;
 
-    std::vector<bucket_block*> vector_;
+    std::vector<BucketBlock*> vector_;
 };
 
 } // namespace core
