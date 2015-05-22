@@ -18,6 +18,7 @@
 #include <c7a/net/net_endpoint.hpp>
 #include <c7a/net/net_connection.hpp>
 #include <c7a/common/functional.hpp>
+#include <c7a/common/logger.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -88,8 +89,12 @@ public:
     //! Return NetConnection to client id.
     NetConnection & Connection(ClientId id) {
         if (id >= connections_.size())
-            throw Exception("NetGroup::GetClient() requested "
+            throw Exception("NetGroup::Connection() requested "
                             "invalid client id " + std::to_string(id));
+
+        if (id == my_rank_)
+            throw Exception("NetGroup::Connection() requested "
+                            "connection to self.");
 
         return connections_[id];
     }       //! Return NetConnection to client id.
@@ -284,6 +289,15 @@ public:
     template <typename T, typename BinarySumOp = SumOp<T> >
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
 
+    template <typename T, typename BinarySumOp = SumOp<T> >
+    void PrefixSum(T& value, BinarySumOp sumOp = BinarySumOp());
+
+    template <typename T, typename BinarySumOp = SumOp<T> >
+    void ReduceToRoot(T& value, BinarySumOp sumOp = BinarySumOp());
+
+    template <typename T>
+    void Broadcast(T& value);
+
     //! \}
 
 private:
@@ -298,31 +312,80 @@ private:
 };
 
 template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T& value, BinarySumOp sum_op) {
-    // For each dimension of the hypercube, exchange data between workers with
-    // different bits at position d
+void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
+{
+    // The total sum in the current hypercube. This is stored, because later,
+    // bigger hypercubes need this value.
+    T total_sum = value;
 
-    for (size_t d = 1; d < this->Size(); d <<= 1)
+    for (size_t d = 1; d < Size(); d <<= 1)
     {
-        // Send value to worker with id = id XOR d
-        if ((this->MyRank() ^ d) < this->Size()) {
-            this->Connection(this->MyRank() ^ d).Send(value);
-            std::cout << "LOCAL: Worker " << this->MyRank() << ": Sending " << value
-                      << " to worker " << (this->MyRank() ^ d) << "\n";
+        // Send total sum of this hypercube to worker with id = id XOR d
+        if ((MyRank() ^ d) < Size()) {
+            Connection(MyRank() ^ d).Send(total_sum);
+            sLOG << "PREFIX_SUM: Worker" << MyRank() << ": Sending" << total_sum
+                 << "to worker" << (MyRank() ^ d);
         }
 
-        // Receive value from worker with id = id XOR d
+        // Receive total sum of smaller hypercube from worker with id = id XOR d
         T recv_data;
-        if ((this->MyRank() ^ d) < this->Size()) {
-            this->Connection(this->MyRank() ^ d).Receive(&recv_data);
-            value = sum_op(value, recv_data);
-            std::cout << "LOCAL: Worker " << this->MyRank() << ": Received " << recv_data
-                      << " from worker " << (this->MyRank() ^ d)
-                      << " value = " << value << "\n";
+        if ((MyRank() ^ d) < Size()) {
+            Connection(MyRank() ^ d).Receive(&recv_data);
+            total_sum = sumOp(total_sum, recv_data);
+            // Variable 'value' represents the prefix sum of this worker
+            if (MyRank() & d)
+                value = sumOp(value, recv_data);
+            sLOG << "PREFIX_SUM: Worker" << MyRank() << ": Received" << recv_data
+                 << "from worker" << (MyRank() ^ d)
+                 << "value =" << value;
         }
     }
 
-    std::cout << "LOCAL: value after all reduce " << value << "\n";
+    sLOG << "PREFIX_SUM: Worker" << MyRank()
+         << ": value after prefix sum =" << value;
+}
+
+//! Perform a binomial tree reduce to the worker with index 0
+template <typename T, typename BinarySumOp>
+void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
+{
+    bool active = true;
+    for (size_t d = 1; d < Size(); d <<= 1) {
+        if (active) {
+            if (MyRank() & d) {
+                Connection(MyRank() - d).Send(value);
+                active = false;
+            } else if (MyRank() + d < Size()) {
+                T recv_data;
+                Connection(MyRank() + d).Receive(&recv_data);
+                value = sumOp(value, recv_data);
+            }
+        }
+    }
+}
+
+//! Binomial-broadcasts the value of the worker with index 0 to all the others
+template <typename T>
+void NetGroup::Broadcast(T& value)
+{   
+    if (MyRank() > 0) {
+        ClientId from;
+        ReceiveFromAny(&from, &value);
+    }
+    for (size_t d = 1, i = 0; ((MyRank() >> i) & 1) == 0 && d < Size(); d <<= 1, ++i) {
+        if (MyRank() + d < Size()) {
+            Connection(MyRank() + d).Send(value);
+        }
+    }
+}
+
+//! Perform an All-Reduce on the workers by aggregating all values and sending
+//! them backto all workers
+template <typename T, typename BinarySumOp>
+void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
+{
+    ReduceToRoot(value, sum_op);
+    Broadcast(value);
 }
 
 //! \}
