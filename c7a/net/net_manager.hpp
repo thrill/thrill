@@ -127,8 +127,8 @@ public:
         }
     }
 
-    void Initialize(size_t my_rank_, const std::vector<NetEndpoint>& endpoints) {
-        this->my_rank_ = my_rank_;
+    void Initialize(size_t my_rank, const std::vector<NetEndpoint>& endpoints) {
+        my_rank_ = my_rank;
 
         if (connections_.size() != 0) {
             throw new Exception("This net manager has already been initialized.");

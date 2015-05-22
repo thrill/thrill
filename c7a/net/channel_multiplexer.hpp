@@ -53,11 +53,10 @@ class ChannelMultiplexer
 {
 public:
     ChannelMultiplexer(NetDispatcher& dispatcher)
-        : group_(nullptr),
-          dispatcher_(dispatcher) { }
+        : dispatcher_(dispatcher) { }
 
-    void Connect(std::shared_ptr<NetGroup> s) {
-        group_ = s;
+    void Connect(NetGroup* group) {
+        group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
             ExpectHeaderFrom(group_->Connection(id));
@@ -93,6 +92,7 @@ public:
     //! \param id the channel to use
     template <class T>
     std::vector<data::BlockEmitter<T> > OpenChannel(ChannelId id) {
+        assert(group_ != nullptr);
         std::vector<data::BlockEmitter<T> > result;
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
@@ -128,7 +128,7 @@ private:
     data::BufferChainManager chains_;
 
     //Hols NetConnections for outgoing Channels
-    std::shared_ptr<NetGroup> group_;
+    NetGroup* group_;
 
     NetDispatcher& dispatcher_;
 

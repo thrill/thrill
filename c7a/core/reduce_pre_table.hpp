@@ -28,7 +28,6 @@
 
 namespace c7a {
 namespace core {
-
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
 {
@@ -293,6 +292,15 @@ public:
     }
 
     /*!
+     * Closes all emitter
+     */
+    void CloseEmitter() {
+        for (auto e : emit_) {
+            e.Close();
+        }
+    }
+
+    /*!
      * Resizes the table by increasing the number of buckets using some
      * resize scale factor. All items are rehashed as part of the operation.
      */
@@ -424,7 +432,6 @@ private:
 
     std::vector<bucket_block*> vector_;
 };
-
 } // namespace core
 } // namespace c7a
 
