@@ -29,24 +29,24 @@ endmacro(build_test)
 ### list of tests in subdirectories
 
 #build_test(api/simple_api_test)
-build_only(api/wordcount_test)
-build_only(data/data_manager_test)
-build_only(data/block_emitter_iterator_test)
-build_only(data/data_manager_channels_test) #TODO(tb, ej, ts): where do the invalid fd come from?
-build_only(data/block_iterator_test)
+build_test(api/wordcount_test)
+build_test(data/data_manager_test)
+build_test(data/block_emitter_iterator_test)
+build_test(data/data_manager_channels_test) #TODO(tb, ej, ts): where do the invalid fd come from?
+build_test(data/block_iterator_test)
 #build_test(data/dia_allocate_test)
-build_only(data/serializer_test)
-build_only(common/delegate_test)
-build_only(common/stats_counter_test)
-build_only(common/stats_timer_test)
+build_test(data/serializer_test)
+build_test(common/delegate_test)
+build_test(common/stats_counter_test)
+build_test(common/stats_timer_test)
 #build_test(core/stage_builder_test)
-build_only(core/hash_table_bench) #takes multiple seconds to complete
-build_only(core/post_hash_table_test)
-build_only(core/pre_hash_table_test)
-build_only(net/group_test)
-build_only(net/buffer_test)
-build_only(data/binary_builder_test)
+build_test(core/hash_table_bench) #takes multiple seconds to complete
+build_test(core/post_hash_table_test)
+build_test(core/pre_hash_table_test)
+build_test(net/group_test)
+build_test(net/buffer_test)
+build_test(data/binary_builder_test)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
-build_only(net/stream_test)
+build_test(net/stream_test)
 
 ################################################################################
