@@ -8,14 +8,8 @@
  ******************************************************************************/
 
 #include <c7a/api/dia_base.hpp>
-#include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/api/context.hpp>
 #include <tests/c7a_tests.hpp>
-
-#include <vector>
-#include <string>
-#include <utility>
 
 #include "gtest/gtest.h"
 
@@ -54,7 +48,14 @@ TEST(WordCount, PreOP) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    RunScope(red_words.get_node());
+    red_words.WriteToFileSystem(g_workpath + "/outputs/wordcount.out",
+                      [](const WordPair& item) {
+                          std::string str;
+                          str += item.first;
+                          str += ": ";
+                          str += item.second;
+                          return str;
+                      });
 }
 
 /******************************************************************************/
