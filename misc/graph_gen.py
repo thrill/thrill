@@ -19,22 +19,15 @@ def generate_graph(path, table):
             else:
                 print "Bad line!"
     if(table == 0):
-        plot(sizes, times, color="green", label="64")
+        plot(sizes, times, color="green", label="Actual Table")
     if(table == 1):
-        plot(sizes, times, color="red", label="128")
-    if(table == 2):
-        plot(sizes, times, color="blue", label="256")
-    if(table == 3):
-        plot(sizes, times, color="yellow", label="512")
+        plot(sizes, times, color="red", label="Reference Table")
 
-
-#paths = sys.argv[1]
-#plottitle = sys.argv[2]
-generate_graph("2", 0)
-generate_graph("4", 1)
-generate_graph("8", 2)
-generate_graph("16",3)
-title("Maximum number of items per block")
+paths = sys.argv[1]
+plottitle = sys.argv[2]
+generate_graph(paths + "_true", 0)
+generate_graph(paths + "_false", 1)
+title(plottitle)
 grid(True)
 minorticks_on()
 
@@ -42,4 +35,4 @@ legend(loc="lower right")
 xlabel("2^x elements")
 ylabel("micros per element")
 print "generating plot"
-savefig("blocksize.pdf")
+savefig(paths + ".pdf")
