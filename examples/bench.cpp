@@ -27,16 +27,18 @@ int main(int argc, char* argv[])
                   };
 
     srand (time(NULL));
+    int workers = std::stoi(argv[2]);
+    int modulo = std::stoi(argv[3]);
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-        table(1, key_ex, red_fn, { emit });
-
-    clock_t time = std::clock();
+        table(workers, key_ex, red_fn, { emit });
 
     int end = std::stoi(argv[1]);
 
+    clock_t time = std::clock();
+
     for (int i = 0; i < end; i++) {
-        table.Insert(rand() % 10000);
+        table.Insert(rand() % modulo);
     }
 
     table.Flush();
