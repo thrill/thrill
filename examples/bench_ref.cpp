@@ -34,15 +34,18 @@ int main(int argc, char* argv[])
     
     srand (time(NULL));
 
-    c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(10, key_ex, red_fn, { emit });
+    int workers = std::stoi(argv[2]);
+    int modulo = std::stoi(argv[3]);
 
-    clock_t time = std::clock();
+    c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
+        table(workers, key_ex, red_fn, { emit });
 
     int end = std::stoi(argv[1]);
 
+    clock_t time = std::clock();
+
     for (int i = 0; i < end; i++) {
-        table.Insert(rand() % 100);
+        table.Insert(rand() % modulo);
     }
 
     table.Flush();
