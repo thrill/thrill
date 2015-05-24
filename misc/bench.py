@@ -5,27 +5,41 @@ import sys
 import subprocess
 import random
 
-amounts=[10,12,14,16,18,20,22,24,26,28]
-#args = [[10,2,2,256,32,20],
-#        [10,2,4,256,32,20],
-#        [10,2,8,256,32,20],
-#        [10,2,16,256,32,20],
-#        [10,2,2,64,32,20],
-#        [10,2,2,128,32,20],
-#        [10,2,2,256,32,20],
-#        [10,2,2,512,32,20],
-#        [10,2,2,256,64,20],
-#        [10,2,2,256,128,20],
-#        [10,2,2,256,256,20],
-#        [10,2,2,256,512,20]]
+amounts=[10,12,14,16,18,20]
+
+workers = sys.argv[1]
+modulo = sys.argv[2]
+
 
 # Generate files using generator script and execute the sorter
-#for idx in range(len(args)):
-for amount in amounts:
-    sum = 0
-    for _ in range(5):
-        process = subprocess.Popen(["./../build/examples/bench", str(pow(2,amount))], stdout=subprocess.PIPE)
-        process.wait()
-        sum += float(process.communicate()[0])
-        avg = sum / 5
-    print str(amount) + " " + str(avg * 1000 / pow(2,amount))
+with open(workers + "_" + modulo + "_true", "w+") as file1:
+    for amount in amounts:
+    	sum = 0
+    	for _ in range(5):
+       	    process = subprocess.Popen(["./../build/examples/bench", str(pow(2,amount)), workers, modulo], stdout=subprocess.PIPE)
+            process.wait()
+	    time = process.communicate()[0]
+            sum += float(time)
+	    print time
+            avg = sum / 5
+    	print str(amount) + " " + str(avg / pow(2,amount)) + "\n"
+    	file1.write(str(amount) + " " + str(avg / pow(2,amount)) + "\n")
+    file1.close()
+
+with open(workers + "_" + modulo + "_false", "w+") as file2:
+    for amount in amounts:
+    	sum = 0
+    	for _ in range(5):
+       	    process = subprocess.Popen(["./../build/examples/bench_ref", str(pow(2,amount)), workers, modulo], stdout=subprocess.PIPE)
+            process.wait()
+	    time = process.communicate()[0]
+            sum += float(time)
+	    print time
+            avg = sum / 5
+    	print str(amount) + " " + str(avg / pow(2,amount)) + "\n"
+    	file2.write(str(amount) + " " + str(avg / pow(2,amount)) + "\n")
+    file2.close()
+
+os.system("python graph_gen.py " + workers + "_" + modulo + " " + sys.argv[3])
+os.remove(workers + "_" + modulo + "_true")
+os.remove(workers + "_" + modulo + "_false")
