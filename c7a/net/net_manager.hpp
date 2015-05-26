@@ -151,7 +151,8 @@ public:
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
 
-            const SocketAddress& lsa = addressList[my_rank_];
+            //Override IP with 0.0.0.0, so binding also works on OSX. 
+            const lowlevel::IPv4Address lsa("0.0.0.0", addressList[my_rank_].GetPort());
 
             if (listen_socket.bind(lsa) != 0)
                 throw Exception("Could not bind listen socket to "
