@@ -253,6 +253,9 @@ public:
                 {
                     emit_[partition_id](bucket_item.second);
                 }
+                //TODO(ms) call emit_[partition_id].Flush here to ensure elements are acutally pushed via network
+                //I could not make the change because there are some instances of this class with std::functions
+                //and they don't offer the Flush() mehtod of course.
                 bucket_block* tmp_current_bucket_block = current_bucket_block->next;
                 delete current_bucket_block;
                 current_bucket_block = tmp_current_bucket_block;
