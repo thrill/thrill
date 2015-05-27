@@ -30,7 +30,7 @@ public:
           write_function_(write_function),
           path_out_(path_out)
     {
-        LOG1 << this->get_parents().size();
+        sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents";
         core::RunScope(this);
     }
 
@@ -39,7 +39,7 @@ public:
     //! Executes the write operation. Writes a file line by line and emits it to
     //! the DataManager after applying the write function on it.
     void execute() override {
-        LOG1 << "WRITING data with id " << this->data_id_;
+        sLOG << "WRITING data with id" << this->data_id_;
 
         std::ofstream file(path_out_);
 
@@ -88,6 +88,8 @@ private:
     WriteFunction write_function_;
     //! Path of the output file.
     std::string path_out_;
+
+    static const bool debug = true;
 };
 
 } // namespace c7a
