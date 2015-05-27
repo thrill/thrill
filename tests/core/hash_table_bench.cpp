@@ -34,7 +34,7 @@ TEST_F(BenchTable, ActualTable1KKInts) {
     table.Flush();
 }
 
-TEST_F(BenchTable, ChausTable1KKInts) {
+TEST_F(BenchTable, DISABLED_ChausTable1KKInts) {//I(ts) disabled this test because it does the same as the one above
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
 
@@ -47,7 +47,7 @@ TEST_F(BenchTable, ChausTable1KKInts) {
 
 TEST_F(BenchTable, ActualTable10Workers) {
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(10, key_ex, red_fn, { emit });
+    table(10, key_ex, red_fn, { emit, emit, emit, emit, emit, emit, emit, emit, emit, emit });
 
     for (int i = 0; i < 1000000; i++) {
         table.Insert(i * 17);
@@ -56,7 +56,8 @@ TEST_F(BenchTable, ActualTable10Workers) {
     table.Flush();
 }
 
-TEST_F(BenchTable, ChausTable10Workers) {
+TEST_F(BenchTable, DISABLED_ChausTable10Workers) {//I(ts) disabled this test because it does the same as the one above
+
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(10, key_ex, red_fn, { emit });
 
