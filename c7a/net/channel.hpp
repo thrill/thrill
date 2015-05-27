@@ -47,7 +47,7 @@ public:
 
     //! Creates a new channel instance
     Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback,
-            int id, int expected_streams, std::shared_ptr<data::BufferChain> target)
+            size_t id, int expected_streams, std::shared_ptr<data::BufferChain> target)
         : dispatcher_(dispatcher),
           release_(release_callback),
           id_(id),
@@ -82,7 +82,7 @@ public:
         return finished_streams_ == expected_streams_;
     }
 
-    int Id() {
+    size_t Id() {
         return id_;
     }
 
@@ -91,7 +91,7 @@ private:
     NetDispatcher& dispatcher_;
     ReleaseSocketCallback release_;
 
-    int id_;
+    size_t id_;
     int active_streams_;
     int expected_streams_;
     int finished_streams_;
