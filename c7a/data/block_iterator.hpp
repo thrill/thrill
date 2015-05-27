@@ -25,7 +25,7 @@ class BlockIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    explicit BlockIterator(const BufferChain& buffers)
+    explicit BlockIterator(BufferChain& buffers)
         : buffer_chain_(buffers),
           current_(buffers.head),
           current_reader_(nullptr, 0),
@@ -75,11 +75,11 @@ public:
     //! Indicates whether elements can be appended (not closed) or not (closed).
     //! Blocks that are closed once cannot be opened again
     inline bool IsClosed() const {
-        return buffer_chain_.closed;
+        return buffer_chain_.IsClosed();
     }
 
 private:
-    const struct BufferChain& buffer_chain_;
+    struct BufferChain& buffer_chain_;
     const BufferChainElement* current_;
     BinaryBufferReader current_reader_;
     bool late_init_; //problem when iterator is created before emitter has flushed values
