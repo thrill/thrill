@@ -123,7 +123,7 @@ public:
      * \return "[ReduceNode]"
      */
     std::string ToString() override {
-        return "[ReduceNode] Id: " + std::to_string(data_id_);
+        return "[ReduceNode] Id: " + data_id_.ToString();
     }
 
 private:

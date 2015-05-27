@@ -19,12 +19,13 @@ struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
         : dispatcher(),
           cmp(dispatcher),
-          manager(cmp) { }
+          manager(cmp),
+          id(manager.AllocateDIA()) { }
 
     NetDispatcher      dispatcher;
     ChannelMultiplexer cmp;
     DataManager        manager;
-    DIAId              id = manager.AllocateDIA();
+    DIAId              id;
 };
 
 TEST_F(DataManagerFixture, GetLocalBlock_FailsIfNotFound) {

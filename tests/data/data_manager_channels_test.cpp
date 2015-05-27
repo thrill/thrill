@@ -79,7 +79,7 @@ struct DataManagerChannelFixture : public::testing::Test {
         std::this_thread::sleep_for(100ms);
     }
 
-    size_t AllocateChannel() {
+    ChainId AllocateChannel() {
         //all managers need to allocate the same id
         auto channel_id = worker0.manager.AllocateNetworkChannel();
         channel_id = worker1.manager.AllocateNetworkChannel();

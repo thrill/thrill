@@ -24,7 +24,7 @@ struct PostTable : public::testing::Test {
     c7a::net::NetDispatcher                               dispatcher;
     c7a::net::ChannelMultiplexer                          multiplexer;
     c7a::data::DataManager                                manager;
-    size_t                                                id = manager.AllocateDIA();
+    c7a::data::ChainId                                    id = manager.AllocateDIA();
     c7a::data::BlockEmitter<int>                          emit;
     c7a::data::BlockIterator<int>                         iterator;
     c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both

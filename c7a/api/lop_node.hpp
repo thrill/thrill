@@ -83,7 +83,7 @@ public:
      * \return "[LOpNode]"
      */
     std::string ToString() override {
-        return "[LOpNode] Id: " + std::to_string(DIABase::data_id_);
+        return "[LOpNode] Id: " + DIABase::data_id_.ToString();
     }
 
 private:
