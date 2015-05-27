@@ -150,144 +150,6 @@ private:
         return true;
     }
 
-public:
-     /**
-      * @brief Executes a local mockup for testing. 
-      * @details Spawns theads for each NetGroup and calls the given thread
-      * function for each client to simulate. This function uses the 
-      * LocalMock function of the NetGroup class. 
-      * 
-      * See unit tests for usage examples. 
-      * 
-      * @param num_clients The number of clients to simulate. 
-      * @param systemThreadFunction The function to execute for the system control NetGroup. 
-      * @param flowThreadFunction The function to execute for the flow control NetGroup.
-      * @param dataThreadFunction The function to execute for the data manager NetGroup. 
-      */
-    static void ExecuteLocalMock(
-        size_t num_clients,
-        const std::function<void(NetGroup*)>& systemThreadFunction,
-        const std::function<void(NetGroup*)>& flowThreadFunction,
-        const std::function<void(NetGroup*)>& dataThreadFunction) {
-
-        // Adjust this method too if groupcount changes.
-        die_unless(kGroupCount == 3);
-
-        std::vector<std::thread*> threads(kGroupCount);
-
-        //Create mock netgroups in new threads. 
-        threads[0] = new std::thread(
-            [=] {
-                NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction);
-            });
-        threads[1] = new std::thread(
-            [=] {
-                NetGroup::ExecuteLocalMock(num_clients, flowThreadFunction);
-            });
-        threads[2] = new std::thread(
-            [=] {
-                NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction);
-            });
-
-        //Join threads again. 
-        for (size_t i = 0; i != threads.size(); ++i) {
-            threads[i]->join();
-            delete threads[i];
-        }
-    }
-
-    /**
-     * @brief Initializes this NetManager and initializes all NetGroups. 
-     * @details Initializes this NetManager and initializes all NetGroups. 
-     * When this method returns, the network system is ready to use. 
-     * 
-     * @param my_rank_ The rank of the worker that owns this NetManager. 
-     * @param endpoints The ordered list of all endpoints, including the local worker, 
-     * where the endpoint at position i corresponds to the worker with id i. 
-     */
-    void Initialize(size_t my_rank_,
-                    const std::vector<NetEndpoint>& endpoints) {
-
-        die_unless(my_rank_ < endpoints.size());
-        
-        this->my_rank_ = my_rank_;
-
-        //If we heldy any connections, do not allow a new initialization. 
-        if (connections_.size() != 0) {
-            throw new Exception("This net manager has already been initialized.");
-        }
-
-        for (size_t i = 0; i < kGroupCount; i++) {
-            groups_[i].Initialize(my_rank_, endpoints.size());
-        }
-
-        //Parse endpoints. 
-        std::vector<SocketAddress> addressList
-            = GetAddressList(endpoints);
-
-        //Create listening socket. 
-        {
-            Socket listen_socket = Socket::Create();
-            listen_socket.SetReuseAddr();
-
-            //Override IP with 0.0.0.0, so binding also works on OSX. 
-            const lowlevel::IPv4Address lsa("0.0.0.0", addressList[my_rank_].GetPort());
-
-            if (listen_socket.bind(lsa) != 0)
-                throw Exception("Could not bind listen socket to "
-                                + lsa.ToStringHostPort(), errno);
-
-            if (listen_socket.listen() != 0)
-                throw Exception("Could not listen on socket "
-                                + lsa.ToStringHostPort(), errno);
-
-            listener_ = std::move(NetConnection(listen_socket));
-        }
-
-        //TODO ej - remove when Connect(...) gets really async.
-        sleep(1);
-
-        //Initiate connections to all hosts with higher id.
-        for (uint32_t g = 0; g < kGroupCount; g++) {
-            for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id) {
-                AsyncConnect(g, id, addressList[id]);
-            }
-        }
-
-        //Add reads to the dispatcher to accept new connections. 
-        dispatcher_.AddRead(listener_,
-                            [=](NetConnection& nc) {
-                                return OnIncomingConnection(nc);
-                            });
-
-        //Dispatch until everything is connected. 
-        while (!IsInitializationFinished(endpoints.size()))
-        {
-            LOG << "Client " << my_rank_ << " dispatching.";
-            dispatcher_.Dispatch();
-        }
-
-        //All connected, Dispose listener. 
-        listener_.Close();
-
-        LOG << "Client " << my_rank_ << " done";
-
-
-        for (uint32_t j = 0; j < kGroupCount; j++) {
-            // output list of file descriptors connected to partners
-            for (size_t i = 0; i != addressList.size(); ++i) {
-                if (i == my_rank_) continue;
-                LOG << "NetGroup " << j << " link " << my_rank_ << " -> " << i << " = fd "
-                    << groups_[j].Connection(i).GetSocket().fd();
-
-                // TODO(tb): temporarily turn all fds back to blocking, till the
-                // whole asio schema works.
-                // NOTE(ej): This should be correct? Distpatch is not going to work 
-                // correctly with non-blocking sockets and will default to busy waiting? 
-                groups_[j].Connection(i).GetSocket().SetNonBlocking(false);
-            }
-        }
-    }
 
     /**
      * @brief Starts connecting to the endpoint specified by the parameters.
@@ -522,6 +384,144 @@ public:
         return true;
     }
 
+public:
+     /**
+      * @brief Executes a local mockup for testing. 
+      * @details Spawns theads for each NetGroup and calls the given thread
+      * function for each client to simulate. This function uses the 
+      * LocalMock function of the NetGroup class. 
+      * 
+      * See unit tests for usage examples. 
+      * 
+      * @param num_clients The number of clients to simulate. 
+      * @param systemThreadFunction The function to execute for the system control NetGroup. 
+      * @param flowThreadFunction The function to execute for the flow control NetGroup.
+      * @param dataThreadFunction The function to execute for the data manager NetGroup. 
+      */
+    static void ExecuteLocalMock(
+        size_t num_clients,
+        const std::function<void(NetGroup*)>& systemThreadFunction,
+        const std::function<void(NetGroup*)>& flowThreadFunction,
+        const std::function<void(NetGroup*)>& dataThreadFunction) {
+
+        // Adjust this method too if groupcount changes.
+        die_unless(kGroupCount == 3);
+
+        std::vector<std::thread*> threads(kGroupCount);
+
+        //Create mock netgroups in new threads. 
+        threads[0] = new std::thread(
+            [=] {
+                NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction);
+            });
+        threads[1] = new std::thread(
+            [=] {
+                NetGroup::ExecuteLocalMock(num_clients, flowThreadFunction);
+            });
+        threads[2] = new std::thread(
+            [=] {
+                NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction);
+            });
+
+        //Join threads again. 
+        for (size_t i = 0; i != threads.size(); ++i) {
+            threads[i]->join();
+            delete threads[i];
+        }
+    }
+
+    /**
+     * @brief Initializes this NetManager and initializes all NetGroups. 
+     * @details Initializes this NetManager and initializes all NetGroups. 
+     * When this method returns, the network system is ready to use. 
+     * 
+     * @param my_rank_ The rank of the worker that owns this NetManager. 
+     * @param endpoints The ordered list of all endpoints, including the local worker, 
+     * where the endpoint at position i corresponds to the worker with id i. 
+     */
+    void Initialize(size_t my_rank_,
+                    const std::vector<NetEndpoint>& endpoints) {
+
+        die_unless(my_rank_ < endpoints.size());
+        
+        this->my_rank_ = my_rank_;
+
+        //If we heldy any connections, do not allow a new initialization. 
+        if (connections_.size() != 0) {
+            throw new Exception("This net manager has already been initialized.");
+        }
+
+        for (size_t i = 0; i < kGroupCount; i++) {
+            groups_[i].Initialize(my_rank_, endpoints.size());
+        }
+
+        //Parse endpoints. 
+        std::vector<SocketAddress> addressList
+            = GetAddressList(endpoints);
+
+        //Create listening socket. 
+        {
+            Socket listen_socket = Socket::Create();
+            listen_socket.SetReuseAddr();
+
+            //Override IP with 0.0.0.0, so binding also works on OSX. 
+            const lowlevel::IPv4Address lsa("0.0.0.0", addressList[my_rank_].GetPort());
+
+            if (listen_socket.bind(lsa) != 0)
+                throw Exception("Could not bind listen socket to "
+                                + lsa.ToStringHostPort(), errno);
+
+            if (listen_socket.listen() != 0)
+                throw Exception("Could not listen on socket "
+                                + lsa.ToStringHostPort(), errno);
+
+            listener_ = std::move(NetConnection(listen_socket));
+        }
+
+        //TODO ej - remove when Connect(...) gets really async.
+        sleep(1);
+
+        //Initiate connections to all hosts with higher id.
+        for (uint32_t g = 0; g < kGroupCount; g++) {
+            for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id) {
+                AsyncConnect(g, id, addressList[id]);
+            }
+        }
+
+        //Add reads to the dispatcher to accept new connections. 
+        dispatcher_.AddRead(listener_,
+                            [=](NetConnection& nc) {
+                                return OnIncomingConnection(nc);
+                            });
+
+        //Dispatch until everything is connected. 
+        while (!IsInitializationFinished(endpoints.size()))
+        {
+            LOG << "Client " << my_rank_ << " dispatching.";
+            dispatcher_.Dispatch();
+        }
+
+        //All connected, Dispose listener. 
+        listener_.Close();
+
+        LOG << "Client " << my_rank_ << " done";
+
+
+        for (uint32_t j = 0; j < kGroupCount; j++) {
+            // output list of file descriptors connected to partners
+            for (size_t i = 0; i != addressList.size(); ++i) {
+                if (i == my_rank_) continue;
+                LOG << "NetGroup " << j << " link " << my_rank_ << " -> " << i << " = fd "
+                    << groups_[j].Connection(i).GetSocket().fd();
+
+                // TODO(tb): temporarily turn all fds back to blocking, till the
+                // whole asio schema works.
+                // NOTE(ej): This should be correct? Distpatch is not going to work 
+                // correctly with non-blocking sockets and will default to busy waiting? 
+                groups_[j].Connection(i).GetSocket().SetNonBlocking(false);
+            }
+        }
+    }
     /**
      * @brief Returns the net group for the system control channel.
      */
