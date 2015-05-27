@@ -61,7 +61,8 @@ public:
                 throw std::runtime_error("target dia id unknown.");
             }
             return BlockIterator<T>(*(dias_.Chain(id)));
-        } else {
+        }
+        else {
             if (!cmp_.HasDataOn(id)) {
                 throw std::runtime_error("target channel id unknown.");
             }

@@ -203,7 +203,7 @@ public:
             LOG << "empty disptach queue - waiting 1s";
             dispatcher_.Dispatch(milliseconds(1000));
         }
-        else  {
+        else {
             auto diff = std::chrono::duration_cast<milliseconds>(timer_pq_.top().next_timeout - now);
             sLOG << "waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
@@ -211,7 +211,7 @@ public:
     }
 
     void DispatchLoop() {
-        while(!breakout_) {
+        while (!breakout_) {
             Dispatch();
         }
     }
