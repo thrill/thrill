@@ -33,7 +33,7 @@ struct BufferChainElement {
 //! A Buffer chain holds multiple immuteable buffers.
 //! Append in O(1), Delete in O(#buffers)
 struct BufferChain : public EmitterTarget {
-    BufferChain() : head(nullptr), tail(nullptr), closed(false) { }
+    BufferChain() : head(nullptr), tail(nullptr), closed_(false) { }
 
     void Append(BinaryBuffer b) {
         if (tail == nullptr) {
@@ -57,8 +57,11 @@ struct BufferChain : public EmitterTarget {
     }
 
     void Close() {
-        closed = true;
+        closed_ = true;
+        NotifyWaitingThreads();
     }
+
+    bool IsClosed() { return closed_; }
 
     struct BufferChainElement* head;
     struct BufferChainElement* tail;
