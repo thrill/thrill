@@ -27,7 +27,7 @@ option(JENKINS_BUILD "Build all with more warnings" OFF)
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
@@ -44,8 +44,7 @@ if(JENKINS_BUILD)
   endif()
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
-    AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # Clang does not support debug output for auto return types yet
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g0")
 endif()
