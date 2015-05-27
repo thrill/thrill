@@ -284,7 +284,7 @@ public:
                                               write_fn,
                                               filepath);
 
-        shared_node->ProduceStack();
+        shared_node->execute();
     }
 
     /*!
