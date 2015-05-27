@@ -159,8 +159,11 @@ private:
 
         auto it = context_.get_data_manager().template GetRemoteBlocks<Output>(channel_id_);
 
-        while (it.HasNext()) {
-            table.Insert(it.Next());
+        while (!it.IsClosed()) {
+            it.WaitForMore();
+            while (it.HasNext()) {
+                table.Insert(it.Next());
+            }
         }
 
         table.Flush();
