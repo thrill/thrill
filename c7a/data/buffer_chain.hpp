@@ -12,7 +12,8 @@
 #define C7A_DATA_BUFFER_CHAIN_HEADER
 
 #include <vector>
-#include <memory> //unique_ptr
+#include <condition_variable>
+#include <mutex> //mutex, unique_lock
 
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/emitter_target.hpp>
@@ -44,7 +45,21 @@ struct BufferChain : public EmitterTarget {
             tail->next = new BufferChainElement(b);
             tail = tail->next;
         }
+        NotifyWaitingThreads();
     }
+
+    //! Waits until beeing notified
+    void Wait() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        condition_variable_.wait(lock);
+    }
+
+    //! Waits until beeing notified and closed == true
+    void WaitUntilClosed() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        condition_variable_.wait(lock, [=](){ return this->closed_; });
+    }
+
 
     //! Call buffers' destructors and deconstructs the chain
     void Delete() {
@@ -65,7 +80,17 @@ struct BufferChain : public EmitterTarget {
 
     struct BufferChainElement* head;
     struct BufferChainElement* tail;
-    bool                     closed;
+
+private:
+    std::mutex mutex_;
+    std::condition_variable condition_variable_;
+    bool                     closed_;
+
+    void NotifyWaitingThreads() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        condition_variable_.notify_all();
+    }
+
 };
 
 } // namespace data
