@@ -26,6 +26,7 @@ TEST(WordCount, PreOP) {
     Context ctx;
     std::vector<std::string> self = { "127.0.0.1:1234" };
     ctx.job_manager().Connect(0, NetEndpoint::ParseEndpointList(self));
+    ctx.job_manager().StartDispatcher();
 
     auto line_to_words = [](std::string line, std::function<void(WordPair)> emit) {
                              std::string word;
@@ -62,6 +63,7 @@ TEST(WordCount, PreOP) {
                                     str += item.second;
                                     return str;
                                 });
+    ctx.job_manager().StopDispatcher();
 }
 
 /******************************************************************************/
