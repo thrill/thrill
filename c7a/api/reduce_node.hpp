@@ -147,28 +147,26 @@ private:
 
     //!Recieve elements from other workers.
     auto MainOp() {
-        std::function<void(Output)> print =
-            [](Output elem) {
-                LOG << elem.first << " " << elem.second;
-            };
-
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(Output)> >;
+                                          data::BlockEmitter<Output> >;
 
-        ReduceTable table(key_extractor_, reduce_function_, DIANode<Output>::callbacks());
+        auto emitter = context_.get_data_manager().template GetLocalEmitter<Output>(data_id_);
+        ReduceTable table(key_extractor_, reduce_function_, { emitter });
 
         auto it = context_.get_data_manager().template GetIterator<Output>(channel_id_);
 
-        while (!it.IsClosed()) {
+        sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
+        do {
             it.WaitForMore();
             while (it.HasNext()) {
                 table.Insert(it.Next());
             }
-        }
+        } while (!it.IsClosed());
 
         table.Flush();
+        table.Close();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.

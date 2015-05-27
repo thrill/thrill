@@ -157,7 +157,7 @@ public:
      * Emits element to all childs
      */
     void EmitAll(value_t& element) {
-        for (auto emitter : emit_) {
+        for (auto& emitter : emit_) {
             emitter(element);
         }
     }
@@ -175,17 +175,23 @@ public:
                     EmitAll(curr_node->value);
                     curr_node = curr_node->next;
                 } while (curr_node != nullptr);
-                vector_[i] = nullptr;
+                vector_[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
             }
         }
 
-        //flush emitters
-        //for (auto& emitter : emit_) {
-        //TODO call this, as soon as API gives us the 'real' emitter objects: emitter.Flush();
-        //}
+        //TODO(ms) at this point the emitters might not send data downstream.
+        //Call flush on them to do so. But I added the Close method which
+        //implicitly flushes the emitters, so this is nothing critical.
 
         // reset counters
         table_size_ = 0;
+    }
+
+    //! Flushes and closes all emitters of the table
+    void Close() {
+        for (auto& emitter : emit_) {
+            emitter.Close(); //implicit flush
+        }
     }
 
     /*!

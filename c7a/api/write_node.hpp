@@ -39,24 +39,24 @@ public:
     //! Executes the write operation. Writes a file line by line and emits it to
     //! the DataManager after applying the write function on it.
     void execute() override {
-        sLOG << "WRITING data with id" << this->data_id_;
+        assert(this->get_parents().size() == 1);
+        auto input_id = this->get_parents().front()->get_data_id();
+        sLOG << "WRITING data from id" << input_id;
 
         std::ofstream file(path_out_);
 
         auto emit = (this->context_).get_data_manager().template GetOutputLineEmitter<Output>(file);
 
         // get data from data manager
-        assert(this->get_parents().size() == 1);
         data::BlockIterator<Input> it = this->context_.get_data_manager().template GetIterator<Input>(
-            this->get_parents().front()->get_data_id());
+            input_id);
         // loop over output
-        while (!it.IsClosed()) {
+        do {
             it.WaitForMore();
             while (it.HasNext()) {
-                const Input& item = it.Next();
-                emit(write_function_(item));
+                emit(write_function_(it.Next()));
             }
-        }
+        } while (!it.IsClosed());
 
         emit.Close();
     }
