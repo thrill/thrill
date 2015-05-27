@@ -19,7 +19,7 @@
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
-//#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
+//#include <c7a/net/lowlevel/epoll-dispatcher.hpp> //TODO(tb) can we use a os switch? Do we want that?
 
 #if defined(_LIBCPP_VERSION) || defined(__clang__)
 #include <c7a/common/delegate.hpp>
