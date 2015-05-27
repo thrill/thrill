@@ -123,7 +123,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     NetGroup          group2;
 };
 
-TEST_F(DataManagerChannelFixture, EmptyChannels_GetRemoteBlocksDoesNotThrow) {
+TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
     auto channel_id = AllocateChannel();
     auto emitters = worker0.manager.GetNetworkEmitters<int>(channel_id);
     emitters[1].Close();
@@ -132,7 +132,7 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetRemoteBlocksDoesNotThrow) {
 
     //Worker 1 closed channel 0 on worker 2
     //Worker2 never allocated the channel id
-    ASSERT_NO_THROW(worker1.manager.GetRemoteBlocks<int>(channel_id));
+    ASSERT_NO_THROW(worker1.manager.GetIterator<int>(channel_id));
 }
 
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosed) {
@@ -147,7 +147,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosed) {
     emitter2[0].Close();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_TRUE(it.IsClosed());
 }
 
@@ -161,7 +161,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsNotClosedIfPartialClosed) {
     emitter2[0].Close();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_FALSE(it.IsClosed());
 }
 
@@ -172,7 +172,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
     emitter2[0](1);
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_FALSE(it.HasNext());
 }
 
@@ -184,7 +184,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
     emitter2[0].Flush();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_TRUE(it.HasNext());
 }
 
@@ -196,7 +196,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerA
     emitter2[0].Flush();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_EQ(1, it.Next());
     ASSERT_FALSE(it.HasNext());
 }
@@ -216,7 +216,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerM
     emitter2[0].Flush();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_EQ(1, it.Next());
     ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(2, it.Next());
@@ -241,7 +241,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
     emitter2[0].Close();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     auto vals = ReadIterator(it);
     ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
 }
@@ -259,9 +259,9 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
     emitter1[2].Close();
 
     RunDispatcherLoop();
-    auto it0 = worker0.manager.GetRemoteBlocks<int>(channel_id);
-    auto it1 = worker1.manager.GetRemoteBlocks<int>(channel_id);
-    auto it2 = worker2.manager.GetRemoteBlocks<int>(channel_id);
+    auto it0 = worker0.manager.GetIterator<int>(channel_id);
+    auto it1 = worker1.manager.GetIterator<int>(channel_id);
+    auto it2 = worker2.manager.GetIterator<int>(channel_id);
     auto vals0 = ReadIterator(it0);
     auto vals1 = ReadIterator(it1);
     auto vals2 = ReadIterator(it2);
