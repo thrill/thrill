@@ -495,7 +495,7 @@ public:
                             });
 
         //Dispatch until everything is connected. 
-        while (!IsInitializationFinished(endpoints.size()))
+        while (!IsInitializationFinished())
         {
             LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher_.Dispatch();
