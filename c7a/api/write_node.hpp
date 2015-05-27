@@ -23,7 +23,7 @@ class WriteNode : public ActionNode<Input>
 {
 public:
     WriteNode(Context& ctx,
-              DIANode<Input>* parent,
+              DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
               WriteFunction write_function,
               std::string path_out)
         : ActionNode<Input>(ctx, { parent }),
