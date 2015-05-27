@@ -25,7 +25,7 @@ enum ChainType { LOCAL, NETWORK };
 //! ChainIDs can generate their successors by using the ++ operators.
 struct ChainId {
     ChainType type;
-    size_t identifier;
+    size_t    identifier;
 
     ChainId(ChainType type, size_t id) : type(type), identifier(id) { }
 
@@ -33,49 +33,47 @@ struct ChainId {
     ChainId(size_t id) : type(LOCAL), identifier(id) { }
 
     //post increment
-    ChainId operator++(int /*dummy*/) {
-        auto result = ChainId( type, identifier++ );
+    ChainId operator ++ (int /*dummy*/) {
+        auto result = ChainId(type, identifier++);
         return result;
     }
 
     //pre increment
-    ChainId operator++() {
-        auto result = ChainId( type, ++identifier );
+    ChainId operator ++ () {
+        auto result = ChainId(type, ++identifier);
         return result;
     }
 
     //! Returns a string representation of this ChainID
     std::string ToString() const {
         switch (type) {
-            case LOCAL:
-                return "local-" + std::to_string(identifier);
-            case NETWORK:
-                return "network-" + std::to_string(identifier);
-            default:
-                return "unknown-" + std::to_string(identifier);
-        };
+        case LOCAL:
+            return "local-" + std::to_string(identifier);
+        case NETWORK:
+            return "network-" + std::to_string(identifier);
+        default:
+            return "unknown-" + std::to_string(identifier);
+        }
     }
 
     //! ChainIDs are equal if theu share the same type and identifier
-    bool operator ==(const ChainId& other) const {
+    bool operator == (const ChainId& other) const {
         return other.type == type && identifier == other.identifier;
     }
 };
 
 //! Stream operator that calls ToString on ChainID
-static std::ostream& operator<< (std::ostream& stream, const ChainId& id) {
+static std::ostream& operator << (std::ostream& stream, const ChainId& id) {
     stream << id.ToString();
     return stream;
 }
 
 //! Compares two ChainIDs (required for std::map)
 struct ChainIdCompare {
-    bool operator()(const ChainId& a, const ChainId& b) {
+    bool operator () (const ChainId& a, const ChainId& b) {
         return a.type == b.type && a.identifier < b.identifier;
     }
 };
-
-
 
 //! Holds instances of BlockChains and addresses them with IDs
 //!

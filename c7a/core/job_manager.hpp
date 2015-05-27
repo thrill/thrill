@@ -26,8 +26,7 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_), dispatcher_running_(false) {
-    }
+    JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_), dispatcher_running_(false) { }
 
     bool Connect(size_t my_rank, const std::vector<net::NetEndpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);

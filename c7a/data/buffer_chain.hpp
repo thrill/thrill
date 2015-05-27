@@ -57,9 +57,8 @@ struct BufferChain : public EmitterTarget {
     //! Waits until beeing notified and closed == true
     void WaitUntilClosed() {
         std::unique_lock<std::mutex> lock(mutex_);
-        condition_variable_.wait(lock, [=](){ return this->closed_; });
+        condition_variable_.wait(lock, [=]() { return this->closed_; });
     }
-
 
     //! Call buffers' destructors and deconstructs the chain
     void Delete() {
@@ -82,15 +81,14 @@ struct BufferChain : public EmitterTarget {
     struct BufferChainElement* tail;
 
 private:
-    std::mutex mutex_;
-    std::condition_variable condition_variable_;
+    std::mutex               mutex_;
+    std::condition_variable  condition_variable_;
     bool                     closed_;
 
     void NotifyWaitingThreads() {
         std::unique_lock<std::mutex> lock(mutex_);
         condition_variable_.notify_all();
     }
-
 };
 
 } // namespace data

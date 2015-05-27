@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * examples/bench.cpp
+ *
 
 /*******************************************************************************
  * examples/bench.cpp
@@ -11,9 +14,8 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
-int main(int argc, char* argv[])
-{
-     auto emit = [](int in) {
+int main(int argc, char* argv[]) {
+    auto emit = [](int in) {
                     in = in;
                     //std::cout << in << std::endl;
                 };
@@ -26,12 +28,12 @@ int main(int argc, char* argv[])
                       return in1 + in2;
                   };
 
-    srand (time(NULL));
+    srand(time(NULL));
     int workers = std::stoi(argv[2]);
     int modulo = std::stoi(argv[3]);
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-        table(workers, key_ex, red_fn, { emit });
+    table(workers, key_ex, red_fn, { emit });
 
     int end = std::stoi(argv[1]);
 
@@ -45,9 +47,8 @@ int main(int argc, char* argv[])
 
     time = std::clock() - time;
 
-    printf( "%f", ((double) (time * 1000000) / (double) CLOCKS_PER_SEC) );
+    printf("%f", ((double)(time * 1000000) / (double)CLOCKS_PER_SEC));
     //printf(std::endl);
-
 
     //std::cout << (time * 1000000) / (double) CLOCKS_PER_SEC << std::endl;
 

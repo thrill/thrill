@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * tests/data/data_chain_test.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
 
 #include "gtest/gtest.h"
 #include "c7a/data/buffer_chain_manager.hpp"
@@ -33,3 +41,5 @@ TEST(ChainId, EqualAfterPreIncrement) {
     ChainId id2(LOCAL, 2);
     ASSERT_TRUE(++id1 == id2);
 }
+
+/******************************************************************************/

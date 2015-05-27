@@ -18,9 +18,9 @@
 #include "gtest/gtest.h"
 
 struct BenchTable : public::testing::Test {
-    std::function<void(int)> emit   = [](int /*in*/){ };
-    std::function<int(int)>  key_ex = [](int in){ return in; };
-    std::function<int(int, int)> red_fn = [](int in1, int in2){ return in1 + in2; };
+    std::function<void(int)>     emit = [](int /*in*/) { };
+    std::function<int(int)>      key_ex = [](int in) { return in; };
+    std::function<int(int, int)> red_fn = [](int in1, int in2) { return in1 + in2; };
 };
 
 TEST_F(BenchTable, ActualTable1KKInts) {
