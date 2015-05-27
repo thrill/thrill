@@ -76,11 +76,11 @@ public:
     }
 
     /*!
-     * Returns "[WriteNode]" as a string.
+     * Returns "[WriteNode]" and its id as a string.
      * \return "[WriteNode]"
      */
     std::string ToString() override {
-        return "[WriteNode] Id: " + std::to_string(this->data_id_);
+        return "[WriteNode] Id:" + std::to_string(this->data_id_);
     }
 
 private:

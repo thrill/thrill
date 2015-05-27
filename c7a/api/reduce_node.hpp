@@ -121,7 +121,7 @@ public:
      * \return "[ReduceNode]"
      */
     std::string ToString() override {
-        return "[ReduceNode id=" + std::to_string(data_id_) + "]";
+        return "[ReduceNode] Id: " + std::to_string(data_id_);
     }
 
 private:
