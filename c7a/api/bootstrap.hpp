@@ -67,8 +67,11 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     Context ctx;
     std::cout << "connecting to peers" << std::endl;
     ctx.job_manager().Connect(my_rank, net::NetEndpoint::ParseEndpointList(endpoints));
+    ctx.job_manager().StartDispatcher();
     std::cout << "starting job" << std::endl;
-    return job_startpoint(ctx);
+    auto job_result = job_startpoint(ctx);
+    ctx.job_manager().StopDispatcher();
+    return job_result;
 }
 
 } // namespace bootstrap
