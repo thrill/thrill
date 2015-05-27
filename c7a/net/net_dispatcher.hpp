@@ -185,7 +185,7 @@ public:
         // process timer events that lie in the past
         steady_clock::time_point now = steady_clock::now();
 
-        while (!timer_pq_.empty() && timer_pq_.top().next_timeout <= now)
+        while (!breakout_ && !timer_pq_.empty() && timer_pq_.top().next_timeout <= now)
         {
             const Timer& top = timer_pq_.top();
             if (top.cb()) {
@@ -196,15 +196,31 @@ public:
             timer_pq_.pop();
         }
 
+        if (breakout_) return;
+
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            dispatcher_.Dispatch(milliseconds(10000));
+            LOG << "empty disptach queue - waiting 1s";
+            dispatcher_.Dispatch(milliseconds(1000));
         }
-        else {
-            dispatcher_.Dispatch(
-                std::chrono::duration_cast<milliseconds>(
-                    timer_pq_.top().next_timeout - now));
+        else  {
+            auto diff = std::chrono::duration_cast<milliseconds>(timer_pq_.top().next_timeout - now);
+            sLOG << "waiting" << diff.count() << "ms";
+            dispatcher_.Dispatch(diff);
         }
+    }
+
+    void DispatchLoop() {
+        while(!breakout_) {
+            Dispatch();
+        }
+    }
+
+    //! Causes the dispatcher to break out after the next timeout occurred
+    //! Does not interrupt the currently running read/write operation, but
+    //! breaks after the operation finished or timed out.
+    void Breakout() {
+        breakout_ = true;
     }
 
     //! \}
@@ -212,6 +228,9 @@ public:
 protected:
     //! low-level file descriptor async processing
     Dispatcher dispatcher_;
+
+    //! true if dispatcher needs to stop
+    bool breakout_;
 
     //! struct for timer callbacks
     struct Timer
