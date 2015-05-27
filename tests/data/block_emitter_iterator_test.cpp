@@ -35,24 +35,24 @@ struct EmitterIteratorIntegration : public::testing::Test {
 };
 
 TEST_F(EmitterIteratorIntegration, EmptyHasNotNext) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     ASSERT_FALSE(it.HasNext());
 }
 
 TEST_F(EmitterIteratorIntegration, EmptyIsNotClosed) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     ASSERT_FALSE(it.IsClosed());
 }
 
 TEST_F(EmitterIteratorIntegration, ClosedIsClosed) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt.Close();
     ASSERT_TRUE(it.IsClosed());
 }
 
 TEST_F(EmitterIteratorIntegration, OneElementEmitted) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(123);
     emitt.Flush();
@@ -65,7 +65,7 @@ TEST_F(EmitterIteratorIntegration, OneElementEmitted) {
 }
 
 TEST_F(EmitterIteratorIntegration, CloseFlushesEmitter) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(123);
     emitt.Close();
@@ -74,7 +74,7 @@ TEST_F(EmitterIteratorIntegration, CloseFlushesEmitter) {
 }
 
 TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfNoDataAvailable) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(1);
     emitt.Flush();
@@ -92,7 +92,7 @@ TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfNoDataAvailable) {
 }
 
 TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfIteratorIsClosed) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(1);
     emitt.Flush(); //force second buffer in buffer_chain
@@ -108,7 +108,7 @@ TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfIteratorIsClosed) {
 }
 
 TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     for (int i = 0; i < (int)(8 * 1024 / sizeof(int)); i++)
         emitt(i);
@@ -123,7 +123,7 @@ TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
 
 TEST_F(EmitterIteratorIntegration, WaitForMore_PausesThread) {
     using namespace std::literals;
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     int received_elelements = 0;
     int wait_calls = 0;
@@ -154,7 +154,7 @@ TEST_F(EmitterIteratorIntegration, WaitForMore_PausesThread) {
 
 TEST_F(EmitterIteratorIntegration, WaitForAll_PausesThread) {
     using namespace std::literals;
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     int received_elelements = 0;
     int wait_calls = 0;

@@ -159,7 +159,7 @@ private:
 
         ReduceTable table(key_extractor_, reduce_function_, DIANode<Output>::callbacks());
 
-        auto it = context_.get_data_manager().template GetRemoteBlocks<Output>(channel_id_);
+        auto it = context_.get_data_manager().template GetIterator<Output>(channel_id_);
 
         while (!it.IsClosed()) {
             it.WaitForMore();

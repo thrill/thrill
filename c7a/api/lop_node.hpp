@@ -58,7 +58,7 @@ public:
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
-        data::BlockIterator<Input> it = (this->context_).get_data_manager().template GetLocalBlocks<Input>(pid);
+        data::BlockIterator<Input> it = (this->context_).get_data_manager().template GetIterator<Input>(pid);
 
         std::vector<Input> elements;
         auto save_fn = [&elements](Input input) {
