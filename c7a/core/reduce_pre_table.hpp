@@ -125,7 +125,7 @@ public:
 
         LOG << "key: " << key << " to bucket id: " << h.global_index;
 
-        long num_items_bucket = 0;
+        size_t num_items_bucket = 0;
         bucket_block* current_bucket_block = vector_[h.global_index];
         while (current_bucket_block != NULL)
         {

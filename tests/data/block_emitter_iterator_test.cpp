@@ -110,11 +110,11 @@ TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfIteratorIsClosed) {
 TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
     auto it = manager.GetLocalBlocks<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
-    for (size_t i = 0; i < 8 * 1024 / sizeof(int); i++)
+    for (int i = 0; i < (int)(8 * 1024 / sizeof(int)); i++)
         emitt(i);
     emitt.Flush();
 
-    for (size_t i = 0; i < 8 * 1024 / sizeof(int); i++) {
+    for (int i = 0; i < (int)(8 * 1024 / sizeof(int)); i++) {
         ASSERT_TRUE(it.HasNext());
         ASSERT_EQ(i, it.Next());
     }
