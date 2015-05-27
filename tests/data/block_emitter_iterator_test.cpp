@@ -121,4 +121,79 @@ TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
     ASSERT_FALSE(it.HasNext());
 }
 
+TEST_F(EmitterIteratorIntegration, WaitForMore_PausesThread) {
+    using namespace std::literals;
+    auto it = manager.GetLocalBlocks<int>(id);
+    auto emitt = manager.GetLocalEmitter<int>(id);
+    int received_elelements = 0;
+    int wait_calls = 0;
+    std::thread receiver([&it, &wait_calls, &received_elelements](){
+                while (!it.IsClosed()) {
+                    if (!it.HasNext()) {
+                        wait_calls++;
+                        it.WaitForMore();
+                    } else {
+                        it.Next();
+                        received_elelements++;
+                    }
+                }
+            });
+    std::this_thread::sleep_for(10ms); //let other thread run
+
+    emitt(123);
+    emitt.Flush();
+
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(1, received_elelements);
+    ASSERT_EQ(2, wait_calls);
+
+    emitt.Close();
+    receiver.join();
+    ASSERT_EQ(2, wait_calls); //should be unchanged
+}
+
+TEST_F(EmitterIteratorIntegration, WaitForAll_PausesThread) {
+    using namespace std::literals;
+    auto it = manager.GetLocalBlocks<int>(id);
+    auto emitt = manager.GetLocalEmitter<int>(id);
+    int received_elelements = 0;
+    int wait_calls = 0;
+    std::thread receiver([&it, &wait_calls, &received_elelements](){
+                while (!it.IsClosed()) {
+                    wait_calls++;
+                    it.WaitForAll();
+                    while(it.HasNext()) {
+                        it.Next();
+                        received_elelements++;
+                    }
+                }
+            });
+    std::this_thread::sleep_for(10ms); //let other thread run
+
+    emitt(123);
+    emitt.Flush();
+
+    //should wait once, read nothing
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(0, received_elelements);
+    ASSERT_EQ(1, wait_calls);
+
+    emitt(444);
+    emitt(222);
+    emitt.Flush();
+
+    //we expect no changes
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(0, received_elelements);
+    ASSERT_EQ(1, wait_calls);
+
+    emitt.Close();
+    receiver.join();
+
+    //all elements are accessible / no further wait
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(3, received_elelements);
+    ASSERT_EQ(1, wait_calls);
+}
+
 /******************************************************************************/

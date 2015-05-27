@@ -58,7 +58,24 @@ public:
     //! once return false and then true, if new data arrived.
     inline bool HasNext() {
         check_late_init();
-        return !current_reader_.empty() || (current_ != nullptr && !current_->IsEnd());
+        // current reader not empty --> read along
+        // current reader empty     --> do we have follow-up buffer-chain element?
+        //                          and when we move to this buffer, is it empty?
+        return !current_reader_.empty() || (current_ != nullptr && !current_->IsEnd() && LookAhead());
+    }
+
+    //! Waits until either an element is accessible (HasNext() == true) or the
+    //! Iterator is closed (IsClosed == true)
+    //! Does not enter idle state if HasNext() == true || IsClosed() == true
+    void WaitForMore() {
+        while (!HasNext() && !IsClosed())
+            buffer_chain_.Wait();
+    }
+
+    //! Waits until all elements are available at the iterator and the iterator
+    //! is closed (IsClosed == true)
+    void WaitForAll() {
+        buffer_chain_.WaitUntilClosed();
     }
 
     inline void check_late_init() {
