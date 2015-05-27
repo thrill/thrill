@@ -17,20 +17,13 @@
 
 #include "gtest/gtest.h"
 
-TEST(BenchTable, ActualTable1KKInts) {
-    auto emit = [](int in) {
-                    in = in;
-                    //std::cout << in << std::endl;
-                };
+struct BenchTable : public::testing::Test {
+    std::function<void(int)> emit   = [](int /*in*/){ };
+    std::function<int(int)>  key_ex = [](int in){ return in; };
+    std::function<int(int, int)> red_fn = [](int in1, int in2){ return in1 + in2; };
+};
 
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
-
+TEST_F(BenchTable, ActualTable1KKInts) {
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
 
@@ -41,20 +34,7 @@ TEST(BenchTable, ActualTable1KKInts) {
     table.Flush();
 }
 
-TEST(BenchTable, ChausTable1KKInts) {
-    auto emit = [](int in) {
-                    in = in;
-                    //std::cout << in << std::endl;
-                };
-
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
-
+TEST_F(BenchTable, ChausTable1KKInts) {
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(1, key_ex, red_fn, { emit });
 
@@ -65,20 +45,7 @@ TEST(BenchTable, ChausTable1KKInts) {
     table.Flush();
 }
 
-TEST(BenchTable, ActualTable10Workers) {
-    auto emit = [](int in) {
-                    in = in;
-                    //std::cout << in << std::endl;
-                };
-
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
-
+TEST_F(BenchTable, ActualTable10Workers) {
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(10, key_ex, red_fn, { emit });
 
@@ -89,20 +56,7 @@ TEST(BenchTable, ActualTable10Workers) {
     table.Flush();
 }
 
-TEST(BenchTable, ChausTable10Workers) {
-    auto emit = [](int in) {
-                    in = in;
-                    //std::cout << in << std::endl;
-                };
-
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
-
+TEST_F(BenchTable, ChausTable10Workers) {
     c7a::core::ReducePreTableBench<decltype(key_ex), decltype(red_fn), decltype(emit)>
     table(10, key_ex, red_fn, { emit });
 
