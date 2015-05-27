@@ -50,9 +50,12 @@ public:
         data::BlockIterator<Input> it = this->context_.get_data_manager().template GetLocalBlocks<Input>(
             this->get_parents().front()->get_data_id());
         // loop over output
-        while (it.HasNext()) {
-            const Input& item = it.Next();
-            emit(write_function_(item));
+        while (!it.IsClosed()) {
+            it.WaitForMore();
+            while (it.HasNext()) {
+                const Input& item = it.Next();
+                emit(write_function_(item));
+            }
         }
 
         emit.Close();
