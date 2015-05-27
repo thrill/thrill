@@ -298,7 +298,7 @@ public:
      * Closes all emitter
      */
     void CloseEmitter() {
-        for (auto e : emit_) {
+        for (auto& e : emit_) {
             e.Close();
         }
     }
