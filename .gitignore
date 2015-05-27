@@ -2,6 +2,7 @@
 build/**
 docs/**
 doxygen-html/**
+doxygen_sqlite3.db
 
 #libs that are downloaded through setup.sh
 lib/*
