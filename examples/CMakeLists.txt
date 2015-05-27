@@ -11,6 +11,6 @@ add_executable(word_count word_count.cpp)
 add_executable(bench bench.cpp)
 add_executable(bench_ref bench_ref.cpp)
 
-target_link_libraries(word_count c7a ${ALL_LIBRARIES})
+target_link_libraries(word_count c7a ${ALL_LIBRARIES} pthread)
 
 ################################################################################
