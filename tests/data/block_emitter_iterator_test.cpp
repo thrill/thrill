@@ -127,17 +127,18 @@ TEST_F(EmitterIteratorIntegration, WaitForMore_PausesThread) {
     auto emitt = manager.GetLocalEmitter<int>(id);
     int received_elelements = 0;
     int wait_calls = 0;
-    std::thread receiver([&it, &wait_calls, &received_elelements](){
-                while (!it.IsClosed()) {
-                    if (!it.HasNext()) {
-                        wait_calls++;
-                        it.WaitForMore();
-                    } else {
-                        it.Next();
-                        received_elelements++;
-                    }
-                }
-            });
+    std::thread receiver([&it, &wait_calls, &received_elelements]() {
+                             while (!it.IsClosed()) {
+                                 if (!it.HasNext()) {
+                                     wait_calls++;
+                                     it.WaitForMore();
+                                 }
+                                 else {
+                                     it.Next();
+                                     received_elelements++;
+                                 }
+                             }
+                         });
     std::this_thread::sleep_for(10ms); //let other thread run
 
     emitt(123);
@@ -158,16 +159,16 @@ TEST_F(EmitterIteratorIntegration, WaitForAll_PausesThread) {
     auto emitt = manager.GetLocalEmitter<int>(id);
     int received_elelements = 0;
     int wait_calls = 0;
-    std::thread receiver([&it, &wait_calls, &received_elelements](){
-                while (!it.IsClosed()) {
-                    wait_calls++;
-                    it.WaitForAll();
-                    while(it.HasNext()) {
-                        it.Next();
-                        received_elelements++;
-                    }
-                }
-            });
+    std::thread receiver([&it, &wait_calls, &received_elelements]() {
+                             while (!it.IsClosed()) {
+                                 wait_calls++;
+                                 it.WaitForAll();
+                                 while (it.HasNext()) {
+                                     it.Next();
+                                     received_elelements++;
+                                 }
+                             }
+                         });
     std::this_thread::sleep_for(10ms); //let other thread run
 
     emitt(123);

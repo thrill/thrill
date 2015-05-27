@@ -52,6 +52,7 @@ Emitters and Iterators can operate on the same data (emitters can push data even
 Emitters can close a BufferChain and Iterators provide a \ref BlockIterator::IsClosed() "IsClosed() method".
 
 */
+
 } // namespace data
 } // namespace c7a
 

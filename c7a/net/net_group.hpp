@@ -312,8 +312,7 @@ private:
 };
 
 template <typename T, typename BinarySumOp>
-void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
-{
+void NetGroup::PrefixSum(T& value, BinarySumOp sumOp) {
     // The total sum in the current hypercube. This is stored, because later,
     // bigger hypercubes need this value.
     T total_sum = value;
@@ -347,15 +346,15 @@ void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
 
 //! Perform a binomial tree reduce to the worker with index 0
 template <typename T, typename BinarySumOp>
-void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
-{
+void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp) {
     bool active = true;
     for (size_t d = 1; d < Size(); d <<= 1) {
         if (active) {
             if (MyRank() & d) {
                 Connection(MyRank() - d).Send(value);
                 active = false;
-            } else if (MyRank() + d < Size()) {
+            }
+            else if (MyRank() + d < Size()) {
                 T recv_data;
                 Connection(MyRank() + d).Receive(&recv_data);
                 value = sumOp(value, recv_data);
@@ -366,8 +365,7 @@ void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
 
 //! Binomial-broadcasts the value of the worker with index 0 to all the others
 template <typename T>
-void NetGroup::Broadcast(T& value)
-{   
+void NetGroup::Broadcast(T& value) {
     if (MyRank() > 0) {
         ClientId from;
         ReceiveFromAny(&from, &value);
@@ -382,8 +380,7 @@ void NetGroup::Broadcast(T& value)
 //! Perform an All-Reduce on the workers by aggregating all values and sending
 //! them backto all workers
 template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
-{
+void NetGroup::AllReduce(T& value, BinarySumOp sum_op) {
     ReduceToRoot(value, sum_op);
     Broadcast(value);
 }

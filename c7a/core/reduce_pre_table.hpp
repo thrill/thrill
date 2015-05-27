@@ -101,7 +101,7 @@ public:
 
     void init() {
         sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
-        for(auto& e : emit_)
+        for (auto& e : emit_)
             emit_stats_.push_back(0);
 
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
@@ -444,6 +444,7 @@ private:
 
     std::vector<bucket_block*> vector_;
 };
+
 } // namespace core
 } // namespace c7a
 
