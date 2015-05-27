@@ -95,10 +95,12 @@ public:
      * MainOp and PostOp.
      */
     void execute() override {
+        LOG << ToString() << " flushing pre tables";
         //Flush hash table to send data before main op begins
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
 
+        LOG << ToString() << " running main op";
         MainOp();
     }
 
