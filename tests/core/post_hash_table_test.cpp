@@ -18,7 +18,7 @@ struct PostTable : public::testing::Test {
           manager(multiplexer),
           id(manager.AllocateDIA()),
           emit(manager.GetLocalEmitter<int>(id)),
-          iterator(manager.GetLocalBlocks<int>(id)),
+          iterator(manager.GetIterator<int>(id)),
           pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) { }
 
     c7a::net::NetDispatcher                               dispatcher;

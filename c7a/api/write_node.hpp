@@ -47,7 +47,7 @@ public:
 
         // get data from data manager
         assert(this->get_parents().size() == 1);
-        data::BlockIterator<Input> it = this->context_.get_data_manager().template GetLocalBlocks<Input>(
+        data::BlockIterator<Input> it = this->context_.get_data_manager().template GetIterator<Input>(
             this->get_parents().front()->get_data_id());
         // loop over output
         while (!it.IsClosed()) {
