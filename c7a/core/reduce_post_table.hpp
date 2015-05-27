@@ -251,7 +251,7 @@ public:
 
     // prints content of hash table
     void Print() {
-        for (int i = 0; i < num_buckets_; i++) {
+        for (size_t i = 0; i < num_buckets_; i++) {
             if (vector_[i] == nullptr) {
                 LOG << "bucket "
                     << i
