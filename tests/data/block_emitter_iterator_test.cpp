@@ -73,6 +73,40 @@ TEST_F(EmitterIteratorIntegration, CloseFlushesEmitter) {
     ASSERT_EQ(123, it.Next());
 }
 
+TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfNoDataAvailable) {
+    auto it = manager.GetLocalBlocks<int>(id);
+    auto emitt = manager.GetLocalEmitter<int>(id);
+    emitt(1);
+    emitt.Flush();
+    emitt(2);
+    emitt(3);
+    emitt.Flush();
+    ASSERT_TRUE(it.HasNext());
+    it.Next();
+    it.Next();
+    it.Next();
+    ASSERT_FALSE(it.HasNext());
+    emitt(4);
+    emitt.Flush();
+    ASSERT_TRUE(it.HasNext());
+}
+
+TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfIteratorIsClosed) {
+    auto it = manager.GetLocalBlocks<int>(id);
+    auto emitt = manager.GetLocalEmitter<int>(id);
+    emitt(1);
+    emitt.Flush(); //force second buffer in buffer_chain
+    emitt(2);
+    emitt(3);
+    emitt.Flush(); //finishes the buffer_chain
+    ASSERT_TRUE(it.HasNext());
+    it.Next();
+    it.Next();
+    it.Next();
+    emitt.Close();
+    ASSERT_FALSE(it.HasNext());
+}
+
 TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
     auto it = manager.GetLocalBlocks<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
