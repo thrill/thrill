@@ -31,7 +31,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using key_t = typename FunctionTraits<KeyExtractor>::result_type;
 
@@ -100,6 +100,10 @@ public:
     ~ReducePreTable() { }
 
     void init() {
+        sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
+        for(auto& e : emit_)
+            emit_stats_.push_back(0);
+
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
         if (num_partitions_ > num_buckets_ &&
             num_buckets_ % num_partitions_ != 0) {
@@ -252,6 +256,7 @@ public:
                 for (std::pair<key_t, value_t>& bucket_item : current_bucket_block->items)
                 {
                     emit_[partition_id](bucket_item.second);
+                    emit_stats_[partition_id]++;
                 }
                 //TODO(ms) call emit_[partition_id].Flush here to ensure elements are acutally pushed via network
                 //I could not make the change because there are some instances of this class with std::functions
@@ -298,8 +303,11 @@ public:
      * Closes all emitter
      */
     void CloseEmitter() {
+        sLOG << "emit stats:";
+        unsigned int i = 0;
         for (auto& e : emit_) {
             e.Close();
+            sLOG << "emiter" << i << "pushed" << emit_stats_[i++];
         }
     }
 
@@ -432,6 +440,7 @@ private:
     ReduceFunction reduce_function_;
 
     std::vector<EmitterFunction> emit_;
+    std::vector<int> emit_stats_;
 
     std::vector<bucket_block*> vector_;
 };
