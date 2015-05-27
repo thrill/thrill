@@ -89,6 +89,14 @@ private:
         current_ = current_->next;
         current_reader_ = BinaryBufferReader(current_->buffer);
     }
+
+    //! Edge case: iterator has read until end of buffer,
+    //! Follow-up buffer exists --> HasNext has to see if that follow-up buffer
+    //! is not empty. We do this here.
+    bool LookAhead() {
+        MoveToNextBuffer();
+        return !current_reader_.empty();
+    }
 };
 
 } // namespace data
