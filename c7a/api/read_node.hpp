@@ -94,7 +94,7 @@ public:
      * \return "[ReadNode]"
      */
     std::string ToString() override {
-        return "[ReadNode] Id: " + std::to_string(this->data_id_);
+        return "[ReadNode] Id: " + this->data_id_.ToString();
     }
 
 private:

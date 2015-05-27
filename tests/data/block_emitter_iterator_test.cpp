@@ -31,7 +31,7 @@ struct EmitterIteratorIntegration : public::testing::Test {
     ChannelMultiplexer multiplexer;
 
     DataManager        manager;
-    size_t             id;
+    ChainId            id;
 };
 
 TEST_F(EmitterIteratorIntegration, EmptyHasNotNext) {

@@ -80,7 +80,7 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() override {
-        return "[WriteNode] Id:" + std::to_string(this->data_id_);
+        return "[WriteNode] Id:" + this->data_id_.ToString();
     }
 
 private:
