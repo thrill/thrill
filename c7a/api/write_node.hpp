@@ -30,7 +30,6 @@ public:
           write_function_(write_function),
           path_out_(path_out)
     {
-        LOG1 << this->get_parents().size();
         core::RunScope(this);
     }
 
