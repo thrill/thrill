@@ -271,6 +271,17 @@ public:
                    (std::move(shared_node), zip_stack);
     }
 
+    /*!
+     * WriteToFileSystem is an Action, which writes elements to an output file. A
+     * provided function is used prepare the elements before written.
+     *
+     * \tparam write_fn_t Type of the write_function. This is a function with one
+     * input element of the local type.
+     *
+     * \param write_fn Write function, which prepares an element to be written to disk.
+     *
+     * \param filepath Destination of the output file.
+     */
     template <typename write_fn_t>
     void WriteToFileSystem(std::string filepath,
                            const write_fn_t &write_fn) {
