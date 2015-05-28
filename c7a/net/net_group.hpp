@@ -41,7 +41,7 @@ typedef unsigned int ClientId;
 //Move everything else into appropriate channel.
 
 /*!
- * Collection of NetConnections to workers, allow point-to-point client
+ * Collection of NetConnections to workers, allows point-to-point client
  * communication and simple collectives like MPI.
  */
 class NetGroup
@@ -56,6 +56,8 @@ public:
     //! for testing, and starts a thread for each client, which gets passed the
     //! NetGroup object. This is ideal for testing network communication
     //! protocols. See tests/net/test-net-group.cpp for examples.
+    //! @param num_clients The number of clients to spawn.
+    //! @thread_function The function to execute for each client.
     static void ExecuteLocalMock(
         size_t num_clients,
         const std::function<void(NetGroup*)>& thread_function);
@@ -104,8 +106,9 @@ public:
      * @details This method swaps the net connection to memory managed by this group.
      *          The reference given to that method will be invalid afterwards.
      *
-     * @param connection
-     * @return
+     * @param connection The connection to assign.
+     * @return A ref to the assigned connection, which is always valid, but might be different from the
+     * inut connection.
      */
     NetConnection & AssignConnection(NetConnection& connection) {
         if (connection.peer_id() >= connections_.size())
@@ -158,8 +161,10 @@ public:
     /*!
      * Receive a fixed-length integral type from any worker into out_value, puts
      * worker id in *src.
+     *
+     * @param out_src The id of the client the data was received from.
+     * @param out_value The received value.
      */
-
     template <typename T>
     void ReceiveFromAny(ClientId* out_src, T* out_value) {
         fd_set fd_set;
@@ -167,6 +172,7 @@ public:
 
         FD_ZERO(&fd_set);
 
+        // TODO(ej) use NetDispatcher here?
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
 
@@ -216,6 +222,9 @@ public:
     /*!
      * Receives a string message from any worker into out_data, which will be
      * resized as needed, puts worker id in *src.
+     *
+     * @param out_src The id of the worker the string was received from.
+     * @param out_data The string received from the worker.
      */
     void ReceiveStringFromAny(ClientId* out_src, std::string* out_data) {
         fd_set fd_set;
@@ -269,11 +278,74 @@ public:
         return ReceiveStringFromAny(out_src, out_data);
     }
 
+    /**
+     * @brief Sends a string to a worker.
+     * @details Sends a string to a worker.
+     *
+     * @param dest The worker to send the string to.
+     * @param data The string to send.
+     */
     void SendStringTo(ClientId dest, const std::string& data) {
         this->Connection(dest).SendString(data);
     }
 
+    /**
+     * @brief Receives a string from the given worker.
+     * @details Receives a string from the given worker.
+     *
+     * @param src The worker to receive the string from.
+     * @param data A pointer to the string where the received string should be stored.
+     */
+    void ReceiveStringFrom(ClientId src, std::string* data) {
+        this->Connection(src).ReceiveString(data);
+    }
+
+    /**
+     * @brief Sends a fixed lentgh type to the given worker.
+     * @details Sends a fixed lentgh type to the given worker.
+     *
+     * @param dest The worker to send the data to.
+     * @param data The data to send.
+     */
+    template <typename T>
+    void SendTo(ClientId dest, const T& data) {
+        this->Connection(dest).Send(data);
+    }
+
+    /**
+     * @brief Receives a fixed length type from the given worker.
+     * @details Receives a fixed length type from the given worker.
+     *
+     * @param src The worker to receive the fixed length type from.
+     * @param data A pointer to the location where the received data should be stored.
+     */
+    template <typename T>
+    void ReceiveFrom(ClientId src, T* data) {
+        this->Connection(src).Receive(data);
+    }
+
+    /**
+     * @brief Broadcasts a string to all workers.
+     * @details Broadcasts a string to all workers.
+     *
+     * @param data The string to broadcast.
+     */
     void BroadcastString(const std::string& data) {
+        for (size_t i = 0; i < connections_.size(); i++)
+        {
+            if (i == my_rank_) continue;
+            SendStringTo(i, data);
+        }
+    }
+
+    /**
+     * @brief Broadcasts a fixed length type to all workers.
+     * @detailsBroadcasts a fixed length type to all workers.
+     *
+     * @param data The data to broadcast.
+     */
+    template <typename T>
+    void BroadcastString(const T& data) {
         for (size_t i = 0; i < connections_.size(); i++)
         {
             if (i == my_rank_) continue;
@@ -285,6 +357,8 @@ public:
 
     //! \name Collective Operations
     //! \{
+
+    //TODO(rh) Please migrate into a different class, since NetGroup is an abstract concept that bundles connections.
 
     template <typename T, typename BinarySumOp = SumOp<T> >
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
@@ -312,8 +386,7 @@ private:
 };
 
 template <typename T, typename BinarySumOp>
-void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
-{
+void NetGroup::PrefixSum(T& value, BinarySumOp sumOp) {
     // The total sum in the current hypercube. This is stored, because later,
     // bigger hypercubes need this value.
     T total_sum = value;
@@ -347,15 +420,15 @@ void NetGroup::PrefixSum(T& value, BinarySumOp sumOp)
 
 //! Perform a binomial tree reduce to the worker with index 0
 template <typename T, typename BinarySumOp>
-void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
-{
+void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp) {
     bool active = true;
     for (size_t d = 1; d < Size(); d <<= 1) {
         if (active) {
             if (MyRank() & d) {
                 Connection(MyRank() - d).Send(value);
                 active = false;
-            } else if (MyRank() + d < Size()) {
+            }
+            else if (MyRank() + d < Size()) {
                 T recv_data;
                 Connection(MyRank() + d).Receive(&recv_data);
                 value = sumOp(value, recv_data);
@@ -366,8 +439,7 @@ void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp)
 
 //! Binomial-broadcasts the value of the worker with index 0 to all the others
 template <typename T>
-void NetGroup::Broadcast(T& value)
-{   
+void NetGroup::Broadcast(T& value) {
     if (MyRank() > 0) {
         ClientId from;
         ReceiveFromAny(&from, &value);
@@ -382,14 +454,12 @@ void NetGroup::Broadcast(T& value)
 //! Perform an All-Reduce on the workers by aggregating all values and sending
 //! them backto all workers
 template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T& value, BinarySumOp sum_op)
-{
+void NetGroup::AllReduce(T& value, BinarySumOp sum_op) {
     ReduceToRoot(value, sum_op);
     Broadcast(value);
 }
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 
