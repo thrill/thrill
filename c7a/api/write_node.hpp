@@ -18,47 +18,42 @@
 
 namespace c7a {
 
-template <typename Input, typename Output, typename WriteFunction>
+template <typename Input, typename Output, typename WriteFunction, typename Stack>
 class WriteNode : public ActionNode<Input>
 {
 public:
     WriteNode(Context& ctx,
               DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
+              Stack& stack,
               WriteFunction write_function,
               std::string path_out)
         : ActionNode<Input>(ctx, { parent }),
+          local_stack_(stack),
           write_function_(write_function),
-          path_out_(path_out)
+          path_out_(path_out),
+          file_(path_out_),
+          emit_(this->context_.get_data_manager().template GetOutputLineEmitter<Output>(file_))
     {
-        sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents";
+        sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents to" << path_out_;
+        auto pre_op_fn = [=](Input input) {
+            PreOp(input);
+        };
+        auto lop_chain = local_stack_.push(pre_op_fn).emit();
+        parent->RegisterChild(lop_chain);
+
         core::RunScope(this);
+    }
+
+    void PreOp(Input input) {
+        emit_(write_function_(input));
     }
 
     virtual ~WriteNode() { }
 
-    //! Executes the write operation. Writes a file line by line and emits it to
-    //! the DataManager after applying the write function on it.
+    //! Closes the output file
     void execute() override {
-        assert(this->get_parents().size() == 1);
-        auto input_id = this->get_parents().front()->get_data_id();
-        sLOG << "WRITING data from id" << input_id;
-
-        std::ofstream file(path_out_);
-
-        auto emit = (this->context_).get_data_manager().template GetOutputLineEmitter<Output>(file);
-
-        // get data from data manager
-        data::BlockIterator<Input> it = this->context_.get_data_manager().template GetIterator<Input>(
-            input_id);
-        // loop over output
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                emit(write_function_(it.Next()));
-            }
-        } while (!it.IsClosed());
-
-        emit.Close();
+        sLOG << "closing file" << path_out_;
+        emit_.Close();
     }
 
     /*!
@@ -84,10 +79,20 @@ public:
     }
 
 private:
+    //! Local stack
+    Stack local_stack_;
+
     //! The write function which is applied on every line read.
     WriteFunction write_function_;
+
     //! Path of the output file.
     std::string path_out_;
+
+    //! File to write to
+    std::ofstream file_;
+
+    //! Emitter to file
+    data::OutputLineEmitter<Output> emit_;
 
     static const bool debug = true;
 };

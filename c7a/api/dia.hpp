@@ -276,15 +276,16 @@ public:
                            const write_fn_t& write_fn) {
         using write_result_t = typename FunctionTraits<write_fn_t>::result_type;
 
-        using WriteResultNode = WriteNode<T, write_result_t, write_fn_t>;
+        using WriteResultNode = WriteNode<T, write_result_t, write_fn_t, decltype(local_stack_)>;
 
         auto shared_node =
             std::make_shared<WriteResultNode>(node_->get_context(),
                                               node_.get(),
+                                                local_stack_,
                                               write_fn,
                                               filepath);
 
-        shared_node->execute();
+       auto write_stack = shared_node->ProduceStack();
     }
 
     /*!
