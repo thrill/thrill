@@ -44,10 +44,9 @@ if(JENKINS_BUILD)
   endif()
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
-    AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # Clang does not support debug output for auto return types yet
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g0")
 endif()
 
 ###############################################################################
