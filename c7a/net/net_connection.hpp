@@ -56,25 +56,34 @@ class NetConnection : protected lowlevel::Socket
 
     static const bool self_verify_ = true;
 
-    ConnectionState state_ = ConnectionState::Invalid;
+    /**
+     * @brief The connection state of this connection in the c7a network state machine. 
+     */
+    ConnectionState state_;
+    /**
+     * @brief The id of the group this connection is associated with. 
+     */
     size_t group_id_ = -1;
+    /**
+     * @brief The id of the worker this connection is connected to.
+     */
     size_t peer_id_ = -1;
 
 public:
     //! default construction, contains invalid socket
     NetConnection()
-        : Socket()
+        : Socket(), state_(ConnectionState::Invalid)
     { }
 
     //! Construct NetConnection from a Socket
     explicit NetConnection(const Socket& s)
-        : Socket(s)
+        : Socket(s), state_(ConnectionState::Invalid)
     { }
 
     //! Construct NetConnection from a Socket, with immediate
     //! initialization. (Currently used by tests).
     NetConnection(const Socket& s, size_t group_id, size_t peer_id)
-        : Socket(s), group_id_(group_id), peer_id_(peer_id)
+        : Socket(s), group_id_(group_id), peer_id_(peer_id), state_(ConnectionState::Invalid)
     { }
 
     //! move-constructor
@@ -102,27 +111,46 @@ public:
         return *this;
     }
 
+    /**
+     * @brief Gets the state of this connection. 
+     */
     ConnectionState state() const {
         return state_;
     }
 
+    /**
+     * @brief Gets the id of the net group this connection is associated with. 
+     */
     size_t group_id() const {
         return group_id_;
     }
 
+    /**
+     * @brief Gets the id of the worker this connection is connected to. 
+     */
     size_t peer_id() const {
         return peer_id_;
     }
 
     //TODO(ej) Make setters internal/friend NetManager
+
+    /**
+     * @brief Sets the state of this connection.
+     */
     void set_state(ConnectionState state) {
         this->state_ = state;
     }
 
+    /**
+     * @brief Sets the group id of this connection.
+     */
     void set_group_id(size_t groupId) {
         this->group_id_ = groupId;
     }
 
+    /**
+     * @brief Sets the id of the worker this connection is connected to. 
+     */
     void set_peer_id(size_t peerId) {
         this->peer_id_ = peerId;
     }
@@ -151,6 +179,7 @@ public:
     std::string GetPeerAddress() const
     { return Socket::GetPeerAddress().ToStringHostPort(); }
 
+    //! Checks wether two connections have the same underlying socket or not. 
     bool operator == (const NetConnection& c) const
     { return GetSocket().fd() == c.GetSocket().fd(); }
 
