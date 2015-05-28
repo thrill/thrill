@@ -60,6 +60,16 @@ struct ChainId {
     bool operator == (const ChainId& other) const {
         return other.type == type && identifier == other.identifier;
     }
+
+    bool operator < (const ChainId& other) const {
+        auto a = other.identifier;
+        auto b = identifier;
+        if (other.type == NETWORK)
+            a = -1 * a;
+        if (type == NETWORK)
+            b = -1 * b;
+        return a < b;
+    }
 };
 
 //! Stream operator that calls ToString on ChainID
@@ -67,13 +77,6 @@ static std::ostream& operator << (std::ostream& stream, const ChainId& id) {
     stream << id.ToString();
     return stream;
 }
-
-//! Compares two ChainIDs (required for std::map)
-struct ChainIdCompare {
-    bool operator () (const ChainId& a, const ChainId& b) {
-        return a.type == b.type && a.identifier < b.identifier;
-    }
-};
 
 //! Holds instances of BlockChains and addresses them with IDs
 //!
@@ -99,6 +102,7 @@ public:
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
     ChainId Allocate(ChainId id) {
+        sLOG << "allocate" << id;
         if (Contains(id)) {
             throw new std::runtime_error("duplicate chain allocation with explicit id");
         }
@@ -108,13 +112,16 @@ public:
 
     //! Indicates if a Bufferchain exists with the given ID
     bool Contains(ChainId id) {
-        return chains_.find(id) != chains_.end();
+        auto result = chains_.find(id) != chains_.end();
+        sLOG << "contains" << id << "=" << result;
+        return result;
     }
 
     //! Returns the BufferChain with the given ID
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
     std::shared_ptr<BufferChain> Chain(ChainId id) {
+        sLOG << "chain" << id;
         if (!Contains(id)) {
             throw new std::runtime_error("chain id is unknown");
         }
@@ -123,10 +130,10 @@ public:
     }
 
 private:
+    static const bool debug = true;
     ChainId next_id_;
-    std::map<ChainId, std::shared_ptr<BufferChain>, ChainIdCompare> chains_;
+    std::map<ChainId, std::shared_ptr<BufferChain> > chains_;
 };
-
 } // namespace data
 } // namespace c7a
 
