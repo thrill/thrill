@@ -23,12 +23,18 @@ int main(int argc, char* argv[])
                   };
 
     auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
+                      return in1;
                   };
 
     srand (time(NULL));
     int workers = std::stoi(argv[2]);
     int modulo = std::stoi(argv[3]);
+
+    std::vector<int> elements(std::stoi(argv[1]));
+
+    for (auto ele : elements) {
+        ele = rand() % modulo;
+    }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
         table(workers, key_ex, red_fn, { emit });
@@ -38,7 +44,7 @@ int main(int argc, char* argv[])
     clock_t time = std::clock();
 
     for (int i = 0; i < end; i++) {
-        table.Insert(rand() % modulo);
+        table.Insert(elements[i]);
     }
 
     table.Flush();
