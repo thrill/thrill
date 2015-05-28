@@ -19,7 +19,7 @@
 using namespace c7a::core;
 using namespace c7a::net;
 
-TEST(WordCount, PreOP) {
+TEST(WordCount, WordCountExample) {
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
 
