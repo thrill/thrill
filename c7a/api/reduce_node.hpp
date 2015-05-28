@@ -95,12 +95,6 @@ public:
      * MainOp and PostOp.
      */
     void execute() override {
-        LOG << ToString() << " flushing pre tables";
-        //Flush hash table to send data before main op begins
-        reduce_pre_table_.Flush();
-        reduce_pre_table_.CloseEmitter();
-
-        LOG << ToString() << " running main op";
         MainOp();
     }
 
@@ -147,13 +141,17 @@ private:
 
     //!Recieve elements from other workers.
     auto MainOp() {
+        LOG << ToString() << " running main op";
+        //Flush hash table before the postOp
+        reduce_pre_table_.Flush();
+        reduce_pre_table_.CloseEmitter();
+
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          data::BlockEmitter<Output> >;
+                                          std::function<void(Output)> >;
 
-        auto emitter = context_.get_data_manager().template GetLocalEmitter<Output>(data_id_);
-        ReduceTable table(key_extractor_, reduce_function_, { emitter });
+        ReduceTable table(key_extractor_, reduce_function_, DIANode<Output>::callbacks());
 
         auto it = context_.get_data_manager().template GetIterator<Output>(channel_id_);
 
@@ -166,7 +164,7 @@ private:
         } while (!it.IsClosed());
 
         table.Flush();
-        table.Close();
+
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
