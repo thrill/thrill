@@ -101,7 +101,7 @@ public:
 
     void init() {
         sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
-        for (auto& e : emit_)
+        for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
