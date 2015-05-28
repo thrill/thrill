@@ -179,19 +179,8 @@ public:
             }
         }
 
-        //TODO(ms) at this point the emitters might not send data downstream.
-        //Call flush on them to do so. But I added the Close method which
-        //implicitly flushes the emitters, so this is nothing critical.
-
         // reset counters
         table_size_ = 0;
-    }
-
-    //! Flushes and closes all emitters of the table
-    void Close() {
-        for (auto& emitter : emit_) {
-            emitter.Close(); //implicit flush
-        }
     }
 
     /*!
