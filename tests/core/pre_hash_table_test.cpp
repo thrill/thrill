@@ -96,7 +96,9 @@ TEST_F(PreTable, PopIntegers) {
     ASSERT_EQ(1, table.Size());
 }
 
-TEST_F(PreTable, FlushIntegers) {
+// Manually flush all items in table,
+// no size constraint, one partition
+TEST_F(PreTable, DISABLED_FlushIntegersManuallyOnePartition) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -105,22 +107,174 @@ TEST_F(PreTable, FlushIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(1, key_ex, red_fn, { emit });
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<int>(id1);
 
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+    table(1, 10, 2, 10, 10, key_ex, red_fn, { emit1 });
+
+    table.Insert(0);
+    table.Insert(1);
+    table.Insert(2);
+    table.Insert(3);
+    table.Insert(4);
+
+    ASSERT_EQ(5, table.Size());
+
+    table.Flush();
+    emit1.Flush();
+
+    auto it = manager.GetLocalBlocks<int>(id1);
+    int c = 0;
+    while (it.HasNext()) {
+        std::cout << "test" << std::endl;
+        it.Next();
+        c++;
+    }
+
+    ASSERT_EQ(5, c);
+    ASSERT_EQ(0, table.Size());
+}
+
+// Manually flush all items in table,
+// no size constraint, two partitions
+TEST_F(PreTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<int>(id1);
+    auto id2 = manager.AllocateDIA();
+    auto emit2 = manager.GetLocalEmitter<int>(id2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+            table(2, 5, 2, 10, 10, key_ex, red_fn, { emit1, emit2 });
+
+    table.Insert(0);
+    table.Insert(1);
+    table.Insert(2);
+    table.Insert(3);
+    table.Insert(4);
+
+    ASSERT_EQ(5, table.Size());
+
+    table.Flush();
+    emit1.Flush();
+    emit2.Flush();
+
+    auto it1 = manager.GetLocalBlocks<int>(id1);
+    int c1 = 0;
+    while (it1.HasNext()) {
+        it1.Next();
+        c1++;
+    }
+
+    ASSERT_EQ(3, c1);
+
+    auto it2 = manager.GetLocalBlocks<int>(id2);
+    int c2 = 0;
+    while (it2.HasNext()) {
+        it2.Next();
+        c2++;
+    }
+
+    ASSERT_EQ(2, c2);
+    ASSERT_EQ(0, table.Size());
+}
+
+// Partial flush of items in table due to
+// max table size constraint, one partition
+TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<int>(id1);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+            table(1, 10, 2, 10, 4, key_ex, red_fn, { emit1 });
+
+    table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(4, table.Size());
 
-    table.Flush();
+    table.Insert(4);
 
+    emit1.Flush();
+
+    auto it = manager.GetLocalBlocks<int>(id1);
+    int c = 0;
+    while (it.HasNext()) {
+        it.Next();
+        c++;
+    }
+
+    ASSERT_EQ(5, c);
     ASSERT_EQ(0, table.Size());
+}
 
+//// Partial flush of items in table due to
+//// max table size constraint, two partitions
+TEST_F(PreTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<int>(id1);
+    auto id2 = manager.AllocateDIA();
+    auto emit2 = manager.GetLocalEmitter<int>(id2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+            table(2, 5, 2, 10, 4, key_ex, red_fn, { emit1, emit2 });
+
+    table.Insert(0);
     table.Insert(1);
+    table.Insert(2);
+    table.Insert(3);
 
-    ASSERT_EQ(1, table.Size());
+    ASSERT_EQ(4, table.Size());
+
+    table.Insert(4);
+
+    emit1.Flush();
+    emit2.Flush();
+
+    auto it1 = manager.GetLocalBlocks<int>(id1);
+    int c1 = 0;
+    while (it1.HasNext()) {
+        it1.Next();
+        c1++;
+    }
+
+    ASSERT_EQ(3, c1);
+
+    auto it2 = manager.GetLocalBlocks<int>(id2);
+    int c2 = 0;
+    while (it2.HasNext()) {
+        it2.Next();
+        c2++;
+    }
+
+    ASSERT_EQ(0, c2);
+    ASSERT_EQ(2, table.Size());
 }
 
 TEST_F(PreTable, ComplexType) {
@@ -175,34 +329,156 @@ TEST_F(PreTable, MultipleWorkers) {
     ASSERT_GT(table.Size(), 0);
 }
 
-TEST_F(PreTable, Resize) {
+// Resize due to max bucket size reached. Set max items per bucket to 1,
+// then add 2 items with different key, but having same hash value, one partition
+TEST_F(PreTable, DISABLED_ResizeOnePartition) {
     using StringPair = std::pair<std::string, int>;
 
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-                      return std::make_pair(in1.first, in1.second + in2.second);
-                  };
+        return std::make_pair(in1.first, in1.second + in2.second);
+    };
 
-    std::vector<c7a::data::BlockEmitter<StringPair> > emitters;
-    emitters.push_back(pair_emit);
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(pair_emit)>
-    table(1, 10, 2, 1, 10, key_ex, red_fn, emitters);
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<StringPair>(id1);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+            table(1, 10, 2, 1, 10, key_ex, red_fn, { emit1 });
 
     ASSERT_EQ(10, table.NumBuckets());
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
 
+    ASSERT_EQ(2, table.Size());
     ASSERT_EQ(10, table.NumBuckets());
+    ASSERT_EQ(2, table.PartitionSize(0));
 
-    table.Print();
+    table.Insert(std::make_pair("bonjour", 3)); // Resize happens here
 
+    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(20, table.NumBuckets()); // TODO(ms): fix (strange, passes locally)
+    ASSERT_EQ(3, table.PartitionSize(0));
+
+    table.Flush();
+    emit1.Flush();
+
+    auto it1 = manager.GetLocalBlocks<StringPair>(id1);
+    int c = 0;
+    while (it1.HasNext()) {
+        it1.Next();
+        c++;
+    }
+
+    ASSERT_EQ(3, c);
+}
+
+// Resize due to max bucket size reached. Set max items per bucket to 1,
+// then add 2 items with different key, but having same hash value, two partitions
+// Check that same items are in same partition after resize
+TEST_F(PreTable, DISABLED_ResizeTwoPartitions) {
+    using StringPair = std::pair<std::string, int>;
+
+    auto key_ex = [](StringPair in) { return in.first; };
+
+    auto red_fn = [](StringPair in1, StringPair in2) {
+        return std::make_pair(in1.first, in1.second + in2.second);
+    };
+
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<StringPair>(id1);
+    auto id2 = manager.AllocateDIA();
+    auto emit2 = manager.GetLocalEmitter<StringPair>(id2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+            table(2, 10, 2, 1, 10, key_ex, red_fn, {emit1, emit2});
+
+    ASSERT_EQ(20, table.NumBuckets());
+
+    table.Insert(std::make_pair("hallo", 1));
+    table.Insert(std::make_pair("hello", 2));
+
+    ASSERT_EQ(2, table.Size());
+    ASSERT_EQ(20, table.NumBuckets());
+    ASSERT_EQ(2, table.PartitionSize(0));
+    ASSERT_EQ(0, table.PartitionSize(1));
+
+    table.Insert(std::make_pair("bonjour", 3)); // Resize happens here
+
+    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(40, table.NumBuckets()); // TODO(ms): fix (strange, passes locally)
+    ASSERT_EQ(3, table.PartitionSize(0));
+    ASSERT_EQ(0, table.PartitionSize(1));
+
+    table.Flush();
+    emit1.Flush();
+    emit2.Flush();
+
+    auto it1 = manager.GetLocalBlocks<StringPair>(id1);
+    int c1 = 0;
+    while (it1.HasNext()) {
+        it1.Next();
+        c1++;
+    }
+    ASSERT_EQ(3, c1);
+
+    auto it2 = manager.GetLocalBlocks<StringPair>(id2);
+    int c2 = 0;
+    while (it2.HasNext()) {
+        it2.Next();
+        c2++;
+    }
+    ASSERT_EQ(0, c2);
+}
+
+// Insert several items with same key and test application of local reduce
+TEST_F(PreTable, DISABLED_Reduce) {
+    using StringPair = std::pair<std::string, int>;
+
+    auto key_ex = [](StringPair in) { return in.first; };
+
+    auto red_fn = [](StringPair in1, StringPair in2) {
+        return std::make_pair(in1.first, in1.second + in2.second);
+    };
+
+    auto id1 = manager.AllocateDIA();
+    auto emit1 = manager.GetLocalEmitter<StringPair>(id1);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit1)>
+            table(1, 10, 2, 10, 10, key_ex, red_fn, {emit1});
+
+    table.Insert(std::make_pair("hallo", 1));
+    table.Insert(std::make_pair("hello", 22));
     table.Insert(std::make_pair("bonjour", 3));
 
-    table.Print();
+    ASSERT_EQ(3, table.Size());
 
-    //ASSERT_EQ(20, table.NumBuckets()); // TODO(ms): fix (strange, passes locally)
+    table.Insert(std::make_pair("hallo", 2));
+    table.Insert(std::make_pair("hello", 33));
+    table.Insert(std::make_pair("bonjour", 44));
+
+    ASSERT_EQ(3, table.Size());
+
+    table.Flush();
+    emit1.Flush();
+
+    auto it1 = manager.GetLocalBlocks<StringPair>(id1);
+    int c1 = 0;
+    while (it1.HasNext()) {
+        StringPair p = it1.Next();
+        if (p.first == "hallo") {
+            ASSERT_EQ(3, p.second);
+            c1++;
+        } else if (p.first == "hello") {
+            ASSERT_EQ(55, p.second);
+            c1++;
+        } else if (p.first == "bonjour") {
+            ASSERT_EQ(47, p.second);
+            c1++;
+        }
+    }
+    ASSERT_EQ(3, c1);
 }
 
 /******************************************************************************/
