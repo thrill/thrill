@@ -22,11 +22,14 @@ def generate_graph(path, table):
         plot(sizes, times, color="green", label="Actual Table")
     if(table == 1):
         plot(sizes, times, color="red", label="Reference Table")
+    if(table == 2):
+        plot(sizes, times, color="blue", label="better_hashtable")
 
 paths = sys.argv[1]
 plottitle = sys.argv[2]
 generate_graph(paths + "_true", 0)
 generate_graph(paths + "_false", 1)
+generate_graph(paths + "_new", 2)
 title(plottitle)
 grid(True)
 minorticks_on()

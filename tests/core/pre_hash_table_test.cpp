@@ -18,14 +18,18 @@ struct PreTable : public::testing::Test {
           manager(multiplexer),
           id(manager.AllocateDIA()),
           emit(manager.GetLocalEmitter<int>(id)),
-          pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) { }
+          pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)),
+          int_pair_emit(manager.GetLocalEmitter<std::pair<int, int> >(id))
+    { }
 
     c7a::net::NetDispatcher                               dispatcher;
     c7a::net::ChannelMultiplexer                          multiplexer;
     c7a::data::DataManager                                manager;
     c7a::data::DIAId                                      id = manager.AllocateDIA();
     c7a::data::BlockEmitter<int>                          emit;
-    c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
+    // all emitters access the same dia id, which is bad if you use them both
+    c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit;
+    c7a::data::BlockEmitter<std::pair<int, int> >         int_pair_emit;
 };
 
 TEST_F(PreTable, AddIntegers) {
@@ -304,6 +308,52 @@ TEST_F(PreTable, ComplexType) {
     table.Insert(std::make_pair("baguette", 42));
 
     ASSERT_EQ(0, table.Size());
+}
+
+TEST_F(PreTable, BigTest) {
+
+    struct MyStruct
+    {
+        int key;
+        int count;
+
+        // only initializing constructor, no default construction possible.
+        explicit MyStruct(int k, int c) : key(k), count(c)
+        { }
+    };
+
+    auto key_ex = [](const MyStruct& in) {
+                      return in.key % 500;
+                  };
+
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+        return MyStruct(in1.key, in1.count + in2.count);
+    };
+
+    size_t total_sum = 0, total_count = 0;
+
+    auto emit_fn = [&](const MyStruct& in) {
+        total_count++;
+        total_sum += in.count;
+    };
+
+    // Hashtable with smaller block size for testing.
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+                              decltype(emit_fn), 16* 1024>
+    table(1, 2, 2, 128 * 1024, 1024 * 1024,
+          key_ex, red_fn, { emit_fn });
+
+    // insert lots of items
+    size_t nitems = 1 * 1024 * 1024;
+    for (size_t i = 0; i != nitems; ++i) {
+        table.Insert(MyStruct(i, 1));
+    }
+
+    table.Flush();
+
+    // actually check that the reduction worked
+    ASSERT_EQ(total_count, 500);
+    ASSERT_EQ(total_sum, nitems);
 }
 
 TEST_F(PreTable, MultipleWorkers) {
