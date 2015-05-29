@@ -44,9 +44,9 @@ The \ref c7a::data::BufferChainManager is used to manage the mapping from ID (DI
 BufferChains can append BinaryBuffers or can be closed.
 
 ## Address Schema
-DIAs and Channels are addressed by IDs that are allocated via the DataManager by calling \ref c7a::data::DataManager::AllocateDIA() "AllocateDIA" and \ref c7a::data::DataManager::AllocateNetworkChannel() "AllocateNetworkChannel".
+DIAs and Channels are addressed by unique IDs, which are allocated via the DataManager by calling \ref c7a::data::DataManager::AllocateDIA() "AllocateDIA" and \ref c7a::data::DataManager::AllocateNetworkChannel() "AllocateNetworkChannel".
 Each call of these methods alters the state of the \ref c7a::data::DataManager, thus the order in which these calls happen matters.
-Workers must call the allocate in the same order to enforce a consisten naming for DIAs and \ref c7a::net::Channel "NetworkChannels".
+All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::net::Channel "NetworkChannels".
 
 ## Iterators and Emitters
 The central interface to access data consists of the \ref BlockIterator and the \ref BlockEmitter class.
