@@ -32,7 +32,7 @@ template <typename KeyExtractor, typename ReduceFunction, typename EmitterFuncti
           size_t TargetBlockSize = 1024* 1024>
 class ReducePreTable
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
@@ -331,6 +331,8 @@ public:
         table_size_ -= items_per_partition_[partition_id];
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
+        // flush elements pushed into emitter
+        emit_[partition_id].Flush();
 
         LOG << "Flushed items of partition with id: "
             << partition_id;
@@ -358,11 +360,8 @@ public:
     }
 
     /*!
-     * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
-=======
      * Sets the maximum size of the hash table. We don't want to push 2vt
      * elements before flush happens.
->>>>>>> better_hashtable
      */
     void SetMaxSize(size_t size) {
         max_num_items_table_ = size;
@@ -372,11 +371,11 @@ public:
      * Closes all emitter
      */
     void CloseEmitter() {
-        sLOG << "emit stats:";
+        sLOG << "emit stats: ";
         unsigned int i = 0;
         for (auto& e : emit_) {
             e.Close();
-            sLOG << "emiter" << i << "pushed" << emit_stats_[i++];
+            sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
         }
     }
 
@@ -389,6 +388,9 @@ public:
         LOG << num_buckets_;
         num_buckets_ *= num_buckets_resize_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+        // reset items_per_partition and table_size
+        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
+        table_size_ = 0;
 
         // move old hash array
         std::vector<BucketBlock*> vector_old;
