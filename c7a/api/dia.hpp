@@ -32,6 +32,7 @@
 #include "reduce_node.hpp"
 #include "context.hpp"
 #include "write_node.hpp"
+#include "sum_node.hpp"
 
 namespace c7a {
 
@@ -271,6 +272,43 @@ public:
                    (std::move(shared_node), zip_stack);
     }
 
+    /*!
+     * Sum is an Action, which computes the sum of elements of all workers.
+     *
+     * \tparam sum_fn_t Type of the sum_function.
+     *
+     * \param sum_fn Sum function.
+     */
+    template <typename sum_fn_t>
+    auto Sum(const sum_fn_t &sum_fn) {
+        using sum_result_t
+        = typename FunctionTraits<sum_fn_t>::result_type;
+        using sum_arg_0_t
+        = typename FunctionTraits<sum_fn_t>::template arg<0>;
+
+        using SumResultNode = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
+
+        auto shared_node
+                = std::make_shared<SumResultNode>(node_->get_context(),
+                                                  node_.get(),
+                                                  local_stack_,
+                                                  sum_fn);
+
+        auto sum_stack = shared_node->ProduceStack();
+        return 1.0f; // TODO(ms) get the correct return type
+    }
+
+    /*!
+     * WriteToFileSystem is an Action, which writes elements to an output file. A
+     * provided function is used prepare the elements before written.
+     *
+     * \tparam write_fn_t Type of the write_function. This is a function with one
+     * input element of the local type.
+     *
+     * \param write_fn Write function, which prepares an element to be written to disk.
+     *
+     * \param filepath Destination of the output file.
+     */
     template <typename write_fn_t>
     void WriteToFileSystem(std::string filepath,
                            const write_fn_t &write_fn) {
