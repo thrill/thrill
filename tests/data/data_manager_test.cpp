@@ -19,16 +19,17 @@ struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
         : dispatcher(),
           cmp(dispatcher),
-          manager(cmp) { }
+          manager(cmp),
+          id(manager.AllocateDIA()) { }
 
     NetDispatcher      dispatcher;
     ChannelMultiplexer cmp;
     DataManager        manager;
-    DIAId              id = manager.AllocateDIA();
+    DIAId              id;
 };
 
-TEST_F(DataManagerFixture, GetLocalBlock_FailsIfNotFound) {
-    ASSERT_ANY_THROW(manager.GetLocalBlocks<int>(999));
+TEST_F(DataManagerFixture, GetIterator_FailsIfNotFound) {
+    ASSERT_ANY_THROW(manager.GetIterator<int>(999));
 }
 
 TEST_F(DataManagerFixture, GetLocalEmitter_FailsIfNotFound) {
@@ -48,7 +49,7 @@ TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
     emitFn(123);
     emitFn(22);
     emitFn.Flush();
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(123, it.Next());
     ASSERT_EQ(22, it.Next());
@@ -63,7 +64,7 @@ TEST_F(DataManagerFixture, AllocateMultiple) {
 }
 
 TEST_F(DataManagerFixture, EmittAndIterate_ConcurrentAccess) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitFn = manager.GetLocalEmitter<int>(id);
     emitFn(123);
     emitFn.Flush();

@@ -26,7 +26,6 @@
 #include <vector>
 
 namespace c7a {
-
 //! \addtogroup api Interface
 //! \{
 
@@ -76,7 +75,8 @@ public:
           local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          elements_()
+          channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
+          reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, ctx.get_data_manager().template GetNetworkEmitters<Output>(channel_id_))
     {
         // Hook PreOp
         auto pre_op_fn = [=](reduce_arg_t input) {
@@ -96,15 +96,6 @@ public:
      */
     void execute() override {
         MainOp();
-        // get data from data manager
-        data::BlockIterator<Output> it = context_.get_data_manager().template GetLocalBlocks<Output>(data_id_);
-        // loop over input
-        while (it.HasNext()) {
-            const Output& item = it.Next();
-            for (auto func : DIANode<Output>::callbacks_) {
-                func(item);
-            }
-        }
     }
 
     /*!
@@ -126,7 +117,7 @@ public:
      * \return "[ReduceNode]"
      */
     std::string ToString() override {
-        return "[ReduceNode id=" + std::to_string(data_id_) + "]";
+        return "[ReduceNode] Id: " + data_id_.ToString();
     }
 
 private:
@@ -136,36 +127,44 @@ private:
     KeyExtractor key_extractor_;
     //!Reduce function
     ReduceFunction reduce_function_;
-    //! Local storage
-    std::vector<reduce_arg_t> elements_;
+
+    data::ChannelId channel_id_;
+
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::BlockEmitter<Output> > reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
     void PreOp(reduce_arg_t input) {
-        elements_.push_back(input);
+        reduce_pre_table_.Insert(input);
     }
 
     //!Receive elements from other workers.
     auto MainOp() {
+        LOG << ToString() << " running main op";
+        //Flush hash table before the postOp
+        reduce_pre_table_.Flush();
+        reduce_pre_table_.CloseEmitter();
+
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(reduce_arg_t)> >;
+                                          std::function<void(Output)> >;
 
-        std::function<void(Output)> print =
-            [](Output elem) {
-                LOG << elem.first << " " << elem.second;
-            };
+        ReduceTable table(key_extractor_, reduce_function_, DIANode<Output>::callbacks());
 
-        ReduceTable table(key_extractor_, reduce_function_,
-                          { print });
+        auto it = context_.get_data_manager().template GetIterator<Output>(channel_id_);
 
-        for (const reduce_arg_t& elem : elements_) {
-            table.Insert(elem);
-        }
+        sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
+        do {
+            it.WaitForMore();
+            while (it.HasNext()) {
+                table.Insert(it.Next());
+            }
+        } while (!it.IsClosed());
 
         table.Flush();
+
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.

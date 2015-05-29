@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/file_emitter.hpp
+ * c7a/data/output_line_emitter.hpp
  *
  * Part of Project c7a.
  *
@@ -16,6 +16,7 @@
 
 namespace c7a {
 namespace data {
+
 //! OutputLineEmitter let's you write to files
 //! Each element is written to a new line
 template <class T>
@@ -26,23 +27,20 @@ public:
         out_(file),
         closed_(false) { }
 
-    void operator () (T x)
-    {
+    void operator () (T x) {
         out_ << Serialize<T>(x) << std::endl;
     }
 
     //! Flushes and closes the block (cannot be undone)
     //! No further emitt operations can be done afterwards.
-    void Close()
-    {
+    void Close() {
         assert(!closed_);
         closed_ = true;
         out_.close();
     }
 
     //! Writes the data to the target without closing the emitter
-    void Flush()
-    {
+    void Flush() {
         out_.flush();
     }
 
@@ -50,6 +48,7 @@ private:
     std::ofstream& out_;
     bool closed_;
 };
+
 } // namespace data
 } // namespace c7a
 

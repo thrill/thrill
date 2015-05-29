@@ -95,7 +95,7 @@ public:
     void execute() override {
         MainOp();
         // get data from data manager
-        data::BlockIterator<Output> it = (this->context_).get_data_manager().template GetLocalBlocks<Output>(this->data_id_);
+        data::BlockIterator<Output> it = (this->context_).get_data_manager().template GetIterator<Output>(this->data_id_);
         // loop over inputs
         while (it.HasNext()) {
             auto item = it.Next();

@@ -74,6 +74,10 @@ public:
         callbacks_.push_back(callback);
     }
 
+    std::vector<std::function<void(T)> > & callbacks() {
+        return callbacks_;
+    }
+
 protected:
     //! State of the DIANode. State is NEW on creation.
     kState state_ = NEW;
