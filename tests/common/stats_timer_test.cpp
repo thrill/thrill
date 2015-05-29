@@ -38,7 +38,7 @@ TEST(StatsTimer, Test1) {
     ASSERT_GT(timer1.Milliseconds(), 150);
     ASSERT_EQ(timer2.Milliseconds(), 0);
 
-    ASSERT_GT(timer1.Seconds(), 0);
+    ASSERT_GE(timer1.Seconds(), 0);
     ASSERT_EQ(timer2.Seconds(), 0);
 }
 
