@@ -314,8 +314,6 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    LOG << partition_id;
-
                     emit_[partition_id](std::move(bi->second));
                 }
 
@@ -333,7 +331,7 @@ public:
         table_size_ -= items_per_partition_[partition_id];
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
-
+        // flush elements pushed into emitter
         emit_[partition_id].Flush();
 
         LOG << "Flushed items of partition with id: "
