@@ -11,10 +11,13 @@
 #include <c7a/core/reduce_pre_table.hpp>
 
 int main(int argc, char* argv[]) {
-    auto emit = [](int in) {
-                    in = in;
-                    //std::cout << in << std::endl;
-                };
+
+    c7a::net::NetDispatcher dispatcher;
+    c7a::net::ChannelMultiplexer multiplexer(dispatcher);
+    c7a::data::DataManager manager(multiplexer);
+
+    auto id = manager.AllocateDIA();
+    auto emit = manager.GetLocalEmitter<int>(id);
 
     auto key_ex = [](int in) {
                       return in;
