@@ -40,6 +40,14 @@ public:
      */
     static const size_t kGroupCount = 3;
 
+    ClientId MyRank() {
+        return GetSystemNetGroup().MyRank();
+    }
+
+    ClientId Size() {
+        return GetSystemNetGroup().Size();
+    }
+
 private:
 
     /**
