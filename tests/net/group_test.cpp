@@ -175,7 +175,7 @@ TEST(NetGroup, RealInitializeSendReceive) {
     RealNetGroupConstructAndCall(ThreadInitializeSendReceive);
 }
 
-TEST(NetGroup, RealInitializeSendReceiveAsync) {
+TEST(NetGroup, DISABLED_RealInitializeSendReceiveAsync) { //TODO(ej) test hangs from time to time
     // Construct a real NetGroup of 6 workers which execute the thread function
     // which sends and receives asynchronous messages between all workers.
     RealNetGroupConstructAndCall(ThreadInitializeAsyncRead);

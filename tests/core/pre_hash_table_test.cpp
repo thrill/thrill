@@ -23,7 +23,7 @@ struct PreTable : public::testing::Test {
     c7a::net::NetDispatcher                               dispatcher;
     c7a::net::ChannelMultiplexer                          multiplexer;
     c7a::data::DataManager                                manager;
-    size_t                                                id = manager.AllocateDIA();
+    c7a::data::DIAId                                      id = manager.AllocateDIA();
     c7a::data::BlockEmitter<int>                          emit;
     c7a::data::BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
 };
@@ -124,7 +124,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyOnePartition) {
     table.Flush();
     emit1.Flush();
 
-    auto it = manager.GetLocalBlocks<int>(id1);
+    auto it = manager.GetIterator<int>(id1);
     int c = 0;
     while (it.HasNext()) {
         std::cout << "test" << std::endl;
@@ -167,7 +167,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
     emit1.Flush();
     emit2.Flush();
 
-    auto it1 = manager.GetLocalBlocks<int>(id1);
+    auto it1 = manager.GetIterator<int>(id1);
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -176,7 +176,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
 
     ASSERT_EQ(3, c1);
 
-    auto it2 = manager.GetLocalBlocks<int>(id2);
+    auto it2 = manager.GetIterator<int>(id2);
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next();
@@ -215,7 +215,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
     emit1.Flush();
 
-    auto it = manager.GetLocalBlocks<int>(id1);
+    auto it = manager.GetIterator<int>(id1);
     int c = 0;
     while (it.HasNext()) {
         it.Next();
@@ -257,7 +257,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
     emit1.Flush();
     emit2.Flush();
 
-    auto it1 = manager.GetLocalBlocks<int>(id1);
+    auto it1 = manager.GetIterator<int>(id1);
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -266,7 +266,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
 
     ASSERT_EQ(3, c1);
 
-    auto it2 = manager.GetLocalBlocks<int>(id2);
+    auto it2 = manager.GetIterator<int>(id2);
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next();
@@ -364,7 +364,7 @@ TEST_F(PreTable, DISABLED_ResizeOnePartition) {
     table.Flush();
     emit1.Flush();
 
-    auto it1 = manager.GetLocalBlocks<StringPair>(id1);
+    auto it1 = manager.GetIterator<StringPair>(id1);
     int c = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -415,7 +415,7 @@ TEST_F(PreTable, DISABLED_ResizeTwoPartitions) {
     emit1.Flush();
     emit2.Flush();
 
-    auto it1 = manager.GetLocalBlocks<StringPair>(id1);
+    auto it1 = manager.GetIterator<StringPair>(id1);
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -423,7 +423,7 @@ TEST_F(PreTable, DISABLED_ResizeTwoPartitions) {
     }
     ASSERT_EQ(3, c1);
 
-    auto it2 = manager.GetLocalBlocks<StringPair>(id2);
+    auto it2 = manager.GetIterator<StringPair>(id2);
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next();
@@ -463,7 +463,7 @@ TEST_F(PreTable, DISABLED_Reduce) {
     table.Flush();
     emit1.Flush();
 
-    auto it1 = manager.GetLocalBlocks<StringPair>(id1);
+    auto it1 = manager.GetIterator<StringPair>(id1);
     int c1 = 0;
     while (it1.HasNext()) {
         StringPair p = it1.Next();
