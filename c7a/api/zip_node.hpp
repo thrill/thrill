@@ -86,6 +86,12 @@ public:
 
         parent1->RegisterChild(lop_chain1);
         parent2->RegisterChild(lop_chain2);
+
+        // Setup Emitters
+        id_[0] = (this->context_).get_data_manager().AllocateDIA();
+        id_[1] = (this->context_).get_data_manager().AllocateDIA();
+        emit1_ = (this->context_).get_data_manager().template GetLocalEmitter<zip_arg_0_t>(id_[0]);
+        emit2_ = (this->context_).get_data_manager().template GetLocalEmitter<zip_arg_1_t>(id_[1]);
     }
 
     /*!
@@ -95,14 +101,19 @@ public:
     void execute() override {
         MainOp();
         // get data from data manager
-        data::BlockIterator<Output> it = (this->context_).get_data_manager().template GetIterator<Output>(this->data_id_);
-        // loop over inputs
-        while (it.HasNext()) {
-            auto item = it.Next();
-            for (auto func : DIANode<Output>::callbacks_) {
-                func(item);
+        auto it1 = (this->context_).get_data_manager().template GetIterator<zip_arg_0_t>(id_[0]);
+        auto it2 = (this->context_).get_data_manager().template GetIterator<zip_arg_1_t>(id_[1]);
+        do {
+            it1.WaitForMore();
+            it2.WaitForMore();
+            // Iterate over smaller DIA
+            while (it1.HasNext() && it2.HasNext()) {
+                auto item = std::make_pair(it1.Next(), it2.Next());
+                for (auto func : DIANode<Output>::callbacks_) {
+                    func(item);
+                }
             }
-        }
+        } while (!it1.IsClosed() && !it2.IsClosed());
     }
 
     /*!
@@ -132,21 +143,20 @@ private:
     Stack2 stack2_;
     //! Zip function
     ZipFunction zip_function_;
-    //! Local storage
-    std::vector<zip_arg_0_t> elements1_;
-    std::vector<zip_arg_1_t> elements2_;
+    //! Emitter
+    data::DIAId id_[2];
+    data::BlockEmitter<zip_arg_0_t> emit1_;
+    data::BlockEmitter<zip_arg_1_t> emit2_;
 
     //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a
     //! global barrier.
     void PreOp(zip_arg_0_t input) {
-        LOG << "PreOp(First): " << input;
-        elements1_.push_back(input);
+        emit1_(input);
     }
 
     // TODO(an): Theoretically we need two PreOps?
     void PreOpSecond(zip_arg_1_t input) {
-        LOG << "PreOp(Second): " << input;
-        elements2_.push_back(input);
+        emit2_(input);
     }
 
     //!Recieve elements from other workers.
@@ -156,26 +166,32 @@ private:
         //TODO(an): Deterministic computation about index to worker mapping.
 
         //TODO(an): Use network to send and recieve data through network iterators
+        
+        net::NetGroup flow_group = (this->context_).get_flow_net_group();
+        data::DataManager data_manager = (this->context_).get_data_manager();
+        size_t workers = (this->context_).number_worker();
 
-        data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+        for (size_t i = 0; i < 2; ++i) {
+            size_t prefix = data_manager.get_current_size(id_[i]); 
+            flow_group.PrefixSum(prefix);
+            size_t total = data_manager.get_current_size(id_[i]); 
+            // TODO: flow_group.TotalSum(prefix);
+            size_t size = data_manager.get_current_size(id_[i]); 
+            size_t per_pe = total / workers;
+            size_t target = prefix / per_pe;
+            size_t block = std::min(per_pe - prefix % per_pe, size);
 
-        unsigned int smaller = elements1_.size() < elements2_.size() ?
-                               elements1_.size() :
-                               elements2_.size();
-
-        LOG << "MainOp: ";
-
-        for (size_t i = 0; i < smaller; ++i) {
-            Output zipped = zip_function_(elements1_[i], elements2_[i]);
-            LOG << zipped;
-            emit(zipped);
+            while (block < size) {
+                // TODO: Send 'block' to other 'target'
+                target++;
+                size -= send;
+            }
         }
     }
 
     //! Use the ZipFunction to Zip workers
     void PostOp(Output input, std::function<void(Output)> emit_func) {
-        LOG << "PostOp: " << input;
-        emit_func(input);
+        emit_func(zip_function_(input.first, input.second));
     }
 };
 
