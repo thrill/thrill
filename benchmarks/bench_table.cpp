@@ -11,10 +11,12 @@
 #include <c7a/core/reduce_pre_table.hpp>
 
 int main(int argc, char* argv[]) {
-    auto emit = [](int in) {
-                    in = in;
-                    //std::cout << in << std::endl;
-                };
+
+    c7a::net::NetDispatcher dispatcher;
+    c7a::net::ChannelMultiplexer multiplexer(dispatcher);
+    c7a::data::DataManager manager(multiplexer);
+
+    auto id = manager.AllocateDIA();
 
     auto key_ex = [](int in) {
                       return in;
@@ -34,9 +36,9 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    std::vector<decltype(emit)> emitter;
-    emitter.push_back(emit);
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
+    std::vector<c7a::data::BlockEmitter<int>> emitter;
+    emitter.emplace_back(manager.GetLocalEmitter<int>(id));
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::BlockEmitter<int>>
     table(workers, key_ex, red_fn, emitter);
 
     int end = std::stoi(argv[1]);

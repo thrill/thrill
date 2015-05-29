@@ -145,6 +145,8 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
         c++;
     }
 
+    std::cout << "test: " << c << std::endl;
+
     ASSERT_EQ(5, c);
     ASSERT_EQ(0, table.Size());
 }
@@ -259,6 +261,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     }
 
     ASSERT_EQ(3, c1);
+    table.Flush();
 
     auto it2 = manager.GetIterator<int>(id2);
     int c2 = 0;
@@ -267,7 +270,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(0, c2);
+    ASSERT_EQ(2, c2);
     ASSERT_EQ(2, table.Size());
 }
 
@@ -298,52 +301,56 @@ TEST_F(PreTable, ComplexType) {
 
     ASSERT_EQ(0, table.Size());
 }
-/*
-TEST_F(PreTable, BigTest) {
 
-    struct MyStruct
-    {
-        int key;
-        int count;
-
-        // only initializing constructor, no default construction possible.
-        explicit MyStruct(int k, int c) : key(k), count(c)
-        { }
-    };
-
-    auto key_ex = [](const MyStruct& in) {
-                      return in.key % 500;
-                  };
-
-    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
-    };
-
-    size_t total_sum = 0, total_count = 0;
-
-    auto emit_fn = [&](const MyStruct& in) {
-        total_count++;
-        total_sum += in.count;
-    };
-
-    // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              decltype(emit_fn), 16* 1024>
-    table(1, 2, 2, 128 * 1024, 1024 * 1024,
-          key_ex, red_fn, { emit_fn });
-
-    // insert lots of items
-    size_t nitems = 1 * 1024 * 1024;
-    for (size_t i = 0; i != nitems; ++i) {
-        table.Insert(MyStruct(i, 1));
-    }
-
-    table.Flush();
-
-    // actually check that the reduction worked
-    ASSERT_EQ(total_count, 500);
-    ASSERT_EQ(total_sum, nitems);
-}*/
+//TODO(ms) make this work again
+//TEST_F(PreTable, DISABLED_BigTest) {
+//
+//    struct MyStruct
+//    {
+//        int key;
+//        int count;
+//
+//        // only initializing constructor, no default construction possible.
+//        explicit MyStruct(int k, int c) : key(k), count(c)
+//        { }
+//    };
+//
+//    auto key_ex = [](const MyStruct& in) {
+//                      return in.key % 500;
+//                  };
+//
+//    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+//        return MyStruct(in1.key, in1.count + in2.count);
+//    };
+//
+//    size_t total_sum = 0, total_count = 0;
+//
+////    auto emit_fn = [&](const MyStruct& in) {
+////        total_count++;
+////        total_sum += in.count;
+////    };
+//
+//    auto id1 = manager.AllocateDIA();
+//    auto emit1 = manager.GetLocalEmitter<MyStruct>(id1);
+//
+//    // Hashtable with smaller block size for testing.
+//    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+//                              decltype(emit1), 16* 1024>
+//    table(1, 2, 2, 128 * 1024, 1024 * 1024,
+//          key_ex, red_fn, { emit1 });
+//
+//    // insert lots of items
+//    size_t nitems = 1 * 1024 * 1024;
+//    for (size_t i = 0; i != nitems; ++i) {
+//        table.Insert(MyStruct(i, 1));
+//    }
+//
+//    table.Flush();
+//
+//    // actually check that the reduction worked
+//    //ASSERT_EQ(total_count, 500);
+//    //ASSERT_EQ(total_sum, nitems);
+//}
 
 TEST_F(PreTable, MultipleWorkers) {
     auto key_ex = [](int in) {
