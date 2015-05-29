@@ -49,22 +49,22 @@ public:
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
                     KeyExtractor key_extractor, ReduceFunction reduce_function,
-                    std::vector<EmitterFunction> emit)
+                    std::vector<EmitterFunction>& emit)
         : num_buckets_init_scale_(num_buckets),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit) {
+          emit_(std::move(emit)) {
         init();
     }
 
     ReducePostTable(KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
+                    ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit) {
+          emit_(std::move(emit)) {
         init();
     }
 
