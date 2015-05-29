@@ -88,8 +88,10 @@ public:
         parent2->RegisterChild(lop_chain2);
 
         // Setup Emitters
-        id_[0] = (this->context_).get_data_manager().AllocateDIA();
-        id_[1] = (this->context_).get_data_manager().AllocateDIA();
+        num_dias_ = 2;
+        for (size_t i = 0; i < num_dias_; ++i) {
+            id_.push_back((this->context_).get_data_manager().AllocateDIA());
+        }
         emit1_ = (this->context_).get_data_manager().template GetLocalEmitter<zip_arg_0_t>(id_[0]);
         emit2_ = (this->context_).get_data_manager().template GetLocalEmitter<zip_arg_1_t>(id_[1]);
     }
@@ -144,9 +146,11 @@ private:
     //! Zip function
     ZipFunction zip_function_;
     //! Emitter
-    data::DIAId id_[2];
+    std::vector<data::DIAId> id_;
     data::BlockEmitter<zip_arg_0_t> emit1_;
     data::BlockEmitter<zip_arg_1_t> emit2_;
+    //! Number of DIAs
+    size_t num_dias_;
 
     //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a
     //! global barrier.
@@ -161,17 +165,14 @@ private:
 
     //!Recieve elements from other workers.
     void MainOp() {
-        //TODO(an): (as soon as we have network) Compute PrefixSum of number of elements in both parent nodes.
-
-        //TODO(an): Deterministic computation about index to worker mapping.
-
-        //TODO(an): Use network to send and recieve data through network iterators
-        
         net::NetGroup flow_group = (this->context_).get_flow_net_group();
         data::DataManager data_manager = (this->context_).get_data_manager();
         size_t workers = (this->context_).number_worker();
 
-        for (size_t i = 0; i < 2; ++i) {
+        // Offsets to declare which target gets which block
+        std::vector<size_t> blocks(num_dias_, 0);
+
+        for (size_t i = 0; i < num_dias_; ++i) {
             size_t prefix = data_manager.get_current_size(id_[i]); 
             flow_group.PrefixSum(prefix);
             size_t total = data_manager.get_current_size(id_[i]); 
@@ -181,11 +182,13 @@ private:
             size_t target = prefix / per_pe;
             size_t block = std::min(per_pe - prefix % per_pe, size);
 
-            while (block < size) {
-                // TODO: Send 'block' to other 'target'
+            while (block <= size) {
+                blocks[target] = block;
                 target++;
                 size -= send;
             }
+
+            // TODO(ts): Send blocks to other targets
         }
     }
 

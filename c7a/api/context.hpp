@@ -40,13 +40,11 @@ public:
 
     // TODO Off by one? Does size include self-connections
     size_t number_worker() {
-        // return job_manager_.get_net_manager().Size() + 1;
-        return 0;
+        return job_manager_.get_net_manager().Size();
     }
 
     size_t rank() {
-        // return job_manager_.get_net_manager().MyRank();
-        return 0;
+        return job_manager_.get_net_manager().MyRank();
     }
 
     core::JobManager & job_manager() {
