@@ -29,30 +29,3 @@ for worker in workers:
                 file1.write(str(amount) + " " + str(avg * 1000 / pow(2,amount)) + "\n")
             file1.close()
 
-        with open(str(worker) + "_" + str(modulo) + "_false", "w+") as file2:
-            for amount in amounts:
-                sum = 0
-                for _ in range(3):
-                    process = subprocess.Popen(["./../build/benchmarks/bench_ref", str(pow(2,amount)), str(worker), str(modulo)], stdout=subprocess.PIPE)
-                    process.wait()
-                    time = process.communicate()[0]
-                    sum += float(time)
-                    print time
-                avg = sum / 3
-                print str(amount) + " " + str(avg * 1000 / pow(2,amount))
-                file2.write(str(amount) + " " + str(avg * 1000 / pow(2,amount)) + "\n")
-            file2.close()
-
-#        with open(str(worker) + "_" + str(modulo) + "_false", "w+") as file2:
-#            for amount in amounts:
-#                sum = 0
-#                for _ in range(3):
-#                    process = subprocess.Popen(["./../build/examples/bench_ref", str(pow(2,amount)), str(worker), str(modulo)], stdout=subprocess.PIPE)
-#                    process.wait()
-#                    time = process.communicate()[0]
-#                    sum += float(time)
-#                    print time
-#                avg = sum / 3
-#                print str(amount) + " " + str(avg / pow(2,amount))
-#                file2.write(str(amount) + " " + str(avg / pow(2,amount)) + "\n")
-#            file2.close()
