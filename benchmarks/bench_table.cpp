@@ -34,8 +34,10 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
+    std::vector<decltype(emit)> emitter;
+    emitter.push_back(emit);
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(workers, key_ex, red_fn, { emit });
+    table(workers, key_ex, red_fn, emitter);
 
     int end = std::stoi(argv[1]);
 
