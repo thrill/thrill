@@ -157,7 +157,9 @@ private:
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {
+	  std::cout << "waiting...";
             it.WaitForMore();
+	  std::cout << " ... done" << std::endl;
             while (it.HasNext()) {
 	        table.Insert(it.Next());
             }
