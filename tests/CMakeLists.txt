@@ -53,7 +53,6 @@ build_test(common/stats_counter_test)
 build_test(common/cmdline_parser_test)
 build_test(common/stats_timer_test)
 #build_test(core/stage_builder_test)
-build_test(core/hash_table_bench) #takes multiple seconds to complete
 build_test(core/post_hash_table_test)
 build_test(core/pre_hash_table_test)
 build_test(net/group_test)
