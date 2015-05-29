@@ -360,13 +360,13 @@ public:
 
     //TODO(rh) Please migrate into a different class, since NetGroup is an abstract concept that bundles connections.
 
-    template <typename T, typename BinarySumOp = SumOp<T> >
+    template <typename T, typename BinarySumOp = common::SumOp<T> >
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
 
-    template <typename T, typename BinarySumOp = SumOp<T> >
+    template <typename T, typename BinarySumOp = common::SumOp<T> >
     void PrefixSum(T& value, BinarySumOp sumOp = BinarySumOp());
 
-    template <typename T, typename BinarySumOp = SumOp<T> >
+    template <typename T, typename BinarySumOp = common::SumOp<T> >
     void ReduceToRoot(T& value, BinarySumOp sumOp = BinarySumOp());
 
     template <typename T>
