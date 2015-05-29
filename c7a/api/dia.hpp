@@ -32,6 +32,7 @@
 #include "reduce_node.hpp"
 #include "context.hpp"
 #include "write_node.hpp"
+#include "sum_node.hpp"
 
 namespace c7a {
 
@@ -269,6 +270,32 @@ public:
         auto zip_stack = shared_node->ProduceStack();
         return DIARef<zip_result_t, decltype(zip_stack)>
                    (std::move(shared_node), zip_stack);
+    }
+
+    /*!
+     * Sum is an Action, which computes the sum of elements of all workers.
+     *
+     * \tparam sum_fn_t Type of the sum_function.
+     *
+     * \param sum_fn Sum function.
+     */
+    template <typename sum_fn_t>
+    auto Sum(const sum_fn_t &sum_fn) {
+        using sum_result_t
+        = typename FunctionTraits<sum_fn_t>::result_type;
+        using sum_arg_0_t
+        = typename FunctionTraits<sum_fn_t>::template arg<0>;
+
+        using SumResultNode = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
+
+        auto shared_node
+                = std::make_shared<SumResultNode>(node_->get_context(),
+                                                  node_.get(),
+                                                  local_stack_,
+                                                  sum_fn);
+
+        auto sum_stack = shared_node->ProduceStack();
+        return 1.0f; // TODO(ms) get the correct return type
     }
 
     /*!
