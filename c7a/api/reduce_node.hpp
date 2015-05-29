@@ -76,7 +76,8 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
-          reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, ctx.get_data_manager().template GetNetworkEmitters<Output>(channel_id_))
+          emitters_(ctx.get_data_manager().template GetNetworkEmitters<Output>(channel_id_)),
+          reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, emitters_)
     {
         // Hook PreOp
         auto pre_op_fn = [=](reduce_arg_t input) {
@@ -129,6 +130,8 @@ private:
     ReduceFunction reduce_function_;
 
     data::ChannelId channel_id_;
+
+    std::vector<data::BlockEmitter<Output>> emitters_;
 
     core::ReducePreTable<KeyExtractor, ReduceFunction, data::BlockEmitter<Output> > reduce_pre_table_;
 
