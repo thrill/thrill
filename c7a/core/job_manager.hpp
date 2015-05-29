@@ -56,18 +56,6 @@ public:
         LOG << "dispatcher thread joined";
     }
 
-    //When a DIA calls HasNext() on the data manager but HasNext() returns false and IsClosed() returns false too, then the DIA needs to wait. Therefore, this function is needed
-    void WaitOnData() {
-        while (!new_data_arrived_) {
-            //TODO(cn): Call on wait and as soon as data manager has data, it needs to signal the DIA to continue
-            //Use Condition Variables to do this.
-            std::unique_lock<std::mutex> locker(waiting_on_data_);
-            idontknowhowtonameit_.wait(locker);
-
-            //Internet is saying something about putting wait() into a while loop. find out why and whether that is needed
-        }
-    }
-
 private:
     net::NetManager net_manager_;
     net::NetDispatcher net_dispatcher_;
