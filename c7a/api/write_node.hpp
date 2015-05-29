@@ -21,7 +21,7 @@ namespace c7a {
 template <typename Input, typename Output, typename WriteFunction>
 class WriteNode : public ActionNode<Input>
 {
-public:
+public: // TODO(ms): probably need a stack here as well
     WriteNode(Context& ctx,
               DIANode<Input>* parent,
               WriteFunction write_function,
@@ -30,7 +30,7 @@ public:
           write_function_(write_function),
           path_out_(path_out)
     {
-        core::RunScope(this);
+        core::RunScope(this); // TODO(ms): find a way to move that to ActionNode
     }
 
     virtual ~WriteNode() { }

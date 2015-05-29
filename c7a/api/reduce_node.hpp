@@ -146,7 +146,7 @@ private:
         elements_.push_back(input);
     }
 
-    //!Recieve elements from other workers.
+    //!Receive elements from other workers.
     auto MainOp() {
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
