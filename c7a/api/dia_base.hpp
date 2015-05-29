@@ -67,11 +67,10 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx, const DIABaseVector& parents)
-        : context_(ctx), parents_(parents) {
+        : context_(ctx), parents_(parents), data_id_(ctx.get_data_manager().AllocateDIA()) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
-        data_id_ = context_.get_data_manager().AllocateDIA();
     }
 
     //! Virtual destructor for a DIABase.
@@ -143,10 +142,10 @@ protected:
 
     //! DataManager, which can give iterators to data.
     Context& context_;
-    //! Unique ID of this DIABase. Used by the DataManager.
-    data::DIAId data_id_;
     //! Childs and parents of this DIABase.
     DIABaseVector childs_, parents_;
+    //! Unique ID of this DIABase. Used by the DataManager.
+    data::DIAId data_id_;
 };
 
 //! \}

@@ -11,7 +11,9 @@
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
-#include "c7a/data/data_manager.hpp"
+#include <c7a/data/data_manager.hpp>
+#include <c7a/net/net_manager.hpp>
+#include <c7a/common/logger.hpp>
 
 //includes for thread and condition variables magic
 #include <thread>
@@ -24,18 +26,34 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager() : net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_) {
-        //OVERALL TODO(cn): Run Dispatcher in own thread
+    JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_), dispatcher_running_(false) { }
 
-        //TODO(cn): find out how to run the dispatcher. Is it like this?
-        //net_dispatcher_.Dispatch();
-
-        //TODO(cn): now run it in an owen threeeead. like this?
-        //std::thread(net_dispatcher_.Dispatch());
+    bool Connect(size_t my_rank, const std::vector<net::NetEndpoint>& endpoints) {
+        net_manager_.Initialize(my_rank, endpoints);
+        cmp_.Connect(&net_manager_.GetDataNetGroup());
+        //TODO(??) connect control flow and system control channels here
+        return true;
     }
 
     data::DataManager & get_data_manager() {
         return data_manager_;
+    }
+
+    //! Starts the dispatcher thread of the DataManager
+    //! \throws std::runtime_exception if the thread is already running
+    void StartDispatcher() {
+        LOG << "starting net dispatcher";
+        dispatcher_thread_ = std::thread([=]() { this->net_dispatcher_.DispatchLoop(); });
+        dispatcher_running_ = true;
+    }
+
+    //! Stops the dispatcher thread of the DataManager
+    void StopDispatcher() {
+        LOG << "stopping dispatcher ... waiting for it's breakout";
+        net_dispatcher_.Breakout();
+        dispatcher_thread_.join();
+        dispatcher_running_ = false;
+        LOG << "dispatcher thread joined";
     }
 
     //When a DIA calls HasNext() on the data manager but HasNext() returns false and IsClosed() returns false too, then the DIA needs to wait. Therefore, this function is needed
@@ -51,12 +69,16 @@ public:
     }
 
 private:
+    net::NetManager net_manager_;
     net::NetDispatcher net_dispatcher_;
     net::ChannelMultiplexer cmp_;
     data::DataManager data_manager_;
     std::mutex waiting_on_data_;
     std::condition_variable idontknowhowtonameit_;
     bool new_data_arrived_;
+    bool dispatcher_running_;
+    std::thread dispatcher_thread_;
+    const static bool debug = true;
 };
 
 } // namespace core

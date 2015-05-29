@@ -16,46 +16,45 @@
 #include "dia_node.hpp"
 #include "function_stack.hpp"
 
-
 namespace c7a {
-template <typename Input, typename Output, typename WriteFunction>
+
+template <typename Input, typename Output, typename WriteFunction, typename Stack>
 class WriteNode : public ActionNode<Input>
 {
 public: // TODO(ms): probably need a stack here as well
     WriteNode(Context& ctx,
-              DIANode<Input>* parent,
+              DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
+              Stack& stack,
               WriteFunction write_function,
               std::string path_out)
         : ActionNode<Input>(ctx, { parent }),
+          local_stack_(stack),
           write_function_(write_function),
-          path_out_(path_out)
+          path_out_(path_out),
+          file_(path_out_),
+          emit_(this->context_.get_data_manager().template GetOutputLineEmitter<Output>(file_))
     {
-        core::RunScope(this); // TODO(ms): find a way to move that to ActionNode
+        sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents to" << path_out_;
+        auto pre_op_fn = [=](Input input) {
+            PreOp(input);
+        };
+        auto lop_chain = local_stack_.push(pre_op_fn).emit();
+        parent->RegisterChild(lop_chain);
+
+        core::RunScope(this);
+
+    }
+
+    void PreOp(Input input) {
+        emit_(write_function_(input));
     }
 
     virtual ~WriteNode() { }
 
-    //! Executes the write operation. Writes a file line by line and emits it to
-    //! the DataManager after applying the write function on it.
-    void execute() override
-    {
-        LOG1 << "WRITING data with id " << this->data_id_;
-
-        std::ofstream file(path_out_);
-
-        auto emit = (this->context_).get_data_manager().template GetOutputLineEmitter<Output>(file);
-
-        // get data from data manager
-        assert(this->get_parents().size() == 1);
-        data::BlockIterator<Input> it = this->context_.get_data_manager().template GetLocalBlocks<Input>(
-                this->get_parents().front()->get_data_id());
-        // loop over output
-        while (it.HasNext()) {
-            const Input& item = it.Next();
-            emit(write_function_(item));
-        }
-
-        emit.Close();
+    //! Closes the output file
+    void execute() override {
+        sLOG << "closing file" << path_out_;
+        emit_.Close();
     }
 
     /*!
@@ -64,7 +63,7 @@ public: // TODO(ms): probably need a stack here as well
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](Input t, std::function<void(Input)> emit_func) {
+        auto id_fn = [=](Input t, std::function<void(Input)> emit_func) {
                          return emit_func(t);
                      };
 
@@ -73,20 +72,32 @@ public: // TODO(ms): probably need a stack here as well
     }
 
     /*!
-     * Returns "[WriteNode]" as a string.
+     * Returns "[WriteNode]" and its id as a string.
      * \return "[WriteNode]"
      */
-    std::string ToString() override
-    {
-        return "[WriteNode] Id: " + std::to_string(this->data_id_);
+    std::string ToString() override {
+        return "[WriteNode] Id:" + this->data_id_.ToString();
     }
 
 private:
+    //! Local stack
+    Stack local_stack_;
+
     //! The write function which is applied on every line read.
     WriteFunction write_function_;
+
     //! Path of the output file.
     std::string path_out_;
+
+    //! File to write to
+    std::ofstream file_;
+
+    //! Emitter to file
+    data::OutputLineEmitter<Output> emit_;
+
+    static const bool debug = true;
 };
+
 } // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER
