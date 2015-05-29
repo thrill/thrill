@@ -136,7 +136,7 @@ private:
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
     void PreOp(reduce_arg_t input) {
-        reduce_pre_table_.Insert(input);
+      reduce_pre_table_.Insert(std::move(input));
     }
 
     //!Receive elements from other workers.
@@ -159,7 +159,7 @@ private:
         do {
             it.WaitForMore();
             while (it.HasNext()) {
-                table.Insert(it.Next());
+	        table.Insert(it.Next());
             }
         } while (!it.IsClosed());
 
