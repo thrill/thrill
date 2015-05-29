@@ -34,8 +34,17 @@ public:
         return job_manager_.get_data_manager();
     }
 
-    int number_worker() {
-        return number_worker_;
+    net::NetGroup & get_flow_net_group() {
+        return job_manager_.get_net_manager().GetFlowNetGroup();
+    }
+
+    // TODO Off by one? Does size include self-connections
+    size_t number_worker() {
+        return job_manager_.get_net_manager().Size();
+    }
+
+    size_t rank() {
+        return job_manager_.get_net_manager().MyRank();
     }
 
     core::JobManager & job_manager() {
@@ -54,8 +63,6 @@ public:
 
 private:
     core::JobManager job_manager_;
-    //stub
-    int number_worker_ = 1;
 };
 
 } // namespace c7a
