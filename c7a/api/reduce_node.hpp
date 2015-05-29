@@ -139,7 +139,7 @@ private:
         reduce_pre_table_.Insert(input);
     }
 
-    //!Recieve elements from other workers.
+    //!Receive elements from other workers.
     auto MainOp() {
         LOG << ToString() << " running main op";
         //Flush hash table before the postOp

@@ -59,7 +59,7 @@ class NetConnection : protected lowlevel::Socket
     /**
      * @brief The connection state of this connection in the c7a network state machine. 
      */
-    ConnectionState state_ = ConnectionState::Invalid;
+    ConnectionState state_;
     /**
      * @brief The id of the group this connection is associated with. 
      */
@@ -72,18 +72,18 @@ class NetConnection : protected lowlevel::Socket
 public:
     //! default construction, contains invalid socket
     NetConnection()
-        : Socket()
+        : Socket(), state_(ConnectionState::Invalid)
     { }
 
     //! Construct NetConnection from a Socket
     explicit NetConnection(const Socket& s)
-        : Socket(s)
+        : Socket(s), state_(ConnectionState::Invalid)
     { }
 
     //! Construct NetConnection from a Socket, with immediate
     //! initialization. (Currently used by tests).
     NetConnection(const Socket& s, size_t group_id, size_t peer_id)
-        : Socket(s), group_id_(group_id), peer_id_(peer_id)
+        : Socket(s), group_id_(group_id), peer_id_(peer_id), state_(ConnectionState::Invalid)
     { }
 
     //! move-constructor

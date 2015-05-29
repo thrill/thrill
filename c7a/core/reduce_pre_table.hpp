@@ -51,10 +51,12 @@ protected:
             size_t hashed = std::hash<key_t>() (v);
 
             // partition idx
+            //LOG << ht.num_buckets_per_partition_ << " " << ht.num_partitions_;
             partition_offset = hashed % ht.num_buckets_per_partition_;
 
             // partition id
             partition_id = hashed % ht.num_partitions_;
+            //LOG << partition_offset << " " << partition_id;
 
             // global idx
             global_index = partition_id * ht.num_buckets_per_partition_ + partition_offset;
@@ -184,6 +186,7 @@ public:
 
         if (num_items_bucket > max_num_items_per_bucket_)
         {
+            LOG << "test test" << num_items_bucket << " " << max_num_items_per_bucket_;
             ResizeUp();
         }
     }
@@ -293,6 +296,13 @@ public:
     }
 
     /*!
+     * Returns the size of a partition referenzed by partition_id.
+     */
+    size_t PartitionSize(size_t partition_id) {
+        return items_per_partition_[partition_id];
+    }
+
+    /*!
      * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
      */
     void SetMaxSize(size_t size) {
@@ -317,11 +327,15 @@ public:
      */
     void ResizeUp() {
         LOG << "Resizing";
+        LOG << num_buckets_;
         num_buckets_ *= num_buckets_resize_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
+        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
+        table_size_ = 0;
         // init new array
         std::vector<bucket_block*> vector_old = vector_;
         std::vector<bucket_block*> vector_new; // TODO(ms): 3 vectors? come on! -> make it happen with one vector only!
+        std::cout << num_buckets_ << std::endl;
         vector_new.resize(num_buckets_, NULL);
         vector_ = vector_new;
         // rehash all items in old array
