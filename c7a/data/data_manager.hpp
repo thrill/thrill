@@ -48,46 +48,40 @@ public:
     DataManager(const DataManager&) = delete;
     DataManager& operator = (const DataManager&) = delete;
 
-    //! returns iterator on requested partition.
+    //! returns iterator on requested partition or network channel.
     //!
-    //! Data can be emitted into this partition even after the iterator was created.
+    //! Data can be emitted into this partition / received on the channel even
+    //! after the iterator was created.
     //!
-    //! \param id ID of the DIA - determined by AllocateDIA()
+    //! \param id ID of the DIA / Channel - determined by AllocateDIA() / AllocateNetworkChannel()
     template <class T>
-    BlockIterator<T> GetLocalBlocks(DIAId id)
-    {
-        if (!dias_.Contains(id)) {
-            throw std::runtime_error("target dia id unknown.");
+    BlockIterator<T> GetIterator(ChainId id) {
+        if (id.type == LOCAL) {
+            if (!dias_.Contains(id)) {
+                throw std::runtime_error("target dia id unknown.");
+            }
+            return BlockIterator<T>(*(dias_.Chain(id)));
         }
-        return BlockIterator<T>(*(dias_.Chain(id)));
-    }
+        else {
+            if (!cmp_.HasDataOn(id)) {
+                throw std::runtime_error("target channel id unknown.");
+            }
 
-    //! Returns iterator on the data that was / will be received on the channel
-    //!
-    //! \param id ID of the channel - determined by AllocateNetworkChannel()
-    template <class T>
-    BlockIterator<T> GetRemoteBlocks(ChannelId id)
-    {
-        if (!cmp_.HasDataOn(id)) {
-            throw std::runtime_error("target channel id unknown.");
+            return BlockIterator<T>(*(cmp_.AccessData(id)));
         }
-
-        return BlockIterator<T>(*(cmp_.AccessData(id)));
     }
 
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    DIAId AllocateDIA()
-    {
+    DIAId AllocateDIA() {
         return dias_.AllocateNext();
     }
 
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    ChannelId AllocateNetworkChannel()
-    {
+    ChannelId AllocateNetworkChannel() {
         return cmp_.AllocateNext();
     }
 
@@ -95,8 +89,8 @@ public:
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
     template <class T>
-    BlockEmitter<T> GetLocalEmitter(DIAId id)
-    {
+    BlockEmitter<T> GetLocalEmitter(DIAId id) {
+        assert(id.type == LOCAL);
         if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
@@ -104,8 +98,8 @@ public:
     }
 
     template <class T>
-    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id)
-    {
+    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
+        assert(id.type == NETWORK);
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
@@ -127,8 +121,7 @@ public:
 
     //! Returns an OutputLineIterator with a given output file stream.
     template <typename T>
-    OutputLineEmitter<T> GetOutputLineEmitter(std::ofstream& file)
-    {
+    OutputLineEmitter<T> GetOutputLineEmitter(std::ofstream& file) {
         return OutputLineEmitter<T>(file);
     }
 

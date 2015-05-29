@@ -98,14 +98,14 @@ public:
                         &read_set_, &write_set_, &except_set_, timeout);
     }
 
-    //! Do a select() with timeout
+    //! Do a select() with timeout (in ms)
     int select_timeout(double timeout) {
         if (timeout == std::numeric_limits<double>::infinity())
             return select(NULL);
         else {
             struct timeval tv;
-            tv.tv_sec = static_cast<long>(timeout);
-            tv.tv_usec = (timeout - tv.tv_sec) * 1e6;
+            tv.tv_sec = static_cast<long>(timeout / 1000);
+            tv.tv_usec = ((timeout / 1000) - tv.tv_sec) * 1e6;
             return select(&tv);
         }
     }

@@ -28,7 +28,6 @@
 
 namespace c7a {
 namespace core {
-
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreTable
 {
@@ -103,6 +102,10 @@ public:
     ~ReducePreTable() { }
 
     void init() {
+        sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
+        for (size_t i = 0; i < emit_.size(); i++)
+            emit_stats_.push_back(0);
+
         num_buckets_ = num_partitions_ * num_buckets_init_scale_;
         if (num_partitions_ > num_buckets_ &&
             num_buckets_ % num_partitions_ != 0) {
@@ -256,7 +259,11 @@ public:
                 for (std::pair<key_t, value_t>& bucket_item : current_bucket_block->items)
                 {
                     emit_[partition_id](bucket_item.second);
+                    emit_stats_[partition_id]++;
                 }
+                //TODO(ms) call emit_[partition_id].Flush here to ensure elements are acutally pushed via network
+                //I could not make the change because there are some instances of this class with std::functions
+                //and they don't offer the Flush() mehtod of course.
                 bucket_block* tmp_current_bucket_block = current_bucket_block->next;
                 delete current_bucket_block;
                 current_bucket_block = tmp_current_bucket_block;
@@ -300,6 +307,18 @@ public:
      */
     void SetMaxSize(size_t size) {
         max_num_items_table_ = size;
+    }
+
+    /*!
+     * Closes all emitter
+     */
+    void CloseEmitter() {
+        sLOG << "emit stats:";
+        unsigned int i = 0;
+        for (auto& e : emit_) {
+            e.Close();
+            sLOG << "emiter" << i << "pushed" << emit_stats_[i++];
+        }
     }
 
     /*!
@@ -435,6 +454,7 @@ private:
     ReduceFunction reduce_function_;
 
     std::vector<EmitterFunction> emit_;
+    std::vector<int> emit_stats_;
 
     std::vector<bucket_block*> vector_;
 };
