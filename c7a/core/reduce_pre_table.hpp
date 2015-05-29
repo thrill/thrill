@@ -110,7 +110,7 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit) {
+          emit_(std::move(emit)) {
         init();
     }
 
@@ -119,7 +119,7 @@ public:
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit) {
+          emit_(std::move(emit)) {
         init();
     }
 
