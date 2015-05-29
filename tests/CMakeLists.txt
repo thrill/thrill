@@ -41,6 +41,7 @@ endmacro(build_test)
 #build_test(api/simple_api_test)
 build_test(api/wordcount_test)
 build_test(data/data_manager_test)
+build_test(data/data_chain_test)
 build_test(data/block_emitter_iterator_test)
 build_only(data/data_manager_channels_test) #TODO(tb, ej, ts): where do the invalid fd come from?
 build_test(data/block_iterator_test)
@@ -52,7 +53,7 @@ build_test(common/stats_counter_test)
 build_test(common/cmdline_parser_test)
 build_test(common/stats_timer_test)
 #build_test(core/stage_builder_test)
-build_only(core/hash_table_bench) #takes multiple seconds to complete
+build_test(core/hash_table_bench) #takes multiple seconds to complete
 build_test(core/post_hash_table_test)
 build_test(core/pre_hash_table_test)
 build_test(net/group_test)

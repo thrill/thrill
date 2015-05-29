@@ -60,7 +60,6 @@ public:
         init();
     }
 
-    // TODO(ms): the BlockEmitter must be a plain template like KeyExtractor.
     ReducePostTable(KeyExtractor key_extractor,
                     ReduceFunction reduce_function, std::vector<EmitterFunction> emit)
         : key_extractor_(key_extractor),
@@ -158,7 +157,7 @@ public:
      * Emits element to all childs
      */
     void EmitAll(value_t& element) {
-        for (auto emitter : emit_) {
+        for (auto& emitter : emit_) {
             emitter(element);
         }
     }
@@ -176,14 +175,9 @@ public:
                     EmitAll(curr_node->value);
                     curr_node = curr_node->next;
                 } while (curr_node != nullptr);
-                vector_[i] = nullptr;
+                vector_[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
             }
         }
-
-        //flush emitters
-        //for (auto& emitter : emit_) {
-        //TODO call this, as soon as API gives us the 'real' emitter objects: emitter.Flush();
-        //}
 
         // reset counters
         table_size_ = 0;
@@ -252,7 +246,7 @@ public:
 
     // prints content of hash table
     void Print() {
-        for (int i = 0; i < num_buckets_; i++) {
+        for (size_t i = 0; i < num_buckets_; i++) {
             if (vector_[i] == nullptr) {
                 LOG << "bucket "
                     << i

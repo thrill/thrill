@@ -31,28 +31,28 @@ struct EmitterIteratorIntegration : public::testing::Test {
     ChannelMultiplexer multiplexer;
 
     DataManager        manager;
-    size_t             id;
+    ChainId            id;
 };
 
 TEST_F(EmitterIteratorIntegration, EmptyHasNotNext) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     ASSERT_FALSE(it.HasNext());
 }
 
 TEST_F(EmitterIteratorIntegration, EmptyIsNotClosed) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     ASSERT_FALSE(it.IsClosed());
 }
 
 TEST_F(EmitterIteratorIntegration, ClosedIsClosed) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt.Close();
     ASSERT_TRUE(it.IsClosed());
 }
 
 TEST_F(EmitterIteratorIntegration, OneElementEmitted) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(123);
     emitt.Flush();
@@ -65,7 +65,7 @@ TEST_F(EmitterIteratorIntegration, OneElementEmitted) {
 }
 
 TEST_F(EmitterIteratorIntegration, CloseFlushesEmitter) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(123);
     emitt.Close();
@@ -74,7 +74,7 @@ TEST_F(EmitterIteratorIntegration, CloseFlushesEmitter) {
 }
 
 TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfNoDataAvailable) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(1);
     emitt.Flush();
@@ -91,8 +91,8 @@ TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfNoDataAvailable) {
     ASSERT_TRUE(it.HasNext());
 }
 
-TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfIteratorIsClosed) {
-    auto it = manager.GetLocalBlocks<int>(id);
+TEST_F(EmitterIteratorIntegration, DISABLED_HasNext_ReturnsFalseIfIteratorIsClosed) {
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(1);
     emitt.Flush(); //force second buffer in buffer_chain
@@ -108,17 +108,93 @@ TEST_F(EmitterIteratorIntegration, HasNext_ReturnsFalseIfIteratorIsClosed) {
 }
 
 TEST_F(EmitterIteratorIntegration, EmitAndReadEightKB) {
-    auto it = manager.GetLocalBlocks<int>(id);
+    auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
-    for (size_t i = 0; i < 8 * 1024 / sizeof(int); i++)
+    for (int i = 0; i < (int)(8 * 1024 / sizeof(int)); i++)
         emitt(i);
     emitt.Flush();
 
-    for (size_t i = 0; i < 8 * 1024 / sizeof(int); i++) {
+    for (int i = 0; i < (int)(8 * 1024 / sizeof(int)); i++) {
         ASSERT_TRUE(it.HasNext());
         ASSERT_EQ(i, it.Next());
     }
     ASSERT_FALSE(it.HasNext());
+}
+
+TEST_F(EmitterIteratorIntegration, WaitForMore_PausesThread) {
+    using namespace std::literals;
+    auto it = manager.GetIterator<int>(id);
+    auto emitt = manager.GetLocalEmitter<int>(id);
+    int received_elelements = 0;
+    int wait_calls = 0;
+    std::thread receiver([&it, &wait_calls, &received_elelements]() {
+                             while (!it.IsClosed()) {
+                                 if (!it.HasNext()) {
+                                     wait_calls++;
+                                     it.WaitForMore();
+                                 }
+                                 else {
+                                     it.Next();
+                                     received_elelements++;
+                                 }
+                             }
+                         });
+    std::this_thread::sleep_for(10ms); //let other thread run
+
+    emitt(123);
+    emitt.Flush();
+
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(1, received_elelements);
+    ASSERT_EQ(2, wait_calls);
+
+    emitt.Close();
+    receiver.join();
+    ASSERT_EQ(2, wait_calls); //should be unchanged
+}
+
+TEST_F(EmitterIteratorIntegration, WaitForAll_PausesThread) {
+    using namespace std::literals;
+    auto it = manager.GetIterator<int>(id);
+    auto emitt = manager.GetLocalEmitter<int>(id);
+    int received_elelements = 0;
+    int wait_calls = 0;
+    std::thread receiver([&it, &wait_calls, &received_elelements]() {
+                             while (!it.IsClosed()) {
+                                 wait_calls++;
+                                 it.WaitForAll();
+                                 while (it.HasNext()) {
+                                     it.Next();
+                                     received_elelements++;
+                                 }
+                             }
+                         });
+    std::this_thread::sleep_for(10ms); //let other thread run
+
+    emitt(123);
+    emitt.Flush();
+
+    //should wait once, read nothing
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(0, received_elelements);
+    ASSERT_EQ(1, wait_calls);
+
+    emitt(444);
+    emitt(222);
+    emitt.Flush();
+
+    //we expect no changes
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(0, received_elelements);
+    ASSERT_EQ(1, wait_calls);
+
+    emitt.Close();
+    receiver.join();
+
+    //all elements are accessible / no further wait
+    std::this_thread::sleep_for(10ms);
+    ASSERT_EQ(3, received_elelements);
+    ASSERT_EQ(1, wait_calls);
 }
 
 /******************************************************************************/

@@ -12,7 +12,8 @@
 #define C7A_DATA_BUFFER_CHAIN_HEADER
 
 #include <vector>
-#include <memory> //unique_ptr
+#include <condition_variable>
+#include <mutex> //mutex, unique_lock
 
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/emitter_target.hpp>
@@ -33,7 +34,7 @@ struct BufferChainElement {
 //! A Buffer chain holds multiple immuteable buffers.
 //! Append in O(1), Delete in O(#buffers)
 struct BufferChain : public EmitterTarget {
-    BufferChain() : head(nullptr), tail(nullptr), closed(false) { }
+    BufferChain() : head(nullptr), tail(nullptr), closed_(false) { }
 
     void Append(BinaryBuffer b) {
         if (tail == nullptr) {
@@ -44,6 +45,19 @@ struct BufferChain : public EmitterTarget {
             tail->next = new BufferChainElement(b);
             tail = tail->next;
         }
+        NotifyWaitingThreads();
+    }
+
+    //! Waits until beeing notified
+    void Wait() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        condition_variable_.wait(lock);
+    }
+
+    //! Waits until beeing notified and closed == true
+    void WaitUntilClosed() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        condition_variable_.wait(lock, [=]() { return this->closed_; });
     }
 
     //! Call buffers' destructors and deconstructs the chain
@@ -57,12 +71,24 @@ struct BufferChain : public EmitterTarget {
     }
 
     void Close() {
-        closed = true;
+        closed_ = true;
+        NotifyWaitingThreads();
     }
+
+    bool IsClosed() { return closed_; }
 
     struct BufferChainElement* head;
     struct BufferChainElement* tail;
-    bool                     closed;
+
+private:
+    std::mutex               mutex_;
+    std::condition_variable  condition_variable_;
+    bool                     closed_;
+
+    void NotifyWaitingThreads() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        condition_variable_.notify_all();
+    }
 };
 
 } // namespace data
