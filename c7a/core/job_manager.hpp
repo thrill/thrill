@@ -39,6 +39,10 @@ public:
         return data_manager_;
     }
 
+    net::NetManager & get_net_manager() {
+        return net_manager_;
+    }
+
     //! Starts the dispatcher thread of the DataManager
     //! \throws std::runtime_exception if the thread is already running
     void StartDispatcher() {
