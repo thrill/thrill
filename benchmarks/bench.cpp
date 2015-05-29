@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     clock_t time = std::clock();
 
     for (int i = 0; i < end; i++) {
-        table.Insert(elements[i]);
+        table.Insert(std::move(elements[i]));
     }
 
     table.Flush();
