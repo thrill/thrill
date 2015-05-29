@@ -32,7 +32,7 @@ struct BufferChainElement {
 };
 
 //! A Buffer chain holds multiple immuteable buffers.
-//! Append in O(1), Delete in O(#buffers)
+//! Append in O(1), Delete in O(num_buffers)
 struct BufferChain : public EmitterTarget {
     BufferChain() : head(nullptr), tail(nullptr), closed_(false) { }
 
