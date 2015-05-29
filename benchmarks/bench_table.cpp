@@ -30,8 +30,8 @@ int main(int argc, char* argv[]) {
 
     std::vector<int> elements(std::stoi(argv[1]));
 
-    for (auto ele : elements) {
-        ele = rand() % modulo;
+    for (int i = 0; i < elements.size(); i++) {
+        elements[i] = rand() % modulo;
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
