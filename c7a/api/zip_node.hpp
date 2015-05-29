@@ -185,7 +185,7 @@ private:
             while (block <= size) {
                 blocks[target] = block;
                 target++;
-                size -= send;
+                size -= block;
             }
 
             // TODO(ts): Send blocks to other targets
