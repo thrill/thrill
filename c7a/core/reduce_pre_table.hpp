@@ -32,7 +32,7 @@ template <typename KeyExtractor, typename ReduceFunction, typename EmitterFuncti
           size_t TargetBlockSize = 1024* 1024>
 class ReducePreTable
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
