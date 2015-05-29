@@ -25,7 +25,7 @@ class BlockIterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    explicit BlockIterator(const BufferChain& buffers)
+    explicit BlockIterator(BufferChain& buffers)
         : buffer_chain_(buffers),
           current_(buffers.head),
           current_reader_(nullptr, 0),
@@ -58,7 +58,24 @@ public:
     //! once return false and then true, if new data arrived.
     inline bool HasNext() {
         check_late_init();
-        return !current_reader_.empty() || (current_ != nullptr && !current_->IsEnd());
+        // current reader not empty --> read along
+        // current reader empty     --> do we have follow-up buffer-chain element?
+        //                          and when we move to this buffer, is it empty?
+        return !current_reader_.empty() || (current_ != nullptr && !current_->IsEnd() && LookAhead());
+    }
+
+    //! Waits until either an element is accessible (HasNext() == true) or the
+    //! Iterator is closed (IsClosed == true)
+    //! Does not enter idle state if HasNext() == true || IsClosed() == true
+    void WaitForMore() {
+        while (!HasNext() && !IsClosed())
+            buffer_chain_.Wait();
+    }
+
+    //! Waits until all elements are available at the iterator and the iterator
+    //! is closed (IsClosed == true)
+    void WaitForAll() {
+        buffer_chain_.WaitUntilClosed();
     }
 
     inline void check_late_init() {
@@ -75,11 +92,11 @@ public:
     //! Indicates whether elements can be appended (not closed) or not (closed).
     //! Blocks that are closed once cannot be opened again
     inline bool IsClosed() const {
-        return buffer_chain_.closed;
+        return buffer_chain_.IsClosed();
     }
 
 private:
-    const struct BufferChain& buffer_chain_;
+    struct BufferChain& buffer_chain_;
     const BufferChainElement* current_;
     BinaryBufferReader current_reader_;
     bool late_init_; //problem when iterator is created before emitter has flushed values

@@ -24,7 +24,7 @@ struct WorkerMock {
         : cmp(dispatcher),
           manager(cmp) { }
 
-    void               Connect(std::shared_ptr<NetGroup> con) {
+    void               Connect(NetGroup* con) {
         cmp.Connect(con);
     }
 
@@ -42,29 +42,29 @@ struct DataManagerChannelFixture : public::testing::Test {
         : dispatcher(),
           worker0(dispatcher),
           worker1(dispatcher),
-          worker2(dispatcher) {
+          worker2(dispatcher),
+          group0(0, 3),
+          group1(1, 3),
+          group2(2, 3) {
         auto con0_1 = Socket::CreatePair();
         auto con0_2 = Socket::CreatePair();
         auto con1_2 = Socket::CreatePair();
-        auto group0 = std::make_shared<NetGroup>(0, 3);
-        auto group1 = std::make_shared<NetGroup>(1, 3);
-        auto group2 = std::make_shared<NetGroup>(2, 3);
         auto net0_1 = NetConnection(std::get<0>(con0_1), 0, 1);
         auto net1_0 = NetConnection(std::get<1>(con0_1), 1, 0);
         auto net1_2 = NetConnection(std::get<0>(con1_2), 1, 2);
         auto net2_1 = NetConnection(std::get<1>(con1_2), 2, 1);
         auto net0_2 = NetConnection(std::get<0>(con0_2), 0, 2);
         auto net2_0 = NetConnection(std::get<1>(con0_2), 2, 0);
-        group0->AssignConnection(net0_1);
-        group0->AssignConnection(net0_2);
-        group1->AssignConnection(net1_0);
-        group1->AssignConnection(net1_2);
-        group2->AssignConnection(net2_0);
-        group2->AssignConnection(net2_1);
+        group0.AssignConnection(net0_1);
+        group0.AssignConnection(net0_2);
+        group1.AssignConnection(net1_0);
+        group1.AssignConnection(net1_2);
+        group2.AssignConnection(net2_0);
+        group2.AssignConnection(net2_1);
 
-        worker0.Connect(group0);
-        worker1.Connect(group1);
-        worker2.Connect(group2);
+        worker0.Connect(&group0);
+        worker1.Connect(&group1);
+        worker2.Connect(&group2);
     }
 
     void RunDispatcherLoop() {
@@ -79,7 +79,7 @@ struct DataManagerChannelFixture : public::testing::Test {
         std::this_thread::sleep_for(100ms);
     }
 
-    size_t AllocateChannel() {
+    ChainId AllocateChannel() {
         //all managers need to allocate the same id
         auto channel_id = worker0.manager.AllocateNetworkChannel();
         channel_id = worker1.manager.AllocateNetworkChannel();
@@ -118,9 +118,12 @@ struct DataManagerChannelFixture : public::testing::Test {
     WorkerMock        worker0;
     WorkerMock        worker1;
     WorkerMock        worker2;
+    NetGroup          group0;
+    NetGroup          group1;
+    NetGroup          group2;
 };
 
-TEST_F(DataManagerChannelFixture, EmptyChannels_GetRemoteBlocksDoesNotThrow) {
+TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
     auto channel_id = AllocateChannel();
     auto emitters = worker0.manager.GetNetworkEmitters<int>(channel_id);
     emitters[1].Close();
@@ -129,7 +132,7 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetRemoteBlocksDoesNotThrow) {
 
     //Worker 1 closed channel 0 on worker 2
     //Worker2 never allocated the channel id
-    ASSERT_NO_THROW(worker1.manager.GetRemoteBlocks<int>(channel_id));
+    ASSERT_NO_THROW(worker1.manager.GetIterator<int>(channel_id));
 }
 
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosed) {
@@ -144,7 +147,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosed) {
     emitter2[0].Close();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_TRUE(it.IsClosed());
 }
 
@@ -158,7 +161,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsNotClosedIfPartialClosed) {
     emitter2[0].Close();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_FALSE(it.IsClosed());
 }
 
@@ -169,7 +172,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
     emitter2[0](1);
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_FALSE(it.HasNext());
 }
 
@@ -181,7 +184,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
     emitter2[0].Flush();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_TRUE(it.HasNext());
 }
 
@@ -193,7 +196,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerA
     emitter2[0].Flush();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_EQ(1, it.Next());
     ASSERT_FALSE(it.HasNext());
 }
@@ -213,7 +216,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerM
     emitter2[0].Flush();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_EQ(1, it.Next());
     ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(2, it.Next());
@@ -238,7 +241,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
     emitter2[0].Close();
 
     RunDispatcherLoop();
-    auto it = worker0.manager.GetRemoteBlocks<int>(channel_id);
+    auto it = worker0.manager.GetIterator<int>(channel_id);
     auto vals = ReadIterator(it);
     ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
 }
@@ -256,9 +259,9 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
     emitter1[2].Close();
 
     RunDispatcherLoop();
-    auto it0 = worker0.manager.GetRemoteBlocks<int>(channel_id);
-    auto it1 = worker1.manager.GetRemoteBlocks<int>(channel_id);
-    auto it2 = worker2.manager.GetRemoteBlocks<int>(channel_id);
+    auto it0 = worker0.manager.GetIterator<int>(channel_id);
+    auto it1 = worker1.manager.GetIterator<int>(channel_id);
+    auto it2 = worker2.manager.GetIterator<int>(channel_id);
     auto vals0 = ReadIterator(it0);
     auto vals1 = ReadIterator(it1);
     auto vals2 = ReadIterator(it2);

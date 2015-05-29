@@ -150,7 +150,6 @@ private:
         return true;
     }
 
-
     /**
      * @brief Starts connecting to the endpoint specified by the parameters.
      * @details Starts connecting to the endpoint specified by the parameters.
