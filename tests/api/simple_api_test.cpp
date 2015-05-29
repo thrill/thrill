@@ -33,7 +33,7 @@ TEST(API, SharedPtrTest) {
                   };
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  }
+                  };
 
                   auto input = ReadFromFileSystem(
                       ctx,
@@ -63,19 +63,19 @@ TEST(API, TypeDeductionText) {
 
     auto to_int_fn = [](std::string in) {
                          return std::stoi(in);
-                     };
+                  };
     auto double_int_fn = [](int in) {
                              return 2 * in;
-                         };
+                  };
     auto filter_geq = [](int in) {
                           return in <= 40;
-                      };
+                  };
     auto key_ex = [](int in) {
                       return in % 2;
                   };
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  }
+                  };
 
                   auto lines = ReadFromFileSystem(
                       ctx,
@@ -105,7 +105,7 @@ TEST(API, Test1Zip) {
 
     auto zip_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  }
+                  };
 
                   c7a::Context ctx;
 
