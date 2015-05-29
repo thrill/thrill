@@ -263,6 +263,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     }
 
     ASSERT_EQ(3, c1);
+    table.Flush();
 
     auto it2 = manager.GetIterator<int>(id2);
     int c2 = 0;
@@ -271,7 +272,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(0, c2);
+    ASSERT_EQ(2, c2);
     ASSERT_EQ(2, table.Size());
 }
 
