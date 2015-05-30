@@ -433,7 +433,7 @@ TEST_F(PreTable, ResizeTwoPartitions) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(PreTable, DISABLED_BigReduce) {  
+TEST_F(PreTable, BigReduce) {  
     auto key_ex = [](const MyStruct& in) { 
         return in.key % 500; 
     };  
