@@ -34,6 +34,15 @@ public:
         : builder_(BinaryBuffer::DEFAULT_SIZE),
           target_(target) { }
 
+    BlockEmitter(const BlockEmitter&) = delete;
+    BlockEmitter(BlockEmitter&&) = default;
+
+    BlockEmitter &operator=(BlockEmitter&& other) {
+        builder_ = other.builder_;
+        target_ = other.target_;
+        return *this;
+    }
+
     //! Emitts an element
     void operator () (T x) {
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
