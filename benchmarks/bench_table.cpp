@@ -17,7 +17,6 @@ int main(int argc, char* argv[]) {
     c7a::data::DataManager manager(multiplexer);
 
     auto id = manager.AllocateDIA();
-    auto emit = manager.GetLocalEmitter<int>(id);
 
     auto key_ex = [](int in) {
                       return in;
@@ -37,8 +36,10 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), decltype(emit)>
-    table(workers, key_ex, red_fn, { emit });
+    std::vector<c7a::data::BlockEmitter<int>> emitter;
+    emitter.emplace_back(manager.GetLocalEmitter<int>(id));
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::BlockEmitter<int>>
+    table(workers, key_ex, red_fn, emitter);
 
     int end = std::stoi(argv[1]);
 
