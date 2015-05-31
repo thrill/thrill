@@ -75,12 +75,12 @@ When developing time critical algorithms, one often needs timers and counters th
 
 The StatsCounter and StatsTimer classes provide a solution to this problem: they can be disabled using a boolean template switch, and when disabled, all operations on the object are no-operations. Hence, in production mode they are compiled-out.
 
-See the example in \ref tests/common/test_stats_timer.cpp
+See the example in \ref tests/common/stats_timer_test.cpp
 
-and \ref tests/common/test_stats_counter.cpp
+and \ref tests/common/stats_counter_test.cpp
 
-\example tests/common/test_stats_timer.cpp
-\example tests/common/test_stats_counter.cpp
+\example tests/common/stats_timer_test.cpp
+\example tests/common/stats_counter_test.cpp
 
  */
 
@@ -129,7 +129,7 @@ The output shows pretty much what happens. The command line parser is by default
 
 One feature worth naming is that the parser also supports lists of strings, i.e. \c std::vector<std::string> via \ref CmdlineParser::AddParamStringlist() and similar.
 
-\example examples/common/cmdline_parser_example.cpp
+\example tests/common/cmdline_parser_example.cpp
 This example is documented in \ref common_cmdline tutorial.
 
 */
