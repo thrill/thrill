@@ -21,8 +21,7 @@ struct PreTable : public::testing::Test {
           multiplexer(dispatcher),
           manager(multiplexer),
           id1(manager.AllocateDIA()),
-          id2(manager.AllocateDIA())
-    {
+          id2(manager.AllocateDIA()) {
         one_int_emitter.emplace_back(manager.GetLocalEmitter<int>(id1));
         one_pair_emitter.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
 
@@ -33,50 +32,50 @@ struct PreTable : public::testing::Test {
         two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
     }
 
-    NetDispatcher                               dispatcher;
-    ChannelMultiplexer                          multiplexer;
-    DataManager                                manager;
-    DIAId                                      id1;
-    DIAId                                      id2;
+    NetDispatcher                          dispatcher;
+    ChannelMultiplexer                     multiplexer;
+    DataManager                            manager;
+    DIAId                                  id1;
+    DIAId                                  id2;
     // all emitters access the same dia id, which is bad if you use them both
-    std::vector<BlockEmitter<int>>             one_int_emitter;
-    std::vector<BlockEmitter<int>>             two_int_emitters;
-    std::vector<BlockEmitter<StringPair>>             one_pair_emitter;
-    std::vector<BlockEmitter<StringPair>>             two_pair_emitters;
+    std::vector<BlockEmitter<int> >        one_int_emitter;
+    std::vector<BlockEmitter<int> >        two_int_emitters;
+    std::vector<BlockEmitter<StringPair> > one_pair_emitter;
+    std::vector<BlockEmitter<StringPair> > two_pair_emitters;
 };
 
 struct MyStruct
- { 
-    int key; 
-    int count;  
+{
+    int key;
+    int count;
 
-    // only initializing constructor, no default construction possible. 
-    explicit MyStruct(int k, int c) : key(k), count(c) 
-    { } 
+    // only initializing constructor, no default construction possible.
+    explicit MyStruct(int k, int c) : key(k), count(c)
+    { }
 };
 
-  namespace c7a { 
-    namespace data { 
-        namespace serializers { 
-            template<> 
-            struct Impl<MyStruct> { 
-                static std::string Serialize(const MyStruct &s) { 
-                    std::size_t len = 2 * sizeof(int); 
-                    char result[len]; 
-                    std::memcpy(result, &(s.key), sizeof(int)); 
-                    std::memcpy(result + sizeof(int), &(s.count), sizeof(int)); 
-                    return std::string(result, len); 
-                }  
+namespace c7a {
+namespace data {
+namespace serializers {
+template <>
+struct Impl<MyStruct>{
+    static std::string Serialize(const MyStruct& s) {
+        std::size_t len = 2 * sizeof(int);
+        char result[len];
+        std::memcpy(result, &(s.key), sizeof(int));
+        std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
+        return std::string(result, len);
+    }
 
-                static MyStruct Deserialize(const std::string &x) { 
-                    int i, j; 
-                    std::memcpy(&i, x.c_str(), sizeof(int)); 
-                    std::memcpy(&j, x.substr(sizeof(int), 2*sizeof(int)).c_str(), sizeof(int)); 
-                    return MyStruct(i, j); 
-                } 
-            }; 
-        } 
-    } 
+    static MyStruct Deserialize(const std::string& x) {
+        int i, j;
+        std::memcpy(&i, x.c_str(), sizeof(int));
+        std::memcpy(&j, x.substr(sizeof(int), 2 * sizeof(int)).c_str(), sizeof(int));
+        return MyStruct(i, j);
+    }
+};
+}
+}
 }
 
 TEST_F(PreTable, AddIntegers) {
@@ -88,7 +87,7 @@ TEST_F(PreTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(1, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
@@ -109,7 +108,7 @@ TEST_F(PreTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(1, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
@@ -130,7 +129,7 @@ TEST_F(PreTable, PopIntegers) {
 
     auto key_ex = [](int in) { return in; };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(1, key_ex, red_fn, one_int_emitter);
 
     table.SetMaxSize(3);
@@ -158,7 +157,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(1, 10, 2, 10, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(0);
@@ -189,15 +188,15 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
 // no size constraint, two partitions
 TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
-            table(2, 5, 2, 10, 10, key_ex, red_fn, two_int_emitters);
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    table(2, 5, 2, 10, 10, key_ex, red_fn, two_int_emitters);
 
     table.Insert(0);
     table.Insert(1);
@@ -233,15 +232,15 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 // max table size constraint, one partition
 TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
-            table(1, 10, 2, 10, 4, key_ex, red_fn, one_int_emitter);
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    table(1, 10, 2, 10, 4, key_ex, red_fn, one_int_emitter);
 
     table.Insert(0);
     table.Insert(1);
@@ -267,15 +266,15 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 //// max table size constraint, two partitions
 TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
-            table(2, 5, 2, 10, 4, key_ex, red_fn, two_int_emitters);
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    table(2, 5, 2, 10, 4, key_ex, red_fn, two_int_emitters);
 
     table.Insert(0);
     table.Insert(1);
@@ -317,7 +316,7 @@ TEST_F(PreTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<StringPair>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<StringPair> >
     table(1, 2, 2, 10, 3, key_ex, red_fn, one_pair_emitter);
 
     table.Insert(std::make_pair("hallo", 1));
@@ -344,7 +343,7 @@ TEST_F(PreTable, MultipleWorkers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(2, key_ex, red_fn, one_int_emitter);
 
     ASSERT_EQ(0, table.Size());
@@ -362,16 +361,15 @@ TEST_F(PreTable, MultipleWorkers) {
 // then add 2 items with different key, but having same hash value, one partition
 TEST_F(PreTable, ResizeOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
-            table(1, 1, 10, 1, 10, key_ex, red_fn, one_int_emitter);
-
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    table(1, 1, 10, 1, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
 
@@ -402,15 +400,15 @@ TEST_F(PreTable, ResizeOnePartition) {
 // Check that same items are in same partition after resize
 TEST_F(PreTable, ResizeTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int>>
-            table(2, 1, 10, 1, 10, key_ex, red_fn, two_int_emitters);
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    table(2, 1, 10, 1, 10, key_ex, red_fn, two_int_emitters);
 
     ASSERT_EQ(0, table.Size());
     ASSERT_EQ(2, table.NumBuckets());
@@ -433,45 +431,45 @@ TEST_F(PreTable, ResizeTwoPartitions) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(PreTable, BigReduce) {  
-    auto key_ex = [](const MyStruct& in) { 
-        return in.key % 500; 
-    };  
+TEST_F(PreTable, BigReduce) {
+    auto key_ex = [](const MyStruct& in) {
+                      return in.key % 500;
+                  };
 
-    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) { 
-        return MyStruct(in1.key, in1.count + in2.count); 
-    };  
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+                      return MyStruct(in1.key, in1.count + in2.count);
+                  };
 
-    size_t total_sum = 0, total_count = 0;  
+    size_t total_sum = 0, total_count = 0;
 
-    auto id1 = manager.AllocateDIA(); 
-    std::vector<BlockEmitter<MyStruct>> emitters; 
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));  
+    auto id1 = manager.AllocateDIA();
+    std::vector<BlockEmitter<MyStruct> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
 
-    // Hashtable with smaller block size for testing. 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), 
-        BlockEmitter<MyStruct>, 16*1024> 
-        table(1, 2, 2, 128 * 1024, 1024 * 1024, 
-            key_ex, red_fn, { emitters });  
+    // Hashtable with smaller block size for testing.
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+                              BlockEmitter<MyStruct>, 16*1024>
+    table(1, 2, 2, 128 * 1024, 1024 * 1024,
+          key_ex, red_fn, { emitters });
 
-    // insert lots of items 
-    size_t nitems = 1 * 1024 * 1024; 
-    for (size_t i = 0; i != nitems; ++i) { 
-        table.Insert(MyStruct(i, 1)); 
-    }  
+    // insert lots of items
+    size_t nitems = 1 * 1024 * 1024;
+    for (size_t i = 0; i != nitems; ++i) {
+        table.Insert(MyStruct(i, 1));
+    }
 
-    table.Flush();  
+    table.Flush();
 
-    auto it1 = manager.GetIterator<MyStruct>(id1); 
-    while (it1.HasNext()) { 
-        auto n = it1.Next(); 
-        total_count++; 
-        total_sum += n.count; 
-    }  
+    auto it1 = manager.GetIterator<MyStruct>(id1);
+    while (it1.HasNext()) {
+        auto n = it1.Next();
+        total_count++;
+        total_sum += n.count;
+    }
 
-    // actually check that the reduction worked 
-    ASSERT_EQ(500, total_count); 
-    ASSERT_EQ(nitems, total_sum); 
+    // actually check that the reduction worked
+    ASSERT_EQ(500, total_count);
+    ASSERT_EQ(nitems, total_sum);
 }
 
 // Insert several items with same key and test application of local reduce
@@ -479,11 +477,11 @@ TEST_F(PreTable, SmallReduce) {
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-        return std::make_pair(in1.first, in1.second + in2.second);
-    };
+                      return std::make_pair(in1.first, in1.second + in2.second);
+                  };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<StringPair>>
-            table(1, 10, 2, 10, 10, key_ex, red_fn, one_pair_emitter);
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<StringPair> >
+    table(1, 10, 2, 10, 10, key_ex, red_fn, one_pair_emitter);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 22));
@@ -506,10 +504,12 @@ TEST_F(PreTable, SmallReduce) {
         if (p.first == "hallo") {
             ASSERT_EQ(3, p.second);
             c1++;
-        } else if (p.first == "hello") {
+        }
+        else if (p.first == "hello") {
             ASSERT_EQ(55, p.second);
             c1++;
-        } else if (p.first == "bonjour") {
+        }
+        else if (p.first == "bonjour") {
             ASSERT_EQ(47, p.second);
             c1++;
         }

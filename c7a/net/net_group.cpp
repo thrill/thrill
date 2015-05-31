@@ -24,7 +24,7 @@ namespace c7a {
 namespace net {
 
 /**
- * @brief Auxiallary class for buffered reads. 
+ * @brief Auxiallary class for buffered reads.
  */
 template <typename Functional, size_t BufferSize = 0>
 class NetReadBuffer
