@@ -28,7 +28,7 @@ namespace common {
  * type, like unsigned long long value. If further operators are needed, they
  * should be added.
  */
-template <typename _ValueType, bool Active>
+template <typename _ValueType, bool Active = true>
 class StatsCounter
 { };
 
