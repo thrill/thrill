@@ -94,11 +94,11 @@ TEST_F(PreTable, AddIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(2);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 }
 
 TEST_F(PreTable, CreateEmptyTable) {
@@ -115,11 +115,11 @@ TEST_F(PreTable, CreateEmptyTable) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(2);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 }
 
 TEST_F(PreTable, PopIntegers) {
@@ -139,11 +139,11 @@ TEST_F(PreTable, PopIntegers) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 
     table.Insert(1);
 
-    ASSERT_EQ(1, table.Size());
+    ASSERT_EQ(1u, table.Size());
 }
 
 // Manually flush all items in table,
@@ -166,7 +166,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5, table.Size());
+    ASSERT_EQ(5u, table.Size());
 
     table.Flush();
 
@@ -181,7 +181,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     std::cout << "test: " << c << std::endl;
 
     ASSERT_EQ(5, c);
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 }
 
 // Manually flush all items in table,
@@ -204,7 +204,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5, table.Size());
+    ASSERT_EQ(5u, table.Size());
 
     table.Flush();
 
@@ -225,7 +225,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 }
 
 // Partial flush of items in table due to
@@ -247,7 +247,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4, table.Size());
+    ASSERT_EQ(4u, table.Size());
 
     table.Insert(4);
 
@@ -259,7 +259,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     }
 
     ASSERT_EQ(5, c);
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 }
 
 //// Partial flush of items in table due to
@@ -281,7 +281,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4, table.Size());
+    ASSERT_EQ(4u, table.Size());
 
     table.Insert(4);
 
@@ -303,7 +303,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 }
 
 TEST_F(PreTable, ComplexType) {
@@ -323,15 +323,15 @@ TEST_F(PreTable, ComplexType) {
     table.Insert(std::make_pair("hello", 2));
     table.Insert(std::make_pair("bonjour", 3));
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(std::make_pair("hello", 5));
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(std::make_pair("baguette", 42));
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 }
 
 TEST_F(PreTable, MultipleWorkers) {
@@ -346,15 +346,15 @@ TEST_F(PreTable, MultipleWorkers) {
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(2, key_ex, red_fn, one_int_emitter);
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
     table.SetMaxSize(5);
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
     }
 
-    ASSERT_LE(table.Size(), 3);
-    ASSERT_GT(table.Size(), 0);
+    ASSERT_LE(table.Size(), 3u);
+    ASSERT_GT(table.Size(), 0u);
 }
 
 // Resize due to max bucket size reached. Set max items per bucket to 1,
@@ -373,15 +373,15 @@ TEST_F(PreTable, ResizeOnePartition) {
 
     table.Insert(1);
 
-    ASSERT_EQ(1, table.NumBuckets());
-    ASSERT_EQ(1, table.PartitionSize(0));
-    ASSERT_EQ(1, table.Size());
+    ASSERT_EQ(1u, table.NumBuckets());
+    ASSERT_EQ(1u, table.PartitionSize(0));
+    ASSERT_EQ(1u, table.Size());
 
     table.Insert(2); // Resize happens here
 
-    ASSERT_EQ(10, table.NumBuckets());
-    ASSERT_EQ(2, table.PartitionSize(0));
-    ASSERT_EQ(2, table.Size());
+    ASSERT_EQ(10u, table.NumBuckets());
+    ASSERT_EQ(2u, table.PartitionSize(0));
+    ASSERT_EQ(2u, table.Size());
 
     table.Flush();
 
@@ -410,24 +410,24 @@ TEST_F(PreTable, ResizeTwoPartitions) {
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(2, 1, 10, 1, 10, key_ex, red_fn, two_int_emitters);
 
-    ASSERT_EQ(0, table.Size());
-    ASSERT_EQ(2, table.NumBuckets());
-    ASSERT_EQ(0, table.PartitionSize(0));
-    ASSERT_EQ(0, table.PartitionSize(1));
+    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(2u, table.NumBuckets());
+    ASSERT_EQ(0u, table.PartitionSize(0));
+    ASSERT_EQ(0u, table.PartitionSize(1));
 
     table.Insert(1);
     table.Insert(2);
 
-    ASSERT_EQ(2, table.Size());
-    ASSERT_EQ(2, table.NumBuckets());
-    ASSERT_EQ(1, table.PartitionSize(0));
-    ASSERT_EQ(1, table.PartitionSize(1));
+    ASSERT_EQ(2u, table.Size());
+    ASSERT_EQ(2u, table.NumBuckets());
+    ASSERT_EQ(1u, table.PartitionSize(0));
+    ASSERT_EQ(1u, table.PartitionSize(1));
 
     table.Insert(3); // Resize happens here
 
-    ASSERT_EQ(3, table.Size());
-    ASSERT_EQ(20, table.NumBuckets());
-    ASSERT_EQ(3, table.PartitionSize(0) + table.PartitionSize(1));
+    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(20u, table.NumBuckets());
+    ASSERT_EQ(3u, table.PartitionSize(0) + table.PartitionSize(1));
 }
 
 // Insert several items with same key and test application of local reduce
@@ -468,7 +468,7 @@ TEST_F(PreTable, BigReduce) {
     }
 
     // actually check that the reduction worked
-    ASSERT_EQ(500, total_count);
+    ASSERT_EQ(500u, total_count);
     ASSERT_EQ(nitems, total_sum);
 }
 
@@ -487,13 +487,13 @@ TEST_F(PreTable, SmallReduce) {
     table.Insert(std::make_pair("hello", 22));
     table.Insert(std::make_pair("bonjour", 3));
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(std::make_pair("hallo", 2));
     table.Insert(std::make_pair("hello", 33));
     table.Insert(std::make_pair("bonjour", 44));
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Flush();
 

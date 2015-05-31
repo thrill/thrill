@@ -79,7 +79,7 @@ public:
     }
 
     // TODO Get size of current partition
-    size_t get_current_size(ChainId id) {
+    size_t get_current_size(ChainId /* id */) {
         return 0;
     }
 

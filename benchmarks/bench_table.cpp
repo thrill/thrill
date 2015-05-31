@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
                       return in;
                   };
 
-    auto red_fn = [](int in1, int in2) {
+    auto red_fn = [](int in1, int /* in2 */) {
                       return in1;
                   };
 
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<int> elements(std::stoi(argv[1]));
 
-    for (int i = 0; i < elements.size(); i++) {
+    for (size_t i = 0; i < elements.size(); i++) {
         elements[i] = rand() % modulo;
     }
 
