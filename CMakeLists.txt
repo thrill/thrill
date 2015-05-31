@@ -41,7 +41,7 @@ if(JENKINS_BUILD)
   # build using libc++ with clang in Jenkins
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-    message("Building using libc++ on clang")
+    message(STATUS "Building using libc++ on clang")
   endif()
 endif()
 
@@ -51,7 +51,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 endif()
 
-message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###############################################################################
 # enable gcov coverage analysis with gcc
