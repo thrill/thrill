@@ -218,6 +218,7 @@ public:
     //! Bind socket to given SocketAddress for listening or connecting.
     bool bind(const SocketAddress& sa) {
         assert(IsValid());
+        assert(sa.IsValid());
 
         int r = ::bind(fd_, sa.sockaddr(), sa.socklen());
 
@@ -235,6 +236,7 @@ public:
     //! Initial socket connection to address
     int connect(const SocketAddress& sa) {
         assert(IsValid());
+        assert(sa.IsValid());
 
         int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
 
