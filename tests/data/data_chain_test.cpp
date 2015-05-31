@@ -15,7 +15,7 @@ using namespace c7a::data;
 TEST(ChainId, PreIncrement) {
     ChainId id(LOCAL, 0);
     id++;
-    ASSERT_EQ(1, id.identifier);
+    ASSERT_EQ(1u, id.identifier);
 }
 
 TEST(ChainId, NotEqual_DifferentIdentifier) {

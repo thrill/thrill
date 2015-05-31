@@ -237,7 +237,7 @@ private:
      * @return A bool indicating wether this callback should stay registered.
      */
     bool OnConnected(
-        NetConnection& conn, uint32_t group, size_t id, SocketAddress address) {
+        NetConnection& conn, uint32_t group, size_t id, SocketAddress /* address */) {
 
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
