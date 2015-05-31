@@ -38,7 +38,7 @@ TEST(StatsTimer, Test1) {
     ASSERT_GT(timer1.Milliseconds(), 150);
     ASSERT_EQ(timer2.Milliseconds(), 0);
 
-    ASSERT_GE(timer1.Seconds(), 0); //TODO(tb) was ASSERT_GT but failed the test. Is this test still correct?
+    ASSERT_GE(timer1.Seconds(), 0);
     ASSERT_EQ(timer2.Seconds(), 0);
 }
 
