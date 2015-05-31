@@ -14,6 +14,7 @@
 #include <tuple>
 
 #include <c7a/api/context.hpp>
+#include <c7a/common/timer.hpp>
 
 namespace c7a {
 namespace bootstrap {
@@ -69,7 +70,11 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     ctx.job_manager().Connect(my_rank, net::NetEndpoint::ParseEndpointList(endpoints));
     ctx.job_manager().StartDispatcher();
     std::cout << "starting job" << std::endl;
+    timer timer;
+    timer.start();
     auto job_result = job_startpoint(ctx);
+    timer.stop();
+    std::cout << "timer.time.tim.ti.t(): " << timer.get_time() << std::endl;
     ctx.job_manager().StopDispatcher();
     return job_result;
 }

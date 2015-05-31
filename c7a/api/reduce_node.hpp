@@ -131,7 +131,7 @@ private:
 
     data::ChannelId channel_id_;
 
-    std::vector<data::BlockEmitter<Output>> emitters_;
+    std::vector<data::BlockEmitter<Output> > emitters_;
 
     core::ReducePreTable<KeyExtractor, ReduceFunction, data::BlockEmitter<Output> > reduce_pre_table_;
 
@@ -139,7 +139,7 @@ private:
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
     void PreOp(reduce_arg_t input) {
-      reduce_pre_table_.Insert(std::move(input));
+        reduce_pre_table_.Insert(std::move(input));
     }
 
     //!Receive elements from other workers.
@@ -160,14 +160,15 @@ private:
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {
+            std::cout << "waiting...";
             it.WaitForMore();
+            std::cout << " ... done" << std::endl;
             while (it.HasNext()) {
-	        table.Insert(it.Next());
+                table.Insert(it.Next());
             }
         } while (!it.IsClosed());
 
         table.Flush();
-
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.

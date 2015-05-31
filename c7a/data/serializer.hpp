@@ -86,35 +86,6 @@ struct Impl<std::pair<std::string, int> >{
     }
 };
 
-//! serializer for (int, int) tuples
-//struct MyStruct
-//{
-//    int key;
-//    int count;
-//
-//    // only initializing constructor, no default construction possible.
-//    explicit MyStruct(int k, int c) : key(k), count(c)
-//    { }
-//};
-//template <>
-//struct Impl<MyStruct>{
-//    static std::string Serialize(const MyStruct& s) {
-//        std::size_t len = 2 * sizeof(int);
-//        char result[len];
-//        std::memcpy(result, &(s.key), sizeof(int));
-//        std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
-//        return std::string(result, len);
-//    }
-//
-//    static MyStruct Deserialize(const std::string& x) {
-//        int i, j;
-//        std::memcpy(&i, x.c_str(), sizeof(int));
-//        std::memcpy(&j, (x+sizeof(int)).c_str(), sizeof(int));
-//        MyStruct s(i, j);
-//        return s;
-//    }
-//};
-
 //! binary serializer for any integral type, usable as template.
 template <typename Type>
 struct GenericImpl {

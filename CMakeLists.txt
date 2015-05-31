@@ -26,28 +26,36 @@ option(JENKINS_BUILD "Build all with more warnings" OFF)
 
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
+option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
+
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -O3 -std=c++1y -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
-  # enable AddressSanitizer
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-  # enable ThreadSanitizer
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-  # enable UndefinedBehaviorSanitizer
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  if(NOT USE_VALGRIND)
+    # enable AddressSanitizer
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    # enable ThreadSanitizer
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+    # enable UndefinedBehaviorSanitizer
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  endif()
 
   # build using libc++ with clang in Jenkins
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    message(STATUS "Building using libc++ on clang")
   endif()
 endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # Clang does not support debug output for auto return types yet
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g0")
+  string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 endif()
+
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###############################################################################
 # enable gcov coverage analysis with gcc
@@ -104,6 +112,22 @@ if(USE_GCOV)
 
 endif(USE_GCOV)
 
+###############################################################################
+# enable gtest framework, valgrind, and collection of results
+
+enable_testing()
+
+# google test + mock - enable "make test" and add_test()
+add_subdirectory(extlib/gmock) # note: gmock includes gtest
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
+
+# general valgrind setting, if run with USE_VALGRIND=ON.
+set(C7A_VALGRIND_OPTS
+  --leak-check=full --track-origins=yes)
+#  --error-exitcode=1)
+#  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
+
 ################################################################################
 ### Find Required Libraries
 
@@ -113,12 +137,6 @@ endif(USE_GCOV)
 #include_directories(${Boost_INCLUDE_DIRS})
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
-
-# google test + mock - enable "make test" and add_test()
-add_subdirectory(extlib/gmock) # note: gmock includes gtest
-enable_testing()
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
 
 ################################################################################
 ### Descend into Subdirectories

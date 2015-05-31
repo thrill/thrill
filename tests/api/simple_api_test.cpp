@@ -33,14 +33,14 @@ TEST(API, SharedPtrTest) {
                   };
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  }
+                  };
 
-                  auto input = ReadFromFileSystem(
-                      ctx,
-                      g_workpath + "/inputs/test1",
-                      [](const std::string& line) {
-                          return std::stoi(line);
-                      });
+    auto input = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+            return std::stoi(line);
+        });
     auto ints = input.Map(map_fn);
     auto doubles = ints.Map(map_fn);
     auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
@@ -75,14 +75,14 @@ TEST(API, TypeDeductionText) {
                   };
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  }
+                  };
 
-                  auto lines = ReadFromFileSystem(
-                      ctx,
-                      g_workpath + "/inputs/test1",
-                      [](const std::string& line) {
-                          return line;
-                      });
+    auto lines = ReadFromFileSystem(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+            return line;
+        });
     auto ints = lines.Map(to_int_fn);
     auto doubles = ints.Map(double_int_fn);
     auto filtered = doubles.Filter(filter_geq);
@@ -105,9 +105,9 @@ TEST(API, Test1Zip) {
 
     auto zip_fn = [](int in1, int in2) {
                       return in1 + in2;
-                  }
+                  };
 
-                  c7a::Context ctx;
+    c7a::Context ctx;
 
     auto initial1 = ReadFromFileSystem(ctx, "../../tests/inputs/test1", read_int);
 
