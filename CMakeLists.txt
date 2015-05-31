@@ -124,7 +124,8 @@ include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
 set(C7A_VALGRIND_OPTS
-  --leak-check=full --track-origins=yes --error-exitcode=1)
+  --leak-check=full --track-origins=yes)
+#  --error-exitcode=1)
 #  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
 
 ################################################################################
