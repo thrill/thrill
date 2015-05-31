@@ -11,13 +11,13 @@
 #ifndef C7A_DATA_SOCKET_TARGET_HEADER
 #define C7A_DATA_SOCKET_TARGET_HEADER
 
-namespace c7a {
-namespace data {
-
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/stream.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/emitter_target.hpp>
+
+namespace c7a {
+namespace data {
 
 //! SocketTarget is an EmitterTarget that sends data via a network socket to a Channel
 //! The SocketTarget appends data as long as internal queue (4KB) is sufficient or Flush is called.

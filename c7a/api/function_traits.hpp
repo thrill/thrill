@@ -15,10 +15,14 @@
 
 namespace c7a {
 
+#ifndef C7A_DOXYGEN_IGNORE
+
 // taken from: http://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
 template <typename T>
 struct FunctionTraits : public FunctionTraits<decltype(& T::operator ())>{ };
 // For generic types, directly use the result of the signature of its 'operator()'
+
+#endif
 
 template <typename ClassType, typename ReturnType, typename ... Args>
 struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
