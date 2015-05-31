@@ -37,7 +37,7 @@ public:
     BlockEmitter(const BlockEmitter&) = delete;
     BlockEmitter(BlockEmitter&&) = default;
 
-    BlockEmitter &operator=(BlockEmitter&& other) {
+    BlockEmitter& operator = (BlockEmitter&& other) {
         builder_ = other.builder_;
         target_ = other.target_;
         return *this;

@@ -135,12 +135,10 @@ public:
 
     //! Return the currently set port address in host byte-order.
     uint16_t GetPort() const {
-        if (sockaddr()->sa_family == AF_INET)
-        {
+        if (sockaddr()->sa_family == AF_INET) {
             return ntohs(sockaddr_in()->sin_port);
         }
-        else if (sockaddr()->sa_family == AF_INET6)
-        {
+        else if (sockaddr()->sa_family == AF_INET6) {
             return ntohs(sockaddr_in6()->sin6_port);
         }
         else
@@ -149,12 +147,10 @@ public:
 
     //! Change the currently set port address.
     void SetPort(uint16_t port) {
-        if (sockaddr()->sa_family == AF_INET)
-        {
+        if (sockaddr()->sa_family == AF_INET) {
             sockaddr_in()->sin_port = htons(port);
         }
-        else if (sockaddr()->sa_family == AF_INET6)
-        {
+        else if (sockaddr()->sa_family == AF_INET6) {
             sockaddr_in6()->sin6_port = htons(port);
         }
     }

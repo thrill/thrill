@@ -460,6 +460,7 @@ void NetGroup::AllReduce(T& value, BinarySumOp sum_op) {
 }
 
 //! \}
+
 } // namespace net
 } // namespace c7a
 
