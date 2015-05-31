@@ -15,6 +15,7 @@
 #include <ratio>
 #include <chrono>
 
+// TODO(sl): this is a duplicate of StatsTimer ? Why do we need two?
 class timer
 {
 public:
