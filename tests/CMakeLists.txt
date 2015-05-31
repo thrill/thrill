@@ -14,7 +14,7 @@ macro(build_plain PROGNAME)
   add_executable(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
   target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
 
-endmacro(build_only)
+endmacro(build_plain)
 
 # macro for building test programs
 macro(build_only PROGNAME)
