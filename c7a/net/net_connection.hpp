@@ -57,11 +57,11 @@ class NetConnection : protected lowlevel::Socket
     static const bool self_verify_ = true;
 
     /**
-     * @brief The connection state of this connection in the c7a network state machine. 
+     * @brief The connection state of this connection in the c7a network state machine.
      */
     ConnectionState state_;
     /**
-     * @brief The id of the group this connection is associated with. 
+     * @brief The id of the group this connection is associated with.
      */
     size_t group_id_ = -1;
     /**
@@ -83,7 +83,9 @@ public:
     //! Construct NetConnection from a Socket, with immediate
     //! initialization. (Currently used by tests).
     NetConnection(const Socket& s, size_t group_id, size_t peer_id)
-        : Socket(s), group_id_(group_id), peer_id_(peer_id), state_(ConnectionState::Invalid)
+        : Socket(s),
+          state_(ConnectionState::Invalid),
+          group_id_(group_id), peer_id_(peer_id)
     { }
 
     //! move-constructor
@@ -112,21 +114,21 @@ public:
     }
 
     /**
-     * @brief Gets the state of this connection. 
+     * @brief Gets the state of this connection.
      */
     ConnectionState state() const {
         return state_;
     }
 
     /**
-     * @brief Gets the id of the net group this connection is associated with. 
+     * @brief Gets the id of the net group this connection is associated with.
      */
     size_t group_id() const {
         return group_id_;
     }
 
     /**
-     * @brief Gets the id of the worker this connection is connected to. 
+     * @brief Gets the id of the worker this connection is connected to.
      */
     size_t peer_id() const {
         return peer_id_;
@@ -149,7 +151,7 @@ public:
     }
 
     /**
-     * @brief Sets the id of the worker this connection is connected to. 
+     * @brief Sets the id of the worker this connection is connected to.
      */
     void set_peer_id(size_t peerId) {
         this->peer_id_ = peerId;
@@ -179,7 +181,7 @@ public:
     std::string GetPeerAddress() const
     { return Socket::GetPeerAddress().ToStringHostPort(); }
 
-    //! Checks wether two connections have the same underlying socket or not. 
+    //! Checks wether two connections have the same underlying socket or not.
     bool operator == (const NetConnection& c) const
     { return GetSocket().fd() == c.GetSocket().fd(); }
 

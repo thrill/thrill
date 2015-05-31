@@ -173,11 +173,11 @@ private:
         std::vector<size_t> blocks(num_dias_, 0);
 
         for (size_t i = 0; i < num_dias_; ++i) {
-            size_t prefix = data_manager.get_current_size(id_[i]); 
+            size_t prefix = data_manager.get_current_size(id_[i]);
             flow_group.PrefixSum(prefix);
-            size_t total = data_manager.get_current_size(id_[i]); 
+            size_t total = data_manager.get_current_size(id_[i]);
             // TODO: flow_group.TotalSum(prefix);
-            size_t size = data_manager.get_current_size(id_[i]); 
+            size_t size = data_manager.get_current_size(id_[i]);
             size_t per_pe = total / workers;
             size_t target = prefix / per_pe;
             size_t block = std::min(per_pe - prefix % per_pe, size);

@@ -40,9 +40,9 @@ TEST(WordCount, WordCountExample) {
                    return in.first;
                };
     auto red_fn = [](WordPair in1, WordPair in2) {
-                  WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
-                  return wp;
-              };
+                      WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
+                      return wp;
+                  };
 
     auto lines = ReadFromFileSystem(
         ctx,

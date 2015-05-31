@@ -21,7 +21,8 @@ namespace c7a {
 template <typename Input, typename Output, typename WriteFunction, typename Stack>
 class WriteNode : public ActionNode<Input>
 {
-public: // TODO(ms): probably need a stack here as well
+public:
+    // TODO(ms): probably need a stack here as well
     WriteNode(Context& ctx,
               DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
               Stack& stack,
@@ -36,13 +37,12 @@ public: // TODO(ms): probably need a stack here as well
     {
         sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents to" << path_out_;
         auto pre_op_fn = [=](Input input) {
-            PreOp(input);
-        };
+                             PreOp(input);
+                         };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
 
         core::RunScope(this);
-
     }
 
     void PreOp(Input input) {

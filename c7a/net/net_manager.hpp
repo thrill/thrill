@@ -24,9 +24,9 @@ namespace net {
 
 /**
  * @brief Initializes communication channels, manages communication c
- * hannels and handles errors. 
- * @details This class is responsible for initializing the three NetGroups 
- * for the major network components, SystemControl, FlowControl and DataManagement, 
+ * hannels and handles errors.
+ * @details This class is responsible for initializing the three NetGroups
+ * for the major network components, SystemControl, FlowControl and DataManagement,
  */
 class NetManager
 {
@@ -35,8 +35,8 @@ class NetManager
 public:
     /**
      * The count of NetGroups to initialize.
-     * If this value is changed, the corresponding 
-     * getters for the NetGroups should be changed as well. 
+     * If this value is changed, the corresponding
+     * getters for the NetGroups should be changed as well.
      */
     static const size_t kGroupCount = 3;
 
@@ -49,31 +49,30 @@ public:
     }
 
 private:
-
     /**
      * The NetGroups initialized and managed
-     * by this NetManager. 
+     * by this NetManager.
      */
     NetGroup groups_[kGroupCount];
 
     /**
-     * The NetConnections responsible 
-     * for listening to incoming connections. 
+     * The NetConnections responsible
+     * for listening to incoming connections.
      */
     NetConnection listener_;
 
     /**
-     * The rank associated with the local worker.  
+     * The rank associated with the local worker.
      */
     ClientId my_rank_;
 
     /**
      * The dispatcher instance used by this NetManager
-     * to perform async operations. 
+     * to perform async operations.
      */
     NetDispatcher dispatcher_;
 
-    //Some definitions for convenience 
+    //Some definitions for convenience
     typedef lowlevel::Socket Socket;
     typedef lowlevel::SocketAddress SocketAddress;
     typedef lowlevel::IPv4Address IPv4Address;
@@ -109,36 +108,36 @@ private:
     /**
      * @brief Represents a welcome message.
      * @details Represents a welcome message that is exchanged by NetConnections during
-     * network initialization. 
+     * network initialization.
      */
     struct WelcomeMsg
     {
         /**
-         * The c7a flag. 
+         * The c7a flag.
          */
         uint32_t c7a;
         /**
-         * The id of the NetGroup associated with the sending NetConnection. 
+         * The id of the NetGroup associated with the sending NetConnection.
          */
         uint32_t group_id;
         /**
-         * The id of the worker associated with the sending NetConnection. 
+         * The id of the worker associated with the sending NetConnection.
          */
         ClientId id;
     };
 
     /**
-     * The c7a flag - introduced by Master Timo. 
+     * The c7a flag - introduced by Master Timo.
      */
     static const uint32_t c7a_sign = 0x0C7A0C7A;
 
     /**
-     * @brief Returns wether the initialization is completed.  
-     * 
-     * @details Checkts the NetGroups associated with this NetManager and returns true or fals wether 
-     * the initialization is finished. 
-     * 
-     * @return True if initialization is finished, else false. 
+     * @brief Returns wether the initialization is completed.
+     *
+     * @details Checkts the NetGroups associated with this NetManager and returns true or fals wether
+     * the initialization is finished.
+     *
+     * @return True if initialization is finished, else false.
      */
     bool IsInitializationFinished() {
 
@@ -148,7 +147,7 @@ private:
                 if (id == my_rank_) continue;
 
                 //Just checking the state works since this implicitey checks the
-                //size. Unset connections have state ConnectionState::Invalid. 
+                //size. Unset connections have state ConnectionState::Invalid.
                 if (groups_[g].Connection(id).state()
                     != ConnectionState::Connected)
                     return false;
@@ -161,11 +160,11 @@ private:
     /**
      * @brief Starts connecting to the endpoint specified by the parameters.
      * @details Starts connecting to the endpoint specified by the parameters.
-     * This method executes asynchronously. 
-     * 
-     * @param group The id of the NetGroup to connect to. 
-     * @param id The id of the worker to connect to. 
-     * @param address The address of the endpoint to connect to. 
+     * This method executes asynchronously.
+     *
+     * @param group The id of the NetGroup to connect to.
+     * @param id The id of the worker to connect to.
+     * @param address The address of the endpoint to connect to.
      */
     void AsyncConnect(
         uint32_t group, size_t id, SocketAddress& address) {
@@ -178,7 +177,7 @@ private:
         nc.set_group_id(group);
         nc.set_peer_id(id);
 
-        // Start asynchronous connect. 
+        // Start asynchronous connect.
         nc.GetSocket().SetNonBlocking(true);
         int res = nc.GetSocket().connect(address);
 
@@ -207,11 +206,11 @@ private:
     }
 
     /**
-     * @brief Is called whenever a hello is sent. 
-     * @details Is called whenever a hello is sent. 
-     * For outgoing connections, this is the final step in the state machine. 
-     * 
-     * @param conn The connection for which the hello is sent. 
+     * @brief Is called whenever a hello is sent.
+     * @details Is called whenever a hello is sent.
+     * For outgoing connections, this is the final step in the state machine.
+     *
+     * @param conn The connection for which the hello is sent.
      */
     void OnHelloSent(NetConnection& conn) {
         if (conn.state() == ConnectionState::TransportConnected) {
@@ -227,20 +226,20 @@ private:
 
     /**
      * @brief Called when a connection initiated by us succeeds.
-     * @details Called when a connection initiated by us succeeds on a betwork level. 
-     * The c7a welcome messages still have to be exchanged. 
-     * 
-     * @param conn The connection that was connected successfully. 
-     * @param group The associated group id. This parameter is needed in case we need to reconnect. 
-     * @param id The associated remote worker id. This parameter is needed in case we need to reconnect. 
-     * @param address The associated address. This parameter is needed in case we need to reconnect. 
-     * 
-     * @return A bool indicating wether this callback should stay registered. 
+     * @details Called when a connection initiated by us succeeds on a betwork level.
+     * The c7a welcome messages still have to be exchanged.
+     *
+     * @param conn The connection that was connected successfully.
+     * @param group The associated group id. This parameter is needed in case we need to reconnect.
+     * @param id The associated remote worker id. This parameter is needed in case we need to reconnect.
+     * @param address The associated address. This parameter is needed in case we need to reconnect.
+     *
+     * @return A bool indicating wether this callback should stay registered.
      */
     bool OnConnected(
         NetConnection& conn, uint32_t group, size_t id, SocketAddress address) {
 
-        //First, check if everything went well. 
+        //First, check if everything went well.
         int err = conn.GetSocket().GetError();
 
         if (err != 0) {
@@ -283,13 +282,13 @@ private:
     }
 
     /**
-     * @brief Receives and handels a hello message without sending a reply. 
-     * @details Receives and handels a hello message without sending a reply. 
-     * 
-     * @param conn The connection the hello was received for. 
-     * @param buffer The buffer containing the welcome message. 
+     * @brief Receives and handels a hello message without sending a reply.
+     * @details Receives and handels a hello message without sending a reply.
      *
-     * @return A boolean indicating wether this handler should stay attached. 
+     * @param conn The connection the hello was received for.
+     * @param buffer The buffer containing the welcome message.
+     *
+     * @return A boolean indicating wether this handler should stay attached.
      */
     bool OnIncomingWelcome(NetConnection& conn, Buffer&& buffer) {
 
@@ -314,13 +313,13 @@ private:
     }
 
     /**
-     * @brief Receives and handles a welcome message. Also sends a reply. 
-     * @details Receives and handles a welcome message. Also sends a reply. 
-     * 
-     * @param conn The connection that received the welcome message. 
-     * @param buffer The buffer containing the welcome message. 
-     * 
-     * @return A boolean indicating wether this handler should stay attached. 
+     * @brief Receives and handles a welcome message. Also sends a reply.
+     * @details Receives and handles a welcome message. Also sends a reply.
+     *
+     * @param conn The connection that received the welcome message.
+     * @param buffer The buffer containing the welcome message.
+     *
+     * @return A boolean indicating wether this handler should stay attached.
      */
     bool OnIncomingWelcomeAndReply(NetConnection& conn, Buffer&& buffer) {
 
@@ -364,11 +363,11 @@ private:
     }
 
     /**
-     * @brief Handles incoming connections. 
-     * @details Handles incoming connections. 
-     * 
-     * @param conn The listener connection. 
-     * @return A boolean indicating wether this handler should stay attached. 
+     * @brief Handles incoming connections.
+     * @details Handles incoming connections.
+     *
+     * @param conn The listener connection.
+     * @return A boolean indicating wether this handler should stay attached.
      */
     bool OnIncomingConnection(NetConnection& conn) {
         // accept listening socket
@@ -392,19 +391,19 @@ private:
     }
 
 public:
-     /**
-      * @brief Executes a local mockup for testing. 
-      * @details Spawns theads for each NetGroup and calls the given thread
-      * function for each client to simulate. This function uses the 
-      * LocalMock function of the NetGroup class. 
-      * 
-      * See unit tests for usage examples. 
-      * 
-      * @param num_clients The number of clients to simulate. 
-      * @param systemThreadFunction The function to execute for the system control NetGroup. 
-      * @param flowThreadFunction The function to execute for the flow control NetGroup.
-      * @param dataThreadFunction The function to execute for the data manager NetGroup. 
-      */
+    /**
+     * @brief Executes a local mockup for testing.
+     * @details Spawns theads for each NetGroup and calls the given thread
+     * function for each client to simulate. This function uses the
+     * LocalMock function of the NetGroup class.
+     *
+     * See unit tests for usage examples.
+     *
+     * @param num_clients The number of clients to simulate.
+     * @param systemThreadFunction The function to execute for the system control NetGroup.
+     * @param flowThreadFunction The function to execute for the flow control NetGroup.
+     * @param dataThreadFunction The function to execute for the data manager NetGroup.
+     */
     static void ExecuteLocalMock(
         size_t num_clients,
         const std::function<void(NetGroup*)>& systemThreadFunction,
@@ -416,7 +415,7 @@ public:
 
         std::vector<std::thread*> threads(kGroupCount);
 
-        //Create mock netgroups in new threads. 
+        //Create mock netgroups in new threads.
         threads[0] = new std::thread(
             [=] {
                 NetGroup::ExecuteLocalMock(num_clients, systemThreadFunction);
@@ -430,7 +429,7 @@ public:
                 NetGroup::ExecuteLocalMock(num_clients, dataThreadFunction);
             });
 
-        //Join threads again. 
+        //Join threads again.
         for (size_t i = 0; i != threads.size(); ++i) {
             threads[i]->join();
             delete threads[i];
@@ -438,22 +437,22 @@ public:
     }
 
     /**
-     * @brief Initializes this NetManager and initializes all NetGroups. 
-     * @details Initializes this NetManager and initializes all NetGroups. 
-     * When this method returns, the network system is ready to use. 
-     * 
-     * @param my_rank_ The rank of the worker that owns this NetManager. 
-     * @param endpoints The ordered list of all endpoints, including the local worker, 
-     * where the endpoint at position i corresponds to the worker with id i. 
+     * @brief Initializes this NetManager and initializes all NetGroups.
+     * @details Initializes this NetManager and initializes all NetGroups.
+     * When this method returns, the network system is ready to use.
+     *
+     * @param my_rank_ The rank of the worker that owns this NetManager.
+     * @param endpoints The ordered list of all endpoints, including the local worker,
+     * where the endpoint at position i corresponds to the worker with id i.
      */
     void Initialize(size_t my_rank_,
                     const std::vector<NetEndpoint>& endpoints) {
 
         die_unless(my_rank_ < endpoints.size());
-        
+
         this->my_rank_ = my_rank_;
 
-        //If we heldy any connections, do not allow a new initialization. 
+        //If we heldy any connections, do not allow a new initialization.
         if (connections_.size() != 0) {
             throw new Exception("This net manager has already been initialized.");
         }
@@ -462,16 +461,16 @@ public:
             groups_[i].Initialize(my_rank_, endpoints.size());
         }
 
-        //Parse endpoints. 
+        //Parse endpoints.
         std::vector<SocketAddress> addressList
             = GetAddressList(endpoints);
 
-        //Create listening socket. 
+        //Create listening socket.
         {
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
 
-            //Override IP with 0.0.0.0, so binding also works on OSX. 
+            //Override IP with 0.0.0.0, so binding also works on OSX.
             const lowlevel::IPv4Address lsa("0.0.0.0", addressList[my_rank_].GetPort());
 
             if (listen_socket.bind(lsa) != 0)
@@ -495,24 +494,23 @@ public:
             }
         }
 
-        //Add reads to the dispatcher to accept new connections. 
+        //Add reads to the dispatcher to accept new connections.
         dispatcher_.AddRead(listener_,
                             [=](NetConnection& nc) {
                                 return OnIncomingConnection(nc);
                             });
 
-        //Dispatch until everything is connected. 
+        //Dispatch until everything is connected.
         while (!IsInitializationFinished())
         {
             LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher_.Dispatch();
         }
 
-        //All connected, Dispose listener. 
+        //All connected, Dispose listener.
         listener_.Close();
 
         LOG << "Client " << my_rank_ << " done";
-
 
         for (uint32_t j = 0; j < kGroupCount; j++) {
             // output list of file descriptors connected to partners
@@ -523,8 +521,8 @@ public:
 
                 // TODO(tb): temporarily turn all fds back to blocking, till the
                 // whole asio schema works.
-                // NOTE(ej): This should be correct? Distpatch is not going to work 
-                // correctly with non-blocking sockets and will default to busy waiting? 
+                // NOTE(ej): This should be correct? Distpatch is not going to work
+                // correctly with non-blocking sockets and will default to busy waiting?
                 groups_[j].Connection(i).GetSocket().SetNonBlocking(false);
             }
         }
@@ -544,7 +542,7 @@ public:
     }
 
     /**
-     * @brief Returns the net group for the data manager. 
+     * @brief Returns the net group for the data manager.
      */
     NetGroup & GetDataNetGroup() {
         return groups_[2];

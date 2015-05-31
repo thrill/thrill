@@ -33,11 +33,11 @@ static void ThreadInitializeAsyncRead(NetGroup* net) {
     NetDispatcher dispatcher;
 
     NetDispatcher::AsyncReadCallback callback =
-    [net, &received](NetConnection & /* s */, const Buffer &buffer) {
-        ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
-                  net->MyRank());
-        received++;
-    };
+        [net, &received](NetConnection& /* s */, const Buffer& buffer) {
+            ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
+                      net->MyRank());
+            received++;
+        };
 
     // add async reads to net dispatcher
     for (size_t i = 0; i != net->Size(); ++i)
@@ -166,7 +166,7 @@ static void RealNetGroupConstructAndCall(
 
 TEST(NetGroup, RealInitializeAndClose) {
     // Construct a real NetGroup of 6 workers which do nothing but terminate.
-    RealNetGroupConstructAndCall([] (NetGroup*) { });
+    RealNetGroupConstructAndCall([](NetGroup*) { });
 }
 
 TEST(NetGroup, RealInitializeSendReceive) {
@@ -189,12 +189,12 @@ TEST(NetGroup, RealInitializeBroadcast) {
 
 TEST(NetGroup, InitializeAndClose) {
     // Construct a NetGroup of 6 workers which do nothing but terminate.
-    NetGroup::ExecuteLocalMock(6, [] (NetGroup*) { });
+    NetGroup::ExecuteLocalMock(6, [](NetGroup*) { });
 }
 
 TEST(NetManager, InitializeAndClose) {
     // Construct a NetGroup of 6 workers which do nothing but terminate.
-    NetManager::ExecuteLocalMock(6, [] (NetGroup*) { }, [] (NetGroup*) { }, [] (NetGroup*) { });
+    NetManager::ExecuteLocalMock(6, [](NetGroup*) { }, [](NetGroup*) { }, [](NetGroup*) { });
 }
 
 TEST(NetGroup, InitializeSendReceive) {
@@ -227,7 +227,7 @@ TEST(NetGroup, TestAllReduce) {
     for (size_t p = 0; p <= 8; ++p) {
         // Construct NetGroup of p workers which perform an AllReduce collective
         NetGroup::ExecuteLocalMock(
-            p, [] (NetGroup * net) {
+            p, [](NetGroup* net) {
                 size_t local_value = net->MyRank();
                 net->AllReduce(local_value);
                 ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
@@ -239,7 +239,7 @@ TEST(NetGroup, TestBroadcast) {
     for (size_t p = 0; p <= 8; ++p) {
         // Construct NetGroup of p workers which perform an Broadcast collective
         NetGroup::ExecuteLocalMock(
-            p, [] (NetGroup * net) {
+            p, [](NetGroup* net) {
                 size_t local_value;
                 if (net->MyRank() == 0) local_value = 42;
                 net->Broadcast(local_value);
@@ -252,7 +252,7 @@ TEST(NetGroup, TestReduceToRoot) {
     for (size_t p = 0; p <= 8; ++p) {
         // Construct NetGroup of p workers which perform an Broadcast collective
         NetGroup::ExecuteLocalMock(
-            p, [] (NetGroup * net) {
+            p, [](NetGroup* net) {
                 size_t local_value = net->MyRank();
                 net->ReduceToRoot(local_value);
                 if (net->MyRank() == 0)
