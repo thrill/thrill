@@ -32,7 +32,7 @@ namespace common {
  * after some processing, the function stop() functions can be called, or
  * seconds() and other accessors can be called directly.
  */
-template <bool Active>
+template <bool Active = true>
 class StatsTimer
 { };
 
@@ -58,7 +58,8 @@ protected:
 public:
     //! Initialize and optionally immediately start the timer
     explicit StatsTimer(bool start_immediately = false)
-        : running_(false) {
+        : running_(false),
+          accumulated_() {
         if (start_immediately) Start();
     }
 
