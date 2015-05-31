@@ -41,6 +41,7 @@ if(JENKINS_BUILD)
   # build using libc++ with clang in Jenkins
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    message("Building using libc++ on clang")
   endif()
 endif()
 
@@ -48,6 +49,8 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # Clang does not support debug output for auto return types yet
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g0")
 endif()
+
+message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###############################################################################
 # enable gcov coverage analysis with gcc
