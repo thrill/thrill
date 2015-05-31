@@ -128,7 +128,8 @@ static void ThreadInitializeSendReceive(NetGroup* net) {
 static void RealNetGroupConstructAndCall(
     std::function<void(NetGroup*)> thread_function) {
     // randomize base port number for test
-    std::default_random_engine generator;
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(30000, 65000);
     const size_t port_base = distribution(generator);
 
@@ -140,6 +141,8 @@ static void RealNetGroupConstructAndCall(
         NetEndpoint("127.0.0.1:" + std::to_string(port_base + 4)),
         NetEndpoint("127.0.0.1:" + std::to_string(port_base + 5))
     };
+
+    sLOG1 << "NetGroup test uses ports " << port_base << "-" << port_base + 5;
 
     static const int count = endpoints.size();
 
