@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/write_node.hpp
+ * c7a/api/sum_node.hpp
  *
  * Part of Project c7a.
  *
@@ -28,16 +28,16 @@ public:
             DIANode<Input>* parent,
             Stack& stack,
             SumFunction sum_function)
-          : ActionNode<Input>(ctx, { parent }),
-            sum_function_(sum_function),
-            stack_(stack)
+        : ActionNode<Input>(ctx, { parent }),
+          sum_function_(sum_function),
+          stack_(stack)
     {
         core::RunScope(this); // TODO(ms): find a way to move that to ActionNode
 
         // Hook PreOp(s)
         auto pre_op_fn = [=](Input input) {
-            PreOp(input);
-        };
+                             PreOp(input);
+                         };
 
         auto lop_chain = stack_.push(pre_op_fn).emit();
 
@@ -47,8 +47,7 @@ public:
     virtual ~SumNode() { }
 
     //! Executes the sum operation.
-    void execute() override
-    {
+    void execute() override {
         MainOp();
     }
 
@@ -58,9 +57,9 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](Input t, std::function<void(Input)> emit_func) {
-            return emit_func(t);
-        };
+        auto id_fn = [=](Input t, std::function<void(Input)> emit_func) {
+                         return emit_func(t);
+                     };
 
         FunctionStack<> stack;
         return stack.push(id_fn);
@@ -70,10 +69,10 @@ public:
      * Returns "[SumNode]" as a string.
      * \return "[SumNode]"
      */
-    std::string ToString() override
-    {
+    std::string ToString() override {
         return "[SumNode] Id: " + std::to_string(this->data_id_);
     }
+
 private:
     //! Local stack
     Stack stack_;
@@ -104,13 +103,11 @@ private:
         group->Broadcast(sum);
     }
 
-    void PostOp() {
-
-    }
+    void PostOp() { }
 };
 
 } // namespace c7a
 
-#endif //!C7A_API_SUM_NODE_HEADER
+#endif // !C7A_API_SUM_NODE_HEADER
 
 /******************************************************************************/

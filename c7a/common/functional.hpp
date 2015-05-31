@@ -16,9 +16,9 @@ namespace common {
 
 //! Identity functor, very useful for default parameters.
 struct Identity {
-    template<typename Type>
-    constexpr auto operator()(Type&& v) const noexcept
-        -> decltype(std::forward<Type>(v)) {
+    template <typename Type>
+    constexpr auto operator () (Type&& v) const noexcept
+    ->decltype(std::forward<Type>(v)) {
         return std::forward<Type>(v);
     }
 };
