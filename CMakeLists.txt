@@ -33,12 +33,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
-  # enable AddressSanitizer
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-  # enable ThreadSanitizer
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-  # enable UndefinedBehaviorSanitizer
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  if(NOT USE_VALGRIND)
+    # enable AddressSanitizer
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    # enable ThreadSanitizer
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+    # enable UndefinedBehaviorSanitizer
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  endif()
 
   # build using libc++ with clang in Jenkins
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
