@@ -61,13 +61,13 @@ TEST_F(PostTable, AddIntegers) {
 
     table.Print();
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(2);
 
     table.Print();
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
@@ -82,7 +82,7 @@ TEST_F(PostTable, CreateEmptyTable) {
     c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
     table(key_ex, red_fn, emitters);
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 }
 
 TEST_F(PostTable, FlusHIntegers) {
@@ -100,15 +100,15 @@ TEST_F(PostTable, FlusHIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Flush();
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 
     table.Insert(1);
 
-    ASSERT_EQ(1, table.Size());
+    ASSERT_EQ(1u, table.Size());
 }
 
 TEST_F(PostTable, DISABLED_MultipleEmitters) { //TODO(ts) enable when hash table flushes emitters
@@ -134,17 +134,17 @@ TEST_F(PostTable, DISABLED_MultipleEmitters) { //TODO(ts) enable when hash table
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Flush();
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 
     table.Insert(1);
 
-    ASSERT_EQ(1, table.Size());
+    ASSERT_EQ(1u, table.Size());
 
-    ASSERT_EQ(9, CountIteratorElements());
+    ASSERT_EQ(9u, CountIteratorElements());
 }
 
 TEST_F(PostTable, ComplexType) {
@@ -167,15 +167,15 @@ TEST_F(PostTable, ComplexType) {
     table.Insert(std::make_pair("hello", 2));
     table.Insert(std::make_pair("bonjour", 3));
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(std::make_pair("hello", 5));
 
-    ASSERT_EQ(3, table.Size());
+    ASSERT_EQ(3u, table.Size());
 
     table.Insert(std::make_pair("baguette", 42));
 
-    ASSERT_EQ(4, table.Size());
+    ASSERT_EQ(4u, table.Size());
 }
 
 // TODO(ms): add one test with a for loop inserting 10000 items. -> trigger

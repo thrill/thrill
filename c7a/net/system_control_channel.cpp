@@ -12,7 +12,7 @@
 namespace c7a {
 namespace net {
 
-void MasterSystemControlChannel::setCallback(MasterControlCallback callback)
+void MasterSystemControlChannel::setCallback(MasterControlCallback /* callback */)
 { }
 
 void MasterSystemControlChannel::rollBackStage()
@@ -21,7 +21,7 @@ void MasterSystemControlChannel::rollBackStage()
 void MasterSystemControlChannel::abortExecution()
 { }
 
-void WorkerSystemControlChannel::setCallback(WorkerControlCallback callback)
+void WorkerSystemControlChannel::setCallback(WorkerControlCallback /* callback */)
 { }
 
 void WorkerSystemControlChannel::requestBackupLocation()

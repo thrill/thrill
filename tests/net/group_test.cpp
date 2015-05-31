@@ -243,7 +243,7 @@ TEST(NetGroup, TestBroadcast) {
                 size_t local_value;
                 if (net->MyRank() == 0) local_value = 42;
                 net->Broadcast(local_value);
-                ASSERT_EQ(local_value, 42);
+                ASSERT_EQ(local_value, 42u);
             });
     }
 }
