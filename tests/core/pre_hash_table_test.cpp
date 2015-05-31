@@ -284,6 +284,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(4u, table.Size());
 
     table.Insert(4);
+    table.Flush();
 
     auto it1 = manager.GetIterator<int>(id1);
     int c1 = 0;
