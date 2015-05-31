@@ -57,7 +57,7 @@ public:
     //! NetGroup object. This is ideal for testing network communication
     //! protocols. See tests/net/test-net-group.cpp for examples.
     //! @param num_clients The number of clients to spawn.
-    //! @thread_function The function to execute for each client.
+    //! @param thread_function The function to execute for each client.
     static void ExecuteLocalMock(
         size_t num_clients,
         const std::function<void(NetGroup*)>& thread_function);
@@ -340,7 +340,7 @@ public:
 
     /**
      * @brief Broadcasts a fixed length type to all workers.
-     * @detailsBroadcasts a fixed length type to all workers.
+     * @details Broadcasts a fixed length type to all workers.
      *
      * @param data The data to broadcast.
      */
