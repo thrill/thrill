@@ -282,17 +282,17 @@ public:
     template <typename sum_fn_t>
     auto Sum(const sum_fn_t &sum_fn) {
         using sum_result_t
-        = typename FunctionTraits<sum_fn_t>::result_type;
+                  = typename FunctionTraits<sum_fn_t>::result_type;
         using sum_arg_0_t
-        = typename FunctionTraits<sum_fn_t>::template arg<0>;
+                  = typename FunctionTraits<sum_fn_t>::template arg<0>;
 
         using SumResultNode = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
 
         auto shared_node
-                = std::make_shared<SumResultNode>(node_->get_context(),
-                                                  node_.get(),
-                                                  local_stack_,
-                                                  sum_fn);
+            = std::make_shared<SumResultNode>(node_->get_context(),
+                                              node_.get(),
+                                              local_stack_,
+                                              sum_fn);
 
         auto sum_stack = shared_node->ProduceStack();
         return 1.0f; // TODO(ms) get the correct return type
@@ -319,11 +319,11 @@ public:
         auto shared_node =
             std::make_shared<WriteResultNode>(node_->get_context(),
                                               node_.get(),
-                                                local_stack_,
+                                              local_stack_,
                                               write_fn,
                                               filepath);
 
-       auto write_stack = shared_node->ProduceStack();
+        auto write_stack = shared_node->ProduceStack();
     }
 
     /*!
