@@ -19,10 +19,8 @@ endmacro(build_plain)
 # macro for building test programs
 macro(build_only PROGNAME)
 
-  string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
-
-  add_executable(${TESTNAME} c7a_tests.cpp ${PROGNAME}.cpp ${ARGN})
-  target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
+  # append gtest runner program.
+  build_plain(${PROGNAME} c7a_tests.cpp ${ARGN})
 
 endmacro(build_only)
 
@@ -32,7 +30,16 @@ macro(build_test PROGNAME)
   build_only(${PROGNAME})
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
-  add_test(${TESTNAME} ${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
+
+  if(USE_VALGRIND)
+    # prepend valgrind call
+    add_test(${TESTNAME}
+      /usr/bin/valgrind ${C7A_VALGRIND_OPTS} --xml=yes --xml-file=${TESTNAME}.xml
+      ./${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
+  else()
+    add_test(${TESTNAME}
+      ${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
+  endif()
 
 endmacro(build_test)
 
