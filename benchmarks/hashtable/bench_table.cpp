@@ -37,7 +37,9 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<c7a::data::BlockEmitter<int>> emitter;
-    emitter.emplace_back(manager.GetLocalEmitter<int>(id));
+    for (size_t i = 0; i < workers; i++) {
+        emitter.emplace_back(manager.GetLocalEmitter<int>(id));
+    }
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::BlockEmitter<int>>
     table(workers, key_ex, red_fn, emitter);
 
