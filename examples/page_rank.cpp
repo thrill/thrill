@@ -47,7 +47,8 @@ int page_rank(c7a::Context& ctx) {
     auto rank_write =
         [](PageWithRank input) {
             std::stringstream ss;
-            ss << "Page: " << std::get<0>(input) << " Rank: " << std::get<1>(input);
+            ss << "Page: " << std::get<0>(input)
+               << " Rank: " << std::get<1>(input);
             return ss.str();
         };
 
@@ -83,11 +84,12 @@ int page_rank(c7a::Context& ctx) {
     for (std::size_t i = 1; i <= 10; ++i) {
         std::cout << "Iteration: " << i << std::endl;
 
-        auto pages = links
-                     .Zip(ranks,
-                          [](PageWithLinks first, PageWithRank second) {
-                              return std::make_tuple(std::get<0>(first), std::get<1>(second), std::get<1>(first));
-                          });
+        auto pages = links.Zip(
+            ranks, [](PageWithLinks first, PageWithRank second) {
+                return std::make_tuple(std::get<0>(first),
+                                       std::get<1>(second),
+                                       std::get<1>(first));
+            });
 
         auto contribs = pages.FlatMap(
             [](Page page, std::function<void(std::tuple<int, double>)> emit) {
@@ -108,31 +110,33 @@ int page_rank(c7a::Context& ctx) {
                     })
             .Map([](Page page) {
                      return std::get<1>(page);
-                 }).Sum([](double first, double second) {
-                            return first + second;
-                        });
+                 })
+            .Sum([](double first, double second) {
+                     return first + second;
+                 });
 
         auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-        ranks = contribs
-                .ReduceBy(key_page_with_rank).With(
-            [](PageWithRank input) {
-                return std::get<0>(input);
-            },
-            [](std::vector<PageWithRank> ranks) {
-                double sum = 0.0;
-                int url = 0;
-                for (PageWithRank r : ranks) {
-                    sum += std::get<1>(r);
-                    url = std::get<0>(r);
-                }
-                return std::make_tuple(url, sum);
-            })
-                .Map([&s, &dangling_sum](PageWithRank input) {
-                         int url = std::get<0>(input);
-                         double rank = std::get<1>(input);
-                         return std::make_tuple(url, rank * s + dangling_sum * s + (1 - s));
-                     });
+        ranks =
+            contribs
+            .ReduceBy(key_page_with_rank).With(
+                [](PageWithRank input) {
+                    return std::get<0>(input);
+                },
+                [](std::vector<PageWithRank> ranks) {
+                    double sum = 0.0;
+                    int url = 0;
+                    for (PageWithRank r : ranks) {
+                        sum += std::get<1>(r);
+                        url = std::get<0>(r);
+                    }
+                    return std::make_tuple(url, sum);
+                })
+            .Map([&s, &dangling_sum](PageWithRank input) {
+                     int url = std::get<0>(input);
+                     double rank = std::get<1>(input);
+                     return std::make_tuple(url, rank * s + dangling_sum * s + (1 - s));
+                 });
     }
 
     std::cout << "Final Ranks:" << std::endl;
