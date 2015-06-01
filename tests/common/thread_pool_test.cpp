@@ -12,6 +12,7 @@
 #include <c7a/common/stats_timer.hpp>
 
 #include <string>
+#include <algorithm>
 
 #include "gtest/gtest.h"
 

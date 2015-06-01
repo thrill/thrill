@@ -112,7 +112,7 @@ private:
             flow_group.Broadcast(local_sum);
     }
 
-    void PostOp() {}
+    void PostOp() { }
 };
 
 } // namespace c7a
