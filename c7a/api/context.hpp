@@ -8,6 +8,8 @@
  ******************************************************************************/
 
 #pragma once
+#ifndef C7A_API_CONTEXT_HEADER
+#define C7A_API_CONTEXT_HEADER
 
 #include <cassert>
 #include <fstream>
@@ -25,8 +27,8 @@ namespace c7a {
 /*!
  * The Context of a job is a unique structure inside a worker, which holds
  *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref c7a::data::DataManager "data manager", the 
- * \ref c7a::net::NetGroup  "net group" and to the 
+ *  references to the  \ref c7a::data::DataManager "data manager", the
+ * \ref c7a::net::NetGroup  "net group" and to the
  * \ref c7a::core::JobManager "job manager". The context can also return the
  * total number of workers and the rank of this worker.
  */
@@ -36,7 +38,7 @@ public:
     Context() : job_manager_() { }
     virtual ~Context() { }
 
-    //! Returns a reference to the data manager, which gives iterators and 
+    //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
     data::DataManager & get_data_manager() {
         return job_manager_.get_data_manager();
@@ -80,5 +82,7 @@ private:
 };
 
 } // namespace c7a
+
+#endif // !C7A_API_CONTEXT_HEADER
 
 /******************************************************************************/
