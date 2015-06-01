@@ -4,9 +4,6 @@
 # CMake file for c7a example programs.
 ################################################################################
 
-add_executable(bench_word_count word_count.cpp)
-add_executable(bench_table bench_table.cpp)
-
-target_link_libraries(bench_word_count c7a ${ALL_LIBRARIES} pthread)
+add_executable(table hashtable/bench_table.cpp)
 
 ################################################################################
