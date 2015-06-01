@@ -40,8 +40,6 @@ public:
                          };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
-
-        core::RunScope(this);
     }
 
     void PreOp(Input input) {
