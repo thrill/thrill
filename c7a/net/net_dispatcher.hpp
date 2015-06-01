@@ -19,7 +19,8 @@
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
-//#include <c7a/net/lowlevel/epoll-dispatcher.hpp> //TODO(tb) can we use a os switch? Do we want that?
+//TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
+//#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
 #if defined(_LIBCPP_VERSION) || defined(__clang__)
 #include <c7a/common/delegate.hpp>
@@ -121,8 +122,7 @@ public:
                            Buffer&& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
-    virtual void AsyncRead(NetConnection& c, size_t n,
-                           AsyncReadCallback done_cb) {
+    void AsyncRead(NetConnection& c, size_t n, AsyncReadCallback done_cb) {
         assert(c.GetSocket().IsValid());
 
         LOG << "async read on read dispatcher";
