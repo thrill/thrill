@@ -116,10 +116,7 @@ public:
     //! \param file Input file stream
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file) {
-        //TODO(ts): get those from networks
-        size_t my_id = 0;
-        size_t num_work = 1;
+    InputLineIterator GetInputLineIterator(std::ifstream& file, size_t my_id, size_t num_work) {
 
         return InputLineIterator(file, my_id, num_work);
     }
