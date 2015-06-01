@@ -95,8 +95,6 @@ private:
     void MainOp() {
         LOG << "MainOp processing";
         net::NetGroup flow_group = (this->context_).get_flow_net_group();
-        data::DataManager data_manager = (this->context_).get_data_manager();
-        size_t workers = (this->context_).number_worker();
 
         // process the reduce
         flow_group.ReduceToRoot<Output, SumFunction>(local_sum, sum_function_);
