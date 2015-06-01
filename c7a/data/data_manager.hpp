@@ -114,6 +114,8 @@ public:
     //!Returns an InputLineIterator with a given input file stream.
     //!
     //! \param file Input file stream
+    //! \param my_id Id of this worker
+    //! \param num_work Number of workers
     //!
     //! \return An InputLineIterator for a given file stream
     InputLineIterator GetInputLineIterator(std::ifstream& file, size_t my_id, size_t num_work) {
