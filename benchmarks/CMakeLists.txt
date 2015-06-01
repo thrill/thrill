@@ -6,4 +6,6 @@
 
 add_executable(table hashtable/bench_table.cpp)
 
+target_link_libraries(table c7a ${ALL_LIBRARIES})
+
 ################################################################################
