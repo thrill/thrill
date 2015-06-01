@@ -110,7 +110,7 @@ public:
             Accumulated()).count();
     }
 
-    //! return currently accumulated time in milliseconds
+    //! return currently accumulated time in seconds
     std::chrono::seconds::rep Seconds() const {
         return std::chrono::duration_cast<std::chrono::seconds>(
             Accumulated()).count();
