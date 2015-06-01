@@ -32,8 +32,6 @@ public:
           sum_function_(sum_function),
           stack_(stack)
     {
-        core::RunScope(this); // TODO(ms): find a way to move that to ActionNode
-
         // Hook PreOp(s)
         auto pre_op_fn = [=](Input input) {
                              PreOp(input);
@@ -66,6 +64,14 @@ public:
     }
 
     /*!
+     * Returns result of global sum.
+     * \return result
+     */
+    auto result() override  {
+        return local_sum;
+    }
+
+    /*!
      * Returns "[SumNode]" as a string.
      * \return "[SumNode]"
      */
@@ -74,36 +80,40 @@ public:
     }
 
 private:
-    //! Local stack
+    static const bool debug = false;
+    //! Local stack.
     Stack stack_;
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
-    //! Local storage
-    std::vector<sum_arg_0_t> elements_;
-    // Sum to be returned
-    Output sum;
+    // Local sum to be forwarded to other worker.
+    Input local_sum = 0;
 
     void PreOp(sum_arg_0_t input) {
         LOG << "PreOp: " << input;
-        elements_.push_back(input);
-
-        // TODO(ms): compute local sum in an online fashion,
+        local_sum = sum_function_(local_sum, input);
     }
 
     void MainOp() {
-
-        // TODO(ms): worker other than root must compute local sum too before forwarding it!
-        // TODO(ms): Where do we get the net group from?
-        std::unique_ptr<net::NetGroup> group = std::unique_ptr<net::NetGroup>(new net::NetGroup(1, 1));
+        LOG << "MainOp processing";
+        net::NetGroup flow_group = (this->context_).get_flow_net_group();
+        data::DataManager data_manager = (this->context_).get_data_manager();
+        size_t workers = (this->context_).number_worker();
 
         // process the reduce
-        group->ReduceToRoot<Output, SumFunction>(sum, sum_function_);
+        flow_group.ReduceToRoot<Output, SumFunction>(local_sum, sum_function_);
 
-        // broadcast to all other worker
-        group->Broadcast(sum);
+        // global barrier
+        // TODO(ms): replace prefixsum (used as temporary global barrier)
+        // with actual global barrier
+        size_t sum = 0;
+        flow_group.PrefixSum(sum);
+
+        // broadcast to all other workers
+        if ((this->context_).rank() == 0)
+            flow_group.Broadcast(local_sum);
     }
 
-    void PostOp() { }
+    void PostOp() {}
 };
 
 } // namespace c7a

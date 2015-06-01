@@ -295,7 +295,8 @@ public:
                                               sum_fn);
 
         auto sum_stack = shared_node->ProduceStack();
-        return 1.0f; // TODO(ms) get the correct return type
+        core::RunScope(shared_node.get());
+        return shared_node.get()->result();
     }
 
     /*!
@@ -324,6 +325,7 @@ public:
                                               filepath);
 
         auto write_stack = shared_node->ProduceStack();
+        core::RunScope(shared_node.get());
     }
 
     /*!
