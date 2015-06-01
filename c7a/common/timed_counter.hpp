@@ -18,11 +18,15 @@
 namespace c7a {
 namespace common {
 
+//! TimedCounter counts the number of \ref Trigger() invokes.
+//! The time points of these invocations are stored.
 class TimedCounter
 {
 public:
     typedef std::chrono::high_resolution_clock::time_point TimePoint;
 
+    //! Adds the occurences of another TimedCounter to this instance.
+    //! Occurences will be sorted to be ascending
     TimedCounter& operator += (const TimedCounter& rhs) {
         for (auto& o : rhs.Occurences())
             occurences_.push_back(o);
@@ -30,6 +34,7 @@ public:
         return *this;
     }
 
+    //! Adds occurences of two instances and sorts them ascending
     TimedCounter operator + (const TimedCounter& rhs) {
         TimedCounter t;
         t += rhs;
@@ -37,18 +42,22 @@ public:
         return t;
     }
 
+    //! Registers a new Occurence on this TimedCounter
     void Trigger() {
         occurences_.push_back(timestamp());
     }
 
+    //! Drops all Occurences of this timer.
     void Reset() {
         occurences_.clear();
     }
 
+    //! Returns the number of Occurences on this timer
     size_t Count() const {
         return occurences_.size();
     }
 
+    //! Returns the Occurences of this timer.
     std::vector<TimePoint> Occurences() const {
         return occurences_;
     }
