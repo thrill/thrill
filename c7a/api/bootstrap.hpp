@@ -19,7 +19,6 @@
 namespace c7a {
 namespace bootstrap {
 
-
 std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
     //replace with arbitrary compex implementation
     size_t my_rank;
@@ -46,7 +45,7 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 //!
 //! \returns result of word_count if bootstrapping was successfull, -1 otherwise.
 static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint) {
-       
+
     //!True if program time should be taken and printed
     static const bool timing = true;
 
@@ -82,7 +81,6 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     ctx.job_manager().StopDispatcher();
     return job_result;
 }
-
 
 } // namespace bootstrap
 
