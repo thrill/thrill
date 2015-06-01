@@ -62,7 +62,7 @@ public:
         std::ifstream file(path_in_);
         assert(file.good());
 
-        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file);
+        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file, (this->context_).rank(), (this->context_).number_worker());
 
         data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 
