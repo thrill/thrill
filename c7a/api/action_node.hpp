@@ -25,6 +25,8 @@ public:
         : DIANode<T>(ctx, parents) { }
 
     virtual ~ActionNode() { }
+
+    virtual auto result() { }
 };
 
 } // namespace c7a
