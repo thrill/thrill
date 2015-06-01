@@ -121,8 +121,7 @@ public:
                            Buffer&& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
-    virtual void AsyncRead(NetConnection& c, size_t n,
-                           AsyncReadCallback done_cb) {
+    void AsyncRead(NetConnection& c, size_t n, AsyncReadCallback done_cb) {
         assert(c.GetSocket().IsValid());
 
         LOG << "async read on read dispatcher";
