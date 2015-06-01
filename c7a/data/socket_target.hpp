@@ -32,7 +32,8 @@ public:
 
     //! Appends data to the SocketTarget.
     //! Data may be sent but may be delayed.
-    virtual void Append(BinaryBuffer buffer) { //virtual does not hurt because not in tight loop
+    void Append(BinaryBuffer buffer) override {
+        //virtual does not hurt because not in tight loop
         if (buffer.size() == 0) {
             return;
         }
@@ -43,7 +44,7 @@ public:
     }
 
     //! Closes the connection
-    virtual void Close() {
+    void Close() override {
         assert(!closed_);
         closed_ = true;
         SendHeader(0);
@@ -86,14 +87,15 @@ public:
           closed_(false) { }
 
     //! Appends data directly to the target BufferChain
-    virtual void Append(BinaryBuffer buffer) { //virtual does not hurt because not in tight loop
+    void Append(BinaryBuffer buffer) override {
+        //virtual does not hurt because not in tight loop
         if (buffer.size() > 0) {
             chain_->Append(buffer);
         }
     }
 
     //! Closes the LoopbackTarget. Can be called once.
-    virtual void Close() {
+    void Close() override {
         assert(!closed_);
         closeCallback_();
         closed_ = true;
