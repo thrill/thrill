@@ -26,7 +26,7 @@ public:
 
     virtual ~ActionNode() { }
 
-    virtual auto result() { }
+    auto result() { }
 };
 
 } // namespace c7a

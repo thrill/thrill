@@ -80,7 +80,6 @@ public:
     }
 
 private:
-    static const bool debug = false;
     //! Local stack.
     Stack stack_;
     //! The sum function which is applied to two elements.
