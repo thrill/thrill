@@ -130,7 +130,7 @@ public:
     }
 
 private:
-    static const bool debug = true;
+    static const bool debug = false;
     ChainId next_id_;
     std::map<ChainId, std::shared_ptr<BufferChain> > chains_;
 };
