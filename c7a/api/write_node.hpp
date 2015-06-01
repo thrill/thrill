@@ -22,7 +22,6 @@ template <typename Input, typename Output, typename WriteFunction, typename Stac
 class WriteNode : public ActionNode<Input>
 {
 public:
-    // TODO(ms): probably need a stack here as well
     WriteNode(Context& ctx,
               DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
               Stack& stack,
