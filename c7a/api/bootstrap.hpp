@@ -14,10 +14,11 @@
 #include <tuple>
 
 #include <c7a/api/context.hpp>
-#include <c7a/common/timer.hpp>
+#include <c7a/common/stats_timer.hpp>
 
 namespace c7a {
 namespace bootstrap {
+
 
 std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
     //replace with arbitrary compex implementation
@@ -45,6 +46,10 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 //!
 //! \returns result of word_count if bootstrapping was successfull, -1 otherwise.
 static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint) {
+       
+    //!True if program time should be taken and printed
+    static const bool timing = true;
+
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result;
@@ -70,14 +75,14 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     ctx.job_manager().Connect(my_rank, net::NetEndpoint::ParseEndpointList(endpoints));
     ctx.job_manager().StartDispatcher();
     std::cout << "starting job" << std::endl;
-    timer timer;
-    timer.start();
+    c7a::common::StatsTimer<timing> timer(true);
     auto job_result = job_startpoint(ctx);
-    timer.stop();
-    std::cout << "timer.time.tim.ti.t(): " << timer.get_time() << std::endl;
+    timer.Stop();
+    std::cout << timer << std::endl;
     ctx.job_manager().StopDispatcher();
     return job_result;
 }
+
 
 } // namespace bootstrap
 
