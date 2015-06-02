@@ -22,8 +22,10 @@ namespace common {
  * Future helps you deal with the nasty callbacks in the land of callback-hell.
  *
  * Handles the use-case where a callback is expected to be called exactly once!
+ * If you expect multiple  calls use \ref FutureQueue
  *
  * Future can currently only be consumed by a single thread.//TODO(ts) change that.
+ *
  */
 template <typename T>
 class Future
