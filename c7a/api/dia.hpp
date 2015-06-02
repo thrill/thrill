@@ -10,8 +10,6 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_DIA_HEADER
-#define C7A_API_DIA_HEADER
 
 #include <functional>
 #include <vector>
@@ -33,6 +31,7 @@
 #include "context.hpp"
 #include "write_node.hpp"
 #include "sum_node.hpp"
+#include "generator_node.hpp"
 
 namespace c7a {
 
@@ -451,8 +450,24 @@ auto ReadFromFileSystem(Context & ctx, std::string filepath,
                (std::move(shared_node), read_stack);
 }
 
-} // namespace c7a
+template <typename generator_fn_t>
+auto GenerateFromFile(Context & ctx, std::string filepath,
+                      const generator_fn_t &generator_fn, size_t size) {
+    using generator_result_t = typename FunctionTraits<generator_fn_t>::result_type;
+    using GeneratorResultNode = GeneratorNode<generator_result_t, generator_fn_t>;
 
-#endif // !C7A_API_DIA_HEADER
+    auto shared_node =
+        std::make_shared<GeneratorResultNode>(ctx,
+                                              generator_fn,
+                                              filepath,
+                                              size);
+
+    auto generator_stack = shared_node->ProduceStack();
+
+    return DIARef<generator_result_t, decltype(generator_stack)>
+               (std::move(shared_node), generator_stack);
+}
+
+} // namespace c7a
 
 /******************************************************************************/
