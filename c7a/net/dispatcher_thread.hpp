@@ -18,6 +18,7 @@
 #include <c7a/net/dispatcher.hpp>
 
 #include <thread>
+#include <mutex>
 
 namespace c7a {
 namespace net {
@@ -51,7 +52,14 @@ public:
 
     //! \}
 
+protected:
+    typedef std::unique_lock<std::mutex> unique_lock;
+
 public:
+    DispatcherThread()
+        : dispatcher_(&mutex_)
+    { }
+
     //! \name Start and Stop Threads
     //! \{
 
@@ -74,7 +82,7 @@ public:
     }
 
     //! Return Dispatcher
-    Dispatcher& dispatcher() { return dispatcher_; }
+    Dispatcher & dispatcher() { return dispatcher_; }
 
     //! \}
 
@@ -85,7 +93,8 @@ public:
     template <class Rep, class Period>
     void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
                             const TimerCallback& cb) {
-        return dispatcher_.AddRelativeTimeout(timeout, cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AddRelativeTimeout(timeout, cb);
     }
 
     //! \}
@@ -95,19 +104,22 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        return dispatcher_.AddRead(c, read_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AddRead(c, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        return dispatcher_.AddWrite(c, write_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AddWrite(c, write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(
         Connection& c,
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        return dispatcher_.AddReadWrite(c, read_cb, write_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AddReadWrite(c, read_cb, write_cb);
     }
 
     //! \}
@@ -117,33 +129,40 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        return dispatcher_.AsyncRead(c, n, done_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AsyncRead(c, n, done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
-        return dispatcher_.AsyncWrite(c, std::move(buffer), done_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AsyncWrite(c, std::move(buffer), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
                         AsyncWriteCallback done_cb = NULL) {
-        return dispatcher_.AsyncWriteCopy(c, buffer, size, done_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AsyncWriteCopy(c, buffer, size, done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
                         AsyncWriteCallback done_cb = NULL) {
-        return dispatcher_.AsyncWriteCopy(c, str, done_cb);
+        unique_lock lock(mutex_);
+        dispatcher_.AsyncWriteCopy(c, str, done_cb);
     }
 
     //! \}
 
 private:
+    //! lock all calls to dispatcher
+    std::mutex mutex_;
+
     //! enclosed dispatcher.
     Dispatcher dispatcher_;
 
