@@ -1,7 +1,7 @@
 /*******************************************************************************
- * c7a/api/read_node.hpp
+ * c7a/api/generator_node.hpp
  *
- * DIANode for a reduce operation. Performs the actual reduce operation
+ * DIANode for a generate operation. Performs the actual generate operation
  *
  * Part of Project c7a.
  *
@@ -25,22 +25,28 @@ namespace c7a {
 //! \{
 
 /*!
- * A DIANode which performs a Read operation. Read reads a file from the file system and
- * emits it to the DataManager according to a given read function.
+ * A DIANode which performs a GenerateFromFile operation. Generate uses a file
+ * from the file system to generate random inputs. Therefore Generate reads the 
+ * complete file and applies the generator function on each element. Afterwards 
+ * each worker generates a DIA with a certain number of random (possibly
+ * duplicate) elements from the generator file.
  *
- * \tparam Output Output type of the Read operation.
- * \tparam ReadFunction Type of the read function.
+ * \tparam Output Output type of the Generate operation.
+ * \tparam ReadFunction Type of the generate function.
  */
 template <typename Output, typename GeneratorFunction>
 class GeneratorNode : public DOpNode<Output>
 {
 public:
     /*!
-    * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
+    * Constructor for a GeneratorNode. Sets the Context, parents, generator
+    * function and file path.
     *
     * \param ctx Reference to Context, which holds references to data and network.
-    * \param read_function Read function, which defines how each line of the file is read and emitted
+    * \param generator_function Generator function, which defines how each line
+    * of the file is read and used for generation of a DIA.
     * \param path_in Path of the input file
+    * \param size Number of elements in the generated DIA
     */
     GeneratorNode(Context& ctx,
                   GeneratorFunction generator_function,
@@ -54,11 +60,12 @@ public:
 
     virtual ~GeneratorNode() { }
 
-    //! Executes the read operation. Reads a file line by line and emits it to
-    //! the DataManager after applying the read function on it.
+    //! Executes the generate operation. Reads a file line by line and creates a
+    //! element vector, out of which elements are randomly chosen (possibly 
+    //! duplicated). 
     void execute() {
         
-        LOG1 << "READING data with id " << this->data_id_;
+        LOG1 << "GENERATING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -102,8 +109,8 @@ public:
     }
 
     /*!
-     * Returns "[ReadNode]" as a string.
-     * \return "[ReadNode]"
+     * Returns information about the GeneratorNode as a string.
+     * \return Stringified node.
      */
     std::string ToString() override {
         return "[GeneratorNode] Id: " + this->data_id_.ToString();
@@ -114,9 +121,9 @@ private:
     GeneratorFunction generator_function_;
     //! Path of the input file.
     std::string path_in_;
-
+    //! Element vector used for generation
     std::vector<Output> elements_;
-
+    //! Size of the output DIA.
     size_t size_;
 };
 
