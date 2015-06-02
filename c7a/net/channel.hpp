@@ -38,15 +38,15 @@ namespace net {
 //! As soon as the block is exhausted, the socket polling responsibility
 //! is transfered back to the channel multiplexer.
 //!
-//! This class is the state machine for the callback-hell from NetDispatcher
+//! This class is the state machine for the callback-hell from Dispatcher
 class Channel
 {
 public:
     //! Called to transfer the polling responsibility back to the channel multiplexer
-    typedef std::function<void (NetConnection& s)> ReleaseSocketCallback;
+    typedef std::function<void (Connection& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
-    Channel(NetDispatcher& dispatcher, ReleaseSocketCallback release_callback,
+    Channel(Dispatcher& dispatcher, ReleaseSocketCallback release_callback,
             size_t id, int expected_streams, std::shared_ptr<data::BufferChain> target)
         : dispatcher_(dispatcher),
           release_(release_callback),
@@ -64,7 +64,7 @@ public:
     //! This is the start state of the callback state machine.
     //! end-of-streams are handled directly
     //! all other block headers are parsed
-    void PickupStream(NetConnection& s, struct StreamBlockHeader head) {
+    void PickupStream(Connection& s, struct StreamBlockHeader head) {
         Stream* stream = new Stream(s, head);
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
@@ -88,7 +88,7 @@ public:
 
 private:
     static const bool debug = true;
-    NetDispatcher& dispatcher_;
+    Dispatcher& dispatcher_;
     ReleaseSocketCallback release_;
 
     size_t id_;
@@ -134,7 +134,7 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& s, Buffer&& buffer, Stream* stream) {
+    inline void ConsumeData(Connection& s, Buffer&& buffer, Stream* stream) {
         (void)s;
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         stream->bytes_read += buffer.size();

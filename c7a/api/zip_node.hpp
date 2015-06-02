@@ -165,7 +165,7 @@ private:
 
     //!Receive elements from other workers.
     void MainOp() {
-        net::NetGroup flow_group = (this->context_).get_flow_net_group();
+        net::Group flow_group = (this->context_).get_flow_net_group();
         data::DataManager data_manager = (this->context_).get_data_manager();
         size_t workers = (this->context_).number_worker();
 

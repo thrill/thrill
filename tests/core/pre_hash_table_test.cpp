@@ -32,7 +32,7 @@ struct PreTable : public::testing::Test {
         two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
     }
 
-    NetDispatcher                          dispatcher;
+    Dispatcher                             dispatcher;
     ChannelMultiplexer                     multiplexer;
     DataManager                            manager;
     DIAId                                  id1;

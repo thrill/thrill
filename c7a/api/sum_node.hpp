@@ -94,7 +94,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::NetGroup flow_group = (this->context_).get_flow_net_group();
+        net::Group flow_group = (this->context_).get_flow_net_group();
 
         // process the reduce
         flow_group.ReduceToRoot<Output, SumFunction>(local_sum, sum_function_);

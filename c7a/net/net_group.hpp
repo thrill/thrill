@@ -1,7 +1,7 @@
 /*******************************************************************************
  * c7a/net/net_group.hpp
  *
- * NetGroup is a collection of NetConnections providing simple MPI-like
+ * net::Group is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
  *
  * Part of Project c7a.
@@ -37,14 +37,14 @@ namespace net {
 
 typedef unsigned int ClientId;
 
-//TODO(ej) Cleanup the NetGroup. Make to a sole collection holding a bunch of connections.
+//TODO(ej) Cleanup the Group. Make to a sole collection holding a bunch of connections.
 //Move everything else into appropriate channel.
 
 /*!
  * Collection of NetConnections to workers, allows point-to-point client
  * communication and simple collectives like MPI.
  */
-class NetGroup
+class Group
 {
     static const bool debug = false;
 
@@ -52,54 +52,54 @@ public:
     //! \name Construction and Initialization
     //! \{
 
-    //! Construct a mock NetGroup using a complete graph of local stream sockets
+    //! Construct a mock Group using a complete graph of local stream sockets
     //! for testing, and starts a thread for each client, which gets passed the
-    //! NetGroup object. This is ideal for testing network communication
+    //! Group object. This is ideal for testing network communication
     //! protocols. See tests/net/test-net-group.cpp for examples.
     //! @param num_clients The number of clients to spawn.
     //! @param thread_function The function to execute for each client.
     static void ExecuteLocalMock(
         size_t num_clients,
-        const std::function<void(NetGroup*)>& thread_function);
+        const std::function<void(Group*)>& thread_function);
 
     //! Default empty constructor, must be Initialize()d later.
-    NetGroup()
+    Group()
     { }
 
-    //! Initialize a real NetGroup for construction from the NetManager.
+    //! Initialize a real Group for construction from the NetManager.
     void Initialize(ClientId my_rank, size_t group_size) {
         assert(my_rank_ == -1u);
         my_rank_ = my_rank;
         connections_.resize(group_size);
     }
 
-    //! Initializing constructor, used by tests for creating NetGroups.
-    NetGroup(ClientId my_rank, size_t group_size) {
+    //! Initializing constructor, used by tests for creating Groups.
+    Group(ClientId my_rank, size_t group_size) {
         Initialize(my_rank, group_size);
     }
 
     //! \}
 
     //! non-copyable: delete copy-constructor
-    NetGroup(const NetGroup&) = delete;
+    Group(const Group&) = delete;
     //! non-copyable: delete assignment operator
-    NetGroup& operator = (const NetGroup&) = delete;
+    Group& operator = (const Group&) = delete;
 
     //! \name Status und Access to NetConnections
     //! \{
 
-    //! Return NetConnection to client id.
-    NetConnection & Connection(ClientId id) {
+    //! Return Connection to client id.
+    Connection & connection(ClientId id) {
         if (id >= connections_.size())
-            throw Exception("NetGroup::Connection() requested "
+            throw Exception("Group::Connection() requested "
                             "invalid client id " + std::to_string(id));
 
         if (id == my_rank_)
-            throw Exception("NetGroup::Connection() requested "
+            throw Exception("Group::Connection() requested "
                             "connection to self.");
 
         return connections_[id];
-    }       //! Return NetConnection to client id.
+    }       //! Return Connection to client id.
 
     /**
      * @brief Assigns a connection to this net group.
@@ -110,9 +110,9 @@ public:
      * @return A ref to the assigned connection, which is always valid, but might be different from the
      * inut connection.
      */
-    NetConnection & AssignConnection(NetConnection& connection) {
+    Connection & AssignConnection(Connection& connection) {
         if (connection.peer_id() >= connections_.size())
-            throw Exception("NetGroup::GetClient() requested "
+            throw Exception("Group::GetClient() requested "
                             "invalid client id "
                             + std::to_string(connection.peer_id()));
 
@@ -149,7 +149,7 @@ public:
     }
 
     //! Closes all client connections
-    ~NetGroup() {
+    ~Group() {
         Close();
     }
 
@@ -176,7 +176,7 @@ public:
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
 
-        sLOG0 << "--- NetGroup::ReceiveFromAny() - select():";
+        sLOG0 << "--- Group::ReceiveFromAny() - select():";
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
@@ -235,7 +235,7 @@ public:
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
 
-        sLOG0 << "--- NetGroup::ReceiveFromAny() - select():";
+        sLOG0 << "--- Group::ReceiveFromAny() - select():";
 
         for (size_t i = 0; i != connections_.size(); ++i)
         {
@@ -286,7 +286,7 @@ public:
      * @param data The string to send.
      */
     void SendStringTo(ClientId dest, const std::string& data) {
-        this->Connection(dest).SendString(data);
+        this->connection(dest).SendString(data);
     }
 
     /**
@@ -297,7 +297,7 @@ public:
      * @param data A pointer to the string where the received string should be stored.
      */
     void ReceiveStringFrom(ClientId src, std::string* data) {
-        this->Connection(src).ReceiveString(data);
+        this->connection(src).ReceiveString(data);
     }
 
     /**
@@ -309,7 +309,7 @@ public:
      */
     template <typename T>
     void SendTo(ClientId dest, const T& data) {
-        this->Connection(dest).Send(data);
+        this->connection(dest).Send(data);
     }
 
     /**
@@ -321,7 +321,7 @@ public:
      */
     template <typename T>
     void ReceiveFrom(ClientId src, T* data) {
-        this->Connection(src).Receive(data);
+        this->connection(src).Receive(data);
     }
 
     /**
@@ -358,7 +358,7 @@ public:
     //! \name Collective Operations
     //! \{
 
-    //TODO(rh) Please migrate into a different class, since NetGroup is an abstract concept that bundles connections.
+    //TODO(rh) Please migrate into a different class, since Group is an abstract concept that bundles connections.
 
     template <typename T, typename BinarySumOp = common::SumOp<T> >
     void AllReduce(T& value, BinarySumOp sumOp = BinarySumOp());
@@ -375,18 +375,18 @@ public:
     //! \}
 
 private:
-    //! The client id of this object in the NetGroup.
+    //! The client id of this object in the Group.
     ClientId my_rank_ = -1;
 
-    //! Connections to all other clients in the NetGroup.
-    std::vector<NetConnection> connections_;
+    //! Connections to all other clients in the Group.
+    std::vector<Connection> connections_;
 
     //! Socket on which to listen for incoming connections.
-    NetConnection listener_;
+    Connection listener_;
 };
 
 template <typename T, typename BinarySumOp>
-void NetGroup::PrefixSum(T& value, BinarySumOp sumOp) {
+void Group::PrefixSum(T& value, BinarySumOp sumOp) {
     // The total sum in the current hypercube. This is stored, because later,
     // bigger hypercubes need this value.
     T total_sum = value;
@@ -420,17 +420,17 @@ void NetGroup::PrefixSum(T& value, BinarySumOp sumOp) {
 
 //! Perform a binomial tree reduce to the worker with index 0
 template <typename T, typename BinarySumOp>
-void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp) {
+void Group::ReduceToRoot(T& value, BinarySumOp sumOp) {
     bool active = true;
     for (size_t d = 1; d < Size(); d <<= 1) {
         if (active) {
             if (MyRank() & d) {
-                Connection(MyRank() - d).Send(value);
+                connection(MyRank() - d).Send(value);
                 active = false;
             }
             else if (MyRank() + d < Size()) {
                 T recv_data;
-                Connection(MyRank() + d).Receive(&recv_data);
+                connection(MyRank() + d).Receive(&recv_data);
                 value = sumOp(value, recv_data);
             }
         }
@@ -439,14 +439,14 @@ void NetGroup::ReduceToRoot(T& value, BinarySumOp sumOp) {
 
 //! Binomial-broadcasts the value of the worker with index 0 to all the others
 template <typename T>
-void NetGroup::Broadcast(T& value) {
+void Group::Broadcast(T& value) {
     if (MyRank() > 0) {
         ClientId from;
         ReceiveFromAny(&from, &value);
     }
     for (size_t d = 1, i = 0; ((MyRank() >> i) & 1) == 0 && d < Size(); d <<= 1, ++i) {
         if (MyRank() + d < Size()) {
-            Connection(MyRank() + d).Send(value);
+            connection(MyRank() + d).Send(value);
         }
     }
 }
@@ -454,7 +454,7 @@ void NetGroup::Broadcast(T& value) {
 //! Perform an All-Reduce on the workers by aggregating all values and sending
 //! them backto all workers
 template <typename T, typename BinarySumOp>
-void NetGroup::AllReduce(T& value, BinarySumOp sum_op) {
+void Group::AllReduce(T& value, BinarySumOp sum_op) {
     ReduceToRoot(value, sum_op);
     Broadcast(value);
 }

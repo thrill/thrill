@@ -17,19 +17,19 @@ namespace net {
 
 The c7a Network Layer consists of sublayers:
 
-## NetGroup & NetConnection layer
+## Group & Connection layer
 
-The NetGroup object is similar to an MPI communicator: it has socket connections to k partners/clients/workers in the group. The net clients have immediate  relation to the master/worker concept of higher c7a layers, though they will probably be implementing using a NetGroup. This master/worker abstraction is done on higher levels.
+The Group object is similar to an MPI communicator: it has socket connections to k partners/clients/workers in the group. The net clients have immediate  relation to the master/worker concept of higher c7a layers, though they will probably be implementing using a Group. This master/worker abstraction is done on higher levels.
 
-NetGroup provides
-- a \ref NetGroup::Size "Size()" and \ref NetGroup::MyRank "MyRank()" function to describe the group.
-- a point-to-point NetConnection class with a rich set of Send, Receive methods to transfer raw data to another worker in the group: \ref NetConnection::Send "Send<T>", \ref NetConnection::SendString "SendString", \ref NetConnection::Receive "Receive<T>", \ref NetConnection::ReceiveString "ReceiveString".
-- \ref NetGroup::ReceiveFromAny "ReceiveFromAny" functions to listen for messages from any worker in the group.
-- collective operations for **primitiv** datatypes: \ref NetGroup::AllReduce "AllReduce".
+Group provides
+- a \ref Group::Size "Size()" and \ref Group::MyRank "MyRank()" function to describe the group.
+- a point-to-point Connection class with a rich set of Send, Receive methods to transfer raw data to another worker in the group: \ref Connection::Send "Send<T>", \ref Connection::SendString "SendString", \ref Connection::Receive "Receive<T>", \ref Connection::ReceiveString "ReceiveString".
+- \ref Group::ReceiveFromAny "ReceiveFromAny" functions to listen for messages from any worker in the group.
+- collective operations for **primitiv** datatypes: \ref Group::AllReduce "AllReduce".
 
-If any operation on a NetConnection fails, then a NetException is thrown.
+If any operation on a Connection fails, then a Exception is thrown.
 
-For testing purposes NetGroup provides the function \ref NetGroup::ExecuteLocalMock "ExecuteLocalMock" which creates a mock NetGroup of k partners. The partners are connected via internal sockets (real kernel level sockets), and for each partner a std::thread is spawned. The thread executes a test function which gets a NetGroup object that can communicate with the other partners. This is ideal for testing network protocols. See the test-net-group.cpp for more examples.
+For testing purposes Group provides the function \ref Group::ExecuteLocalMock "ExecuteLocalMock" which creates a mock Group of k partners. The partners are connected via internal sockets (real kernel level sockets), and for each partner a std::thread is spawned. The thread executes a test function which gets a Group object that can communicate with the other partners. This is ideal for testing network protocols. See the test-net-group.cpp for more examples.
 
 ## Low-level Socket API
 

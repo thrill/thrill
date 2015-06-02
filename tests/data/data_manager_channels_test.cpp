@@ -20,11 +20,11 @@ using namespace c7a::net::lowlevel;
 using namespace std::literals; //for nicer sleep_for
 
 struct WorkerMock {
-    WorkerMock(NetDispatcher& dispatcher)
+    WorkerMock(Dispatcher& dispatcher)
         : cmp(dispatcher),
           manager(cmp) { }
 
-    void               Connect(NetGroup* con) {
+    void               Connect(Group* con) {
         cmp.Connect(con);
     }
 
@@ -49,12 +49,12 @@ struct DataManagerChannelFixture : public::testing::Test {
         auto con0_1 = Socket::CreatePair();
         auto con0_2 = Socket::CreatePair();
         auto con1_2 = Socket::CreatePair();
-        auto net0_1 = NetConnection(std::get<0>(con0_1), 0, 1);
-        auto net1_0 = NetConnection(std::get<1>(con0_1), 1, 0);
-        auto net1_2 = NetConnection(std::get<0>(con1_2), 1, 2);
-        auto net2_1 = NetConnection(std::get<1>(con1_2), 2, 1);
-        auto net0_2 = NetConnection(std::get<0>(con0_2), 0, 2);
-        auto net2_0 = NetConnection(std::get<1>(con0_2), 2, 0);
+        auto net0_1 = Connection(std::get<0>(con0_1), 0, 1);
+        auto net1_0 = Connection(std::get<1>(con0_1), 1, 0);
+        auto net1_2 = Connection(std::get<0>(con1_2), 1, 2);
+        auto net2_1 = Connection(std::get<1>(con1_2), 2, 1);
+        auto net0_2 = Connection(std::get<0>(con0_2), 0, 2);
+        auto net2_0 = Connection(std::get<1>(con0_2), 2, 0);
         group0.AssignConnection(net0_1);
         group0.AssignConnection(net0_2);
         group1.AssignConnection(net1_0);
@@ -113,14 +113,14 @@ struct DataManagerChannelFixture : public::testing::Test {
 
     static const bool debug = true;
     bool              run;
-    NetDispatcher     dispatcher;
+    Dispatcher        dispatcher;
     std::thread       master;
     WorkerMock        worker0;
     WorkerMock        worker1;
     WorkerMock        worker2;
-    NetGroup          group0;
-    NetGroup          group1;
-    NetGroup          group2;
+    Group             group0;
+    Group             group1;
+    Group             group2;
 };
 
 TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
