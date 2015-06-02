@@ -210,6 +210,10 @@ public:
                 }
             }
         }
+
+        // remove finished watchs from deque.
+        while (watch_.front().fd < 0)
+            watch_.pop_front();
     }
 
 private:
