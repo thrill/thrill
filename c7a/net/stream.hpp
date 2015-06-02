@@ -80,12 +80,12 @@ class Stream
 {
 public:
     struct StreamBlockHeader header;
-    NetConnection& socket;
+    Connection& socket;
     size_t elements_read = 0;
     size_t bytes_read = 0;
 
     //!attaches a stream to a socket and initializes the current header
-    Stream(NetConnection& socket, struct StreamBlockHeader& header)
+    Stream(Connection& socket, struct StreamBlockHeader& header)
         : header(header),
           socket(socket) { }
 

@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
     c7a::common::CmdlineParser clp;
     
-    c7a::net::NetDispatcher dispatcher;
+    c7a::net::Dispatcher dispatcher;
     c7a::net::ChannelMultiplexer multiplexer(dispatcher);
     c7a::data::DataManager manager(multiplexer);
 

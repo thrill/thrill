@@ -27,7 +27,7 @@ struct EmitterIteratorIntegration : public::testing::Test {
           id(manager.AllocateDIA()) { }
 
     //not required, just for the ctor
-    NetDispatcher      dispatcher;
+    Dispatcher         dispatcher;
     ChannelMultiplexer multiplexer;
 
     DataManager        manager;

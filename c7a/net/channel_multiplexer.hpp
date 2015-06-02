@@ -35,7 +35,7 @@ namespace net {
 
 typedef c7a::data::ChainId ChannelId;
 
-//! Multiplexes virtual Connections on NetDispatcher
+//! Multiplexes virtual Connections on Dispatcher
 //!
 //! A worker as a TCP conneciton to each other worker to exchange large amounts
 //! of data. Since multiple exchanges can occur at the same time on this single
@@ -52,14 +52,14 @@ typedef c7a::data::ChainId ChannelId;
 class ChannelMultiplexer
 {
 public:
-    ChannelMultiplexer(NetDispatcher& dispatcher)
+    ChannelMultiplexer(Dispatcher& dispatcher)
         : dispatcher_(dispatcher), chains_(data::NETWORK) { }
 
-    void Connect(NetGroup* group) {
+    void Connect(Group* group) {
         group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
-            ExpectHeaderFrom(group_->Connection(id));
+            ExpectHeaderFrom(group_->connection(id));
         }
     }
 
@@ -107,7 +107,7 @@ public:
             else {
                 auto target = std::make_shared<data::SocketTarget>(
                     &dispatcher_,
-                    &(group_->Connection(worker_id)),
+                    &(group_->connection(worker_id)),
                     id.identifier);
 
                 result.emplace_back(data::BlockEmitter<T>(target));
@@ -127,17 +127,17 @@ private:
     static const bool debug = false;
     typedef std::shared_ptr<Channel> ChannelPtr;
 
-    NetDispatcher& dispatcher_;
+    Dispatcher& dispatcher_;
 
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
     data::BufferChainManager chains_;
 
     //Hols NetConnections for outgoing Channels
-    NetGroup* group_;
+    Group* group_;
 
     //! expects the next header from a socket and passes to ReadFirstHeaderPartFrom
-    void ExpectHeaderFrom(NetConnection& s) {
+    void ExpectHeaderFrom(Connection& s) {
         auto expected_size = sizeof(StreamBlockHeader::expected_bytes) + sizeof(StreamBlockHeader::channel_id);
         auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
         dispatcher_.AsyncRead(s, expected_size, callback);
@@ -173,7 +173,7 @@ private:
     //! parses the channel id from a header and passes it to an existing
     //! channel or creates a new channel
     void ReadFirstHeaderPartFrom(
-        NetConnection& s, const Buffer& buffer) {
+        Connection& s, const Buffer& buffer) {
         struct StreamBlockHeader header;
         header.ParseHeader(buffer.ToString());
 

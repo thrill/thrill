@@ -29,41 +29,42 @@ namespace net {
  * address. In future, the master/worker coordination classes should use this to
  * build a NetGroup, or rebuild it after a network failure.
  */
-class NetEndpoint
+class Endpoint
 {
 public:
     //store some kind of endpoint information here
     const std::string hostport;
 
-    //! Creates NetEndpoint instance from host:port string
-    explicit NetEndpoint(const std::string& hostport)
+    //! Creates Endpoint instance from host:port string
+    explicit Endpoint(const std::string& hostport)
         : hostport(hostport) { }
 
     //! Converts strings with space-separated host:ports
-    //! to vector of NetEndpoint instances
-    static std::vector<NetEndpoint> ParseEndpointList(std::string str) {
+    //! to vector of Endpoint instances
+    static std::vector<Endpoint> ParseEndpointList(std::string str) {
         std::stringstream stream;
         stream << str;
-        std::vector<NetEndpoint> endpoints;
+        std::vector<Endpoint> endpoints;
 
         std::string hostport;
 
         while (stream >> hostport) {
-            endpoints.push_back(NetEndpoint(hostport));
+            endpoints.push_back(Endpoint(hostport));
         }
         return endpoints;
     }
 
-    //! Converts vector of strings to vector of NetEndpoint instances
-    static std::vector<NetEndpoint> ParseEndpointList(std::vector<std::string> str) {
-        std::vector<NetEndpoint> endpoints;
+    //! Converts vector of strings to vector of Endpoint instances
+    static std::vector<Endpoint> ParseEndpointList(std::vector<std::string> str) {
+        std::vector<Endpoint> endpoints;
         for (const auto& s : str)
-            endpoints.push_back(NetEndpoint(s));
+            endpoints.push_back(Endpoint(s));
         return endpoints;
     }
 };
 
-static inline std::ostream& operator << (std::ostream& os, NetEndpoint const& endpoint) {
+static inline
+std::ostream& operator << (std::ostream& os, const Endpoint& endpoint) {
     return os << endpoint.hostport;
 }
 

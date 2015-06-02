@@ -39,19 +39,19 @@ namespace net {
 //! \{
 
 /**
- * NetDispatcher is a high level wrapper for asynchronous callback
- * processing.. One can register NetConnection objects for readability and
+ * Dispatcher is a high level wrapper for asynchronous callback
+ * processing.. One can register Connection objects for readability and
  * writability checks, buffered reads and writes with completion callbacks, and
  * also timer functions.
  */
-class NetDispatcher
+class Dispatcher
 {
     static const bool debug = false;
 
 protected:
     //! switch between different low-level dispatchers
-    typedef lowlevel::SelectDispatcher<NetConnection&> Dispatcher;
-    //typedef lowlevel::EPollDispatcher Dispatcher;
+    typedef lowlevel::SelectDispatcher<Connection&> SubDispatcher;
+    //typedef lowlevel::EPollDispatcher SubDispatcher;
 
     //! import into class namespace
     typedef lowlevel::Socket Socket;
@@ -88,25 +88,25 @@ public:
 
     //! \}
 
-    //! \name NetConnection Callbacks
+    //! \name Connection Callbacks
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef function<bool (NetConnection&)> ConnectionCallback;
+    typedef function<bool (Connection&)> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(NetConnection& c, const ConnectionCallback& read_cb) {
+    void AddRead(Connection& c, const ConnectionCallback& read_cb) {
         return dispatcher_.AddRead(c.GetSocket().fd(), c, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(NetConnection& c, const ConnectionCallback& write_cb) {
+    void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
         return dispatcher_.AddWrite(c.GetSocket().fd(), c, write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddReadWrite(
-        NetConnection& c,
+        Connection& c,
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
         return dispatcher_.AddReadWrite(
             c.GetSocket().fd(), c, read_cb, write_cb);
@@ -118,11 +118,11 @@ public:
     //! \{
 
     //! callback signature for async read callbacks, they may acquire the buffer
-    typedef function<void (NetConnection& c,
+    typedef function<void (Connection& c,
                            Buffer&& buffer)> AsyncReadCallback;
 
     //! asynchronously read n bytes and deliver them to the callback
-    void AsyncRead(NetConnection& c, size_t n, AsyncReadCallback done_cb) {
+    void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
         assert(c.GetSocket().IsValid());
 
         LOG << "async read on read dispatcher";
@@ -136,15 +136,15 @@ public:
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, [&arb](NetConnection& c) { return arb(c); });
+        AddRead(c, [&arb](Connection& c) { return arb(c); });
     }
 
     //! callback signature for async write callbacks
-    typedef function<void (NetConnection&)> AsyncWriteCallback;
+    typedef function<void (Connection&)> AsyncWriteCallback;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(NetConnection& c, Buffer&& buffer,
+    void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
         assert(c.GetSocket().IsValid());
 
@@ -158,19 +158,19 @@ public:
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, [&awb](NetConnection& c) { return awb(c); });
+        AddWrite(c, [&awb](Connection& c) { return awb(c); });
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
-    void AsyncWriteCopy(NetConnection& c, const void* buffer, size_t size,
+    void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
                         AsyncWriteCallback done_cb = NULL) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
-    void AsyncWriteCopy(NetConnection& c, const std::string& str,
+    void AsyncWriteCopy(Connection& c, const std::string& str,
                         AsyncWriteCallback done_cb = NULL) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
@@ -227,7 +227,7 @@ public:
 
 protected:
     //! low-level file descriptor async processing
-    Dispatcher dispatcher_;
+    SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
     bool breakout_;
@@ -273,7 +273,7 @@ protected:
         { }
 
         //! Should be called when the socket is readable
-        bool operator () (NetConnection& c) {
+        bool operator () (Connection& c) {
             int r = c.GetSocket().recv_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
@@ -318,7 +318,7 @@ protected:
         { }
 
         //! Should be called when the socket is writable
-        bool operator () (NetConnection& c) {
+        bool operator () (Connection& c) {
             int r = c.GetSocket().send_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
@@ -353,10 +353,10 @@ protected:
     /**************************************************************************/
 
     //! Default exception handler
-    static bool ExceptionCallback(NetConnection& s) {
+    static bool ExceptionCallback(Connection& s) {
         // exception on listen socket ?
         throw Exception(
-                  "NetDispatcher() exception on socket fd "
+                  "Dispatcher() exception on socket fd "
                   + std::to_string(s.GetSocket().fd()) + "!", errno);
     }
 };

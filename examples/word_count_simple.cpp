@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::thread> threads(size);
     std::vector<char**> arguments(size);
-    std::vector<std::vector<std::string>> strargs(size);
+    std::vector<std::vector<std::string> > strargs(size);
 
     for (size_t i = 0; i < size; i++) {
 
