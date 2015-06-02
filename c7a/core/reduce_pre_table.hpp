@@ -14,7 +14,7 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/api/function_traits.hpp>
-#include <c7a/data/data_manager.hpp>
+#include <c7a/data/manager.hpp>
 
 #include <map>
 #include <iostream>

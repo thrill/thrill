@@ -32,9 +32,9 @@ struct PreTable : public::testing::Test {
         two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
     }
 
-    NetDispatcher                          dispatcher;
+    Dispatcher                             dispatcher;
     ChannelMultiplexer                     multiplexer;
-    DataManager                            manager;
+    Manager                                manager;
     DIAId                                  id1;
     DIAId                                  id2;
     // all emitters access the same dia id, which is bad if you use them both

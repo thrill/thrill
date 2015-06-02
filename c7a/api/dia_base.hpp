@@ -17,7 +17,7 @@
 #include <string>
 #include "context.hpp"
 #include "types.hpp"
-#include "../data/data_manager.hpp"
+#include <c7a/data/manager.hpp>
 
 namespace c7a {
 
@@ -49,14 +49,14 @@ enum kState {
  * Each DIABase knows it's parents and children. Parents are node which have to
  * computed previously, children are nodes which have this node as a parent.
 
- * Additionally, a DIABase has a reference to the DataManager, which can give
+ * Additionally, a DIABase has a reference to the data::Manager, which can give
  * iterators to actual data.
  */
 class DIABase
 {
 public:
     /*!
-     * The constructor for a DIABase. Sets the DataManager and the
+     * The constructor for a DIABase. Sets the data::Manager and the
      * associated DIAId.
      *
      * Sets the parents for this node and adds this node as a child for
@@ -94,8 +94,8 @@ public:
         return parents_;
     }
 
-    //! Returns the DataManager of this DIABase.
-    //! \return The DataManager of this DIABase.
+    //! Returns the data::Manager of this DIABase.
+    //! \return The data::Manager of this DIABase.
     Context & get_context() {
         return context_;
     }
@@ -140,11 +140,11 @@ protected:
         }
     }
 
-    //! DataManager, which can give iterators to data.
+    //! Context, which can give iterators to data.
     Context& context_;
     //! Childs and parents of this DIABase.
     DIABaseVector childs_, parents_;
-    //! Unique ID of this DIABase. Used by the DataManager.
+    //! Unique ID of this DIABase. Used by the data::Manager.
     data::DIAId data_id_;
 };
 

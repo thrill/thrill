@@ -11,7 +11,7 @@
 #ifndef C7A_NET_STREAM_HEADER
 #define C7A_NET_STREAM_HEADER
 
-#include <c7a/net/net_connection.hpp>
+#include <c7a/net/connection.hpp>
 
 #include <cstdlib>
 #include <cstdio>
@@ -80,12 +80,12 @@ class Stream
 {
 public:
     struct StreamBlockHeader header;
-    NetConnection& socket;
+    Connection& socket;
     size_t elements_read = 0;
     size_t bytes_read = 0;
 
     //!attaches a stream to a socket and initializes the current header
-    Stream(NetConnection& socket, struct StreamBlockHeader& header)
+    Stream(Connection& socket, struct StreamBlockHeader& header)
         : header(header),
           socket(socket) { }
 
