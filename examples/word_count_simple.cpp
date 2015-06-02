@@ -58,14 +58,12 @@ int main(int argc, char* argv[]) {
         strargs[i][1] = std::to_string(i);
         arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
         threads[i] = std::thread([=]() { Execute(size + 2, arguments[i], word_count); });
-        //  threads.push_back(thread);
     }
 
     for (size_t i = 0; i < size; i++) {
         threads[i].join();
     }
 
-    //c7a::Execute(argc, argv, word_count);
 }
 
 /******************************************************************************/
