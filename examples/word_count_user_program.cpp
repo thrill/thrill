@@ -54,4 +54,51 @@ int word_count(c7a::Context& ctx) {
     return 0;
 }
 
+int word_count_generated(c7a::Context& ctx) {
+    using c7a::Context;
+    using WordPair = std::pair<std::string, int>;
+
+    size_t size = 10000;
+
+    auto word_pair_gen = [](std::string line, std::function<void(WordPair)> emit) {
+        WordPair wp = std::make_pair(line, 1);
+        emit(wp);
+    };
+
+    auto key = [](WordPair in) {
+                   return in.first;
+               };
+    
+    auto red_fn = [](WordPair in1, WordPair in2) {
+                      WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
+                      return wp;
+                  };
+
+
+
+    std::cout << ctx.get_current_dir() + "/tests/inputs/headwords" << std::endl;
+    auto lines = GenerateFromFile(
+        ctx,
+        ctx.get_current_dir() + "/tests/inputs/headwords",
+        [](const std::string& line) {
+            return line;
+        },
+        size);
+
+    auto word_pairs = lines.FlatMap(word_pair_gen);
+
+    auto red_words = word_pairs.ReduceBy(key).With(red_fn);
+
+    red_words.WriteToFileSystem(ctx.get_current_dir() + "/tests/outputs/wordcount.out",
+                                [](const WordPair& item) {
+                                    std::string str;
+                                    str += item.first;
+                                    str += ": ";
+                                    str += std::to_string(item.second);
+                                    std::cout << str << std::endl;
+                                    return str;
+                                });
+    return 0;
+}
+
 /******************************************************************************/

@@ -46,6 +46,7 @@ endmacro(build_test)
 ### list of tests in subdirectories
 
 #build_test(api/simple_api_test)
+build_test(api/operations_test)
 build_test(api/wordcount_test)
 build_test(data/manager_test)
 build_test(data/buffer_chain_test)

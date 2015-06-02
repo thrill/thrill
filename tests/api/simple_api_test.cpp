@@ -55,6 +55,42 @@ TEST(API, SharedPtrTest) {
     return;
 }
 
+TEST(API, GeneratorTest) {
+    using c7a::Context;
+
+    Context ctx;
+
+    auto map_fn = [](int in) {
+                      return 2 * in;
+                  };
+    auto key_ex = [](int in) {
+                      return in % 2;
+                  };
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    auto input = GenerateFromFile(
+        ctx,
+        g_workpath + "/inputs/test1",
+        [](const std::string& line) {
+            return std::stoi(line);
+        },
+        10000);
+    auto ints = input.Map(map_fn);
+    auto doubles = ints.Map(map_fn);
+    auto red_quad = doubles.ReduceBy(key_ex).With(red_fn);
+
+    std::vector<Stage> result;
+    FindStages(red_quad.get_node(), result);
+    for (auto s : result)
+    {
+        s.Run();
+    }
+
+    return;
+}
+
 TEST(API, TypeDeductionText) {
     using c7a::DIARef;
     using c7a::Context;
@@ -183,5 +219,6 @@ TEST(API, FunctionStackTest) {
     }
     return;
 }
+
 
 /******************************************************************************/
