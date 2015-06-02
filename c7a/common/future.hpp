@@ -46,14 +46,11 @@ protected:
     T value_;
 
 public:
-    typedef std::function<void (T&&)> CallbackFn;
-
-    CallbackFn GetCallback() {
-        return [=](T && data) {
-                   value_ = std::move(data);
-                   triggered_ = true;
-                   cv_.notify_one();
-        };
+    //! This is the callback to be called to fulfill the future.
+    void Callback(T&& data) {
+        value_ = std::move(data);
+        triggered_ = true;
+        cv_.notify_one();
     }
 
     //! Blocks until value is available and returns it
