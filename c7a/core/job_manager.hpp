@@ -13,12 +13,8 @@
 
 #include <c7a/data/manager.hpp>
 #include <c7a/net/manager.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
-
-//includes for thread and condition variables magic
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 
 namespace c7a {
 namespace core {
@@ -27,7 +23,7 @@ class JobManager
 {
 public:
     JobManager()
-        : cmp_(net_dispatcher_), data_manager_(cmp_),
+        : cmp_(net_dispatcher_.dispatcher()), data_manager_(cmp_),
           dispatcher_running_(false) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
@@ -48,23 +44,17 @@ public:
     //! Starts the dispatcher thread of the Manager
     //! \throws std::runtime_exception if the thread is already running
     void StartDispatcher() {
-        LOG << "starting net dispatcher";
-        dispatcher_thread_ = std::thread([=]() { this->net_dispatcher_.Loop(); });
-        dispatcher_running_ = true;
+        net_dispatcher_.Start();
     }
 
     //! Stops the dispatcher thread of the Manager
     void StopDispatcher() {
-        LOG << "stopping dispatcher ... waiting for it's breakout";
-        net_dispatcher_.Terminate();
-        dispatcher_thread_.join();
-        dispatcher_running_ = false;
-        LOG << "dispatcher thread joined";
+        net_dispatcher_.Stop();
     }
 
 private:
     net::Manager net_manager_;
-    net::Dispatcher net_dispatcher_;
+    net::DispatcherThread net_dispatcher_;
     net::ChannelMultiplexer cmp_;
     data::Manager data_manager_;
     bool dispatcher_running_;

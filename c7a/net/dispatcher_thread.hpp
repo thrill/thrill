@@ -73,6 +73,9 @@ public:
         running_ = false;
     }
 
+    //! Return Dispatcher
+    Dispatcher& dispatcher() { return dispatcher_; }
+
     //! \}
 
     //! \name Timeout Callbacks
