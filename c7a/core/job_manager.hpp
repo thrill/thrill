@@ -35,7 +35,7 @@ public:
         return true;
     }
 
-    data::DataManager & get_data_manager() {
+    data::Manager & get_data_manager() {
         return data_manager_;
     }
 
@@ -43,7 +43,7 @@ public:
         return net_manager_;
     }
 
-    //! Starts the dispatcher thread of the DataManager
+    //! Starts the dispatcher thread of the Manager
     //! \throws std::runtime_exception if the thread is already running
     void StartDispatcher() {
         LOG << "starting net dispatcher";
@@ -51,7 +51,7 @@ public:
         dispatcher_running_ = true;
     }
 
-    //! Stops the dispatcher thread of the DataManager
+    //! Stops the dispatcher thread of the Manager
     void StopDispatcher() {
         LOG << "stopping dispatcher ... waiting for it's breakout";
         net_dispatcher_.Breakout();
@@ -64,7 +64,7 @@ private:
     net::Manager net_manager_;
     net::Dispatcher net_dispatcher_;
     net::ChannelMultiplexer cmp_;
-    data::DataManager data_manager_;
+    data::Manager data_manager_;
     std::mutex waiting_on_data_;
     std::condition_variable idontknowhowtonameit_;
     bool new_data_arrived_;

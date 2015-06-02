@@ -24,7 +24,7 @@ struct DataManagerFixture : public::testing::Test {
 
     Dispatcher         dispatcher;
     ChannelMultiplexer cmp;
-    DataManager        manager;
+    Manager            manager;
     DIAId              id;
 };
 

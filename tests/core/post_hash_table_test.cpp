@@ -27,7 +27,7 @@ struct PostTable : public::testing::Test {
 
     Dispatcher                                 dispatcher;
     ChannelMultiplexer                         multiplexer;
-    DataManager                                manager;
+    Manager                                    manager;
     ChainId                                    id = manager.AllocateDIA();
     BlockIterator<int>                         iterator;
     BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both

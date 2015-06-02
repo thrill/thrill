@@ -40,13 +40,13 @@ using c7a::net::ChannelId;
 //!
 //!
 //! Provides Channel creation for sending / receiving data from other workers.
-class DataManager
+class Manager
 {
 public:
-    DataManager(net::ChannelMultiplexer& cmp) : cmp_(cmp) { }
+    Manager(net::ChannelMultiplexer& cmp) : cmp_(cmp) { }
 
-    DataManager(const DataManager&) = delete;
-    DataManager& operator = (const DataManager&) = delete;
+    Manager(const Manager&) = delete;
+    Manager& operator = (const Manager&) = delete;
 
     //! returns iterator on requested partition or network channel.
     //!
