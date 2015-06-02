@@ -17,6 +17,7 @@
 
 #include <string>
 #include <fstream>
+#include <random>
 
 namespace c7a {
 
@@ -56,23 +57,31 @@ public:
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void execute() {
-        // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
-        /*  LOG1 << "READING data with id " << this->data_id_;
+        
+        LOG1 << "READING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
 
-        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file, (this->context_).rank(), (this->context_).number_worker());
+        std::string line;
+        while (std::getline(file, line))
+        {
+            elements_.push_back(generator_function_(line));
+        }
 
-        data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+        size_t local_elements = (size_ / (this->context).number_worker());
+        
+        
+        std::random_device random_device;
+        std::default_random_engine generator(random_device());
+        std::uniform_int_distribution<int> distribution(0, elements_.size());
 
-        // Hook Read
-        while (it.HasNext()) {
-            auto item = it.Next();
+        for (size_t i = 0; i < local_elements; i++) {
+            size_t rand_element = distribution(generator);
             for (auto func : DIANode<Output>::callbacks_) {
-                func(read_function_(item));
+                func(elements_[rand_element]);
             }
-            }*/
+        }
     }
 
     /*!
@@ -102,6 +111,8 @@ private:
     GeneratorFunction generator_function_;
     //! Path of the input file.
     std::string path_in_;
+
+    std::vector<Output> elements_;
 
     size_t size_;
 };
