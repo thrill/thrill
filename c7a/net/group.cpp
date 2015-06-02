@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net_group.cpp
+ * c7a/net/group.cpp
  *
  * net::Group is a collection of Connections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -11,8 +11,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/net_group.hpp>
-#include <c7a/net/net_dispatcher.hpp>
+#include <c7a/net/group.hpp>
+#include <c7a/net/dispatcher.hpp>
 
 #include <deque>
 #include <string>

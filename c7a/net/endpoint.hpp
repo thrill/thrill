@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net_endpoint.hpp
+ * c7a/net/endpoint.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_ENDPOINT_HEADER
-#define C7A_NET_NET_ENDPOINT_HEADER
+#ifndef C7A_NET_ENDPOINT_HEADER
+#define C7A_NET_ENDPOINT_HEADER
 
 #include <iostream>
 #include <sstream>
@@ -73,6 +73,6 @@ std::ostream& operator << (std::ostream& os, const Endpoint& endpoint) {
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_ENDPOINT_HEADER
+#endif // !C7A_NET_ENDPOINT_HEADER
 
 /******************************************************************************/

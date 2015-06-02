@@ -11,8 +11,8 @@
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
-#include <c7a/data/data_manager.hpp>
-#include <c7a/net/net_manager.hpp>
+#include <c7a/data/manager.hpp>
+#include <c7a/net/manager.hpp>
 #include <c7a/common/logger.hpp>
 
 //includes for thread and condition variables magic

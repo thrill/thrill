@@ -11,7 +11,7 @@
 #ifndef C7A_NET_CHANNEL_HEADER
 #define C7A_NET_CHANNEL_HEADER
 
-#include <c7a/net/net_connection.hpp>
+#include <c7a/net/connection.hpp>
 #include <c7a/net/stream.hpp>
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>

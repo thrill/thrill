@@ -13,7 +13,7 @@
 
 #include <string>
 #include <vector>
-#include "net_group.hpp"
+#include <c7a/net/group.hpp>
 
 namespace c7a {
 
