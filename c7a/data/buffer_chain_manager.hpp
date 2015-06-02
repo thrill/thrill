@@ -73,7 +73,8 @@ struct ChainId {
 };
 
 //! Stream operator that calls ToString on ChainID
-static std::ostream& operator << (std::ostream& stream, const ChainId& id) {
+static inline
+std::ostream& operator << (std::ostream& stream, const ChainId& id) {
     stream << id.ToString();
     return stream;
 }
