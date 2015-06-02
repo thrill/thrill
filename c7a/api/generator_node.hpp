@@ -66,7 +66,10 @@ public:
         std::string line;
         while (std::getline(file, line))
         {
-            elements_.push_back(generator_function_(line.substr(0,line.size() - 1)));
+            if (*line.rbegin() == '\r') {
+                line.erase(line.length() - 1);
+            }
+            elements_.push_back(generator_function_(line));
         }
 
         size_t local_elements = (size_ / (this->context_).number_worker());
