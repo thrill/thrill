@@ -62,12 +62,12 @@ TEST_F(FutureQueueTest, WaitWaitsForDataAndReturnsTrue) {
     FutureQueue<int> fq;
 
     pool.Enqueue([&fq]() {
-            ASSERT_TRUE(fq.Wait());
-            ASSERT_EQ(1, fq.Next());
-    });
+                     ASSERT_TRUE(fq.Wait());
+                     ASSERT_EQ(1, fq.Next());
+                 });
     pool.Enqueue([&fq]() {
-            fq.Callback(1, false);
-    });
+                     fq.Callback(1, false);
+                 });
     pool.LoopUntilEmpty();
 }
 
@@ -75,11 +75,11 @@ TEST_F(FutureQueueTest, WaitWaitsForDataAndReturnsFalseIfQueueIsClosed) {
     FutureQueue<int> fq;
 
     pool.Enqueue([&fq]() {
-            ASSERT_FALSE(fq.Wait());
-    });
+                     ASSERT_FALSE(fq.Wait());
+                 });
     pool.Enqueue([&fq]() {
-            fq.Callback(1, true);
-    });
+                     fq.Callback(1, true);
+                 });
     pool.LoopUntilEmpty();
 }
 
@@ -87,11 +87,11 @@ TEST_F(FutureQueueTest, WaitForAllWaitsAndReturnsFalseIfQueueIsClosed) {
     FutureQueue<int> fq;
 
     pool.Enqueue([&fq]() {
-            ASSERT_FALSE(fq.WaitForAll());
-    });
+                     ASSERT_FALSE(fq.WaitForAll());
+                 });
     pool.Enqueue([&fq]() {
-            fq.Callback(1, true);
-    });
+                     fq.Callback(1, true);
+                 });
     pool.LoopUntilEmpty();
 }
 
@@ -99,21 +99,20 @@ TEST_F(FutureQueueTest, WaitForAllWaitsForDataAndReturnsTrue) {
     FutureQueue<int> fq;
 
     pool.Enqueue([&fq]() {
-            ASSERT_TRUE(fq.WaitForAll());
-            ASSERT_EQ(1, fq.Next());
-            ASSERT_EQ(1337, fq.Next());
-            ASSERT_EQ(42, fq.Next());
-            ASSERT_FALSE(fq.WaitForAll());
-            ASSERT_TRUE(fq.closed());
-    });
+                     ASSERT_TRUE(fq.WaitForAll());
+                     ASSERT_EQ(1, fq.Next());
+                     ASSERT_EQ(1337, fq.Next());
+                     ASSERT_EQ(42, fq.Next());
+                     ASSERT_FALSE(fq.WaitForAll());
+                     ASSERT_TRUE(fq.closed());
+                 });
     pool.Enqueue([&fq]() {
-            fq.Callback(1, false);
-            fq.Callback(1337, false);
-            fq.Callback(42, false);
-            fq.Callback(0, true);
-    });
+                     fq.Callback(1, false);
+                     fq.Callback(1337, false);
+                     fq.Callback(42, false);
+                     fq.Callback(0, true);
+                 });
     pool.LoopUntilEmpty();
 }
-
 
 /******************************************************************************/
