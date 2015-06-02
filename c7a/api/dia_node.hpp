@@ -16,7 +16,7 @@
 
 #include "dia_base.hpp"
 #include "context.hpp"
-#include "../data/data_manager.hpp"
+#include <c7a/data/manager.hpp>
 
 namespace c7a {
 

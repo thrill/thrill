@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/wordcount_test.cpp
+ * examples/word_count_user_program.cpp
  *
  * Part of Project c7a.
  *
@@ -7,26 +7,12 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia_base.hpp>
-#include <c7a/net/endpoint.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
-#include <tests/c7a_tests.hpp>
 
-#include "gtest/gtest.h"
-
-using namespace c7a::core;
-using namespace c7a::net;
-
-TEST(WordCount, WordCountExample) {
+//! The WordCount user program
+int word_count(c7a::Context& ctx) {
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
-
-    Context ctx;
-    std::vector<std::string> self = { "127.0.0.1:1234" };
-    ctx.job_manager().Connect(0, Endpoint::ParseEndpointList(self));
-    ctx.job_manager().StartDispatcher();
 
     auto line_to_words = [](std::string line, std::function<void(WordPair)> emit) {
                              std::string word;
@@ -44,9 +30,10 @@ TEST(WordCount, WordCountExample) {
                       return wp;
                   };
 
+    std::cout << ctx.get_current_dir() + "/tests/inputs/wordcount.in" << std::endl;
     auto lines = ReadFromFileSystem(
         ctx,
-        g_workpath + "/inputs/wordcount.in",
+        ctx.get_current_dir() + "/tests/inputs/wordcount.in",
         [](const std::string& line) {
             return line;
         });
@@ -55,15 +42,16 @@ TEST(WordCount, WordCountExample) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    red_words.WriteToFileSystem(g_workpath + "/outputs/wordcount.out",
+    red_words.WriteToFileSystem(ctx.get_current_dir() + "/tests/outputs/wordcount.out",
                                 [](const WordPair& item) {
                                     std::string str;
                                     str += item.first;
                                     str += ": ";
-                                    str += item.second;
+                                    str += std::to_string(item.second);
+                                    std::cout << str << std::endl;
                                     return str;
                                 });
-    ctx.job_manager().StopDispatcher();
+    return 0;
 }
 
 /******************************************************************************/
