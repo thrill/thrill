@@ -395,7 +395,7 @@ void Group::PrefixSum(T& value, BinarySumOp sumOp) {
     {
         // Send total sum of this hypercube to worker with id = id XOR d
         if ((MyRank() ^ d) < Size()) {
-            Connection(MyRank() ^ d).Send(total_sum);
+            connection(MyRank() ^ d).Send(total_sum);
             sLOG << "PREFIX_SUM: Worker" << MyRank() << ": Sending" << total_sum
                  << "to worker" << (MyRank() ^ d);
         }
@@ -403,7 +403,7 @@ void Group::PrefixSum(T& value, BinarySumOp sumOp) {
         // Receive total sum of smaller hypercube from worker with id = id XOR d
         T recv_data;
         if ((MyRank() ^ d) < Size()) {
-            Connection(MyRank() ^ d).Receive(&recv_data);
+            connection(MyRank() ^ d).Receive(&recv_data);
             total_sum = sumOp(total_sum, recv_data);
             // Variable 'value' represents the prefix sum of this worker
             if (MyRank() & d)
