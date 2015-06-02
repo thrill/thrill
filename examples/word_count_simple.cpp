@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
         arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
         strargs[i][1] = std::to_string(i);
         arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
-        threads[i] = std::thread([=]() { Execute(size + 2, arguments[i], word_count); });
+        threads[i] = std::thread([=]() { Execute(size + 2, arguments[i], word_count_generated); });
     }
 
     for (size_t i = 0; i < size; i++) {
