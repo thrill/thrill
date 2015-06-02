@@ -34,7 +34,7 @@ struct PreTable : public::testing::Test {
 
     Dispatcher                             dispatcher;
     ChannelMultiplexer                     multiplexer;
-    DataManager                            manager;
+    Manager                                manager;
     DIAId                                  id1;
     DIAId                                  id2;
     // all emitters access the same dia id, which is bad if you use them both
