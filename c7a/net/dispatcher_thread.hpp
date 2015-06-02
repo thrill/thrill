@@ -56,8 +56,7 @@ public:
     //! \{
 
     //! Start dispatching thread
-    void Start()
-    {
+    void Start() {
         die_unless(!running_);
         LOG << "DispatcherThread::Start(): starting";
         dispatcher_.terminate_ = false;
@@ -66,8 +65,7 @@ public:
     }
 
     //! Stop dispatching thread
-    void Stop()
-    {
+    void Stop() {
         die_unless(running_);
         LOG << "DispatcherThread::Stop(): stopping thread";
         dispatcher_.Terminate();
