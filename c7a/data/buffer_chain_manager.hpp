@@ -103,6 +103,7 @@ public:
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
     ChainId Allocate(ChainId id) {
+        std::lock_guard<std::mutex> lock(mutex_);
         sLOG << "allocate" << id;
         if (Contains(id)) {
             throw new std::runtime_error("duplicate chain allocation with explicit id");
@@ -134,6 +135,7 @@ private:
     static const bool debug = false;
     ChainId next_id_;
     std::map<ChainId, std::shared_ptr<BufferChain> > chains_;
+    std::mutex mutex_;
 };
 
 } // namespace data
