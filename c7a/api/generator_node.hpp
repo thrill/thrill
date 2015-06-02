@@ -66,15 +66,15 @@ public:
         std::string line;
         while (std::getline(file, line))
         {
-            elements_.push_back(generator_function_(line));
+            elements_.push_back(generator_function_(line.substr(0,line.size() - 1)));
         }
 
-        size_t local_elements = (size_ / (this->context).number_worker());
+        size_t local_elements = (size_ / (this->context_).number_worker());
         
         
         std::random_device random_device;
         std::default_random_engine generator(random_device());
-        std::uniform_int_distribution<int> distribution(0, elements_.size());
+        std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);
