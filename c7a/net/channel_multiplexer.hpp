@@ -14,6 +14,7 @@
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 #include <c7a/net/channel.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/data/block_emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
@@ -133,6 +134,8 @@ private:
 
     DispatcherThread& dispatcher_;
 
+    common::Stats stats_;
+
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
     data::BufferChainManager chains_;
@@ -170,7 +173,7 @@ private:
             //build params for Channel ctor
             auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
             auto expected_peers = group_->Size();
-            channel = std::make_shared<Channel>(dispatcher_, callback, id.identifier, expected_peers, targetChain);
+            channel = std::make_shared<Channel>(dispatcher_, callback, id.identifier, expected_peers, targetChain, stats_);
             channels_.insert(std::make_pair(id.identifier, channel));
         }
         else {

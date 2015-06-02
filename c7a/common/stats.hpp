@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_STATS
-#define C7A_COMMON_STATS
+#ifndef C7A_COMMON_STATS_HEADER
+#define C7A_COMMON_STATS_HEADER
 
 #include <list>
 
@@ -34,33 +34,39 @@ class Stats
 {
 public:
     typedef std::pair<std::string, TimedCounter> NamedTimedCounter;
-    typedef decltype(std::chrono::high_resolution_clock::now()) TimeStamp;
+    typedef decltype (std::chrono::high_resolution_clock::now ()) TimeStamp;
 
     Stats() :
-        program_start_(std::chrono::high_resolution_clock::now()) {
-    }
+        program_start_(std::chrono::high_resolution_clock::now()) { }
 
-    Stats (const Stats& rhs) = delete;
-    Stats (Stats&& ) = delete;
-    Stats& operator=(const Stats&) = delete;
+    Stats(const Stats& rhs) = delete;
+    Stats(Stats&&) = delete;
+    Stats& operator = (const Stats&) = delete;
 
-    TimedCounter& CreateTimedCounter(std::string label) {
+    TimedCounter & CreateTimedCounter(std::string label) {
         timed_counters_.emplace_back(std::make_pair(label, TimedCounter()));
         return std::get<1>(timed_counters_.back());
     }
 
-    StatsTimer<true>& CreateTimer(std::string label, bool auto_start = false) {
+    StatsTimer<true> & CreateTimer(std::string label, bool auto_start = false) {
         timers_.emplace_back(std::make_pair(label, StatsTimer<true>(auto_start)));
         return std::get<1>(timers_.back());
+    }
+
+    void AddReport(std::string label, std::string content) {
+        reports_.emplace_back(std::make_pair(label, content));
     }
 
     ~Stats() {
         if (dump_to_log_) {
             for (auto& ntc : timed_counters_) {
-                PrintTimedCounter(std::get<1>(ntc), std::get<0>(ntc));
+                std::cout << PrintTimedCounter(std::get<1>(ntc), std::get<0>(ntc)) << std::endl;
             }
             for (auto& timer : timers_) {
-                PrintStatsTimer(std::get<1>(timer), std::get<0>(timer));
+                std::cout << PrintStatsTimer(std::get<1>(timer), std::get<0>(timer)) << std::endl;
+            }
+            for (auto& report : reports_) {
+                std::cout << std::get<0>(report) << ":" << std::get<1>(report) << std::endl;
             }
         }
     }
@@ -83,14 +89,15 @@ public:
 
     std::string PrintStatsTimer(StatsTimer<true>& timer, std::string name = "unnamed") {
         std::stringstream ss;
-        ss << "Timer(" << name << "): " << timer << "ms";
+        ss << "Timer(" << name << "): " << timer;
         return ss.str();
     }
 
 private:
     static const bool dump_to_log_ = true;
     std::list<std::tuple<std::string, TimedCounter> > timed_counters_;
-    std::list<std::tuple<std::string, StatsTimer<true>> > timers_;
+    std::list<std::tuple<std::string, StatsTimer<true> > > timers_;
+    std::list<std::tuple<std::string, std::string> > reports_;
     const TimeStamp program_start_;
 
     //! relative duration in microseconds to creation of this instance.
@@ -100,6 +107,6 @@ private:
 };
 } //namespace common
 } //namespace c7a
-#endif // !C7A_COMMON_STATS
+#endif // !C7A_COMMON_STATS_HEADER
 
 /******************************************************************************/
