@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count.cpp
+ * examples/word_count_simple.cpp
  *
  * Part of Project c7a.
  *
@@ -33,35 +33,30 @@ int main(int argc, char* argv[]) {
     unsigned int size = 1;
     clp.AddUInt('n', "size", "N", size,
                 "Create wordcount example with N workers");
-                  
-    if(!clp.Process(argc, argv)) {
+
+    if (!clp.Process(argc, argv)) {
         return -1;
     }
 
-    std::thread threads[size];
+    std::vector<std::thread> threads(size);
 
-    
-
-    for (size_t i = 0; i < size; i++) {  
+    for (size_t i = 0; i < size; i++) {
 
         char** argvs = new char*[size + 1];
         std::vector<std::string> args(size + 1);
-
-        
 
         for (size_t j = 0; j < size; j++) {
             args[j + 1] += "127.0.0.1:";
             args[j + 1] += std::to_string(port_base + j);
             argvs[j + 1] = const_cast<char*>(args[j + 1].c_str());
         }
-        
-        
+
         args[0] = std::to_string(i);
         argvs[0] = const_cast<char*>(args[0].c_str());
-        
+
         std::cout << argvs[2] << std::endl;
 
-        threads[i] = std::thread([=]() { Execute(size + 1, argvs , word_count); });
+        threads[i] = std::thread([=]() { Execute(size + 1, argvs, word_count); });
         //  threads.push_back(thread);
     }
 
