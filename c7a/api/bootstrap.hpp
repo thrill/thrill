@@ -71,7 +71,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
 
     Context ctx;
     std::cout << "connecting to peers" << std::endl;
-    ctx.job_manager().Connect(my_rank, net::NetEndpoint::ParseEndpointList(endpoints));
+    ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
     ctx.job_manager().StartDispatcher();
     std::cout << "starting job" << std::endl;
     c7a::common::StatsTimer<timing> timer(true);

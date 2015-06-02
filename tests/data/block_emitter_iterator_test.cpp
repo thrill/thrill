@@ -9,7 +9,7 @@
 
 #include <c7a/data/block_iterator.hpp>
 #include <c7a/data/block_emitter.hpp>
-#include <c7a/data/data_manager.hpp>
+#include <c7a/data/manager.hpp>
 
 #include <vector>
 #include <string>
@@ -27,10 +27,10 @@ struct EmitterIteratorIntegration : public::testing::Test {
           id(manager.AllocateDIA()) { }
 
     //not required, just for the ctor
-    NetDispatcher      dispatcher;
+    Dispatcher         dispatcher;
     ChannelMultiplexer multiplexer;
 
-    DataManager        manager;
+    Manager            manager;
     ChainId            id;
 };
 

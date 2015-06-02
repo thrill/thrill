@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net_manager.cpp
+ * c7a/net/manager.cpp
  *
  * Part of Project c7a.
  *
@@ -7,7 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include "net_manager.hpp"
+#include <c7a/net/manager.hpp>
 
 namespace c7a {
 namespace net {
