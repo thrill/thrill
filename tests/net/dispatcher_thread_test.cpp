@@ -17,6 +17,7 @@ using namespace std::literals;
 using namespace c7a::net;
 using c7a::common::ThreadPool;
 using c7a::common::Future;
+using c7a::common::FutureX;
 
 TEST(DispatcherThread, Test1) {
 
@@ -54,6 +55,44 @@ TEST(DispatcherThread, FutureTest) {
                                         f.Callback(std::move(b));
                                     });
                      Buffer b = f.Get();
+                     sLOG << std::this_thread::get_id()
+                          << "Waiter got packet:" << b.ToString();
+                 });
+
+    disp.Start();
+    pool.LoopUntilEmpty();
+    disp.Stop();
+}
+
+TEST(DispatcherThread, FutureXTest) {
+    static const bool debug = true;
+
+    ThreadPool pool(2);
+
+    using lowlevel::Socket;
+
+    std::pair<Socket, Socket> sp = Socket::CreatePair();
+    Connection connA(sp.first), connB(sp.second);
+
+    DispatcherThread disp;
+
+    pool.Enqueue([&]() {
+                     std::this_thread::sleep_for(10ms);
+                     disp.AsyncWriteCopy(connA, "Hello");
+                     sLOG << std::this_thread::get_id()
+                          << "I just sent Hello.";
+                 });
+
+    pool.Enqueue([&]() {
+                     FutureX<Connection, Buffer> f;
+                     disp.AsyncRead(connB, 5,
+                                    [&f](Connection& c, Buffer&& b) -> void {
+                                        sLOG << std::this_thread::get_id()
+                                             << "Got Hello in callback";
+                                        f.Callback(std::move(c), std::move(b));
+                                    });
+                     std::tuple<Connection, Buffer> t = f.Get();
+                     Buffer& b = std::get<1>(t);
                      sLOG << std::this_thread::get_id()
                           << "Waiter got packet:" << b.ToString();
                  });
