@@ -40,7 +40,7 @@ public:
 
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
-    data::DataManager & get_data_manager() {
+    data::Manager & get_data_manager() {
         return job_manager_.get_data_manager();
     }
 

@@ -33,7 +33,7 @@ struct WorkerMock {
     }
 
     ChannelMultiplexer cmp;
-    DataManager        manager;
+    Manager            manager;
     bool               run;
 };
 

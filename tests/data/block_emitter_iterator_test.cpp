@@ -30,7 +30,7 @@ struct EmitterIteratorIntegration : public::testing::Test {
     Dispatcher         dispatcher;
     ChannelMultiplexer multiplexer;
 
-    DataManager        manager;
+    Manager            manager;
     ChainId            id;
 };
 
