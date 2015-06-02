@@ -18,14 +18,12 @@ using namespace c7a::net;
 struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
         : dispatcher(),
-          cmp(dispatcher),
-          manager(cmp),
+          manager(dispatcher),
           id(manager.AllocateDIA()) { }
 
-    Dispatcher         dispatcher;
-    ChannelMultiplexer cmp;
-    Manager            manager;
-    DIAId              id;
+    Dispatcher dispatcher;
+    Manager    manager;
+    DIAId      id;
 };
 
 TEST_F(DataManagerFixture, GetIterator_FailsIfNotFound) {
