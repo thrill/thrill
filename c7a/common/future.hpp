@@ -43,15 +43,14 @@ protected:
     bool finished_ = false;
 
     //! Stores the value if callback returned before next was invoked
-    T last_;
+    T value_;
 
 public:
-    typedef std::function<void (T&&, bool)> CallbackFn;
+    typedef std::function<void (T&&)> CallbackFn;
 
     CallbackFn GetCallback() {
-        return [=](T && data, bool finished) {
-                   assert(finished);
-                   last_ = data;
+        return [=](T && data) {
+                   value_ = std::move(data);
                    triggered_ = true;
                    cv_.notify_one();
         };
@@ -60,13 +59,11 @@ public:
     //! Blocks until value is available and returns it
     T && Get() {
         assert(!finished_); //prevent multiple calls to Get()
-        if (!triggered_) {
-            std::unique_lock<std::mutex> lock(mutex_);
-            cv_.wait(lock);
-        }
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait(lock, [this]() { return triggered_; });
         triggered_ = false;
         finished_ = true;
-        return std::move(last_);
+        return std::move(value_);
     }
 
     //! Indicates if get was invoked and returned
