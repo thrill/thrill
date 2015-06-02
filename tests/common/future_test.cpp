@@ -9,6 +9,7 @@
 
 #include <c7a/common/future.hpp>
 #include <c7a/common/thread_pool.hpp>
+#include <c7a/net/dispatcher.hpp>
 
 #include <string>
 
@@ -34,7 +35,7 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
                  });
 
     pool.Enqueue([&f]() {
-                     f.GetCallback()(42, true);
+                     f.GetCallback()(42);
                  });
 
     pool.LoopUntilEmpty();
@@ -50,7 +51,7 @@ TEST_F(FutureTest, GetReturnsAfterCallback) {
 
     pool.Enqueue([&f, &result]() {
                      ASSERT_EQ(0, result);
-                     f.GetCallback()(42, true);
+                     f.GetCallback()(42);
                      std::this_thread::sleep_for(10ns);
                      ASSERT_EQ(42, result);
                  });
@@ -69,7 +70,7 @@ TEST_F(FutureTest, IsFinishedIsSetAfterCallback) {
 
     pool.Enqueue([&f, &result]() {
                      ASSERT_FALSE(f.is_finished());
-                     f.GetCallback()(42, true);
+                     f.GetCallback()(42);
 
                      //let other thread run, but that one will wait 100ms
                      std::this_thread::sleep_for(10ns);
