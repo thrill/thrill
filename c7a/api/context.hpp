@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include <c7a/data/data_manager.hpp>
+#include <c7a/data/manager.hpp>
 #include <c7a/core/job_manager.hpp>
 
 #include <stdio.h>

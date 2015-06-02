@@ -8,10 +8,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/net_group.hpp>
+#include <c7a/net/group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/net_dispatcher.hpp>
-#include <c7a/net/net_manager.hpp>
+#include <c7a/net/dispatcher.hpp>
+#include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>

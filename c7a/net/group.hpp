@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net_group.hpp
+ * c7a/net/group.hpp
  *
  * net::Group is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -12,11 +12,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_GROUP_HEADER
-#define C7A_NET_NET_GROUP_HEADER
+#ifndef C7A_NET_GROUP_HEADER
+#define C7A_NET_GROUP_HEADER
 
-#include <c7a/net/net_endpoint.hpp>
-#include <c7a/net/net_connection.hpp>
+#include <c7a/net/endpoint.hpp>
+#include <c7a/net/connection.hpp>
 #include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -464,6 +464,6 @@ void Group::AllReduce(T& value, BinarySumOp sum_op) {
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_GROUP_HEADER
+#endif // !C7A_NET_GROUP_HEADER
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/data_manager.hpp
+ * c7a/data/manager.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_DATA_MANAGER_HEADER
-#define C7A_DATA_DATA_MANAGER_HEADER
+#ifndef C7A_DATA_MANAGER_HEADER
+#define C7A_DATA_MANAGER_HEADER
 
 #include <c7a/data/block_iterator.hpp>
 #include <c7a/common/logger.hpp>
@@ -139,6 +139,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_DATA_MANAGER_HEADER
+#endif // !C7A_DATA_MANAGER_HEADER
 
 /******************************************************************************/
