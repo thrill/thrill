@@ -70,6 +70,9 @@ protected:
     using function = std::function<Signature>;
 #endif
 
+    //! for access to terminate_
+    friend class DispatcherThread;
+
 public:
     //! \name Timeout Callbacks
     //! \{
@@ -180,12 +183,14 @@ public:
     //! \name Dispatch
     //! \{
 
-    //! dispatch one or more events
+    //! Dispatch one or more events
     void Dispatch() {
         // process timer events that lie in the past
         steady_clock::time_point now = steady_clock::now();
 
-        while (!breakout_ && !timer_pq_.empty() && timer_pq_.top().next_timeout <= now)
+        while (!terminate_ &&
+               !timer_pq_.empty() &&
+               timer_pq_.top().next_timeout <= now)
         {
             const Timer& top = timer_pq_.top();
             if (top.cb()) {
@@ -196,22 +201,23 @@ public:
             timer_pq_.pop();
         }
 
-        if (breakout_) return;
+        if (terminate_) return;
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            LOG << "empty disptach queue - waiting 1s";
+            LOG << "Dispatch(): empty queue - waiting 1s";
             dispatcher_.Dispatch(milliseconds(1000));
         }
         else {
             auto diff = std::chrono::duration_cast<milliseconds>(timer_pq_.top().next_timeout - now);
-            sLOG << "waiting" << diff.count() << "ms";
+            sLOG << "Dispatch(): waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
         }
     }
 
-    void DispatchLoop() {
-        while (!breakout_) {
+    //! Loop over Dispatch() until terminate_ flag is set.
+    void Loop() {
+        while (!terminate_) {
             Dispatch();
         }
     }
@@ -219,8 +225,8 @@ public:
     //! Causes the dispatcher to break out after the next timeout occurred
     //! Does not interrupt the currently running read/write operation, but
     //! breaks after the operation finished or timed out.
-    void Breakout() {
-        breakout_ = true;
+    void Terminate() {
+        terminate_ = true;
     }
 
     //! \}
@@ -230,7 +236,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    bool breakout_;
+    bool terminate_ = false;
 
     //! struct for timer callbacks
     struct Timer
