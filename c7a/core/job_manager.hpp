@@ -23,12 +23,11 @@ class JobManager
 {
 public:
     JobManager()
-        : cmp_(net_dispatcher_.dispatcher()),
-          data_manager_(cmp_) { }
+        : data_manager_(net_dispatcher_.dispatcher()) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);
-        cmp_.Connect(&net_manager_.GetDataGroup());
+        data_manager_.Connect(&net_manager_.GetDataGroup());
         //TODO(??) connect control flow and system control channels here
         return true;
     }
@@ -55,7 +54,6 @@ public:
 private:
     net::Manager net_manager_;
     net::DispatcherThread net_dispatcher_;
-    net::ChannelMultiplexer cmp_;
     data::Manager data_manager_;
     const static bool debug = true;
 };
