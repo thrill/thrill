@@ -26,7 +26,9 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_), dispatcher_running_(false) { }
+    JobManager()
+        : cmp_(net_dispatcher_), data_manager_(cmp_),
+          dispatcher_running_(false) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);
@@ -65,9 +67,6 @@ private:
     net::Dispatcher net_dispatcher_;
     net::ChannelMultiplexer cmp_;
     data::Manager data_manager_;
-    std::mutex waiting_on_data_;
-    std::condition_variable idontknowhowtonameit_;
-    bool new_data_arrived_;
     bool dispatcher_running_;
     std::thread dispatcher_thread_;
     const static bool debug = true;
