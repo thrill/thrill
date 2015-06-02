@@ -38,7 +38,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    std::thread threads[size];
+    //TODO(an) what's the reason for not using a vector here?
+    std::thread *threads = new std::thread[size];
 
     for (size_t i = 0; i < size; i++) {
 
@@ -64,6 +65,7 @@ int main(int argc, char* argv[]) {
         threads[i].join();
     }
 
+    delete [] threads;
     //c7a::Execute(argc, argv, word_count);
 }
 
