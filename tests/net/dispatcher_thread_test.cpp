@@ -51,7 +51,7 @@ TEST(DispatcherThread, FutureTest) {
                                     [&f](Connection&, Buffer&& b) -> void {
                                         sLOG << std::this_thread::get_id()
                                              << "Got Hello in callback";
-                                        f.GetCallback()(std::move(b));
+                                        f.Callback(std::move(b));
                                     });
                      Buffer b = f.Get();
                      sLOG << std::this_thread::get_id()
