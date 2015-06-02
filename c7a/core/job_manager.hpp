@@ -23,8 +23,8 @@ class JobManager
 {
 public:
     JobManager()
-        : cmp_(net_dispatcher_.dispatcher()), data_manager_(cmp_),
-          dispatcher_running_(false) { }
+        : cmp_(net_dispatcher_.dispatcher()),
+          data_manager_(cmp_) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);
@@ -57,8 +57,6 @@ private:
     net::DispatcherThread net_dispatcher_;
     net::ChannelMultiplexer cmp_;
     data::Manager data_manager_;
-    bool dispatcher_running_;
-    std::thread dispatcher_thread_;
     const static bool debug = true;
 };
 
