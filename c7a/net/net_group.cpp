@@ -1,7 +1,7 @@
 /*******************************************************************************
  * c7a/net/net_group.cpp
  *
- * NetGroup is a collection of NetConnections providing simple MPI-like
+ * net::Group is a collection of Connections providing simple MPI-like
  * collectives and point-to-point communication.
  *
  * Part of Project c7a.
@@ -27,12 +27,12 @@ namespace net {
  * @brief Auxiallary class for buffered reads.
  */
 template <typename Functional, size_t BufferSize = 0>
-class NetReadBuffer
+class ReadBuffer
 {
 public:
     //! Construct buffered reader with callback
-    NetReadBuffer(lowlevel::Socket& socket, size_t buffer_size = BufferSize,
-                  const Functional& functional = Functional())
+    ReadBuffer(lowlevel::Socket& socket, size_t buffer_size = BufferSize,
+               const Functional& functional = Functional())
         : functional_(functional),
           buffer_(buffer_size, 0) {
         if (buffer_size == 0)
@@ -45,7 +45,7 @@ public:
                            buffer_.size() - size_);
 
         if (r < 0)
-            throw Exception("NetReadBuffer() error in recv", errno);
+            throw Exception("ReadBuffer() error in recv", errno);
 
         size_ += r;
 
@@ -69,16 +69,16 @@ private:
     std::string buffer_;
 };
 
-void NetGroup::ExecuteLocalMock(
+void Group::ExecuteLocalMock(
     size_t num_clients,
-    const std::function<void(NetGroup*)>& thread_function) {
+    const std::function<void(Group*)>& thread_function) {
     using lowlevel::Socket;
 
     // construct a group of num_clients
-    std::vector<std::unique_ptr<NetGroup> > group(num_clients);
+    std::vector<std::unique_ptr<Group> > group(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {
-        group[i] = std::unique_ptr<NetGroup>(new NetGroup(i, num_clients));
+        group[i] = std::unique_ptr<Group>(new Group(i, num_clients));
     }
 
     // construct a stream socket pair for (i,j) with i < j
@@ -88,12 +88,12 @@ void NetGroup::ExecuteLocalMock(
 
             std::pair<Socket, Socket> sp = Socket::CreatePair();
 
-            group[i]->connections_[j] = std::move(NetConnection(sp.first));
-            group[j]->connections_[i] = std::move(NetConnection(sp.second));
+            group[i]->connections_[j] = std::move(Connection(sp.first));
+            group[j]->connections_[i] = std::move(Connection(sp.second));
         }
     }
 
-    // create a thread for each NetGroup object and run user program.
+    // create a thread for each Group object and run user program.
     std::vector<std::thread> threads(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {

@@ -25,7 +25,7 @@ struct PostTable : public::testing::Test {
         emitters.emplace_back(manager.GetLocalEmitter<int>(id));
     }
 
-    NetDispatcher                              dispatcher;
+    Dispatcher                                 dispatcher;
     ChannelMultiplexer                         multiplexer;
     DataManager                                manager;
     ChainId                                    id = manager.AllocateDIA();

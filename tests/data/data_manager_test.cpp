@@ -22,7 +22,7 @@ struct DataManagerFixture : public::testing::Test {
           manager(cmp),
           id(manager.AllocateDIA()) { }
 
-    NetDispatcher      dispatcher;
+    Dispatcher         dispatcher;
     ChannelMultiplexer cmp;
     DataManager        manager;
     DIAId              id;
