@@ -38,25 +38,26 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    std::thread threads[size];
+    std::vector<std::thread> threads(size);
+    std::vector<char**> arguments(size);
+    std::vector<std::vector<std::string>> strargs(size);
 
     for (size_t i = 0; i < size; i++) {
 
-        char** argvs = new char*[size + 1];
-        std::vector<std::string> args(size + 1);
+        arguments[i] = new char*[size + 2];
+        strargs[i].resize(size + 2);
 
         for (size_t j = 0; j < size; j++) {
-            args[j + 1] += "127.0.0.1:";
-            args[j + 1] += std::to_string(port_base + j);
-            argvs[j + 1] = const_cast<char*>(args[j + 1].c_str());
+            strargs[i][j + 2] += "127.0.0.1:";
+            strargs[i][j + 2] += std::to_string(port_base + j);
+            arguments[i][j + 2] = const_cast<char*>(strargs[i][j + 2].c_str());
         }
 
-        args[0] = std::to_string(i);
-        argvs[0] = const_cast<char*>(args[0].c_str());
-
-        std::cout << argvs[2] << std::endl;
-
-        threads[i] = std::thread([=]() { Execute(size + 1, argvs, word_count); });
+        strargs[i][0] = "wordcount";
+        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
+        strargs[i][1] = std::to_string(i);
+        arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
+        threads[i] = std::thread([=]() { Execute(size + 2, arguments[i], word_count); });
         //  threads.push_back(thread);
     }
 
