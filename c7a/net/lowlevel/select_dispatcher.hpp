@@ -84,7 +84,9 @@ public:
 
     void Dispatch(const std::chrono::milliseconds& timeout) {
 
+        // our copy of the fdset.
         Select fdset;
+
         {
             // copy select fdset: no other thread may change while copying
             std::unique_lock<std::mutex> lock(*mutex_);
@@ -112,6 +114,12 @@ public:
         int r = fdset.select_timeout(timeout.count());
 
         if (r < 0) {
+            // if we caught a signal, this is intended to interrupt a select().
+            if (errno == EINTR) {
+                LOG << "Dispatch(): select() was interrupted due to a signal.";
+                return;
+            }
+
             throw Exception("OpenConnections() select() failed!", errno);
         }
         if (r == 0) return;

@@ -215,7 +215,9 @@ public:
             dispatcher_.Dispatch(milliseconds(1000));
         }
         else {
-            auto diff = std::chrono::duration_cast<milliseconds>(timer_pq_.top().next_timeout - now);
+            auto diff = std::chrono::duration_cast<milliseconds>(
+                timer_pq_.top().next_timeout - now);
+
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
         }
