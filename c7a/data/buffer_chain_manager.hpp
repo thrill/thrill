@@ -32,13 +32,13 @@ struct ChainId {
     //! Creates a local ChainID
     ChainId(size_t id) : type(LOCAL), identifier(id) { }
 
-    //post increment
+    //! post increment
     ChainId operator ++ (int /*dummy*/) {
         auto result = ChainId(type, identifier++);
         return result;
     }
 
-    //pre increment
+    //! pre increment
     ChainId operator ++ () {
         auto result = ChainId(type, ++identifier);
         return result;
@@ -73,7 +73,8 @@ struct ChainId {
 };
 
 //! Stream operator that calls ToString on ChainID
-static std::ostream& operator << (std::ostream& stream, const ChainId& id) {
+static inline
+std::ostream& operator << (std::ostream& stream, const ChainId& id) {
     stream << id.ToString();
     return stream;
 }
@@ -112,7 +113,7 @@ public:
 
     //! Indicates if a Bufferchain exists with the given ID
     bool Contains(ChainId id) {
-        auto result = chains_.find(id) != chains_.end();
+        bool result = chains_.find(id) != chains_.end();
         sLOG << "contains" << id << "=" << result;
         return result;
     }
