@@ -32,13 +32,13 @@ struct ChainId {
     //! Creates a local ChainID
     ChainId(size_t id) : type(LOCAL), identifier(id) { }
 
-    //! post increment
+    //post increment
     ChainId operator ++ (int /*dummy*/) {
         auto result = ChainId(type, identifier++);
         return result;
     }
 
-    //! pre increment
+    //pre increment
     ChainId operator ++ () {
         auto result = ChainId(type, ++identifier);
         return result;
@@ -113,7 +113,7 @@ public:
 
     //! Indicates if a Bufferchain exists with the given ID
     bool Contains(ChainId id) {
-        bool result = chains_.find(id) != chains_.end();
+        auto result = chains_.find(id) != chains_.end();
         sLOG << "contains" << id << "=" << result;
         return result;
     }

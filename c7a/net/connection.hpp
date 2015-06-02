@@ -1,7 +1,7 @@
 /*******************************************************************************
- * c7a/net/net_connection.hpp
+ * c7a/net/connection.hpp
  *
- * Contains NetConnection a richer set of network point-to-point primitives.
+ * Contains net::Connection, a richer set of network point-to-point primitives.
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_CONNECTION_HEADER
-#define C7A_NET_NET_CONNECTION_HEADER
+#ifndef C7A_NET_CONNECTION_HEADER
+#define C7A_NET_CONNECTION_HEADER
 
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/exception.hpp>
@@ -42,7 +42,7 @@ enum ConnectionState {
 #endif
 
 /*!
- * NetConnection is a rich point-to-point socket connection to another client
+ * Connection is a rich point-to-point socket connection to another client
  * (worker, master, or whatever). Messages are fixed-length integral items or
  * opaque byte strings with a length.
  *
@@ -50,7 +50,7 @@ enum ConnectionState {
  * instead of explicit error handling. If ever an error occurs, we probably have
  * to rebuild the whole network explicitly.
  */
-class NetConnection : protected lowlevel::Socket
+class Connection : protected lowlevel::Socket
 {
     static const bool debug = false;
 
@@ -71,25 +71,25 @@ class NetConnection : protected lowlevel::Socket
 
 public:
     //! default construction, contains invalid socket
-    NetConnection()
+    Connection()
         : Socket(), state_(ConnectionState::Invalid)
     { }
 
-    //! Construct NetConnection from a Socket
-    explicit NetConnection(const Socket& s)
+    //! Construct Connection from a Socket
+    explicit Connection(const Socket& s)
         : Socket(s), state_(ConnectionState::Invalid)
     { }
 
-    //! Construct NetConnection from a Socket, with immediate
+    //! Construct Connection from a Socket, with immediate
     //! initialization. (Currently used by tests).
-    NetConnection(const Socket& s, size_t group_id, size_t peer_id)
+    Connection(const Socket& s, size_t group_id, size_t peer_id)
         : Socket(s),
           state_(ConnectionState::Invalid),
           group_id_(group_id), peer_id_(peer_id)
     { }
 
     //! move-constructor
-    NetConnection(NetConnection&& other)
+    Connection(Connection&& other)
         : Socket(other),
           state_(other.state_),
           group_id_(other.group_id_),
@@ -99,9 +99,9 @@ public:
     }
 
     //! move assignment-operator
-    NetConnection& operator = (NetConnection&& other) {
+    Connection& operator = (Connection&& other) {
         if (IsValid()) {
-            sLOG1 << "Assignment-destruction of valid NetConnection" << this;
+            sLOG1 << "Assignment-destruction of valid Connection" << this;
             Close();
         }
         Socket::operator = (other);
@@ -182,7 +182,7 @@ public:
     { return Socket::GetPeerAddress().ToStringHostPort(); }
 
     //! Checks wether two connections have the same underlying socket or not.
-    bool operator == (const NetConnection& c) const
+    bool operator == (const Connection& c) const
     { return GetSocket().fd() == c.GetSocket().fd(); }
 
     //! \name Send Functions
@@ -264,22 +264,22 @@ public:
 
     //! \}
 
-    //! Destruction of NetConnection should be explicitly done by a NetGroup or
+    //! Destruction of Connection should be explicitly done by a NetGroup or
     //! other network class.
-    ~NetConnection() {
+    ~Connection() {
         if (IsValid()) {
             Close();
         }
     }
 
-    //! Close this NetConnection
+    //! Close this Connection
     void Close() {
         Socket::close();
     }
 
     //! make ostreamable
-    friend std::ostream& operator << (std::ostream& os, const NetConnection& c) {
-        os << "[NetConnection"
+    friend std::ostream& operator << (std::ostream& os, const Connection& c) {
+        os << "[Connection"
            << " fd=" << c.GetSocket().fd();
 
         if (c.IsValid())
@@ -294,6 +294,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_CONNECTION_HEADER
+#endif // !C7A_NET_CONNECTION_HEADER
 
 /******************************************************************************/
