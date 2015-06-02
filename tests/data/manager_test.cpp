@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/data_manager_test.cpp
+ * tests/data/manager_test.cpp
  *
  * Part of Project c7a.
  *
