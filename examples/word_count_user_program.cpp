@@ -54,11 +54,9 @@ int word_count(c7a::Context& ctx) {
     return 0;
 }
 
-int word_count_generated(c7a::Context& ctx) {
+int word_count_generated(c7a::Context& ctx, size_t size) {
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
-
-    size_t size = 10000;
 
     auto word_pair_gen = [](std::string line, std::function<void(WordPair)> emit) {
         WordPair wp = std::make_pair(line, 1);
