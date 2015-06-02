@@ -1,14 +1,15 @@
 /*******************************************************************************
- * c7a/common/future_sequence.hpp
+ * c7a/common/future_queue.hpp
  *
  * Part of Project c7a.
+ *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_FUTURE_SEQUENCE_HEADER
-#define C7A_COMMON_FUTURE_SEQUENCE_HEADER
+#ifndef C7A_COMMON_FUTURE_QUEUE_HEADER
+#define C7A_COMMON_FUTURE_QUEUE_HEADER
 
 #include <condition_variable>
 #include <mutex>
@@ -56,12 +57,12 @@ public:
     //! the end of the queue \code(dummy, true)\endcode. In the latter case
     //! the dummy value will be ignored.
     void Callback(T&& data, bool finished) {
-           assert(!closed_);
-           if(finished)
-               closed_ = true;
-           else
-               elements_.emplace_back(std::move(data));
-           cv_.notify_one();
+        assert(!closed_);
+        if (finished)
+            closed_ = true;
+        else
+            elements_.emplace_back(std::move(data));
+        cv_.notify_one();
     }
 
     //! Blocks until at least one element is available (returns true) or queue
@@ -70,7 +71,7 @@ public:
     bool Wait() {
         if (!elements_.empty())
             return true;
-        if(!closed_) {
+        if (!closed_) {
             std::unique_lock<std::mutex> lock(mutex_);
             cv_.wait(lock);
         }
@@ -81,7 +82,7 @@ public:
     //! is closed without any elements (false).
     //! If queue is closed this call is garantueed to be non-blocking.
     bool WaitForAll() {
-        if(!closed_) {
+        if (!closed_) {
             std::unique_lock<std::mutex> lock(mutex_);
             cv_.wait(lock, [=]() { return closed(); });
         }
@@ -109,6 +110,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_FUTURE_SEQUENCE_HEADER
+#endif // !C7A_COMMON_FUTURE_QUEUE_HEADER
 
 /******************************************************************************/
