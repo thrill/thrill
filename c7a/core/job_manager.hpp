@@ -47,14 +47,14 @@ public:
     //! \throws std::runtime_exception if the thread is already running
     void StartDispatcher() {
         LOG << "starting net dispatcher";
-        dispatcher_thread_ = std::thread([=]() { this->net_dispatcher_.DispatchLoop(); });
+        dispatcher_thread_ = std::thread([=]() { this->net_dispatcher_.Loop(); });
         dispatcher_running_ = true;
     }
 
     //! Stops the dispatcher thread of the Manager
     void StopDispatcher() {
         LOG << "stopping dispatcher ... waiting for it's breakout";
-        net_dispatcher_.Breakout();
+        net_dispatcher_.Terminate();
         dispatcher_thread_.join();
         dispatcher_running_ = false;
         LOG << "dispatcher thread joined";

@@ -30,6 +30,7 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
 
     pool.Enqueue([&f, &result]() {
                      result = f.Get();
+                     ASSERT_EQ(42, result);
                  });
 
     pool.Enqueue([&f]() {
@@ -37,7 +38,6 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
                  });
 
     pool.LoopUntilEmpty();
-    ASSERT_EQ(42, result);
 }
 
 TEST_F(FutureTest, GetReturnsAfterCallback) {
