@@ -13,7 +13,7 @@
 
 #include "action_node.hpp"
 #include "function_stack.hpp"
-#include <c7a/net/net_group.hpp>
+#include <c7a/net/group.hpp>
 
 namespace c7a {
 template <typename Input, typename Output, typename Stack, typename SumFunction>
@@ -94,7 +94,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::NetGroup flow_group = (this->context_).get_flow_net_group();
+        net::Group flow_group = (this->context_).get_flow_net_group();
 
         // process the reduce
         flow_group.ReduceToRoot<Output, SumFunction>(local_sum, sum_function_);

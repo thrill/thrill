@@ -11,8 +11,8 @@
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
-#include <c7a/data/data_manager.hpp>
-#include <c7a/net/net_manager.hpp>
+#include <c7a/data/manager.hpp>
+#include <c7a/net/manager.hpp>
 #include <c7a/common/logger.hpp>
 
 //includes for thread and condition variables magic
@@ -28,22 +28,22 @@ class JobManager
 public:
     JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_), dispatcher_running_(false) { }
 
-    bool Connect(size_t my_rank, const std::vector<net::NetEndpoint>& endpoints) {
+    bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);
-        cmp_.Connect(&net_manager_.GetDataNetGroup());
+        cmp_.Connect(&net_manager_.GetDataGroup());
         //TODO(??) connect control flow and system control channels here
         return true;
     }
 
-    data::DataManager & get_data_manager() {
+    data::Manager & get_data_manager() {
         return data_manager_;
     }
 
-    net::NetManager & get_net_manager() {
+    net::Manager & get_net_manager() {
         return net_manager_;
     }
 
-    //! Starts the dispatcher thread of the DataManager
+    //! Starts the dispatcher thread of the Manager
     //! \throws std::runtime_exception if the thread is already running
     void StartDispatcher() {
         LOG << "starting net dispatcher";
@@ -51,7 +51,7 @@ public:
         dispatcher_running_ = true;
     }
 
-    //! Stops the dispatcher thread of the DataManager
+    //! Stops the dispatcher thread of the Manager
     void StopDispatcher() {
         LOG << "stopping dispatcher ... waiting for it's breakout";
         net_dispatcher_.Breakout();
@@ -61,10 +61,10 @@ public:
     }
 
 private:
-    net::NetManager net_manager_;
-    net::NetDispatcher net_dispatcher_;
+    net::Manager net_manager_;
+    net::Dispatcher net_dispatcher_;
     net::ChannelMultiplexer cmp_;
-    data::DataManager data_manager_;
+    data::Manager data_manager_;
     std::mutex waiting_on_data_;
     std::condition_variable idontknowhowtonameit_;
     bool new_data_arrived_;

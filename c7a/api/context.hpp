@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-#include "c7a/data/data_manager.hpp"
-#include "c7a/core/job_manager.hpp"
+#include <c7a/data/manager.hpp>
+#include <c7a/core/job_manager.hpp>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -40,14 +40,14 @@ public:
 
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
-    data::DataManager & get_data_manager() {
+    data::Manager & get_data_manager() {
         return job_manager_.get_data_manager();
     }
 
     //! Returns a reference to the net group, which is used to perform network
     //! operations.
-    net::NetGroup & get_flow_net_group() {
-        return job_manager_.get_net_manager().GetFlowNetGroup();
+    net::Group & get_flow_net_group() {
+        return job_manager_.get_net_manager().GetFlowGroup();
     }
 
     //! Returns the total number of workers.
