@@ -11,8 +11,8 @@
 #ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 
-#include <c7a/net/net_dispatcher.hpp>
-#include <c7a/net/net_group.hpp>
+#include <c7a/net/dispatcher.hpp>
+#include <c7a/net/group.hpp>
 #include <c7a/net/channel.hpp>
 #include <c7a/data/block_emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>

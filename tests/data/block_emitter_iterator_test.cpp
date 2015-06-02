@@ -9,7 +9,7 @@
 
 #include <c7a/data/block_iterator.hpp>
 #include <c7a/data/block_emitter.hpp>
-#include <c7a/data/data_manager.hpp>
+#include <c7a/data/manager.hpp>
 
 #include <vector>
 #include <string>

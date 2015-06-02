@@ -13,7 +13,7 @@
 
 #include "action_node.hpp"
 #include "function_stack.hpp"
-#include <c7a/net/net_group.hpp>
+#include <c7a/net/group.hpp>
 
 namespace c7a {
 template <typename Input, typename Output, typename Stack, typename SumFunction>

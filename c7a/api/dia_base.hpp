@@ -17,7 +17,7 @@
 #include <string>
 #include "context.hpp"
 #include "types.hpp"
-#include "../data/data_manager.hpp"
+#include <c7a/data/manager.hpp>
 
 namespace c7a {
 

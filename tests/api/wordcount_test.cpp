@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/api/dia_base.hpp>
-#include <c7a/net/net_endpoint.hpp>
+#include <c7a/net/endpoint.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>

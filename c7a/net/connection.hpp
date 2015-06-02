@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net_connection.hpp
+ * c7a/net/connection.hpp
  *
  * Contains net::Connection, a richer set of network point-to-point primitives.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_CONNECTION_HEADER
-#define C7A_NET_NET_CONNECTION_HEADER
+#ifndef C7A_NET_CONNECTION_HEADER
+#define C7A_NET_CONNECTION_HEADER
 
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/exception.hpp>
@@ -294,6 +294,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_CONNECTION_HEADER
+#endif // !C7A_NET_CONNECTION_HEADER
 
 /******************************************************************************/

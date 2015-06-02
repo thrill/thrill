@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/net_dispatcher.hpp
+ * c7a/net/dispatcher.hpp
  *
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
@@ -12,10 +12,10 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_NET_DISPATCHER_HEADER
-#define C7A_NET_NET_DISPATCHER_HEADER
+#ifndef C7A_NET_DISPATCHER_HEADER
+#define C7A_NET_DISPATCHER_HEADER
 
-#include <c7a/net/net_connection.hpp>
+#include <c7a/net/connection.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
@@ -366,6 +366,6 @@ protected:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_NET_DISPATCHER_HEADER
+#endif // !C7A_NET_DISPATCHER_HEADER
 
 /******************************************************************************/
