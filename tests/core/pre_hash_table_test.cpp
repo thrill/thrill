@@ -31,7 +31,7 @@ struct PreTable : public::testing::Test {
         two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
     }
 
-    Dispatcher                             dispatcher;
+    DispatcherThread                       dispatcher;
     Manager                                manager;
     DIAId                                  id1;
     DIAId                                  id2;

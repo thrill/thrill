@@ -24,7 +24,7 @@ struct PostTable : public::testing::Test {
         emitters.emplace_back(manager.GetLocalEmitter<int>(id));
     }
 
-    Dispatcher                                 dispatcher;
+    DispatcherThread                           dispatcher;
     Manager                                    manager;
     ChainId                                    id = manager.AllocateDIA();
     BlockIterator<int>                         iterator;

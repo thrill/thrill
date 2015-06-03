@@ -23,7 +23,7 @@ class JobManager
 {
 public:
     JobManager()
-        : data_manager_(net_dispatcher_.dispatcher()) { }
+        : data_manager_(net_dispatcher_) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);

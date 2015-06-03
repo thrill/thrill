@@ -20,7 +20,7 @@ using namespace c7a::net::lowlevel;
 using namespace std::literals; //for nicer sleep_for
 
 struct WorkerMock {
-    WorkerMock(Dispatcher& dispatcher)
+    WorkerMock(DispatcherThread& dispatcher)
         : manager(dispatcher) { }
 
     void    Connect(Group* con) {
@@ -65,18 +65,6 @@ struct DataManagerChannelFixture : public::testing::Test {
         worker2.Connect(&group2);
     }
 
-    void RunDispatcherLoop() {
-        master = std::thread([&]() {
-                                 sLOG << "Spinning up that dispatcher biest!";
-                                 run = true;
-                                 while (run)
-                                     dispatcher.Dispatch();
-                                 sLOG << "Something is wrong! Dispatcher returned";
-                             });
-        //required because DetachAll, must happen *after* threads ran
-        std::this_thread::sleep_for(100ms);
-    }
-
     ChainId AllocateChannel() {
         //all managers need to allocate the same id
         auto channel_id = worker0.manager.AllocateNetworkChannel();
@@ -111,7 +99,7 @@ struct DataManagerChannelFixture : public::testing::Test {
 
     static const bool debug = true;
     bool              run;
-    Dispatcher        dispatcher;
+    DispatcherThread        dispatcher;
     std::thread       master;
     WorkerMock        worker0;
     WorkerMock        worker1;
@@ -125,8 +113,6 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
     auto channel_id = AllocateChannel();
     auto emitters = worker0.manager.GetNetworkEmitters<int>(channel_id);
     emitters[1].Close();
-
-    RunDispatcherLoop();
 
     //Worker 1 closed channel 0 on worker 2
     //Worker2 never allocated the channel id
@@ -144,7 +130,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosed) {
     emitter1[0].Close();
     emitter2[0].Close();
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_TRUE(it.IsClosed());
 }
@@ -158,7 +143,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsNotClosedIfPartialClosed) {
     emitter0[0].Close();
     emitter2[0].Close();
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_FALSE(it.IsClosed());
 }
@@ -169,7 +153,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
 
     emitter2[0](1);
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_FALSE(it.HasNext());
 }
@@ -181,7 +164,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
     emitter2[0](1);
     emitter2[0].Flush();
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_TRUE(it.HasNext());
 }
@@ -193,7 +175,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerA
     emitter2[0](1);
     emitter2[0].Flush();
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_EQ(1, it.Next());
     ASSERT_FALSE(it.HasNext());
@@ -213,7 +194,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerM
     emitter2[0](6);
     emitter2[0].Flush();
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     ASSERT_EQ(1, it.Next());
     ASSERT_TRUE(it.HasNext());
@@ -238,7 +218,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
     emitter1[0].Flush();
     emitter2[0].Close();
 
-    RunDispatcherLoop();
     auto it = worker0.manager.GetIterator<int>(channel_id);
     auto vals = ReadIterator(it);
     ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
@@ -256,7 +235,6 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
     emitter1[1].Flush();
     emitter1[2].Close();
 
-    RunDispatcherLoop();
     auto it0 = worker0.manager.GetIterator<int>(channel_id);
     auto it1 = worker1.manager.GetIterator<int>(channel_id);
     auto it2 = worker2.manager.GetIterator<int>(channel_id);
