@@ -56,9 +56,8 @@ public:
 public:
     DispatcherThread()
         : dispatcher_() {
-        sequentializer_.Enqueue([this]() {
-                                    this->StartWork();
-                                });
+        sequentializer_.Enqueue(
+            [this]() { StartWork(); });
     }
 
     ~DispatcherThread() {
@@ -75,19 +74,8 @@ public:
     //! non-copyable: delete assignment operator
     DispatcherThread& operator = (const DispatcherThread&) = delete;
 
-    //! \name Start and Stop Threads
-    //! \{
-
-    //! Start dispatching thread
-    void Start() { }
-
-    //! Stop dispatching thread
-    void Stop() { }
-
-    //! Return Dispatcher
+    //! Return internal Dispatcher object
     Dispatcher & dispatcher() { return dispatcher_; }
-
-    //! \}
 
     //! \name Timeout Callbacks
     //! \{
