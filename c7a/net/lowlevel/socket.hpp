@@ -88,9 +88,12 @@ public:
         return std::make_pair(Socket(fds[0]), Socket(fds[1]));
     }
 
+	//Re-definition of standard socket errors. 
     class Errors {
     public:
+		//No-one listening on the remote address. 
         static const int ConnectionRefused = ECONNREFUSED;
+		//Timeout while attempting connection. 
         static const int Timeout = ETIMEDOUT;
     };
 
