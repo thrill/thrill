@@ -12,6 +12,7 @@
 #include <c7a/common/future.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <future>
 
 using namespace std::literals;
 using namespace c7a::net;
@@ -73,26 +74,67 @@ TEST(DispatcherThread, AsyncWriteAndReadIntoFutureX) {
 
     DispatcherThread disp;
 
-    pool.Enqueue([&]() {
-                     std::this_thread::sleep_for(10ms);
-                     disp.AsyncWriteCopy(connA, "Hello");
-                     sLOG << std::this_thread::get_id()
-                          << "I just sent Hello.";
-                 });
+    pool.Enqueue(
+        [&]() {
+            std::this_thread::sleep_for(10ms);
+            disp.AsyncWriteCopy(connA, "Hello");
+            sLOG << std::this_thread::get_id()
+                 << "I just sent Hello.";
+        });
 
-    pool.Enqueue([&]() {
-                     FutureX<Connection, Buffer> f;
-                     disp.AsyncRead(connB, 5,
-                                    [&f](Connection& c, Buffer&& b) -> void {
-                                        sLOG << std::this_thread::get_id()
-                                             << "Got Hello in callback";
-                                        f.Callback(std::move(c), std::move(b));
-                                    });
-                     std::tuple<Connection, Buffer> t = f.Wait();
-                     Buffer& b = std::get<1>(t);
-                     sLOG << std::this_thread::get_id()
-                          << "Waiter got packet:" << b.ToString();
-                 });
+    pool.Enqueue(
+        [&]() {
+            FutureX<Connection, Buffer> f;
+            disp.AsyncRead(connB, 5,
+                           [&f](Connection& c, Buffer&& b) -> void {
+                               sLOG << std::this_thread::get_id()
+                                    << "Got Hello in callback";
+                               f.Callback(std::move(c), std::move(b));
+                           });
+            std::tuple<Connection, Buffer> t = f.Wait();
+            Buffer& b = std::get<1>(t);
+            sLOG << std::this_thread::get_id()
+                 << "Waiter got packet:" << b.ToString();
+        });
+
+    pool.LoopUntilEmpty();
+}
+
+TEST(DispatcherThread, AsyncWriteAndReadIntoStdFuture) {
+    static const bool debug = true;
+
+    ThreadPool pool(2);
+
+    using lowlevel::Socket;
+
+    std::pair<Socket, Socket> sp = Socket::CreatePair();
+    Connection connA(sp.first), connB(sp.second);
+
+    DispatcherThread disp;
+
+    pool.Enqueue(
+        [&]() {
+            std::this_thread::sleep_for(10ms);
+            disp.AsyncWriteCopy(connA, "Hello");
+            sLOG << std::this_thread::get_id()
+                 << "I just sent Hello.";
+        });
+
+    pool.Enqueue(
+        [&]() {
+            std::promise<Buffer> promise;
+            std::future<Buffer> f = promise.get_future();
+            disp.AsyncRead(connB, 5,
+                           [&f, &promise](Connection&, Buffer&& b) -> void {
+                               sLOG << std::this_thread::get_id()
+                                    << "Got Hello in callback";
+                               promise.set_value(std::move(b));
+                           });
+            f.wait();
+            Buffer b = f.get();
+            sLOG << std::this_thread::get_id()
+                 << "Waiter got packet:" << b.ToString();
+        });
 
     pool.LoopUntilEmpty();
 }
