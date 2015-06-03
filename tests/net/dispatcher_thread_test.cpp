@@ -19,15 +19,14 @@ using c7a::common::ThreadPool;
 using c7a::common::Future;
 using c7a::common::FutureX;
 
-TEST(DispatcherThread, Test1) {
+TEST(DispatcherThread, LaunchAndTerminate) {
 
     DispatcherThread disp;
-    disp.Start();
+    // sleep for a new ticks until the dispatcher thread reaches select().
     std::this_thread::sleep_for(100ns);
-    disp.Stop();
 }
 
-TEST(DispatcherThread, FutureTest) {
+TEST(DispatcherThread, AsyncWriteAndReadIntoFuture) {
     static const bool debug = true;
 
     ThreadPool pool(2);
@@ -59,12 +58,10 @@ TEST(DispatcherThread, FutureTest) {
                           << "Waiter got packet:" << b.ToString();
                  });
 
-    disp.Start();
     pool.LoopUntilEmpty();
-    disp.Stop();
 }
 
-TEST(DispatcherThread, FutureXTest) {
+TEST(DispatcherThread, AsyncWriteAndReadIntoFutureX) {
     static const bool debug = true;
 
     ThreadPool pool(2);
@@ -97,9 +94,7 @@ TEST(DispatcherThread, FutureXTest) {
                           << "Waiter got packet:" << b.ToString();
                  });
 
-    disp.Start();
     pool.LoopUntilEmpty();
-    disp.Stop();
 }
 
 /******************************************************************************/
