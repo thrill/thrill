@@ -46,7 +46,6 @@ int main(int argc, char* argv[]) {
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
     std::vector<std::vector<std::string> > strargs(workers);
-    
 
     for (size_t i = 0; i < workers; i++) {
 
