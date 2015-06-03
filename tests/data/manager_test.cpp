@@ -21,7 +21,7 @@ struct DataManagerFixture : public::testing::Test {
           manager(dispatcher),
           id(manager.AllocateDIA()) { }
 
-    Dispatcher dispatcher;
+    DispatcherThread dispatcher;
     Manager    manager;
     DIAId      id;
 };

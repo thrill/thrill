@@ -75,7 +75,7 @@ public:
     DispatcherThread& operator = (const DispatcherThread&) = delete;
 
     //! Return internal Dispatcher object
-    Dispatcher & dispatcher() { return dispatcher_; }
+    //Dispatcher & dispatcher() { return dispatcher_; }
 
     //! \name Timeout Callbacks
     //! \{
