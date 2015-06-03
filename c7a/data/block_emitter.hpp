@@ -34,10 +34,8 @@ public:
         : builder_(BinaryBuffer::DEFAULT_SIZE),
           target_(target) { }
 
-    //! non-copyable: delete copy-constructor
-    BlockEmitter(const BlockEmitter &) = delete;
-    //! non-copyable: delete assignment operator
-    BlockEmitter & operator = (const BlockEmitter &) = delete;
+    BlockEmitter(const BlockEmitter&) = delete;
+    BlockEmitter(BlockEmitter&&) = default;
 
     BlockEmitter& operator = (BlockEmitter&& other) {
         builder_ = other.builder_;
