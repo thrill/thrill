@@ -74,12 +74,6 @@ protected:
     friend class DispatcherThread;
 
 public:
-    //! construct select dispatcher with reference to mutex for higher data
-    //! structures.
-    Dispatcher(std::mutex* mutex = NULL)
-        :  dispatcher_(mutex)
-    { }
-
     //! \name Timeout Callbacks
     //! \{
 
