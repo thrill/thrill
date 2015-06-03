@@ -17,6 +17,7 @@
 #include <c7a/api/context.hpp>
 #include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/net/collective_communication.hpp>
 
 #include <unordered_map>
 #include <functional>
@@ -174,7 +175,7 @@ private:
 
         for (size_t i = 0; i < num_dias_; ++i) {
             size_t prefix = data_manager.get_current_size(id_[i]);
-            flow_group.PrefixSum(prefix);
+            net::PrefixSum(flow_group, prefix);
             size_t total = data_manager.get_current_size(id_[i]);
             // TODO: flow_group.TotalSum(prefix);
             size_t size = data_manager.get_current_size(id_[i]);
