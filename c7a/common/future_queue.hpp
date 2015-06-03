@@ -57,6 +57,7 @@ public:
     //! the end of the queue \code(dummy, true)\endcode. In the latter case
     //! the dummy value will be ignored.
     void Callback(T&& data, bool finished) {
+        std::unique_lock<std::mutex> lock(mutex_);
         assert(!closed_);
         if (finished)
             closed_ = true;
@@ -69,10 +70,10 @@ public:
     //! is closed (false).
     //! If the queue is closed this call is garantueed to be non-blocking.
     bool Wait() {
+        std::unique_lock<std::mutex> lock(mutex_);
         if (!elements_.empty())
             return true;
         if (!closed_) {
-            std::unique_lock<std::mutex> lock(mutex_);
             cv_.wait(lock);
         }
         return !elements_.empty();
@@ -82,8 +83,8 @@ public:
     //! is closed without any elements (false).
     //! If queue is closed this call is garantueed to be non-blocking.
     bool WaitForAll() {
+        std::unique_lock<std::mutex> lock(mutex_);
         if (!closed_) {
-            std::unique_lock<std::mutex> lock(mutex_);
             cv_.wait(lock, [=]() { return closed(); });
         }
         return !elements_.empty();
@@ -98,10 +99,11 @@ public:
 
     //! Returns the next element
     //! Undefined behaviour if Wait() returns false.
-    T && Next() {
+    T Next() {
+        std::unique_lock<std::mutex> lock(mutex_);
         assert(!elements_.empty());
 
-        auto& elem = elements_.front();
+        T elem = std::move(elements_.front());
         elements_.pop_front();
         return std::move(elem);
     }
