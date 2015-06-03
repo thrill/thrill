@@ -16,9 +16,9 @@
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
 #include <c7a/net/dispatcher.hpp>
+#include <c7a/common/sequentializer.hpp>
+#include <c7a/common/delegate.hpp>
 
-#include <thread>
-#include <mutex>
 #include <csignal>
 
 namespace c7a {
@@ -53,35 +53,36 @@ public:
 
     //! \}
 
-protected:
-    typedef std::unique_lock<std::mutex> unique_lock;
-
 public:
     DispatcherThread()
-        : dispatcher_(&mutex_)
-    { }
+        : dispatcher_() {
+        sequentializer_.Enqueue([this]() {
+                                    this->StartWork();
+                                });
+    }
+
+    ~DispatcherThread() {
+        // set termination flag.
+        sequentializer_.Terminate();
+        // interrupt select().
+        WakeUpThread();
+        // wait for last round to finish.
+        sequentializer_.LoopUntilTerminate();
+    }
+
+    //! non-copyable: delete copy-constructor
+    DispatcherThread(const DispatcherThread&) = delete;
+    //! non-copyable: delete assignment operator
+    DispatcherThread& operator = (const DispatcherThread&) = delete;
 
     //! \name Start and Stop Threads
     //! \{
 
     //! Start dispatching thread
-    void Start() {
-        die_unless(!running_);
-        LOG << "DispatcherThread::Start(): starting";
-        dispatcher_.terminate_ = false;
-        thread_ = std::thread(&DispatcherThread::Work, this);
-        running_ = true;
-    }
+    void Start() { }
 
     //! Stop dispatching thread
-    void Stop() {
-        die_unless(running_);
-        LOG << "DispatcherThread::Stop(): stopping thread";
-        dispatcher_.Terminate();
-        WakeUpThread();
-        thread_.join();
-        running_ = false;
-    }
+    void Stop() { }
 
     //! Return Dispatcher
     Dispatcher & dispatcher() { return dispatcher_; }
@@ -95,8 +96,9 @@ public:
     template <class Rep, class Period>
     void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
                             const TimerCallback& cb) {
-        unique_lock lock(mutex_);
-        dispatcher_.AddRelativeTimeout(timeout, cb);
+        sequentializer_.Enqueue([=]() {
+                                    dispatcher_.AddRelativeTimeout(timeout, cb);
+                                });
         WakeUpThread();
     }
 
@@ -107,15 +109,17 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        unique_lock lock(mutex_);
-        dispatcher_.AddRead(c, read_cb);
+        sequentializer_.Enqueue([ =, &c]() {
+                                    dispatcher_.AddRead(c, read_cb);
+                                });
         WakeUpThread();
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        unique_lock lock(mutex_);
-        dispatcher_.AddWrite(c, write_cb);
+        sequentializer_.Enqueue([ =, &c]() {
+                                    dispatcher_.AddWrite(c, write_cb);
+                                });
         WakeUpThread();
     }
 
@@ -123,8 +127,9 @@ public:
     void AddReadWrite(
         Connection& c,
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        unique_lock lock(mutex_);
-        dispatcher_.AddReadWrite(c, read_cb, write_cb);
+        sequentializer_.Enqueue([ =, &c]() {
+                                    dispatcher_.AddReadWrite(c, read_cb, write_cb);
+                                });
         WakeUpThread();
     }
 
@@ -135,8 +140,9 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        unique_lock lock(mutex_);
-        dispatcher_.AsyncRead(c, n, done_cb);
+        sequentializer_.Enqueue([ =, &c]() {
+                                    dispatcher_.AsyncRead(c, n, done_cb);
+                                });
         WakeUpThread();
     }
 
@@ -144,8 +150,11 @@ public:
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
-        unique_lock lock(mutex_);
-        dispatcher_.AsyncWrite(c, std::move(buffer), done_cb);
+        // the following captures the move-only buffer in a lambda. TODO(tb):
+        // this is totally convoluted.
+        sequentializer_.Enqueue(std::bind([ =, &c](Buffer& b) {
+                                              dispatcher_.AsyncWrite(c, std::move(b), done_cb);
+                                          }, std::move(buffer)));
         WakeUpThread();
     }
 
@@ -153,18 +162,14 @@ public:
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
                         AsyncWriteCallback done_cb = NULL) {
-        unique_lock lock(mutex_);
-        dispatcher_.AsyncWriteCopy(c, buffer, size, done_cb);
-        WakeUpThread();
+        return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
                         AsyncWriteCallback done_cb = NULL) {
-        unique_lock lock(mutex_);
-        dispatcher_.AsyncWriteCopy(c, str, done_cb);
-        WakeUpThread();
+        return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
     //! \}
@@ -176,7 +181,7 @@ protected:
     }
 
     //! What happens in the dispatcher thread
-    void Work() {
+    void StartWork() {
         {
             // Set USR1 signal handler
             struct sigaction sa;
@@ -187,7 +192,15 @@ protected:
             die_unless(r == 0);
         }
 
-        dispatcher_.Loop();
+        Work();
+    }
+
+    //! What happens in the dispatcher thread
+    void Work() {
+        // run one dispatch
+        dispatcher_.Dispatch();
+        // enqueue next dispatch (process jobs in between)
+        sequentializer_.Enqueue([this]() { Work(); });
     }
 
     //! wake up select() in dispatching thread.
@@ -199,22 +212,15 @@ protected:
         // Another way to wake up the blocking select() in the dispatcher is to
         // create a "self-pipe", and write one byte to it.
 
-        if (running_)
-            pthread_kill(thread_.native_handle(), SIGUSR1);
+        pthread_kill(sequentializer_.thread(0).native_handle(), SIGUSR1);
     }
 
 private:
-    //! lock all calls to dispatcher
-    std::mutex mutex_;
+    //! Sequentializer for queueing all jobs that work on the dispatcher.
+    common::Sequentializer sequentializer_;
 
     //! enclosed dispatcher.
     Dispatcher dispatcher_;
-
-    //! flag whether our thread is running
-    bool running_ = false;
-
-    //! handle to our thread
-    std::thread thread_;
 };
 
 //! \}
