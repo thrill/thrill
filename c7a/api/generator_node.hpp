@@ -67,7 +67,7 @@ public:
     //! duplicated).
     void execute() {
 
-        LOG1 << "GENERATING data with id " << this->data_id_;
+        LOG << "GENERATING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -126,6 +126,9 @@ private:
     std::vector<Output> elements_;
     //! Size of the output DIA.
     size_t size_;
+
+    static const bool debug = false;
+
 };
 
 //! \}

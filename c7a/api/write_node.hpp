@@ -100,7 +100,7 @@ private:
     //! Emitter to file
     data::OutputLineEmitter<Output> emit_;
 
-    static const bool debug = true;
+    static const bool debug = false;
 };
 
 } // namespace c7a
