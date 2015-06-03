@@ -85,13 +85,13 @@ int word_count_generated(c7a::Context& ctx, size_t size) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    red_words.WriteToFileSystem("wordcount.out",
+    red_words.WriteToFileSystem("wordcount_" + std::to_string(ctx.rank()) + ".out",
                                 [](const WordPair& item) {
                                     std::string str;
                                     str += item.first;
                                     str += ": ";
                                     str += std::to_string(item.second);
-                                    std::cout << str << std::endl;
+                                    //std::cout << str << std::endl;
                                     return str;
                                 });
     return 0;
