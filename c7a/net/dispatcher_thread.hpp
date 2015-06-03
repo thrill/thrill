@@ -148,14 +148,14 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = NULL) {
+                        AsyncWriteCallback done_cb = nullptr) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = NULL) {
+                        AsyncWriteCallback done_cb = nullptr) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
