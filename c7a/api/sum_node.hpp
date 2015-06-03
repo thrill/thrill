@@ -14,6 +14,7 @@
 #include "action_node.hpp"
 #include "function_stack.hpp"
 #include <c7a/net/group.hpp>
+#include <c7a/net/collective_communication.hpp>
 
 namespace c7a {
 
@@ -98,17 +99,17 @@ private:
         net::Group& flow_group = (this->context_).get_flow_net_group();
 
         // process the reduce
-        flow_group.ReduceToRoot<Output, SumFunction>(local_sum, sum_function_);
+        net::ReduceToRoot<Output, SumFunction>(flow_group, local_sum, sum_function_);
 
         // global barrier
         // TODO(ms): replace prefixsum (used as temporary global barrier)
         // with actual global barrier
         size_t sum = 0;
-        flow_group.PrefixSum(sum);
+        net::PrefixSum(flow_group, sum);
 
         // broadcast to all other workers
         if ((this->context_).rank() == 0)
-            flow_group.Broadcast(local_sum);
+            net::Broadcast(flow_group, local_sum);
     }
 
     void PostOp() { }

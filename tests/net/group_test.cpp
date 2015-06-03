@@ -12,6 +12,7 @@
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/manager.hpp>
+#include <c7a/net/collective_communication.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -232,7 +233,7 @@ TEST(Group, TestAllReduce) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = net->MyRank();
-                net->AllReduce(local_value);
+                c7a::net::AllReduce(*net, local_value);
                 ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
     }
@@ -245,7 +246,7 @@ TEST(Group, TestBroadcast) {
             p, [](Group* net) {
                 size_t local_value;
                 if (net->MyRank() == 0) local_value = 42;
-                net->Broadcast(local_value);
+                c7a::net::Broadcast(*net, local_value);
                 ASSERT_EQ(local_value, 42u);
             });
     }
@@ -257,7 +258,7 @@ TEST(Group, TestReduceToRoot) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = net->MyRank();
-                net->ReduceToRoot(local_value);
+                c7a::net::ReduceToRoot(*net, local_value);
                 if (net->MyRank() == 0)
                     ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
