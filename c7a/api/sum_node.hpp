@@ -16,10 +16,11 @@
 #include <c7a/net/group.hpp>
 
 namespace c7a {
+
 template <typename Input, typename Output, typename Stack, typename SumFunction>
 class SumNode : public ActionNode<Input>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using sum_arg_0_t = typename FunctionTraits<SumFunction>::template arg<0>;
 
@@ -67,7 +68,7 @@ public:
      * Returns result of global sum.
      * \return result
      */
-    auto result() override  {
+    auto result() {
         return local_sum;
     }
 
@@ -76,7 +77,7 @@ public:
      * \return "[SumNode]"
      */
     std::string ToString() override {
-        return "[SumNode] Id: " + std::to_string(this->data_id_);
+        return "[SumNode] Id:" + this->data_id_.ToString();
     }
 
 private:
@@ -94,7 +95,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::Group flow_group = (this->context_).get_flow_net_group();
+        net::Group& flow_group = (this->context_).get_flow_net_group();
 
         // process the reduce
         flow_group.ReduceToRoot<Output, SumFunction>(local_sum, sum_function_);
