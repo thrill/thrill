@@ -180,6 +180,7 @@ protected:
             die_unless(r == 0);
         }
 
+        running_ = true;
         Work();
     }
 
@@ -187,7 +188,9 @@ protected:
     void Work() {
         // run one dispatch
         dispatcher_.Dispatch();
-        // enqueue next dispatch (process jobs in between)
+        // enqueue next dispatch (process jobs in between). TODO(tb): this is
+        // actually stupid: better have a tbb::concurrent_queue of callback jobs
+        // to do, and loop over them and the select().
         sequentializer_.Enqueue([this]() { Work(); });
     }
 
@@ -200,7 +203,8 @@ protected:
         // Another way to wake up the blocking select() in the dispatcher is to
         // create a "self-pipe", and write one byte to it.
 
-        pthread_kill(sequentializer_.thread(0).native_handle(), SIGUSR1);
+        if (running_)
+            pthread_kill(sequentializer_.thread(0).native_handle(), SIGUSR1);
     }
 
 private:
@@ -209,6 +213,9 @@ private:
 
     //! enclosed dispatcher.
     Dispatcher dispatcher_;
+
+    //! check whether the signal handler was set before issuing signals.
+    bool running_ = false;
 };
 
 //! \}
