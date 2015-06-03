@@ -48,7 +48,7 @@ template <typename Input1, typename Input2, typename Output,
           typename Stack1, typename Stack2, typename ZipFunction>
 class TwoZipNode : public DOpNode<Output>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using zip_arg_0_t = typename FunctionTraits<ZipFunction>::template arg<0>;
     using zip_arg_1_t = typename FunctionTraits<ZipFunction>::template arg<1>;

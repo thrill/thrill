@@ -28,14 +28,16 @@ class Stage
 {
 public:
     explicit Stage(DIABase* node) : node_(node) {
-        LOG1 << "CREATING stage" << node_->ToString() << "node" << node_;
+        LOG << "CREATING stage" << node_->ToString() << "node" << node_;
     }
     void Run() {
-        LOG1 << "RUNNING stage " << node_->ToString() << "node" << node_;
+        LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
         node_->execute();
     }
 
-private:
+private:    
+    
+    static const bool debug = false;
     DIABase* node_;
 };
 
@@ -44,7 +46,9 @@ private:
 
 // Returns a list of stages of graph scope
 inline void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
-    LOG1 << "FINDING stages:";
+    
+    static const bool debug = false;
+    LOG << "FINDING stages:";
     std::set<DIABase*> stages_found;
     // GOAL: Returns a vector with stages
     // TEMP SOLUTION: Every node is a stage

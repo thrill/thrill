@@ -44,7 +44,7 @@ private:
     net::Manager net_manager_;
     net::DispatcherThread net_dispatcher_;
     data::Manager data_manager_;
-    const static bool debug = true;
+    const static bool debug = false;
 };
 
 } // namespace core
