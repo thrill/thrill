@@ -51,6 +51,7 @@ protected:
 public:
     //! This is the callback to be called to fulfill the future.
     void Callback(T&& data) {
+        std::unique_lock<std::mutex> lock(mutex_);
         value_ = std::move(data);
         triggered_ = true;
         cv_.notify_one();
@@ -119,6 +120,7 @@ protected:
 public:
     //! This is the callback to be called to fulfill the future.
     void Callback(Ts&& ... data) {
+        std::unique_lock<std::mutex> lock(mutex_);
         values_ = Values(std::forward<Ts>(data) ...);
         triggered_ = true;
         cv_.notify_one();
