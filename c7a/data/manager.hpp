@@ -43,7 +43,8 @@ using c7a::net::ChannelId;
 class Manager
 {
 public:
-    Manager(net::Dispatcher& dispatcher) : cmp_(dispatcher) { }
+    Manager(net::DispatcherThread& dispatcher)
+        : cmp_(dispatcher) { }
 
     //! non-copyable: delete copy-constructor
     Manager(const Manager&) = delete;

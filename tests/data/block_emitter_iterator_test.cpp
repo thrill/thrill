@@ -26,7 +26,7 @@ struct EmitterIteratorIntegration : public::testing::Test {
           id(manager.AllocateDIA()) { }
 
     //not required, just for the ctor
-    Dispatcher dispatcher;
+    DispatcherThread dispatcher;
 
     Manager    manager;
     ChainId    id;

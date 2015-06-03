@@ -11,7 +11,7 @@
 #ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 
-#include <c7a/net/dispatcher.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 #include <c7a/net/channel.hpp>
 #include <c7a/data/block_emitter.hpp>
@@ -52,7 +52,7 @@ typedef c7a::data::ChainId ChannelId;
 class ChannelMultiplexer
 {
 public:
-    ChannelMultiplexer(Dispatcher& dispatcher)
+    ChannelMultiplexer(DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), chains_(data::NETWORK) { }
 
     void Connect(Group* group) {
@@ -131,7 +131,7 @@ private:
     static const bool debug = false;
     typedef std::shared_ptr<Channel> ChannelPtr;
 
-    Dispatcher& dispatcher_;
+    DispatcherThread& dispatcher_;
 
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
