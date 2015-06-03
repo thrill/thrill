@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/data_manager_channels_test.cpp
+ * tests/data/manager_channels_test.cpp
  *
  * Part of Project c7a.
  *
@@ -21,20 +21,18 @@ using namespace std::literals; //for nicer sleep_for
 
 struct WorkerMock {
     WorkerMock(Dispatcher& dispatcher)
-        : cmp(dispatcher),
-          manager(cmp) { }
+        : manager(dispatcher) { }
 
-    void               Connect(Group* con) {
-        cmp.Connect(con);
+    void    Connect(Group* con) {
+        manager.Connect(con);
     }
 
     ~WorkerMock() {
-        cmp.Close();
+        manager.Close();
     }
 
-    ChannelMultiplexer cmp;
-    Manager            manager;
-    bool               run;
+    Manager manager;
+    bool    run;
 };
 
 struct DataManagerChannelFixture : public::testing::Test {

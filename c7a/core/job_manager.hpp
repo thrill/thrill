@@ -13,12 +13,8 @@
 
 #include <c7a/data/manager.hpp>
 #include <c7a/net/manager.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
-
-//includes for thread and condition variables magic
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 
 namespace c7a {
 namespace core {
@@ -26,11 +22,12 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager() : net_manager_(), net_dispatcher_(), cmp_(net_dispatcher_), data_manager_(cmp_), dispatcher_running_(false) { }
+    JobManager()
+        : data_manager_(net_dispatcher_.dispatcher()) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
         net_manager_.Initialize(my_rank, endpoints);
-        cmp_.Connect(&net_manager_.GetDataGroup());
+        data_manager_.Connect(&net_manager_.GetDataGroup());
         //TODO(??) connect control flow and system control channels here
         return true;
     }
@@ -43,33 +40,10 @@ public:
         return net_manager_;
     }
 
-    //! Starts the dispatcher thread of the Manager
-    //! \throws std::runtime_exception if the thread is already running
-    void StartDispatcher() {
-        LOG << "starting net dispatcher";
-        dispatcher_thread_ = std::thread([=]() { this->net_dispatcher_.DispatchLoop(); });
-        dispatcher_running_ = true;
-    }
-
-    //! Stops the dispatcher thread of the Manager
-    void StopDispatcher() {
-        LOG << "stopping dispatcher ... waiting for it's breakout";
-        net_dispatcher_.Breakout();
-        dispatcher_thread_.join();
-        dispatcher_running_ = false;
-        LOG << "dispatcher thread joined";
-    }
-
 private:
     net::Manager net_manager_;
-    net::Dispatcher net_dispatcher_;
-    net::ChannelMultiplexer cmp_;
+    net::DispatcherThread net_dispatcher_;
     data::Manager data_manager_;
-    std::mutex waiting_on_data_;
-    std::condition_variable idontknowhowtonameit_;
-    bool new_data_arrived_;
-    bool dispatcher_running_;
-    std::thread dispatcher_thread_;
     const static bool debug = true;
 };
 

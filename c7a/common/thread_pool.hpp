@@ -15,6 +15,7 @@
 #define C7A_COMMON_THREAD_POOL_HEADER
 
 #include <c7a/common/logger.hpp>
+#include <c7a/common/delegate.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -22,6 +23,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <cassert>
 
 namespace c7a {
 namespace common {
@@ -32,13 +34,13 @@ namespace common {
  * all threads are idle, or b) until a termination flag is set. The thread use
  * condition variable to wait for new jobs and do not remain busy waiting.
  *
- * Jobs are plain std::function<void()> objects, hence the pool user must pass
- * in ALL CONTEXT himself.
+ * Jobs are plain std::function<void()> objects (actually: our delegates), hence
+ * the pool user must pass in ALL CONTEXT himself.
  */
 class ThreadPool
 {
 public:
-    typedef std::function<void ()> Job;
+    typedef delegate<void ()> Job;
 
 protected:
     //! Deque of scheduled jobs.
@@ -94,7 +96,7 @@ public:
     }
 
     //! Enqueue a Job, the caller must pass in all context using captures.
-    void Enqueue(const Job& job) {
+    void Enqueue(Job&& job) {
         std::unique_lock<std::mutex> lock(mutex_);
         jobs_.emplace_back(std::move(job));
         cv_jobs_.notify_all();
@@ -134,6 +136,17 @@ public:
         return done_;
     }
 
+    //! Return number of threads in pool
+    size_t size() const {
+        return threads_.size();
+    }
+
+    //! Return thread handle to thread i
+    std::thread & thread(size_t i) {
+        assert(i < threads_.size());
+        return threads_[i];
+    }
+
 protected:
     //! Worker function, one per thread is started.
     void Worker() {
@@ -153,7 +166,7 @@ protected:
                 ++busy_;
 
                 // pull job.
-                Job job = jobs_.front();
+                Job job = std::move(jobs_.front());
                 jobs_.pop_front();
 
                 // release lock.
