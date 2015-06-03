@@ -41,24 +41,6 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
     pool.LoopUntilEmpty();
 }
 
-TEST_F(FutureTest, GetReturnsAfterCallback) {
-    Future<int> f;
-    int result = 0;
-
-    pool.Enqueue([&f, &result]() {
-                     result = f.Wait();
-                 });
-
-    pool.Enqueue([&f, &result]() {
-                     ASSERT_EQ(0, result);
-                     f.Callback(42);
-                     std::this_thread::sleep_for(10ns);
-                     ASSERT_EQ(42, result);
-                 });
-
-    pool.LoopUntilEmpty();
-}
-
 TEST_F(FutureTest, IsFinishedIsSetAfterCallback) {
     Future<int> f;
     int result = 0;
