@@ -163,19 +163,19 @@ public:
 
 protected:
     //! signal handler: do nothing, but receiving this interrupts the select().
-    static void SignalUSR1(int) {
+    static void SignalALRM(int) {
         return;
     }
 
     //! What happens in the dispatcher thread
     void StartWork() {
         {
-            // Set USR1 signal handler
+            // Set ALRM signal handler
             struct sigaction sa;
             memset(&sa, 0, sizeof(sa));
-            sa.sa_handler = SignalUSR1;
+            sa.sa_handler = SignalALRM;
 
-            int r = sigaction(SIGUSR1, &sa, NULL);
+            int r = sigaction(SIGALRM, &sa, NULL);
             die_unless(r == 0);
         }
 
@@ -203,7 +203,7 @@ protected:
         // create a "self-pipe", and write one byte to it.
 
         if (running_)
-            pthread_kill(sequentializer_.thread(0).native_handle(), SIGUSR1);
+            pthread_kill(sequentializer_.thread(0).native_handle(), SIGALRM);
     }
 
 private:
