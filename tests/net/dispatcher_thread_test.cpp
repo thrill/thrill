@@ -53,7 +53,7 @@ TEST(DispatcherThread, AsyncWriteAndReadIntoFuture) {
                                              << "Got Hello in callback";
                                         f.Callback(std::move(b));
                                     });
-                     Buffer b = f.Get();
+                     Buffer b = f.Wait();
                      sLOG << std::this_thread::get_id()
                           << "Waiter got packet:" << b.ToString();
                  });
@@ -88,7 +88,7 @@ TEST(DispatcherThread, AsyncWriteAndReadIntoFutureX) {
                                              << "Got Hello in callback";
                                         f.Callback(std::move(c), std::move(b));
                                     });
-                     std::tuple<Connection, Buffer> t = f.Get();
+                     std::tuple<Connection, Buffer> t = f.Wait();
                      Buffer& b = std::get<1>(t);
                      sLOG << std::this_thread::get_id()
                           << "Waiter got packet:" << b.ToString();

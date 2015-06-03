@@ -20,7 +20,7 @@ namespace common {
 
 /*!
  * Future helps you deal with the nasty callbacks in the land of callback-hell
- * by waiting for callbacks to occur and storing their data for you to Get().
+ * by waiting for callbacks to occur and storing their data for you to Wait().
  *
  * Handles the use-case where a callback is expected to be called exactly once!
  * If you expect multiple  calls use \ref FutureQueue
@@ -57,12 +57,18 @@ public:
     }
 
     //! Blocks until value is available and returns it
-    T && Get() {
-        assert(!finished_); //prevent multiple calls to Get()
+    T && Wait() {
+        assert(!finished_); // prevent multiple calls to Wait()
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [this]() { return triggered_; });
         triggered_ = false;
         finished_ = true;
+        return std::move(value_);
+    }
+
+    //! Returns value, must have gotten it with Wait()
+    T && Get() {
+        assert(finished_);
         return std::move(value_);
     }
 
@@ -77,7 +83,7 @@ public:
 /*!
  * Future helps you deal with the nasty callbacks in the land of callback-hell
  * by waiting for callbacks to occur and storing their data for you to
- * Get(). This is the variadic parameter variants, which will store any number
+ * Wait(). This is the variadic parameter variants, which will store any number
  * of parameters given by the callback in a tuple.
  *
  * Handles the use-case where a callback is expected to be called exactly once!
@@ -119,12 +125,18 @@ public:
     }
 
     //! Blocks until value is available and returns it
-    Values && Get() {
-        assert(!finished_); //prevent multiple calls to Get()
+    Values && Wait() {
+        assert(!finished_); //prevent multiple calls to Wait()
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [this]() { return triggered_; });
         triggered_ = false;
         finished_ = true;
+        return std::move(values_);
+    }
+
+    //! Returns value, must have gotten it with Wait()
+    Values && Get() {
+        assert(finished_);
         return std::move(values_);
     }
 
