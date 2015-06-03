@@ -40,6 +40,7 @@ private:
 };
 
 // TODO(ch): why is this a free method?
+// TODO(ch): add lots of consts, you are not changing the graph.
 
 // Returns a list of stages of graph scope
 inline void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
