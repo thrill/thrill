@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 
     c7a::common::CmdlineParser clp;
 
-    //clp.SetVerboseProcess(false);
+    clp.SetVerboseProcess(false);
 
     unsigned int workers = 1;
     clp.AddUInt('n', "workers", "N", workers,

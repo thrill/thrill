@@ -4,16 +4,12 @@ import os
 import sys
 import subprocess
 import random
-<<<<<<< HEAD
-#import numpy
-=======
 import numpy
 import re
->>>>>>> ab6d35d06541f9a2794fa0e3157ef5f8e0efbca0
 
-amounts=[10,12,14,16,18,20,22,24,26,28]
+amounts=[10,12,14,16,18,20]
 
-workers = [1,2,3,4]
+workers = [3,4]
 
 
 # Generate pow(2,n) random integer elements and perform wordcount on them.
@@ -32,7 +28,7 @@ for worker in workers:
                 times = []
                 for timer in timers:
                     afterTimer = output[timer+7:]
-                    spacePos = afterTimer.find(' ')
+                    spacePos = afterTimer.find('\n')
                     times.append(int(afterTimer[:spacePos]))
                 results.append(max(times))
                 print max(times)
