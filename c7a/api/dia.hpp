@@ -10,6 +10,8 @@
  ******************************************************************************/
 
 #pragma once
+#ifndef C7A_API_DIA_HEADER
+#define C7A_API_DIA_HEADER
 
 #include <functional>
 #include <vector>
@@ -286,7 +288,7 @@ public:
                   = typename FunctionTraits<sum_fn_t>::template arg<0>;
 
         using SumResultNode
-            = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
+                  = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
 
         auto shared_node
             = std::make_shared<SumResultNode>(node_->get_context(),
@@ -469,5 +471,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 }
 
 } // namespace c7a
+
+#endif // !C7A_API_DIA_HEADER
 
 /******************************************************************************/

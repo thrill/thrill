@@ -31,8 +31,8 @@ public:
             Stack& stack,
             SumFunction sum_function)
         : ActionNode<Input>(ctx, { parent }),
-          sum_function_(sum_function),
-          stack_(stack)
+          stack_(stack),
+          sum_function_(sum_function)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](Input input) {

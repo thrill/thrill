@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/data_manager_test.cpp
+ * tests/data/manager_test.cpp
  *
  * Part of Project c7a.
  *
@@ -18,14 +18,12 @@ using namespace c7a::net;
 struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
         : dispatcher(),
-          cmp(dispatcher),
-          manager(cmp),
+          manager(dispatcher),
           id(manager.AllocateDIA()) { }
 
-    Dispatcher         dispatcher;
-    ChannelMultiplexer cmp;
-    Manager            manager;
-    DIAId              id;
+    DispatcherThread dispatcher;
+    Manager    manager;
+    DIAId      id;
 };
 
 TEST_F(DataManagerFixture, GetIterator_FailsIfNotFound) {

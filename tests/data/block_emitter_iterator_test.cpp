@@ -22,16 +22,14 @@ using namespace c7a::net;
 struct EmitterIteratorIntegration : public::testing::Test {
     EmitterIteratorIntegration()
         : dispatcher(),
-          multiplexer(dispatcher),
-          manager(multiplexer),
+          manager(dispatcher),
           id(manager.AllocateDIA()) { }
 
     //not required, just for the ctor
-    Dispatcher         dispatcher;
-    ChannelMultiplexer multiplexer;
+    DispatcherThread dispatcher;
 
-    Manager            manager;
-    ChainId            id;
+    Manager    manager;
+    ChainId    id;
 };
 
 TEST_F(EmitterIteratorIntegration, EmptyHasNotNext) {

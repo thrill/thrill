@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/wordcount_test.cpp
+ * tests/api/operations_test.cpp
  *
  * Part of Project c7a.
  *
@@ -27,16 +27,15 @@ TEST(Operations, GeneratorTest) {
     Context ctx;
     std::vector<std::string> self = { "127.0.0.1:1234" };
     ctx.job_manager().Connect(0, Endpoint::ParseEndpointList(self));
-    ctx.job_manager().StartDispatcher();
 
     auto map_fn = [](int in) {
                       return 2 * in;
                   };
-    
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(1000, 10000);
-    
+
     size_t generate_size = distribution(generator);
 
     auto input = GenerateFromFile(
@@ -51,15 +50,12 @@ TEST(Operations, GeneratorTest) {
     size_t writer_size = 0;
 
     ints.WriteToFileSystem(g_workpath + "/outputs/test1.out",
-                           [&writer_size](const int& item) { 
+                           [&writer_size](const int& item) {
                                writer_size++;
                                return std::to_string(item);
                            });
 
-    
     ASSERT_EQ(generate_size, writer_size);
-
-    ctx.job_manager().StopDispatcher();
 }
 
 /******************************************************************************/

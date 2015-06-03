@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/data_chain_test.cpp
+ * tests/data/buffer_chain_test.cpp
  *
  * Part of Project c7a.
  *
