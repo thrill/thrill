@@ -131,6 +131,11 @@ set(C7A_VALGRIND_OPTS
 ################################################################################
 ### Find Required Libraries
 
+# find pthreads
+
+find_package(Threads)
+set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
+
 # example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
