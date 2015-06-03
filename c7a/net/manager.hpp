@@ -283,8 +283,6 @@ private:
             throw Exception("Error connecting asyncronously to client "
                             + std::to_string(conn.peer_id()) + " via "
                             + address.ToStringHostPort(), err);
-
-            return false;
         }
 
         die_unless(conn.GetSocket().IsValid());
