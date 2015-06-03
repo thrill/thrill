@@ -60,7 +60,7 @@ namespace net {
 
     //! Perform a binomial tree reduce to the worker with index 0
     template <typename T, typename BinarySumOp = common::SumOp<T> >
-    void ReduceToRoot(Group &net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+    static void ReduceToRoot(Group &net, T& value, BinarySumOp sumOp = BinarySumOp()) {
         bool active = true;
         for (size_t d = 1; d < net.Size(); d <<= 1) {
             if (active) {
