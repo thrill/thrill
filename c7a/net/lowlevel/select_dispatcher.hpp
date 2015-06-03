@@ -38,16 +38,6 @@ class SelectDispatcher : protected Select
     static const bool debug = false;
 
 public:
-    //! construct select dispatcher with reference to mutex for higher data
-    //! structures.
-    explicit SelectDispatcher(std::mutex* mutex = NULL)
-        : mutex_(mutex) {
-        // TODO(tb): this is a hack: we either use the outside mutex, or our own
-        // one.
-        static std::mutex my_mutex;
-        if (!mutex_) mutex_ = &my_mutex;
-    }
-
     //! cookie data structure for callback
     typedef _Cookie Cookie;
 
@@ -84,31 +74,25 @@ public:
 
     void Dispatch(const std::chrono::milliseconds& timeout) {
 
-        // our copy of the fdset.
-        Select fdset;
+        // copy select fdset
+        Select fdset = *this;
 
+        if (debug)
         {
-            // copy select fdset: no other thread may change while copying
-            std::unique_lock<std::mutex> lock(*mutex_);
-            fdset = *this;
-
-            if (debug)
-            {
-                std::ostringstream oss;
-                for (Watch& w : watch_) {
-                    oss << w.fd << " ";
-                }
-                oss << "| ";
-                for (int i = 0; i < Select::max_fd_ + 1; ++i) {
-                    if (Select::InRead(i))
-                        oss << "r" << i << " ";
-                    if (Select::InWrite(i))
-                        oss << "w" << i << " ";
-                    if (Select::InException(i))
-                        oss << "e" << i << " ";
-                }
-                LOG << "Performing select() on " << oss.str();
+            std::ostringstream oss;
+            for (Watch& w : watch_) {
+                oss << w.fd << " ";
             }
+            oss << "| ";
+            for (int i = 0; i < Select::max_fd_ + 1; ++i) {
+                if (Select::InRead(i))
+                    oss << "r" << i << " ";
+                if (Select::InWrite(i))
+                    oss << "w" << i << " ";
+                if (Select::InException(i))
+                    oss << "e" << i << " ";
+            }
+            LOG << "Performing select() on " << oss.str();
         }
 
         int r = fdset.select_timeout(timeout.count());
@@ -123,8 +107,6 @@ public:
             throw Exception("OpenConnections() select() failed!", errno);
         }
         if (r == 0) return;
-
-        std::unique_lock<std::mutex> lock(*mutex_);
 
         // save _current_ size, as it may change.
         size_t watch_size = watch_.size();
@@ -212,7 +194,7 @@ public:
         }
 
         // remove finished watchs from deque.
-        while (watch_.front().fd < 0)
+        while (watch_.size() && watch_.front().fd < 0)
             watch_.pop_front();
     }
 
@@ -238,12 +220,6 @@ private:
     //! handlers for all registered file descriptors, we have to keep them
     //! address local.
     std::deque<Watch> watch_;
-
-    //! Reference to mutex for higher layer data structures. This is a bizarre
-    //! break between layering of the Dispatchers: this mutex must be locked
-    //! commonly by the thread running in Dispatch() and by thread calling the
-    //! Dispatch's highest layer from the outside. -tb
-    std::mutex* mutex_;
 
     //! Default exception handler
     static bool DefaultExceptionCallback(const Cookie& /* c */) {
