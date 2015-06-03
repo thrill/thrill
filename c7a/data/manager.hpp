@@ -43,10 +43,23 @@ using c7a::net::ChannelId;
 class Manager
 {
 public:
-    Manager(net::ChannelMultiplexer& cmp) : cmp_(cmp) { }
+    Manager(net::DispatcherThread& dispatcher)
+        : cmp_(dispatcher) { }
 
+    //! non-copyable: delete copy-constructor
     Manager(const Manager&) = delete;
+    //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
+
+    //! Connect net::Group. Forwarded To ChannelMultiplexer.
+    void Connect(net::Group* group) {
+        cmp_.Connect(group);
+    }
+
+    //! Closes all client connections. Forwarded To ChannelMultiplexer.
+    void Close() {
+        cmp_.Close();
+    }
 
     //! returns iterator on requested partition or network channel.
     //!
@@ -131,7 +144,7 @@ public:
 
 private:
     static const bool debug = false;
-    net::ChannelMultiplexer& cmp_;
+    net::ChannelMultiplexer cmp_;
 
     BufferChainManager dias_;
 };

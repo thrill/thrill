@@ -10,6 +10,8 @@
  ******************************************************************************/
 
 #pragma once
+#ifndef C7A_API_GENERATOR_NODE_HEADER
+#define C7A_API_GENERATOR_NODE_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/api/dop_node.hpp>
@@ -26,8 +28,8 @@ namespace c7a {
 
 /*!
  * A DIANode which performs a GenerateFromFile operation. Generate uses a file
- * from the file system to generate random inputs. Therefore Generate reads the 
- * complete file and applies the generator function on each element. Afterwards 
+ * from the file system to generate random inputs. Therefore Generate reads the
+ * complete file and applies the generator function on each element. Afterwards
  * each worker generates a DIA with a certain number of random (possibly
  * duplicate) elements from the generator file.
  *
@@ -51,7 +53,7 @@ public:
     GeneratorNode(Context& ctx,
                   GeneratorFunction generator_function,
                   std::string path_in,
-                  size_t size )
+                  size_t size)
         : DOpNode<Output>(ctx, { }),
           generator_function_(generator_function),
           path_in_(path_in),
@@ -61,10 +63,10 @@ public:
     virtual ~GeneratorNode() { }
 
     //! Executes the generate operation. Reads a file line by line and creates a
-    //! element vector, out of which elements are randomly chosen (possibly 
-    //! duplicated). 
+    //! element vector, out of which elements are randomly chosen (possibly
+    //! duplicated).
     void execute() {
-        
+
         LOG1 << "GENERATING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
@@ -80,8 +82,7 @@ public:
         }
 
         size_t local_elements = (size_ / (this->context_).number_worker());
-        
-        
+
         std::random_device random_device;
         std::default_random_engine generator(random_device());
         std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
@@ -127,9 +128,10 @@ private:
     size_t size_;
 };
 
-} // namespace c7a
-
 //! \}
 
+} // namespace c7a
+
+#endif // !C7A_API_GENERATOR_NODE_HEADER
 
 /******************************************************************************/

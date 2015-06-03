@@ -11,7 +11,7 @@
 #ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
 
-#include <c7a/net/dispatcher.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 #include <c7a/net/channel.hpp>
 #include <c7a/data/block_emitter.hpp>
@@ -52,7 +52,7 @@ typedef c7a::data::ChainId ChannelId;
 class ChannelMultiplexer
 {
 public:
-    ChannelMultiplexer(Dispatcher& dispatcher)
+    ChannelMultiplexer(DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), chains_(data::NETWORK) { }
 
     void Connect(Group* group) {
@@ -98,6 +98,10 @@ public:
         assert(group_ != nullptr);
         assert(id.type == data::NETWORK);
         std::vector<data::BlockEmitter<T> > result;
+
+        //rest of method is critical section
+        std::lock_guard<std::mutex> lock(mutex_);
+
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
                 auto closer = std::bind(&ChannelMultiplexer::CloseLoopbackStream, this, id);
@@ -127,7 +131,7 @@ private:
     static const bool debug = false;
     typedef std::shared_ptr<Channel> ChannelPtr;
 
-    Dispatcher& dispatcher_;
+    DispatcherThread& dispatcher_;
 
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
@@ -135,6 +139,9 @@ private:
 
     //Hols NetConnections for outgoing Channels
     Group* group_;
+
+    //protects critical sections
+    std::mutex mutex_;
 
     //! expects the next header from a socket and passes to ReadFirstHeaderPartFrom
     void ExpectHeaderFrom(Connection& s) {
@@ -152,6 +159,8 @@ private:
     ChannelPtr GetOrCreateChannel(ChannelId id) {
         assert(id.type == data::NETWORK);
         ChannelPtr channel;
+
+        std::lock_guard<std::mutex> lock(mutex_);
         if (!HasChannel(id)) {
             //create buffer chain target if it does not exist
             if (!chains_.Contains(id))

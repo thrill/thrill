@@ -24,7 +24,8 @@ namespace data {
 class SocketTarget : public EmitterTarget
 {
 public:
-    SocketTarget(net::Dispatcher* dispatcher, net::Connection* connection, size_t channel_id)
+    SocketTarget(net::DispatcherThread* dispatcher,
+                 net::Connection* connection, size_t channel_id)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
@@ -54,7 +55,7 @@ protected:
     static const bool debug = false;
     //need pointers because child class does not initialize them.
     //TODO(ts) do not use raw pointers
-    net::Dispatcher* dispatcher_;
+    net::DispatcherThread* dispatcher_;
     net::Connection* connection_;
     size_t id_;
     bool closed_;

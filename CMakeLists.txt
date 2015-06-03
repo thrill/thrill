@@ -31,6 +31,8 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
   if(NOT USE_VALGRIND)
@@ -130,6 +132,11 @@ set(C7A_VALGRIND_OPTS
 
 ################################################################################
 ### Find Required Libraries
+
+# find pthreads
+
+find_package(Threads)
+set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
 # example: use Boost libraries:
 

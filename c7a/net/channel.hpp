@@ -46,8 +46,10 @@ public:
     typedef std::function<void (Connection& s)> ReleaseSocketCallback;
 
     //! Creates a new channel instance
-    Channel(Dispatcher& dispatcher, ReleaseSocketCallback release_callback,
-            size_t id, int expected_streams, std::shared_ptr<data::BufferChain> target)
+    Channel(DispatcherThread& dispatcher,
+            ReleaseSocketCallback release_callback,
+            size_t id, int expected_streams,
+            std::shared_ptr<data::BufferChain> target)
         : dispatcher_(dispatcher),
           release_(release_callback),
           id_(id),
@@ -88,7 +90,7 @@ public:
 
 private:
     static const bool debug = true;
-    Dispatcher& dispatcher_;
+    DispatcherThread& dispatcher_;
     ReleaseSocketCallback release_;
 
     size_t id_;
