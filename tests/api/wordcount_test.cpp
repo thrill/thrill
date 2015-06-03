@@ -15,8 +15,6 @@
 #include <tests/c7a_tests.hpp>
 #include <c7a/api/bootstrap.hpp>
 
-#include "../c7a/examples/word_count_user_program.cpp"
-
 #include "gtest/gtest.h"
 
 using namespace c7a::core;
@@ -65,6 +63,49 @@ TEST(WordCount, WordCountExample) {
                                     str += item.second;
                                     return str;
                                 });
+}
+
+
+int word_count_generated_nored(c7a::Context& ctx, size_t size) {
+    using c7a::Context;
+    using WordPair = std::pair<std::string, int>;
+
+    auto word_pair_gen = [](std::string line) {
+                             WordPair wp = std::make_pair(line, 1);
+                             return wp;
+                         };
+
+    auto key = [](WordPair in) {
+                   return in.first;
+               };
+
+    auto red_fn = [](WordPair in1, WordPair in2) {
+                      WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
+                      return wp;
+                  };
+
+    auto lines = GenerateFromFile(
+        ctx,
+       "headwords",
+        [](const std::string& line) {
+            return line;
+        },
+        size);
+
+    auto word_pairs = lines.Map(word_pair_gen);
+
+ 
+
+    word_pairs.WriteToFileSystem("wordcount" + std::to_string(ctx.rank()) + ".out",
+                                [](const WordPair& item) {
+                                    std::string str;
+                                    str += item.first;
+                                    str += ": ";
+                                    str += std::to_string(item.second);
+                                    //  std::cout << str << std::endl;
+                                    return str;
+                                    });
+    return 0;
 }
 
 TEST(WordCount, GenerateAndWriteWith2Workers) {
