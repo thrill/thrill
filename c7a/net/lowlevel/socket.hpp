@@ -88,6 +88,12 @@ public:
         return std::make_pair(Socket(fds[0]), Socket(fds[1]));
     }
 
+    class Errors {
+    public:
+        static const int ConnectionRefused = ECONNREFUSED;
+        static const int Timeout = ETIMEDOUT;
+    };
+
     //! \}
 
     //! \name Status
