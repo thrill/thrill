@@ -49,6 +49,8 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     //!True if program time should be taken and printed
     static const bool timing = true;
 
+    static const bool debug = false;
+
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result;
@@ -64,19 +66,18 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
         return -1;
     }
 
-    std::cout << "executing " << argv[0] << " with rank " << my_rank << " and endpoints ";
+    LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
     for (const auto& ep : endpoints)
-        std::cout << ep << " ";
-    std::cout << std::endl;
+       LOG << ep << " ";
 
     Context ctx;
-    std::cout << "connecting to peers" << std::endl;
+    LOG << "connecting to peers";
     ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
-    std::cout << "starting job" << std::endl;
+    LOG << "starting job";
     c7a::common::StatsTimer<timing> timer(true);
     auto job_result = job_startpoint(ctx);
     timer.Stop();
-    std::cout << timer << std::endl;
+    c7a::Logger<timing>() << "timer: " << timer.Microseconds();
     return job_result;
 }
 
