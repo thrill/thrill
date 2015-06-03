@@ -17,16 +17,14 @@ using namespace c7a::net;
 struct PostTable : public::testing::Test {
     PostTable()
         : dispatcher(),
-          multiplexer(dispatcher),
-          manager(multiplexer),
+          manager(dispatcher),
           id(manager.AllocateDIA()),
           iterator(manager.GetIterator<int>(id)),
           pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) {
         emitters.emplace_back(manager.GetLocalEmitter<int>(id));
     }
 
-    Dispatcher                                 dispatcher;
-    ChannelMultiplexer                         multiplexer;
+    DispatcherThread                           dispatcher;
     Manager                                    manager;
     ChainId                                    id = manager.AllocateDIA();
     BlockIterator<int>                         iterator;

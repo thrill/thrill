@@ -18,8 +18,7 @@ using StringPair = std::pair<std::string, int>;
 struct PreTable : public::testing::Test {
     PreTable()
         : dispatcher(),
-          multiplexer(dispatcher),
-          manager(multiplexer),
+          manager(dispatcher),
           id1(manager.AllocateDIA()),
           id2(manager.AllocateDIA()) {
         one_int_emitter.emplace_back(manager.GetLocalEmitter<int>(id1));
@@ -32,8 +31,7 @@ struct PreTable : public::testing::Test {
         two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
     }
 
-    Dispatcher                             dispatcher;
-    ChannelMultiplexer                     multiplexer;
+    DispatcherThread                       dispatcher;
     Manager                                manager;
     DIAId                                  id1;
     DIAId                                  id2;

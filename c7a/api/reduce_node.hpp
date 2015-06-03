@@ -48,7 +48,7 @@ class ReduceNode : public DOpNode<Output>
 {
     static const bool debug = true;
 
-    typedef DOpNode<Output> Super;
+    using Super = DOpNode<Output>;
 
     using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
 
