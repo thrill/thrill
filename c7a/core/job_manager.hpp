@@ -40,17 +40,6 @@ public:
         return net_manager_;
     }
 
-    //! Starts the dispatcher thread of the Manager
-    //! \throws std::runtime_exception if the thread is already running
-    void StartDispatcher() {
-        net_dispatcher_.Start();
-    }
-
-    //! Stops the dispatcher thread of the Manager
-    void StopDispatcher() {
-        net_dispatcher_.Stop();
-    }
-
 private:
     net::Manager net_manager_;
     net::DispatcherThread net_dispatcher_;
