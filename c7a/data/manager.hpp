@@ -45,7 +45,9 @@ class Manager
 public:
     Manager(net::Dispatcher& dispatcher) : cmp_(dispatcher) { }
 
+    //! non-copyable: delete copy-constructor
     Manager(const Manager&) = delete;
+    //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
 
     //! Connect net::Group. Forwarded To ChannelMultiplexer.

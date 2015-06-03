@@ -138,11 +138,10 @@ public:
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
-        // the following captures the move-only buffer in a lambda. TODO(tb):
-        // this is totally convoluted.
-        sequentializer_.Enqueue(std::bind([ =, &c](Buffer& b) {
-                                              dispatcher_.AsyncWrite(c, std::move(b), done_cb);
-                                          }, std::move(buffer)));
+        // the following captures the move-only buffer in a lambda.
+        sequentializer_.Enqueue([ =, &c, b = std::move(buffer)]() mutable {
+                                    dispatcher_.AsyncWrite(c, std::move(b), done_cb);
+                                });
         WakeUpThread();
     }
 
