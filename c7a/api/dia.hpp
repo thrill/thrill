@@ -285,7 +285,8 @@ public:
         using sum_arg_0_t
                   = typename FunctionTraits<sum_fn_t>::template arg<0>;
 
-        using SumResultNode = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
+        using SumResultNode
+            = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
 
         auto shared_node
             = std::make_shared<SumResultNode>(node_->get_context(),
@@ -293,7 +294,6 @@ public:
                                               local_stack_,
                                               sum_fn);
 
-        auto sum_stack = shared_node->ProduceStack();
         core::RunScope(shared_node.get());
         return shared_node.get()->result();
     }
