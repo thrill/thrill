@@ -17,8 +17,7 @@ using namespace c7a::net;
 struct PostTable : public::testing::Test {
     PostTable()
         : dispatcher(),
-          multiplexer(dispatcher),
-          manager(multiplexer),
+          manager(dispatcher),
           id(manager.AllocateDIA()),
           iterator(manager.GetIterator<int>(id)),
           pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) {
@@ -26,7 +25,6 @@ struct PostTable : public::testing::Test {
     }
 
     Dispatcher                                 dispatcher;
-    ChannelMultiplexer                         multiplexer;
     Manager                                    manager;
     ChainId                                    id = manager.AllocateDIA();
     BlockIterator<int>                         iterator;

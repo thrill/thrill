@@ -73,6 +73,7 @@ public:
     }
 
     void Dispatch(const std::chrono::milliseconds& timeout) {
+
         // copy select fdset
         Select fdset = *this;
 
@@ -97,6 +98,12 @@ public:
         int r = fdset.select_timeout(timeout.count());
 
         if (r < 0) {
+            // if we caught a signal, this is intended to interrupt a select().
+            if (errno == EINTR) {
+                LOG << "Dispatch(): select() was interrupted due to a signal.";
+                return;
+            }
+
             throw Exception("OpenConnections() select() failed!", errno);
         }
         if (r == 0) return;
@@ -185,6 +192,10 @@ public:
                 }
             }
         }
+
+        // remove finished watchs from deque.
+        while (watch_.size() && watch_.front().fd < 0)
+            watch_.pop_front();
     }
 
 private:
