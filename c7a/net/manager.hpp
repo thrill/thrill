@@ -157,6 +157,14 @@ private:
         return true;
     }
 
+    /**
+     * @brief Starts connecting to the net connection specified. 
+     * @details Starts connecting to the endpoint specified by the parameters.
+     * This method executes asynchronously.
+     *
+     * @param nc The connection to connect. 
+     * @param address The address of the endpoint to connect to.
+     */
     void AsyncConnect(Connection& nc, SocketAddress& address) {
         // Start asynchronous connect.
         nc.GetSocket().SetNonBlocking(true);
