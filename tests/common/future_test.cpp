@@ -30,7 +30,7 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
     int result = 0;
 
     pool.Enqueue([&f, &result]() {
-                     result = f.Get();
+                     result = f.Wait();
                      ASSERT_EQ(42, result);
                  });
 
@@ -46,7 +46,7 @@ TEST_F(FutureTest, GetReturnsAfterCallback) {
     int result = 0;
 
     pool.Enqueue([&f, &result]() {
-                     result = f.Get();
+                     result = f.Wait();
                  });
 
     pool.Enqueue([&f, &result]() {
@@ -65,7 +65,7 @@ TEST_F(FutureTest, IsFinishedIsSetAfterCallback) {
 
     pool.Enqueue([&f, &result]() {
                      std::this_thread::sleep_for(100ms);
-                     result = f.Get();
+                     result = f.Wait();
                  });
 
     pool.Enqueue([&f, &result]() {
