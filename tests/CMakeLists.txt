@@ -4,15 +4,13 @@
 # CMake file for c7a testsuite
 ################################################################################
 
-set(C7A_LIBRARIES c7a gtest gmock pthread)
-
 # macro for building test programs, without main() in c7a_tests.cpp
 macro(build_plain PROGNAME)
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
   add_executable(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
-  target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
+  target_link_libraries(${TESTNAME} c7a gtest gmock ${ALL_LIBRARIES})
 
 endmacro(build_plain)
 
