@@ -16,7 +16,8 @@
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
 #include <c7a/net/dispatcher.hpp>
-#include <c7a/common/sequentializer.hpp>
+#include <c7a/common/thread_pool.hpp>
+#include <c7a/common/concurrent_queue.hpp>
 #include <c7a/common/delegate.hpp>
 
 #include <csignal>
@@ -40,33 +41,35 @@ public:
     //! \{
 
     //! Signature of timer callbacks.
-    typedef Dispatcher::TimerCallback TimerCallback;
+    using TimerCallback = Dispatcher::TimerCallback;
 
     //! Signature of async connection readability/writability callbacks.
-    typedef Dispatcher::ConnectionCallback ConnectionCallback;
+    using ConnectionCallback = Dispatcher::ConnectionCallback;
 
     //! Signature of async read callbacks.
-    typedef Dispatcher::AsyncReadCallback AsyncReadCallback;
+    using AsyncReadCallback = Dispatcher::AsyncReadCallback;
 
     //! Signature of async write callbacks.
-    typedef Dispatcher::AsyncWriteCallback AsyncWriteCallback;
+    using AsyncWriteCallback = Dispatcher::AsyncWriteCallback;
+
+    //! Signature of async jobs to be run by the dispatcher thread.
+    using Job = common::ThreadPool::Job;
 
     //! \}
 
 public:
     DispatcherThread()
         : dispatcher_() {
-        sequentializer_.Enqueue(
-            [this]() { StartWork(); });
+        thread_ = std::thread(&DispatcherThread::Work, this);
     }
 
     ~DispatcherThread() {
         // set termination flag.
-        sequentializer_.Terminate();
+        terminate_ = true;
         // interrupt select().
         WakeUpThread();
         // wait for last round to finish.
-        sequentializer_.LoopUntilTerminate();
+        thread_.join();
     }
 
     //! non-copyable: delete copy-constructor
@@ -84,9 +87,9 @@ public:
     template <class Rep, class Period>
     void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
                             const TimerCallback& cb) {
-        sequentializer_.Enqueue([=]() {
-                                    dispatcher_.AddRelativeTimeout(timeout, cb);
-                                });
+        Enqueue([=]() {
+                    dispatcher_.AddRelativeTimeout(timeout, cb);
+                });
         WakeUpThread();
     }
 
@@ -97,17 +100,17 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        sequentializer_.Enqueue([ =, &c]() {
-                                    dispatcher_.AddRead(c, read_cb);
-                                });
+        Enqueue([ =, &c]() {
+                    dispatcher_.AddRead(c, read_cb);
+                });
         WakeUpThread();
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        sequentializer_.Enqueue([ =, &c]() {
-                                    dispatcher_.AddWrite(c, write_cb);
-                                });
+        Enqueue([ =, &c]() {
+                    dispatcher_.AddWrite(c, write_cb);
+                });
         WakeUpThread();
     }
 
@@ -115,9 +118,9 @@ public:
     void AddReadWrite(
         Connection& c,
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        sequentializer_.Enqueue([ =, &c]() {
-                                    dispatcher_.AddReadWrite(c, read_cb, write_cb);
-                                });
+        Enqueue([ =, &c]() {
+                    dispatcher_.AddReadWrite(c, read_cb, write_cb);
+                });
         WakeUpThread();
     }
 
@@ -128,9 +131,9 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        sequentializer_.Enqueue([ =, &c]() {
-                                    dispatcher_.AsyncRead(c, n, done_cb);
-                                });
+        Enqueue([ =, &c]() {
+                    dispatcher_.AsyncRead(c, n, done_cb);
+                });
         WakeUpThread();
     }
 
@@ -139,9 +142,9 @@ public:
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
         // the following captures the move-only buffer in a lambda.
-        sequentializer_.Enqueue([ =, &c, b = std::move(buffer)]() mutable {
-                                    dispatcher_.AsyncWrite(c, std::move(b), done_cb);
-                                });
+        Enqueue([ =, &c, b = std::move(buffer)]() mutable {
+                    dispatcher_.AsyncWrite(c, std::move(b), done_cb);
+                });
         WakeUpThread();
     }
 
@@ -162,13 +165,18 @@ public:
     //! \}
 
 protected:
+    //! Enqueue job in queue for dispatching thread to run at its discretion.
+    void Enqueue(Job&& job) {
+        return jobqueue_.push(std::move(job));
+    }
+
     //! signal handler: do nothing, but receiving this interrupts the select().
     static void SignalALRM(int) {
         return;
     }
 
     //! What happens in the dispatcher thread
-    void StartWork() {
+    void Work() {
         {
             // Set ALRM signal handler
             struct sigaction sa;
@@ -180,17 +188,19 @@ protected:
         }
 
         running_ = true;
-        Work();
-    }
 
-    //! What happens in the dispatcher thread
-    void Work() {
-        // run one dispatch
-        dispatcher_.Dispatch();
-        // enqueue next dispatch (process jobs in between). TODO(tb): this is
-        // actually stupid: better have a tbb::concurrent_queue of callback jobs
-        // to do, and loop over them and the select().
-        sequentializer_.Enqueue([this]() { Work(); });
+        while (!terminate_) {
+            // process jobs in jobqueue_
+            {
+                Job job;
+                while (jobqueue_.try_pop(job)) {
+                    job();
+                }
+            }
+
+            // run one dispatch
+            dispatcher_.Dispatch();
+        }
     }
 
     //! wake up select() in dispatching thread.
@@ -203,18 +213,24 @@ protected:
         // create a "self-pipe", and write one byte to it.
 
         if (running_)
-            pthread_kill(sequentializer_.thread(0).native_handle(), SIGALRM);
+            pthread_kill(thread_.native_handle(), SIGALRM);
     }
 
 private:
-    //! Sequentializer for queueing all jobs that work on the dispatcher.
-    common::Sequentializer sequentializer_;
+    //! Queue of jobs to be run by dispatching thread at its discretion.
+    common::concurrent_queue<Job> jobqueue_;
 
-    //! enclosed dispatcher.
-    Dispatcher dispatcher_;
+    //! thread of dispatcher
+    std::thread thread_;
 
     //! check whether the signal handler was set before issuing signals.
     bool running_ = false;
+
+    //! termination flag of dispatcher thread.
+    bool terminate_ = false;
+
+    //! enclosed dispatcher.
+    Dispatcher dispatcher_;
 };
 
 //! \}
