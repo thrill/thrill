@@ -158,6 +158,44 @@ private:
     }
 
     /**
+     * @brief Starts connecting to the net connection specified. 
+     * @details Starts connecting to the endpoint specified by the parameters.
+     * This method executes asynchronously.
+     *
+     * @param nc The connection to connect. 
+     * @param address The address of the endpoint to connect to.
+     */
+    void AsyncConnect(Connection& nc, SocketAddress& address) {
+        // Start asynchronous connect.
+        nc.GetSocket().SetNonBlocking(true);
+        int res = nc.GetSocket().connect(address);
+
+        nc.set_state(ConnectionState::Connecting);
+
+        if (res == 0) {
+            LOG << "Early connect success. This should not happen.";
+            // connect() already successful? this should not be.
+            OnConnected(nc, address);
+        }
+        else if (errno == EINPROGRESS) {
+            // connect is in progress, will wait for completion.
+            dispatcher_.AddWrite(nc, [this, &address](Connection& nc) {
+                                     return OnConnected(nc, address);
+                                 });
+        }
+        else {
+            // Failed to even try the connection - this might be a permanent
+            // error.
+            nc.set_state(ConnectionState::Invalid);
+
+            throw Exception("Error starting async connect client "
+                            + std::to_string(nc.peer_id()) + " via "
+                            + address.ToStringHostPort(), errno);
+        }
+    }
+
+
+    /**
      * @brief Starts connecting to the endpoint specified by the parameters.
      * @details Starts connecting to the endpoint specified by the parameters.
      * This method executes asynchronously.
@@ -177,32 +215,8 @@ private:
         nc.set_group_id(group);
         nc.set_peer_id(id);
 
-        // Start asynchronous connect.
-        nc.GetSocket().SetNonBlocking(true);
-        int res = nc.GetSocket().connect(address);
+        AsyncConnect(nc, address);
 
-        nc.set_state(ConnectionState::Connecting);
-
-        if (res == 0) {
-            LOG << "Early connect success. This should not happen.";
-            // connect() already successful? this should not be.
-            OnConnected(nc, group, id, address);
-        }
-        else if (errno == EINPROGRESS) {
-            // connect is in progress, will wait for completion.
-            dispatcher_.AddWrite(nc, [=](Connection& nc) {
-                                     return OnConnected(nc, group, id, address);
-                                 });
-        }
-        else {
-            // Failed to even try the connection - this might be a permanent
-            // error.
-            nc.set_state(ConnectionState::Invalid);
-
-            throw Exception("Error connecting to client "
-                            + std::to_string(nc.peer_id()) + " via "
-                            + address.ToStringHostPort(), errno);
-        }
     }
 
     /**
@@ -230,27 +244,45 @@ private:
      * The c7a welcome messages still have to be exchanged.
      *
      * @param conn The connection that was connected successfully.
-     * @param group The associated group id. This parameter is needed in case we need to reconnect.
-     * @param id The associated remote worker id. This parameter is needed in case we need to reconnect.
      * @param address The associated address. This parameter is needed in case we need to reconnect.
      *
      * @return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(
-        Connection& conn, uint32_t group, size_t id, SocketAddress /* address */) {
+    bool OnConnected(Connection& conn, SocketAddress& address) {
 
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
 
-        if (err != 0) {
-            conn.set_state(ConnectionState::Disconnected);
-            //Try a reconnect
-            //TODO(ej): Figure out if we need a timer here.
-            LOG1 << "Error connecting.";
-            //std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            //Connect(conn, address);
+
+        if (err == Socket::Errors::ConnectionRefused || 
+            err == Socket::Errors::Timeout) {
+
+            //Connection refused. The other workers might not be online yet.
+
+            LOG << "Connect to " << address.ToStringHostPort() <<
+                " timed out or refused. Attempting reconnect";
+ 
+            // Construct a new connection since the 
+            // socket might not be reusable. 
+            Connection nc;
+
+            nc = std::move(Connection(Socket::Create()));
+            nc.set_group_id(conn.group_id());
+            nc.set_peer_id(conn.peer_id());
+
+            std::swap(conn, nc);
+
+            AsyncConnect(conn, address);
 
             return false;
+        } else if(err != 0) {
+            //Other failure. Fail hard. 
+            conn.set_state(ConnectionState::Invalid);
+
+
+            throw Exception("Error connecting asyncronously to client "
+                            + std::to_string(conn.peer_id()) + " via "
+                            + address.ToStringHostPort(), err);
         }
 
         die_unless(conn.GetSocket().IsValid());
@@ -263,7 +295,7 @@ private:
             << " group=" << conn.group_id();
 
         // send welcome message
-        const WelcomeMsg hello = { c7a_sign, group, my_rank_ };
+        const WelcomeMsg hello = { c7a_sign, (uint32_t)conn.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(conn, &hello, sizeof(hello),
                                    [=](Connection& nc) {
@@ -271,7 +303,7 @@ private:
                                    });
 
         LOG << "Client " << my_rank_ << " sent active hello to "
-            << "client group " << group << " id " << id;
+            << "client group id " << conn.group_id();
 
         dispatcher_.AsyncRead(conn, sizeof(hello),
                               [=](Connection& nc, Buffer&& b) {
@@ -483,9 +515,6 @@ public:
 
             listener_ = std::move(Connection(listen_socket));
         }
-
-        //TODO ej - remove when Connect(...) gets really async.
-        sleep(1);
 
         //Initiate connections to all hosts with higher id.
         for (uint32_t g = 0; g < kGroupCount; g++) {
