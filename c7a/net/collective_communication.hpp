@@ -1,10 +1,11 @@
 /*******************************************************************************
  * c7a/net/collective_communication.hpp
  *
- * Part of Project c7a.
- *
  * This file provides collective communication primitives, which are to be used
  * with c7a::net::Groups.
+ *
+ * Part of Project c7a.
+ *
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
