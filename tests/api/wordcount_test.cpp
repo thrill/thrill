@@ -12,7 +12,6 @@
 #include <c7a/core/job_manager.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
-#include <tests/c7a_tests.hpp>
 #include <c7a/api/bootstrap.hpp>
 
 #include "gtest/gtest.h"
@@ -46,7 +45,7 @@ TEST(WordCount, WordCountExample) {
 
     auto lines = ReadFromFileSystem(
         ctx,
-        g_workpath + "/inputs/wordcount.in",
+        "wordcount.in",
         [](const std::string& line) {
             return line;
         });
@@ -55,7 +54,7 @@ TEST(WordCount, WordCountExample) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    red_words.WriteToFileSystem(g_workpath + "/outputs/wordcount.out",
+    red_words.WriteToFileSystem("wordcount.out",
                                 [](const WordPair& item) {
                                     std::string str;
                                     str += item.first;

@@ -13,7 +13,6 @@
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/net/collective_communication.hpp>
-#include <tests/c7a_tests.hpp>
 
 #include "gtest/gtest.h"
 
@@ -40,7 +39,7 @@ TEST(SumNode, LocalhostOneThread) {
 
     auto input = ReadFromFileSystem(
         ctx,
-        g_workpath + "/inputs/test1",
+        "test1",
         [](const std::string& line) {
             return std::stoi(line);
         });
@@ -65,7 +64,7 @@ int sum_node_generated(c7a::Context& ctx) {
 
     auto input = ReadFromFileSystem(
             ctx,
-            g_workpath + "/inputs/test1",
+            "test1",
             [](const std::string& line) {
                 std::cout << "out: " << line << std::endl;
                 return std::stoi(line);
