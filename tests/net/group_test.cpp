@@ -127,13 +127,13 @@ static void ThreadInitializeSendReceive(Group* net) {
 }
 
 static void ThreadInitializeSendReceiveALot(Group* net) {
-    for(int i = 0; i < 100; i++) {
+    for (int i = 0; i < 100; i++) {
         ThreadInitializeSendReceive(net);
     }
 }
 
 static void ThreadInitializeSendReceiveAsyncALot(Group* net) {
-    for(int i = 0; i < 100; i++) {
+    for (int i = 0; i < 100; i++) {
         ThreadInitializeAsyncRead(net);
     }
 }
@@ -208,7 +208,6 @@ TEST(Group, RealInitializeSendReceiveAsyncALot) {
     // above which sends and receives a message from all neighbors.
     RealGroupConstructAndCall(ThreadInitializeSendReceive);
 }
-
 
 TEST(Group, RealInitializeBroadcast) {
     // Construct a real Group of 6 workers which execute the thread function
