@@ -22,9 +22,7 @@ template <typename Input, typename Output, typename WriteFunction, typename Stac
 class WriteNode : public ActionNode<Input>
 {
 public:
-    
     using write_arg_t = typename FunctionTraits<WriteFunction>::template arg<0>;
-    
 
     WriteNode(Context& ctx,
               DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
@@ -39,7 +37,7 @@ public:
           emit_(this->context_.get_data_manager().template GetOutputLineEmitter<Output>(file_))
     {
         sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents to" << path_out_;
-        
+
         // using write_arg_t = typename FunctionTraits<WriteFunction>::template arg<0>;
         auto pre_op_fn = [=](write_arg_t input) {
                              PreOp(input);

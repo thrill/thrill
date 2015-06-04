@@ -158,11 +158,11 @@ private:
     }
 
     /**
-     * @brief Starts connecting to the net connection specified. 
+     * @brief Starts connecting to the net connection specified.
      * @details Starts connecting to the endpoint specified by the parameters.
      * This method executes asynchronously.
      *
-     * @param nc The connection to connect. 
+     * @param nc The connection to connect.
      * @param address The address of the endpoint to connect to.
      */
     void AsyncConnect(Connection& nc, SocketAddress& address) {
@@ -194,7 +194,6 @@ private:
         }
     }
 
-
     /**
      * @brief Starts connecting to the endpoint specified by the parameters.
      * @details Starts connecting to the endpoint specified by the parameters.
@@ -216,7 +215,6 @@ private:
         nc.set_peer_id(id);
 
         AsyncConnect(nc, address);
-
     }
 
     /**
@@ -253,17 +251,16 @@ private:
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
 
-
-        if (err == Socket::Errors::ConnectionRefused || 
+        if (err == Socket::Errors::ConnectionRefused ||
             err == Socket::Errors::Timeout) {
 
             //Connection refused. The other workers might not be online yet.
 
             LOG << "Connect to " << address.ToStringHostPort() <<
                 " timed out or refused. Attempting reconnect";
- 
-            // Construct a new connection since the 
-            // socket might not be reusable. 
+
+            // Construct a new connection since the
+            // socket might not be reusable.
             Connection nc;
 
             nc = std::move(Connection(Socket::Create()));
@@ -275,10 +272,10 @@ private:
             AsyncConnect(conn, address);
 
             return false;
-        } else if(err != 0) {
-            //Other failure. Fail hard. 
+        }
+        else if (err != 0) {
+            //Other failure. Fail hard.
             conn.set_state(ConnectionState::Invalid);
-
 
             throw Exception("Error connecting asyncronously to client "
                             + std::to_string(conn.peer_id()) + " via "
