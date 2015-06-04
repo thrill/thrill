@@ -34,7 +34,6 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('n', "workers", "N", workers,
                 "Create wordcount example with N workers");
 
-
     unsigned int elements = 1;
     clp.AddUInt('s', "elements", "S", elements,
                 "Create wordcount example with S generated words");
@@ -59,14 +58,14 @@ int main(int argc, char* argv[]) {
         }
 
         std::function<int(c7a::Context&)> start_func = [elements](c7a::Context& ctx) {
-            return word_count_generated(ctx, elements);
-        };
+                                                           return word_count_generated(ctx, elements);
+                                                       };
 
         strargs[i][0] = "wordcount";
         arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
         strargs[i][1] = std::to_string(i);
         arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
-        threads[i] = std::thread([=]() { Execute(workers + 2, arguments[i],start_func); });
+        threads[i] = std::thread([=]() { Execute(workers + 2, arguments[i], start_func); });
     }
 
     for (size_t i = 0; i < workers; i++) {

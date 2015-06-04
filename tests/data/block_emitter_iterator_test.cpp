@@ -28,8 +28,8 @@ struct EmitterIteratorIntegration : public::testing::Test {
     //not required, just for the ctor
     DispatcherThread dispatcher;
 
-    Manager    manager;
-    ChainId    id;
+    Manager          manager;
+    ChainId          id;
 };
 
 TEST_F(EmitterIteratorIntegration, EmptyHasNotNext) {
