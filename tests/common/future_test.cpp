@@ -22,20 +22,21 @@ struct FutureTest : public::testing::Test {
     FutureTest() : pool(2) { }
     ThreadPool pool;
 
-    //can not put f or result in the struct because it cannot be captured then.
+    // can not put f or result in the struct because it cannot be captured then.
 };
 
 TEST_F(FutureTest, GetReturnsCorrectValue) {
     Future<int> f;
-    int result = 0;
 
-    pool.Enqueue([&f, &result]() {
-                     result = f.Wait();
+    pool.Enqueue([&f]() {
+            int result = f.Wait();
                      ASSERT_EQ(42, result);
+                     std::cout << "done1\n";
                  });
 
     pool.Enqueue([&f]() {
                      f.Callback(42);
+                     std::cout << "done2\n";
                  });
 
     pool.LoopUntilEmpty();
@@ -43,22 +44,22 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
 
 TEST_F(FutureTest, IsFinishedIsSetAfterCallback) {
     Future<int> f;
-    int result = 0;
 
-    pool.Enqueue([&f, &result]() {
+    pool.Enqueue([&f]() {
                      std::this_thread::sleep_for(100ms);
-                     result = f.Wait();
+                     int result = f.Wait();
+                     ASSERT_EQ(42, result);
                  });
 
-    pool.Enqueue([&f, &result]() {
+    pool.Enqueue([&f]() {
                      ASSERT_FALSE(f.is_finished());
                      f.Callback(42);
 
-                     //let other thread run, but that one will wait 100ms
+                     // let other thread run, but that one will wait 100ms
                      std::this_thread::sleep_for(10ns);
                      ASSERT_FALSE(f.is_finished());
 
-                     //this should be after the the other thread called Get
+                     // this should be after the the other thread called Get
                      std::this_thread::sleep_for(200ms);
                      ASSERT_TRUE(f.is_finished());
                  });
