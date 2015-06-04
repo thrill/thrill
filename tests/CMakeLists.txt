@@ -82,14 +82,16 @@ build_test(data/block_iterator_test)
 build_test(data/serializer_test)
 build_plain(common/cmdline_parser_example)
 build_test_group(common/tests
-  common/delegate_test.cpp
-  common/stats_counter_test.cpp
   common/cmdline_parser_test.cpp
+  common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
-  common/future_test.cpp
+  common/delegate_test.cpp
   common/future_queue_test.cpp
+  common/future_test.cpp
+  common/stats_counter_test.cpp
+  common/stats_timer_test.cpp
   common/thread_pool_test.cpp
-  common/stats_timer_test.cpp)
+  )
 #build_test(core/stage_builder_test)
 build_test(core/post_hash_table_test)
 build_test(core/pre_hash_table_test)
