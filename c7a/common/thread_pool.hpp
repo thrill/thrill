@@ -165,19 +165,21 @@ protected:
                 // got work. set busy.
                 ++busy_;
 
-                // pull job.
-                Job job = std::move(jobs_.front());
-                jobs_.pop_front();
+                {
+                    // pull job.
+                    Job job = std::move(jobs_.front());
+                    jobs_.pop_front();
 
-                // release lock.
-                lock.unlock();
+                    // release lock.
+                    lock.unlock();
 
-                // execute job.
-                try {
-                    job();
-                }
-                catch (std::exception& e) {
-                    LOG1 << "EXCEPTION: " << e.what();
+                    // execute job.
+                    try {
+                        job();
+                    }
+                    catch (std::exception& e) {
+                        LOG1 << "EXCEPTION: " << e.what();
+                    }
                 }
 
                 ++done_;
