@@ -126,6 +126,18 @@ static void ThreadInitializeSendReceive(Group* net) {
     }
 }
 
+static void ThreadInitializeSendReceiveALot(Group* net) {
+    for (int i = 0; i < 100; i++) {
+        ThreadInitializeSendReceive(net);
+    }
+}
+
+static void ThreadInitializeSendReceiveAsyncALot(Group* net) {
+    for (int i = 0; i < 100; i++) {
+        ThreadInitializeAsyncRead(net);
+    }
+}
+
 static void RealGroupConstructAndCall(
     std::function<void(Group*)> thread_function) {
     // randomize base port number for test
@@ -179,10 +191,22 @@ TEST(Group, RealInitializeSendReceive) {
     RealGroupConstructAndCall(ThreadInitializeSendReceive);
 }
 
-TEST(Group, DISABLED_RealInitializeSendReceiveAsync) { //TODO(ej) test hangs from time to time
+TEST(Group, RealInitializeSendReceiveALot) {
+    // Construct a real Group of 6 workers which execute the thread function
+    // above which sends and receives a message from all neighbors.
+    RealGroupConstructAndCall(ThreadInitializeSendReceive);
+}
+
+TEST(Group, RealInitializeSendReceiveAsync) { //TODO(ej) test hangs from time to time
     // Construct a real Group of 6 workers which execute the thread function
     // which sends and receives asynchronous messages between all workers.
     RealGroupConstructAndCall(ThreadInitializeAsyncRead);
+}
+
+TEST(Group, RealInitializeSendReceiveAsyncALot) {
+    // Construct a real Group of 6 workers which execute the thread function
+    // above which sends and receives a message from all neighbors.
+    RealGroupConstructAndCall(ThreadInitializeSendReceive);
 }
 
 TEST(Group, RealInitializeBroadcast) {

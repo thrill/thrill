@@ -4,19 +4,24 @@
 # CMake file for c7a testsuite
 ################################################################################
 
-set(C7A_LIBRARIES c7a gtest gmock pthread)
+# macro for building test programs with correct libraries
+macro(c7a_build TARGETNAME)
+
+  add_executable(${TARGETNAME} ${ARGN})
+  target_link_libraries(${TARGETNAME} c7a gtest gmock ${ALL_LIBRARIES})
+
+endmacro(c7a_build)
 
 # macro for building test programs, without main() in c7a_tests.cpp
 macro(build_plain PROGNAME)
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
-  add_executable(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
-  target_link_libraries(${TESTNAME} ${C7A_LIBRARIES})
+  c7a_build(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
 
 endmacro(build_plain)
 
-# macro for building test programs
+# macro for building test programs, adding gtest runner in c7a_tests.cpp
 macro(build_only PROGNAME)
 
   # append gtest runner program.
@@ -24,31 +29,49 @@ macro(build_only PROGNAME)
 
 endmacro(build_only)
 
+# macro for registering test programs: maybe prepend valgrind
+macro(test_only TESTNAME)
+
+  if(USE_VALGRIND)
+    # prepend valgrind call
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND /usr/bin/valgrind ${C7A_VALGRIND_OPTS}
+      --xml=yes --xml-file=${TESTNAME}.xml
+      ./${TESTNAME} ${ARGN})
+  else()
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND ${TESTNAME} ${ARGN})
+  endif()
+
+endmacro(test_only)
+
 # macro for building and running test programs
 macro(build_test PROGNAME)
 
   build_only(${PROGNAME})
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
-
-  if(USE_VALGRIND)
-    # prepend valgrind call
-    add_test(${TESTNAME}
-      /usr/bin/valgrind ${C7A_VALGRIND_OPTS} --xml=yes --xml-file=${TESTNAME}.xml
-      ./${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
-  else()
-    add_test(${TESTNAME}
-      ${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
-  endif()
+  test_only(${TESTNAME})
 
 endmacro(build_test)
+
+# macro for building and running a group of tests
+macro(build_test_group TESTNAME)
+
+  string(REPLACE "/" "_" TARGETNAME "${TESTNAME}") # replace slashes
+
+  c7a_build(${TARGETNAME} c7a_tests.cpp ${ARGN})
+  test_only(${TARGETNAME})
+
+endmacro(build_test_group)
 
 ### list of tests in subdirectories
 
 #build_test(api/simple_api_test)
 build_test(api/operations_test)
 build_test(api/wordcount_test)
-file(COPY "inputs/headwords" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 build_test(api/sum_node_test)
 build_test(data/manager_test)
 build_test(data/buffer_chain_test)
@@ -57,14 +80,18 @@ build_only(data/manager_channels_test) #TODO(tb, ej, ts): where do the invalid f
 build_test(data/block_iterator_test)
 #build_test(data/dia_allocate_test)
 build_test(data/serializer_test)
-build_test(common/delegate_test)
 build_plain(common/cmdline_parser_example)
-build_test(common/stats_counter_test)
-build_test(common/cmdline_parser_test)
-build_test(common/future_test)
-build_test(common/future_queue_test)
-build_test(common/thread_pool_test)
-build_test(common/stats_timer_test)
+build_test_group(common/tests
+  common/cmdline_parser_test.cpp
+  common/concurrent_bounded_queue_test.cpp
+  common/concurrent_queue_test.cpp
+  common/delegate_test.cpp
+  common/future_queue_test.cpp
+  common/future_test.cpp
+  common/stats_counter_test.cpp
+  common/stats_timer_test.cpp
+  common/thread_pool_test.cpp
+  )
 #build_test(core/stage_builder_test)
 build_test(core/post_hash_table_test)
 build_test(core/pre_hash_table_test)
@@ -75,5 +102,8 @@ build_test(data/binary_builder_test)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_test(net/stream_test)
 
+### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
+
+file(COPY "inputs/" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ################################################################################

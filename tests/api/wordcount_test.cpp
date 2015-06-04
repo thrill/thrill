@@ -12,7 +12,6 @@
 #include <c7a/core/job_manager.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
-#include <tests/c7a_tests.hpp>
 #include <c7a/api/bootstrap.hpp>
 
 #include "gtest/gtest.h"
@@ -46,7 +45,7 @@ TEST(WordCount, WordCountExample) {
 
     auto lines = ReadFromFileSystem(
         ctx,
-        g_workpath + "/inputs/wordcount.in",
+        "wordcount.in",
         [](const std::string& line) {
             return line;
         });
@@ -55,7 +54,7 @@ TEST(WordCount, WordCountExample) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    red_words.WriteToFileSystem(g_workpath + "/outputs/wordcount.out",
+    red_words.WriteToFileSystem("wordcount.out",
                                 [](const WordPair& item) {
                                     std::string str;
                                     str += item.first;
@@ -64,7 +63,6 @@ TEST(WordCount, WordCountExample) {
                                     return str;
                                 });
 }
-
 
 int word_count_generated_nored(c7a::Context& ctx, size_t size) {
     using c7a::Context;
@@ -77,7 +75,7 @@ int word_count_generated_nored(c7a::Context& ctx, size_t size) {
 
     auto lines = GenerateFromFile(
         ctx,
-       "headwords",
+        "headwords",
         [](const std::string& line) {
             return line;
         },
@@ -85,15 +83,15 @@ int word_count_generated_nored(c7a::Context& ctx, size_t size) {
 
     auto word_pairs = lines.Map(word_pair_gen);
 
-     word_pairs.WriteToFileSystem("wordcount" + std::to_string(ctx.rank()) + ".out",
-                                [](const WordPair& item) {
-                                    std::string str;
-                                    str += item.first;
-                                    str += ": ";
-                                    str += std::to_string(item.second);
-                                    //  std::cout << str << std::endl;
-                                    return str;
-                                    });
+    word_pairs.WriteToFileSystem("wordcount" + std::to_string(ctx.rank()) + ".out",
+                                 [](const WordPair& item) {
+                                     std::string str;
+                                     str += item.first;
+                                     str += ": ";
+                                     str += std::to_string(item.second);
+                                     //  std::cout << str << std::endl;
+                                     return str;
+                                 });
     return 0;
 }
 
@@ -109,11 +107,9 @@ TEST(WordCount, GenerateAndWriteWith2Workers) {
 
     unsigned int elements = 100;
 
-
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
     std::vector<std::vector<std::string> > strargs(workers);
-    
 
     for (size_t i = 0; i < workers; i++) {
 
@@ -126,22 +122,20 @@ TEST(WordCount, GenerateAndWriteWith2Workers) {
             arguments[i][j + 2] = const_cast<char*>(strargs[i][j + 2].c_str());
         }
 
-
         std::function<int(c7a::Context&)> start_func = [elements](c7a::Context& ctx) {
-            return word_count_generated_nored(ctx, elements);
-        };
+                                                           return word_count_generated_nored(ctx, elements);
+                                                       };
 
         strargs[i][0] = "wordcount";
         arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
         strargs[i][1] = std::to_string(i);
         arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
-        threads[i] = std::thread([=]() { Execute(workers + 2, arguments[i],start_func); });
+        threads[i] = std::thread([=]() { Execute(workers + 2, arguments[i], start_func); });
     }
 
     for (size_t i = 0; i < workers; i++) {
         threads[i].join();
-        }
+    }
 }
-
 
 /******************************************************************************/

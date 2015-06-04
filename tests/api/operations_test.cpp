@@ -12,7 +12,6 @@
 #include <c7a/core/job_manager.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
-#include <tests/c7a_tests.hpp>
 
 #include <random>
 
@@ -40,7 +39,7 @@ TEST(Operations, GeneratorTest) {
 
     auto input = GenerateFromFile(
         ctx,
-        g_workpath + "/inputs/test1",
+        "test1",
         [](const std::string& line) {
             return std::stoi(line);
         },
@@ -49,7 +48,7 @@ TEST(Operations, GeneratorTest) {
 
     size_t writer_size = 0;
 
-    ints.WriteToFileSystem(g_workpath + "/outputs/test1.out",
+    ints.WriteToFileSystem("test1.out",
                            [&writer_size](const int& item) {
                                writer_size++;
                                return std::to_string(item);

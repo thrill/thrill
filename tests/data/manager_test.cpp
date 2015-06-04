@@ -22,8 +22,8 @@ struct DataManagerFixture : public::testing::Test {
           id(manager.AllocateDIA()) { }
 
     DispatcherThread dispatcher;
-    Manager    manager;
-    DIAId      id;
+    Manager          manager;
+    DIAId            id;
 };
 
 TEST_F(DataManagerFixture, GetIterator_FailsIfNotFound) {
