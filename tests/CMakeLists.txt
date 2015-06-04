@@ -33,12 +33,15 @@ macro(build_test PROGNAME)
 
   if(USE_VALGRIND)
     # prepend valgrind call
-    add_test(${TESTNAME}
-      /usr/bin/valgrind ${C7A_VALGRIND_OPTS} --xml=yes --xml-file=${TESTNAME}.xml
-      ./${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND /usr/bin/valgrind ${C7A_VALGRIND_OPTS}
+      --xml=yes --xml-file=${TESTNAME}.xml
+      ./${TESTNAME} ${ARGN})
   else()
-    add_test(${TESTNAME}
-      ${TESTNAME} "${CMAKE_CURRENT_SOURCE_DIR}" ${ARGN})
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND ${TESTNAME} ${ARGN})
   endif()
 
 endmacro(build_test)
@@ -48,7 +51,6 @@ endmacro(build_test)
 #build_test(api/simple_api_test)
 build_test(api/operations_test)
 build_test(api/wordcount_test)
-file(COPY "inputs/headwords" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 build_test(api/sum_node_test)
 build_test(data/manager_test)
 build_test(data/buffer_chain_test)
@@ -75,5 +77,8 @@ build_test(data/binary_builder_test)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
 build_test(net/stream_test)
 
+### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
+
+file(COPY "inputs/" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ################################################################################
