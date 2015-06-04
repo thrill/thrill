@@ -24,7 +24,7 @@ TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     std::atomic<size_t> total_sum(0);
 
     static const size_t num_threads = 4;
-    static const size_t num_pushes = 1000000;
+    static const size_t num_pushes = 10000;
 
     // have threads push items
 
