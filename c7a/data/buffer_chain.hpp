@@ -36,7 +36,10 @@ struct BufferChainElement {
 struct BufferChain : public EmitterTarget {
     BufferChain() : head(nullptr), tail(nullptr), closed_(false) { }
 
+    //! Appends a BinaryBuffer to this BufferChain.
+    //! This method is thread-safe and runs in O(1)
     void Append(BinaryBuffer b) {
+        std::unique_lock<std::mutex> lock(append_mutex_);
         if (tail == nullptr) {
             head = new BufferChainElement(b);
             tail = head;
@@ -45,6 +48,7 @@ struct BufferChain : public EmitterTarget {
             tail->next = new BufferChainElement(b);
             tail = tail->next;
         }
+        lock.unlock();
         NotifyWaitingThreads();
     }
 
@@ -82,6 +86,7 @@ struct BufferChain : public EmitterTarget {
 
 private:
     std::mutex               mutex_;
+    std::mutex               append_mutex_;
     std::condition_variable  condition_variable_;
     bool                     closed_;
 
