@@ -61,9 +61,9 @@ public:
           bytes_received_(0),
           target_(target),
           stats_(stats),
-          waiting_timer_(stats_->CreateTimer("channel::" + std::to_string(id) + "::wait_timer")),
-          wait_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id) + "::wait_counter")),
-          header_arrival_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id) + "::header_arrival"))
+          waiting_timer_(stats_->CreateTimer("channel::" + std::to_string(id), "wait_timer")),
+          wait_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id), "wait_counter")),
+          header_arrival_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id), "header_arrival"))
     { }
 
     void CloseLoopback() {
@@ -76,9 +76,9 @@ public:
     //! end-of-streams are handled directly
     //! all other block headers are parsed
     void PickupStream(Connection& s, struct StreamBlockHeader head) {
-        std::stringstream label;
-        label << "channel::" << id_ << "::" << s.GetPeerAddress() << "::block::lifetime";
-        Stream* stream = new Stream(s, head, stats_->CreateTimer(label.str()));
+        std::stringstream stats_group;
+        stats_group << "channel::" << id_ << "::" << s.GetPeerAddress();
+        Stream* stream = new Stream(s, head, stats_->CreateTimer(stats_group.str(), "block::lifetime"));
         stream->lifetime_timer->Start();
         header_arrival_counter_->Trigger();
         if (stream->IsFinished()) {
@@ -135,6 +135,7 @@ private:
             *waiting_timer_ += stream->wait_timer; //accumulate
             bytes_received_ += stream->bytes_read;
             stream->ResetHead();
+            wait_counter_->Trigger();
             release_(stream->socket);
             delete stream;
         }
@@ -144,7 +145,7 @@ private:
         finished_streams_++;
         if (finished_streams_ == expected_streams_) {
             sLOG << "channel" << id_ << " is closed";
-            stats_->AddReport("channel::" + std::to_string(id_) + "::bytes_read", std::to_string(bytes_received_));
+            stats_->AddReport("channel::bytes_read", std::to_string(id_), std::to_string(bytes_received_));
             target_->Close();
         }
         else {

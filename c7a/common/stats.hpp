@@ -11,7 +11,9 @@
 #ifndef C7A_COMMON_STATS_HEADER
 #define C7A_COMMON_STATS_HEADER
 
-#include <list>
+#include <set>
+#include <map>
+#include <sstream>
 
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/timed_counter.hpp>
@@ -43,32 +45,50 @@ public:
     Stats(Stats&&) = delete;
     Stats& operator = (const Stats&) = delete;
 
-    TimedCounterPtr CreateTimedCounter(std::string label) {
-        timed_counters_.emplace_back(std::make_pair(label, std::make_shared<TimedCounter>()));
-        return std::get<1>(timed_counters_.back());
+    TimedCounterPtr CreateTimedCounter(const std::string& group, const std::string& label) {
+        auto result = timed_counters_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<TimedCounter>())));
+        return result->second.second;
     }
 
-    TimerPtr CreateTimer(std::string label, bool auto_start = false) {
-        timers_.emplace_back(std::make_pair(label, std::make_shared<StatsTimer<true>>(auto_start)));
-        return std::get<1>(timers_.back());
+    TimerPtr CreateTimer(const std::string& group, const std::string& label, bool auto_start = false) {
+        auto result = timers_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<StatsTimer<true>>(auto_start))));
+        return result->second.second;
     }
 
-    void AddReport(std::string label, std::string content) {
-        reports_.emplace_back(std::make_pair(label, content));
+    void AddReport(const std::string& group, const std::string& label, const std::string& content) {
+        reports_.insert(std::make_pair(group, std::make_pair(label, content)));
     }
 
     ~Stats() {
         if (dump_to_log_) {
-            for (auto& ntc : timed_counters_) {
-                std::cout << PrintTimedCounter(std::get<1>(ntc), std::get<0>(ntc)) << std::endl;
-            }
-            for (auto& timer : timers_) {
-                std::cout << PrintStatsTimer(std::get<1>(timer), std::get<0>(timer)) << std::endl;
-            }
-            for (auto& report : reports_) {
-                std::cout << std::get<0>(report) << ":" << std::get<1>(report) << std::endl;
-            }
+            std::set<std::string> group_names;
+            for (const auto& it : timed_counters_)
+                group_names.insert(it.first);
+            for (const auto& it : timers_)
+                group_names.insert(it.first);
+            for (const auto& it : reports_)
+                group_names.insert(it.first);
+            for(const auto& g : group_names)
+                std::cout << PrintGroup(g) << std::endl;
         }
+    }
+
+    std::string PrintGroup(const std::string& group_name) {
+        std::stringstream ss;
+        ss << "[" << group_name << "]" << std::endl;
+
+        auto group_timed_counters = timed_counters_.equal_range(group_name);
+        for(auto group_it = group_timed_counters.first; group_it != group_timed_counters.second; group_it++)
+            ss << "\t" << PrintTimedCounter(group_it->second.second, group_it->second.first) << std::endl;
+
+        auto group_timers = timers_.equal_range(group_name);
+        for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++)
+            ss << "\t" << PrintStatsTimer(group_it->second.second, group_it->second.first) << std::endl;
+
+        auto group_reports = reports_.equal_range(group_name);
+        for(auto group_it = group_reports.first; group_it != group_reports.second; group_it++)
+            ss << "\t" << group_it->second.first << ": " << group_it->second.second << std::endl;
+        return ss.str();
     }
 
     //! Returns the string-representation of a \ref TimedCounter in one line.
@@ -96,9 +116,9 @@ public:
 
 private:
     static const bool dump_to_log_ = true;
-    std::list<std::tuple<std::string, TimedCounterPtr> > timed_counters_;
-    std::list<std::tuple<std::string, TimerPtr > > timers_;
-    std::list<std::tuple<std::string, std::string> > reports_;
+    std::multimap<std::string, std::pair<std::string, TimedCounterPtr> > timed_counters_;
+    std::multimap<std::string, std::pair<std::string, TimerPtr> > timers_;
+    std::multimap<std::string, std::pair<std::string, std::string> > reports_;
     const TimeStamp program_start_;
 
     //! relative duration in microseconds to creation of this instance.
