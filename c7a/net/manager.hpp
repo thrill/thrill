@@ -499,6 +499,8 @@ public:
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
 
+            const SocketAddress lsa = addressList[my_rank_];
+
             if (listen_socket.bind(lsa) != 0)
                 throw Exception("Could not bind listen socket to "
                                 + lsa.ToStringHostPort(), errno);
