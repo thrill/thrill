@@ -52,7 +52,7 @@ public:
     }
 
     TimerPtr CreateTimer(const std::string& group, const std::string& label, bool auto_start = false) {
-        auto result = timers_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<StatsTimer<true>>(auto_start))));
+        auto result = timers_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<StatsTimer<true> >(auto_start))));
         return result->second.second;
     }
 
@@ -69,7 +69,7 @@ public:
                 group_names.insert(it.first);
             for (const auto& it : reports_)
                 group_names.insert(it.first);
-            for(const auto& g : group_names)
+            for (const auto& g : group_names)
                 std::cout << PrintGroup(g) << std::endl;
         }
     }
@@ -79,18 +79,18 @@ public:
         ss << "[" << group_name << "]" << std::endl;
 
         auto group_timed_counters = timed_counters_.equal_range(group_name);
-        for(auto group_it = group_timed_counters.first; group_it != group_timed_counters.second; group_it++)
+        for (auto group_it = group_timed_counters.first; group_it != group_timed_counters.second; group_it++)
             ss << "\t" << PrintTimedCounter(group_it->second.second, group_it->second.first) << std::endl;
 
         auto group_timers = timers_.equal_range(group_name);
-        for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++)
+        for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++)
             ss << "\t" << PrintStatsTimer(group_it->second.second, group_it->second.first) << std::endl;
         auto stats = PrintStatsTimerAverage(group_name);
         if (!stats.empty())
-            ss<< "\t" << stats << std::endl;
+            ss << "\t" << stats << std::endl;
 
         auto group_reports = reports_.equal_range(group_name);
-        for(auto group_it = group_reports.first; group_it != group_reports.second; group_it++)
+        for (auto group_it = group_reports.first; group_it != group_reports.second; group_it++)
             ss << "\t" << group_it->second.first << ": " << group_it->second.second << std::endl;
         return ss.str();
     }
@@ -99,7 +99,7 @@ public:
     //! format is 'TimedCounter(NAME): 3 [123, 456, 789, ]' or
     //! 'TimedCounter(NAME): 0'.
     //! Default name is 'unnamed'.
-    std::string PrintTimedCounter(const TimedCounterPtr & tc, std::string name = "unnamed") {
+    std::string PrintTimedCounter(const TimedCounterPtr& tc, std::string name = "unnamed") {
         std::stringstream ss;
         ss << "TimedCounter(" << name << "): " << tc->Count();
         if (tc->Count() > 0) {
@@ -125,7 +125,7 @@ public:
         std::chrono::microseconds::rep sum_deviation = 0;
         size_t count = 0;
         auto group_timers = timers_.equal_range(group_name);
-        for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
+        for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
             sum += group_it->second.second->Microseconds();
             count++;
         }
@@ -133,7 +133,7 @@ public:
             return "";
         }
         mean = sum / count;
-        for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
+        for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
             auto val = group_it->second.second->Microseconds();
             sum_deviation += (val - mean) * (val - mean);
         }
