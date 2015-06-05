@@ -26,16 +26,22 @@ def generate_graph(path, table):
         plot(sizes, times, color="blue", label="3 Workers")
     if(table == 4):
         plot(sizes, times, color="black", label="4 Workers")
+    if(table == 8):
+        plot(sizes, times, color="orange", label="8 Workers (2*4)")
+    if(table == 16):
+        plot(sizes, times, color="brown", label="16 Workers (4*4)")
 
-plottitle = "WordCount on 1-4 Workers"
+plottitle = "WordCount on 1-16 Workers"
 for i in range(1,5):
     generate_graph(str(i) + "_workers", i)
+generate_graph("8_workers", 8)
+generate_graph("16_workers", 16)
 title(plottitle)
 grid(True)
 minorticks_on()
 
 legend(loc="upper right")
 xlabel("2^x elements")
-ylabel("micros per element")
+ylabel("ns per element")
 print "generating plot"
 savefig("wordcount.pdf")
