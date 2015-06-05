@@ -27,7 +27,7 @@ TEST(TimedCounter, TriggerCreatesOccurence) {
     TimedCounter candidate;
 
     candidate.Trigger();
-    ASSERT_EQ(1, candidate.Occurences().size());
+    ASSERT_EQ(1u, candidate.Occurences().size());
 }
 
 TEST(TimedCounter, OccurencesAreOrderedAscending) {
