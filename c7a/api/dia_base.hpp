@@ -112,7 +112,7 @@ public:
         return data_id_;
     }
 
-    kState state() {
+    kState state() const {
         return state_;
     }
 
@@ -149,7 +149,6 @@ protected:
 };
 
 //! \}
-
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER
