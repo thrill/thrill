@@ -430,51 +430,6 @@ TEST_F(PreTable, ResizeTwoPartitions) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(PreTable, InsertSomeStringItemsAndTestReduce) {
-    auto key_ex = [](StringPair in) { return in.first; };
-
-    auto red_fn = [](StringPair in1, StringPair in2) {
-                      return std::make_pair(in1.first, in1.second + in2.second);
-                  };
-
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), BlockEmitter<StringPair> >
-    table(1, 10, 2, 10, 10, key_ex, red_fn, one_pair_emitter);
-
-    table.Insert(std::make_pair("hallo", 1));
-    table.Insert(std::make_pair("hello", 22));
-    table.Insert(std::make_pair("bonjour", 3));
-
-    ASSERT_EQ(3u, table.Size());
-
-    table.Insert(std::make_pair("hallo", 2));
-    table.Insert(std::make_pair("hello", 33));
-    table.Insert(std::make_pair("bonjour", 44));
-
-    ASSERT_EQ(3u, table.Size());
-
-    table.Flush();
-
-    auto it1 = manager.GetIterator<StringPair>(id1);
-    int c1 = 0;
-    while (it1.HasNext()) {
-        StringPair p = it1.Next();
-        if (p.first == "hallo") {
-            ASSERT_EQ(3, p.second);
-            c1++;
-        }
-        else if (p.first == "hello") {
-            ASSERT_EQ(55, p.second);
-            c1++;
-        }
-        else if (p.first == "bonjour") {
-            ASSERT_EQ(47, p.second);
-            c1++;
-        }
-    }
-    ASSERT_EQ(3, c1);
-}
-
-// Insert several items with same key and test application of local reduce
 TEST_F(PreTable, InsertManyIntItemsAndTestReduce1) {
     auto key_ex = [](const MyStruct& in) {
         return in.key % 500;
@@ -539,7 +494,9 @@ TEST_F(PreTable, InsertManyIntItemsAndTestReduce2) {
                   key_ex, red_fn, { emitters });
 
     // insert lots of items
+    int sum = 0;
     for (size_t i = 0; i != nitems_per_key; ++i) {
+        sum += i;
         for (size_t j = 0; j != nitems; ++j) {
             table.Insert(MyStruct(j, i));
         }
@@ -549,10 +506,68 @@ TEST_F(PreTable, InsertManyIntItemsAndTestReduce2) {
 
     table.Flush();
 
+    ASSERT_EQ(0, table.Size());
+
     auto it1 = manager.GetIterator<MyStruct>(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
-        ASSERT_EQ(45, n.count);
+        ASSERT_EQ(sum, n.count);
+    }
+}
+
+void randomStr(std::string& s, const int len) {
+    s.resize(len);
+
+    static const char alphanum[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for (int i = 0; i < len; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    s[len] = 0;
+}
+
+TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
+    auto key_ex = [](StringPair in) { return in.first; };
+
+    auto red_fn = [](StringPair in1, StringPair in2) {
+        return std::make_pair(in1.first, in1.second + in2.second);
+    };
+
+    auto id1 = manager.AllocateDIA();
+    std::vector<BlockEmitter<StringPair> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
+
+    size_t nitems_per_key = 10;
+    size_t nitems = 1 * 128 * 1024;
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+            BlockEmitter<StringPair>, 16*1024>
+            table(1, 2, 2, 128, nitems,
+                  key_ex, red_fn, { emitters });
+
+    // insert lots of items
+    int sum = 0;
+    for (size_t j = 0; j != nitems; ++j) {
+        sum = 0;
+        std::string str;
+        randomStr(str, 128);
+        for (size_t i = 0; i != nitems_per_key; ++i) {
+            sum += i;
+            table.Insert(std::make_pair(str, i));
+        }
+    }
+
+    ASSERT_EQ(nitems, table.Size());
+
+    table.Flush();
+
+    ASSERT_EQ(0, table.Size());
+
+    auto it1 = manager.GetIterator<StringPair>(id1);
+    while (it1.HasNext()) {
+        auto n = it1.Next();
+        ASSERT_EQ(sum, n.second);
     }
 }
 
