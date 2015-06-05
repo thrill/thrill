@@ -29,14 +29,12 @@ TEST_F(FutureTest, GetReturnsCorrectValue) {
     Future<int> f;
 
     pool.Enqueue([&f]() {
-            int result = f.Wait();
+                     int result = f.Wait();
                      ASSERT_EQ(42, result);
-                     std::cout << "done1\n";
                  });
 
     pool.Enqueue([&f]() {
                      f.Callback(42);
-                     std::cout << "done2\n";
                  });
 
     pool.LoopUntilEmpty();
