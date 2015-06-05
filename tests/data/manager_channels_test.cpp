@@ -99,7 +99,7 @@ struct DataManagerChannelFixture : public::testing::Test {
 
     static const bool debug = true;
     bool              run;
-    DispatcherThread        dispatcher;
+    DispatcherThread  dispatcher;
     std::thread       master;
     WorkerMock        worker0;
     WorkerMock        worker1;

@@ -58,23 +58,23 @@ TEST(SumNode, LocalhostOneThread) {
 int sum_node_generated(c7a::Context& ctx) {
 
     auto map_fn = [](int in) {
-        std::cout << 2 * in << std::endl;
-        return 2 * in;
-    };
+                      std::cout << 2 * in << std::endl;
+                      return 2 * in;
+                  };
 
     auto input = ReadFromFileSystem(
-            ctx,
-            "test1",
-            [](const std::string& line) {
-                std::cout << "out: " << line << std::endl;
-                return std::stoi(line);
-            });
+        ctx,
+        "test1",
+        [](const std::string& line) {
+            std::cout << "out: " << line << std::endl;
+            return std::stoi(line);
+        });
 
     auto ints = input.Map(map_fn);
 
     auto sum_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     auto result = ints.Sum(sum_fn);
     //std::cout << result << std::endl;
@@ -106,8 +106,8 @@ TEST(SumNode, DISABLED_LocalhostTwoThreads) {
         }
 
         std::function<int(c7a::Context&)> start_func = [](c7a::Context& ctx) {
-            return sum_node_generated(ctx);
-        };
+                                                           return sum_node_generated(ctx);
+                                                       };
 
         strargs[i][0] = "sum node";
         arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
