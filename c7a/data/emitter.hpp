@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block_emitter.hpp
+ * c7a/data/emitter.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BLOCK_EMITTER_HEADER
-#define C7A_DATA_BLOCK_EMITTER_HEADER
+#ifndef C7A_DATA_EMITTER_HEADER
+#define C7A_DATA_EMITTER_HEADER
 
 #include "binary_buffer_builder.hpp"
 #include "buffer_chain.hpp"
@@ -18,7 +18,7 @@
 namespace c7a {
 namespace data {
 
-//! BlockEmitter lets you push elements to a downstream operation or network channel.
+//! Emitter lets you push elements to a downstream operation or network channel.
 //! Template parameter specifies the type of element that is accepted.
 //! The emitter will serialize the data and put it into the emitter target.
 //! Emitters can be flushed to enforce data movement to the sink.
@@ -27,17 +27,17 @@ namespace data {
 //
 // TODO(ts): make special version for fix-length elements
 template <class T>
-class BlockEmitter
+class Emitter
 {
 public:
-    BlockEmitter(std::shared_ptr<EmitterTarget> target)
+    Emitter(std::shared_ptr<EmitterTarget> target)
         : builder_(BinaryBuffer::DEFAULT_SIZE),
           target_(target) { }
 
-    BlockEmitter(const BlockEmitter&) = delete;
-    BlockEmitter(BlockEmitter&&) = default;
+    Emitter(const Emitter&) = delete;
+    Emitter(Emitter&&) = default;
 
-    BlockEmitter& operator = (BlockEmitter&& other) {
+    Emitter& operator = (Emitter&& other) {
         builder_ = other.builder_;
         target_ = other.target_;
         return *this;
@@ -75,6 +75,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_EMITTER_HEADER
+#endif // !C7A_DATA_EMITTER_HEADER
 
 /******************************************************************************/

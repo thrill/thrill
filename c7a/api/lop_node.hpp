@@ -58,7 +58,7 @@ public:
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
-        data::BlockIterator<Input> it = (this->context_).get_data_manager().template GetIterator<Input>(pid);
+        auto it = (this->context_).get_data_manager().template GetIterator<Input>(pid);
 
         std::vector<Input> elements;
         auto save_fn = [&elements](Input input) {
@@ -72,7 +72,7 @@ public:
         }
 
         // Emit new elements
-        data::BlockEmitter<Input> emit = (this->context_).get_data_manager().template GetLocalEmitter<Input>(DIABase::data_id_);
+        auto emit = (this->context_).get_data_manager().template GetLocalEmitter<Input>(DIABase::data_id_);
         for (auto elem : elements) {
             emit(elem);
         }

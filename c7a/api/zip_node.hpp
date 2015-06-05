@@ -148,8 +148,8 @@ private:
     ZipFunction zip_function_;
     //! Emitter
     std::vector<data::DIAId> id_;
-    data::BlockEmitter<zip_arg_0_t> emit1_;
-    data::BlockEmitter<zip_arg_1_t> emit2_;
+    data::Emitter<zip_arg_0_t> emit1_;
+    data::Emitter<zip_arg_1_t> emit2_;
     //! Number of DIAs
     size_t num_dias_;
 
