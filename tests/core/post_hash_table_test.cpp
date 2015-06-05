@@ -24,12 +24,12 @@ struct PostTable : public::testing::Test {
         emitters.emplace_back(manager.GetLocalEmitter<int>(id));
     }
 
-    DispatcherThread                           dispatcher;
-    Manager                                    manager;
-    ChainId                                    id = manager.AllocateDIA();
-    BlockIterator<int>                         iterator;
-    BlockEmitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
-    std::vector<BlockEmitter<int> >            emitters;
+    DispatcherThread                      dispatcher;
+    Manager                               manager;
+    ChainId                               id = manager.AllocateDIA();
+    Iterator<int>                         iterator;
+    Emitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
+    std::vector<Emitter<int> >            emitters;
 
     size_t CountIteratorElements() {
         size_t result = 0;
@@ -50,7 +50,7 @@ TEST_F(PostTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
     table(key_ex, red_fn, emitters);
 
     table.Insert(1);
@@ -77,7 +77,7 @@ TEST_F(PostTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
     table(key_ex, red_fn, emitters);
 
     ASSERT_EQ(0u, table.Size());
@@ -91,7 +91,7 @@ TEST_F(PostTable, FlusHIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
     table(key_ex, red_fn, emitters);
 
     table.Insert(1);
@@ -120,12 +120,12 @@ TEST_F(PostTable, DISABLED_MultipleEmitters) { //TODO(ts) enable when hash table
                       return in1 + in2;
                   };
 
-    std::vector<BlockEmitter<int> > emitters;
+    std::vector<Emitter<int> > emitters;
     emitters.emplace_back(manager.GetLocalEmitter<int>(id));
     emitters.emplace_back(manager.GetLocalEmitter<int>(id));
     emitters.emplace_back(manager.GetLocalEmitter<int>(id));
 
-    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), BlockEmitter<int> >
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
     table(key_ex, red_fn, emitters);
 
     table.Insert(1);
@@ -156,9 +156,9 @@ TEST_F(PostTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    std::vector<BlockEmitter<StringPair> > emitters;
+    std::vector<Emitter<StringPair> > emitters;
     emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id));
-    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), BlockEmitter<StringPair> >
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
     table(key_ex, red_fn, emitters);
 
     table.Insert(std::make_pair("hallo", 1));
