@@ -78,7 +78,7 @@ public:
         return getcwd(cCurrentPath, sizeof(cCurrentPath));
     }
 
-    common::Stats& get_stats() {
+    common::Stats & get_stats() {
         return stats_;
     }
 
