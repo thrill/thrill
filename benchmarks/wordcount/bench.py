@@ -6,9 +6,9 @@ import subprocess
 import random
 import re
 
-amounts=[14,16,18,20,22,24,26,28]
+amounts=[26,28]
 
-workers = [1,2,3,4]
+workers = [4,3,2,1]
 
 def median(x):
     if len(x)%2 != 0:
