@@ -164,7 +164,7 @@ private:
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(NetConnection& /*s*/, Buffer&& buffer, Stream* stream) {
+    inline void ConsumeData(Connection& /*s*/, Buffer&& buffer, Stream* stream) {
         stream->wait_timer.Stop();
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         stream->bytes_read += buffer.size();
