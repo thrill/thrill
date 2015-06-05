@@ -105,7 +105,7 @@ public:
     }
 
 private:
-    static const bool debug = true;
+    static const bool debug = false;
     DispatcherThread& dispatcher_;
     ReleaseSocketCallback release_;
 

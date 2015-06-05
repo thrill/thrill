@@ -39,7 +39,7 @@ namespace lowlevel {
  */
 class SocketAddress
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 protected:
     //! Enclosed IPv4, IPv6 or other socket address structure. Used as a struct

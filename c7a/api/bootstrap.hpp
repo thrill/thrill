@@ -42,8 +42,8 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 
     for (auto address : addr) {
         if (address.find(":") == std::string::npos) {
-            //     std::cerr << "Invalid address. No Portnumber detecable";
-            // return std::make_tuple(-1, my_rank, endpoints);
+	    std::cerr << "Invalid address. No Portnumber detecable";
+	    return std::make_tuple(-1, my_rank, endpoints);
         }
     }
 
@@ -70,6 +70,10 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 //! \returns result of word_count if bootstrapping was successfull, -1 otherwise.
 static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint) {
 
+    //!True if program time should be taken and printed
+
+    static const bool debug = false;
+
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result;
@@ -85,18 +89,18 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
         return -1;
     }
 
-    std::cout << "executing " << argv[0] << " with rank " << my_rank << " and endpoints ";
+    LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
     for (const auto& ep : endpoints)
-        std::cout << ep << " ";
-    std::cout << std::endl;
+       LOG << ep << " ";
 
     Context ctx;
-    std::cout << "connecting to peers" << std::endl;
+    LOG << "connecting to peers";
     ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
     std::cout << "starting job" << std::endl;
     auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
     auto job_result = job_startpoint(ctx);
     overall_timer->Stop();
+    std::cout << "DONE! " << ctx.rank() << std::endl;
     return job_result;
 }
 
