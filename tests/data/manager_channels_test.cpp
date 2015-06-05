@@ -74,7 +74,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     }
 
     template <class T>
-    std::vector<T> ReadIterator(BlockIterator<T>& it) {
+    std::vector<T> ReadIterator(Iterator<T>& it) {
         std::vector<T> result;
         while (it.HasNext())
             result.push_back(it.Next());

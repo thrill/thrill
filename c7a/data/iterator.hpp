@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block_iterator.hpp
+ * c7a/data/iterator.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BLOCK_ITERATOR_HEADER
-#define C7A_DATA_BLOCK_ITERATOR_HEADER
+#ifndef C7A_DATA_ITERATOR_HEADER
+#define C7A_DATA_ITERATOR_HEADER
 
 #include <vector>
 #include "serializer.hpp"
@@ -19,13 +19,13 @@
 namespace c7a {
 namespace data {
 
-//! BlockIterator gives you access to data of a block
+//! Iterator gives you access to data of a block
 template <class T>
-class BlockIterator
+class Iterator
 {
 public:
     //! Creates an instance of iterator that deserializes blobs to T
-    explicit BlockIterator(BufferChain& buffers)
+    explicit Iterator(BufferChain& buffers)
         : buffer_chain_(buffers),
           current_(buffers.head),
           current_reader_(nullptr, 0),
@@ -119,6 +119,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_ITERATOR_HEADER
+#endif // !C7A_DATA_ITERATOR_HEADER
 
 /******************************************************************************/

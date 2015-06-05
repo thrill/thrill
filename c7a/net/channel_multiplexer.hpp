@@ -15,7 +15,7 @@
 #include <c7a/net/group.hpp>
 #include <c7a/net/channel.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/block_emitter.hpp>
+#include <c7a/data/emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
 
@@ -95,10 +95,10 @@ public:
     //! Behaviour on multiple calls to OpenChannel is undefined.
     //! \param id the channel to use
     template <class T>
-    std::vector<data::BlockEmitter<T> > OpenChannel(ChannelId id) {
+    std::vector<data::Emitter<T> > OpenChannel(ChannelId id) {
         assert(group_ != nullptr);
         assert(id.type == data::NETWORK);
-        std::vector<data::BlockEmitter<T> > result;
+        std::vector<data::Emitter<T> > result;
 
         //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
@@ -107,7 +107,7 @@ public:
             if (worker_id == group_->MyRank()) {
                 auto closer = std::bind(&ChannelMultiplexer::CloseLoopbackStream, this, id);
                 auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id), closer);
-                result.emplace_back(data::BlockEmitter<T>(target));
+                result.emplace_back(data::Emitter<T>(target));
             }
             else {
                 auto target = std::make_shared<data::SocketTarget>(
@@ -115,7 +115,7 @@ public:
                     &(group_->connection(worker_id)),
                     id.identifier);
 
-                result.emplace_back(data::BlockEmitter<T>(target));
+                result.emplace_back(data::Emitter<T>(target));
             }
         }
         return result;

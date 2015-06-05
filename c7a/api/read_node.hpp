@@ -56,7 +56,7 @@ public:
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void execute() {
-        // BlockEmitter<Output> GetLocalEmitter(DIAId id) {
+        // Emitter<Output> GetLocalEmitter(DIAId id) {
         LOG1 << "READING data with id " << this->data_id_;
 
         std::ifstream file(path_in_);
@@ -64,7 +64,7 @@ public:
 
         data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file, (this->context_).rank(), (this->context_).number_worker());
 
-        data::BlockEmitter<Output> emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+        auto emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {

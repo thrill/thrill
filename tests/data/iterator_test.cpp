@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/block_iterator_test.cpp
+ * tests/data/iterator_test.cpp
  *
  * Part of Project c7a.
  *
@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/block_iterator.hpp>
+#include <c7a/data/iterator.hpp>
 
 #include <vector>
 #include <string>
@@ -17,8 +17,8 @@
 using namespace c7a::data;
 using namespace c7a::net;
 
-struct TestBlockIterator : public::testing::Test {
-    TestBlockIterator() :
+struct TestIterator : public::testing::Test {
+    TestIterator() :
         threeStrings({ "foo", "bar", "blub" }),
         oneString({ "." }),
         emptyBuffer(nullptr, 0),
@@ -43,67 +43,67 @@ struct TestBlockIterator : public::testing::Test {
     BufferChain              chain;
 };
 
-TEST_F(TestBlockIterator, EmptyHasNotNext) {
-    BlockIterator<std::string> it(chain);
+TEST_F(TestIterator, EmptyHasNotNext) {
+    Iterator<std::string> it(chain);
     ASSERT_FALSE(it.HasNext());
 }
 
-TEST_F(TestBlockIterator, EmptyIsNotClosed) {
-    BlockIterator<std::string> it(chain);
+TEST_F(TestIterator, EmptyIsNotClosed) {
+    Iterator<std::string> it(chain);
     ASSERT_FALSE(it.IsClosed());
 }
 
-TEST_F(TestBlockIterator, ClosedReturnsIsClosed) {
+TEST_F(TestIterator, ClosedReturnsIsClosed) {
     chain.Append(oneStringBuffer);
     chain.Close();
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     ASSERT_TRUE(it.IsClosed());
 }
 
-TEST_F(TestBlockIterator, IterateOverStringsInSingleBuffer) {
+TEST_F(TestIterator, IterateOverStringsInSingleBuffer) {
     chain.Append(oneStringBuffer);
     chain.Append(threeStringsBuffer);
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     ASSERT_EQ(".", it.Next());
     ASSERT_EQ("foo", it.Next());
 }
 
-TEST_F(TestBlockIterator, IterateOverStringsInTwoBuffers) {
+TEST_F(TestIterator, IterateOverStringsInTwoBuffers) {
     chain.Append(threeStringsBuffer);
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     ASSERT_EQ("foo", it.Next());
     ASSERT_EQ("bar", it.Next());
 }
 
-TEST_F(TestBlockIterator, HasNextReturnsFalseAtTheEnd) {
+TEST_F(TestIterator, HasNextReturnsFalseAtTheEnd) {
     chain.Append(threeStringsBuffer);
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     (void)it.Next();
     (void)it.Next();
     (void)it.Next();
     ASSERT_FALSE(it.HasNext());
 }
 
-TEST_F(TestBlockIterator, IsClosedReturnsFalseAtTheEnd) {
+TEST_F(TestIterator, IsClosedReturnsFalseAtTheEnd) {
     chain.Append(threeStringsBuffer);
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     (void)it.Next();
     (void)it.Next();
     (void)it.Next();
     ASSERT_FALSE(it.IsClosed());
 }
 
-TEST_F(TestBlockIterator, HasNextReturnsTrueInTheMiddle) {
+TEST_F(TestIterator, HasNextReturnsTrueInTheMiddle) {
     chain.Append(threeStringsBuffer);
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     (void)it.Next();
     ASSERT_TRUE(it.HasNext());
 }
 
-TEST_F(TestBlockIterator, HasNextReturnsTrueBetweenBuffers) {
+TEST_F(TestIterator, HasNextReturnsTrueBetweenBuffers) {
     chain.Append(threeStringsBuffer);
     chain.Append(oneStringBuffer);
-    BlockIterator<std::string> it(chain);
+    Iterator<std::string> it(chain);
     (void)it.Next();
     (void)it.Next();
     (void)it.Next();
