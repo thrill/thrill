@@ -55,7 +55,7 @@ TEST(Stage, GetStagesFromBuilder) {
 
     //SIMULATE
 
-    RunScope(red_duplicates2.get_node());
+    StageBuilder().RunScope(red_duplicates2.get_node());
 }
 
 /******************************************************************************/

@@ -39,48 +39,42 @@ private:
     DIABase* node_;
 };
 
-// TODO(ch): why is this a free method?
-// TODO(ch): add lots of consts, you are not changing the graph.
-
-// Returns a list of stages of graph scope
-inline void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
-    LOG1 << "FINDING stages:";
-    std::set<DIABase*> stages_found;
-    // GOAL: Returns a vector with stages
-    // TEMP SOLUTION: Every node is a stage
-
-    // Do a reverse DFS and find all stages
-    std::stack<DIABase*> dia_stack;
-    dia_stack.push(action);
-    stages_found.insert(action);
-    while (!dia_stack.empty()) {
-        DIABase* curr = dia_stack.top();
-        dia_stack.pop();
-        stages_result.emplace_back(Stage(curr));
-
-        std::vector<DIABase*> parents = curr->get_parents();
-        for (DIABase* p : parents) {
-            // if p is not a nullpointer and p is not cached mark it and save stage
-            if (p && (stages_found.find(p) == stages_found.end()) && p->state() != CACHED) {
-                dia_stack.push(p);
-                stages_found.insert(p);
+class StageBuilder
+{
+public:
+    void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
+        LOG1 << "FINDING stages:";
+        std::set<const DIABase*> stages_found;
+        // Do a reverse DFS and find all stages
+        std::stack<DIABase*> dia_stack;
+        dia_stack.push(action);
+        stages_found.insert(action);
+        while (!dia_stack.empty()) {
+            DIABase* curr = dia_stack.top();
+            dia_stack.pop();
+            stages_result.emplace_back(Stage(curr));
+            const std::vector<DIABase*> parents = curr->get_parents();
+            for (DIABase* p : parents) {
+                // if p is not a nullpointer and p is not cached mark it and save stage
+                if (p && (stages_found.find(p) == stages_found.end()) && p->state() != CACHED) {
+                    dia_stack.push(p);
+                    stages_found.insert(p);
+                }
+                else LOG1 << "OMG NULLPTR";
             }
-            else LOG1 << "OMG NULLPTR";
+        }
+        std::reverse(stages_result.begin(), stages_result.end());
+    }
+
+    void RunScope(DIABase* action) {
+        std::vector<Stage> result;
+        FindStages(action, result);
+        for (auto s : result)
+        {
+            s.Run();
         }
     }
-
-    std::reverse(stages_result.begin(), stages_result.end());
-}
-
-inline void RunScope(DIABase* action) {
-    std::vector<Stage> result;
-    FindStages(action, result);
-    for (auto s : result)
-    {
-        s.Run();
-    }
-}
-
+};
 } // namespace core
 } // namespace c7a
 
