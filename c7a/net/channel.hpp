@@ -52,7 +52,7 @@ public:
             ReleaseSocketCallback release_callback,
             size_t id, int expected_streams,
             std::shared_ptr<data::BufferChain> target,
-            common::Stats& stats)
+            std::shared_ptr<common::Stats> stats)
         : dispatcher_(dispatcher),
           release_(release_callback),
           id_(id),
@@ -61,9 +61,9 @@ public:
           bytes_received_(0),
           target_(target),
           stats_(stats),
-          waiting_timer_(stats_.CreateTimer("channel::" + std::to_string(id) + "::wait_timer")),
-          wait_counter_(stats_.CreateTimedCounter("channel::" + std::to_string(id) + "::wait_counter")),
-          header_arrival_counter_(stats_.CreateTimedCounter("channel::" + std::to_string(id) + "::header_arrival"))
+          waiting_timer_(stats_->CreateTimer("channel::" + std::to_string(id) + "::wait_timer")),
+          wait_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id) + "::wait_counter")),
+          header_arrival_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id) + "::header_arrival"))
     { }
 
     void CloseLoopback() {
@@ -77,14 +77,14 @@ public:
     //! all other block headers are parsed
     void PickupStream(Connection& s, struct StreamBlockHeader head) {
         std::stringstream label;
-        label << "channel::" << id_ << "::" << s.GetPeerAddress() << "::lifetime";
-        Stream* stream = new Stream(s, head, stats_.CreateTimer(label.str()));
-        stream->lifetime_timer.Start();
-        header_arrival_counter_.Count();
+        label << "channel::" << id_ << "::" << s.GetPeerAddress() << "::block::lifetime";
+        Stream* stream = new Stream(s, head, stats_->CreateTimer(label.str()));
+        stream->lifetime_timer->Start();
+        header_arrival_counter_->Trigger();
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
-            stream->lifetime_timer.Stop();
-            waiting_timer_ += stream->wait_timer; //accumulate
+            stream->lifetime_timer->Stop();
+            *waiting_timer_ += stream->wait_timer; //accumulate
             bytes_received_ += stream->bytes_read;
             CloseStream();
         }
@@ -117,10 +117,10 @@ private:
 
     std::shared_ptr<data::BufferChain> target_;
 
-    common::Stats& stats_;
-    common::StatsTimer<true>& waiting_timer_;
-    common::TimedCounter& wait_counter_;
-    common::TimedCounter& header_arrival_counter_;
+    std::shared_ptr<common::Stats> stats_;
+    common::TimerPtr waiting_timer_;
+    common::TimedCounterPtr wait_counter_;
+    common::TimedCounterPtr header_arrival_counter_;
 
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
@@ -131,8 +131,8 @@ private:
         else {
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             active_streams_--;
-            stream->lifetime_timer.Stop();
-            waiting_timer_ += stream->wait_timer; //accumulate
+            stream->lifetime_timer->Stop();
+            *waiting_timer_ += stream->wait_timer; //accumulate
             bytes_received_ += stream->bytes_read;
             stream->ResetHead();
             release_(stream->socket);
@@ -144,7 +144,7 @@ private:
         finished_streams_++;
         if (finished_streams_ == expected_streams_) {
             sLOG << "channel" << id_ << " is closed";
-            stats_.AddReport("channel::" + std::to_string(id_) + "::bytes_read", std::to_string(bytes_received_));
+            stats_->AddReport("channel::" + std::to_string(id_) + "::bytes_read", std::to_string(bytes_received_));
             target_->Close();
         }
         else {
@@ -160,7 +160,7 @@ private:
         sLOG << "expect data with" << exp_size
              << "bytes on" << stream->socket << "in channel" << id_;
         stream->wait_timer.Start();
-        wait_counter_.Count();
+        wait_counter_->Trigger();
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 

@@ -85,10 +85,10 @@ public:
     size_t elements_read = 0;
     size_t bytes_read = 0;
     c7a::common::StatsTimer<true> wait_timer;
-    c7a::common::StatsTimer<true>& lifetime_timer;
+    c7a::common::TimerPtr lifetime_timer;
 
     //!attaches a stream to a socket and initializes the current header
-    Stream(Connection& socket, struct StreamBlockHeader& header, c7a::common::StatsTimer<true> lifetime_timer = c7a::common::StatsTimer<true>())
+    Stream(Connection& socket, struct StreamBlockHeader& header, c7a::common::TimerPtr lifetime_timer = std::make_shared<c7a::common::StatsTimer<true>>())
         : header(header),
           socket(socket),
           lifetime_timer(lifetime_timer) { }
