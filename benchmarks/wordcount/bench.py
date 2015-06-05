@@ -4,22 +4,27 @@ import os
 import sys
 import subprocess
 import random
-import numpy
 import re
 
-amounts=[10,12,14,16,18,20]
+amounts=[14,16,18,20,22,24,26,28]
 
-workers = [3,4]
+workers = [1,2,3,4]
 
+def median(x):
+    if len(x)%2 != 0:
+        return sorted(x)[len(x)/2]
+    else:
+        midavg = (sorted(x)[len(x)/2] + sorted(x)[len(x)/2-1])/2.0
+        return midavg
 
 # Generate pow(2,n) random integer elements and perform wordcount on them.
 
-for worker in workers:
-    print "Testing with " + str(worker) + " workers"
-    with open(str(worker) + "_workers", "w+") as file1:
-        for amount in amounts:
+for amount in amounts:
+    for worker in workers:
+        print "Testing with " + str(worker) + " workers"
+        with open(str(worker) + "_workers", "a+") as file1:
             results = []
-            for _ in range(5):
+            for _ in range(9):
                 process = subprocess.Popen(["../../build/examples/wc", "-n", str(worker), "-s", str(pow(2, amount))], stdout=subprocess.PIPE)
                 process.wait()
                 output = process.communicate()[0]
@@ -32,8 +37,10 @@ for worker in workers:
                     times.append(int(afterTimer[:spacePos]))
                 results.append(max(times))
                 print max(times)
-            median = numpy.median(results)
-            print str(amount) + " " + str(median * 1000 / pow(2,amount))
-            file1.write(str(amount) + " " + str(median * 1000 / pow(2,amount)) + "\n")
-        file1.close()
+            med = median(results)
+            print str(amount) + " " + str(med * 1000 / pow(2,amount))
+            file1.write(str(amount) + " " + str(med * 1000 / pow(2,amount)) + "\n")
+            #file1.flush()
+            file1.close()
+
 

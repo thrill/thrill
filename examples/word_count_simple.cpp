@@ -21,10 +21,7 @@ int main(int argc, char* argv[]) {
 
     using c7a::Execute;
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
-    const size_t port_base = distribution(generator);
+    const size_t port_base = 8080;
 
     c7a::common::CmdlineParser clp;
 
