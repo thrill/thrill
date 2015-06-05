@@ -14,6 +14,7 @@
 #include <set>
 #include <map>
 #include <sstream>
+#include <cmath> //sqrt
 
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/timed_counter.hpp>
@@ -84,6 +85,9 @@ public:
         auto group_timers = timers_.equal_range(group_name);
         for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++)
             ss << "\t" << PrintStatsTimer(group_it->second.second, group_it->second.first) << std::endl;
+        auto stats = PrintStatsTimerAverage(group_name);
+        if (!stats.empty())
+            ss<< "\t" << stats << std::endl;
 
         auto group_reports = reports_.equal_range(group_name);
         for(auto group_it = group_reports.first; group_it != group_reports.second; group_it++)
@@ -111,6 +115,30 @@ public:
     std::string PrintStatsTimer(const TimerPtr& timer, std::string name = "unnamed") {
         std::stringstream ss;
         ss << "Timer(" << name << "): " << *timer;
+        return ss.str();
+    }
+
+    std::string PrintStatsTimerAverage(const std::string group_name) {
+        std::stringstream ss;
+        std::chrono::microseconds::rep sum = 0;
+        std::chrono::microseconds::rep mean = 0;
+        std::chrono::microseconds::rep sum_deviation = 0;
+        size_t count = 0;
+        auto group_timers = timers_.equal_range(group_name);
+        for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
+            sum += group_it->second.second->Microseconds();
+            count++;
+        }
+        if (count < 1) {
+            return "";
+        }
+        mean = sum / count;
+        for(auto group_it = group_timers.first; group_it != group_timers.second; group_it++) {
+            auto val = group_it->second.second->Microseconds();
+            sum_deviation += (val - mean) * (val - mean);
+        }
+        auto deviation = sqrt(sum_deviation / count);
+        ss << "total: " << sum << ", count: " << count << ", avg: " << mean << ", std-dev: " << deviation;
         return ss.str();
     }
 
