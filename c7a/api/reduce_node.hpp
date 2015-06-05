@@ -46,7 +46,7 @@ namespace c7a {
 template <typename Input, typename Output, typename Stack, typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<Output>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<Output>;
 
@@ -160,9 +160,7 @@ private:
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {
-            std::cout << "waiting...";
             it.WaitForMore();
-            std::cout << " ... done" << std::endl;
             while (it.HasNext()) {
                 table.Insert(it.Next());
             }
