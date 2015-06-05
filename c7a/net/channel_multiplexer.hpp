@@ -54,7 +54,7 @@ class ChannelMultiplexer
 {
 public:
     ChannelMultiplexer(DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), chains_(data::NETWORK) { }
+        : dispatcher_(dispatcher), stats_(std::make_shared<common::Stats>()) ,chains_(data::NETWORK) { }
 
     void Connect(Group* group) {
         group_ = group;
@@ -134,7 +134,7 @@ private:
 
     DispatcherThread& dispatcher_;
 
-    common::Stats stats_;
+    std::shared_ptr<common::Stats> stats_;
 
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
