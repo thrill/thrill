@@ -138,6 +138,19 @@ set(C7A_VALGRIND_OPTS
 find_package(Threads)
 set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
+# try to find Intel TBB (optional)
+
+find_package(TBB)
+if(NOT TBB_FOUND)
+  message(STATUS "Intel TBB not found. No proble, using slower replacements.")
+  add_definitions(-DHAVE_INTELTBB=0)
+else(NOT TBB_FOUND)
+  include_directories(${TBB_INCLUDE_DIRS})
+  link_directories(${TBB_LIBRARY_DIRS})
+  set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
+  add_definitions(-DHAVE_INTELTBB=1)
+endif()
+
 # example: use Boost libraries:
 
 #find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
@@ -148,7 +161,6 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 ################################################################################
 ### Descend into Subdirectories
 
-### Descend into Subdirectories
 include_directories(${CMAKE_SOURCE_DIR})
 
 # descend into library source
