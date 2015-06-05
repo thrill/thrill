@@ -15,6 +15,7 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/common/stats_timer.hpp>
+#include <c7a/common/cmdline_parser.hpp>
 
 namespace c7a {
 namespace bootstrap {
@@ -23,9 +24,32 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
     //replace with arbitrary compex implementation
     size_t my_rank;
     std::vector<std::string> endpoints;
+    c7a::common::CmdlineParser clp;
+
+    clp.SetVerboseProcess(false);
+
+    unsigned int rank = 1;
+    clp.AddUInt('r', "rank", "R", rank,
+                "Rank of this worker");
+
+    std::vector<std::string> addr;
+    clp.AddParamStringlist("addresses", addr,
+                "List of all worker addresses.");
+
+    if (!clp.Process(argc, argv)) {
+        return std::make_tuple(-1, my_rank, endpoints);;
+    }
+
+    for (auto address : addr) {
+        if (address.find(":") == std::string::npos) {
+            //     std::cerr << "Invalid address. No Portnumber detecable";
+            // return std::make_tuple(-1, my_rank, endpoints);
+        }
+    }
+
     if (argc > 2) {
-        my_rank = atoi(argv[1]);
-        endpoints.assign(argv + 2, argv + argc);
+        my_rank = rank;
+        endpoints.assign(addr.begin(), addr.end());
     }
     else if (argc == 2) {
         std::cerr << "Wrong number of arguments. Must be 0 or > 1";
