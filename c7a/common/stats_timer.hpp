@@ -20,6 +20,7 @@
 #include <chrono>
 #include <cassert>
 #include <ostream>
+#include <memory>
 
 namespace c7a {
 namespace common {
@@ -36,6 +37,7 @@ template <bool Active = true>
 class StatsTimer
 { };
 
+using TimerPtr = std::shared_ptr<StatsTimer<true> >;
 template <>
 class StatsTimer<true>
 {
@@ -124,7 +126,7 @@ public:
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
     friend std::ostream& operator << (std::ostream& os, const StatsTimer& t) {
-        return os << t.Milliseconds() << "ms";
+        return os << t.Microseconds() << "us";
     }
 };
 
