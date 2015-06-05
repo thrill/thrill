@@ -18,6 +18,7 @@
 
 #include <c7a/data/manager.hpp>
 #include <c7a/core/job_manager.hpp>
+#include "c7a/common/stats.hpp"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -77,8 +78,13 @@ public:
         return getcwd(cCurrentPath, sizeof(cCurrentPath));
     }
 
+    common::Stats & get_stats() {
+        return stats_;
+    }
+
 private:
     core::JobManager job_manager_;
+    common::Stats stats_;
 };
 
 } // namespace c7a
