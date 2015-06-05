@@ -15,9 +15,11 @@
 #include <c7a/net/stream.hpp>
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
+#include <c7a/common/stats.hpp>
 
 #include <vector>
 #include <string>
+#include <sstream>
 
 namespace c7a {
 namespace net {
@@ -49,13 +51,20 @@ public:
     Channel(DispatcherThread& dispatcher,
             ReleaseSocketCallback release_callback,
             size_t id, int expected_streams,
-            std::shared_ptr<data::BufferChain> target)
+            std::shared_ptr<data::BufferChain> target,
+            std::shared_ptr<common::Stats> stats)
         : dispatcher_(dispatcher),
           release_(release_callback),
           id_(id),
           expected_streams_(expected_streams),
           finished_streams_(0),
-          target_(target) { }
+          bytes_received_(0),
+          target_(target),
+          stats_(stats),
+          waiting_timer_(stats_->CreateTimer("channel::" + std::to_string(id), "wait_timer")),
+          wait_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id), "wait_counter")),
+          header_arrival_counter_(stats_->CreateTimedCounter("channel::" + std::to_string(id), "header_arrival"))
+    { }
 
     void CloseLoopback() {
         CloseStream();
@@ -67,9 +76,16 @@ public:
     //! end-of-streams are handled directly
     //! all other block headers are parsed
     void PickupStream(Connection& s, struct StreamBlockHeader head) {
-        Stream* stream = new Stream(s, head);
+        std::stringstream stats_group;
+        stats_group << "channel::" << id_ << "::" << s.GetPeerAddress();
+        Stream* stream = new Stream(s, head, stats_->CreateTimer(stats_group.str(), "block::lifetime"));
+        stream->lifetime_timer->Start();
+        header_arrival_counter_->Trigger();
         if (stream->IsFinished()) {
             sLOG << "end of stream on" << stream->socket << "in channel" << id_;
+            stream->lifetime_timer->Stop();
+            *waiting_timer_ += stream->wait_timer; //accumulate
+            bytes_received_ += stream->bytes_read;
             CloseStream();
         }
         else {
@@ -97,8 +113,14 @@ private:
     int active_streams_;
     int expected_streams_;
     int finished_streams_;
+    size_t bytes_received_;
 
     std::shared_ptr<data::BufferChain> target_;
+
+    std::shared_ptr<common::Stats> stats_;
+    common::TimerPtr waiting_timer_;
+    common::TimedCounterPtr wait_counter_;
+    common::TimedCounterPtr header_arrival_counter_;
 
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
@@ -109,7 +131,11 @@ private:
         else {
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             active_streams_--;
+            stream->lifetime_timer->Stop();
+            *waiting_timer_ += stream->wait_timer; //accumulate
+            bytes_received_ += stream->bytes_read;
             stream->ResetHead();
+            wait_counter_->Trigger();
             release_(stream->socket);
             delete stream;
         }
@@ -119,6 +145,7 @@ private:
         finished_streams_++;
         if (finished_streams_ == expected_streams_) {
             sLOG << "channel" << id_ << " is closed";
+            stats_->AddReport("channel::bytes_read", std::to_string(id_), std::to_string(bytes_received_));
             target_->Close();
         }
         else {
@@ -133,11 +160,13 @@ private:
         auto callback = std::bind(&Channel::ConsumeData, this, std::placeholders::_1, std::placeholders::_2, stream);
         sLOG << "expect data with" << exp_size
              << "bytes on" << stream->socket << "in channel" << id_;
+        stream->wait_timer.Start();
+        wait_counter_->Trigger();
         dispatcher_.AsyncRead(stream->socket, exp_size, callback);
     }
 
-    inline void ConsumeData(Connection& s, Buffer&& buffer, Stream* stream) {
-        (void)s;
+    inline void ConsumeData(Connection& /*s*/, Buffer&& buffer, Stream* stream) {
+        stream->wait_timer.Stop();
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         stream->bytes_read += buffer.size();
         target_->Append(data::BinaryBuffer(buffer.data(), buffer.size()));

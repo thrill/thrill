@@ -46,9 +46,6 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 //! \returns result of word_count if bootstrapping was successfull, -1 otherwise.
 static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint) {
 
-    //!True if program time should be taken and printed
-    static const bool timing = true;
-
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result;
@@ -73,10 +70,9 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     std::cout << "connecting to peers" << std::endl;
     ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
     std::cout << "starting job" << std::endl;
-    c7a::common::StatsTimer<timing> timer(true);
+    auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
     auto job_result = job_startpoint(ctx);
-    timer.Stop();
-    std::cout << timer << std::endl;
+    overall_timer->Stop();
     return job_result;
 }
 
