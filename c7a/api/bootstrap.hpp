@@ -42,8 +42,8 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 
     for (auto address : addr) {
         if (address.find(":") == std::string::npos) {
-            //     std::cerr << "Invalid address. No Portnumber detecable";
-            // return std::make_tuple(-1, my_rank, endpoints);
+	    std::cerr << "Invalid address. No Portnumber detecable";
+	    return std::make_tuple(-1, my_rank, endpoints);
         }
     }
 
