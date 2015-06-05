@@ -6,9 +6,9 @@ import subprocess
 import random
 import re
 
-amounts=[26,28]
+amounts=[28]
 
-workers = [4,3,2,1]
+workers = [2,1]
 
 def median(x):
     if len(x)%2 != 0:
@@ -24,16 +24,16 @@ for amount in amounts:
         print "Testing with " + str(worker) + " workers"
         with open(str(worker) + "_workers", "a+") as file1:
             results = []
-            for _ in range(9):
+            for _ in range(1):
                 process = subprocess.Popen(["../../build/examples/wc", "-n", str(worker), "-s", str(pow(2, amount))], stdout=subprocess.PIPE)
                 process.wait()
                 output = process.communicate()[0]
                 #print output
-                timers = [m.start() for m in re.finditer('timer', output)]
+                timers = [m.start() for m in re.finditer("job::overall", output)]
                 times = []
                 for timer in timers:
-                    afterTimer = output[timer+7:]
-                    spacePos = afterTimer.find('\n')
+                    afterTimer = output[timer+24:]
+                    spacePos = afterTimer.find('u')
                     times.append(int(afterTimer[:spacePos]))
                 results.append(max(times))
                 print max(times)
