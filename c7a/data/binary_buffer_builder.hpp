@@ -101,7 +101,7 @@ public:
     BinaryBufferBuilder& operator = (BinaryBufferBuilder&& other) {
         if (this != &other)
         {
-            if (data_) delete[] data_;
+            if (data_) free(data_);
             data_ = other.data_;
             size_ = other.size_;
             capacity_ = other.capacity_;
