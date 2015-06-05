@@ -21,14 +21,11 @@ int main(int argc, char* argv[]) {
 
     using c7a::Execute;
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
-    const size_t port_base = distribution(generator);
+    const size_t port_base = 8080;
 
     c7a::common::CmdlineParser clp;
 
-    //clp.SetVerboseProcess(false);
+    clp.SetVerboseProcess(false);
 
     unsigned int workers = 1;
     clp.AddUInt('n', "workers", "N", workers,
@@ -48,13 +45,13 @@ int main(int argc, char* argv[]) {
 
     for (size_t i = 0; i < workers; i++) {
 
-        arguments[i] = new char*[workers + 2];
-        strargs[i].resize(workers + 2);
+        arguments[i] = new char*[workers + 3];
+        strargs[i].resize(workers + 3);
 
         for (size_t j = 0; j < workers; j++) {
-            strargs[i][j + 2] += "127.0.0.1:";
-            strargs[i][j + 2] += std::to_string(port_base + j);
-            arguments[i][j + 2] = const_cast<char*>(strargs[i][j + 2].c_str());
+            strargs[i][j + 3] += "127.0.0.1:";
+            strargs[i][j + 3] += std::to_string(port_base + j);
+            arguments[i][j + 3] = const_cast<char*>(strargs[i][j + 3].c_str());
         }
 
         std::function<int(c7a::Context&)> start_func = [elements](c7a::Context& ctx) {
@@ -62,10 +59,12 @@ int main(int argc, char* argv[]) {
                                                        };
 
         strargs[i][0] = "wordcount";
-        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
-        strargs[i][1] = std::to_string(i);
+        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());	
+        strargs[i][1] = "-r";
         arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
-        threads[i] = std::thread([=]() { Execute(workers + 2, arguments[i], start_func); });
+        strargs[i][2] = std::to_string(i);
+        arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
+        threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], start_func); });
     }
 
     for (size_t i = 0; i < workers; i++) {

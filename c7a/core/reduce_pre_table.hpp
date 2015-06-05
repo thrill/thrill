@@ -263,7 +263,7 @@ public:
      * to the provided emitter.
      */
     void FlushLargestPartition() {
-        static const bool debug = true;
+        static const bool debug = false;
 
         LOG << "Flushing items of largest partition";
 

@@ -28,14 +28,16 @@ class Stage
 {
 public:
     explicit Stage(DIABase* node) : node_(node) {
-        LOG1 << "CREATING stage" << node_->ToString() << "node" << node_;
+        LOG << "CREATING stage" << node_->ToString() << "node" << node_;
     }
     void Run() {
-        LOG1 << "RUNNING stage " << node_->ToString() << "node" << node_;
+        LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
         node_->execute();
     }
 
-private:
+private:    
+    
+    static const bool debug = false;
     DIABase* node_;
 };
 
@@ -61,9 +63,7 @@ public:
                     stages_found.insert(p);
                 }
                 else LOG1 << "OMG NULLPTR";
-            }
-        }
-        std::reverse(stages_result.begin(), stages_result.end());
+
     }
 
     void RunScope(DIABase* action) {
