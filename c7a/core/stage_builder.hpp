@@ -63,7 +63,8 @@ public:
                     stages_found.insert(p);
                 }
                 else LOG1 << "OMG NULLPTR";
-
+	    }
+	}
     }
 
     void RunScope(DIABase* action) {
