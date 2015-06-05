@@ -430,49 +430,7 @@ TEST_F(PreTable, ResizeTwoPartitions) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(PreTable, BigReduce) {
-    auto key_ex = [](const MyStruct& in) {
-                      return in.key % 500;
-                  };
-
-    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-                      return MyStruct(in1.key, in1.count + in2.count);
-                  };
-
-    size_t total_sum = 0, total_count = 0;
-
-    auto id1 = manager.AllocateDIA();
-    std::vector<BlockEmitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
-
-    // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              BlockEmitter<MyStruct>, 16*1024>
-    table(1, 2, 2, 128 * 1024, 1024 * 1024,
-          key_ex, red_fn, { emitters });
-
-    // insert lots of items
-    size_t nitems = 1 * 1024 * 1024;
-    for (size_t i = 0; i != nitems; ++i) {
-        table.Insert(MyStruct(i, 1));
-    }
-
-    table.Flush();
-
-    auto it1 = manager.GetIterator<MyStruct>(id1);
-    while (it1.HasNext()) {
-        auto n = it1.Next();
-        total_count++;
-        total_sum += n.count;
-    }
-
-    // actually check that the reduction worked
-    ASSERT_EQ(500u, total_count);
-    ASSERT_EQ(nitems, total_sum);
-}
-
-// Insert several items with same key and test application of local reduce
-TEST_F(PreTable, SmallReduce) {
+TEST_F(PreTable, InsertSomeStringItemsAndTestReduce) {
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
@@ -514,6 +472,88 @@ TEST_F(PreTable, SmallReduce) {
         }
     }
     ASSERT_EQ(3, c1);
+}
+
+// Insert several items with same key and test application of local reduce
+TEST_F(PreTable, InsertManyIntItemsAndTestReduce1) {
+    auto key_ex = [](const MyStruct& in) {
+        return in.key % 500;
+    };
+
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+        return MyStruct(in1.key, in1.count + in2.count);
+    };
+
+    size_t total_sum = 0, total_count = 0;
+
+    auto id1 = manager.AllocateDIA();
+    std::vector<BlockEmitter<MyStruct> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+
+    // Hashtable with smaller block size for testing.
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+            BlockEmitter<MyStruct>, 16*1024>
+            table(1, 2, 2, 128 * 1024, 1024 * 1024,
+                  key_ex, red_fn, { emitters });
+
+    // insert lots of items
+    size_t nitems = 1 * 1024 * 1024;
+    for (size_t i = 0; i != nitems; ++i) {
+        table.Insert(MyStruct(i, 1));
+    }
+
+    table.Flush();
+
+    auto it1 = manager.GetIterator<MyStruct>(id1);
+    while (it1.HasNext()) {
+        auto n = it1.Next();
+        total_count++;
+        total_sum += n.count;
+    }
+
+    // actually check that the reduction worked
+    ASSERT_EQ(500u, total_count);
+    ASSERT_EQ(nitems, total_sum);
+}
+
+TEST_F(PreTable, InsertManyIntItemsAndTestReduce2) {
+    auto key_ex = [](const MyStruct& in) {
+        return in.key;
+    };
+
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+        return MyStruct(in1.key, in1.count + in2.count);
+    };
+
+    auto id1 = manager.AllocateDIA();
+    std::vector<BlockEmitter<MyStruct> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+
+    size_t nitems_per_key = 10;
+    size_t nitems = 1 * 1024 * 1024;
+
+    // Hashtable with smaller block size for testing.
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+            BlockEmitter<MyStruct>, 16*1024>
+            table(1, 2, 2, 128, nitems,
+                  key_ex, red_fn, { emitters });
+
+    // insert lots of items
+    for (size_t i = 0; i != nitems_per_key; ++i) {
+        for (size_t j = 0; j != nitems; ++j) {
+            table.Insert(MyStruct(j, i));
+        }
+    }
+
+    ASSERT_EQ(nitems, table.Size());
+
+    table.Flush();
+
+    auto it1 = manager.GetIterator<MyStruct>(id1);
+    while (it1.HasNext()) {
+        auto n = it1.Next();
+        ASSERT_EQ(45, n.count);
+    }
 }
 
 /******************************************************************************/
