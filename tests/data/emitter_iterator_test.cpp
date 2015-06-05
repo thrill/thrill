@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/block_emitter_iterator_test.cpp
+ * tests/data/emitter_iterator_test.cpp
  *
  * Part of Project c7a.
  *
@@ -7,8 +7,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/block_iterator.hpp>
-#include <c7a/data/block_emitter.hpp>
+#include <c7a/data/iterator.hpp>
+#include <c7a/data/emitter.hpp>
 #include <c7a/data/manager.hpp>
 
 #include <vector>

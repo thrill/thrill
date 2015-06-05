@@ -11,9 +11,10 @@
 #ifndef C7A_DATA_MANAGER_HEADER
 #define C7A_DATA_MANAGER_HEADER
 
-#include <c7a/data/block_iterator.hpp>
-#include <c7a/common/logger.hpp>
+#include <c7a/data/iterator.hpp>
 #include <c7a/data/input_line_iterator.hpp>
+#include <c7a/data/emitter.hpp>
+#include <c7a/data/buffer_chain.hpp>
 #include <c7a/data/output_line_emitter.hpp>
 
 #include <map>
@@ -23,10 +24,9 @@
 #include <memory> //unique_ptr
 
 #include <c7a/net/channel_multiplexer.hpp>
-#include "block_emitter.hpp"
-#include "buffer_chain.hpp"
 #include <c7a/data/socket_target.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
+#include <c7a/common/logger.hpp>
 
 namespace c7a {
 namespace data {
@@ -68,19 +68,19 @@ public:
     //!
     //! \param id ID of the DIA / Channel - determined by AllocateDIA() / AllocateNetworkChannel()
     template <class T>
-    BlockIterator<T> GetIterator(ChainId id) {
+    Iterator<T> GetIterator(ChainId id) {
         if (id.type == LOCAL) {
             if (!dias_.Contains(id)) {
                 throw std::runtime_error("target dia id unknown.");
             }
-            return BlockIterator<T>(*(dias_.Chain(id)));
+            return Iterator<T>(*(dias_.Chain(id)));
         }
         else {
             if (!cmp_.HasDataOn(id)) {
                 throw std::runtime_error("target channel id unknown.");
             }
 
-            return BlockIterator<T>(*(cmp_.AccessData(id)));
+            return Iterator<T>(*(cmp_.AccessData(id)));
         }
     }
 
@@ -107,16 +107,16 @@ public:
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
     template <class T>
-    BlockEmitter<T> GetLocalEmitter(DIAId id) {
+    Emitter<T> GetLocalEmitter(DIAId id) {
         assert(id.type == LOCAL);
         if (!dias_.Contains(id)) {
             throw std::runtime_error("target dia id unknown.");
         }
-        return BlockEmitter<T>(dias_.Chain(id));
+        return Emitter<T>(dias_.Chain(id));
     }
 
     template <class T>
-    std::vector<BlockEmitter<T> > GetNetworkEmitters(ChannelId id) {
+    std::vector<Emitter<T> > GetNetworkEmitters(ChannelId id) {
         assert(id.type == NETWORK);
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
