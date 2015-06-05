@@ -131,9 +131,9 @@ private:
 
     data::ChannelId channel_id_;
 
-    std::vector<data::BlockEmitter<Output> > emitters_;
+    std::vector<data::Emitter<Output> > emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::BlockEmitter<Output> > reduce_pre_table_;
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<Output> > reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
