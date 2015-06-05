@@ -73,15 +73,6 @@ int word_count_generated_nored(c7a::Context& ctx, size_t size) {
                              return wp;
                          };
 
-    auto key = [](WordPair in) {
-                   return in.first;
-               };
-
-    auto red_fn = [](WordPair in1, WordPair in2) {
-                      WordPair wp = std::make_pair(in1.first, in1.second + in2.second);
-                      return wp;
-                  };
-
     auto lines = GenerateFromFile(
         ctx,
         "headwords",
