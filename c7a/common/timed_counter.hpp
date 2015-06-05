@@ -25,6 +25,15 @@ class TimedCounter
 public:
     typedef std::chrono::high_resolution_clock::time_point TimePoint;
 
+    //no copy ctor
+    TimedCounter(const TimedCounter& that) = delete;
+    //move is okay
+    TimedCounter(TimedCounter && rhs) {
+        occurences_ = rhs.occurences_;
+    }
+
+    explicit TimedCounter() { }
+
     //! Adds the occurences of another TimedCounter to this instance.
     //! Occurences will be sorted to be ascending
     TimedCounter& operator += (const TimedCounter& rhs) {
@@ -69,6 +78,9 @@ private:
 
     std::vector<TimePoint> occurences_;
 };
+
+using TimedCounterPtr = std::shared_ptr<TimedCounter>;
+
 } //namespace common
 } //namespace c7a
 #endif // !C7A_COMMON_TIMED_COUNTER_HEADER

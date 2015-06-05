@@ -72,7 +72,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     std::cout << "starting job" << std::endl;
     auto overall_timer = ctx.get_stats().CreateTimer("job::overall", true);
     auto job_result = job_startpoint(ctx);
-    overall_timer.Stop();
+    overall_timer->Stop();
     return job_result;
 }
 
