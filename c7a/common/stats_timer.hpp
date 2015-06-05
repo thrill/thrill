@@ -37,7 +37,7 @@ template <bool Active = true>
 class StatsTimer
 { };
 
-using TimerPtr = std::shared_ptr<StatsTimer<true>>;
+using TimerPtr = std::shared_ptr<StatsTimer<true> >;
 template <>
 class StatsTimer<true>
 {

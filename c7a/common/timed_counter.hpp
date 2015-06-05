@@ -28,7 +28,7 @@ public:
     //no copy ctor
     TimedCounter(const TimedCounter& that) = delete;
     //move is okay
-    TimedCounter(TimedCounter && rhs) {
+    TimedCounter(TimedCounter&& rhs) {
         occurences_ = rhs.occurences_;
     }
 
@@ -80,7 +80,6 @@ private:
 };
 
 using TimedCounterPtr = std::shared_ptr<TimedCounter>;
-
 } //namespace common
 } //namespace c7a
 #endif // !C7A_COMMON_TIMED_COUNTER_HEADER
