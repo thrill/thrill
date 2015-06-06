@@ -429,8 +429,99 @@ TEST_F(PreTable, ResizeTwoPartitions) {
     ASSERT_EQ(3u, table.PartitionSize(0) + table.PartitionSize(1));
 }
 
+TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
+    auto key_ex = [](const MyStruct& in) {
+        return in.key;
+    };
+
+    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
+        return MyStruct(in1.key, in1.count + in2.count);
+    };
+
+    size_t num_partitions = 3;
+    size_t num_buckets_init_scale = 2;
+    size_t bucket_size = 1 * 1024;
+    size_t nitems = bucket_size + (num_partitions * num_buckets_init_scale * bucket_size);
+
+    std::vector<BlockEmitter<MyStruct> > emitters;
+    std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
+    std::vector<DIAId> ids;
+    for (int i = 0; i != num_partitions; ++i) {
+        auto id = manager.AllocateDIA();
+        ids.emplace_back(id);
+        emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id));
+    }
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+            BlockEmitter<MyStruct>, 16*1024>
+            table(num_partitions, num_buckets_init_scale, 10, bucket_size,
+                  nitems, key_ex, red_fn, { emitters });
+
+    for (int i = 0; i != num_partitions; ++i) {
+        ASSERT_EQ(0u, table.PartitionSize(i));
+    }
+    ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
+    ASSERT_EQ(0u, table.Size());
+
+    // insert as many items which DO NOT lead to bucket overflow
+    for (size_t i = 0; i != bucket_size; ++i) {
+        table.Insert(MyStruct(i, 0));
+    }
+
+    ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
+    ASSERT_EQ(bucket_size, table.Size());
+
+    table.Flush();
+
+    for (int i = 0; i != num_partitions; ++i) {
+        auto it = manager.GetIterator<MyStruct>(ids[i]);
+        while (it.HasNext()) {
+            auto n = it.Next();
+            keys[i].push_back(n.key);
+        }
+    }
+
+    for (int i = 0; i != num_partitions; ++i) {
+        ASSERT_EQ(0u, table.PartitionSize(i));
+    }
+    ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
+    ASSERT_EQ(0u, table.Size());
+
+    // insert as many items which DO NOT lead to bucket overflow
+    // (need to insert again because of previous flush call needed to backup data)
+    for (size_t i = 0; i != bucket_size; ++i) {
+        table.Insert(MyStruct(i, 0));
+    }
+
+    ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
+    ASSERT_EQ(bucket_size, table.Size());
+
+    // insert as many items guaranteed to DO lead to bucket overflow
+    // resize happens here
+    for (size_t i = 0; i != table.NumBuckets() * bucket_size; ++i) {
+        table.Insert(MyStruct((int)(i + bucket_size), 1));
+    }
+
+    table.Flush();
+
+    for (int i = 0; i != num_partitions; ++i) {
+        ASSERT_EQ(0u, table.PartitionSize(i));
+    }
+    ASSERT_EQ(0u, table.Size());
+
+    for (int i = 0; i != num_partitions; ++i) {
+        auto it = manager.GetIterator<MyStruct>(ids[i]);
+        while (it.HasNext()) {
+            auto n = it.Next();
+            if (n.count == 0) {
+                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.key));
+            }
+        }
+    }
+}
+
 // Insert several items with same key and test application of local reduce
-TEST_F(PreTable, InsertManyIntItemsAndTestReduce1) {
+TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     auto key_ex = [](const MyStruct& in) {
                       return in.key % 500;
                   };
@@ -471,7 +562,7 @@ TEST_F(PreTable, InsertManyIntItemsAndTestReduce1) {
     ASSERT_EQ(nitems, total_sum);
 }
 
-TEST_F(PreTable, InsertManyIntItemsAndTestReduce2) {
+TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     auto key_ex = [](const MyStruct& in) {
                       return in.key;
                   };
@@ -485,7 +576,7 @@ TEST_F(PreTable, InsertManyIntItemsAndTestReduce2) {
     emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
 
     size_t nitems_per_key = 10;
-    size_t nitems = 1 * 1024 * 1024;
+    size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
@@ -539,7 +630,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
 
     size_t nitems_per_key = 10;
-    size_t nitems = 1 * 128 * 1024;
+    size_t nitems = 1 * 16 * 1024;
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
                               Emitter<StringPair>, 16*1024>
