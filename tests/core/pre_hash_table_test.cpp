@@ -171,12 +171,9 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     auto it = manager.GetIterator<int>(id1);
     int c = 0;
     while (it.HasNext()) {
-        std::cout << "test" << std::endl;
         it.Next();
         c++;
     }
-
-    std::cout << "test: " << c << std::endl;
 
     ASSERT_EQ(5, c);
     ASSERT_EQ(0u, table.Size());
@@ -443,21 +440,21 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     size_t bucket_size = 1 * 1024;
     size_t nitems = bucket_size + (num_partitions * num_buckets_init_scale * bucket_size);
 
-    std::vector<BlockEmitter<MyStruct> > emitters;
+    std::vector<Emitter<MyStruct> > emitters;
     std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
     std::vector<DIAId> ids;
-    for (int i = 0; i != num_partitions; ++i) {
+    for (size_t i = 0; i != num_partitions; ++i) {
         auto id = manager.AllocateDIA();
         ids.emplace_back(id);
         emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id));
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-            BlockEmitter<MyStruct>, 16*1024>
+            Emitter<MyStruct>, 16*1024>
             table(num_partitions, num_buckets_init_scale, 10, bucket_size,
                   nitems, key_ex, red_fn, { emitters });
 
-    for (int i = 0; i != num_partitions; ++i) {
+    for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
     }
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
@@ -473,7 +470,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
 
     table.Flush();
 
-    for (int i = 0; i != num_partitions; ++i) {
+    for (size_t i = 0; i != num_partitions; ++i) {
         auto it = manager.GetIterator<MyStruct>(ids[i]);
         while (it.HasNext()) {
             auto n = it.Next();
@@ -481,7 +478,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
         }
     }
 
-    for (int i = 0; i != num_partitions; ++i) {
+    for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
     }
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
@@ -504,12 +501,12 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
 
     table.Flush();
 
-    for (int i = 0; i != num_partitions; ++i) {
+    for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
     }
     ASSERT_EQ(0u, table.Size());
 
-    for (int i = 0; i != num_partitions; ++i) {
+    for (size_t i = 0; i != num_partitions; ++i) {
         auto it = manager.GetIterator<MyStruct>(ids[i]);
         while (it.HasNext()) {
             auto n = it.Next();
@@ -597,7 +594,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     table.Flush();
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 
     auto it1 = manager.GetIterator<MyStruct>(id1);
     while (it1.HasNext()) {
@@ -630,7 +627,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
 
     size_t nitems_per_key = 10;
-    size_t nitems = 1 * 16 * 1024;
+    size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
                               Emitter<StringPair>, 16*1024>
@@ -653,7 +650,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     table.Flush();
 
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 
     auto it1 = manager.GetIterator<StringPair>(id1);
     while (it1.HasNext()) {
