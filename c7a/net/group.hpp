@@ -173,7 +173,7 @@ public:
         FD_ZERO(&fd_set);
 
         // TODO(ej) use NetDispatcher here?
-        // add file descriptor to read set for poll TODO(ts): make this faster
+        // TODO(rh) use NetDispatcher here and everywhere else in this class
         // (somewhen)
 
         sLOG0 << "--- Group::ReceiveFromAny() - select():";
