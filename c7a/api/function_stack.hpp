@@ -57,9 +57,7 @@ auto run_emitter(L lambda)
 template <typename L, typename ... Ls>
 auto run_emitter(L lambda, Ls ... rest)
 {
-    using param_t = typename FunctionTraits<L>::template arg<0>;
-
-    return [=](param_t i)->void {
+    return [=](auto i)->void {
                lambda(i, run_emitter(rest ...));
     };
 }
