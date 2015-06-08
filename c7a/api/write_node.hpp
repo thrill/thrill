@@ -22,7 +22,7 @@ template <typename Input, typename Output, typename WriteFunction, typename Stac
 class WriteNode : public ActionNode<Input>
 {
 public:
-    using write_arg_t = typename FunctionTraits<WriteFunction>::template arg<0>;
+    using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
 
     WriteNode(Context& ctx,
               DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
@@ -34,19 +34,19 @@ public:
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(this->context_.get_data_manager().template GetOutputLineEmitter<Output>(file_))
+          emit_(context_.get_data_manager().template GetOutputLineEmitter<Output>(file_))
     {
         sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents to" << path_out_;
 
-        // using write_arg_t = typename FunctionTraits<WriteFunction>::template arg<0>;
-        auto pre_op_fn = [=](write_arg_t input) {
+        // using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
+        auto pre_op_fn = [=](WriteArg input) {
                              PreOp(input);
                          };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
     }
 
-    void PreOp(write_arg_t input) {
+    void PreOp(WriteArg input) {
         emit_(write_function_(input));
     }
 
@@ -65,8 +65,8 @@ public:
     auto ProduceStack() {
         // Hook Identity
 
-        using write_arg_t = typename FunctionTraits<WriteFunction>::template arg<0>;
-        auto id_fn = [=](write_arg_t t, std::function<void(write_arg_t)> emit_func) {
+        using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
+        auto id_fn = [=](WriteArg t, std::function<void(WriteArg)> emit_func) {
                          return emit_func(t);
                      };
 
@@ -83,6 +83,9 @@ public:
     }
 
 private:
+    //! context
+    using ActionNode<Input>::context_;
+    
     //! Local stack
     Stack local_stack_;
 
