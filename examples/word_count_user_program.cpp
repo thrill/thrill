@@ -30,7 +30,7 @@ int word_count(c7a::Context& ctx) {
                       return wp;
                   };
 
-    std::cout << ctx.get_current_dir() + "wordcount.in" << std::endl;
+    std::cout << "wordcount.in" << std::endl;
     auto lines = ReadFromFileSystem(
         ctx,
         "wordcount.in",
