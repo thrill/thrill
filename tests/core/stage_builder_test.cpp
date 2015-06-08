@@ -40,7 +40,7 @@ TEST(Stage, GetStagesFromBuilder) {
                       return input;
                   };
 
-    /*auto fmap_fn = [](double input, std::function<void(double)> emit_func) {
+    /*auto fmap_fn = [](double input, auto emit_func) {
                        std::cout << "FlatMap" << std::endl;
                        emit_func(input);
                        emit_func(input);

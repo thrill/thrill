@@ -125,7 +125,7 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [=](Output elem, auto emit_func) {
-                              return PostOp(elem, emit_func);
+                              return this->PostOp(elem, emit_func);
                           };
 
         FunctionStack<> stack;
@@ -197,7 +197,8 @@ private:
     }
 
     //! Use the ZipFunction to Zip workers
-    void PostOp(Output input, std::function<void(Output)> emit_func) {
+    template <typename Emitter>
+    void PostOp(Output input, Emitter emit_func) {
         emit_func(zip_function_(input.first, input.second));
     }
 };
