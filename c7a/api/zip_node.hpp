@@ -50,8 +50,8 @@ class TwoZipNode : public DOpNode<Output>
 {
     static const bool debug = false;
 
-    using zip_arg_0_t = typename FunctionTraits<ZipFunction>::template arg<0>;
-    using zip_arg_1_t = typename FunctionTraits<ZipFunction>::template arg<1>;
+    using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
+    using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
 
 public:
     /*!
@@ -91,10 +91,10 @@ public:
         // Setup Emitters
         num_dias_ = 2;
         for (size_t i = 0; i < num_dias_; ++i) {
-            id_.push_back((this->context_).get_data_manager().AllocateDIA());
+            id_.push_back(context_.get_data_manager().AllocateDIA());
         }
-        emit1_ = (this->context_).get_data_manager().template GetLocalEmitter<zip_arg_0_t>(id_[0]);
-        emit2_ = (this->context_).get_data_manager().template GetLocalEmitter<zip_arg_1_t>(id_[1]);
+        emit1_ = context_.get_data_manager().template GetLocalEmitter<ZipArg0>(id_[0]);
+        emit2_ = context_.get_data_manager().template GetLocalEmitter<ZipArg1>(id_[1]);
     }
 
     /*!
@@ -104,8 +104,8 @@ public:
     void execute() override {
         MainOp();
         // get data from data manager
-        auto it1 = (this->context_).get_data_manager().template GetIterator<zip_arg_0_t>(id_[0]);
-        auto it2 = (this->context_).get_data_manager().template GetIterator<zip_arg_1_t>(id_[1]);
+        auto it1 = context_.get_data_manager().template GetIterator<ZipArg0>(id_[0]);
+        auto it2 = context_.get_data_manager().template GetIterator<ZipArg1>(id_[1]);
         do {
             it1.WaitForMore();
             it2.WaitForMore();
@@ -141,6 +141,9 @@ public:
     }
 
 private:
+    //! operation context
+    using DOpNode<Output>::context_;
+
     //! Local stacks
     Stack1 stack1_;
     Stack2 stack2_;
@@ -148,27 +151,27 @@ private:
     ZipFunction zip_function_;
     //! Emitter
     std::vector<data::DIAId> id_;
-    data::Emitter<zip_arg_0_t> emit1_;
-    data::Emitter<zip_arg_1_t> emit2_;
+    data::Emitter<ZipArg0> emit1_;
+    data::Emitter<ZipArg1> emit2_;
     //! Number of DIAs
     size_t num_dias_;
 
     //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a
     //! global barrier.
-    void PreOp(zip_arg_0_t input) {
+    void PreOp(ZipArg0 input) {
         emit1_(input);
     }
 
     // TODO(an): Theoretically we need two PreOps?
-    void PreOpSecond(zip_arg_1_t input) {
+    void PreOpSecond(ZipArg1 input) {
         emit2_(input);
     }
 
     //!Receive elements from other workers.
     void MainOp() {
-        net::Group flow_group = (this->context_).get_flow_net_group();
-        data::Manager data_manager = (this->context_).get_data_manager();
-        size_t workers = (this->context_).number_worker();
+        net::Group flow_group = context_.get_flow_net_group();
+        data::Manager data_manager = context_.get_data_manager();
+        size_t workers = context_.number_worker();
 
         // Offsets to declare which target gets which block
         std::vector<size_t> blocks(num_dias_, 0);

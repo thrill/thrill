@@ -23,7 +23,7 @@ class SumNode : public ActionNode<Input>
 {
     static const bool debug = false;
 
-    using sum_arg_0_t = typename FunctionTraits<SumFunction>::template arg<0>;
+    using SumArg0 = typename FunctionTraits<SumFunction>::template arg<0>;
 
 public:
     SumNode(Context& ctx,
@@ -82,6 +82,9 @@ public:
     }
 
 private:
+    //! operation context
+    using ActionNode<Output>::context_;
+
     //! Local stack.
     Stack stack_;
     //! The sum function which is applied to two elements.
@@ -89,14 +92,14 @@ private:
     // Local sum to be forwarded to other worker.
     Input local_sum = 0;
 
-    void PreOp(sum_arg_0_t input) {
+    void PreOp(SumArg0 input) {
         LOG << "PreOp: " << input;
         local_sum = sum_function_(local_sum, input);
     }
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::Group& flow_group = (this->context_).get_flow_net_group();
+        net::Group& flow_group = context_.get_flow_net_group();
 
         // process the reduce
         net::ReduceToRoot<Output, SumFunction>(flow_group, local_sum, sum_function_);
@@ -108,7 +111,7 @@ private:
         net::PrefixSum(flow_group, sum);
 
         // broadcast to all other workers
-        if ((this->context_).rank() == 0)
+        if (context_.rank() == 0)
             net::Broadcast(flow_group, local_sum);
     }
 

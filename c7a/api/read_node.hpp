@@ -62,9 +62,11 @@ public:
         std::ifstream file(path_in_);
         assert(file.good());
 
-        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file, (this->context_).rank(), (this->context_).number_worker());
+        data::InputLineIterator it =
+            context_.get_data_manager().GetInputLineIterator(
+                file, context_.rank(), context_.number_worker());
 
-        auto emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+        auto emit = context_.get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {
@@ -98,6 +100,9 @@ public:
     }
 
 private:
+    //! operation context
+    using DOpNode<Output>::context_;
+
     //! The read function which is applied on every line read.
     ReadFunction read_function_;
     //! Path of the input file.
