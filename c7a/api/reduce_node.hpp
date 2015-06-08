@@ -106,8 +106,8 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, std::function<void(Output)> emit_func) {
-                              return PostOp(elem, emit_func);
+        auto post_op_fn = [=](Output elem, auto emit_func) {
+                              return this->PostOp(elem, emit_func);
                           };
 
         FunctionStack<> stack;
@@ -171,7 +171,8 @@ private:
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
-    void PostOp(Output input, std::function<void(Output)> emit_func) {
+    template <typename Emitter>
+    void PostOp(Output input, Emitter emit_func) {
         emit_func(input);
     }
 };
