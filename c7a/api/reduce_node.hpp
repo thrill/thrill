@@ -43,14 +43,15 @@ namespace c7a {
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename Input, typename Output, typename Stack, typename KeyExtractor, typename ReduceFunction>
+template <typename Input, typename Output, typename Stack,
+          typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<Output>
 {
     static const bool debug = false;
 
     using Super = DOpNode<Output>;
 
-    using reduce_arg_t = typename FunctionTraits<ReduceFunction>::template arg<0>;
+    using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
 
     using Super::context_;
     using Super::data_id_;
@@ -80,7 +81,7 @@ public:
           reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, emitters_)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](reduce_arg_t input) {
+        auto pre_op_fn = [=](ReduceArg input) {
                              PreOp(input);
                          };
         auto lop_chain = local_stack_.push(pre_op_fn).emit();
@@ -138,7 +139,7 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(reduce_arg_t input) {
+    void PreOp(ReduceArg input) {
         reduce_pre_table_.Insert(std::move(input));
     }
 
