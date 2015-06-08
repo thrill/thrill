@@ -85,7 +85,7 @@ public:
 private:
     //! context
     using ActionNode<Input>::context_;
-    
+
     //! Local stack
     Stack local_stack_;
 
