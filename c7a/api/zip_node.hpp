@@ -124,7 +124,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, std::function<void(Output)> emit_func) {
+        auto post_op_fn = [=](Output elem, auto emit_func) {
                               return PostOp(elem, emit_func);
                           };
 

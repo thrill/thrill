@@ -66,7 +66,7 @@ public:
         // Hook Identity
 
         using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
-        auto id_fn = [=](WriteArg t, std::function<void(WriteArg)> emit_func) {
+        auto id_fn = [=](WriteArg t, auto emit_func) {
                          return emit_func(t);
                      };
 

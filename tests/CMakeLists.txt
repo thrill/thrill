@@ -69,7 +69,7 @@ endmacro(build_test_group)
 
 ### list of tests in subdirectories
 
-#build_test(api/simple_api_test)
+build_test(api/simple_api_test)
 build_test(api/operations_test)
 build_test(api/wordcount_test)
 build_test(api/sum_node_test)

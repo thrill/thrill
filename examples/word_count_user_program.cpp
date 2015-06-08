@@ -14,7 +14,7 @@ int word_count(c7a::Context& ctx) {
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
 
-    auto line_to_words = [](std::string line, std::function<void(WordPair)> emit) {
+    auto line_to_words = [](std::string line, auto emit) {
                              std::string word;
                              std::istringstream iss(line);
                              while (iss >> word) {
@@ -57,7 +57,7 @@ int word_count_generated(c7a::Context& ctx, size_t size) {
     using c7a::Context;
     using WordPair = std::pair<std::string, int>;
 
-    auto word_pair_gen = [](std::string line, std::function<void(WordPair)> emit) {
+    auto word_pair_gen = [](std::string line, auto emit) {
                              WordPair wp = std::make_pair(line, 1);
                              emit(wp);
                          };
