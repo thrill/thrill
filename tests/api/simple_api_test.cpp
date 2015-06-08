@@ -46,7 +46,7 @@ TEST(API, FunctionStackTest) {
         //elements.push_back(input);
             total += input;
         };
-    
+
     // Converted emitter functions
     auto conv_map_fn =
         [=](double input, auto emit_func) {
@@ -68,19 +68,15 @@ TEST(API, FunctionStackTest) {
     auto new_stack4 = new_stack3.push(save_fn);
     auto composed_function = new_stack4.emit();
 
-    
-    
-    for (size_t i = 0; i != 10000000; ++i) {
+    for (size_t i = 0; i != 1000; ++i) {
         composed_function(42);
         composed_function(2);
         composed_function(50);
-
-        for (auto item : elements) {
-            //std::cout << item << std::endl;
-        }        
     }
 
     std::cout << "total: " << total << std::endl;
+    ASSERT_EQ(total, 368000u);
+    
     return;
 }
 
