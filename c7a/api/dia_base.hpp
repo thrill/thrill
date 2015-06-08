@@ -149,6 +149,7 @@ protected:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER

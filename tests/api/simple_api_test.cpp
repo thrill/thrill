@@ -43,7 +43,7 @@ TEST(API, FunctionStackTest) {
 
     auto save_fn =
         [&total](double input) {
-        //elements.push_back(input);
+            //elements.push_back(input);
             total += input;
         };
 
@@ -76,7 +76,7 @@ TEST(API, FunctionStackTest) {
 
     std::cout << "total: " << total << std::endl;
     ASSERT_EQ(total, 368000u);
-    
+
     return;
 }
 

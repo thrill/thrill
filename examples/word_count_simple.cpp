@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
                                                        };
 
         strargs[i][0] = "wordcount";
-        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());	
+        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
         strargs[i][1] = "-r";
         arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
         strargs[i][2] = std::to_string(i);
