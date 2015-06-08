@@ -155,9 +155,9 @@ public:
     auto Map(const map_fn_t &map_fn) {
         using map_arg_t
                   = typename FunctionTraits<map_fn_t>::template arg<0>;
-        auto EmitMapFn = [ = ](map_arg_t input, auto emit_func) {
-                               emit_func(map_fn(input));
-                           };
+        auto EmitMapFn = [=](map_arg_t input, auto emit_func) {
+                             emit_func(map_fn(input));
+                         };
 
         auto new_stack = local_stack_.push(EmitMapFn);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -181,7 +181,7 @@ public:
     auto Filter(const filter_fn_t &filter_fn) {
         using filter_arg_t
                   = typename FunctionTraits<filter_fn_t>::template arg<0>;
-        auto conv_filter_fn = [ = ](filter_arg_t input, auto emit_func) {
+        auto conv_filter_fn = [=](filter_arg_t input, auto emit_func) {
                                   if (filter_fn(input)) emit_func(input);
                               };
 
@@ -467,6 +467,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     return DIARef<generator_result_t, decltype(generator_stack)>
                (std::move(shared_node), generator_stack);
 }
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER

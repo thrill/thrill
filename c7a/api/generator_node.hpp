@@ -128,7 +128,6 @@ private:
     size_t size_;
 
     static const bool debug = false;
-
 };
 
 //! \}

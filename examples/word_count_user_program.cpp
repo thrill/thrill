@@ -48,7 +48,7 @@ int word_count(c7a::Context& ctx) {
                                     str += item.first;
                                     str += ": ";
                                     str += std::to_string(item.second);
-				    return str;
+                                    return str;
                                 });
     return 0;
 }
