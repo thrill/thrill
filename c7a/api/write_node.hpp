@@ -18,10 +18,15 @@
 
 namespace c7a {
 
-template <typename Input, typename Output, typename WriteFunction, typename Stack>
+template <typename Input, typename Output,
+          typename WriteFunction, typename Stack>
 class WriteNode : public ActionNode<Input>
 {
 public:
+
+    using Super = ActionNode<Input>;     
+    using Super::context_;
+    using Super::data_id_;
     using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
 
     WriteNode(Context& ctx,
@@ -34,15 +39,15 @@ public:
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(context_.get_data_manager().template GetOutputLineEmitter<Output>(file_))
+          emit_(context_.get_data_manager().
+                template GetOutputLineEmitter<Output>(file_))
     {
-        sLOG << "Creating WriteNode with" << this->get_parents().size() << "parents to" << path_out_;
-
-        // using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
-        auto pre_op_fn = [=](WriteArg input) {
+        sLOG << "Creating write node.";
+        
+        auto pre_op_function = [=](WriteArg input) {
                              PreOp(input);
                          };
-        auto lop_chain = local_stack_.push(pre_op_fn).emit();
+        auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
     }
 
@@ -59,13 +64,15 @@ public:
     }
 
     /*!
-     * Produces an 'empty' function stack, which only contains the identity emitter function.
+     * Produces an 'empty' function stack, which only contains the identity
+     * emitter function.
      * \return Empty function stack
      */
     auto ProduceStack() {
         // Hook Identity
 
-        using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
+        using WriteArg = 
+            typename FunctionTraits<WriteFunction>::template arg<0>;
         auto id_fn = [=](WriteArg t, auto emit_func) {
                          return emit_func(t);
                      };
@@ -79,12 +86,10 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() override {
-        return "[WriteNode] Id:" + this->data_id_.ToString();
+        return "[WriteNode] Id:" + data_id_.ToString();
     }
 
 private:
-    //! context
-    using ActionNode<Input>::context_;
 
     //! Local stack
     Stack local_stack_;

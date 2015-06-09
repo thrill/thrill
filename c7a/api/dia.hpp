@@ -141,20 +141,19 @@ public:
     /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
-     * element of a possibly different type. The DIARef returned by Map has the
-     * same type T. The function chain of the returned DIARef is this DIARef's
-     * local_stack_ chained with map_fn.
+     * element of a possibly different type. The function chain of the returned
+     * DIARef is this DIARef's local_stack_ chained with map_fn.
      *
-     * \tparam map_fn_t Type of the map function.
+     * \tparam MapFunction Type of the map function.
      *
-     * \param map_fn Map function of type map_fn_t, which maps each element to
-     * an element of a possibly different type.
+     * \param map_fn Map function of type MapFunction, which maps each element
+     * to an element of a possibly different type.
      *
      */
-    template <typename map_fn_t>
-    auto Map(const map_fn_t &map_fn) {
+    template <typename MapFunction>
+    auto Map(const MapFunction &map_fn) {
         using map_arg_t
-                  = typename FunctionTraits<map_fn_t>::template arg<0>;
+                  = typename FunctionTraits<MapFunction>::template arg<0>;
         auto EmitMapFn = [=](map_arg_t input, auto emit_func) {
                              emit_func(map_fn(input));
                          };
@@ -165,47 +164,45 @@ public:
 
     /*!
      * Filter is a LOp, which filters elements from  this DIARef
-     * according to the filter_fn given by the
-     * user. The filter_fn maps each element to a boolean.
-     * The DIARef returned by Filter has the same type T.
+     * according to the filter_function given by the
+     * user. The filter_function maps each element to a boolean.
      * The function chain of the returned DIARef is this DIARef's
-     * local_stack_ chained with filter_fn.
+     * local_stack_ chained with filter_function.
      *
-     * \tparam filter_fn_t Type of the map function.
+     * \tparam FilterFunction Type of the map function.
      *
-     * \param filter_fn Filter function of type filter_fn_t, which maps each element to
-     * a boolean.
+     * \param filter_function Filter function of type FilterFunction, which maps
+     * each element to a boolean.
      *
      */
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) {
         using filter_arg_t
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
-        auto conv_filter_fn = [=](filter_arg_t input, auto emit_func) {
-                                  if (filter_fn(input)) emit_func(input);
+        auto conv_filter_function = [=](filter_arg_t input, auto emit_func) {
+                                  if (filter_function(input)) emit_func(input);
                               };
 
-        auto new_stack = local_stack_.push(conv_filter_fn);
+        auto new_stack = local_stack_.push(conv_filter_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
-     * FlatMap is a LOp, which maps this DIARef according to the flatmap_fn
-     * given by the user.  The flatmap_fn maps each element
-     * to elements of a possibly different type. The flatmap_fn has an emitter
-     * function as it's second parameter. This emitter is called once for each
-     * element to be emitted. The DIARef returned by FlatMap has the same type
-     * T. The function chain of the returned DIARef is this DIARef's
-     * local_stack_ chained with flatmap_fn.
+     * FlatMap is a LOp, which maps this DIARef according to the 
+     * flatmap_function given by the user. The flatmap_function maps each
+     * element to elements of a possibly different type. The flatmap_function
+     * has an emitter function as it's second parameter. This emitter is called
+     * once for each element to be emitted. The function chain of the returned
+     * DIARef is this DIARef's local_stack_ chained with flatmap_function.
      *
-     * \tparam flatmap_fn_t Type of the map function.
+     * \tparam FlatmapFunction Type of the map function.
      *
-     * \param flatmap_fn Map function of type map_fn_t, which maps each element
-     * to elements of a possibly different type.
+     * \param flatmap_function Map function of type FlatmapFunction, which maps
+     * each element to elements of a possibly different type.
      */
-    template <typename flatmap_fn_t>
-    auto FlatMap(const flatmap_fn_t &flatmap_fn) {
-        auto new_stack = local_stack_.push(flatmap_fn);
+    template <typename FlatmapFunction>
+    auto FlatMap(const FlatmapFunction &flatmap_function) {
+        auto new_stack = local_stack_.push(flatmap_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -213,22 +210,23 @@ public:
      * Reduce is a DOp, which groups elements of the DIARef with the
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
-     * can be reduced to a single element of equal type. Since Reduce is a DOp, it
-     * creates a new DIANode. The DIARef returned by Reduce links to this newly
-     * created DIANode. The local_stack_ of the returned DIARef consists of
-     * the PostOp of Reduce, as a reduced element can
+     * can be reduced to a single element of equal type. Since Reduce is a DOp,
+     * it creates a new DIANode. The DIARef returned by Reduce links to this
+     * newly created DIANode. The local_stack_ of the returned DIARef consists
+     * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam key_extr_fn_t Type of the key_extractor function.
+     * \tparam KeyExtractor Type of the key_extractor function.
      * The key_extractor function is equal to a map function.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
      */
-    template <typename key_extr_fn_t>
-    auto ReduceBy(const key_extr_fn_t &key_extractor) {
-        return ReduceSugar<key_extr_fn_t>(key_extractor, node_.get(), local_stack_);
+    template <typename KeyExtractor>
+    auto ReduceBy(const KeyExtractor &key_extractor) {
+        return ReduceSugar<KeyExtractor>(key_extractor, node_.get(),
+                                         local_stack_);
     }
 
     /*!
@@ -237,7 +235,7 @@ public:
      * to form the i-th element of the output DIARef. The type of the output
      * DIARef can be inferred from the zip_function.
      *
-     * \tparam zip_fn_t Type of the zip_function. This is a function with two
+     * \tparam ZipFunction Type of the zip_function. This is a function with two
      * input elements, both of the local type, and one output element, which is
      * the type of the Zip node.
      *
@@ -246,17 +244,19 @@ public:
      * \param second_dia DIARef, which is zipped together with the original
      * DIARef.
      */
-    template <typename zip_fn_t, typename second_dia_t>
-    auto Zip(const zip_fn_t &zip_fn, second_dia_t second_dia) {
-        using zip_result_t
-                  = typename FunctionTraits<zip_fn_t>::result_type;
-        using zip_arg_0_t
-                  = typename FunctionTraits<zip_fn_t>::template arg<0>;
-        using zip_arg_1_t
-                  = typename FunctionTraits<zip_fn_t>::template arg<1>;
+    template <typename ZipFunction, typename SecondDIA>
+    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia) {
+        using ZipResult
+                  = typename FunctionTraits<ZipFunction>::result_type;
+        using ZipArgument0
+                  = typename FunctionTraits<ZipFunction>::template arg<0>;
+        using ZipArgument1
+                  = typename FunctionTraits<ZipFunction>::template arg<1>;
         using ZipResultNode
-                  = TwoZipNode<zip_arg_0_t, zip_arg_1_t, zip_result_t,
-                               decltype(local_stack_), decltype(second_dia.get_stack()), zip_fn_t>;
+                  = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
+                               decltype(local_stack_),
+                               decltype(second_dia.get_stack()),
+                               ZipFunction>;
 
         auto shared_node
             = std::make_shared<ZipResultNode>(node_->get_context(),
@@ -264,63 +264,66 @@ public:
                                               second_dia.get_node(),
                                               local_stack_,
                                               second_dia.get_stack(),
-                                              zip_fn);
+                                              zip_function);
 
         auto zip_stack = shared_node->ProduceStack();
-        return DIARef<zip_result_t, decltype(zip_stack)>
+        return DIARef<ZipResult, decltype(zip_stack)>
                    (std::move(shared_node), zip_stack);
     }
 
     /*!
      * Sum is an Action, which computes the sum of elements of all workers.
      *
-     * \tparam sum_fn_t Type of the sum_function.
+     * \tparam SumFunction Type of the sum_function.
      *
-     * \param sum_fn Sum function.
+     * \param sum_function Sum function.
      */
-    template <typename sum_fn_t>
-    auto Sum(const sum_fn_t &sum_fn) {
-        using sum_result_t
-                  = typename FunctionTraits<sum_fn_t>::result_type;
-        using sum_arg_0_t
-                  = typename FunctionTraits<sum_fn_t>::template arg<0>;
+    template <typename SumFunction>
+    auto Sum(const SumFunction &sum_function) {
+        using SumResult
+                  = typename FunctionTraits<SumFunction>::result_type;
+        using SumArgument0
+                  = typename FunctionTraits<SumFunction>::template arg<0>;
 
         using SumResultNode
-                  = SumNode<sum_arg_0_t, sum_result_t, decltype(local_stack_), sum_fn_t>;
+                  = SumNode<SumArgument0, SumResult,
+                            decltype(local_stack_), SumFunction>;
 
         auto shared_node
             = std::make_shared<SumResultNode>(node_->get_context(),
                                               node_.get(),
                                               local_stack_,
-                                              sum_fn);
+                                              sum_function);
 
         core::StageBuilder().RunScope(shared_node.get());
         return shared_node.get()->result();
     }
 
     /*!
-     * WriteToFileSystem is an Action, which writes elements to an output file. A
-     * provided function is used prepare the elements before written.
+     * WriteToFileSystem is an Action, which writes elements to an output file.
+     * A provided function is used prepare the elements before written.
      *
-     * \tparam write_fn_t Type of the write_function. This is a function with one
-     * input element of the local type.
+     * \tparam WriteFunction Type of the write_function. This is a function with
+     * one input element of the local type.
      *
-     * \param write_fn Write function, which prepares an element to be written to disk.
+     * \param write_function Write function, which prepares an element to be
+     * written to disk.
      *
      * \param filepath Destination of the output file.
      */
-    template <typename write_fn_t>
+    template <typename WriteFunction>
     void WriteToFileSystem(std::string filepath,
-                           const write_fn_t& write_fn) {
-        using write_result_t = typename FunctionTraits<write_fn_t>::result_type;
+                           const WriteFunction& write_function) {
+        using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
 
-        using WriteResultNode = WriteNode<T, write_result_t, write_fn_t, decltype(local_stack_)>;
+        using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
+                                          decltype(local_stack_)>;
 
         auto shared_node =
             std::make_shared<WriteResultNode>(node_->get_context(),
                                               node_.get(),
                                               local_stack_,
-                                              write_fn,
+                                              write_function,
                                               filepath);
 
         auto write_stack = shared_node->ProduceStack();
@@ -385,11 +388,11 @@ private:
     /*!
      * Syntactic sugaaah for reduce
      */
-    template <typename key_extr_fn_t>
+    template <typename KeyExtractor>
     class ReduceSugar
     {
     public:
-        ReduceSugar(const key_extr_fn_t& key_extractor, DIANode<T>* node, Stack& local_stack)
+        ReduceSugar(const KeyExtractor& key_extractor, DIANode<T>* node, Stack& local_stack)
             : key_extractor_(key_extractor), node_(node), local_stack_(local_stack) { }
 
         /*!
@@ -404,12 +407,13 @@ private:
          * associative but not necessarily commutative.
          *
          */
-        template <typename reduce_fn_t>
-        auto With(const reduce_fn_t &reduce_function) {
-            using dop_result_t
-                      = typename FunctionTraits<reduce_fn_t>::result_type;
+        template <typename ReduceFunction>
+        auto With(const ReduceFunction &reduce_function) {
+            using DOpResult
+                      = typename FunctionTraits<ReduceFunction>::result_type;
             using ReduceResultNode
-                      = ReduceNode<T, dop_result_t, decltype(local_stack_), key_extr_fn_t, reduce_fn_t>;
+                      = ReduceNode<T, DOpResult, decltype(local_stack_),
+                                   KeyExtractor, ReduceFunction>;
 
             auto shared_node
                 = std::make_shared<ReduceResultNode>(node_->get_context(),
@@ -420,12 +424,12 @@ private:
 
             auto reduce_stack = shared_node->ProduceStack();
 
-            return DIARef<dop_result_t, decltype(reduce_stack)>
+            return DIARef<DOpResult, decltype(reduce_stack)>
                        (std::move(shared_node), reduce_stack);
         }
 
     private:
-        const key_extr_fn_t& key_extractor_;
+        const KeyExtractor& key_extractor_;
         DIANode<T>* node_;
         Stack& local_stack_;
     };
@@ -433,38 +437,41 @@ private:
 
 //! \}
 
-template <typename read_fn_t>
+template <typename ReadFunction>
 auto ReadFromFileSystem(Context & ctx, std::string filepath,
-                        const read_fn_t &read_fn) {
-    using read_result_t = typename FunctionTraits<read_fn_t>::result_type;
-    using ReadResultNode = ReadNode<read_result_t, read_fn_t>;
+                        const ReadFunction &read_function) {
+    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
+    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
 
     auto shared_node =
         std::make_shared<ReadResultNode>(ctx,
-                                         read_fn,
+                                         read_function,
                                          filepath);
 
     auto read_stack = shared_node->ProduceStack();
 
-    return DIARef<read_result_t, decltype(read_stack)>
+    return DIARef<ReadResult, decltype(read_stack)>
                (std::move(shared_node), read_stack);
 }
 
-template <typename generator_fn_t>
+template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
-                      const generator_fn_t &generator_fn, size_t size) {
-    using generator_result_t = typename FunctionTraits<generator_fn_t>::result_type;
-    using GeneratorResultNode = GeneratorNode<generator_result_t, generator_fn_t>;
+                      const GeneratorFunction &generator_function,
+                      size_t size) {
+    using GeneratorResult =
+        typename FunctionTraits<GeneratorFunction>::result_type;
+    using GeneratorResultNode =
+        GeneratorNode<GeneratorResult, GeneratorFunction>;
 
     auto shared_node =
         std::make_shared<GeneratorResultNode>(ctx,
-                                              generator_fn,
+                                              generator_function,
                                               filepath,
                                               size);
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<generator_result_t, decltype(generator_stack)>
+    return DIARef<GeneratorResult, decltype(generator_stack)>
                (std::move(shared_node), generator_stack);
 }
 

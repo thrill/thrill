@@ -61,9 +61,11 @@ public:
      * Constructor for a ReduceNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param ctx Reference to Context, which holds references to data and network.
+     * \param ctx Reference to Context, which holds references to data and
+     * network.
      * \param parent Parent DIANode.
-     * \param stack Function chain with all lambdas between the parent and this node
+     * \param stack Function chain with all lambdas between the parent and this
+     * node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
@@ -77,8 +79,10 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
-          emitters_(ctx.get_data_manager().template GetNetworkEmitters<Output>(channel_id_)),
-          reduce_pre_table_(ctx.number_worker(), key_extractor, reduce_function_, emitters_)
+          emitters_(ctx.get_data_manager().
+                    template GetNetworkEmitters<Output>(channel_id_)),
+          reduce_pre_table_(ctx.number_worker(), key_extractor,
+                            reduce_function_, emitters_)
     {
         // Hook PreOp
         auto pre_op_fn = [=](ReduceArg input) {
@@ -134,7 +138,8 @@ private:
 
     std::vector<data::Emitter<Output> > emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<Output> > reduce_pre_table_;
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<Output> >
+    reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -155,9 +160,11 @@ private:
                                           ReduceFunction,
                                           std::function<void(Output)> >;
 
-        ReduceTable table(key_extractor_, reduce_function_, DIANode<Output>::callbacks());
+        ReduceTable table(key_extractor_, reduce_function_,
+                          DIANode<Output>::callbacks());
 
-        auto it = context_.get_data_manager().template GetIterator<Output>(channel_id_);
+        auto it = context_.get_data_manager().
+            template GetIterator<Output>(channel_id_);
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {

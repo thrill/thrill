@@ -36,6 +36,10 @@ template <typename Output, typename ReadFunction>
 class ReadNode : public DOpNode<Output>
 {
 public:
+    using Super = DOpNode<Output>;     
+    using Super::context_;
+    using Super::data_id_;
+
     /*!
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
@@ -56,8 +60,7 @@ public:
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void execute() {
-        // Emitter<Output> GetLocalEmitter(DIAId id) {
-        LOG1 << "READING data with id " << this->data_id_;
+        LOG1 << "READING data with id " << data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -66,7 +69,8 @@ public:
             context_.get_data_manager().GetInputLineIterator(
                 file, context_.rank(), context_.number_worker());
 
-        auto emit = context_.get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+        auto emit = context_.get_data_manager().
+            template GetLocalEmitter<Output>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {
@@ -96,12 +100,10 @@ public:
      * \return "[ReadNode]"
      */
     std::string ToString() override {
-        return "[ReadNode] Id: " + this->data_id_.ToString();
+        return "[ReadNode] Id: " + data_id_.ToString();
     }
 
 private:
-    //! operation context
-    using DOpNode<Output>::context_;
 
     //! The read function which is applied on every line read.
     ReadFunction read_function_;
