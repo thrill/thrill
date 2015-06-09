@@ -64,6 +64,7 @@ public:
                 else LOG1 << "OMG NULLPTR";
             }
         }
+        std::reverse(stages_result.begin(), stages_result.end());
     }
 
     void RunScope(DIABase* action) {

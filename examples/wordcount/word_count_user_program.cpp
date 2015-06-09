@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/api/dia.hpp>
+#include <c7a/common/string.hpp>
 
 //! The WordCount user program
 int word_count(c7a::Context& ctx) {
@@ -15,9 +16,8 @@ int word_count(c7a::Context& ctx) {
     using WordPair = std::pair<std::string, int>;
 
     auto line_to_words = [](std::string line, auto emit) {
-                             std::string word;
-                             std::istringstream iss(line);
-                             while (iss >> word) {
+                             std::vector<std::string> splitted_line = c7a::split(line," ");
+                             for (auto word : splitted_line) {
                                  WordPair wp = std::make_pair(word, 1);
                                  emit(wp);
                              }
