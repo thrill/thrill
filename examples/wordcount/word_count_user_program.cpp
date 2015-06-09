@@ -18,8 +18,10 @@ int word_count(c7a::Context& ctx) {
     auto line_to_words = [](std::string line, auto emit) {
                              std::vector<std::string> splitted_line = c7a::split(line," ");
                              for (auto word : splitted_line) {
-                                 WordPair wp = std::make_pair(word, 1);
-                                 emit(wp);
+                                 if (word.length() > 1) {
+                                     WordPair wp = std::make_pair(word, 1);
+                                     emit(wp);
+                                 }
                              }
                          };
     auto key = [](WordPair in) {
