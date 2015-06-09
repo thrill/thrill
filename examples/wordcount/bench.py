@@ -6,9 +6,9 @@ import subprocess
 import random
 import re
 
-amounts=[28]
+amounts=[12,14,16,18,20,22,24,26,28]
 
-workers = [2,1]
+workers = [4,3,2,1]
 
 def median(x):
     if len(x)%2 != 0:
@@ -24,8 +24,8 @@ for amount in amounts:
         print "Testing with " + str(worker) + " workers"
         with open(str(worker) + "_workers", "a+") as file1:
             results = []
-            for _ in range(1):
-                process = subprocess.Popen(["../../build/examples/wc", "-n", str(worker), "-s", str(pow(2, amount))], stdout=subprocess.PIPE)
+            for _ in range(9):
+                process = subprocess.Popen(["../../build/examples/local_word_count", "-n", str(worker), "-s", str(pow(2, amount))], stdout=subprocess.PIPE)
                 process.wait()
                 output = process.communicate()[0]
                 #print output
