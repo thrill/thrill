@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count_simple.cpp
+ * examples/wordcount/word_count_simple.cpp
  *
  * Part of Project c7a.
  *

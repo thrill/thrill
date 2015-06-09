@@ -177,10 +177,10 @@ public:
      * a boolean.
      *
      */
-    template <typename filter_fn_t>
-    auto Filter(const filter_fn_t &filter_fn) {
+    template <typename FilterFunction>
+    auto Filter(const FilterFunction &filter_function) {
         using filter_arg_t
-                  = typename FunctionTraits<filter_fn_t>::template arg<0>;
+                  = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_fn = [=](filter_arg_t input, auto emit_func) {
                                   if (filter_fn(input)) emit_func(input);
                               };
