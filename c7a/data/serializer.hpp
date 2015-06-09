@@ -16,6 +16,11 @@
 #include <utility>
 #include <cassert>
 
+
+//TODO DELETE
+#include <iostream>
+
+
 //TODO(ts) this copies data. That is bad and makes me sad.
 
 namespace c7a {
@@ -76,13 +81,56 @@ struct Impl<std::pair<std::string, int> >{
         std::memcpy(result + sizeof(int), x.first.c_str(), x.first.size());
         return std::string(result, len);
     }
-
+    //TODO(tb): What exactly happens with c_string. What is thiiiiiis?
     static std::pair<std::string, int> Deserialize(const std::string& x) {
         int i;
         std::size_t str_len = x.size() - sizeof(int);
         std::memcpy(&i, x.c_str(), sizeof(int));
         std::string s(x, sizeof(int), str_len);
         return std::pair<std::string, int>(s, i);
+    }
+};
+
+// TODO(cn): do we have clusternodes working on 32 and 64bit systems at the same time??
+template <typename T1, typename T2>
+struct Impl<std::pair<T1, T2>> {
+    static std::string Serialize(const std::pair<T1, T2>& x) {
+        if( x.first.size() > UINT_MAX ) {
+            //TODO ERROR
+        }
+        unsigned int len_t1 = static_cast<unsigned int>(x.first.size());
+        std::string t1 = serializers::Impl<T1>::Serialize(x.first);
+        std::string t2 = serializers::Impl<T1>::Serialize(x.second);
+
+        std::size_t len = t1.size() + t2.size() + sizeof(unsigned int);
+        char result[len];
+        std::memcpy(result, &len_t1, sizeof(unsigned int));
+        std::memcpy(result + sizeof(unsigned int), &t1, t1.size());
+        std::memcpy(result + sizeof(unsigned int) + x.first.size(), &t2, t2.size());
+
+        std::cout << sizeof(unsigned int) << " " <<
+                     sizeof(unsigned int) + x.first.size() << " " <<
+                     x.first.size() << " " <<
+                     x.second.size() << std::endl;
+
+        return std::string(result, len);
+    }
+    static std::pair<T1, T2> Deserialize(const std::string& x) {
+        unsigned int len_t1;
+        std::memcpy(&len_t1, x.c_str(), sizeof(unsigned int));
+        std::size_t len_t2 = x.size() - sizeof(unsigned int) - static_cast<size_t>(len_t1);
+        T1 t1;
+        T2 t2;
+
+        std::memcpy(&t1, &x + sizeof(unsigned int), len_t1);
+        std::memcpy(&t2, &x + sizeof(unsigned int) + len_t1, len_t2);
+
+        std::cout << sizeof(unsigned int) << " " <<
+                     sizeof(unsigned int) + len_t1 << " " <<
+                     len_t1 << " " <<
+                     len_t2 << std::endl;
+
+        return std::pair<T1, T2>(t1, t2);
     }
 };
 
