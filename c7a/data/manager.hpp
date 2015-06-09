@@ -12,7 +12,7 @@
 #define C7A_DATA_MANAGER_HEADER
 
 #include <c7a/data/iterator.hpp>
-#include <c7a/data/input_line_iterator.hpp>
+#include <c7a/api/input_line_iterator.hpp>
 #include <c7a/data/emitter.hpp>
 #include <c7a/data/buffer_chain.hpp>
 #include <c7a/data/output_line_emitter.hpp>
@@ -122,18 +122,6 @@ public:
             throw std::runtime_error("target channel id unknown.");
         }
         return cmp_.OpenChannel<T>(id);
-    }
-
-    //!Returns an InputLineIterator with a given input file stream.
-    //!
-    //! \param file Input file stream
-    //! \param my_id Id of this worker
-    //! \param num_work Number of workers
-    //!
-    //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file, size_t my_id, size_t num_work) {
-
-        return InputLineIterator(file, my_id, num_work);
     }
 
     //! Returns an OutputLineIterator with a given output file stream.

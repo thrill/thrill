@@ -43,7 +43,7 @@ TEST(WordCount, WordCountExample) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    auto lines = ReadFromFileSystem(
+    auto lines = ReadLines(
         ctx,
         "wordcount.in",
         [](const std::string& line) {
