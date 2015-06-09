@@ -23,6 +23,10 @@ class SumNode : public ActionNode<Input>
 {
     static const bool debug = false;
 
+    
+    using Super = ActionNode<Input>;     
+    using Super::context_;
+    using Super::data_id_;
     using SumArg0 = typename FunctionTraits<SumFunction>::template arg<0>;
 
 public:
@@ -78,12 +82,10 @@ public:
      * \return "[SumNode]"
      */
     std::string ToString() override {
-        return "[SumNode] Id:" + this->data_id_.ToString();
+        return "[SumNode] Id:" + data_id_.ToString();
     }
 
 private:
-    //! operation context
-    using ActionNode<Output>::context_;
 
     //! Local stack.
     Stack stack_;
