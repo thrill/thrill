@@ -34,6 +34,9 @@ template <typename Input, typename LOpStack>
 class LOpNode : public DIANode<Input>
 {
 public:
+    using Super = DIANode<Input>;
+    using Super::context_;
+
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
@@ -58,7 +61,7 @@ public:
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
-        auto it = (this->context_).get_data_manager().template GetIterator<Input>(pid);
+        auto it = context_.get_data_manager().template GetIterator<Input>(pid);
 
         std::vector<Input> elements;
         auto save_fn = [&elements](Input input) {
@@ -72,7 +75,8 @@ public:
         }
 
         // Emit new elements
-        auto emit = (this->context_).get_data_manager().template GetLocalEmitter<Input>(DIABase::data_id_);
+        auto emit = context_.get_data_manager().
+            template GetLocalEmitter<Input>(DIABase::data_id_);
         for (auto elem : elements) {
             emit(elem);
         }

@@ -49,7 +49,9 @@ template <typename Input1, typename Input2, typename Output,
 class TwoZipNode : public DOpNode<Output>
 {
     static const bool debug = false;
-
+    
+    using Super = DOpNode<Output>;     
+    using Super::context_;
     using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
 
@@ -93,8 +95,10 @@ public:
         for (size_t i = 0; i < num_dias_; ++i) {
             id_.push_back(context_.get_data_manager().AllocateDIA());
         }
-        emit1_ = context_.get_data_manager().template GetLocalEmitter<ZipArg0>(id_[0]);
-        emit2_ = context_.get_data_manager().template GetLocalEmitter<ZipArg1>(id_[1]);
+        emit1_ = context_.get_data_manager().
+            template GetLocalEmitter<ZipArg0>(id_[0]);
+        emit2_ = context_.get_data_manager().
+            template GetLocalEmitter<ZipArg1>(id_[1]);
     }
 
     /*!
@@ -104,8 +108,10 @@ public:
     void execute() override {
         MainOp();
         // get data from data manager
-        auto it1 = context_.get_data_manager().template GetIterator<ZipArg0>(id_[0]);
-        auto it2 = context_.get_data_manager().template GetIterator<ZipArg1>(id_[1]);
+        auto it1 = context_.get_data_manager().
+            template GetIterator<ZipArg0>(id_[0]);
+        auto it2 = context_.get_data_manager().
+            template GetIterator<ZipArg1>(id_[1]);
         do {
             it1.WaitForMore();
             it2.WaitForMore();
@@ -120,7 +126,7 @@ public:
     }
 
     /*!
-     * TODO(an): I have no idea...
+     * Creates empty stack.
      */
     auto ProduceStack() {
         // Hook PostOp
@@ -141,8 +147,6 @@ public:
     }
 
 private:
-    //! operation context
-    using DOpNode<Output>::context_;
 
     //! Local stacks
     Stack1 stack1_;
