@@ -33,7 +33,7 @@ int word_count(c7a::Context& ctx) {
         };
 
     std::cout << "wordcount.in" << std::endl;
-    auto lines = ReadFromFileSystem(
+    auto lines = ReadLines(
         ctx,
         "wordcount.in",
         [](const std::string& line) {

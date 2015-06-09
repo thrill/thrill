@@ -438,7 +438,7 @@ private:
 //! \}
 
 template <typename ReadFunction>
-auto ReadFromFileSystem(Context & ctx, std::string filepath,
+auto ReadLines(Context & ctx, std::string filepath,
                         const ReadFunction &read_function) {
     using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
     using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
