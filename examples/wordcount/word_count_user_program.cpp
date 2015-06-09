@@ -42,7 +42,7 @@ int word_count(c7a::Context& ctx) {
 
     auto red_words = word_pairs.ReduceBy(key).With(red_fn);
 
-    red_words.WriteToFileSystem("wordcount" + std::to_string(ctx.rank()) + ".out",
+    red_words.WriteToFileSystem("wordcount_" + std::to_string(ctx.rank()) + ".out",
                                 [](const WordPair& item) {
                                     std::string str;
                                     str += item.first;
