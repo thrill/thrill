@@ -57,6 +57,17 @@ public:
 
     virtual ~ReadNode() { }
 
+    //!Returns an InputLineIterator with a given input file stream.
+    //!
+    //! \param file Input file stream
+    //! \param my_id Id of this worker
+    //! \param num_work Number of workers
+    //!
+    //! \return An InputLineIterator for a given file stream
+    InputLineIterator GetInputLineIterator(std::ifstream& file, size_t my_id, size_t num_work) {
+        return InputLineIterator(file, my_id, num_work);
+    }
+
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void execute() {
@@ -65,8 +76,7 @@ public:
         std::ifstream file(path_in_);
         assert(file.good());
 
-        data::InputLineIterator it =
-            context_.get_data_manager().GetInputLineIterator(
+        InputLineIterator it = GetInputLineIterator(
                 file, context_.rank(), context_.number_worker());
 
         auto emit = context_.get_data_manager().
