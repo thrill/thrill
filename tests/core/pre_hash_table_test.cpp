@@ -428,12 +428,12 @@ TEST_F(PreTable, ResizeTwoPartitions) {
 
 TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     auto key_ex = [](const MyStruct& in) {
-        return in.key;
-    };
+                      return in.key;
+                  };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
-    };
+                      return MyStruct(in1.key, in1.count + in2.count);
+                  };
 
     size_t num_partitions = 3;
     size_t num_buckets_init_scale = 2;
@@ -450,9 +450,9 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct>, 16*1024>
-            table(num_partitions, num_buckets_init_scale, 10, bucket_size,
-                  nitems, key_ex, red_fn, { emitters });
+                              Emitter<MyStruct>, 16*1024>
+    table(num_partitions, num_buckets_init_scale, 10, bucket_size,
+          nitems, key_ex, red_fn, { emitters });
 
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));

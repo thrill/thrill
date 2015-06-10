@@ -191,8 +191,8 @@ public:
     //! Send a fixed-length type T (possibly without length header).
     template <typename T>
     void Send(const T& value) {
-        static_assert(std::is_integral<T>::value,
-                      "You only want to send integral types as raw values.");
+        static_assert(std::is_pod<T>::value,
+                      "You only want to send POD types as raw values.");
 
         if (self_verify_) {
             // for communication verification, send sizeof.
@@ -227,8 +227,8 @@ public:
     //! Receive a fixed-length type, possibly without length header.
     template <typename T>
     void Receive(T* out_value) {
-        static_assert(std::is_integral<T>::value,
-                      "You only want to receive integral types as raw values.");
+        static_assert(std::is_pod<T>::value,
+                      "You only want to receive POD types as raw values.");
 
         if (self_verify_) {
             // for communication verification, receive sizeof.
