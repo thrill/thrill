@@ -296,8 +296,8 @@ public:
     //! careful with implicit type conversions!
     template <typename Type>
     BinaryBufferBuilder & Put(const Type item) {
-        static_assert(std::is_integral<Type>::value,
-                      "You only want to Put() integral types as raw values.");
+        static_assert(std::is_pod<Type>::value,
+                      "You only want to Put() POD types as raw values.");
 
         if (size_ + sizeof(Type) > capacity_) DynReserve(size_ + sizeof(Type));
 

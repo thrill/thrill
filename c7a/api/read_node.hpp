@@ -36,6 +36,10 @@ template <typename Output, typename ReadFunction>
 class ReadNode : public DOpNode<Output>
 {
 public:
+    using Super = DOpNode<Output>;     
+    using Super::context_;
+    using Super::data_id_;
+
     /*!
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
     *
@@ -53,18 +57,30 @@ public:
 
     virtual ~ReadNode() { }
 
+    //!Returns an InputLineIterator with a given input file stream.
+    //!
+    //! \param file Input file stream
+    //! \param my_id Id of this worker
+    //! \param num_work Number of workers
+    //!
+    //! \return An InputLineIterator for a given file stream
+    InputLineIterator GetInputLineIterator(std::ifstream& file, size_t my_id, size_t num_work) {
+        return InputLineIterator(file, my_id, num_work);
+    }
+
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void execute() {
-        // Emitter<Output> GetLocalEmitter(DIAId id) {
-        LOG1 << "READING data with id " << this->data_id_;
+        LOG1 << "READING data with id " << data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());
 
-        data::InputLineIterator it = (this->context_).get_data_manager().GetInputLineIterator(file, (this->context_).rank(), (this->context_).number_worker());
+        InputLineIterator it = GetInputLineIterator(
+                file, context_.rank(), context_.number_worker());
 
-        auto emit = (this->context_).get_data_manager().template GetLocalEmitter<Output>(this->data_id_);
+        auto emit = context_.get_data_manager().
+            template GetLocalEmitter<Output>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {
@@ -81,7 +97,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, std::function<void(Output)> emit_func) {
+        auto id_fn = [=](Output t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -94,10 +110,11 @@ public:
      * \return "[ReadNode]"
      */
     std::string ToString() override {
-        return "[ReadNode] Id: " + this->data_id_.ToString();
+        return "[ReadNode] Id: " + data_id_.ToString();
     }
 
 private:
+
     //! The read function which is applied on every line read.
     ReadFunction read_function_;
     //! Path of the input file.

@@ -22,7 +22,8 @@ class ActionNode : public DIANode<T>
 public:
     ActionNode(Context& ctx,
                const DIABaseVector& parents)
-        : DIANode<T>(ctx, parents) { }
+        : DIANode<T>(ctx, parents)
+    { }
 
     virtual ~ActionNode() { }
 };

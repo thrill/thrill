@@ -23,7 +23,11 @@ class SumNode : public ActionNode<Input>
 {
     static const bool debug = false;
 
-    using sum_arg_0_t = typename FunctionTraits<SumFunction>::template arg<0>;
+    
+    using Super = ActionNode<Input>;     
+    using Super::context_;
+    using Super::data_id_;
+    using SumArg0 = typename FunctionTraits<SumFunction>::template arg<0>;
 
 public:
     SumNode(Context& ctx,
@@ -57,7 +61,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Input t, std::function<void(Input)> emit_func) {
+        auto id_fn = [=](Input t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -78,10 +82,11 @@ public:
      * \return "[SumNode]"
      */
     std::string ToString() override {
-        return "[SumNode] Id:" + this->data_id_.ToString();
+        return "[SumNode] Id:" + data_id_.ToString();
     }
 
 private:
+
     //! Local stack.
     Stack stack_;
     //! The sum function which is applied to two elements.
@@ -89,14 +94,14 @@ private:
     // Local sum to be forwarded to other worker.
     Input local_sum = 0;
 
-    void PreOp(sum_arg_0_t input) {
+    void PreOp(SumArg0 input) {
         LOG << "PreOp: " << input;
         local_sum = sum_function_(local_sum, input);
     }
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::Group& flow_group = (this->context_).get_flow_net_group();
+        net::Group& flow_group = context_.get_flow_net_group();
 
         // process the reduce
         net::ReduceToRoot<Output, SumFunction>(flow_group, local_sum, sum_function_);
@@ -108,7 +113,7 @@ private:
         net::PrefixSum(flow_group, sum);
 
         // broadcast to all other workers
-        if ((this->context_).rank() == 0)
+        if (context_.rank() == 0)
             net::Broadcast(flow_group, local_sum);
     }
 
