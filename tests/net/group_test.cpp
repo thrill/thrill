@@ -289,4 +289,45 @@ TEST(Group, TestReduceToRoot) {
     }
 }
 
+TEST(Group, TestBarrier) {
+    static const bool debug = false;
+    std::mutex sync_mtx; // Synchronisation mutex for the barrier
+    std::mutex local_mtx; // Mutex for writing to the results array
+    std::condition_variable cv; // Condition variable for the barrier
+
+    for (size_t p = 0; p <= 8; ++p) {
+        int workers = p;
+        int workers_copy = workers; // Will be decremented by the barrier function
+
+        char result[2 * workers];
+        int k = 0; // The counter for the result array
+        sLOG << "I'm in test" << workers;
+
+        Group::ExecuteLocalMock(
+            workers, [&](Group* net) {
+                local_mtx.lock();
+                result[k++] = 'B'; // B stands for 'Before barrier'
+                local_mtx.unlock();
+
+                sLOG << "Before Barrier, worker" << net->MyRank();
+
+                c7a::net::Barrier(sync_mtx, cv, workers_copy);
+
+                local_mtx.lock();
+                result[k++] = 'A'; // A stands for 'After barrier'
+                local_mtx.unlock();
+
+                sLOG << "After Barrier, worker" << net->MyRank();
+                });
+        for (int i = 0; i < workers; ++i) {
+            sLOG << "Checking position" << i;
+            ASSERT_EQ(result[i], 'B');
+        }
+        for (int i = workers; i < 2 * workers; ++i) {
+            sLOG << "Checking position" << i;
+            ASSERT_EQ(result[i], 'A');
+        }
+    }
+}
+
 /******************************************************************************/
