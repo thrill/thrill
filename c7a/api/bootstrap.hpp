@@ -34,16 +34,16 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 
     std::vector<std::string> addr;
     clp.AddParamStringlist("addresses", addr,
-                "List of all worker addresses.");
+                           "List of all worker addresses.");
 
     if (!clp.Process(argc, argv)) {
-        return std::make_tuple(-1, my_rank, endpoints);;
+        return std::make_tuple(-1, my_rank, endpoints);
     }
 
     for (auto address : addr) {
         if (address.find(":") == std::string::npos) {
-	    std::cerr << "Invalid address. No Portnumber detecable";
-	    return std::make_tuple(-1, my_rank, endpoints);
+            std::cerr << "Invalid address. No Portnumber detecable";
+            return std::make_tuple(-1, my_rank, endpoints);
         }
     }
 
@@ -91,7 +91,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
     for (const auto& ep : endpoints)
-       LOG << ep << " ";
+        LOG << ep << " ";
 
     Context ctx;
     LOG << "connecting to peers";

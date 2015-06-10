@@ -67,17 +67,6 @@ public:
         return job_manager_;
     }
 
-    //!Returns the current directory.
-    std::string get_current_dir() {
-        char cCurrentPath[FILENAME_MAX];
-
-        if (!getcwd(cCurrentPath, sizeof(cCurrentPath))) {
-            throw "unable to retrieve current directory";
-        }
-
-        return getcwd(cCurrentPath, sizeof(cCurrentPath));
-    }
-
     common::Stats & get_stats() {
         return stats_;
     }

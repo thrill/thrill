@@ -67,7 +67,8 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx, const DIABaseVector& parents)
-        : context_(ctx), parents_(parents), data_id_(ctx.get_data_manager().AllocateDIA()) {
+        : context_(ctx), parents_(parents),
+          data_id_(ctx.get_data_manager().AllocateDIA()) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -149,6 +150,7 @@ protected:
 };
 
 //! \}
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER

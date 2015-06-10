@@ -37,7 +37,7 @@ TEST(SumNode, LocalhostOneThread) {
                       return 2 * in;
                   };
 
-    auto input = ReadFromFileSystem(
+    auto input = ReadLines(
         ctx,
         "test1",
         [](const std::string& line) {
@@ -62,7 +62,7 @@ int sum_node_generated(c7a::Context& ctx) {
                       return 2 * in;
                   };
 
-    auto input = ReadFromFileSystem(
+    auto input = ReadLines(
         ctx,
         "test1",
         [](const std::string& line) {
@@ -105,9 +105,10 @@ TEST(SumNode, DISABLED_LocalhostTwoThreads) {
             arguments[i][j + 2] = const_cast<char*>(strargs[i][j + 2].c_str());
         }
 
-        std::function<int(c7a::Context&)> start_func = [](c7a::Context& ctx) {
-                                                           return sum_node_generated(ctx);
-                                                       };
+        std::function<int(c7a::Context&)> start_func =
+            [](c7a::Context& ctx) {
+                return sum_node_generated(ctx);
+        };
 
         strargs[i][0] = "sum node";
         arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());

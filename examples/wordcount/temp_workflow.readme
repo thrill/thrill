@@ -1,0 +1,7 @@
+# After compiling, wordcount object files and a wordlist used to generate data can be found in folder c7a/build/examples.
+
+# Invoke local word count with ./local_word_count -n NUMBER_WORKERS -s DIA_SIZE.
+# Invoke real word count with ./word_count -r RANK PORTLIST, where portlist is a list of all used ports splitted by spaces.
+# The program starts as soon as all |PORTLIST| workers (with ranks 0 to |PORTLIST| - 1) are started.
+
+# Start large local benchmarking script with 'python bench.py' and use 'python graph_gen.py' to create a graph using the data create by the benchmarkign script.

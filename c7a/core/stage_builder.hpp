@@ -35,8 +35,7 @@ public:
         node_->execute();
     }
 
-private:    
-    
+private:
     static const bool debug = false;
     DIABase* node_;
 };
@@ -63,8 +62,9 @@ public:
                     stages_found.insert(p);
                 }
                 else LOG1 << "OMG NULLPTR";
-	    }
-	}
+            }
+        }
+        std::reverse(stages_result.begin(), stages_result.end());
     }
 
     void RunScope(DIABase* action) {
@@ -76,6 +76,7 @@ public:
         }
     }
 };
+
 } // namespace core
 } // namespace c7a
 

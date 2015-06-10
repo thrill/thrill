@@ -15,12 +15,10 @@
 #include <string>
 #include <fstream>
 #include <iostream>
-#include "serializer.hpp"
+
+#include <c7a/data/serializer.hpp>
 
 namespace c7a {
-namespace data {
-
-// TODO(an): this belongs to the LineReaderNode.
 
 //! InputLineIterator gives you access to lines of a file
 class InputLineIterator
@@ -80,7 +78,6 @@ private:
     size_t num_workers_;
 };
 
-} // namespace data
 } // namespace c7a
 
 #endif // !C7A_DATA_INPUT_LINE_ITERATOR_HEADER
