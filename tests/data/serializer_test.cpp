@@ -28,6 +28,51 @@ TEST(Serializer, IntSerializeDeserialize) {
     ASSERT_EQ(-123, Deserialize<int>(Serialize<int>(-123)));
 }
 
+TEST(Serializer, LongSerializeDeserialize) {
+    long x = 123;
+    ASSERT_EQ(x, Deserialize<long>(Serialize<long>(x)));
+}
+
+TEST(Serializer, LongLongSerializeDeserialize) {
+    long long x = 123;
+    ASSERT_EQ(x, Deserialize<long long>(Serialize<long long>(x)));
+}
+
+TEST(Serializer, UnsignedSerializeDeserialize) {
+    unsigned x = 123;
+    ASSERT_EQ(x, Deserialize<unsigned>(Serialize<unsigned>(x)));
+}
+
+TEST(Serializer, UnsignedLongSerializeDeserialize) {
+    unsigned long x = 123;
+    ASSERT_EQ(x, Deserialize<unsigned long>(Serialize<unsigned long>(x)));
+}
+
+TEST(Serializer, UnsignedLongLongSerializeDeserialize) {
+    unsigned long long x = 123;
+    ASSERT_EQ(x, Deserialize<unsigned long long>(Serialize<unsigned long long>(x)));
+}
+
+TEST(Serializer, FloatSerializeDeserialize) {
+    float x = 123;
+    ASSERT_EQ(x, Deserialize<float>(Serialize<float>(x)));
+}
+
+TEST(Serializer, DoubleSerializeDeserialize) {
+    double x = 123;
+    ASSERT_EQ(x, Deserialize<double>(Serialize<double>(x)));
+}
+
+TEST(Serializer, LongDoubleSerializeDeserialize) {
+    long double x = 123;
+    ASSERT_EQ(x, Deserialize<long double>(Serialize<long double>(x)));
+}
+
+TEST(Serializer, SizeTSerializeDeserialize) {
+    size_t x = 123;
+    ASSERT_EQ(x, Deserialize<size_t>(Serialize<size_t>(x)));
+}
+
 TEST(Serializer, StringIntPairSerializeDeserialize) {
     auto t = std::make_pair("foo", 123);
     auto serialized = Serialize<std::pair<std::string, int> >(t);
