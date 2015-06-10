@@ -102,14 +102,14 @@ static void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     Broadcast(net, value);
 }
 
-// @brief   Perform a barrier for all workers.
-// @details All workers synchronize to this point. This operation can be used if
-//          one wants to be sure that all workers continue their operation
-//          synchronously after this point.
-//
-// @param   mtx A common mutex onto which to lock
-// @param   cv  A condition variable which locks on the given mutex
-// @param   num_workers The total number of workers in the network
+//! @brief   Perform a barrier for all workers.
+//! @details All workers synchronize to this point. This operation can be used if
+//!          one wants to be sure that all workers continue their operation
+//!          synchronously after this point.
+//!
+//! @param   mtx A common mutex onto which to lock
+//! @param   cv  A condition variable which locks on the given mutex
+//! @param   num_workers The total number of workers in the network
 static void Barrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
