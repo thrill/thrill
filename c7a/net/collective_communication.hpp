@@ -15,6 +15,8 @@
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
 #include <c7a/net/group.hpp>
+#include <mutex>
+#include <condition_variable>
 
 namespace c7a {
 namespace net {
@@ -98,6 +100,26 @@ template <typename T, typename BinarySumOp = common::SumOp<T> >
 static void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
+}
+
+// @brief   Perform a barrier for all workers.
+// @details All workers synchronize to this point. This operation can be used if
+//          one wants to be sure that all workers continue their operation
+//          synchronously after this point.
+//
+// @param   mtx A common mutex onto which to lock
+// @param   cv  A condition variable which locks on the given mutex
+// @param   num_workers The total number of workers in the network
+static void Barrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
+    std::unique_lock<std::mutex> lck(mtx);
+    if (num_workers > 1) {
+        --num_workers;
+        while (num_workers > 0) cv.wait(lck);
+    }
+    else {
+        --num_workers;
+        cv.notify_all();
+    }
 }
 
 //! \}
