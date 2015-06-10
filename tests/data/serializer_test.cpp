@@ -47,7 +47,7 @@ TEST(Serializer, PairSerializeDeserialize) {
 
     // ASSERT_EQ(std::get<0>(t), std::get<0>(result));
     // ASSERT_EQ(std::get<1>(t), std::get<1>(result));
-    sLOG << "START" << result.second << "END";
+    sLOG << "START" << result.first << "END";
 }
 
 /******************************************************************************/
