@@ -59,6 +59,78 @@ struct Impl<int>{
     }
 };
 
+//! serializer for long
+template <>
+struct Impl<long>{
+    static std::string Serialize(const long& x) {
+        return std::to_string(x);
+    }
+
+    static long Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
+//! serializer for long long
+template <>
+struct Impl<long long>{
+    static std::string Serialize(const long long& x) {
+        return std::to_string(x);
+    }
+
+    static long long Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
+//! serializer for unsigned
+template <>
+struct Impl<unsigned>{
+    static std::string Serialize(const unsigned& x) {
+        return std::to_string(x);
+    }
+
+    static unsigned Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
+//! serializer for unsigned long
+template <>
+struct Impl<unsigned long>{
+    static std::string Serialize(const unsigned long& x) {
+        return std::to_string(x);
+    }
+
+    static unsigned long Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
+//! serializer for unsigned long long
+template <>
+struct Impl<unsigned long long>{
+    static std::string Serialize(const unsigned long long& x) {
+        return std::to_string(x);
+    }
+
+    static unsigned long long Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
+//! serializer for float
+template <>
+struct Impl<float>{
+    static std::string Serialize(const float& x) {
+        return std::to_string(x);
+    }
+
+    static float Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
 //! serializer for double
 template <>
 struct Impl<double>{
@@ -70,6 +142,20 @@ struct Impl<double>{
         return std::stod(x);
     }
 };
+
+//! serializer for long double
+template <>
+struct Impl<long double>{
+    static std::string Serialize(const long double& x) {
+        return std::to_string(x);
+    }
+
+    static long double Deserialize(const std::string& x) {
+        return std::stoi(x);
+    }
+};
+
+
 
 //! serializer for (string, int) tuples
 template <>
@@ -92,6 +178,7 @@ struct Impl<std::pair<std::string, int> >{
 };
 
 // TODO(cn): do we have clusternodes working on 32 and 64bit systems at the same time??
+//! serializer for pairs
 template <typename T1, typename T2>
 struct Impl<std::pair<T1, T2>> {
     static std::string Serialize(const std::pair<T1, T2>& x) {
