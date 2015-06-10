@@ -107,31 +107,18 @@ struct Impl<std::pair<T1, T2>> {
         std::memcpy(result, &len_t1, sizeof(unsigned int));
         std::memcpy(result + sizeof(unsigned int), t1.c_str(), t1.size());
         std::memcpy(result + sizeof(unsigned int) + x.first.size(), t2.c_str(), t2.size());
-
-        std::cout << sizeof(unsigned int) << " " <<
-                     sizeof(unsigned int) + x.first.size() << " " <<
-                     x.first.size() << " " <<
-                     x.second.size() << std::endl;
-
         return std::string(result, len);
     }
     static std::pair<T1, T2> Deserialize(const std::string& x) {
         unsigned int len_t1;
         std::memcpy(&len_t1, x.c_str(), sizeof(unsigned int));
-        std::size_t len_t2 = x.size() - sizeof(unsigned int) - static_cast<size_t>(len_t1);
-        std::string t1_str;
-        std::string t2_str;
+        std::size_t len_t2 = x.size() - sizeof(unsigned int) - len_t1;
 
-        std::memcpy(&t1_str, &x + sizeof(unsigned int), len_t1);
-        std::memcpy(&t2_str, &x + sizeof(unsigned int) + len_t1, len_t2);
+        std::string t1_str = x.substr(sizeof(unsigned int), len_t1);
+        std::string t2_str = x.substr(sizeof(unsigned int) + len_t1, len_t2);
 
         T1 t1 = serializers::Impl<T1>::Deserialize(t1_str);
         T1 t2 = serializers::Impl<T2>::Deserialize(t2_str);
-
-        std::cout << sizeof(unsigned int) << " " <<
-                     sizeof(unsigned int) + len_t1 << " " <<
-                     len_t1 << " " <<
-                     len_t2 << std::endl;
 
         return std::pair<T1, T2>(t1, t2);
     }

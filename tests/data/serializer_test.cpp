@@ -36,18 +36,29 @@ TEST(Serializer, StringIntPairSerializeDeserialize) {
     ASSERT_EQ(std::get<1>(t), std::get<1>(result));
 }
 
-TEST(Serializer, PairSerializeDeserialize) {
+TEST(Serializer, StringString_Pair_SerializeDeserialize_Test) {
     auto t1 = "first";
     auto t2 = "second";
     auto t = std::make_pair(t1, t2);
 
     auto serialized = Serialize<std::pair<std::string, std::string> >(t);
-    sLOG << serialized;
     auto result = Deserialize<std::pair<std::string, std::string> >(serialized);
 
-    // ASSERT_EQ(std::get<0>(t), std::get<0>(result));
-    // ASSERT_EQ(std::get<1>(t), std::get<1>(result));
-    sLOG << "START" << result.first << "END";
+    ASSERT_EQ(std::get<0>(t), std::get<0>(result));
+    ASSERT_EQ(std::get<1>(t), std::get<1>(result));
 }
+
+TEST(Serializer, IntInt_Pair_SerializeDeserialize_Test) {
+    auto t1 = 3;
+    auto t2 = 4;
+    auto t = std::make_pair(t1, t2);
+
+    auto serialized = Serialize<std::pair<int, int> >(t);
+    auto result = Deserialize<std::pair<int, int> >(serialized);
+
+    ASSERT_EQ(std::get<0>(t), std::get<0>(result));
+    ASSERT_EQ(std::get<1>(t), std::get<1>(result));
+}
+
 
 /******************************************************************************/
