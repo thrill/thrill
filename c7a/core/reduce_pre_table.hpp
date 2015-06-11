@@ -29,7 +29,7 @@
 namespace c7a {
 namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
-          size_t TargetBlockSize = 1024* 1024>
+          size_t TargetBlockSize = 1024 * 1024>
 class ReducePreTable
 {
     static const bool debug = false;
@@ -232,7 +232,6 @@ public:
 
         if (table_size_ > max_num_items_table_)
         {
-            LOG << "spilling in progress";
             FlushLargestPartition();
         }
 
@@ -384,7 +383,6 @@ public:
      */
     void ResizeUp() {
         LOG << "Resizing";
-        LOG << num_buckets_;
         num_buckets_ *= num_buckets_resize_scale_;
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
         // reset items_per_partition and table_size
