@@ -24,17 +24,18 @@ template <class T>
 class Iterator
 {
 public:
+    static const bool debug = true;
     //! Creates an instance of iterator that deserializes blobs to T
     explicit Iterator(BufferChain& buffers)
         : buffer_chain_(buffers),
-          current_(buffers.head),
-          current_reader_(nullptr, 0),
-          late_init_(false) {
-        if (current_ != nullptr) {
+          current_(buffer_chain_.Begin()),
+          current_reader_(nullptr, 0) {
+        if (current_ != buffer_chain_.End()) {
             current_reader_ = BinaryBufferReader(current_->buffer);
+            sLOG << "initialized non-empty iterator";
         }
         else {
-            late_init_ = true;
+            sLOG << "initialized empty iterator";
         }
     }
 
@@ -43,7 +44,7 @@ public:
     //! does no checks whether a next element exists!
     inline const T Next() {
         if (current_reader_.empty()) {
-            if (current_ != nullptr && !current_->IsEnd()) {
+            if (current_ != buffer_chain_.End()) {
                 MoveToNextBuffer();
             }
             else {
@@ -57,11 +58,10 @@ public:
     //! If concurrent read and writes operate on this block, this method might
     //! once return false and then true, if new data arrived.
     inline bool HasNext() {
-        check_late_init();
         // current reader not empty --> read along
         // current reader empty     --> do we have follow-up buffer-chain element?
         //                          and when we move to this buffer, is it empty?
-        return !current_reader_.empty() || (current_ != nullptr && !current_->IsEnd() && LookAhead());
+        return !current_reader_.empty() || (current_ != buffer_chain_.End() && LookAhead());
     }
 
     //! Waits until either an element is accessible (HasNext() == true) or the
@@ -78,17 +78,6 @@ public:
         buffer_chain_.WaitUntilClosed();
     }
 
-    inline void check_late_init() {
-        if (late_init_)
-        {
-            current_ = buffer_chain_.head;
-            if (current_ != nullptr) {
-                current_reader_ = BinaryBufferReader(current_->buffer);
-                late_init_ = false;
-            }
-        }
-    }
-
     //! Indicates whether elements can be appended (not closed) or not (closed).
     //! Blocks that are closed once cannot be opened again
     inline bool IsClosed() const {
@@ -97,14 +86,21 @@ public:
 
 private:
     struct BufferChain& buffer_chain_;
-    const BufferChainElement* current_;
+    BufferChainIterator current_;
     BinaryBufferReader current_reader_;
-    bool late_init_; //problem when iterator is created before emitter has flushed values
 
     void MoveToNextBuffer() {
-        assert(!current_->IsEnd());
-        current_ = current_->next;
-        current_reader_ = BinaryBufferReader(current_->buffer);
+        assert(current_ != buffer_chain_.End());
+
+        //reader is initialized with size 0 if BufferChain was empty on creation
+        //do not traverse, but instead re-load current buffer into reader.
+        if (current_reader_.Size() != 0)
+            current_++;
+
+        if (current_ == buffer_chain_.End())
+            current_reader_ = BinaryBufferReader(nullptr, 0);
+        else
+            current_reader_ = BinaryBufferReader(current_->buffer);
     }
 
     //! Edge case: iterator has read until end of buffer,
