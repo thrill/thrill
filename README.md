@@ -1,4 +1,5 @@
 # c7a
+
 THE code repository for the almighty c7a-framework.
 ![build status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=c7a&build=15)
 
@@ -8,6 +9,26 @@ THE code repository for the almighty c7a-framework.
 - abgegebene Version des <a href="https://github.com/PdF14-MR/research-proposal/blob/b08aed24d22bcf4837f87da10763f89ff3a46212/c7a-proposal-abgabe20150424.pdf">Research Proposal PDF</a>
 
 Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
+
+# Directory Structure
+
+- compile all code during build tests!
+- no duplication of example code!
+
+## examples
+- contains API examples for the future users.
+- e.g. full code of wordcount and page rank for them to learn from.
+
+## tests
+- contains unit tests
+- contains integration? tests that ensure that all API examples (the code therein! not a copy) works correctly.
+- internal example program (e.g. cmdline parser)
+- performance tests. e.g. hash table never runs slower than unordered map. run on EVERY! test run.
+
+## benchmarks
+- only the scripts to run and plot the benchmarks. no results.
+- code internal micro-benchmarks, e.g. hash table.
+- code of internal micro-benchmarks must be compiled during build testing, but not run!
 
 # Temporary Workflow
 - steps 1 - 5 (see below)
