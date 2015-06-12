@@ -12,6 +12,7 @@
 #include <c7a/core/job_manager.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
+#include <c7a/api/sum_node.hpp>
 #include <c7a/net/collective_communication.hpp>
 
 #include "gtest/gtest.h"
