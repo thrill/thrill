@@ -172,6 +172,6 @@ add_subdirectory(tests)
 # descend into example programs source
 add_subdirectory(examples)
 
-
+add_subdirectory(benchmarks)
 
 ################################################################################
