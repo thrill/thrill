@@ -20,7 +20,6 @@
 #include <fstream>
 #include <cassert>
 #include <memory>
-#include <unordered_map>
 #include <string>
 #include <utility>
 
@@ -28,7 +27,6 @@
 #include "function_traits.hpp"
 #include "lop_node.hpp"
 #include "read_node.hpp"
-#include "reduce_node.hpp"
 #include "context.hpp"
 #include "write_node.hpp"
 #include "generator_node.hpp"
@@ -220,29 +218,17 @@ public:
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceBy(const KeyExtractor &key_extractor,
-                  const ReduceFunction &reduce_function) {
-
-        using DOpResult
-            = typename FunctionTraits<ReduceFunction>::result_type;
-        using ReduceResultNode
-            = ReduceNode<T, DOpResult, decltype(local_stack_),
-                         KeyExtractor, ReduceFunction>;
-
-        auto shared_node
-            = std::make_shared<ReduceResultNode>(node_->get_context(),
-                                                 node_.get(),
-                                                 local_stack_,
-                                                 key_extractor,
-                                                 reduce_function);
-
-        auto reduce_stack = shared_node->ProduceStack();
-
-        return DIARef<DOpResult, decltype(reduce_stack)>
-            (std::move(shared_node), reduce_stack);
-    }
+                  const ReduceFunction &reduce_function);
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The

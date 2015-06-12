@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/api/dia.hpp>
+#include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
 
 
