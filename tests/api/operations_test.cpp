@@ -12,6 +12,7 @@
 #include <c7a/core/job_manager.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/api/dia.hpp>
+#include <c7a/api/bootstrap.hpp>
 
 #include <random>
 
@@ -55,6 +56,59 @@ TEST(Operations, GeneratorTest) {
                            });
 
     ASSERT_EQ(generate_size, writer_size);
+}
+
+std::vector<int> all_gather_test_function(c7a::Context& ctx) {
+    using c7a::Context;
+
+    auto integers = ReadLines(
+        ctx,
+        "test1",
+        [](const std::string& line) {
+            return std::stoi(line);
+        });
+
+    std::vector<int> out_vec;
+
+    integers.AllGather(&out_vec);
+
+    std::cout << out_vec.size() << std::endl;
+
+    return out_vec;
+}
+
+TEST(Operations, AllGather) {        
+
+    size_t workers = 4;
+    size_t port_base = 8080;
+
+    std::vector<int> vec;
+
+    std::function<int(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+
+        auto integers = ReadLines(
+            ctx,
+            "test1",
+            [](const std::string& line) {
+                return std::stoi(line);
+            });
+
+        std::vector<int> out_vec;
+
+        integers.AllGather(&out_vec);
+
+        //ASSERT_EQ(15, out_vec.size());
+
+        return out_vec.size();
+        
+    };
+
+    
+    //ASSERT_EQ(15, vec.size());
+
+    c7a::ExecuteThreads(workers, port_base, start_func);
+    
+
 }
 
 /******************************************************************************/
