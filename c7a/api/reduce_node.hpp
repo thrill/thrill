@@ -186,6 +186,30 @@ private:
 
 //! \}
 
+template <typename T, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction>
+auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
+                                const ReduceFunction &reduce_function) {
+
+    using DOpResult
+        = typename FunctionTraits<ReduceFunction>::result_type;
+    using ReduceResultNode
+        = ReduceNode<T, DOpResult, decltype(local_stack_),
+                     KeyExtractor, ReduceFunction>;
+
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(node_->get_context(),
+                                             node_.get(),
+                                             local_stack_,
+                                             key_extractor,
+                                             reduce_function);
+
+    auto reduce_stack = shared_node->ProduceStack();
+
+    return DIARef<DOpResult, decltype(reduce_stack)>
+        (std::move(shared_node), reduce_stack);
+}
+
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
