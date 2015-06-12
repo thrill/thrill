@@ -20,6 +20,7 @@
 #include <mutex>
 
 namespace c7a {
+namespace common {
 
 /*!
  * A simple logging class which outputs a std::endl during destruction.
@@ -143,24 +144,24 @@ public:
 };
 
 // //! Default logging method: output if the local debug variable is true.
-#define LOG ::c7a::Logger<debug>()
+#define LOG ::c7a::common::Logger<debug>()
 
 // //! Override default output: never or always output log.
-#define LOG0 ::c7a::Logger<false>()
-#define LOG1 ::c7a::Logger<true>()
+#define LOG0 ::c7a::common::Logger<false>()
+#define LOG1 ::c7a::common::Logger<true>()
 
 // //! Explicitly specify the condition for logging
-#define LOGC(cond) ::c7a::Logger<cond>()
+#define LOGC(cond) ::c7a::common::Logger<cond>()
 
 //! Default logging method: output if the local debug variable is true.
-#define sLOG ::c7a::SpacingLogger<debug>()
+#define sLOG ::c7a::common::SpacingLogger<debug>()
 
 //! Override default output: never or always output log.
-#define sLOG0 ::c7a::SpacingLogger<false>()
-#define sLOG1 ::c7a::SpacingLogger<true>()
+#define sLOG0 ::c7a::common::SpacingLogger<false>()
+#define sLOG1 ::c7a::common::SpacingLogger<true>()
 
 //! Explicitly specify the condition for logging
-#define sLOGC(cond) ::c7a::SpacingLogger(cond)
+#define sLOGC(cond) ::c7a::common::SpacingLogger(cond)
 
 /******************************************************************************/
 
@@ -186,6 +187,7 @@ public:
                 "\"" << "\" != \"" << Y << "\""); \
     } while (0)
 
+} // namespace common
 } // namespace c7a
 
 #endif // !C7A_COMMON_LOGGER_HEADER

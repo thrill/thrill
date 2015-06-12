@@ -20,7 +20,6 @@
 #include <fstream>
 #include <cassert>
 #include <memory>
-#include <unordered_map>
 #include <string>
 #include <utility>
 
@@ -28,7 +27,6 @@
 #include "function_traits.hpp"
 #include "lop_node.hpp"
 #include "read_node.hpp"
-#include "reduce_node.hpp"
 #include "context.hpp"
 #include "write_node.hpp"
 #include "generator_node.hpp"
@@ -148,7 +146,7 @@ public:
      *
      * \tparam MapFunction Type of the map function.
      *
-     * \param map_fn Map function of type MapFunction, which maps each element
+     * \param map_function Map function of type MapFunction, which maps each element
      * to an element of a possibly different type.
      *
      */
@@ -190,7 +188,7 @@ public:
     }
 
     /*!
-     * FlatMap is a LOp, which maps this DIARef according to the 
+     * FlatMap is a LOp, which maps this DIARef according to the
      * flatmap_function given by the user. The flatmap_function maps each
      * element to elements of a possibly different type. The flatmap_function
      * has an emitter function as it's second parameter. This emitter is called
@@ -224,12 +222,17 @@ public:
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
      *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
      */
-    template <typename KeyExtractor>
-    auto ReduceBy(const KeyExtractor &key_extractor) {
-        return ReduceSugar<KeyExtractor>(key_extractor, node_.get(),
-                                         local_stack_);
-    }
+    template <typename KeyExtractor, typename ReduceFunction>
+    auto ReduceBy(const KeyExtractor &key_extractor,
+                  const ReduceFunction &reduce_function);
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
@@ -366,55 +369,6 @@ private:
     //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
     Stack local_stack_;
-
-    /*!
-     * Syntactic sugaaah for reduce
-     */
-    template <typename KeyExtractor>
-    class ReduceSugar
-    {
-    public:
-        ReduceSugar(const KeyExtractor& key_extractor, DIANode<T>* node, Stack& local_stack)
-            : key_extractor_(key_extractor), node_(node), local_stack_(local_stack) { }
-
-        /*!
-         * Syntactic sugaaah
-         *
-         * \tparam reduce_fn_t Type of the reduce_function. This is a function
-         * reducing two elements of L's result type to a single element of equal
-         * type.
-         *
-         * \param reduce_function Reduce function, which defines how the key
-         * buckets are reduced to a single element. This function is applied
-         * associative but not necessarily commutative.
-         *
-         */
-        template <typename ReduceFunction>
-        auto With(const ReduceFunction &reduce_function) {
-            using DOpResult
-                      = typename FunctionTraits<ReduceFunction>::result_type;
-            using ReduceResultNode
-                      = ReduceNode<T, DOpResult, decltype(local_stack_),
-                                   KeyExtractor, ReduceFunction>;
-
-            auto shared_node
-                = std::make_shared<ReduceResultNode>(node_->get_context(),
-                                                     node_,
-                                                     local_stack_,
-                                                     key_extractor_,
-                                                     reduce_function);
-
-            auto reduce_stack = shared_node->ProduceStack();
-
-            return DIARef<DOpResult, decltype(reduce_stack)>
-                       (std::move(shared_node), reduce_stack);
-        }
-
-    private:
-        const KeyExtractor& key_extractor_;
-        DIANode<T>* node_;
-        Stack& local_stack_;
-    };
 };
 
 //! \}

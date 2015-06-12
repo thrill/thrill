@@ -324,7 +324,7 @@ public:
         LOG << "Socket::send_one()"
             << " fd_=" << fd_
             << " size=" << size
-            << " data=" << hexdump(data, size)
+            << " data=" << common::hexdump(data, size)
             << " flags=" << flags;
 
         ssize_t r = ::send(fd_, data, size, flags);
@@ -343,7 +343,7 @@ public:
         LOG << "Socket::send()"
             << " fd_=" << fd_
             << " size=" << size
-            << " data=" << hexdump(data, size)
+            << " data=" << common::hexdump(data, size)
             << " flags=" << flags;
 
         const char* cdata = static_cast<const char*>(data);
@@ -388,7 +388,7 @@ public:
         LOG << "done Socket::recv_one()"
             << " fd_=" << fd_
             << " return=" << r
-            << " data=" << (r >= 0 ? hexdump(outdata, r) : "<error>");
+            << " data=" << (r >= 0 ? common::hexdump(outdata, r) : "<error>");
 
         return r;
     }
@@ -427,7 +427,7 @@ public:
         LOG << "done Socket::recv()"
             << " fd_=" << fd_
             << " return=" << rb
-            << " data=" << hexdump(outdata, rb);
+            << " data=" << common::hexdump(outdata, rb);
 
         return rb;
     }

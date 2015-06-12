@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/api/dia.hpp>
+#include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
 
 
@@ -19,7 +20,7 @@ auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
 
     auto line_to_wordpairs =
         [](std::string line, auto emit) {
-        for (const std::string& word : c7a::split(line, ' ')) {
+        for (const std::string& word : c7a::common::split(line, ' ')) {
             if (word.size() != 0)
                 emit(WordPair(word, 1));
         }
@@ -36,7 +37,7 @@ auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
    
     auto word_pairs = input.FlatMap(line_to_wordpairs);
 
-    return word_pairs.ReduceBy(key).With(red_fn);
+    return word_pairs.ReduceBy(key, red_fn);
 }
 
 //! The WordCount user program
