@@ -295,9 +295,9 @@ TEST(Group, TestBarrier) {
     std::mutex local_mtx; // Mutex for writing to the results array
     std::condition_variable cv; // Condition variable for the barrier
 
-    for (size_t p = 0; p <= 8; ++p) {
-        size_t workers = p;
-        size_t workers_copy = workers; // Will be decremented by the barrier function
+    for (int p = 0; p <= 8; ++p) {
+        int workers = p;
+        int workers_copy = workers; // Will be decremented by the barrier function
 
         std::vector<char> result(2 * workers);
         int k = 0; // The counter for the result array
@@ -319,11 +319,11 @@ TEST(Group, TestBarrier) {
 
                 sLOG << "After Barrier, worker" << net->MyRank();
                 });
-        for (size_t i = 0; i < workers; ++i) {
+        for (int i = 0; i < workers; ++i) {
             sLOG << "Checking position" << i;
             ASSERT_EQ(result[i], 'B');
         }
-        for (size_t i = workers; i < 2 * workers; ++i) {
+        for (int i = workers; i < 2 * workers; ++i) {
             sLOG << "Checking position" << i;
             ASSERT_EQ(result[i], 'A');
         }
