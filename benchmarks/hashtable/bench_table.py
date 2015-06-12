@@ -20,7 +20,7 @@ for worker in workers:
             for amount in amounts:
                 results = []
                 for _ in range(5):
-                    process = subprocess.Popen(["../../build/benchmarks/table -s ", str(pow(2,amount)), " -w ", str(worker), " -m ", str(modulo)], stdout=subprocess.PIPE)
+                    process = subprocess.Popen(["../build/benchmarks/table -s ", str(pow(2,amount)), " -w ", str(worker), " -m ", str(modulo)], stdout=subprocess.PIPE)
                     process.wait()
                     time = process.communicate()[0]
                     results.append(float(time))
