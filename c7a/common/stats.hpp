@@ -22,7 +22,7 @@
 namespace c7a {
 namespace common {
 
-//! Helper to create \ref Counter "Counters", \ref TimedCounter "TimedCounters" and \ref timer "Timers".
+//! Helper to create Counters, TimedCounters and Timers.
 //! Counters and such can be named on creation. The name is a simple mechanism to make the output more
 //! user-friendly. Names are not used to identify Counters uniquely.
 //!

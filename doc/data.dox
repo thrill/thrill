@@ -15,7 +15,7 @@ namespace data {
 /******************************************************************************/
 /** \page data Data Subsystem
 
-The \ref DataManager is a facade for the subsystem access to remote and local data.
+The \ref data::Manager is a facade for the subsystem access to remote and local data.
 
 ## DIAs-Partitions
 \ref c7a::DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
@@ -23,7 +23,7 @@ DIAs can be materialized (data elements are held in external or internal memory)
 Each worker holds a partition of each DIA.
 Partitions are most likely not balanced across workers and some partitions might be even empty.
 These partitions are addressed via a \ref c7a::data::DIAId "DIAId" that is generated in a deterministic manner, such that each worker generates the same sequence of DIAIds.
-Access to elements of DIA partitions via their DIAId is provided via the \ref DataManager.
+Access to elements of DIA partitions via their DIAId is provided via the \ref data::Manager.
 
 ## Data Channels
 Workers may need to exchange many data elements between each other in an asynchronous fashion.
@@ -33,7 +33,7 @@ Data exchanges are triggered by distributed operations.
 Multiple data exchanges of different distributed operations can happen concurrently.
 Therefore an address-schema is required to distinguish \ref c7a::net::Channel "data channels".
 We use the same approach as for the DIAs by using a \ref c7a::net::ChannelId "ChannelId" that is generated in a determistic fashion.
-Access to these channels is provided through the \ref DataManager.
+Access to these channels is provided through the \ref data::Manager.
 
 ## Buffers and BufferChains
 Data is stored in \ref BinaryBuffer instances which are blobs of memory (preferably allocated to a reasonable size).
@@ -44,19 +44,19 @@ The \ref c7a::data::BufferChainManager is used to manage the mapping from ID (DI
 BufferChains can append BinaryBuffers or can be closed.
 
 ## Address Schema
-DIAs and Channels are addressed by unique IDs, which are allocated via the DataManager by calling \ref c7a::data::DataManager::AllocateDIA() "AllocateDIA" and \ref c7a::data::DataManager::AllocateNetworkChannel() "AllocateNetworkChannel".
-Each call of these methods alters the state of the \ref c7a::data::DataManager, thus the order in which these calls happen matters.
+DIAs and Channels are addressed by unique IDs, which are allocated via the data::Manager by calling \ref c7a::data::Manager::AllocateDIA() "AllocateDIA" and \ref c7a::data::Manager::AllocateNetworkChannel() "AllocateNetworkChannel".
+Each call of these methods alters the state of the \ref c7a::data::Manager, thus the order in which these calls happen matters.
 All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::net::Channel "NetworkChannels".
 
 ## Iterators and Emitters
-The central interface to access data consists of the \ref BlockIterator and the \ref BlockEmitter class.
-Both instances can be retrieved by passing an id to the \ref DataManager.
+The central interface to access data consists of the \ref Iterator and the \ref Emitter class.
+Both instances can be retrieved by passing an id to the \ref data::Manager.
 When data is pushed / pulled via these classes, data elements are serialized if necessary.
 Emitters and Iterators can access locally stored data and channel data by accessing \ref BufferChain instances.
-Both types of emitters may buffer pushed elements until \ref BlockEmitter::Flush() "flush" or \ref BlockEmitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
+Both types of emitters may buffer pushed elements until \ref Emitter::Flush() "flush" or \ref Emitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
 Emitters and Iterators can operate concurrently - emitters can push data even after an iterator was created.
-Emitters can close a BufferChain and Iterators provide a \ref BlockIterator::IsClosed() "IsClosed() method".
-If multiple emitters exist, multiple calls to \ref BlockEmitter::Close() "close" lead to undefined behaviour.
+Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsClosed() "IsClosed() method".
+If multiple emitters exist, multiple calls to \ref Emitter::Close() "close" lead to undefined behaviour.
 
 ## Examples
 To write into the local storage and then read from it use:
@@ -82,9 +82,9 @@ int main() {
     Consume(data_manager, id);
 }
 
-void Produce(c7a::data::DataManager& manager, c7a::data::ChannelId id) {
+void Produce(c7a::data::Manager& manager, c7a::data::ChannelId id) {
     //one emitter for each communication partner
-    std::vector<BlockEmitter<int>> emitters = manager.GetNetworkEmitters<int>(id);
+    std::vector<Emitter<int>> emitters = manager.GetNetworkEmitters<int>(id);
 
     //write some data to each worker
     for (auto& e : emitters) {
@@ -97,7 +97,7 @@ void Produce(c7a::data::DataManager& manager, c7a::data::ChannelId id) {
     }
 }
 
-void Consume(c7a::data::DataManager& manager, c7a::data::ChannelId id) {
+void Consume(c7a::data::Manager& manager, c7a::data::ChannelId id) {
     auto it = manager.GetIterator(id);
 
     //loop until every emitter in produce has been closed.
