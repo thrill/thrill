@@ -75,7 +75,7 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   value The value to be added to the aggregation
 //! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = common::SumOp<T> >
-static void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     bool active = true;
     for (size_t d = 1; d < net.Size(); d <<= 1) {
         if (active) {
@@ -98,7 +98,7 @@ static void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()
 //! @param   value The value to be added to the aggregation
 //! @param   sumOp A custom summation operator
 template <typename T>
-static void Broadcast(Group& net, T& value) {
+void Broadcast(Group& net, T& value) {
     if (net.MyRank() > 0) {
         ClientId from;
         net.ReceiveFromAny(&from, &value);
@@ -118,7 +118,7 @@ static void Broadcast(Group& net, T& value) {
 //! @param   value The value to be added to the aggregation
 //! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = common::SumOp<T> >
-static void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
 }
