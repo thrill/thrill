@@ -207,6 +207,35 @@ private:
     }
 };
 
+template <typename T, typename Stack>
+template <typename ZipFunction, typename SecondDIA>
+auto DIARef<T, Stack>::Zip(
+    const ZipFunction &zip_function, SecondDIA second_dia) {
+    using ZipResult
+        = typename FunctionTraits<ZipFunction>::result_type;
+    using ZipArgument0
+        = typename FunctionTraits<ZipFunction>::template arg<0>;
+    using ZipArgument1
+        = typename FunctionTraits<ZipFunction>::template arg<1>;
+    using ZipResultNode
+        = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
+                     decltype(local_stack_),
+                     decltype(second_dia.get_stack()),
+                     ZipFunction>;
+
+    auto shared_node
+        = std::make_shared<ZipResultNode>(node_->get_context(),
+                                          node_.get(),
+                                          second_dia.get_node(),
+                                          local_stack_,
+                                          second_dia.get_stack(),
+                                          zip_function);
+
+    auto zip_stack = shared_node->ProduceStack();
+    return DIARef<ZipResult, decltype(zip_stack)>
+        (std::move(shared_node), zip_stack);
+}
+
 } // namespace c7a
 
 //! \}
