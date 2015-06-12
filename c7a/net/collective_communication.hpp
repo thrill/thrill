@@ -96,7 +96,6 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //!
 //! @param   net The current worker onto which to apply the operation
 //! @param   value The value to be added to the aggregation
-//! @param   sumOp A custom summation operator
 template <typename T>
 void Broadcast(Group& net, T& value) {
     if (net.MyRank() > 0) {
