@@ -36,7 +36,7 @@ auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
    
     auto word_pairs = input.FlatMap(line_to_wordpairs);
 
-    return word_pairs.ReduceBy(key).With(red_fn);
+    return word_pairs.ReduceBy(key, red_fn);
 }
 
 //! The WordCount user program
