@@ -28,8 +28,8 @@ namespace c7a {
 /*!
  * The Context of a job is a unique structure inside a worker, which holds
  *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref c7a::data::DataManager "data manager", the
- * \ref c7a::net::NetGroup  "net group" and to the
+ *  references to the  \ref c7a::data::Manager "data manager", the
+ * \ref c7a::net::Group  "net group" and to the
  * \ref c7a::core::JobManager "job manager". The context can also return the
  * total number of workers and the rank of this worker.
  */
