@@ -27,12 +27,10 @@
 #include "dia_node.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
-#include "zip_node.hpp"
 #include "read_node.hpp"
 #include "reduce_node.hpp"
 #include "context.hpp"
 #include "write_node.hpp"
-#include "sum_node.hpp"
 #include "generator_node.hpp"
 
 namespace c7a {
@@ -245,31 +243,7 @@ public:
      * DIARef.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia) {
-        using ZipResult
-                  = typename FunctionTraits<ZipFunction>::result_type;
-        using ZipArgument0
-                  = typename FunctionTraits<ZipFunction>::template arg<0>;
-        using ZipArgument1
-                  = typename FunctionTraits<ZipFunction>::template arg<1>;
-        using ZipResultNode
-                  = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
-                               decltype(local_stack_),
-                               decltype(second_dia.get_stack()),
-                               ZipFunction>;
-
-        auto shared_node
-            = std::make_shared<ZipResultNode>(node_->get_context(),
-                                              node_.get(),
-                                              second_dia.get_node(),
-                                              local_stack_,
-                                              second_dia.get_stack(),
-                                              zip_function);
-
-        auto zip_stack = shared_node->ProduceStack();
-        return DIARef<ZipResult, decltype(zip_stack)>
-                   (std::move(shared_node), zip_stack);
-    }
+    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia);
 
     /*!
      * Sum is an Action, which computes the sum of elements of all workers.
@@ -279,25 +253,7 @@ public:
      * \param sum_function Sum function.
      */
     template <typename SumFunction>
-    auto Sum(const SumFunction &sum_function) {
-        using SumResult
-                  = typename FunctionTraits<SumFunction>::result_type;
-        using SumArgument0
-                  = typename FunctionTraits<SumFunction>::template arg<0>;
-
-        using SumResultNode
-                  = SumNode<SumArgument0, SumResult,
-                            decltype(local_stack_), SumFunction>;
-
-        auto shared_node
-            = std::make_shared<SumResultNode>(node_->get_context(),
-                                              node_.get(),
-                                              local_stack_,
-                                              sum_function);
-
-        core::StageBuilder().RunScope(shared_node.get());
-        return shared_node.get()->result();
-    }
+    auto Sum(const SumFunction &sum_function);
 
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.

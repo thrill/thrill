@@ -120,6 +120,29 @@ private:
     void PostOp() { }
 };
 
+template <typename T, typename Stack>
+template <typename SumFunction>
+auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
+    using SumResult
+        = typename FunctionTraits<SumFunction>::result_type;
+    using SumArgument0
+        = typename FunctionTraits<SumFunction>::template arg<0>;
+
+    using SumResultNode
+        = SumNode<SumArgument0, SumResult,
+                  decltype(local_stack_), SumFunction>;
+
+    auto shared_node
+        = std::make_shared<SumResultNode>(node_->get_context(),
+                                          node_.get(),
+                                          local_stack_,
+                                          sum_function);
+
+    core::StageBuilder().RunScope(shared_node.get());
+    return shared_node.get()->result();
+}
+
+
 } // namespace c7a
 
 #endif // !C7A_API_SUM_NODE_HEADER
