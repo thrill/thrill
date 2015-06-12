@@ -24,12 +24,17 @@ namespace net {
 //! \name Collective Operations
 //! \{
 
-//! Calculate for every worker his prefix sum, which is the sum of the
-//! values of all previous workers including himself.
+//! @brief   Calculate for every worker his prefix sum.
+//! @details The prefix sum is the aggregatation of the values of all workers
+//!          with lesser index, including himself, according to a summation
+//!          operator. This function currently only supports worker numbers
+//!          which are powers of two.
+//!
+//! @param   net The current worker onto which to apply the operation
+//! @param   value The value to be summed up
+//! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = common::SumOp<T> >
 static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
-    // The total sum in the current hypercube. This is stored, because later,
-    // bigger hypercubes need this value.
     T total_sum = value;
 
     static const bool debug = false;
@@ -61,7 +66,14 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
          << ": value after prefix sum =" << value;
 }
 
-//! Perform a binomial tree reduce to the worker with index 0
+//! @brief   Perform a reduce to the worker with index 0.
+//! @details This function aggregates the values of all workers according to a
+//!          summation operator and sends the aggregate to the root, which is
+//!          the worker with index 0.
+//!
+//! @param   net The current worker onto which to apply the operation
+//! @param   value The value to be added to the aggregation
+//! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = common::SumOp<T> >
 static void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     bool active = true;
@@ -80,7 +92,11 @@ static void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()
     }
 }
 
-//! Binomial-broadcasts the value of the worker with index 0 to all the others
+//! @brief   Broadcasts the value of the worker with index 0 to all the others.
+//!
+//! @param   net The current worker onto which to apply the operation
+//! @param   value The value to be added to the aggregation
+//! @param   sumOp A custom summation operator
 template <typename T>
 static void Broadcast(Group& net, T& value) {
     if (net.MyRank() > 0) {
@@ -94,8 +110,13 @@ static void Broadcast(Group& net, T& value) {
     }
 }
 
-//! Perform an All-Reduce on the workers by aggregating all values and sending
-//! them backto all workers
+//! @brief   Perform an All-Reduce on the workers. 
+//! @details This is done by aggregating all values according to a summation
+//!          operator and sending them backto all workers.
+//!
+//! @param   net The current worker onto which to apply the operation
+//! @param   value The value to be added to the aggregation
+//! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = common::SumOp<T> >
 static void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
@@ -110,7 +131,7 @@ static void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   mtx A common mutex onto which to lock
 //! @param   cv  A condition variable which locks on the given mutex
 //! @param   num_workers The total number of workers in the network
-static void Barrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
+static void ThreadBarrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
         --num_workers;
