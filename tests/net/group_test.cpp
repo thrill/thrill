@@ -311,7 +311,7 @@ TEST(Group, TestBarrier) {
 
                 sLOG << "Before Barrier, worker" << net->MyRank();
 
-                c7a::net::Barrier(sync_mtx, cv, workers_copy);
+                c7a::net::ThreadBarrier(sync_mtx, cv, workers_copy);
 
                 local_mtx.lock();
                 result[k++] = 'A'; // A stands for 'After barrier'
