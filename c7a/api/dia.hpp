@@ -32,6 +32,10 @@
 #include "context.hpp"
 #include "write_node.hpp"
 #include "generator_node.hpp"
+#include "allgather_node.hpp"
+
+#include <c7a/net/collective_communication.hpp>
+#include <c7a/common/future.hpp>
 
 namespace c7a {
 
@@ -283,6 +287,28 @@ public:
                                               filepath);
 
         auto write_stack = shared_node->ProduceStack();
+        core::StageBuilder().RunScope(shared_node.get());
+    }
+
+    /*!
+     * AllGather is an Action, which returns the whole DIA in an std::vector on 
+     * each worker. This is only for testing purposes and should not be used on
+     * large datasets.
+     */
+    template<typename Out>
+     void AllGather(std::vector<Out>* out_vector) {
+        
+        using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
+                
+       
+
+        auto shared_node = 
+            std::make_shared<AllGatherResultNode>(node_->get_context(),
+                                                  node_.get(),
+                                                  local_stack_,
+                                                  out_vector);
+
+
         core::StageBuilder().RunScope(shared_node.get());
     }
 
