@@ -31,7 +31,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreLinProTable
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
