@@ -186,7 +186,7 @@ public:
     }
 
     /*!
-     * FlatMap is a LOp, which maps this DIARef according to the 
+     * FlatMap is a LOp, which maps this DIARef according to the
      * flatmap_function given by the user. The flatmap_function maps each
      * element to elements of a possibly different type. The flatmap_function
      * has an emitter function as it's second parameter. This emitter is called
@@ -221,10 +221,27 @@ public:
      * key of possibly different type.
      *
      */
-    template <typename KeyExtractor>
-    auto ReduceBy(const KeyExtractor &key_extractor) {
-        return ReduceSugar<KeyExtractor>(key_extractor, node_.get(),
-                                         local_stack_);
+    template <typename KeyExtractor, typename ReduceFunction>
+    auto ReduceBy(const KeyExtractor &key_extractor,
+                  const ReduceFunction &reduce_function) {
+
+        using DOpResult
+            = typename FunctionTraits<ReduceFunction>::result_type;
+        using ReduceResultNode
+            = ReduceNode<T, DOpResult, decltype(local_stack_),
+                         KeyExtractor, ReduceFunction>;
+
+        auto shared_node
+            = std::make_shared<ReduceResultNode>(node_->get_context(),
+                                                 node_.get(),
+                                                 local_stack_,
+                                                 key_extractor,
+                                                 reduce_function);
+
+        auto reduce_stack = shared_node->ProduceStack();
+
+        return DIARef<DOpResult, decltype(reduce_stack)>
+            (std::move(shared_node), reduce_stack);
     }
 
     /*!
@@ -340,55 +357,6 @@ private:
     //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
     Stack local_stack_;
-
-    /*!
-     * Syntactic sugaaah for reduce
-     */
-    template <typename KeyExtractor>
-    class ReduceSugar
-    {
-    public:
-        ReduceSugar(const KeyExtractor& key_extractor, DIANode<T>* node, Stack& local_stack)
-            : key_extractor_(key_extractor), node_(node), local_stack_(local_stack) { }
-
-        /*!
-         * Syntactic sugaaah
-         *
-         * \tparam reduce_fn_t Type of the reduce_function. This is a function
-         * reducing two elements of L's result type to a single element of equal
-         * type.
-         *
-         * \param reduce_function Reduce function, which defines how the key
-         * buckets are reduced to a single element. This function is applied
-         * associative but not necessarily commutative.
-         *
-         */
-        template <typename ReduceFunction>
-        auto With(const ReduceFunction &reduce_function) {
-            using DOpResult
-                      = typename FunctionTraits<ReduceFunction>::result_type;
-            using ReduceResultNode
-                      = ReduceNode<T, DOpResult, decltype(local_stack_),
-                                   KeyExtractor, ReduceFunction>;
-
-            auto shared_node
-                = std::make_shared<ReduceResultNode>(node_->get_context(),
-                                                     node_,
-                                                     local_stack_,
-                                                     key_extractor_,
-                                                     reduce_function);
-
-            auto reduce_stack = shared_node->ProduceStack();
-
-            return DIARef<DOpResult, decltype(reduce_stack)>
-                       (std::move(shared_node), reduce_stack);
-        }
-
-    private:
-        const KeyExtractor& key_extractor_;
-        DIANode<T>* node_;
-        Stack& local_stack_;
-    };
 };
 
 //! \}
