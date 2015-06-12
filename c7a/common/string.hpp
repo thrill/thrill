@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace c7a {
+namespace common {
 
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
@@ -197,6 +198,7 @@ std::string join(const std::string& glue, const Container& parts) {
     return join(glue, parts.begin(), parts.end());
 }
 
+} // namespace common
 } // namespace c7a
 
 #endif // !C7A_COMMON_STRING_HEADER

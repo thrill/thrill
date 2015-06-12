@@ -144,7 +144,7 @@ public:
      *
      * \tparam MapFunction Type of the map function.
      *
-     * \param map_fn Map function of type MapFunction, which maps each element
+     * \param map_function Map function of type MapFunction, which maps each element
      * to an element of a possibly different type.
      *
      */

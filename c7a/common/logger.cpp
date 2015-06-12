@@ -13,9 +13,11 @@
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
+namespace common {
 
 std::mutex Logger<true>::mutex_;
 
+} // namespace common
 } // namespace c7a
 
 /******************************************************************************/

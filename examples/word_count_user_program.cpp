@@ -19,7 +19,7 @@ auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
 
     auto line_to_wordpairs =
         [](std::string line, auto emit) {
-        for (const std::string& word : c7a::split(line, ' ')) {
+        for (const std::string& word : c7a::common::split(line, ' ')) {
             if (word.size() != 0)
                 emit(WordPair(word, 1));
         }
