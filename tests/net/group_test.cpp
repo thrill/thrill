@@ -299,7 +299,7 @@ TEST(Group, TestBarrier) {
         int workers = p;
         int workers_copy = workers; // Will be decremented by the barrier function
 
-        char result[2 * workers];
+        std::vector<char> result(2 * workers);
         int k = 0; // The counter for the result array
         sLOG << "I'm in test" << workers;
 
