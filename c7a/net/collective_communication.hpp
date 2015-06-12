@@ -131,7 +131,8 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   mtx A common mutex onto which to lock
 //! @param   cv  A condition variable which locks on the given mutex
 //! @param   num_workers The total number of workers in the network
-static void ThreadBarrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
+static inline
+void ThreadBarrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
         --num_workers;

@@ -151,14 +151,14 @@ public:
      *
      */
     template <typename MapFunction>
-    auto Map(const MapFunction &map_fn) {
-        using map_arg_t
+    auto Map(const MapFunction &map_function) {
+        using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
-        auto EmitMapFn = [=](map_arg_t input, auto emit_func) {
-                             emit_func(map_fn(input));
+        auto conv_map_function = [=](MapArgument input, auto emit_func) {
+                             emit_func(map_function(input));
                          };
 
-        auto new_stack = local_stack_.push(EmitMapFn);
+        auto new_stack = local_stack_.push(conv_map_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -177,9 +177,9 @@ public:
      */
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) {
-        using filter_arg_t
+        using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
-        auto conv_filter_function = [=](filter_arg_t input, auto emit_func) {
+        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
                                   if (filter_function(input)) emit_func(input);
                               };
 
@@ -239,7 +239,7 @@ public:
      * input elements, both of the local type, and one output element, which is
      * the type of the Zip node.
      *
-     * \param zip_fn Zip function, which zips two elements together
+     * \param zip_function Zip function, which zips two elements together
      *
      * \param second_dia DIARef, which is zipped together with the original
      * DIARef.
@@ -312,7 +312,7 @@ public:
      * \param filepath Destination of the output file.
      */
     template <typename WriteFunction>
-    void WriteToFileSystem(std::string filepath,
+    void WriteToFileSystem(const std::string& filepath,
                            const WriteFunction& write_function) {
         using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
 
