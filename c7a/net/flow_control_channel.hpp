@@ -16,8 +16,7 @@
 #include <c7a/net/group.hpp>
 
 namespace c7a {
-
-#ifdef TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
+namespace net {
 
 /**
  * @brief Provides a blocking collection for communication.
@@ -27,99 +26,84 @@ namespace c7a {
 class FlowControlChannel
 {
 protected:
-    NetDispatcher* dispatcher;
+    net::Group& group;
+    int id;
+    int count;
 
 public:
-    explicit FlowControlChannel(NetDispatcher* dispatcher) : dispatcher(dispatcher) { }
-    void SendTo(std::string message, unsigned int destination);     //TODO(ej): call-by-value is only tmp here and two lines below
-    std::string ReceiveFrom(unsigned int source);
-    std::string ReceiveFromAny(unsigned int* source = NULL);
+    explicit FlowControlChannel(net::Group& group) : group(group), id(group.MyRank()), count(group.Size()) { }
+
+    //base methods
+    template <typename T>
+    void SendTo(ClientId destination, T value)  {
+        group.connection(destination).Send(value);
+    }
+    //void SendToAny(T message);  // No, we won't do that :P
+    template <typename T>
+    void ReceiveFrom(ClientId source, T* value) {
+        group.connection(source).Receive(value);
+    }
+
+    //Concrete methods - signatures stolen from Robert. 
+    template <typename T, typename BinarySumOp = common::SumOp<T> >
+    T PrefixSum(T& value, BinarySumOp sumOp = BinarySumOp()) {
+        if(id == 0) { //I am first
+            if(count > 1) {
+                SendTo(id + 1, value);
+            } 
+            return value;
+        } else {
+            if(count > 1) {
+                T res;
+                ReceiveFrom(id - 1, &res);
+                res = sumOp(res, value);
+                if(id < count - 1) { //I am not last
+                    SendTo(id - 1, res);
+                }
+                return res;
+            } else {
+                return value;
+            }
+        } 
+    } 
+
+    template <typename T>
+    T Broadcast(T& value) {
+
+        T res;
+
+        if(id == 0) { //I am the master
+            for(int i = 1; i < count; i++) {
+                SendTo(i, value);
+            }
+            res = value;
+        } else { //I am someone else
+            ReceiveFrom(0, &res);
+        }
+
+        return res;
+    }
+
+    template <typename T, typename BinarySumOp = common::SumOp<T> >
+    T AllReduce(T& value, BinarySumOp sumOp = BinarySumOp()) {
+        T res = value;
+        
+        if(id == 0) { //I am the master
+            T msg;
+            for(int i = 1; i < count; i++) {
+                ReceiveFrom(i, &msg);
+                res = sumOp(res, msg);
+            }
+        } else {
+            SendTo(0, res);
+        }  
+        res = Broadcast(0, res);
+
+        return res;
+    }
 };
 
-/**
- * @brief Provides a blocking collection for communication.
- * @details This should be used for flow control by the master.
- * Each method call has to correspond to a similar method call
- * on the worker.
- *
- */
-class MasterFlowControlChannel : public FlowControlChannel
-{
-public:
-    explicit MasterFlowControlChannel(NetDispatcher* dispatcher)
-        : FlowControlChannel(dispatcher) { }
-
-    /**
-     * @brief Receives a value from each worker in the system.
-     * @details This method is blocking.
-     *
-     * @return The received values.
-     */
-    std::vector<std::string> ReceiveFromWorkers();
-
-    /**
-     * @brief Broadcasts a single value to all workers.
-     * @details This method is blocking.
-     *
-     * @param value The value to send.
-     */
-    void BroadcastToWorkers(const std::string& value);
-
-    /**
-     * @brief Receives all values that were transmitted from all workers
-     * to all other workers.
-     * @details This method is blocking. The message sent from the i-th worker and received by the j-th
-     * worker is stored at the index [i-1][j-1].
-     * @return The received data.
-     */
-    std::vector<std::vector<std::string> > AllToAll();
-};
-
-/**
- * @brief Provides a blocking collection for communication.
- * @details This should be used for flow control by the worker.
- * Each method call has to correspond to a similar method call
- * on the master.
- *
- */
-class WorkerFlowControlChannel : public FlowControlChannel
-{
-public:
-    explicit WorkerFlowControlChannel(NetDispatcher* dispatcher)
-        : FlowControlChannel(dispatcher) { }
-
-    /**
-     * @brief Sends a single value to the master.
-     * @details This method is blocking.
-     *
-     * @param value The value to send to the master.
-     */
-    void SendToMaster(std::string message);     //TODO(ej) use ref again
-
-    /**
-     * @brief Receives a single value from the master.
-     * @details This method is blocking.
-     *
-     * @return The received value.
-     */
-    std::string ReceiveFromMaster();
-
-    /**
-     * @brief Sends and receives each other worker a message.
-     * @details This method is blocking.
-     *
-     * @param messages The messages to send.
-     * The message at index i-1 is sent to worker i.
-     * The message from worker j is placed into index j-1.
-     * @return The received messages.
-     */
-    std::vector<std::string> AllToAll(std::vector<std::string> messages);
-};
-
-#endif // TIMO_DOES_NOT_KNOW_WHAT_TO_KEEP_HEREOF
-
+} // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
-
-/******************************************************************************/
+#endif //! C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
