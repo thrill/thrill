@@ -50,7 +50,7 @@ namespace c7a {
  * DIARef and a new DIANode, to which the DIARef links to. LOps only create a
  * new DIARef, which link to the previous DIANode.
  *
- * \tparam T Type of elements in this DIARef.
+ * \tparam T Type of elements going into this DIA and LOp Chain.
  *
  * \tparam Stack Type of the function chain.
  */
@@ -100,22 +100,11 @@ public:
      * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
-    DIARef(const DIARef<T, AnyStack>& rhs) {
-        // Create new LOpNode
-        // Transfer stack from rhs to LOpNode
-        // Build new DIARef with empty stack and LOpNode
-        auto rhs_node = std::move(rhs.get_node());
-        auto rhs_stack = rhs.get_stack();
-        using LOpChainNode
-                  = LOpNode<T, decltype(rhs_stack)>;
-
-        auto shared_node
-            = std::make_shared<LOpChainNode>(rhs_node->get_context(),
-                                             rhs_node,
-                                             rhs_stack);
-        node_ = std::move(shared_node);
-        local_stack_ = FunctionStack<>();
-    }
+    DIARef(const DIARef<T, AnyStack>& rhs)
+        __attribute__((deprecated))
+    // the attribute warning does not work with gcc?
+        __attribute__((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                               "Consider whether you can use auto instead of DIARef.")));
 
     /*!
      * Returns a pointer to the according DIANode.
@@ -134,7 +123,7 @@ public:
     /*!
      * Returns the stored function chain.
      */
-    Stack & get_stack() {
+    const Stack & get_stack() const {
         return local_stack_;
     }
 
@@ -294,18 +283,18 @@ public:
     }
 
     /*!
-     * AllGather is an Action, which returns the whole DIA in an std::vector on 
+     * AllGather is an Action, which returns the whole DIA in an std::vector on
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
      */
     template<typename Out>
      void AllGather(std::vector<Out>* out_vector) {
-        
-        using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
-                
-       
 
-        auto shared_node = 
+        using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
+
+
+
+        auto shared_node =
             std::make_shared<AllGatherResultNode>(node_->get_context(),
                                                   node_.get(),
                                                   local_stack_,
@@ -372,6 +361,27 @@ private:
 };
 
 //! \}
+
+template <typename T, typename Stack>
+template <typename AnyStack>
+DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
+    // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
+    // DIARef with empty stack and LOpNode
+    auto rhs_node = std::move(rhs.get_node());
+    auto rhs_stack = rhs.get_stack();
+    using LOpChainNode
+        = LOpNode<T, decltype(rhs_stack)>;
+
+    LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
+    LOG0 << "Consider whether you can use auto instead of DIARef.";
+
+    auto shared_node
+        = std::make_shared<LOpChainNode>(rhs_node->get_context(),
+                                         rhs_node,
+                                         rhs_stack);
+    node_ = std::move(shared_node);
+    local_stack_ = FunctionStack<>();
+}
 
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
