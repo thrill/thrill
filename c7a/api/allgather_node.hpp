@@ -28,7 +28,7 @@ class AllGatherNode : public ActionNode<Input>
 {
 public:
 
-    using Super = ActionNode<Input>;     
+    using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
 
@@ -44,7 +44,7 @@ public:
     {
         emitters_ = context_.
             get_data_manager().template GetNetworkEmitters<Output>(channel_used_);
-                
+
         auto pre_op_function = [=](Output input) {
             PreOp(input);
         };
@@ -66,11 +66,11 @@ public:
                 emitters_[i](element);
             }
         }
-           
+
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
-        }    
-            
+        }
+
         auto it = context_.get_data_manager().template GetIterator<Output>(channel_used_);
 
         do {
@@ -78,8 +78,8 @@ public:
             while (it.HasNext()) {
                 out_vector_->push_back(it.Next());
             }
-        } while (!it.IsClosed());            
-    }       
+        } while (!it.IsClosed());
+    }
 
     /*!
      * Returns "[WriteNode]" and its id as a string.
