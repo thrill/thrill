@@ -46,25 +46,20 @@ public:
 
     //Concrete methods - signatures stolen from Robert. 
     template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T PrefixSum(T& value, BinarySumOp sumOp = BinarySumOp()) {
-        if(id == 0) { //I am first
-            if(count > 1) {
-                SendTo(id + 1, value);
-            } 
-            return value;
-        } else {
-            if(count > 1) {
-                T res;
-                ReceiveFrom(id - 1, &res);
-                res = sumOp(res, value);
-                if(id < count - 1) { //I am not last
-                    SendTo(id - 1, res);
-                }
-                return res;
-            } else {
-                return value;
-            }
-        } 
+    T PrefixSum(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
+
+        T res = value;
+
+        if(id != 0) {
+            ReceiveFrom(id - 1, &res);
+            res = sumOp(value, res);
+        }
+
+        if(id != count - 1) {
+            SendTo(id + 1, res);
+        }
+
+        return res;
     } 
 
     template <typename T>
@@ -85,7 +80,7 @@ public:
     }
 
     template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T AllReduce(T& value, BinarySumOp sumOp = BinarySumOp()) {
+    T AllReduce(T& value, BinarySumOp sumOp = common::SumOp<T>()) {
         T res = value;
         
         if(id == 0) { //I am the master
@@ -97,7 +92,7 @@ public:
         } else {
             SendTo(0, res);
         }  
-        res = Broadcast(0, res);
+        res = Broadcast(res);
 
         return res;
     }
