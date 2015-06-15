@@ -21,6 +21,9 @@
 
 using namespace c7a::net;
 
+/**
+ * Calculates a prefix sum over all worker ids. 
+ */
 static void ThreadPrefixSum(Group* net) {
     FlowControlChannel channel(*net);
     int myRank = (int)net->MyRank();
@@ -35,7 +38,9 @@ static void ThreadPrefixSum(Group* net) {
     ASSERT_EQ(sum, expected);
 }
 
-
+/**
+ * Broadcasts the ID of the master, which is 0. 
+ */
 static void ThreadBroadcast(Group* net) {
     FlowControlChannel channel(*net);
     int myRank = (int)net->MyRank();
@@ -45,6 +50,9 @@ static void ThreadBroadcast(Group* net) {
     ASSERT_EQ(res, 0);
 }
 
+/**
+ * Calculates a sum over all worker ids. 
+ */
 static void ThreadAllReduce(Group* net) {
     FlowControlChannel channel(*net);
 
