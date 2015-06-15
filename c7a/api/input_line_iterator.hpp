@@ -39,6 +39,12 @@ public:
         //Go to start of 'local part'.
         std::streampos per_worker = file_size_ / num_workers_;
         std::streampos my_start = per_worker * my_id_;
+        if (my_id_ == (num_workers - 1)) {
+            my_end_ = file_size_ - 1;
+        } else {
+            my_end_ = per_worker * (my_id_ + 1) - 1;
+        }
+
         file_.seekg(my_start, std::ios::beg);
 
         //Go to next new line if the stream-pointer is not at the beginning of a line
@@ -62,10 +68,7 @@ public:
 
     //! returns true, if an element is available in local part
     inline bool HasNext() {
-        std::streampos per_worker = file_size_ / num_workers_;
-        std::streampos my_end = per_worker * (my_id_ + 1) - 1;
-
-        return (file_.tellg() <= my_end);
+        return (file_.tellg() <= my_end_);
     }
 
 private:
@@ -77,7 +80,10 @@ private:
     size_t my_id_;
     //!Total number of workers
     size_t num_workers_;
+    //!End of local block
+    std::streampos my_end_;
 };
+
 
 } // namespace c7a
 
