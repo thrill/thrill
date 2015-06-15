@@ -14,6 +14,7 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/bootstrap.hpp>
 
+#include <algorithm>
 #include <random>
 
 #include "gtest/gtest.h"
@@ -84,7 +85,7 @@ TEST(Operations, AllGather) {
 
     std::vector<int> vec;
 
-    std::function<int(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
 
         auto integers = ReadLines(
             ctx,
@@ -97,14 +98,17 @@ TEST(Operations, AllGather) {
 
         integers.AllGather(&out_vec);
 
-        //ASSERT_EQ(15, out_vec.size());
+        std::sort(out_vec.begin(), out_vec.end());
 
-        return out_vec.size();
-        
+        int i = 1;
+        for (int element : out_vec) {
+            ASSERT_EQ(element, i++);
+        }
+
+        long unsigned int fifteen = 15;
+
+        ASSERT_EQ(fifteen, out_vec.size());        
     };
-
-    
-    //ASSERT_EQ(15, vec.size());
 
     c7a::ExecuteThreads(workers, port_base, start_func);
     
