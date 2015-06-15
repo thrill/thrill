@@ -19,8 +19,8 @@
 
 static void local_word_count(size_t workers, size_t elements, size_t port_base) {
     
-    std::function<int(c7a::Context&)> start_func = [elements](c7a::Context& ctx) {
-        return word_count_generated(ctx, elements);
+    std::function<void(c7a::Context&)> start_func = [elements](c7a::Context& ctx) {
+        word_count_generated(ctx, elements);
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
