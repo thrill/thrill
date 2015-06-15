@@ -68,6 +68,10 @@ public:
         return (cursor_ == size_);
     }
 
+    size_t Size() const {
+        return size_;
+    }
+
     //! \}
 
     //! \name Cursor Movement and Checks
