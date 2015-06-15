@@ -42,6 +42,7 @@ public:
           out_vector_(out_vector),
           channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
     {
+        
         sLOG << "Creating allgather node.";
 
         emitters_ = context_.
@@ -50,12 +51,14 @@ public:
         auto pre_op_function = [=](Output input) {
             PreOp(input);
         };
+        sLOG << "chaining";
         auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
+        sLOG << "done";
     }
 
-    void PreOp(Input input) {
-        local_data_.push_back(input);
+    void PreOp(Output element) {
+        local_data_.push_back(element);
     }
 
     virtual ~AllGatherNode() { }
@@ -96,15 +99,15 @@ private:
     //! Local stack
     Stack local_stack_;
 
-    std::vector<Input> local_data_;
+    std::vector<Output> local_data_;
 
-    std::vector<Input> * out_vector_;
+    std::vector<Output> * out_vector_;
 
     data::ChannelId channel_used_;
 
-    static const bool debug = false;
+    static const bool debug = true;
 
-    std::vector<data::Emitter<Input>> emitters_;
+    std::vector<data::Emitter<Output>> emitters_;
 };
 
 } // namespace c7a
