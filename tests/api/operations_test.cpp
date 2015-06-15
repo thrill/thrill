@@ -29,10 +29,6 @@ TEST(Operations, GeneratorTest) {
     std::vector<std::string> self = { "127.0.0.1:1234" };
     ctx.job_manager().Connect(0, Endpoint::ParseEndpointList(self));
 
-    auto map_fn = [](int in) {
-                      return 2 * in;
-                  };
-
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(1000, 10000);
@@ -46,36 +42,20 @@ TEST(Operations, GeneratorTest) {
             return std::stoi(line);
         },
         generate_size);
-    auto ints = input.Map(map_fn);
 
     size_t writer_size = 0;
 
-    ints.WriteToFileSystem("test1.out",
+    input.WriteToFileSystem("test1.out",
                            [&writer_size](const int& item) {
-                               writer_size++;
-                               return std::to_string(item);
+                                //file contains ints between 1  and 15
+                                //fails if wrong integer is generated
+                                EXPECT_GE(item, 1);
+                                EXPECT_GE(16, item);
+                                writer_size++;
+                                return std::to_string(item);
                            });
 
     ASSERT_EQ(generate_size, writer_size);
-}
-
-std::vector<int> all_gather_test_function(c7a::Context& ctx) {
-    using c7a::Context;
-
-    auto integers = ReadLines(
-        ctx,
-        "test1",
-        [](const std::string& line) {
-            return std::stoi(line);
-        });
-
-    std::vector<int> out_vec;
-
-    integers.AllGather(&out_vec);
-
-    std::cout << out_vec.size() << std::endl;
-
-    return out_vec;
 }
 
 TEST(Operations, AllGather) {        
@@ -105,9 +85,9 @@ TEST(Operations, AllGather) {
             ASSERT_EQ(element, i++);
         }
 
-        long unsigned int fifteen = 15;
+        long unsigned int sixteen = 16;
 
-        ASSERT_EQ(fifteen, out_vec.size());        
+        ASSERT_EQ(sixteen, out_vec.size());        
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
