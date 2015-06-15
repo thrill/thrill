@@ -23,11 +23,12 @@ using namespace c7a::net;
 
 static void ThreadPrefixSum(Group* net) {
     FlowControlChannel channel(*net);
+    int myRank = (int)net->MyRank();
 
-    int sum = channel.PrefixSum(net->MyRank(), [](int a, int b) { return a + b });
+    int sum = channel.PrefixSum(myRank);
 
     int expected = 0;
-    for(int i = 0; i <= net->MyRank(); i++) {
+    for(int i = 0; i <= myRank; i++) {
         expected += i;
     }
 
@@ -35,10 +36,42 @@ static void ThreadPrefixSum(Group* net) {
 }
 
 
+static void ThreadBroadcast(Group* net) {
+    FlowControlChannel channel(*net);
+    int myRank = (int)net->MyRank();
+
+    int res = channel.Broadcast(myRank);
+
+    ASSERT_EQ(res, 0);
+}
+
+static void ThreadAllReduce(Group* net) {
+    FlowControlChannel channel(*net);
+
+    int myRank = (int)net->MyRank();
+
+    int res = channel.AllReduce(myRank);
+
+    int expected = 0;
+    for(size_t i = 0; i < net->Size(); i++) {
+        expected += i;
+    }
+
+    ASSERT_EQ(res, expected);
+
+}
+
 TEST(Group, PrefixSum) {
-    // Construct a Group of 6 workers which execute the thread function
-    // above which sends and receives a message from all workers.
     Group::ExecuteLocalMock(6, ThreadPrefixSum);
 }
+
+TEST(Group, Broadcast) {
+    Group::ExecuteLocalMock(6, ThreadBroadcast);
+}
+
+TEST(Group, AllReduce) {
+    Group::ExecuteLocalMock(6, ThreadAllReduce);
+}
+
 
 /******************************************************************************/
