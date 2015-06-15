@@ -104,7 +104,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     return job_result;
 }
 
-static void ExecuteThreads(const size_t & workers, const size_t & port_base, std::function<int(Context&)> job_startpoint) {
+static void ExecuteThreads(const size_t & workers, const size_t & port_base, std::function<void(Context&)> job_startpoint) {
     
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
@@ -128,7 +128,12 @@ static void ExecuteThreads(const size_t & workers, const size_t & port_base, std
         strargs[i][2] = std::to_string(i);
         arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
 
-        threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], job_startpoint); });
+        std::function<int(Context&)> intReturningFunction = [job_startpoint](Context& ctx) {
+            job_startpoint(ctx);
+            return 1;
+        };
+
+        threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], intReturningFunction); });
     }
 
     for (size_t i = 0; i < workers; i++) {
