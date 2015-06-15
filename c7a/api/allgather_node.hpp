@@ -82,8 +82,8 @@ public:
     }
 
     /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
+     * Returns "[AllGatherNode]" and its id as a string.
+     * \return "[AllGatherNode]"
      */
     std::string ToString() override {
         return "[AllGatherNode] Id: " + data_id_.ToString();
