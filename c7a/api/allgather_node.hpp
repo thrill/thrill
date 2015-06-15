@@ -42,19 +42,14 @@ public:
           out_vector_(out_vector),
           channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
     {
-        
-        sLOG << "Creating allgather node.";
-
         emitters_ = context_.
             get_data_manager().template GetNetworkEmitters<Output>(channel_used_);
                 
         auto pre_op_function = [=](Output input) {
             PreOp(input);
         };
-        sLOG << "chaining";
         auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
-        sLOG << "done";
     }
 
     void PreOp(Output element) {
@@ -105,7 +100,7 @@ private:
 
     data::ChannelId channel_used_;
 
-    static const bool debug = true;
+    static const bool debug = false;
 
     std::vector<data::Emitter<Output>> emitters_;
 };

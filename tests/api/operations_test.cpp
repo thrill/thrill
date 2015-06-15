@@ -242,7 +242,7 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
             });
 
         auto modulo_two = [](int in) {
-            return in % 8;
+            return (in / 2);
         };
 
         auto add_function = [](int in1, int in2) {
@@ -250,10 +250,11 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
         };
 
         auto reduced = integers.ReduceBy(modulo_two, add_function);
+    
 
         std::vector<int> out_vec;
 
-        std::cout << "starting" << std::endl;
+         std::cout << "starting" << std::endl;
 
         reduced.AllGather(&out_vec);
         
@@ -261,12 +262,59 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
 
         std::sort(out_vec.begin(), out_vec.end());
 
+        std::cout << "[";
+        for (int element : out_vec) {
+            std::cout << element << ",";
+        }
+        std::cout<<"]"<<std::endl;
+
         int i = 1;
         for (int element : out_vec) {
             ASSERT_EQ(element, 56 + (8 * i++));
         }
 
         ASSERT_EQ((size_t) 2, out_vec.size());        
+    };
+
+    c7a::ExecuteThreads(workers, port_base, start_func);
+
+}
+
+TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {        
+    
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(2, 4);
+
+    size_t workers = distribution(generator);
+    size_t port_base = 8080;
+
+    std::uniform_int_distribution<int> distribution2(1000, 10000);
+
+    size_t generate_size = distribution2(generator);
+
+    
+
+    std::function<void(c7a::Context&)> start_func = [generate_size](c7a::Context& ctx) {
+
+        auto input = GenerateFromFile(
+        ctx,
+        "test1",
+        [](const std::string& line) {
+            return std::stoi(line);
+        },
+        generate_size);
+
+        auto ones = input.Map([](int){
+                return 1;
+            });
+
+        
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
+
+        ASSERT_EQ((int) generate_size, ones.Sum(add_function));      
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
