@@ -52,6 +52,21 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 }
 
+static void ThreadInitializeSendCyclic(Group *net) {
+
+    size_t id = net->MyRank();
+
+    if(id != 0) {
+        size_t res;
+        net->ReceiveFrom<size_t>(id - 1, &res);
+        ASSERT_EQ(id - 1, res);
+    }
+
+    if(id != net->Size() - 1) {
+        net->SendTo(id + 1, id);
+    }
+}
+
 static void ThreadInitializeBroadcastIntegral(Group* net) {
 
     static const bool debug = false;
@@ -214,6 +229,10 @@ TEST(Group, RealInitializeBroadcast) {
     // above which sends and receives a message from all workers.
     RealGroupConstructAndCall(ThreadInitializeBroadcastIntegral);
 }
+TEST(Group, RealSendCyclic) {
+    RealGroupConstructAndCall(ThreadInitializeSendCyclic);
+}
+
 
 TEST(Group, InitializeAndClose) {
     // Construct a Group of 6 workers which do nothing but terminate.
@@ -237,6 +256,9 @@ TEST(Group, InitializeBroadcast) {
     Group::ExecuteLocalMock(6, ThreadInitializeBroadcastIntegral);
 }
 
+TEST(Group, SendCyclic) {
+    Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
+}
 /*
 TEST(Group, TestPrefixSum) {
     for (size_t p = 2; p <= 8; p *= 2) {
