@@ -53,20 +53,16 @@ public:
     }
 
     void PreOp(Output element) {
-        local_data_.push_back(element);
+        for (size_t i = 0; i < emitters_.size(); i++) {
+            emitters_[i](element);
+        }
     }
 
     virtual ~AllGatherNode() { }
 
     //! Closes the output file
     void execute() override {
-
-        for (auto element : local_data_) {
-            for (size_t i = 0; i < emitters_.size(); i++) {
-                emitters_[i](element);
-            }
-        }
-
+        //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
         }
@@ -93,8 +89,6 @@ private:
 
     //! Local stack
     Stack local_stack_;
-
-    std::vector<Output> local_data_;
 
     std::vector<Output> * out_vector_;
 
