@@ -106,7 +106,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
 
 static inline void
 ExecuteThreads(const size_t & workers, const size_t & port_base,
-               std::function<int(Context&)> job_startpoint) {
+               std::function<void(Context&)> job_startpoint) {
     
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
