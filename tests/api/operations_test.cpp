@@ -223,7 +223,7 @@ TEST(Operations, FilterResultsCorrectly) {
 
 }
 
-TEST(Operations, ReduceModulo2CorrectResults) {
+TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
