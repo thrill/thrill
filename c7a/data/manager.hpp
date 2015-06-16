@@ -68,7 +68,7 @@ public:
     //!
     //! \param id ID of the DIA / Channel - determined by AllocateDIA() / AllocateNetworkChannel()
     template <class T>
-    Iterator<T> GetIterator(ChainId id) {
+    Iterator<T> GetIterator(const ChainId& id) {
         if (id.type == LOCAL) {
             if (!dias_.Contains(id)) {
                 throw std::runtime_error("target dia id unknown.");
@@ -92,7 +92,7 @@ public:
     }
 
     // TODO Get size of current partition
-    size_t get_current_size(ChainId /* id */) {
+    size_t get_current_size(const ChainId & /* id */) {
         return 0;
     }
 
