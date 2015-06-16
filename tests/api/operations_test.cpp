@@ -77,12 +77,8 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
             ctx,
             "test1",
             [](const std::string& line) {
-                try {
-                    return std::stoi(line);
-                } catch (const std::invalid_argument&) {
-                    return 0;
-                }
-            });
+	        return std::stoi(line);
+	    });
 
         std::vector<int> out_vec;
 

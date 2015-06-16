@@ -46,10 +46,14 @@ public:
         }
 
         file_.seekg(my_start, std::ios::beg);
+	
+	
 
         //Go to next new line if the stream-pointer is not at the beginning of a line
         if (my_id != 0) {
-            file_.unget();
+	  std::streampos previous = (per_worker * my_id_) - 1;
+	  file_.seekg(previous, std::ios::beg);
+	  //file_.unget();
             if (file_.get() != '\n') {
                 std::string str;
                 std::getline(file_, str);
@@ -68,7 +72,7 @@ public:
 
     //! returns true, if an element is available in local part
     inline bool HasNext() {
-        return (file_.tellg() <= my_end_ && file_.peek() != EOF);
+        return (file_.tellg() <= my_end_);
     }
 
 private:
