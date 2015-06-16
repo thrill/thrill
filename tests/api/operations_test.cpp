@@ -41,6 +41,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
         ctx,
         "test1",
         [](const std::string& line) {
+            std::cout << line << std::endl;
             return std::stoi(line);
         },
         generate_size);
