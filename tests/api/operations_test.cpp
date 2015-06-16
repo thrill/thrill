@@ -80,7 +80,6 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
                 try {
                     return std::stoi(line);
                 } catch (const std::invalid_argument&) {
-                    std::cout << "\"" << line << "\"" << std::endl;
                     return 0;
                 }
             });
@@ -234,7 +233,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
+    std::uniform_int_distribution<int> distribution(2, 3);
 
     size_t workers = distribution(generator);
     size_t port_base = 8080;

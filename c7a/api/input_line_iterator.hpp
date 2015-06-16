@@ -68,7 +68,7 @@ public:
 
     //! returns true, if an element is available in local part
     inline bool HasNext() {
-        return (file_.tellg() <= my_end_);
+        return (file_.tellg() <= my_end_ && file_.peek() != EOF);
     }
 
 private:
