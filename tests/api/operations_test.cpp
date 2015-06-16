@@ -61,8 +61,8 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
     ASSERT_EQ(generate_size, writer_size);
 }
 
-TEST(Operations, ReadAndAllGatherElementsCorrect) {        
-    
+TEST(Operations, ReadAndAllGatherElementsCorrect) {
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -90,15 +90,15 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
             ASSERT_EQ(element, i++);
         }
 
-        ASSERT_EQ((size_t) 16, out_vec.size());        
+        ASSERT_EQ((size_t) 16, out_vec.size());
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
 
 }
 
-TEST(Operations, MapResultsCorrectChangingType) {        
-    
+TEST(Operations, MapResultsCorrectChangingType) {
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -132,15 +132,15 @@ TEST(Operations, MapResultsCorrectChangingType) {
             ASSERT_DOUBLE_EQ(element, (i++ * 2));
         }
 
-        ASSERT_EQ((size_t) 16, out_vec.size());        
+        ASSERT_EQ((size_t) 16, out_vec.size());
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
 
 }
 
-TEST(Operations, FlatMapResultsCorrectChangingType) {        
-    
+TEST(Operations, FlatMapResultsCorrectChangingType) {
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -159,7 +159,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
         auto flatmap_double = [](int in, auto emit) {
             emit((double) 2 * in);
-            emit((double) 2 * (in + 16)); 
+            emit((double) 2 * (in + 16));
         };
 
         auto doubled = integers.FlatMap(flatmap_double);
@@ -175,15 +175,15 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             ASSERT_DOUBLE_EQ(element, (i++ * 2));
         }
 
-        ASSERT_EQ((size_t) 32, out_vec.size());        
+        ASSERT_EQ((size_t) 32, out_vec.size());
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
 
 }
 
-TEST(Operations, FilterResultsCorrectly) {        
-    
+TEST(Operations, FilterResultsCorrectly) {
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -217,15 +217,15 @@ TEST(Operations, FilterResultsCorrectly) {
             ASSERT_DOUBLE_EQ(element, (i++ * 2));
         }
 
-        ASSERT_EQ((size_t) 8, out_vec.size());        
+        ASSERT_EQ((size_t) 8, out_vec.size());
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
 
 }
 
-TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {        
-    
+TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -251,14 +251,14 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
         };
 
         auto reduced = integers.ReduceBy(modulo_two, add_function);
-    
+
 
         std::vector<int> out_vec;
 
          std::cout << "starting" << std::endl;
 
         reduced.AllGather(&out_vec);
-        
+
         std::cout << "testing" << std::endl;
 
         std::sort(out_vec.begin(), out_vec.end());
@@ -274,15 +274,15 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
             ASSERT_EQ(element, 56 + (8 * i++));
         }
 
-        ASSERT_EQ((size_t) 2, out_vec.size());        
+        ASSERT_EQ((size_t) 2, out_vec.size());
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
 
 }
 
-TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {        
-    
+TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -294,7 +294,7 @@ TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {
 
     size_t generate_size = distribution2(generator);
 
-    
+
 
     std::function<void(c7a::Context&)> start_func = [generate_size](c7a::Context& ctx) {
 
@@ -310,12 +310,12 @@ TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {
                 return 1;
             });
 
-        
+
         auto add_function = [](int in1, int in2) {
             return in1 + in2;
         };
 
-        ASSERT_EQ((int) generate_size, ones.Sum(add_function));      
+        ASSERT_EQ((int) generate_size, ones.Sum(add_function));
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);

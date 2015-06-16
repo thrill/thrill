@@ -87,6 +87,8 @@ public:
             *waiting_timer_ += stream->wait_timer; //accumulate
             bytes_received_ += stream->bytes_read;
             CloseStream();
+            release_(stream->socket);
+            delete stream;
         }
         else {
             sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
