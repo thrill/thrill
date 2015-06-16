@@ -76,7 +76,7 @@ public:
     //! on this worker with the given id
     bool HasDataOn(ChannelId id) {
         assert(id.type == data::NETWORK);
-        return chains_.Contains(id.identifier);
+        return chains_.Contains(id);
     }
 
     //! Returns the buffer chain that contains the data for the channel with the given id
@@ -95,7 +95,7 @@ public:
     //! Behaviour on multiple calls to OpenChannel is undefined.
     //! \param id the channel to use
     template <class T>
-    std::vector<data::Emitter<T> > OpenChannel(ChannelId id) {
+    std::vector<data::Emitter<T> > OpenChannel(const ChannelId& id) {
         assert(group_ != nullptr);
         assert(id.type == data::NETWORK);
         std::vector<data::Emitter<T> > result;
@@ -105,8 +105,7 @@ public:
 
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
-                auto closer = std::bind(&ChannelMultiplexer::CloseLoopbackStream, this, id);
-                auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id), closer);
+                auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id),[=](){ sLOG << "loopback closes" << id; GetOrCreateChannel(id)->CloseLoopback();} );
                 result.emplace_back(data::Emitter<T>(target));
             }
             else {
@@ -118,6 +117,7 @@ public:
                 result.emplace_back(data::Emitter<T>(target));
             }
         }
+        assert (result.size() == group_->Size());
         return result;
     }
 
@@ -153,12 +153,6 @@ private:
         dispatcher_.AsyncRead(s, expected_size, callback);
     }
 
-    //! Nasty hack because LoopbackTarget cannot send a end-of-stream header
-    void CloseLoopbackStream(ChannelId id) {
-        assert(id.type == data::NETWORK);
-        GetOrCreateChannel(id)->CloseLoopback();
-    }
-
     ChannelPtr GetOrCreateChannel(ChannelId id) {
         assert(id.type == data::NETWORK);
         ChannelPtr channel;
@@ -166,9 +160,7 @@ private:
         std::lock_guard<std::mutex> lock(mutex_);
         if (!HasChannel(id)) {
             //create buffer chain target if it does not exist
-            if (!chains_.Contains(id))
-                chains_.Allocate(id);
-            auto targetChain = chains_.Chain(id);
+            auto targetChain = chains_.GetOrAllocate(id);
 
             //build params for Channel ctor
             auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
