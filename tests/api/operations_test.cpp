@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <random>
+#include <string>
 
 #include "gtest/gtest.h"
 
@@ -76,7 +77,12 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
             ctx,
             "test1",
             [](const std::string& line) {
-                return std::stoi(line);
+                try {
+                    return std::stoi(line);
+                } catch (const std::invalid_argument&) {
+                    std::cout << "\"" << line << "\"" << std::endl;
+                    return 0;
+                }
             });
 
         std::vector<int> out_vec;
@@ -224,7 +230,7 @@ TEST(Operations, FilterResultsCorrectly) {
 
 }
 
-TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
+TEST(Operations, ReduceModulo2CorrectResults) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -243,7 +249,7 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
             });
 
         auto modulo_two = [](int in) {
-            return (in / 2);
+            return (in % 2);
         };
 
         auto add_function = [](int in1, int in2) {
@@ -262,12 +268,6 @@ TEST(Operations, DISABLED_ReduceModulo2CorrectResults) {
         std::cout << "testing" << std::endl;
 
         std::sort(out_vec.begin(), out_vec.end());
-
-        std::cout << "[";
-        for (int element : out_vec) {
-            std::cout << element << ",";
-        }
-        std::cout<<"]"<<std::endl;
 
         int i = 1;
         for (int element : out_vec) {
