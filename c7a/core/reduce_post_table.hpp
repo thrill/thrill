@@ -37,6 +37,8 @@ class ReducePostTable
 
     using value_t = typename FunctionTraits<ReduceFunction>::result_type;
 
+    using KeyValuePair = std::pair<key_t, value_t>;
+
 protected:
     template <typename key_t, typename value_t>
     struct node {
@@ -81,8 +83,9 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const value_t& p) {
-        key_t key = key_extractor_(p);
+    void Insert(KeyValuePair p) {
+
+        key_t key = p.first;
 
         size_t hashed_key = std::hash<key_t>() (key) % num_buckets_;
 
@@ -100,7 +103,7 @@ public:
 
             node<key_t, value_t>* n = new node<key_t, value_t>;
             n->key = key;
-            n->value = p;
+            n->value = p.second;
             n->next = nullptr;
             vector_[hashed_key] = n;
 
@@ -120,7 +123,7 @@ public:
                         << curr_node->key
                         << " ... reducing...";
 
-                    (*curr_node).value = reduce_function_(curr_node->value, p);
+                    (*curr_node).value = reduce_function_(curr_node->value, p.second);
 
                     LOG << "...finished reduce!";
 
@@ -137,7 +140,7 @@ public:
                 // insert at first pos
                 node<key_t, value_t>* n = new node<key_t, value_t>;
                 n->key = key;
-                n->value = p;
+                n->value = p.second;
                 n->next = vector_[hashed_key];
                 vector_[hashed_key] = n;
 
