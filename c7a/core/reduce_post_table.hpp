@@ -86,7 +86,8 @@ public:
 
     using KeyValuePair = std::pair<Key, Value>;
 
-    template <typename Key, typename Value>
+
+    template <typename key_t, typename value_t>
     struct node {
         Key   key;
         Value value;

@@ -270,7 +270,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
         ASSERT_EQ((size_t) 2, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::ExecuteThreads(1, port_base, start_func);
 
 }
 
