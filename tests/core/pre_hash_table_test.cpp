@@ -13,6 +13,8 @@
 
 using namespace c7a::data;
 using namespace c7a::net;
+using IntPair = std::pair<int, int>;
+using StringPairPair = std::pair<std::string, std::pair<std::string, int>>;
 using StringPair = std::pair<std::string, int>;
 
 struct PreTable : public::testing::Test {
@@ -21,14 +23,14 @@ struct PreTable : public::testing::Test {
           manager(dispatcher),
           id1(manager.AllocateDIA()),
           id2(manager.AllocateDIA()) {
-        one_int_emitter.emplace_back(manager.GetLocalEmitter<int>(id1));
-        one_pair_emitter.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
+        one_int_emitter.emplace_back(manager.GetLocalEmitter<IntPair>(id1));
+        one_pair_emitter.emplace_back(manager.GetLocalEmitter<StringPairPair>(id1));
 
-        two_int_emitters.emplace_back(manager.GetLocalEmitter<int>(id1));
-        two_int_emitters.emplace_back(manager.GetLocalEmitter<int>(id2));
+        two_int_emitters.emplace_back(manager.GetLocalEmitter<IntPair>(id1));
+        two_int_emitters.emplace_back(manager.GetLocalEmitter<IntPair>(id2));
 
-        two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
-        two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
+        two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPairPair>(id1));
+        two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPairPair>(id2));
     }
 
     DispatcherThread                  dispatcher;
@@ -36,10 +38,10 @@ struct PreTable : public::testing::Test {
     DIAId                             id1;
     DIAId                             id2;
     // all emitters access the same dia id, which is bad if you use them both
-    std::vector<Emitter<int> >        one_int_emitter;
-    std::vector<Emitter<int> >        two_int_emitters;
-    std::vector<Emitter<StringPair> > one_pair_emitter;
-    std::vector<Emitter<StringPair> > two_pair_emitters;
+    std::vector<Emitter<IntPair> >        one_int_emitter;
+    std::vector<Emitter<IntPair> >        two_int_emitters;
+    std::vector<Emitter<StringPairPair> > one_pair_emitter;
+    std::vector<Emitter<StringPairPair> > two_pair_emitters;
 };
 
 struct MyStruct
@@ -85,7 +87,7 @@ TEST_F(PreTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(1, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
@@ -106,7 +108,7 @@ TEST_F(PreTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(1, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
@@ -127,7 +129,7 @@ TEST_F(PreTable, PopIntegers) {
 
     auto key_ex = [](int in) { return in; };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(1, key_ex, red_fn, one_int_emitter);
 
     table.SetMaxSize(3);
@@ -155,7 +157,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(1, 10, 2, 10, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(0);
@@ -168,7 +170,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
 
     table.Flush();
 
-    auto it = manager.GetIterator<int>(id1);
+    auto it = manager.GetIterator<IntPair>(id1);
     int c = 0;
     while (it.HasNext()) {
         it.Next();
@@ -190,7 +192,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(2, 5, 2, 10, 10, key_ex, red_fn, two_int_emitters);
 
     table.Insert(0);
@@ -203,7 +205,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
     table.Flush();
 
-    auto it1 = manager.GetIterator<int>(id1);
+    auto it1 = manager.GetIterator<IntPair>(id1);
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -212,7 +214,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
     ASSERT_EQ(3, c1);
 
-    auto it2 = manager.GetIterator<int>(id2);
+    auto it2 = manager.GetIterator<IntPair>(id2);
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next();
@@ -234,7 +236,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(1, 10, 2, 10, 4, key_ex, red_fn, one_int_emitter);
 
     table.Insert(0);
@@ -246,7 +248,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     table.Insert(4);
 
-    auto it = manager.GetIterator<int>(id1);
+    auto it = manager.GetIterator<IntPair>(id1);
     int c = 0;
     while (it.HasNext()) {
         it.Next();
@@ -268,7 +270,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(2, 5, 2, 10, 4, key_ex, red_fn, two_int_emitters);
 
     table.Insert(0);
@@ -281,7 +283,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(4);
     table.Flush();
 
-    auto it1 = manager.GetIterator<int>(id1);
+    auto it1 = manager.GetIterator<IntPair>(id1);
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -291,7 +293,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(3, c1);
     table.Flush();
 
-    auto it2 = manager.GetIterator<int>(id2);
+    auto it2 = manager.GetIterator<IntPair>(id2);
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next();
@@ -312,7 +314,7 @@ TEST_F(PreTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<StringPairPair> >
     table(1, 2, 2, 10, 3, key_ex, red_fn, one_pair_emitter);
 
     table.Insert(std::make_pair("hallo", 1));
@@ -339,7 +341,7 @@ TEST_F(PreTable, MultipleWorkers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(2, key_ex, red_fn, one_int_emitter);
 
     ASSERT_EQ(0u, table.Size());
@@ -364,7 +366,7 @@ TEST_F(PreTable, ResizeOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(1, 1, 10, 1, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
@@ -381,7 +383,7 @@ TEST_F(PreTable, ResizeOnePartition) {
 
     table.Flush();
 
-    auto it1 = manager.GetIterator<int>(id1);
+    auto it1 = manager.GetIterator<IntPair>(id1);
     int c = 0;
     while (it1.HasNext()) {
         it1.Next();
@@ -403,7 +405,7 @@ TEST_F(PreTable, ResizeTwoPartitions) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<IntPair> >
     table(2, 1, 10, 1, 10, key_ex, red_fn, two_int_emitters);
 
     ASSERT_EQ(0u, table.Size());
@@ -440,17 +442,17 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     size_t bucket_size = 1 * 1024;
     size_t nitems = bucket_size + (num_partitions * num_buckets_init_scale * bucket_size);
 
-    std::vector<Emitter<MyStruct> > emitters;
+    std::vector<Emitter<std::pair<int,MyStruct> > > emitters;
     std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
     std::vector<DIAId> ids;
     for (size_t i = 0; i != num_partitions; ++i) {
         auto id = manager.AllocateDIA();
         ids.emplace_back(id);
-        emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id));
+        emitters.emplace_back(manager.GetLocalEmitter<std::pair<int,MyStruct>>(id));
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<MyStruct>, 16*1024>
+                              Emitter<std::pair<int,MyStruct>>, 16*1024>
     table(num_partitions, num_buckets_init_scale, 10, bucket_size,
           nitems, key_ex, red_fn, { emitters });
 
@@ -471,10 +473,10 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = manager.GetIterator<MyStruct>(ids[i]);
+        auto it = manager.GetIterator<std::pair<int,MyStruct>>(ids[i]);
         while (it.HasNext()) {
             auto n = it.Next();
-            keys[i].push_back(n.key);
+            keys[i].push_back(n.second.key);
         }
     }
 
@@ -507,11 +509,11 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     ASSERT_EQ(0u, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = manager.GetIterator<MyStruct>(ids[i]);
+        auto it = manager.GetIterator<std::pair<int,MyStruct>>(ids[i]);
         while (it.HasNext()) {
             auto n = it.Next();
-            if (n.count == 0) {
-                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.key));
+            if (n.second.count == 0) {
+                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.second.key));
             }
         }
     }
@@ -530,12 +532,12 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     size_t total_sum = 0, total_count = 0;
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+    std::vector<Emitter<std::pair<int,MyStruct>> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<std::pair<int,MyStruct>>(id1));
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<MyStruct>, 16*1024>
+                              Emitter<std::pair<int,MyStruct>>, 16*1024>
     table(1, 2, 2, 128 * 1024, 1024 * 1024,
           key_ex, red_fn, { emitters });
 
@@ -547,11 +549,11 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     table.Flush();
 
-    auto it1 = manager.GetIterator<MyStruct>(id1);
+    auto it1 = manager.GetIterator<std::pair<int,MyStruct>>(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
         total_count++;
-        total_sum += n.count;
+        total_sum += n.second.count;
     }
 
     // actually check that the reduction worked
@@ -569,15 +571,15 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                   };
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+    std::vector<Emitter<std::pair<int,MyStruct>> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<std::pair<int,MyStruct>>(id1));
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<MyStruct>, 16*1024>
+                              Emitter<std::pair<int,MyStruct>>, 16*1024>
     table(1, 2, 2, 128, nitems,
           key_ex, red_fn, { emitters });
 
@@ -596,10 +598,10 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<MyStruct>(id1);
+    auto it1 = manager.GetIterator<std::pair<int,MyStruct>>(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
-        ASSERT_EQ(sum, n.count);
+        ASSERT_EQ(sum, n.second.count);
     }
 }
 
@@ -623,14 +625,14 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
                   };
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<StringPair> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
+    std::vector<Emitter<StringPairPair> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<StringPairPair>(id1));
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<StringPair>, 16*1024>
+                              Emitter<StringPairPair>, 16*1024>
     table(1, 2, 2, 128, nitems,
           key_ex, red_fn, { emitters });
 
@@ -652,10 +654,10 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<StringPair>(id1);
+    auto it1 = manager.GetIterator<StringPairPair>(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
-        ASSERT_EQ(sum, n.second);
+        ASSERT_EQ(sum, n.second.second);
     }
 }
 
