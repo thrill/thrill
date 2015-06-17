@@ -312,7 +312,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](std::move(bi->second));
+                    emit_[partition_id](std::move(*bi));
                 }
 
                 // destroy block and advance to next
