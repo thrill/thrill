@@ -181,9 +181,10 @@ struct Impl<std::pair<std::string, int> >{
 template <typename T1, typename T2>
 struct Impl<std::pair<T1, T2>> {
     static std::string Serialize(const std::pair<T1, T2>& x) {
-        if( x.first.size() > UINT_MAX ) {
-            //TODO ERROR
-        }
+        // UINT_MAX not working on Jenkins o.o
+        // if( x.first.size() > UINT_MAX ) {
+        //     //TODO ERROR
+        // }
         unsigned int len_t1 = static_cast<unsigned int>(x.first.size());
         std::string t1 = serializers::Impl<T1>::Serialize(x.first);
         std::string t2 = serializers::Impl<T2>::Serialize(x.second);
