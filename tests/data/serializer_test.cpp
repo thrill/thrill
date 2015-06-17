@@ -19,7 +19,11 @@
 
 using namespace c7a::data;
 
+<<<<<<< HEAD
 static const bool debug = false;
+=======
+// static const bool debug = false;
+>>>>>>> use make_pair instead of constructor
 
 TEST(Serializer, StringSerializeDeserialize) {
     std::string foo = "foo";
@@ -131,10 +135,10 @@ TEST(Serializer, IntInt_Pair_SerializeDeserialize_Test) {
     ASSERT_EQ(std::get<1>(t), std::get<1>(result));
 }
 
-TEST(Serializer, Tuple_SerializeDeserialize_Test) {
-    std::tuple<int, std::string, int> foo = std::make_tuple (3, "foo", 5);
-    auto res = Serialize<std::tuple<int, std::string, int>>(foo);
-    LOG1 << res;
-}
+// TEST(Serializer, Tuple_SerializeDeserialize_Test) {
+//     std::tuple<int, std::string, int> foo = std::make_tuple (3, "foo", 5);
+//     auto res = Serialize<std::tuple<int, std::string, int>>(foo);
+//     LOG1 << res;
+// }
 
 /******************************************************************************/
