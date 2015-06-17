@@ -51,22 +51,37 @@ public:
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
                     KeyExtractor key_extractor, ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit)
+                    std::vector<EmitterFunction>& emit,
+                    std::function<size_t(key_t, ReducePostTable*)> hash_function
+                    = [](key_t key, ReducePostTable* pt) {
+                        return std::hash<key_t>() (key) % pt->num_buckets_;
+                    }
+        )
         : num_buckets_init_scale_(num_buckets),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function)
+    {
         init();
     }
 
     ReducePostTable(KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+                    ReduceFunction reduce_function,
+                    std::vector<EmitterFunction>& emit,
+                    std::function<size_t(key_t, ReducePostTable*)> hash_function
+                    = [](key_t key, ReducePostTable* pt) {
+                        return std::hash<key_t>() (key) % pt->num_buckets_;
+                    }
+)
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function)
+    {
         init();
     }
 
@@ -87,7 +102,7 @@ public:
 
         key_t key = p.first;
 
-        size_t hashed_key = std::hash<key_t>() (key) % num_buckets_;
+        size_t hashed_key = hash_function_(key, this);
 
         LOG << "key: "
             << key
@@ -307,6 +322,8 @@ private:
     std::vector<EmitterFunction> emit_;
 
     std::vector<node<key_t, value_t>*> vector_;
+
+    std::function<size_t(key_t, ReducePostTable*)> hash_function_;
 };
 
 } // namespace core
