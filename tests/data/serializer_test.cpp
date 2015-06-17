@@ -19,6 +19,8 @@
 
 using namespace c7a::data;
 
+static const bool debug = false;
+
 TEST(Serializer, StringSerializeDeserialize) {
     std::string foo = "foo";
     auto fooserial = Deserialize<std::string>(Serialize<std::string>(foo));
@@ -129,5 +131,10 @@ TEST(Serializer, IntInt_Pair_SerializeDeserialize_Test) {
     ASSERT_EQ(std::get<1>(t), std::get<1>(result));
 }
 
+TEST(Serializer, Tuple_SerializeDeserialize_Test) {
+    std::tuple<int, std::string, int> foo = std::make_tuple (3, "foo", 5);
+    auto res = Serialize<std::tuple<int, std::string, int>>(foo);
+    LOG1 << res;
+}
 
 /******************************************************************************/
