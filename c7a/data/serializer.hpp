@@ -172,7 +172,7 @@ struct Impl<std::pair<std::string, int> >{
         std::size_t str_len = x.size() - sizeof(int);
         std::memcpy(&i, x.c_str(), sizeof(int));
         std::string s(x, sizeof(int), str_len);
-        return std::pair<std::string, int>(s, i);
+        return std::make_pair(s, i);
     }
 };
 
@@ -209,20 +209,8 @@ struct Impl<std::pair<T1, T2>> {
         T2 t2 = serializers::Impl<T2>::Deserialize(t2_str);
 
         return std::make_pair(t1, t2);
-
-// template <class T, class... Ts>
-// struct Impl<std::tuple<T, Ts...>> {
-//     static std::string Serialize(const std::tuple<T, Ts...>& x) {
-//         std::string result = "";
-//         auto serial1 = serializers::Impl<T>::Serialize(std::get<0>(x));
-//         const int n = sizeof...(Ts);
-//         // for ()
-//         return std::to_string(n);
-//     }
-//     static void Deserialize(const std::string& x) {
-//         //noop
-//     }
-// };
+    }
+};
 
 //! binary serializer for any integral type, usable as template.
 template <typename Type>
@@ -231,7 +219,7 @@ struct GenericImpl {
         return std::string(reinterpret_cast<const char*>(&v), sizeof(v));
     }
 
-    static Type Deserialize(const std::string& s) {
+    static Type        Deserialize(const std::string& s) {
         assert(s.size() == sizeof(Type));
         return Type(*reinterpret_cast<const Type*>(s.data()));
     }
