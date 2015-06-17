@@ -43,6 +43,7 @@ class ReducePreTable
 protected:
     struct hash_result
     {
+    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the partition's sub-hashtable of this item
@@ -50,7 +51,13 @@ protected:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(Key v, const ReducePreTable& ht) {
+        hash_result(size_t p_id, size_t p_off, size_t g_id) {
+            partition_id = p_id;
+            partition_offset = p_off;
+            global_index = g_id;
+        }
+
+        /*hash_result(Key v, const ReducePreTable& ht) {
             size_t hashed = std::hash<Key>() (v);
 
             // partition idx
@@ -63,7 +70,7 @@ protected:
 
             // global idx
             global_index = partition_id * ht.num_buckets_per_partition_ + partition_offset;
-        }
+            }*/
     };
 
     //! template for constexpr max, because std::max is not good enough.
@@ -102,7 +109,21 @@ public:
                    size_t num_buckets_resize_scale,
                    size_t max_num_items_per_bucket, size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
-                   std::vector<EmitterFunction>& emit)
+                   std::vector<EmitterFunction>& emit,
+                   std::function<hash_result(Key, ReducePreTable*)> hash_function
+                   = [](Key v, ReducePreTable* ht) {
+                           size_t hashed = std::hash<Key>() (v);
+
+                           size_t partition_offset = hashed %
+                               ht->num_buckets_per_partition_;
+                           size_t partition_id = hashed % ht->num_partitions_;
+                           size_t global_index = partition_id * 
+                               ht->num_buckets_per_partition_ +
+                               partition_offset;
+                           hash_result hr(partition_id, partition_offset, global_index);
+                           return hr;
+                       }
+        )
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -110,16 +131,36 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function)
+    {
         init();
     }
 
-    ReducePreTable(size_t partition_size, KeyExtractor key_extractor,
-                   ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+    ReducePreTable(size_t partition_size,
+                   KeyExtractor key_extractor,
+                   ReduceFunction reduce_function,
+                   std::vector<EmitterFunction>& emit,
+                   std::function<hash_result(Key, ReducePreTable*)> hash_function
+                   = [](Key v, ReducePreTable* ht) {
+                           size_t hashed = std::hash<Key>() (v);
+
+                           size_t partition_offset = hashed %
+                               ht->num_buckets_per_partition_;
+                           size_t partition_id = hashed % ht->num_partitions_;
+                           size_t global_index = partition_id * 
+                               ht->num_buckets_per_partition_ +
+                               partition_offset;
+                           hash_result hr(partition_id, partition_offset, global_index);
+                           return hr;
+                       }
+        )
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function)
+                   {
         init();
     }
 
@@ -170,7 +211,7 @@ public:
     void Insert(Value&& p) {
         Key key = key_extractor_(p);
 
-        hash_result h(key, *this);
+        hash_result h = hash_function_(key, this);
 
         LOG << "key: " << key << " to bucket id: " << h.global_index;
 
@@ -312,7 +353,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](std::move(bi->second));
+                    emit_[partition_id](std::move(*bi));
                 }
 
                 // destroy block and advance to next
@@ -538,11 +579,13 @@ private:
     KeyExtractor key_extractor_;
 
     ReduceFunction reduce_function_;
-
     std::vector<EmitterFunction> emit_;
     std::vector<int> emit_stats_;
-
+                   
     std::vector<BucketBlock*> vector_;
+
+    std::function<hash_result(Key, ReducePreTable*)> hash_function_;
+
 };
 
 } // namespace core

@@ -52,6 +52,12 @@ class ReduceNode : public DOpNode<Output>
     using Super = DOpNode<Output>;
 
     using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
+    
+    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+
+    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+
+    typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
     using Super::data_id_;
@@ -80,7 +86,7 @@ public:
           reduce_function_(reduce_function),
           channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
           emitters_(ctx.get_data_manager().
-                    template GetNetworkEmitters<Output>(channel_id_)),
+                    template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_)
     {
@@ -136,9 +142,9 @@ private:
 
     data::ChannelId channel_id_;
 
-    std::vector<data::Emitter<Output> > emitters_;
+    std::vector<data::Emitter<KeyValuePair> > emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<Output> >
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
     reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
@@ -164,13 +170,13 @@ private:
                           DIANode<Output>::callbacks());
 
         auto it = context_.get_data_manager().
-            template GetIterator<Output>(channel_id_);
+            template GetIterator<KeyValuePair>(channel_id_);
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {
             it.WaitForMore();
             while (it.HasNext()) {
-                table.Insert(it.Next());
+                table.Insert(std::move(it.Next()));
             }
         } while (!it.IsClosed());
 

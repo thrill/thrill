@@ -65,7 +65,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
+    std::uniform_int_distribution<int> distribution(1, 4);
 
     size_t workers = distribution(generator);
     size_t port_base = 8080;
@@ -101,7 +101,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
+    std::uniform_int_distribution<int> distribution(1, 4);
 
     size_t workers = distribution(generator);
     size_t port_base = 8080;
@@ -143,7 +143,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
+    std::uniform_int_distribution<int> distribution(1, 4);
 
     size_t workers = distribution(generator);
     size_t port_base = 8080;
@@ -186,7 +186,7 @@ TEST(Operations, FilterResultsCorrectly) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
+    std::uniform_int_distribution<int> distribution(1, 4);
 
     size_t workers = distribution(generator);
     size_t port_base = 8080;
@@ -228,7 +228,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 3);
+    std::uniform_int_distribution<int> distribution(1, 4);
 
     size_t workers = distribution(generator);
     size_t port_base = 8080;
