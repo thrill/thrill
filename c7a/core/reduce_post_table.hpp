@@ -32,29 +32,30 @@ class ReducePostTable
 {
     static const bool debug = false;
 
-    // TODO(ms): according to coding style: Types are CamelCase.
-    using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
-    using value_t = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
-    using KeyValuePair = std::pair<key_t, value_t>;
+    using KeyValuePair = std::pair<Key, Value>;
 
 protected:
-    template <typename key_t, typename value_t>
+    template <typename Key, typename Value>
     struct node {
-        key_t   key;
-        value_t value;
+        Key   key;
+        Value value;
         node    * next;
     };
 
 public:
+    typedef std::function<size_t(Key, ReducePostTable*)> HashFunction;
+
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
                     KeyExtractor key_extractor, ReduceFunction reduce_function,
                     std::vector<EmitterFunction>& emit,
-                    std::function<size_t(key_t, ReducePostTable*)> hash_function
-                    = [](key_t key, ReducePostTable* pt) {
-                        return std::hash<key_t>() (key) % pt->num_buckets_;
+                    HashFunction hash_function = [](Key key,
+                                                    ReducePostTable* pt) {
+                        return std::hash<Key>() (key) % pt->num_buckets_;
                     }
         )
         : num_buckets_init_scale_(num_buckets),
@@ -72,9 +73,9 @@ public:
     ReducePostTable(KeyExtractor key_extractor,
                     ReduceFunction reduce_function,
                     std::vector<EmitterFunction>& emit,
-                    std::function<size_t(key_t, ReducePostTable*)> hash_function
-                    = [](key_t key, ReducePostTable* pt) {
-                        return std::hash<key_t>() (key) % pt->num_buckets_;
+                    HashFunction hash_function = [](Key key,
+                                                    ReducePostTable* pt) {
+                        return std::hash<Key>() (key) % pt->num_buckets_;
                     }
 )
         : key_extractor_(key_extractor),
@@ -100,7 +101,7 @@ public:
      */
     void Insert(KeyValuePair p) {
 
-        key_t key = p.first;
+        Key key = p.first;
 
         size_t hashed_key = hash_function_(key, this);
 
@@ -116,7 +117,7 @@ public:
         if (vector_[hashed_key] == nullptr) {
             LOG << "bucket empty, inserting...";
 
-            node<key_t, value_t>* n = new node<key_t, value_t>;
+            node<Key, Value>* n = new node<Key, Value>;
             n->key = key;
             n->value = p.second;
             n->next = nullptr;
@@ -129,7 +130,7 @@ public:
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node<key_t, value_t>* curr_node = vector_[hashed_key];
+            node<Key, Value>* curr_node = vector_[hashed_key];
             do {
                 if (key == curr_node->key) {
                     LOG << "match of key: "
@@ -153,7 +154,7 @@ public:
                 LOG << "key doesn't exist in baguette, appending...";
 
                 // insert at first pos
-                node<key_t, value_t>* n = new node<key_t, value_t>;
+                node<Key, Value>* n = new node<Key, Value>;
                 n->key = key;
                 n->value = p.second;
                 n->next = vector_[hashed_key];
@@ -174,7 +175,7 @@ public:
     /*!
      * Emits element to all childs
      */
-    void EmitAll(value_t& element) {
+    void EmitAll(Value& element) {
         for (auto& emitter : emit_) {
             emitter(element);
         }
@@ -188,7 +189,7 @@ public:
         // retrieve items
         for (size_t i = 0; i < num_buckets_; i++) {
             if (vector_[i] != nullptr) {
-                node<key_t, value_t>* curr_node = vector_[i];
+                node<Key, Value>* curr_node = vector_[i];
                 do {
                     EmitAll(curr_node->value);
                     curr_node = curr_node->next;
@@ -230,8 +231,8 @@ public:
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
         // init new array
-        std::vector<node<key_t, value_t>*> vector_old = vector_;
-        std::vector<node<key_t, value_t>*> vector_new;
+        std::vector<node<Key, Value>*> vector_old = vector_;
+        std::vector<node<Key, Value>*> vector_new;
         vector_new.resize(num_buckets_, nullptr);
         vector_ = vector_new;
         // rehash all items in old array
@@ -274,8 +275,8 @@ public:
                 std::string log = "";
 
                 // check if item with same key
-                node<key_t, value_t>* curr_node = vector_[i];
-                value_t curr_item;
+                node<Key, Value>* curr_node = vector_[i];
+                Value curr_item;
                 do {
                     curr_item = curr_node->value;
 
@@ -321,9 +322,9 @@ private:
 
     std::vector<EmitterFunction> emit_;
 
-    std::vector<node<key_t, value_t>*> vector_;
+    std::vector<node<Key, Value>*> vector_;
 
-    std::function<size_t(key_t, ReducePostTable*)> hash_function_;
+    HashFunction hash_function_;
 };
 
 } // namespace core

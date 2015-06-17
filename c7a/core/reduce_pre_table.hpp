@@ -105,12 +105,15 @@ protected:
     };
 
 public:
+    
+    typedef std::function<hash_result(Key, ReducePreTable*)> HashFunction;
+
     ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale,
                    size_t num_buckets_resize_scale,
                    size_t max_num_items_per_bucket, size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<EmitterFunction>& emit,
-                   std::function<hash_result(Key, ReducePreTable*)> hash_function
+                   HashFunction hash_function
                    = [](Key v, ReducePreTable* ht) {
                            size_t hashed = std::hash<Key>() (v);
 
@@ -122,7 +125,7 @@ public:
                                partition_offset;
                            hash_result hr(partition_id, partition_offset, global_index);
                            return hr;
-                       }
+                   }
         )
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
@@ -141,7 +144,7 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<EmitterFunction>& emit,
-                   std::function<hash_result(Key, ReducePreTable*)> hash_function
+                   HashFunction hash_function
                    = [](Key v, ReducePreTable* ht) {
                            size_t hashed = std::hash<Key>() (v);
 
@@ -160,7 +163,7 @@ public:
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function)
-                   {
+    {
         init();
     }
 
@@ -584,7 +587,7 @@ private:
                    
     std::vector<BucketBlock*> vector_;
 
-    std::function<hash_result(Key, ReducePreTable*)> hash_function_;
+    HashFunction hash_function_;
 
 };
 
