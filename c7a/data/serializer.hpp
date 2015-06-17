@@ -206,7 +206,7 @@ struct Impl<std::pair<T1, T2>> {
         std::string t2_str = x.substr(sizeof(unsigned int) + len_t1, len_t2);
 
         T1 t1 = serializers::Impl<T1>::Deserialize(t1_str);
-        T1 t2 = serializers::Impl<T2>::Deserialize(t2_str);
+        T2 t2 = serializers::Impl<T2>::Deserialize(t2_str);
 
         return std::make_pair(t1, t2);
     }
