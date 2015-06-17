@@ -71,7 +71,8 @@ public:
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void execute() {
-        LOG1 << "READING data with id " << data_id_;
+        static const bool debug = false;
+        LOG << "READING data with id " << data_id_;
 
         std::ifstream file(path_in_);
         assert(file.good());

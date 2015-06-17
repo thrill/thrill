@@ -96,11 +96,11 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     Context ctx;
     LOG << "connecting to peers";
     ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
-    std::cout << "starting job" << std::endl;
+    LOG << "Starting job on Worker " << ctx.rank();
     auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
     auto job_result = job_startpoint(ctx);
     overall_timer->Stop();
-    std::cout << "DONE! " << ctx.rank() << std::endl;
+    LOG << "Worker " << ctx.rank() << " done!";
     return job_result;
 }
 
