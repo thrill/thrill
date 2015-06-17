@@ -67,7 +67,7 @@ struct Impl<long>{
     }
 
     static long Deserialize(const std::string& x) {
-        return std::stoi(x);
+        return std::stol(x);
     }
 };
 
@@ -79,19 +79,20 @@ struct Impl<long long>{
     }
 
     static long long Deserialize(const std::string& x) {
-        return std::stoi(x);
+        return std::stoll(x);
     }
 };
 
 //! serializer for unsigned
 template <>
-struct Impl<unsigned>{
-    static std::string Serialize(const unsigned& x) {
+struct Impl<unsigned int>{
+    static std::string Serialize(const unsigned int& x) {
         return std::to_string(x);
     }
 
-    static unsigned Deserialize(const std::string& x) {
-        return std::stoi(x);
+    static unsigned int Deserialize(const std::string& x) {
+        return std::stoul(x);
+        //TODO: WHY IS THIS WORKING???? I DONT UNDERSTAND
     }
 };
 
@@ -103,7 +104,7 @@ struct Impl<unsigned long>{
     }
 
     static unsigned long Deserialize(const std::string& x) {
-        return std::stoi(x);
+        return std::stoul(x);
     }
 };
 
@@ -115,7 +116,7 @@ struct Impl<unsigned long long>{
     }
 
     static unsigned long long Deserialize(const std::string& x) {
-        return std::stoi(x);
+        return std::stoull(x);
     }
 };
 
@@ -127,7 +128,7 @@ struct Impl<float>{
     }
 
     static float Deserialize(const std::string& x) {
-        return std::stoi(x);
+        return std::stof(x);
     }
 };
 
@@ -151,11 +152,9 @@ struct Impl<long double>{
     }
 
     static long double Deserialize(const std::string& x) {
-        return std::stoi(x);
+        return std::stold(x);
     }
 };
-
-
 
 //! serializer for (string, int) tuples
 template <>
