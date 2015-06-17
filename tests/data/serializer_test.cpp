@@ -12,65 +12,89 @@
 
 #include <utility>
 #include <string>
+#include <typeinfo>
 
 
 #include "gtest/gtest.h"
 
 using namespace c7a::data;
 
-static const bool debug = true;
-
 TEST(Serializer, StringSerializeDeserialize) {
-    ASSERT_EQ("foo", Deserialize<std::string>(Serialize<std::string>("foo")));
+    std::string foo = "foo";
+    auto fooserial = Deserialize<std::string>(Serialize<std::string>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, IntSerializeDeserialize) {
-    ASSERT_EQ(-123, Deserialize<int>(Serialize<int>(-123)));
+    int foo = -123;
+    auto fooserial = Deserialize<int>(Serialize<int>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, LongSerializeDeserialize) {
-    long x = 123;
-    ASSERT_EQ(x, Deserialize<long>(Serialize<long>(x)));
+    long foo = -123;
+    auto fooserial = Deserialize<long>(Serialize<long>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, LongLongSerializeDeserialize) {
-    long long x = 123;
-    ASSERT_EQ(x, Deserialize<long long>(Serialize<long long>(x)));
+    long long foo = -123;
+    auto fooserial = Deserialize<long long>(Serialize<long long>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, UnsignedSerializeDeserialize) {
-    unsigned x = 123;
-    ASSERT_EQ(x, Deserialize<unsigned>(Serialize<unsigned>(x)));
+    unsigned int foo = 2154910440;
+    auto fooserial = Deserialize<unsigned int>(Serialize<unsigned int>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
+    ASSERT_EQ(sizeof(foo), sizeof(fooserial));
 }
 
 TEST(Serializer, UnsignedLongSerializeDeserialize) {
-    unsigned long x = 123;
-    ASSERT_EQ(x, Deserialize<unsigned long>(Serialize<unsigned long>(x)));
+    unsigned long foo = 123;
+    auto fooserial = Deserialize<unsigned long>(Serialize<unsigned long>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, UnsignedLongLongSerializeDeserialize) {
-    unsigned long long x = 123;
-    ASSERT_EQ(x, Deserialize<unsigned long long>(Serialize<unsigned long long>(x)));
+    unsigned long long foo = 123;
+    auto fooserial = Deserialize<unsigned long long>(Serialize<unsigned long long>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, FloatSerializeDeserialize) {
-    float x = 123;
-    ASSERT_EQ(x, Deserialize<float>(Serialize<float>(x)));
+    float foo = 123.123;
+    auto fooserial = Deserialize<float>(Serialize<float>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, DoubleSerializeDeserialize) {
-    double x = 123;
-    ASSERT_EQ(x, Deserialize<double>(Serialize<double>(x)));
+    double foo = 123.123;
+    auto fooserial = Deserialize<double>(Serialize<double>(foo));
+    ASSERT_DOUBLE_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, LongDoubleSerializeDeserialize) {
-    long double x = 123;
-    ASSERT_EQ(x, Deserialize<long double>(Serialize<long double>(x)));
+    long double foo = 123.123;
+    auto fooserial = Deserialize<long double>(Serialize<long double>(foo));
+    ASSERT_DOUBLE_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, SizeTSerializeDeserialize) {
-    size_t x = 123;
-    ASSERT_EQ(x, Deserialize<size_t>(Serialize<size_t>(x)));
+    size_t foo = 123;
+    auto fooserial = Deserialize<size_t>(Serialize<size_t>(foo));
+    ASSERT_EQ(foo, fooserial);
+    ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
 TEST(Serializer, StringIntPairSerializeDeserialize) {
