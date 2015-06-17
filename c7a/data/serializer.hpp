@@ -209,21 +209,19 @@ struct Impl<std::pair<T1, T2>> {
         T1 t2 = serializers::Impl<T2>::Deserialize(t2_str);
 
         return std::make_pair(t1, t2);
-    }
-};
 
-template <class T, class... Ts>
-struct Impl<std::tuple<T, Ts...>> {
-    static std::string Serialize(const std::tuple<T, Ts...>& x) {
-        auto serial1 = serializers::Impl<T>::Serialize(std::get<0>(x));
-        const int n = sizeof...(Ts);
-        // for ()
-        return std::to_string(n);
-    }
-    static void Deserialize(const std::string& x) {
-        //noop
-    }
-};
+// template <class T, class... Ts>
+// struct Impl<std::tuple<T, Ts...>> {
+//     static std::string Serialize(const std::tuple<T, Ts...>& x) {
+//         auto serial1 = serializers::Impl<T>::Serialize(std::get<0>(x));
+//         const int n = sizeof...(Ts);
+//         // for ()
+//         return std::to_string(n);
+//     }
+//     static void Deserialize(const std::string& x) {
+//         //noop
+//     }
+// };
 
 //! binary serializer for any integral type, usable as template.
 template <typename Type>
