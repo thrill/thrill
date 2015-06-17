@@ -42,7 +42,6 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
         ctx,
         "test1",
         [](const std::string& line) {
-            std::cout << line << std::endl;
             return std::stoi(line);
         },
         generate_size);
@@ -256,11 +255,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 
         std::vector<int> out_vec;
 
-         std::cout << "starting" << std::endl;
-
         reduced.AllGather(&out_vec);
-
-        std::cout << "testing" << std::endl;
 
         std::sort(out_vec.begin(), out_vec.end());
 
