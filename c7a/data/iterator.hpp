@@ -24,7 +24,7 @@ template <class T>
 class Iterator
 {
 public:
-    static const bool debug = true;
+    static const bool debug = false;
     //! Creates an instance of iterator that deserializes blobs to T
     explicit Iterator(BufferChain& buffers)
         : buffer_chain_(buffers),
