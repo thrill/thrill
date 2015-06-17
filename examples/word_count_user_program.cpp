@@ -41,7 +41,6 @@ int word_count(c7a::Context& ctx) {
     using c7a::Context;
     using WordCount = std::pair<std::string, int>;
    
-    std::cout << "wordcount.in" << std::endl;
     auto lines = ReadLines(
         ctx,
         "wordcount.in",
