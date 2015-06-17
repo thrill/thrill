@@ -19,12 +19,6 @@
 
 using namespace c7a::data;
 
-<<<<<<< HEAD
-static const bool debug = false;
-=======
-// static const bool debug = false;
->>>>>>> use make_pair instead of constructor
-
 TEST(Serializer, StringSerializeDeserialize) {
     std::string foo = "foo";
     auto fooserial = Deserialize<std::string>(Serialize<std::string>(foo));
