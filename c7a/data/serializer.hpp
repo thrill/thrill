@@ -194,6 +194,7 @@ struct Impl<std::pair<T1, T2>> {
         std::memcpy(result, &len_t1, sizeof(unsigned int));
         std::memcpy(result + sizeof(unsigned int), t1.c_str(), t1.size());
         std::memcpy(result + sizeof(unsigned int) + x.first.size(), t2.c_str(), t2.size());
+        //resulting string is: len(x.first) + serialized(x.first) + serialized(x.second)
         return std::string(result, len);
     }
     static std::pair<T1, T2> Deserialize(const std::string& x) {
@@ -207,7 +208,20 @@ struct Impl<std::pair<T1, T2>> {
         T1 t1 = serializers::Impl<T1>::Deserialize(t1_str);
         T1 t2 = serializers::Impl<T2>::Deserialize(t2_str);
 
-        return std::pair<T1, T2>(t1, t2);
+        return std::make_pair(t1, t2);
+    }
+};
+
+template <class T, class... Ts>
+struct Impl<std::tuple<T, Ts...>> {
+    static std::string Serialize(const std::tuple<T, Ts...>& x) {
+        auto serial1 = serializers::Impl<T>::Serialize(std::get<0>(x));
+        const int n = sizeof...(Ts);
+        // for ()
+        return std::to_string(n);
+    }
+    static void Deserialize(const std::string& x) {
+        //noop
     }
 };
 
@@ -218,7 +232,7 @@ struct GenericImpl {
         return std::string(reinterpret_cast<const char*>(&v), sizeof(v));
     }
 
-    static Type        Deserialize(const std::string& s) {
+    static Type Deserialize(const std::string& s) {
         assert(s.size() == sizeof(Type));
         return Type(*reinterpret_cast<const Type*>(s.data()));
     }
