@@ -32,6 +32,7 @@ template <typename KeyExtractor, typename ReduceFunction, typename EmitterFuncti
           size_t TargetBlockSize = 1024 * 1024>
 class ReducePreTable
 {
+
     static const bool debug = false;
 
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
@@ -40,7 +41,7 @@ class ReducePreTable
 
     typedef std::pair<Key, Value> KeyValuePair;
 
-protected:
+public:
     struct hash_result
     {
     public:
@@ -73,6 +74,7 @@ protected:
             }*/
     };
 
+protected:
     //! template for constexpr max, because std::max is not good enough.
     template <typename T>
     constexpr

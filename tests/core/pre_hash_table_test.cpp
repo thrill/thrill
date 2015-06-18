@@ -78,6 +78,48 @@ struct Impl<MyStruct>{
 }
 }
 
+TEST_F(PreTable, CustomHashFunction) {
+
+	auto key_ex = [](int in) {
+                      return in;
+                  };
+
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+	using HashTable = typename c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+														 Emitter<IntPair> >;
+
+	auto hash_function = [](int key, HashTable*) {
+
+		size_t global_index = key / 2;
+		size_t partition_id = 0;
+		size_t partition_offset = key / 2; 
+		
+		return HashTable::hash_result(partition_id, partition_offset, global_index);
+	};
+
+	HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, one_int_emitter, hash_function);
+
+	for (int i = 0; i < 16; i++) {
+		table.Insert(std::move(i));
+	}
+
+	table.Flush();
+
+	auto it1 = manager.GetIterator<IntPair>(id1);
+    int c = 0;
+    while (it1.HasNext()) {
+        IntPair keyvalue = it1.Next();
+		ASSERT_EQ(keyvalue.first, keyvalue.second); 		
+        c++;
+    }
+
+    ASSERT_EQ(16, c);
+	
+}
+
 TEST_F(PreTable, AddIntegers) {
     auto key_ex = [](int in) {
                       return in;
