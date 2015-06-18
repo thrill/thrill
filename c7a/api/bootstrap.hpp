@@ -21,7 +21,7 @@ namespace c7a {
 namespace bootstrap {
 
 std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
-    //replace with arbitrary compex implementation
+    //replace with arbitrary complex implementation
     size_t my_rank;
     std::vector<std::string> endpoints;
     c7a::common::CmdlineParser clp;
@@ -42,7 +42,7 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 
     for (auto address : addr) {
         if (address.find(":") == std::string::npos) {
-            std::cerr << "Invalid address. No Portnumber detecable";
+            std::cerr << "Invalid address. No Portnumber detectable";
             return std::make_tuple(-1, my_rank, endpoints);
         }
     }
