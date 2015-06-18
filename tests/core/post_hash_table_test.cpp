@@ -45,6 +45,36 @@ std::pair<int,int> pair(int ele) {
     return std::make_pair(ele, ele);
 }
 
+TEST_F(PostTable, CustomHashFunction) {
+
+	auto key_ex = [](int in) {
+                      return in;
+                  };
+
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+	using HashTable = typename c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn),
+														 Emitter<int> >;
+
+	auto hash_function = [](int key, HashTable*) {
+		return key / 2;
+	};
+
+	HashTable table(8, 2, 20, 100, key_ex, red_fn, emitters, hash_function);
+
+	for (int i = 0; i < 16; i++) {
+		table.Insert(std::move(pair(i)));
+	}
+
+	table.Flush();
+
+	//TODO:enable this assertion as soon as CountIteratorElements() counts iterator elements. -> the output size is LOG-tested though.
+    //ASSERT_EQ(CountIteratorElements(), 16u);
+	
+}
+
 TEST_F(PostTable, AddIntegers) {
     auto key_ex = [](int in) {
                       return in;
