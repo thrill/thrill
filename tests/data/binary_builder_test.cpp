@@ -18,6 +18,32 @@ using c7a::data::BinaryBuffer;
 using c7a::data::BinaryBufferReader;
 using c7a::net::Buffer;
 
+TEST(BinaryBufferBuilder, PutsIncreaseElementCount) {
+    // construct a binary blob
+    BinaryBufferBuilder bb;
+    ASSERT_EQ(0, bb.elements());
+    bb.Put<unsigned int>(1);
+    ASSERT_EQ(1, bb.elements());
+    bb.PutString("test");
+    ASSERT_EQ(2, bb.elements());
+    bb.PutVarint(42);
+    ASSERT_EQ(3, bb.elements());
+}
+
+TEST(BinaryBufferBuilder, AppendIncreasesElementCount) {
+    // construct a binary blob
+    BinaryBufferBuilder bb;
+    ASSERT_EQ(0, bb.elements());
+    bb.Put<unsigned int>(1);
+    ASSERT_EQ(1, bb.elements());
+    bb.PutString("test");
+    ASSERT_EQ(2, bb.elements());
+    bb.PutVarint(42);
+    ASSERT_EQ(3, bb.elements());
+    bb.AppendString("test", 4);
+    ASSERT_EQ(7, bb.elements());
+}
+
 TEST(BinaryBufferBuilder, Test1) {
     // construct a binary blob
     BinaryBufferBuilder bb;
