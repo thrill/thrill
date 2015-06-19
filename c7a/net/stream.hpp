@@ -33,11 +33,13 @@ namespace net {
 struct StreamBlockHeader {
     size_t      channel_id;
     size_t      expected_bytes;
+    size_t      expected_elements;
 
     //! Reads the channel id and the number of elements in this block
     void        ParseHeader(const std::string& buffer) {
         memcpy(&channel_id, buffer.c_str(), sizeof(channel_id));
         memcpy(&expected_bytes, buffer.c_str() + sizeof(channel_id), sizeof(expected_bytes));
+        memcpy(&expected_elements, buffer.c_str() + sizeof(channel_id) + sizeof(expected_bytes), sizeof(expected_elements));
     }
 
     //! Serializes the whole block struct into a buffer
@@ -46,15 +48,18 @@ struct StreamBlockHeader {
         char* result = new char[size];
         char* offset0 = result;
         char* offset1 = offset0 + sizeof(channel_id);
+        char* offset2 = offset1 + sizeof(expected_elements);
 
         memcpy(offset0, &channel_id, sizeof(channel_id));
         memcpy(offset1, &expected_bytes, sizeof(expected_bytes));
+        memcpy(offset2, &expected_elements, sizeof(expected_elements));
         return std::string(result, size);
     }
 
     //! resets to a End-of-Stream block header
     void        Reset() {
         expected_bytes = 0;
+        expected_elements = 0;
     }
 
     //! Indicates if this is the end-of-stream block header
