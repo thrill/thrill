@@ -19,58 +19,27 @@ using namespace c7a::net;
 using namespace c7a::net::lowlevel;
 using namespace std::literals; //for nicer sleep_for
 
-struct WorkerMock {
-    WorkerMock(DispatcherThread& dispatcher)
-        : manager(dispatcher) { }
-
-    void    Connect(Group* con) {
-        manager.Connect(con);
-    }
-
-    ~WorkerMock() {
-        manager.Close();
-    }
-
-    Manager manager;
-    bool    run;
-};
-
 struct DataManagerChannelFixture : public::testing::Test {
     DataManagerChannelFixture()
         : dispatcher(),
           worker0(dispatcher),
           worker1(dispatcher),
-          worker2(dispatcher),
-          group0(0, 3),
-          group1(1, 3),
-          group2(2, 3) {
-        auto con0_1 = Socket::CreatePair();
-        auto con0_2 = Socket::CreatePair();
-        auto con1_2 = Socket::CreatePair();
-        auto net0_1 = Connection(std::get<0>(con0_1), 0, 1);
-        auto net1_0 = Connection(std::get<1>(con0_1), 1, 0);
-        auto net1_2 = Connection(std::get<0>(con1_2), 1, 2);
-        auto net2_1 = Connection(std::get<1>(con1_2), 2, 1);
-        auto net0_2 = Connection(std::get<0>(con0_2), 0, 2);
-        auto net2_0 = Connection(std::get<1>(con0_2), 2, 0);
-        group0.AssignConnection(net0_1);
-        group0.AssignConnection(net0_2);
-        group1.AssignConnection(net1_0);
-        group1.AssignConnection(net1_2);
-        group2.AssignConnection(net2_0);
-        group2.AssignConnection(net2_1);
-
-        worker0.Connect(&group0);
-        worker1.Connect(&group1);
-        worker2.Connect(&group2);
+          worker2(dispatcher) {
     }
 
-    ChainId AllocateChannel() {
-        //all managers need to allocate the same id
-        auto channel_id = worker0.manager.AllocateNetworkChannel();
-        channel_id = worker1.manager.AllocateNetworkChannel();
-        channel_id = worker2.manager.AllocateNetworkChannel();
-        return channel_id;
+    using WorkerThread = std::function<void(data::Manager)>
+    void FunctionSelect(NetGroup* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
+        data::Manager manager(dispatcher);
+        manager.connect(group);
+        switch(group->MyRank()) {
+            case 0: f1(manager); break;
+            case 1: f2(manager); break;
+            case 3: f3(manager); break;
+        }
+    }
+
+    void Execute(WorkerThread f1, WorkerThread f2, WorkerThread f3) {
+        Group::ExecuteLocalMock(3, std::bind(std::placeholders::_1, f1, f2, f3));
     }
 
     template <class T>
@@ -98,15 +67,10 @@ struct DataManagerChannelFixture : public::testing::Test {
     }
 
     static const bool debug = true;
-    bool              run;
     DispatcherThread  dispatcher;
-    std::thread       master;
     WorkerMock        worker0;
     WorkerMock        worker1;
     WorkerMock        worker2;
-    Group             group0;
-    Group             group1;
-    Group             group2;
 };
 
 TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
