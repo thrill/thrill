@@ -23,8 +23,24 @@ namespace data {
 
 //! Elements of a singly linked list, holding a immuteable buffer
 struct BufferChainElement {
-    BufferChainElement(BinaryBuffer b) : buffer(b) { }
+    BufferChainElement(BinaryBuffer b, size_t element_count, size_t offset = 0)
+        : buffer(b),
+        element_count(element_count),
+        offset_of_first(offset) {
+            //TODO(ts, sl) implement offset logic
+            assert(offset_of_first == 0); //no support for offset right now
+        }
+
+    //! BinaryBuffer holds the data
     BinaryBuffer buffer;
+
+    //! prefixsum of number of elements of previous BufferChainElements and
+    //! this BufferChainElement
+    size_t element_count;
+
+    //! offset to the first element in the BinaryBuffer
+    //! The cut-off element before that offset is not included in the element_count
+    size_t offset_of_first;
 };
 
 using BufferChainIterator = std::deque<BufferChainElement>::const_iterator;
@@ -34,11 +50,14 @@ using BufferChainIterator = std::deque<BufferChainElement>::const_iterator;
 struct BufferChain : public EmitterTarget {
     BufferChain() : closed_(false) { }
 
-    //! Appends a BinaryBuffer to this BufferChain.
+    //! Appends a BinaryBufferBuffer's content to the chain an detaches the
+    //! builder.
     //! This method is thread-safe and runs in O(1)
-    void Append(BinaryBuffer b) {
+    //! \Param b buffer to append
+    void Append(BinaryBufferBuilder b) {
         std::unique_lock<std::mutex> lock(append_mutex_);
-        elements_.emplace_back(BufferChainElement(b));
+        elements_.emplace_back(BufferChainElement(BinaryBuffer(b), size() + b.elements()));
+        b.Detach();
         lock.unlock();
         NotifyWaitingThreads();
     }
@@ -62,11 +81,20 @@ struct BufferChain : public EmitterTarget {
             elem.buffer.Delete();
     }
 
+    //! Returns the number of elements in this BufferChain at the current
+    //! state.
+    size_t size() {
+        if (elements_.empty())
+            return 0;
+        return elements_.back().element_count;
+    }
+
     BufferChainIterator Begin() {
         return elements_.begin();
     }
 
     BufferChainIterator End() {
+        //TODO(ts) this should point to the last element in the buffer
         return elements_.end();
     }
 

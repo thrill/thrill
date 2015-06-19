@@ -22,24 +22,22 @@ struct TestIterator : public::testing::Test {
         threeStrings({ "foo", "bar", "blub" }),
         oneString({ "." }),
         emptyBuffer(nullptr, 0),
-        threeStringsBuffer(StringsToBuffer(threeStrings)),
-        oneStringBuffer(StringsToBuffer(oneString)) { }
+        threeStringsBuffer(StringsToBufferBuilder(threeStrings)),
+        oneStringBuffer(StringsToBufferBuilder(oneString)) { }
 
-    BinaryBuffer StringsToBuffer(std::vector<std::string> strings) const {
+    BinaryBufferBuilder StringsToBufferBuilder(std::vector<std::string> strings) const {
         BinaryBufferBuilder builder;
         for (std::string s : strings) {
             builder.PutString(s);
         }
-        auto result = BinaryBuffer(builder);
-        builder.Detach();
-        return result;
+        return builder;
     }
 
     std::vector<std::string> threeStrings;
     std::vector<std::string> oneString;
-    BinaryBuffer             emptyBuffer;
-    BinaryBuffer             threeStringsBuffer;
-    BinaryBuffer             oneStringBuffer;
+    BinaryBufferBuilder             emptyBuffer;
+    BinaryBufferBuilder             threeStringsBuffer;
+    BinaryBufferBuilder             oneStringBuffer;
     BufferChain              chain;
 };
 
