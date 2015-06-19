@@ -37,21 +37,21 @@ static void TestWaitFor(int count, int slowThread = -1) {
     for (int i = 0; i < count; i++) {
         threads[i] = new std::thread([maxWaitTime, count, slowThread, &barrier, &flags, i] {
 
-                                         if (i == slowThread) {
-                                             usleep(rand() % maxWaitTime);
-                                         }
-                                         else if (slowThread == -1) {
-                                             usleep(rand() % maxWaitTime);
-                                         }
+            if (i == slowThread) {
+                usleep(rand() % maxWaitTime);
+            }
+            else if (slowThread == -1) {
+                usleep(rand() % maxWaitTime);
+            }
 
-                                         flags[i] = true;
+            flags[i] = true;
 
-                                         barrier.await();
+            barrier.await();
 
-                                         for (int j = 0; j < count; j++) {
-                                             ASSERT_EQ(flags[j], true);
-                                         }
-                                     });
+            for (int j = 0; j < count; j++) {
+                ASSERT_EQ(flags[j], true);
+            }
+        });
     }
 
     for (int i = 0; i < count; i++) {
