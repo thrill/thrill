@@ -92,9 +92,10 @@ public:
     //! Calls to this method alter the internal state -> order of call is
     //! important and must be deterministic
     ChainId AllocateNext() {
-        ChainId result = next_id_;
-        if (!Contains(next_id_))
-            Allocate(next_id_++);
+        //mutext just to protect ++ op
+        std::lock_guard<std::mutex> lock(allocate_next_mutex_);
+        ChainId result = next_id_++;
+        GetOrAllocate(result);
         return result;
     }
 
@@ -102,7 +103,7 @@ public:
     //! Use this only for internal stuff.
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
-    ChainId Allocate(ChainId id) {
+    ChainId Allocate(const ChainId& id) {
         std::lock_guard<std::mutex> lock(mutex_);
         sLOG << "allocate" << id;
         if (Contains(id)) {
@@ -113,7 +114,7 @@ public:
     }
 
     //! Indicates if a Bufferchain exists with the given ID
-    bool Contains(ChainId id) {
+    bool Contains(const ChainId& id) {
         auto result = chains_.find(id) != chains_.end();
         sLOG << "contains" << id << "=" << result;
         return result;
@@ -122,7 +123,7 @@ public:
     //! Returns the BufferChain with the given ID
     //! \param id id of the chain to retrieve
     //! \exception std::runtime_error if id is not contained
-    std::shared_ptr<BufferChain> Chain(ChainId id) {
+    std::shared_ptr<BufferChain> Chain(const ChainId& id) {
         sLOG << "chain" << id;
         if (!Contains(id)) {
             throw new std::runtime_error("chain id is unknown");
@@ -131,11 +132,21 @@ public:
         return chains_[id];
     }
 
+    //! Gets or allocates the BufferChain with the given ID in an atomic fashion
+    //! Returns BufferchainPtr of the created or retrieved chain.
+    std::shared_ptr<BufferChain> GetOrAllocate(const ChainId& id) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!Contains(id))
+            chains_[id] = std::make_shared<BufferChain>();
+        return chains_[id];
+    }
+
 private:
     static const bool debug = false;
     ChainId next_id_;
     std::map<ChainId, std::shared_ptr<BufferChain> > chains_;
     std::mutex mutex_;
+    std::mutex allocate_next_mutex_;
 };
 
 } // namespace data
