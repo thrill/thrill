@@ -223,6 +223,27 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
     ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
 }
 
+TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
+    auto channel_id1 = AllocateChannel();
+    auto channel_id2 = AllocateChannel();
+    auto emitter1_1 = worker1.manager.GetNetworkEmitters<int>(channel_id1);
+    auto emitter2_1 = worker1.manager.GetNetworkEmitters<int>(channel_id2);
+
+    //w1 ends data to w0 via two channels
+    emitter1_1[0](1);
+    emitter2_1[0](1);
+
+    emitter1_1[0].Close();
+    emitter2_1[0].Close();
+
+    auto it = worker0.manager.GetIterator<int>(channel_id1);
+    auto vals = ReadIterator(it);
+    ASSERT_TRUE(VectorCompare({ 1 }, vals));
+    auto it2 = worker0.manager.GetIterator<int>(channel_id2);
+    auto vals2 = ReadIterator(it2);
+    ASSERT_TRUE(VectorCompare({ 2 }, vals2));
+}
+
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
     auto channel_id = AllocateChannel();
     auto emitter1 = worker1.manager.GetNetworkEmitters<int>(channel_id);
