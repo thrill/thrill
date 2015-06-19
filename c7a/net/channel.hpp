@@ -14,6 +14,7 @@
 #include <c7a/net/connection.hpp>
 #include <c7a/net/stream.hpp>
 #include <c7a/data/binary_buffer_builder.hpp>
+#include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
 #include <c7a/common/stats.hpp>
 
@@ -135,6 +136,7 @@ private:
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             data_.set_elements(stream->header.expected_elements);
             target_->Append(data_);
+            data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);
             active_streams_--;
             stream->lifetime_timer->Stop();
             *waiting_timer_ += stream->wait_timer; //accumulate
