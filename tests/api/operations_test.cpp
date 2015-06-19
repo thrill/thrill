@@ -271,45 +271,4 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 
 }
 
-TEST(Operations, GenerateAndSumHaveEqualAmount) {
-
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
-
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
-
-    std::uniform_int_distribution<int> distribution2(1000, 10000);
-
-    size_t generate_size = distribution2(generator);
-
-
-
-    std::function<void(c7a::Context&)> start_func = [generate_size](c7a::Context& ctx) {
-
-        auto input = GenerateFromFile(
-        ctx,
-        "test1",
-        [](const std::string& line) {
-            return std::stoi(line);
-        },
-        generate_size);
-
-        auto ones = input.Map([](int){
-                return 1;
-            });
-
-
-        auto add_function = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        ASSERT_EQ((int) generate_size, ones.Sum(add_function));
-    };
-
-    c7a::ExecuteThreads(workers, port_base, start_func);
-
-}
-
 /******************************************************************************/
