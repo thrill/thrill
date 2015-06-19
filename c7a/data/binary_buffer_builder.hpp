@@ -469,11 +469,6 @@ public:
         return PutString(str.data(), str.size());
     }
 
-    //! Put a BinaryBufferBuilder by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const BinaryBufferBuilder& bb) {
-        return PutString(bb.data(), bb.size());
-    }
-
     //! \}
 };
 
