@@ -143,6 +143,32 @@ TEST_F(PostTable, FlushIntegers) {
     ASSERT_EQ(1u, table.Size());
 }
 
+TEST_F(PostTable, FlushIntegersInSequence) {
+    auto key_ex = [](int in) {
+                      return in;
+                  };
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    c7a::core::ReducePostTable<decltype(key_ex), decltype(red_fn), Emitter<int>, true>
+    table(key_ex, red_fn, emitters);
+
+    table.Insert(pair(1));
+    table.Insert(pair(2));
+    table.Insert(pair(3));
+
+    ASSERT_EQ(3u, table.Size());
+
+    table.Flush();
+
+    ASSERT_EQ(0u, table.Size());
+
+    table.Insert(pair(1));
+
+    ASSERT_EQ(1u, table.Size());
+}
+
 TEST_F(PostTable, DISABLED_MultipleEmitters) { //TODO(ts) enable when hash table flushes emitters
     std::vector<int> vec1;
 
