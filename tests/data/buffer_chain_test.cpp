@@ -42,4 +42,27 @@ TEST(ChainId, EqualAfterPreIncrement) {
     ASSERT_TRUE(++id1 == id2);
 }
 
+TEST(BufferChain, Size_0_when_empty) {
+    BufferChain candidate;
+    ASSERT_EQ(0u, candidate.size());
+}
+
+TEST(BufferChain, Size_0_WhenAppendedEmptyBuffer) {
+    BufferChain candidate;
+    BinaryBufferBuilder b(0);
+    candidate.Append(b);
+    ASSERT_EQ(0u, candidate.size());
+}
+
+TEST(BufferChain, Size_2_WhenAppendedTwoBuffersOneElementEach) {
+    BufferChain candidate;
+    BinaryBufferBuilder b1, b2;
+    b1.set_elements(1);
+    b2.set_elements(1);
+    candidate.Append(b1);
+    candidate.Append(b2);
+    ASSERT_EQ(2u, candidate.size());
+}
+
+
 /******************************************************************************/
