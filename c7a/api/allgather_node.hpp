@@ -28,7 +28,7 @@ class AllGatherNode : public ActionNode<Input>
 {
 public:
 
-    using Super = ActionNode<Input>;     
+    using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
 
@@ -42,11 +42,9 @@ public:
           out_vector_(out_vector),
           channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
     {
-        sLOG << "Creating allgather node.";
-
         emitters_ = context_.
             get_data_manager().template GetNetworkEmitters<Output>(channel_used_);
-                
+
         auto pre_op_function = [=](Output input) {
             PreOp(input);
         };
@@ -54,25 +52,21 @@ public:
         parent->RegisterChild(lop_chain);
     }
 
-    void PreOp(Input input) {
-        local_data_.push_back(input);
+    void PreOp(Output element) {
+        for (size_t i = 0; i < emitters_.size(); i++) {
+            emitters_[i](element);
+        }
     }
 
     virtual ~AllGatherNode() { }
 
     //! Closes the output file
     void execute() override {
-
-        for (auto element : local_data_) {
-            for (size_t i = 0; i < emitters_.size(); i++) {
-                emitters_[i](element);
-            }
-        }
-           
+        //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
-        }    
-            
+        }
+
         auto it = context_.get_data_manager().template GetIterator<Output>(channel_used_);
 
         do {
@@ -80,12 +74,12 @@ public:
             while (it.HasNext()) {
                 out_vector_->push_back(it.Next());
             }
-        } while (!it.IsClosed());            
-    }       
+        } while (!it.IsClosed());
+    }
 
     /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
+     * Returns "[AllGatherNode]" and its id as a string.
+     * \return "[AllGatherNode]"
      */
     std::string ToString() override {
         return "[AllGatherNode] Id: " + data_id_.ToString();
@@ -96,15 +90,13 @@ private:
     //! Local stack
     Stack local_stack_;
 
-    std::vector<Input> local_data_;
-
-    std::vector<Input> * out_vector_;
+    std::vector<Output> * out_vector_;
 
     data::ChannelId channel_used_;
 
     static const bool debug = false;
 
-    std::vector<data::Emitter<Input>> emitters_;
+    std::vector<data::Emitter<Output>> emitters_;
 };
 
 } // namespace c7a

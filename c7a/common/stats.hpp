@@ -143,7 +143,7 @@ public:
     }
 
 private:
-    static const bool dump_to_log_ = true;
+    static const bool dump_to_log_ = false;
     std::multimap<std::string, std::pair<std::string, TimedCounterPtr> > timed_counters_;
     std::multimap<std::string, std::pair<std::string, TimerPtr> > timers_;
     std::multimap<std::string, std::pair<std::string, std::string> > reports_;

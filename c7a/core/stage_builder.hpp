@@ -44,7 +44,7 @@ class StageBuilder
 {
 public:
     void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
-        LOG1 << "FINDING stages:";
+        LOG << "FINDING stages:";
         std::set<const DIABase*> stages_found;
         // Do a reverse DFS and find all stages
         std::stack<DIABase*> dia_stack;
@@ -75,6 +75,8 @@ public:
             s.Run();
         }
     }
+
+    static const bool debug = false;
 };
 
 } // namespace core

@@ -40,6 +40,8 @@ template <typename Output, typename GeneratorFunction>
 class GeneratorNode : public DOpNode<Output>
 {
 public:
+    using Super = DOpNode<Output>;
+    using Super::context_;
     /*!
     * Constructor for a GeneratorNode. Sets the Context, parents, generator
     * function and file path.
@@ -81,7 +83,16 @@ public:
             elements_.push_back(generator_function_(line));
         }
 
-        size_t local_elements = (size_ / (this->context_).number_worker());
+        
+        size_t local_elements;
+        if (context_.number_worker() == context_.rank() + 1) {
+            //last worker gets leftovers
+            local_elements = size_ -
+                ((context_.number_worker() - 1) *
+                 (size_ / context_.number_worker())); 
+        } else {
+            local_elements = (size_ / context_.number_worker());
+        }
 
         std::random_device random_device;
         std::default_random_engine generator(random_device());

@@ -11,41 +11,36 @@
 #include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
 
-
-
 template <typename InStack>
 auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
    
-    using WordPair = std::pair<std::string, int>;
+    using WordCount = std::pair<std::string, int>;
 
-    auto line_to_wordpairs =
+    auto word_pairs = input.FlatMap(
         [](std::string line, auto emit) {
-        for (const std::string& word : c7a::common::split(line, ' ')) {
-            if (word.size() != 0)
-                emit(WordPair(word, 1));
-        }
-    };
+            /* map lambda */
+            for (const std::string& word : c7a::common::split(line, ' ')) {
+                if (word.size() != 0)
+                    emit(WordCount(word, 1));
+            }
+        });
 
-    auto key = [](WordPair in) {
-                   return in.first;
-               };
-
-    auto red_fn =
-        [](WordPair in1, WordPair in2) {
-        return WordPair(in1.first, in1.second + in2.second);
-    }; 
-   
-    auto word_pairs = input.FlatMap(line_to_wordpairs);
-
-    return word_pairs.ReduceBy(key, red_fn);
+    return word_pairs.ReduceBy(
+        [](const WordCount& in) {
+            /* reduction key: the word string */
+            return in.first;
+        },
+        [](WordCount a, WordCount b) {
+            /* associative reduction operator: add counters */
+            return WordCount(a.first, a.second + b.second);
+        });
 }
 
 //! The WordCount user program
 int word_count(c7a::Context& ctx) {
     using c7a::Context;
-    using WordPair = std::pair<std::string, int>;
+    using WordCount = std::pair<std::string, int>;
    
-    std::cout << "wordcount.in" << std::endl;
     auto lines = ReadLines(
         ctx,
         "wordcount.in",
@@ -57,7 +52,7 @@ int word_count(c7a::Context& ctx) {
 
     red_words.WriteToFileSystem(
         "wordcount_" + std::to_string(ctx.rank()) + ".out",
-        [](const WordPair& item) {
+        [](const WordCount& item) {
             return item.first + ": " + std::to_string(item.second);
         });
 
@@ -66,7 +61,7 @@ int word_count(c7a::Context& ctx) {
 
 int word_count_generated(c7a::Context& ctx, size_t size) {
     using c7a::Context;
-    using WordPair = std::pair<std::string, int>;
+    using WordCount = std::pair<std::string, int>;
 
     auto lines = GenerateFromFile(
         ctx,
@@ -80,7 +75,7 @@ int word_count_generated(c7a::Context& ctx, size_t size) {
 
     reduced_words.WriteToFileSystem(
         "wordcount_" + std::to_string(ctx.rank()) + ".out",
-        [](const WordPair& item) {
+        [](const WordCount& item) {
             return item.first + ": " + std::to_string(item.second);
         });
     return 0;

@@ -96,15 +96,17 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     Context ctx;
     LOG << "connecting to peers";
     ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
-    std::cout << "starting job" << std::endl;
+    LOG << "Starting job on Worker " << ctx.rank();
     auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
     auto job_result = job_startpoint(ctx);
     overall_timer->Stop();
-    std::cout << "DONE! " << ctx.rank() << std::endl;
+    LOG << "Worker " << ctx.rank() << " done!";
     return job_result;
 }
 
-static void ExecuteThreads(const size_t & workers, const size_t & port_base, std::function<int(Context&)> job_startpoint) {
+static inline void
+ExecuteThreads(const size_t & workers, const size_t & port_base,
+               std::function<void(Context&)> job_startpoint) {
     
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
@@ -128,7 +130,12 @@ static void ExecuteThreads(const size_t & workers, const size_t & port_base, std
         strargs[i][2] = std::to_string(i);
         arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
 
-        threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], job_startpoint); });
+        std::function<int(Context&)> intReturningFunction = [job_startpoint](Context& ctx) {
+            job_startpoint(ctx);
+            return 1;
+        };
+
+        threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], intReturningFunction); });
     }
 
     for (size_t i = 0; i < workers; i++) {
