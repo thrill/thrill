@@ -23,8 +23,8 @@ namespace common {
  */
 class Barrier
 {
-    mutex m;
-    condition_variable event;
+    std::mutex m;
+    std::condition_variable event;
     int threadCount;
     int counts[2];
     int current;
@@ -45,7 +45,7 @@ public:
      * @details This method blocks and returns as soon as n threads are waiting inside the method.
      */
     void await() {
-        unique_lock<mutex> lock(m);
+        std::unique_lock<std::mutex> lock(m);
         int localCurrent = current;
         counts[localCurrent]++;
 
