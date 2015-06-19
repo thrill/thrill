@@ -305,7 +305,7 @@ public:
 
     //! Append the contents of a different buffer object to this one.
     BinaryBufferBuilder & Append(const class BinaryBufferBuilder& bb) {
-        return Append(bb.data(), bb.size());
+        return Append(bb.data(), bb.size(), bb.elements());
     }
 
     //! Append to contents of a std::string, excluding the null (which isn't
