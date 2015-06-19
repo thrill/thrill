@@ -33,6 +33,11 @@ protected:
      */
     std::vector<FlowControlChannel> channels;
 
+    /**
+     * Some shared memory to work upon (managed by thread 0).
+     */
+    void* shmem;
+
 public:
     /**
      * @brief Initializes a certain count of flow control channels.
@@ -41,10 +46,10 @@ public:
      * @param threadCount The count of threads to spawn flow channels for.
      *
      */
-    explicit FlowControlChannelManager(net::Group& group, int threadCount) : barrier(threadCount) {
+    explicit FlowControlChannelManager(net::Group& group, int threadCount) : barrier(threadCount), shmem(NULL) {
 
         for (int i = 0; i < threadCount; i++) {
-            channels.emplace_back(group, i, barrier);
+            channels.emplace_back(group, i, barrier, &shmem);
         }
     }
 
