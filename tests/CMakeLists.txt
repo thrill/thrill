@@ -69,40 +69,39 @@ endmacro(build_test_group)
 
 ### list of tests in subdirectories
 
-#build_test(api/simple_api_test)
-#build_test(api/operations_test)
-#build_test(api/wordcount_test)
-#build_test(api/sum_node_test)
-#build_test(data/manager_test)
-#build_test(data/buffer_chain_test)
-#build_test(data/emitter_iterator_test)
-#build_only(data/manager_channels_test) #TODO(tb, ej, ts): where do the invalid #fd come from?
-#build_test(data/iterator_test)
-##build_test(data/dia_allocate_test)
-#build_test(data/serializer_test)
-#build_plain(common/cmdline_parser_example)
-#build_test_group(common/tests
-#  common/cmdline_parser_test.cpp
-#  common/concurrent_bounded_queue_test.cpp
-#  common/concurrent_queue_test.cpp
-#  common/delegate_test.cpp
-#  common/future_queue_test.cpp
-#  common/future_test.cpp
-#  common/stats_counter_test.cpp
-#  common/stats_timer_test.cpp
-#  common/thread_pool_test.cpp
-#  )
-##build_test(core/stage_builder_test)
-#build_test(core/post_hash_table_test)
-#build_test(core/pre_hash_table_linpro_test)
-#build_test(core/pre_hash_table_test)
-#build_test(net/dispatcher_thread_test)
+build_test(api/simple_api_test)
+build_test(api/operations_test)
+build_test(api/wordcount_test)
+build_test(api/sum_node_test)
+build_test(data/manager_test)
+build_test(data/buffer_chain_test)
+build_test(data/emitter_iterator_test)
+build_only(data/manager_channels_test) #TODO(tb, ej, ts): where do the invalid fd come from?
+build_test(data/iterator_test)
+#build_test(data/dia_allocate_test)
+build_test(data/serializer_test)
+build_plain(common/cmdline_parser_example)
+build_test_group(common/tests
+  common/cmdline_parser_test.cpp
+  common/concurrent_bounded_queue_test.cpp
+  common/concurrent_queue_test.cpp
+  common/delegate_test.cpp
+  common/future_queue_test.cpp
+  common/future_test.cpp
+  common/stats_counter_test.cpp
+  common/stats_timer_test.cpp
+  common/thread_pool_test.cpp
+  )
+#build_test(core/stage_builder_test)
+build_test(core/post_hash_table_test)
+build_test(core/pre_hash_table_linpro_test)
+build_test(core/pre_hash_table_test)
+build_test(net/dispatcher_thread_test)
 build_test(net/group_test)
-build_test(net/flow_control_test)
-#build_test(net/buffer_test)
-#build_test(data/binary_builder_test)
-##build_test(net/test_channel_multiplexer) //broken because buffer is non-#copyable
-#build_test(net/stream_test)
+build_test(net/buffer_test)
+build_test(data/binary_builder_test)
+#build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
+build_test(net/stream_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 
