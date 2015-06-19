@@ -128,19 +128,20 @@ public:
      */
     void Insert(Value&& p) {
         Key key = key_extractor_(p);
+        LOG << "key " << key;
 
-        hash_result h(key, *this);
+        hash_result h = hash_result(key, *this);
 
-        LOG << "key: " << key << " to item idx: " << h.global_index;
+        LOG << num_items_;
 
-        size_t num_items_partition = 0;
         int pos = h.global_index;
         size_t count = 0;
         KeyValuePair *current = vector_[pos];
 
         while (current != NULL)
         {
-            if (current->first == key) {
+            if (current->first == key)
+            {
                 LOG << "match of key: " << key
                 << " and " << current->first << " ... reducing...";
 
@@ -150,21 +151,16 @@ public:
                 return;
             }
 
-            num_items_partition++;
-
             ++count;
-            if (count >= max_stepsize_ || count >= num_items_per_partition_) {
+            if (count >= max_stepsize_ || count >= num_items_per_partition_)
+            {
                 ResizeUp();
-                hash_result h(key, *this);
-                LOG << "key: " << key << " to item idx: " << h.global_index;
-                num_items_partition = 0;
-                pos = h.global_index;
-                count = 0;
-                current = vector_[pos];
-                continue;
+                Insert(std::move(p));
+                return;
             }
 
-            if (h.partition_offset + count >= num_items_per_partition_) {
+            if (h.partition_offset + count >= num_items_per_partition_)
+            {
                 pos -= (h.partition_offset + count);
             }
 
@@ -172,14 +168,12 @@ public:
         }
 
         // insert new pair
-        if (current == NULL) {
+        if (current == NULL)
+        {
             vector_[pos + count] = new KeyValuePair(key, std::move(p));
 
             // increase total counter
             table_size_++;
-
-            // increase num items in bucket for inserted item
-            num_items_partition++;
 
             // increase counter for partition
             items_per_partition_[h.partition_id]++;
@@ -187,14 +181,15 @@ public:
 
         if (table_size_ > max_num_items_table_)
         {
-            LOG << "saasdsads";
-            LOG << table_size_;
-            LOG << max_num_items_table_;
+            LOG << "flush";
             FlushLargestPartition();
         }
 
-        if (num_items_partition / num_items_per_partition_ >= max_partition_fill_ratio_)
+
+        if (items_per_partition_[h.partition_id]
+            / num_items_per_partition_ >= max_partition_fill_ratio_)
         {
+            LOG << "resize";
             ResizeUp();
         }
 
@@ -346,7 +341,7 @@ public:
         for (KeyValuePair* k_v_pair : vector_old)
         {
             KeyValuePair* current = k_v_pair;
-            while (current != NULL)
+            if (current != NULL)
             {
                 Insert(std::move(current->second));
             }
@@ -393,27 +388,29 @@ public:
      * Prints content of hash table.
      */
     void Print() {
-        LOG << "Printing";
+
+        std::string log = "Printing\n";
 
         for (int i = 0; i < num_items_; i++)
         {
             if (vector_[i] == NULL)
             {
-                LOG << "item idx: "
-                    << i
-                    << " empty";
+                log += "item: ";
+                log += std::to_string(i);
+                log += " empty\n";
                 continue;
-
             }
 
-            LOG << "item idx: "
-                << i
-                << " ("
-                << vector_[i]->first
-                << ", "
-                //<< vector_[i]->second; // TODO(ms): How to convert Value to a string?
-                << ") ";
+            log += "item: ";
+            log += std::to_string(i);
+            log += " (";
+            log += vector_[i]->first;
+            log += ", ";
+            //log += vector_[i]->second; // TODO(ms): How to convert Value to a string?
+            log += ")\n";
         }
+
+        std::cout << log << std::endl;
 
         return;
     }
