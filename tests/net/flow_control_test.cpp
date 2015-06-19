@@ -10,6 +10,7 @@
 
 #include <c7a/net/group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
@@ -24,8 +25,9 @@ using namespace c7a::net;
 /**
  * Calculates a prefix sum over all worker ids.
  */
-static void ThreadPrefixSum(Group* net) {
-    FlowControlChannel channel(*net);
+static void SingleThreadPrefixSum(Group* net) {
+    FlowControlChannelManager manager(*net, 1);
+    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     int myRank = (int)net->MyRank();
 
     int sum = channel.PrefixSum(myRank);
@@ -41,8 +43,9 @@ static void ThreadPrefixSum(Group* net) {
 /**
  * Broadcasts the ID of the master, which is 0.
  */
-static void ThreadBroadcast(Group* net) {
-    FlowControlChannel channel(*net);
+static void SingleThreadBroadcast(Group* net) {
+    FlowControlChannelManager manager(*net, 1);
+    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     int myRank = (int)net->MyRank();
 
     int res = channel.Broadcast(myRank);
@@ -53,8 +56,9 @@ static void ThreadBroadcast(Group* net) {
 /**
  * Calculates a sum over all worker ids.
  */
-static void ThreadAllReduce(Group* net) {
-    FlowControlChannel channel(*net);
+static void SingleThreadAllReduce(Group* net) {
+    FlowControlChannelManager manager(*net, 1);
+    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
     int myRank = (int)net->MyRank();
 
@@ -69,15 +73,15 @@ static void ThreadAllReduce(Group* net) {
 }
 
 TEST(Group, PrefixSum) {
-    Group::ExecuteLocalMock(6, ThreadPrefixSum);
+    Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
 }
 
 TEST(Group, Broadcast) {
-    Group::ExecuteLocalMock(6, ThreadBroadcast);
+    Group::ExecuteLocalMock(6, SingleThreadBroadcast);
 }
 
 TEST(Group, AllReduce) {
-    Group::ExecuteLocalMock(6, ThreadAllReduce);
+    Group::ExecuteLocalMock(6, SingleThreadAllReduce);
 }
 
 /******************************************************************************/

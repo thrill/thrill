@@ -3,8 +3,8 @@
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
- * 
+ * Copyright (C) 2015 Emanuel Jbstl <emanuel.joebstl@gmail.com>
+ *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <c7a/net/group.hpp>
+#include <c7a/common/cyclic_barrier.hpp>
 
 namespace c7a {
 namespace net {
@@ -23,6 +24,10 @@ namespace net {
  * @brief Provides a blocking collection for communication.
  * @details This wraps a raw net group and should be used for
  * flow control with integral types.
+ *
+ * Important notice on threading: It is not allowed to call two different methods of two different
+ * instances of FlowControlChannel simultaniously by different threads, since the internal synchronization state
+ * (the barrier) is shared globally.
  *
  * The implementations will be replaced by better/decentral versions.
  */
@@ -42,28 +47,35 @@ protected:
      */
     int count;
 
-public:
     /**
-     * @brief Creates a new instance of this class, wrapping a group.
+     * The id of the worker thread associated with this flow channel.
      */
-    explicit FlowControlChannel(net::Group& group) : group(group), id(group.MyRank()), count(group.Size()) { }
+    int threadId;
+
+    /**
+     * The shared barrier used to synchronize between worker threads on this node.
+     */
+    common::Barrier& barrier;
 
     /**
      * @brief Sends a value of an integral type T to a certain other worker.
      * @details This method can block if there is unsufficient space
-     * in the send buffer.
+     * in the send buffer. This method may only be called by thread with ID 0.
      *
      * @param destination The id of the worker to send the value to.
      * @param value The value to send.
      */
     template <typename T>
     void SendTo(ClientId destination, T value) {
+
+        assert(threadId == 0); //Only primary thread might send/receive.
+
         group.connection(destination).Send(value);
     }
 
     /**
      * @brief Receives a value of an integral type T from a certain other worker.
-     * @details This method blocks until the data is received.
+     * @details This method blocks until the data is received. This method may only be called by thread with ID 0.
      *
      * @param source The id of the worker to receive the value from.
      * @param value A pointer to a memory location where the
@@ -71,8 +83,18 @@ public:
      */
     template <typename T>
     void ReceiveFrom(ClientId source, T* value) {
+
+        assert(threadId == 0); //Only primary thread might send/receive.
+
         group.connection(source).Receive(value);
     }
+
+public:
+    /**
+     * @brief Creates a new instance of this class, wrapping a group.
+     */
+    explicit FlowControlChannel(net::Group& group, int threadId, common::Barrier& barrier)
+        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), barrier(barrier) { }
 
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum
