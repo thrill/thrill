@@ -22,7 +22,7 @@
 using namespace c7a::net;
 
 /**
- * Calculates a prefix sum over all worker ids. 
+ * Calculates a prefix sum over all worker ids.
  */
 static void ThreadPrefixSum(Group* net) {
     FlowControlChannel channel(*net);
@@ -31,7 +31,7 @@ static void ThreadPrefixSum(Group* net) {
     int sum = channel.PrefixSum(myRank);
 
     int expected = 0;
-    for(int i = 0; i <= myRank; i++) {
+    for (int i = 0; i <= myRank; i++) {
         expected += i;
     }
 
@@ -39,7 +39,7 @@ static void ThreadPrefixSum(Group* net) {
 }
 
 /**
- * Broadcasts the ID of the master, which is 0. 
+ * Broadcasts the ID of the master, which is 0.
  */
 static void ThreadBroadcast(Group* net) {
     FlowControlChannel channel(*net);
@@ -51,7 +51,7 @@ static void ThreadBroadcast(Group* net) {
 }
 
 /**
- * Calculates a sum over all worker ids. 
+ * Calculates a sum over all worker ids.
  */
 static void ThreadAllReduce(Group* net) {
     FlowControlChannel channel(*net);
@@ -61,12 +61,11 @@ static void ThreadAllReduce(Group* net) {
     int res = channel.AllReduce(myRank);
 
     int expected = 0;
-    for(size_t i = 0; i < net->Size(); i++) {
+    for (size_t i = 0; i < net->Size(); i++) {
         expected += i;
     }
 
     ASSERT_EQ(res, expected);
-
 }
 
 TEST(Group, PrefixSum) {
@@ -80,6 +79,5 @@ TEST(Group, Broadcast) {
 TEST(Group, AllReduce) {
     Group::ExecuteLocalMock(6, ThreadAllReduce);
 }
-
 
 /******************************************************************************/
