@@ -446,6 +446,7 @@ private:
     std::vector<EmitterFunction> emit_;
     std::vector<int> emit_stats_;
 
+    // TODO(ms): remove *
     std::vector<KeyValuePair*> vector_;
 };
 
