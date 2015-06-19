@@ -227,7 +227,7 @@ public:
     const Byte * Detach() {
         const Byte* data = data_;
         data_ = nullptr;
-        size_ = capacity_ = 0;
+        size_ = capacity_ = num_elements_ = 0;
         return data;
     }
 

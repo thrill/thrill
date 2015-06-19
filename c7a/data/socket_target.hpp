@@ -33,7 +33,7 @@ public:
 
     //! Appends data to the SocketTarget.
     //! Data may be sent but may be delayed.
-    void Append(BinaryBufferBuilder buffer) override {
+    void Append(BinaryBufferBuilder& buffer) override {
         //virtual does not hurt because not in tight loop
         if (buffer.size() == 0) {
             return;
@@ -41,6 +41,7 @@ public:
         SendHeader(buffer.size(), buffer.elements());
 
         net::Buffer payload_buf = buffer.ToBuffer();
+        buffer.Detach();
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
     }
 
@@ -89,11 +90,9 @@ public:
           closed_(false) { }
 
     //! Appends data directly to the target BufferChain
-    void Append(BinaryBufferBuilder buffer) override {
+    void Append(BinaryBufferBuilder& buffer) override {
         //virtual does not hurt because not in tight loop
-        if (buffer.size() > 0) {
-            chain_->Append(buffer);
-        }
+        chain_->Append(buffer);
     }
 
     //! Closes the LoopbackTarget. Can be called once.

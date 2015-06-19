@@ -50,11 +50,10 @@ using BufferChainIterator = std::deque<BufferChainElement>::const_iterator;
 struct BufferChain : public EmitterTarget {
     BufferChain() : closed_(false) { }
 
-    //! Appends a BinaryBufferBuffer's content to the chain an detaches the
-    //! builder.
+    //! Appends a BinaryBufferBuffer's content to the chain
     //! This method is thread-safe and runs in O(1)
     //! \Param b buffer to append
-    void Append(BinaryBufferBuilder b) {
+    void Append(BinaryBufferBuilder& b) {
         std::unique_lock<std::mutex> lock(append_mutex_);
         elements_.emplace_back(BufferChainElement(BinaryBuffer(b), size() + b.elements()));
         b.Detach();
