@@ -1,0 +1,69 @@
+/*******************************************************************************
+ * c7a/common/cyclic_barrier.hpp
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Emanuel Jbstl <emanuel.joebstl@gmail.com>
+ *
+ * This file has no license. Only Timo Bingmann can compile it.
+ ******************************************************************************/
+
+#pragma once
+#ifndef C7A_COMMON_CONCURRENT_QUEUE_HEADER
+#define C7A_COMMON_CONCURRENT_QUEUE_HEADER
+
+#include <mutex>
+#include <condition_variable>
+
+namespace c7a {
+namespace common {
+
+/**
+ * @brief Implements a cyclic barrier that can be shared between threads.
+ */
+class Barrier
+{
+    mutex m;
+    condition_variable event;
+    int threadCount;
+    int counts[2];
+    int current;
+
+public:
+    /**
+     * @brief Creates a new barrier that waits for n threads.
+     *
+     * @param n The count of threads to wait for.
+     */
+    Barrier(int n) : threadCount(n), current(0) {
+        counts[0] = 0;
+        counts[1] = 0;
+    }
+
+    /**
+     * @brief Waits for n threads to arrive.
+     * @details This method blocks and returns as soon as n threads are waiting inside the method.
+     */
+    void await() {
+        unique_lock<mutex> lock(m);
+        int localCurrent = current;
+        counts[localCurrent]++;
+
+        if (counts[localCurrent] < threadCount) {
+            while (counts[localCurrent] < threadCount) {
+                event.wait(lock);
+            }
+        }
+        else {
+            current = current ? 0 : 1;
+            counts[current] = 0;
+            event.notify_all();
+        }
+    }
+};
+} // namespace common
+} // namespace c7a
+
+#endif // !C7A_COMMON_CONCURRENT_QUEUE_HEADER
+
+/******************************************************************************/
