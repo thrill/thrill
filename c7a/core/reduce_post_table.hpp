@@ -38,15 +38,14 @@ namespace core {
 			for (size_t i = 0; i < num_buckets_; i++) {
 				if ((*vector_)[i] != nullptr) {
 					T curr_node = (*vector_)[i];
-					std::vector<Value> elements_to_emit;
-					elements_to_emit.reserve(max_index_ / num_buckets_ + num_buckets_);
-					size_t min_index_bucket = (max_index_ / num_buckets_) * i;
+					std::map<size_t,Value> elements_to_emit;
+					size_t min_index_bucket = ((double) max_index_ / (double) num_buckets_) * i;
 					do {
 						elements_to_emit[curr_node->key - min_index_bucket] = curr_node->value;
 						curr_node = curr_node->next;
 					} while (curr_node != nullptr);
 					for (auto element_to_emit : elements_to_emit) {
-						table->EmitAll(element_to_emit);
+						table->EmitAll(element_to_emit.second);
 					}
 				
 					(*vector_)[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?

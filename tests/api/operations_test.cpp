@@ -16,6 +16,7 @@
 #include <c7a/api/reduce_node.hpp>
 #include <c7a/api/sum_node.hpp>
 #include <c7a/api/bootstrap.hpp>
+#include <c7a/api/reduce_to_index_node.hpp>
 
 #include <algorithm>
 #include <random>
@@ -266,6 +267,86 @@ TEST(Operations, ReduceModulo2CorrectResults) {
         }
 
         ASSERT_EQ((size_t) 2, out_vec.size());
+    };
+
+    c7a::ExecuteThreads(workers, port_base, start_func);
+
+}
+
+TEST(Operations, ReduceToIndexCorrectResults) {
+
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(1, 4);
+
+    size_t workers = distribution(generator);
+    size_t port_base = 8080;
+
+    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+
+		auto integers = ReadLines(
+            ctx,
+            "test1",
+			[](const std::string& line) {
+                return std::stoi(line);
+			});
+
+        auto key = [](int in) {
+            return in / 2;
+        };
+
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
+
+		size_t max_index = 9;
+
+        auto reduced = integers.ReduceToIndex(key, add_function, max_index);
+
+		std::vector<int> out_vec;
+
+        reduced.AllGather(&out_vec);
+
+        std::sort(out_vec.begin(), out_vec.end());
+
+
+
+        int i = 0;
+        for (int element : out_vec) {
+			switch(i++) {
+			case 0:
+				ASSERT_EQ(1, element);
+				break;
+			case 1:
+				ASSERT_EQ(5, element);
+				break;
+			case 2:
+				ASSERT_EQ(9, element);
+				break;
+			case 3:
+				ASSERT_EQ(13, element);
+				break;
+			case 4:
+				ASSERT_EQ(16, element);
+				break;
+			case 5:
+				ASSERT_EQ(17, element);
+				break;
+			case 6:
+				ASSERT_EQ(21, element);
+				break;
+			case 7:
+				ASSERT_EQ(25, element);
+				break;
+			case 8:
+				ASSERT_EQ(29, element);
+				break;
+			default:
+				ASSERT_EQ(42, 420);
+			}
+		}
+
+        ASSERT_EQ((size_t) 9, out_vec.size());
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);

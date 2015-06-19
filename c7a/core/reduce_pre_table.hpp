@@ -57,22 +57,7 @@ public:
             partition_id = p_id;
             partition_offset = p_off;
             global_index = g_id;
-        }
-
-        /*hash_result(Key v, const ReducePreTable& ht) {
-            size_t hashed = std::hash<Key>() (v);
-
-            // partition idx
-            //LOG << ht.num_buckets_per_partition_ << " " << ht.num_partitions_;
-            partition_offset = hashed % ht.num_buckets_per_partition_;
-
-            // partition id
-            partition_id = hashed % ht.num_partitions_;
-            //LOG << partition_offset << " " << partition_id;
-
-            // global idx
-            global_index = partition_id * ht.num_buckets_per_partition_ + partition_offset;
-            }*/
+        }       
     };
 
 protected:
@@ -391,11 +376,27 @@ public:
     }
 
     /*!
-     * Returns the total num of items.
+     * Returns the total num of buckets.
      */
     size_t NumBuckets() {
         return num_buckets_;
     }
+
+	/*!
+	 * Returns the number of buckets per partition.
+	 */
+	size_t NumBucketsPerPartition() {
+        return num_buckets_per_partition_;
+    }
+
+	/*!
+	 * Returns the number of partitions.
+	 */
+	size_t NumPartitions() {
+        return num_partitions_;
+    }
+
+
 
     /*!
      * Returns the size of a partition referenzed by partition_id.
