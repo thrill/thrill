@@ -302,7 +302,7 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(0u, table.Size());
 }
 
-TEST_F(ReducePreLinProTable, DISABLED_ComplexType) {
+TEST_F(ReducePreLinProTable, ComplexType) {
 
     auto key_ex = [](StringPair in) {
         return in.first;
@@ -313,7 +313,7 @@ TEST_F(ReducePreLinProTable, DISABLED_ComplexType) {
     };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
-            table(1, 2, 2, 1, 10, 1.0f, 30, key_ex, red_fn, one_pair_emitter);
+            table(1, 2, 2, 1, 10, 1.0f, 3, key_ex, red_fn, one_pair_emitter);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
@@ -330,7 +330,7 @@ TEST_F(ReducePreLinProTable, DISABLED_ComplexType) {
     ASSERT_EQ(0u, table.Size());
 }
 
-TEST_F(ReducePreLinProTable, DISABLED_MultipleWorkers) {
+TEST_F(ReducePreLinProTable, MultipleWorkers) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -353,9 +353,9 @@ TEST_F(ReducePreLinProTable, DISABLED_MultipleWorkers) {
     ASSERT_GT(table.Size(), 0u);
 }
 
-// Resize due to max bucket size reached. Set max items per bucket to 1,
+// Resize due to max partition fill ratio reached. Set max partition fill ratio to 1.0f,
 // then add 2 items with different key, but having same hash value, one partition
-TEST_F(ReducePreLinProTable, DISABLED_ResizeOnePartition) {
+TEST_F(ReducePreLinProTable, ResizeOnePartition) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -369,13 +369,13 @@ TEST_F(ReducePreLinProTable, DISABLED_ResizeOnePartition) {
 
     table.Insert(1);
 
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(2u, table.NumItems());
     ASSERT_EQ(1u, table.PartitionSize(0));
     ASSERT_EQ(1u, table.Size());
 
     table.Insert(2); // Resize happens here
 
-    ASSERT_EQ(10u, table.NumItems());
+    ASSERT_EQ(20u, table.NumItems());
     ASSERT_EQ(2u, table.PartitionSize(0));
     ASSERT_EQ(2u, table.Size());
 
@@ -391,10 +391,10 @@ TEST_F(ReducePreLinProTable, DISABLED_ResizeOnePartition) {
     ASSERT_EQ(2, c);
 }
 
-// Resize due to max bucket size reached. Set max items per bucket to 1,
+// Resize due to max partition fill ratio reached. Set max partition fill ratio to 1.0f,
 // then add 2 items with different key, but having same hash value, two partitions
 // Check that same items are in same partition after resize
-TEST_F(ReducePreLinProTable, DISABLED_ResizeTwoPartitions) {
+TEST_F(ReducePreLinProTable, ResizeTwoPartitions) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -407,7 +407,7 @@ TEST_F(ReducePreLinProTable, DISABLED_ResizeTwoPartitions) {
             table(2, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
 
     ASSERT_EQ(0u, table.Size());
-    ASSERT_EQ(2u, table.NumItems());
+    ASSERT_EQ(4u, table.NumItems());
     ASSERT_EQ(0u, table.PartitionSize(0));
     ASSERT_EQ(0u, table.PartitionSize(1));
 
@@ -415,18 +415,18 @@ TEST_F(ReducePreLinProTable, DISABLED_ResizeTwoPartitions) {
     table.Insert(2);
 
     ASSERT_EQ(2u, table.Size());
-    ASSERT_EQ(2u, table.NumItems());
+    ASSERT_EQ(4u, table.NumItems());
     ASSERT_EQ(1u, table.PartitionSize(0));
     ASSERT_EQ(1u, table.PartitionSize(1));
 
     table.Insert(3); // Resize happens here
 
     ASSERT_EQ(3u, table.Size());
-    ASSERT_EQ(20u, table.NumItems());
+    ASSERT_EQ(40u, table.NumItems());
     ASSERT_EQ(3u, table.PartitionSize(0) + table.PartitionSize(1));
 }
 
-TEST_F(ReducePreLinProTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
+TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
     auto key_ex = [](const MyStruct& in) {
         return in.key;
     };
@@ -517,7 +517,7 @@ TEST_F(ReducePreLinProTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(ReducePreLinProTable, DISABLED_InsertManyIntsAndTestReduce1) {
+TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce1) {
     auto key_ex = [](const MyStruct& in) {
         return in.key % 500;
     };
@@ -558,7 +558,7 @@ TEST_F(ReducePreLinProTable, DISABLED_InsertManyIntsAndTestReduce1) {
     ASSERT_EQ(nitems, total_sum);
 }
 
-TEST_F(ReducePreLinProTable, DISABLED_InsertManyIntsAndTestReduce2) {
+TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce2) {
     auto key_ex = [](const MyStruct& in) {
         return in.key;
     };
@@ -624,19 +624,19 @@ TEST_F(ReducePreLinProTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     std::vector<Emitter<StringPair> > emitters;
     emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
 
-    size_t nitems_per_key = 10;
+    size_t nitems_per_key = 2;
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
             Emitter<StringPair> >
-            table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, {emitters});
+            table(1, 10, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, {emitters});
 
     // insert lots of items
     int sum = 0;
     for (size_t j = 0; j != nitems; ++j) {
         sum = 0;
         std::string str;
-        randomStr(str, 128);
+        randomStr(str, 10);
         for (size_t i = 0; i != nitems_per_key; ++i) {
             sum += i;
             table.Insert(std::make_pair(str, i));
