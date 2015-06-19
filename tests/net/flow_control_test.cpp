@@ -15,10 +15,12 @@
 #include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <thread>
 #include <vector>
 #include <string>
 #include <random>
+#include <thread>
 
 using namespace c7a::net;
 
@@ -46,11 +48,44 @@ static void SingleThreadPrefixSum(Group* net) {
 static void SingleThreadBroadcast(Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+    int magic = 1337;
     int myRank = (int)net->MyRank();
+    int value = myRank + magic;
 
-    int res = channel.Broadcast(myRank);
+    int res = channel.Broadcast(value);
 
-    ASSERT_EQ(res, 0);
+    ASSERT_EQ(res, magic);
+}
+
+static void ExecuteMultiThreads(Group* net, int count, std::function<void(FlowControlChannel&, int)> function) {
+
+    std::vector<std::thread*> threads(count);
+    FlowControlChannelManager manager(*net, count);
+
+    for (int i = 0; i < count; i++) {
+        threads[i] = new std::thread([i, function, &manager] {
+                                         function(manager.GetFlowControlChannel(i), i);
+                                     });
+    }
+
+    for (int i = 0; i < count; i++) {
+        threads[i]->join();
+    }
+}
+
+/**
+ * Broadcasts the ID of the master, which is 0.
+ */
+static void MultiThreadBroadcast(Group* net) {
+    const int count = 4;
+    const int magic = 1337;
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel & channel, int id) {
+                            int myRank = (int)net->MyRank() * count + id + magic;
+
+                            int res = channel.Broadcast(myRank);
+
+                            ASSERT_EQ(res, magic);
+                        });
 }
 
 /**
@@ -78,6 +113,10 @@ TEST(Group, PrefixSum) {
 
 TEST(Group, Broadcast) {
     Group::ExecuteLocalMock(6, SingleThreadBroadcast);
+}
+
+TEST(Group, MultiThreadBroadcast) {
+    Group::ExecuteLocalMock(6, MultiThreadBroadcast);
 }
 
 TEST(Group, AllReduce) {
