@@ -224,6 +224,10 @@ public:
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
 
+	template <typename KeyExtractor, typename ReduceFunction>
+    auto ReduceToIndex(const KeyExtractor &key_extractor,
+					   const ReduceFunction &reduce_function, size_t max_index);
+
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
      * zip_function is used to zip the i-th elements of both input DIAs together
