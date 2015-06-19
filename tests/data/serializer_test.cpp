@@ -141,10 +141,13 @@ TEST(Serializer, IntInt_Pair_SerializeDeserialize_Test) {
     ASSERT_EQ(std::get<1>(t), std::get<1>(result));
 }
 
-// TEST(Serializer, Tuple_SerializeDeserialize_Test) {
-//     std::tuple<int, std::string, int> foo = std::make_tuple (3, "foo", 5);
-//     auto res = Serialize<std::tuple<int, std::string, int>>(foo);
-//     LOG1 << res;
-// }
+TEST(Serializer, Tuple_SerializeDeserialize_Test) {
+    auto foo = std::make_tuple ("3", "foo", "5");
+    auto bar = std::make_tuple (3, "foo", 5.5);
+
+    auto res1 = Serialize<std::tuple<std::string, std::string, std::string>>(foo);
+    auto res2 = Serialize<std::tuple<int, std::string, float>>(bar);
+    LOG1 << res1 << "\n" << res2;
+}
 
 /******************************************************************************/
