@@ -58,6 +58,11 @@ protected:
     common::Barrier& barrier;
 
     /**
+     * A shared memory location to work upon.
+     */
+    void** shmem;
+
+    /**
      * @brief Sends a value of an integral type T to a certain other worker.
      * @details This method can block if there is unsufficient space
      * in the send buffer. This method may only be called by thread with ID 0.
@@ -89,12 +94,30 @@ protected:
         group.connection(source).Receive(value);
     }
 
+    template <typename T>
+    void SetLocalShared(T* value) {
+        assert(*shmem == NULL);
+        assert(threadId == 0);
+        *shmem = value;
+    }
+
+    template <typename T>
+    T * GetLocalShared() {
+        assert(*shmem != NULL);
+        return *((T**)shmem);
+    }
+
+    void ClearLocalShared() {
+        assert(threadId == 0);
+        *shmem = NULL;
+    }
+
 public:
     /**
      * @brief Creates a new instance of this class, wrapping a group.
      */
-    explicit FlowControlChannel(net::Group& group, int threadId, common::Barrier& barrier)
-        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), barrier(barrier) { }
+    explicit FlowControlChannel(net::Group& group, int threadId, common::Barrier& barrier, void** shmem)
+        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), barrier(barrier), shmem(shmem) { }
 
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum
@@ -146,15 +169,30 @@ public:
 
         T res;
 
-        //The master needs to send to all.
-        if (id == 0) {
-            for (int i = 1; i < count; i++) {
-                SendTo(i, value);
+        //The primary thread of each node has to handle IO
+        if (threadId == 0) {
+            SetLocalShared(&res);
+
+            if (id == 0) {
+                //Master has to send to all.
+                for (int i = 1; i < count; i++) {
+                    SendTo(i, value);
+                }
             }
-            res = value;
+            else {
+                //Every other node has to receive.
+                ReceiveFrom(0, &res);
+            }
         }
-        else {      //Every other node has to receive.
-            ReceiveFrom(0, &res);
+
+        barrier.await();
+
+        res = *GetLocalShared<T>();
+
+        barrier.await();
+
+        if (threadId == 0) {
+            ClearLocalShared();
         }
 
         return res;
