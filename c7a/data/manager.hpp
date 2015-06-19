@@ -74,11 +74,12 @@ public:
 
     //! Returns the number of elements that are stored on this worker
     //! Returns -1 if the channel or dia was not closed (yet)
-    //! throws it id is unknown
+    //! This call is blocking until the DIA is closed
+    //! throws if id is unknown
     size_t GetNumElements(const ChainId& id) {
         std::shared_ptr<BufferChain> chain = GetChainOrDie(id);
         if (!chain->IsClosed())
-            return -1;
+            chain->WaitUntilClosed();
         return chain->size();
     }
 
