@@ -37,6 +37,7 @@ struct StreamBlockHeader {
 
     //! Reads the channel id and the number of elements in this block
     void        ParseHeader(const std::string& buffer) {
+        assert(buffer.size() == sizeof(StreamBlockHeader));
         memcpy(&channel_id, buffer.c_str(), sizeof(channel_id));
         memcpy(&expected_bytes, buffer.c_str() + sizeof(channel_id), sizeof(expected_bytes));
         memcpy(&expected_elements, buffer.c_str() + sizeof(channel_id) + sizeof(expected_bytes), sizeof(expected_elements));
@@ -44,7 +45,7 @@ struct StreamBlockHeader {
 
     //! Serializes the whole block struct into a buffer
     std::string Serialize() {
-        size_t size = sizeof(size_t) * (channel_id + 2);
+        size_t size = sizeof(StreamBlockHeader);
         char* result = new char[size];
         char* offset0 = result;
         char* offset1 = offset0 + sizeof(channel_id);
