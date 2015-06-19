@@ -69,19 +69,17 @@ public:
     //! \param id ID of the DIA / Channel - determined by AllocateDIA() / AllocateNetworkChannel()
     template <class T>
     Iterator<T> GetIterator(const ChainId& id) {
-        if (id.type == LOCAL) {
-            if (!dias_.Contains(id)) {
-                throw std::runtime_error("target dia id unknown.");
-            }
-            return Iterator<T>(*(dias_.Chain(id)));
-        }
-        else {
-            if (!cmp_.HasDataOn(id)) {
-                throw std::runtime_error("target channel id unknown.");
-            }
+        return Iterator<T>(*GetChainOrDie(id));
+    }
 
-            return Iterator<T>(*(cmp_.AccessData(id)));
-        }
+    //! Returns the number of elements that are stored on this worker
+    //! Returns -1 if the channel or dia was not closed (yet)
+    //! throws it id is unknown
+    size_t GetNumElements(const ChainId& id) {
+        std::shared_ptr<BufferChain> chain = GetChainOrDie(id);
+        if (!chain->IsClosed())
+            return -1;
+        return chain->size();
     }
 
     //! Returns a number that uniquely addresses a DIA
@@ -135,6 +133,22 @@ private:
     net::ChannelMultiplexer cmp_;
 
     BufferChainManager dias_;
+
+    std::shared_ptr<BufferChain> GetChainOrDie(const ChainId& id) {
+        if (id.type == LOCAL) {
+            if (!dias_.Contains(id)) {
+                throw std::runtime_error("target dia id unknown.");
+            }
+            return dias_.Chain(id);
+        }
+        else {
+            if (!cmp_.HasDataOn(id)) {
+                throw std::runtime_error("target channel id unknown.");
+            }
+            return cmp_.AccessData(id);
+        }
+    }
+
 };
 
 } // namespace data
