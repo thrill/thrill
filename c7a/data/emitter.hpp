@@ -62,7 +62,7 @@ public:
 
     //! Writes the data to the target without closing the emitter
     void Flush() {
-        target_->Append(BinaryBuffer(builder_));
+        target_->Append(builder_);
         builder_.Detach();
         builder_.Reserve(BinaryBuffer::DEFAULT_SIZE);
     }

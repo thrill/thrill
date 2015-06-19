@@ -33,12 +33,12 @@ public:
 
     //! Appends data to the SocketTarget.
     //! Data may be sent but may be delayed.
-    void Append(BinaryBuffer buffer) override {
+    void Append(BinaryBufferBuilder buffer) override {
         //virtual does not hurt because not in tight loop
         if (buffer.size() == 0) {
             return;
         }
-        SendHeader(buffer.size());
+        SendHeader(buffer.size(), buffer.elements());
 
         net::Buffer payload_buf = buffer.ToBuffer();
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
@@ -48,7 +48,7 @@ public:
     void Close() override {
         assert(!closed_);
         closed_ = true;
-        SendHeader(0);
+        SendHeader(0, 0);
     }
 
 protected:
@@ -60,10 +60,11 @@ protected:
     size_t id_;
     bool closed_;
 
-    void SendHeader(size_t num_bytes) {
+    void SendHeader(size_t num_bytes, size_t elements) {
         net::StreamBlockHeader header;
         header.channel_id = id_;
         header.expected_bytes = num_bytes;
+        header.expected_elements = elements;
         net::Buffer header_buffer(&header, sizeof(header));
         dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
     }
@@ -88,7 +89,7 @@ public:
           closed_(false) { }
 
     //! Appends data directly to the target BufferChain
-    void Append(BinaryBuffer buffer) override {
+    void Append(BinaryBufferBuilder buffer) override {
         //virtual does not hurt because not in tight loop
         if (buffer.size() > 0) {
             chain_->Append(buffer);
