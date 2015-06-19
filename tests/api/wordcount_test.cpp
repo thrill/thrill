@@ -24,69 +24,83 @@
 using namespace c7a::core;
 using namespace c7a::net;
 
-TEST(WordCount, WordCountSingleWorker) {
-    using c7a::Context;
+TEST(WordCount, WordCountSmallFileCorrectResults) {
+
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(2, 4);
+
     using WordPair = std::pair<std::string, int>;
 
-    Context ctx;
-    std::vector<std::string> self = { "127.0.0.1:1234" };
-    ctx.job_manager().Connect(0, Endpoint::ParseEndpointList(self));
+    size_t workers = distribution(generator);
+    size_t port_base = 8080;
 
-    auto lines = ReadLines(
-        ctx,
-        "wordcounttest",
-        [](const std::string& line) {
-            return line;
-        });
+    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+        auto lines = ReadLines(
+            ctx,
+            "wordcounttest",
+            [](const std::string& line) {
+                return line;
+            });
 
-    auto red_words = word_count_user(lines);
+        auto red_words = word_count_user(lines);
 
-    //TODO(an) : Assert size == 5
+        std::vector<WordPair> words;
 
-    red_words.WriteToFileSystem("wordcount.out",
-                                [](const WordPair& item) {
-                                    std::string str;
-                                    str += item.first;
-                                    str += ":";
-                                    str.append(std::to_string(item.second));
-                                    return str;
-                                });
+        red_words.AllGather(&words);
+
+        auto compare_function = [](WordPair wp1, WordPair wp2) {
+            return wp1.first < wp2.first;
+        };
+
+        std::sort(words.begin(), words.end(), compare_function);
+
+        ASSERT_EQ(words.size(), (size_t) 5);
+
+        std::string this_str = "this";
+        std::string might = "might";
+        std::string be = "be";
+        std::string a = "a";
+        std::string test = "test";
+
+        ASSERT_EQ(words[0], std::make_pair(a, 3)); 
+        ASSERT_EQ(words[1], std::make_pair(be, 1)); 
+        ASSERT_EQ(words[2], std::make_pair(might, 1)); 
+        ASSERT_EQ(words[3], std::make_pair(test, 4)); 
+        ASSERT_EQ(words[4], std::make_pair(this_str, 1));       
+    };
+
+    c7a::ExecuteThreads(workers, port_base, start_func);
 }
 
 
-
-/*TEST(WordCount, WordcountLocalMultipleWorkers) {
+TEST(WordCount, Generate1024DoesNotCrash) {
+    
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
-    const size_t port_base = distribution(generator);
+    std::uniform_int_distribution<int> distribution(2, 4);
+    size_t workers = distribution(generator);
+    size_t port_base = 8080;
+
+    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+           word_count_generated(ctx, 1024);
+    };
+
+    c7a::ExecuteThreads(workers, port_base, start_func);
+}
+
+TEST(WordCount, ReadBaconDoesNotCrash) {
     
-    std::uniform_int_distribution<int> distr(2, 4);
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(2, 4);
+    size_t workers = distribution(generator);
+    size_t port_base = 8080;
 
-    unsigned int workers = distr(generator);
+    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+           word_count(ctx);
+    };
 
-    unsigned int elements = distribution(generator);
+    c7a::ExecuteThreads(workers, port_base, start_func);
+}
 
-    auto lines = ReadLines(
-        ctx,
-        "wordcounttest",
-        [](const std::string& line) {
-            return line;
-        });
-
-    auto red_words = word_count_user(lines);
-
-    //TODO(an) : Assert size == 5
-
-    red_words.WriteToFileSystem("wordcount.out",
-                                [](const WordPair& item) {
-                                    std::string str;
-                                    str += item.first;
-                                    str += ":";
-                                    str.append(std::to_string(item.second));
-                                    return str;
-                                });
-    
-                                }*/
-
-/******************************************************************************/
