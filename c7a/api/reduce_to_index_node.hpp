@@ -26,18 +26,20 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 namespace c7a {
 //! \addtogroup api Interface
 //! \{
 
 /*!
- * A DIANode which performs a Reduce operation. Reduce groups the elements in a
+ * A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the elements in a
  * DIA by their key and reduces every key bucket to a single element each. The
  * ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
  * chainable LOps ahead of the Reduce operation are stored in the Stack. The
  * ReduceToIndexNode has the type Output, which is the result type of the
- * reduce_function.
+ * reduce_function. The key type is an unsigned integer and the output DIA will have element
+ * with key K at index K.
  *
  * \tparam Input Input type of the Reduce operation
  * \tparam Output Output type of the Reduce operation
@@ -56,6 +58,8 @@ class ReduceToIndexNode : public DOpNode<Output>
     using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
     
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
+
+	static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
 
     using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
@@ -117,7 +121,7 @@ public:
     virtual ~ReduceToIndexNode() { }
 
     /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp,
+     * Actually executes the reduce to index operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
     void execute() override {
