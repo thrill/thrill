@@ -291,7 +291,7 @@ TEST(Operations, ReduceToIndexCorrectResults) {
                 return std::stoi(line);
 			});
 
-        auto key = [](int in) {
+        auto key = [](size_t in) {
             return in / 2;
         };
 
