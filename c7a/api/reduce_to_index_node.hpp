@@ -49,7 +49,7 @@ template <typename Input, typename Output, typename Stack,
           typename KeyExtractor, typename ReduceFunction>
 class ReduceToIndexNode : public DOpNode<Output>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<Output>;
 
@@ -97,10 +97,8 @@ public:
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_, 
 							[=](int key, PreHashTable* ht) {
-								double elements_per_bucket = (double) max_index / (double) ht->NumBuckets();
-								double elements_per_partition = (double) max_index / (double) ht->NumPartitions();
-								size_t global_index = key / elements_per_bucket;
-								size_t partition_id = key / elements_per_partition;
+								size_t global_index = key * ht->NumBuckets() / max_index;
+								size_t partition_id = key * ht->NumPartitions() / max_index;
 								size_t partition_offset = global_index - (partition_id * ht->NumBucketsPerPartition()); 
 								return typename PreHashTable::hash_result(partition_id, partition_offset, global_index);
 							}),
@@ -188,8 +186,7 @@ private:
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<Output>::callbacks(),
 						  [=](Key key, ReduceTable* ht) {							  
-							  double elements_per_bucket = (double) max_index_ / (double) ht->NumBuckets();
-							  return key / elements_per_bucket;
+							  return key * ht->NumBuckets() / max_index_;
 						  },
 						  max_index_);
 
