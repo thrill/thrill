@@ -147,7 +147,14 @@ TEST(Serializer, Tuple_SerializeDeserialize_Test) {
 
     auto res1 = Serialize<std::tuple<std::string, std::string, std::string>>(foo);
     auto res2 = Serialize<std::tuple<int, std::string, float>>(bar);
-    LOG1 << res1 << "\n" << res2;
+
+    auto bla = Serialize<std::tuple<std::string>>(std::make_tuple("blubb"));
+    auto des = Deserialize<std::tuple<std::string>>(bla);
+
+    auto argh = Deserialize<std::tuple<int, std::string, float>>(res2);
+    ASSERT_EQ(std::get<0>(bar), std::get<0>(argh));
+    ASSERT_EQ(std::get<1>(bar), std::get<1>(argh));
+    ASSERT_EQ(std::get<2>(bar), std::get<2>(argh));
 }
 
 /******************************************************************************/
