@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -24,48 +25,116 @@
 #include <vector>
 #include <stdexcept>
 #include <array>
+#include <type_traits>
 
 namespace c7a {
 namespace core {
 
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
+	template <bool, typename T, typename Value, typename Table> struct FlushImpl;
+
+	template <typename T, typename Value, typename Table>
+	struct FlushImpl<true, T, Value, Table>{
+		void doSth(std::vector<T>* vector_, size_t num_buckets_, size_t max_index_, Table* table){
+			 // retrieve items
+			for (size_t i = 0; i < num_buckets_; i++) {
+				if ((*vector_)[i] != nullptr) {
+					T curr_node = (*vector_)[i];
+					std::map<size_t,Value> elements_to_emit;
+					size_t min_index_bucket = ((double) max_index_ / (double) num_buckets_) * i;
+					do {
+						elements_to_emit[curr_node->key - min_index_bucket] = curr_node->value;
+						curr_node = curr_node->next;
+					} while (curr_node != nullptr);
+					for (auto element_to_emit : elements_to_emit) {
+						table->EmitAll(element_to_emit.second);
+					}
+				
+					(*vector_)[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+				
+				}
+			}		   
+		}
+	};
+
+	template <typename T, typename Value, typename Table>
+	struct FlushImpl<false, T, Value, Table>{
+		void doSth (std::vector<T>* vector_, size_t num_buckets_, size_t, Table* table){
+			for (size_t i = 0; i < num_buckets_; i++) {
+				if ((*vector_)[i] != nullptr) {
+					T curr_node = (*vector_)[i];
+					do {
+						table->EmitAll(curr_node->value);
+						curr_node = curr_node->next;
+					} while (curr_node != nullptr);
+								
+					(*vector_)[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+				
+				}
+			}		
+		}
+	};
+
+template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction, const bool ToIndex = false>
 class ReducePostTable
 {
+public:
+
     static const bool debug = false;
 
-    // TODO(ms): according to coding style: Types are CamelCase.
-    using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
-    using value_t = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
-protected:
-    template <typename key_t, typename value_t>
+    using KeyValuePair = std::pair<Key, Value>;
+
+    template <typename Key, typename Value>
     struct node {
-        key_t   key;
-        value_t value;
+        Key   key;
+        Value value;
         node    * next;
     };
 
 public:
+    typedef std::function<size_t(Key, ReducePostTable*)> HashFunction;
+
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
                     KeyExtractor key_extractor, ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit)
+                    std::vector<EmitterFunction>& emit,
+                    HashFunction hash_function = [](Key key,
+                                                    ReducePostTable* pt) {
+                        return std::hash<Key>() (key) % pt->num_buckets_;
+                    },
+					size_t max_index = 0
+        )
         : num_buckets_init_scale_(num_buckets),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+		  max_index_(max_index)
+    {
         init();
     }
 
     ReducePostTable(KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+                    ReduceFunction reduce_function,
+                    std::vector<EmitterFunction>& emit,
+                    HashFunction hash_function = [](Key key,
+                                                    ReducePostTable* pt) {
+                        return std::hash<Key>() (key) % pt->num_buckets_;
+                    },
+					size_t max_index = 0
+)
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+		  max_index_(max_index)
+    {
         init();
     }
 
@@ -82,10 +151,11 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const value_t& p) {
-        key_t key = key_extractor_(p);
+    void Insert(KeyValuePair p) {
 
-        size_t hashed_key = std::hash<key_t>() (key) % num_buckets_;
+        Key key = p.first;
+
+        size_t hashed_key = hash_function_(key, this);
 
         LOG << "key: "
             << key
@@ -99,9 +169,9 @@ public:
         if (vector_[hashed_key] == nullptr) {
             LOG << "bucket empty, inserting...";
 
-            node<key_t, value_t>* n = new node<key_t, value_t>;
+            node<Key, Value>* n = new node<Key, Value>;
             n->key = key;
-            n->value = p;
+            n->value = p.second;
             n->next = nullptr;
             vector_[hashed_key] = n;
 
@@ -112,7 +182,7 @@ public:
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node<key_t, value_t>* curr_node = vector_[hashed_key];
+            node<Key, Value>* curr_node = vector_[hashed_key];
             do {
                 if (key == curr_node->key) {
                     LOG << "match of key: "
@@ -121,7 +191,7 @@ public:
                         << curr_node->key
                         << " ... reducing...";
 
-                    (*curr_node).value = reduce_function_(curr_node->value, p);
+                    (*curr_node).value = reduce_function_(curr_node->value, p.second);
 
                     LOG << "...finished reduce!";
 
@@ -136,9 +206,9 @@ public:
                 LOG << "key doesn't exist in baguette, appending...";
 
                 // insert at first pos
-                node<key_t, value_t>* n = new node<key_t, value_t>;
+                node<Key, Value>* n = new node<Key, Value>;
                 n->key = key;
-                n->value = p;
+                n->value = p.second;
                 n->next = vector_[hashed_key];
                 vector_[hashed_key] = n;
 
@@ -157,32 +227,22 @@ public:
     /*!
      * Emits element to all childs
      */
-    void EmitAll(value_t& element) {
+    void EmitAll(Value& element) {
         for (auto& emitter : emit_) {
             emitter(element);
         }
     }
-    /*!
-     * Flushes all items.
-     */
-    void Flush() {
-        LOG << "Flushing in progress";
 
-        // retrieve items
-        for (size_t i = 0; i < num_buckets_; i++) {
-            if (vector_[i] != nullptr) {
-                node<key_t, value_t>* curr_node = vector_[i];
-                do {
-                    EmitAll(curr_node->value);
-                    curr_node = curr_node->next;
-                } while (curr_node != nullptr);
-                vector_[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
-            }
-        }
+	/*!
+	 * Flushes all items.
+	 */
+	void Flush() {
 
-        // reset counters
-        table_size_ = 0;
-    }
+		FlushImpl<ToIndex, node<Key, Value>*, Value, ReducePostTable<KeyExtractor, ReduceFunction,
+																	 EmitterFunction, ToIndex>> test;
+		test.doSth(&vector_, num_buckets_, max_index_, this);
+		table_size_ = 0;
+	}
 
     /*!
      * Returns the total num of items.
@@ -213,8 +273,8 @@ public:
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
         // init new array
-        std::vector<node<key_t, value_t>*> vector_old = vector_;
-        std::vector<node<key_t, value_t>*> vector_new;
+        std::vector<node<Key, Value>*> vector_old = vector_;
+        std::vector<node<Key, Value>*> vector_new;
         vector_new.resize(num_buckets_, nullptr);
         vector_ = vector_new;
         // rehash all items in old array
@@ -257,8 +317,8 @@ public:
                 std::string log = "";
 
                 // check if item with same key
-                node<key_t, value_t>* curr_node = vector_[i];
-                value_t curr_item;
+                node<Key, Value>* curr_node = vector_[i];
+                Value curr_item;
                 do {
                     curr_item = curr_node->value;
 
@@ -304,7 +364,11 @@ private:
 
     std::vector<EmitterFunction> emit_;
 
-    std::vector<node<key_t, value_t>*> vector_;
+    std::vector<node<Key, Value>*> vector_;
+
+    HashFunction hash_function_;
+
+	size_t max_index_;
 };
 
 } // namespace core
