@@ -203,7 +203,7 @@ public:
 
             // no item found with key
             if (curr_node == nullptr) {
-                LOG << "key doesn't exist in baguette, appending...";
+                LOG << "key doesn't exist, appending...";
 
                 // insert at first pos
                 node<Key, Value>* n = new node<Key, Value>;

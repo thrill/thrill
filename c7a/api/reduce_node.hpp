@@ -178,7 +178,7 @@ private:
         do {
             it.WaitForMore();
             while (it.HasNext()) {
-                table.Insert(std::move(it.Next()));
+                table.Insert(it.Next());
             }
         } while (!it.IsClosed());
 

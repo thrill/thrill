@@ -215,6 +215,7 @@ TEST(Operations, FilterResultsCorrectly) {
         std::sort(out_vec.begin(), out_vec.end());
 
         int i = 1;
+
         for (int element : out_vec) {
             ASSERT_DOUBLE_EQ(element, (i++ * 2));
         }
@@ -249,7 +250,6 @@ TEST(Operations, ReduceModulo2CorrectResults) {
         };
 
         auto add_function = [](int in1, int in2) {
-			std::cout << "adding " << in1 << " and " << in2 << " to " << in1 + in2 << std::endl;
             return in1 + in2;
         };
 
@@ -263,6 +263,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
         std::sort(out_vec.begin(), out_vec.end());
 
         int i = 1;
+
         for (int element : out_vec) {
             ASSERT_EQ(element, 56 + (8 * i++));
         }
