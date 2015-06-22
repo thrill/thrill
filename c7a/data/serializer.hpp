@@ -216,6 +216,8 @@ struct Impl<std::pair<T1, T2>> {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//TODO(cn): ask Timo about memcpy things
 struct TupleHelper {
     template<std::size_t> struct len_tuple {};
 
@@ -224,8 +226,15 @@ struct TupleHelper {
         auto elem = std::get< std::tuple_size<Tuple>::value - Id >(t);
         auto s = serializers::Impl<decltype(elem)>::Serialize(elem);
         uint16_t len_s = s.size();
+        auto tail_s = SerializeRecursively(t, len_tuple<Id-1>());
 
-        return std::to_string(len_s) + s + SerializeRecursively(t, len_tuple<Id-1>());
+        std::size_t len = s.size() + tail_s.size() + sizeof(uint16_t);
+        char result[len];
+        std::memcpy(result, &len_s, sizeof(uint16_t));
+        std::memcpy(result + sizeof(uint16_t), s.c_str(), s.size());
+        std::memcpy(result + sizeof(uint16_t) + s.size(), tail_s.c_str(), tail_s.size());
+
+        return std::string(result, len);
     }
 
     template <typename Tuple>
@@ -234,14 +243,50 @@ struct TupleHelper {
         auto s = serializers::Impl<decltype(elem)>::Serialize(elem);
         uint16_t len_s = s.size();
 
-        return std::to_string(len_s) + s;
+        std::size_t len = s.size() + sizeof(uint16_t);
+        char result[len];
+        std::memcpy(result, &len_s, sizeof(uint16_t));
+        std::memcpy(result + sizeof(uint16_t), s.c_str(), s.size());
+
+        return std::string(result, len);
+    }
+
+
+    template <typename T, typename... Tail>
+    static std::tuple<T, Tail...> DeserializeRecursively(const std::string& x, len_tuple<1>) {
+        std::cout << "BASE CASE" << std::endl;
+        uint16_t len_elem;
+        std::memcpy(&len_elem, x.c_str(), sizeof(uint16_t));
+        const std::string elem_str = x.substr(sizeof(uint16_t), len_elem);
+        const T elem = serializers::Impl<T>::Deserialize(elem_str);
+
+        return std::make_tuple(elem);
+    }
+
+    template <typename T, typename... Tail, size_t Id>
+    static std::tuple<T, Tail...> DeserializeRecursively(const std::string& x, len_tuple<Id>) {
+        std::cout << "STEP CASE" << std::endl;
+        uint16_t len_elem;
+        std::memcpy(&len_elem, x.c_str(), sizeof(uint16_t));
+        const std::string elem_str = x.substr(sizeof(uint16_t), len_elem);
+        const T elem = serializers::Impl<T>::Deserialize(elem_str);
+
+        const std::string x_tail = x.substr(len_elem + sizeof(uint16_t));
+        auto tuple_tail = DeserializeRecursively<Tail...>(x_tail, len_tuple<Id-1>());
+
+        return std::tuple_cat(std::make_tuple(elem), tuple_tail);
     }
 };
 
 template <typename... Args>
 struct Impl<std::tuple<Args...>> {
+
     static std::string Serialize(const std::tuple<Args...>& t) {
-        return TupleHelper::SerializeRecursively(t, TupleHelper::len_tuple<sizeof...(Args)>());;
+        return TupleHelper::SerializeRecursively(t, TupleHelper::len_tuple<sizeof...(Args)>());
+    }
+
+    static std::tuple<Args...> Deserialize(const std::string& x) {
+        return TupleHelper::DeserializeRecursively<Args...>(x, TupleHelper::len_tuple<sizeof...(Args)>());
     }
 };
 
