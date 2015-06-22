@@ -5,6 +5,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -222,6 +223,10 @@ public:
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
+
+	template <typename KeyExtractor, typename ReduceFunction>
+    auto ReduceToIndex(const KeyExtractor &key_extractor,
+					   const ReduceFunction &reduce_function, size_t max_index);
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
