@@ -18,6 +18,7 @@
 #include <c7a/net/group.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/flow_control_manager.hpp>
 
 namespace c7a {
 
@@ -108,7 +109,10 @@ private:
         LOG << "MainOp processing";
         net::Group& flow_group = context_.get_flow_net_group();
 
-        net::FlowControlChannel channel(flow_group);
+        //TODO(ms) The creation of a new FlowControlManager is expensive - please
+        //create it once and share the flow control channels between node instances. 
+        net::FlowControlChannelManager manager(flow_group, 1);
+        net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
         // process the reduce
         global_sum = channel.AllReduce(local_sum, sum_function_);
