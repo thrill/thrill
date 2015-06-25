@@ -28,7 +28,8 @@ static void TestWaitFor(int count, int slowThread = -1) {
     int maxWaitTime = 100000;
 
     Barrier barrier(count);
-    std::vector<bool> flags(count);
+    //Need to use atomic here, since setting a bool might not be atomic.
+    std::vector<std::atomic<bool> > flags(count);
     std::vector<std::thread*> threads(count);
 
     for (int i = 0; i < count; i++) {
@@ -38,21 +39,21 @@ static void TestWaitFor(int count, int slowThread = -1) {
     for (int i = 0; i < count; i++) {
         threads[i] = new std::thread([maxWaitTime, count, slowThread, &barrier, &flags, i] {
 
-            if (slowThread == -1) {
-                usleep(rand() % maxWaitTime);
-            }
-            else if (i == slowThread) {
-                usleep(rand() % maxWaitTime);
-            }
+                                         if (slowThread == -1) {
+                                             usleep(rand() % maxWaitTime);
+                                         }
+                                         else if (i == slowThread) {
+                                             usleep(rand() % maxWaitTime);
+                                         }
 
-            flags[i] = true;
+                                         flags[i] = true;
 
-            barrier.await();
+                                         barrier.await();
 
-            for (int j = 0; j < count; j++) {
-                ASSERT_EQ(flags[j], true);
-            }
-        });
+                                         for (int j = 0; j < count; j++) {
+                                             ASSERT_EQ(flags[j], true);
+                                         }
+                                     });
     }
 
     for (int i = 0; i < count; i++) {
