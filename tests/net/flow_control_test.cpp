@@ -107,8 +107,52 @@ static void SingleThreadAllReduce(Group* net) {
     ASSERT_EQ(res, expected);
 }
 
+/**
+ * Calculates a sum over all worker and thread ids.
+ */
+static void MultiThreadAllReduce(Group* net) {
+
+    const int count = 4;
+
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel & channel, int id) {
+                            int myRank = (int)net->MyRank() * count + id;
+
+                            int res = channel.AllReduce(myRank);
+                            int expected = 0;
+                            for (size_t i = 0; i < net->Size() * count; i++) {
+                                expected += i;
+                            }
+
+                            ASSERT_EQ(res, expected);
+                        });
+}
+
+/**
+ * Calculates a sum over all worker and thread ids.
+ */
+static void MultiThreadPrefixSum(Group* net) {
+
+    const int count = 4;
+
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel & channel, int id) {
+                            int myRank = (int)net->MyRank() * count + id;
+
+                            int res = channel.PrefixSum(myRank);
+                            int expected = 0;
+                            for (size_t i = 0; i <= net->MyRank() * count + id; i++) {
+                                expected += i;
+                            }
+
+                            ASSERT_EQ(res, expected);
+                        });
+}
+
 TEST(Group, PrefixSum) {
     Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
+}
+
+TEST(Group, MultiThreadPrefixSum) {
+    Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
 }
 
 TEST(Group, Broadcast) {
@@ -121,6 +165,10 @@ TEST(Group, MultiThreadBroadcast) {
 
 TEST(Group, AllReduce) {
     Group::ExecuteLocalMock(6, SingleThreadAllReduce);
+}
+
+TEST(Group, MultiThreadAllReduce) {
+    Group::ExecuteLocalMock(6, MultiThreadAllReduce);
 }
 
 /******************************************************************************/

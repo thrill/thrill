@@ -49,7 +49,7 @@ public:
     explicit FlowControlChannelManager(net::Group& group, int threadCount) : barrier(threadCount), shmem(NULL) {
 
         for (int i = 0; i < threadCount; i++) {
-            channels.emplace_back(group, i, barrier, &shmem);
+            channels.emplace_back(group, i, threadCount, barrier, &shmem);
         }
     }
 
