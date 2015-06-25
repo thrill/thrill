@@ -13,6 +13,7 @@
 #include <string>
 #include <numeric>
 #include <thread>
+#include <atomic>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
@@ -24,7 +25,7 @@ using namespace c7a::common;
 static void TestWaitFor(int count, int slowThread = -1) {
 
     srand(time(NULL));
-    int maxWaitTime = 500;
+    int maxWaitTime = 100000;
 
     Barrier barrier(count);
     std::vector<bool> flags(count);
@@ -37,10 +38,10 @@ static void TestWaitFor(int count, int slowThread = -1) {
     for (int i = 0; i < count; i++) {
         threads[i] = new std::thread([maxWaitTime, count, slowThread, &barrier, &flags, i] {
 
-            if (i == slowThread) {
+            if (slowThread == -1) {
                 usleep(rand() % maxWaitTime);
             }
-            else if (slowThread == -1) {
+            else if (i == slowThread) {
                 usleep(rand() % maxWaitTime);
             }
 

@@ -13,6 +13,7 @@
 #define C7A_COMMON_CONCURRENT_QUEUE_HEADER
 
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 
 namespace c7a {
@@ -24,8 +25,8 @@ namespace common {
 class Barrier
 {
     std::mutex m;
-    std::condition_variable event;
-    int threadCount;
+    std::condition_variable_any event;
+    const int threadCount;
     int counts[2];
     int current;
 
@@ -45,13 +46,13 @@ public:
      * @details This method blocks and returns as soon as n threads are waiting inside the method.
      */
     void await() {
-        std::unique_lock<std::mutex> lock(m);
+        m.lock();
         int localCurrent = current;
         counts[localCurrent]++;
 
         if (counts[localCurrent] < threadCount) {
             while (counts[localCurrent] < threadCount) {
-                event.wait(lock);
+                event.wait(m);
             }
         }
         else {
@@ -59,6 +60,8 @@ public:
             counts[current] = 0;
             event.notify_all();
         }
+        m.unlock();
+        std::atomic_thread_fence(std::memory_order_acquire);
     }
 };
 } // namespace common
