@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_CONCURRENT_QUEUE_HEADER
-#define C7A_COMMON_CONCURRENT_QUEUE_HEADER
+#ifndef C7A_COMMON_CYCLIC_BARRIER_HEADER
+#define C7A_COMMON_CYCLIC_BARRIER_HEADER
 
 #include <mutex>
 #include <atomic>
@@ -67,6 +67,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_CONCURRENT_QUEUE_HEADER
+#endif // !C7A_COMMON_CYCLIC_BARRIER_HEADER
 
 /******************************************************************************/
