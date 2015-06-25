@@ -254,7 +254,6 @@ struct TupleHelper {
 
     template <typename T, typename... Tail>
     static std::tuple<T, Tail...> DeserializeRecursively(const std::string& x, len_tuple<1>) {
-        std::cout << "BASE CASE" << std::endl;
         uint16_t len_elem;
         std::memcpy(&len_elem, x.c_str(), sizeof(uint16_t));
         const std::string elem_str = x.substr(sizeof(uint16_t), len_elem);
@@ -265,7 +264,6 @@ struct TupleHelper {
 
     template <typename T, typename... Tail, size_t Id>
     static std::tuple<T, Tail...> DeserializeRecursively(const std::string& x, len_tuple<Id>) {
-        std::cout << "STEP CASE" << std::endl;
         uint16_t len_elem;
         std::memcpy(&len_elem, x.c_str(), sizeof(uint16_t));
         const std::string elem_str = x.substr(sizeof(uint16_t), len_elem);

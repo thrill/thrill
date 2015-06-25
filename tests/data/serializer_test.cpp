@@ -142,19 +142,26 @@ TEST(Serializer, IntInt_Pair_SerializeDeserialize_Test) {
 }
 
 TEST(Serializer, Tuple_SerializeDeserialize_Test) {
-    auto foo = std::make_tuple ("3", "foo", "5");
-    auto bar = std::make_tuple (3, "foo", 5.5);
+    auto t = std::make_tuple (3, "foo", 5.5);
 
-    auto res1 = Serialize<std::tuple<std::string, std::string, std::string>>(foo);
-    auto res2 = Serialize<std::tuple<int, std::string, float>>(bar);
+    auto serialized = Serialize<std::tuple<int, std::string, float>>(t);
+    auto result = Deserialize<std::tuple<int, std::string, float>>(serialized);
+    ASSERT_EQ(std::get<0>(t), std::get<0>(result));
+    ASSERT_EQ(std::get<1>(t), std::get<1>(result));
+    ASSERT_EQ(std::get<2>(t), std::get<2>(result));
+}
 
-    auto bla = Serialize<std::tuple<std::string>>(std::make_tuple("blubb"));
-    auto des = Deserialize<std::tuple<std::string>>(bla);
+TEST(Serializer, TuplePair_SerializeDeserialize_Test) {
+    auto p = std::make_pair(-4.673, "string");
+    auto t = std::make_tuple (3, "foo", 5.5, p);
 
-    auto argh = Deserialize<std::tuple<int, std::string, float>>(res2);
-    ASSERT_EQ(std::get<0>(bar), std::get<0>(argh));
-    ASSERT_EQ(std::get<1>(bar), std::get<1>(argh));
-    ASSERT_EQ(std::get<2>(bar), std::get<2>(argh));
+    auto serialized = Serialize<std::tuple<int, std::string, float, std::pair<float, std::string>>>(t);
+    auto result = Deserialize<std::tuple<int, std::string, float, std::pair<float, std::string>>>(serialized);
+    ASSERT_EQ(std::get<0>(t), std::get<0>(result));
+    ASSERT_EQ(std::get<1>(t), std::get<1>(result));
+    ASSERT_EQ(std::get<2>(t), std::get<2>(result));
+    ASSERT_FLOAT_EQ(std::get<3>(t).first, std::get<3>(result).first);
+    ASSERT_EQ(std::get<3>(t).second, std::get<3>(result).second);
 }
 
 /******************************************************************************/
