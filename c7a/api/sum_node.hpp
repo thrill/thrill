@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -13,8 +14,10 @@
 
 #include "action_node.hpp"
 #include "function_stack.hpp"
+#include "dia.hpp"
 #include <c7a/net/group.hpp>
 #include <c7a/net/collective_communication.hpp>
+#include <c7a/net/flow_control_channel.hpp>
 
 namespace c7a {
 
@@ -74,7 +77,7 @@ public:
      * \return result
      */
     auto result() {
-        return local_sum;
+        return global_sum;
     }
 
     /*!
@@ -91,8 +94,10 @@ private:
     Stack stack_;
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
-    // Local sum to be forwarded to other worker.
+    // Local sum to be used in all reduce operation.
     Input local_sum = 0;
+    // Global sum resulting from all reduce.
+    Input global_sum = 0;
 
     void PreOp(SumArg0 input) {
         LOG << "PreOp: " << input;
@@ -103,18 +108,10 @@ private:
         LOG << "MainOp processing";
         net::Group& flow_group = context_.get_flow_net_group();
 
+        net::FlowControlChannel channel(flow_group);
+
         // process the reduce
-        net::ReduceToRoot<Output, SumFunction>(flow_group, local_sum, sum_function_);
-
-        // global barrier
-        // TODO(ms): replace prefixsum (used as temporary global barrier)
-        // with actual global barrier
-        size_t sum = 0;
-        net::PrefixSum(flow_group, sum);
-
-        // broadcast to all other workers
-        if (context_.rank() == 0)
-            net::Broadcast(flow_group, local_sum);
+        global_sum = channel.AllReduce(local_sum, sum_function_);
     }
 
     void PostOp() { }
