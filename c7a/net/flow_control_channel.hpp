@@ -30,6 +30,8 @@ namespace net {
  * (the barrier) is shared globally.
  *
  * The implementations will be replaced by better/decentral versions.
+ *
+ * This class is probably the worst thing I've ever coded (ej).
  */
 class FlowControlChannel
 {
@@ -42,8 +44,9 @@ protected:
      * The local id.
      */
     int id;
+
     /**
-     * The count of all workers connected to this group..
+     * The count of all workers connected to this group.
      */
     int count;
 
@@ -51,6 +54,11 @@ protected:
      * The id of the worker thread associated with this flow channel.
      */
     int threadId;
+
+    /**
+     * The count of all workers connected to this group.
+     */
+    int threadCount;
 
     /**
      * The shared barrier used to synchronize between worker threads on this node.
@@ -116,8 +124,8 @@ public:
     /**
      * @brief Creates a new instance of this class, wrapping a group.
      */
-    explicit FlowControlChannel(net::Group& group, int threadId, common::Barrier& barrier, void** shmem)
-        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), barrier(barrier), shmem(shmem) { }
+    explicit FlowControlChannel(net::Group& group, int threadId, int threadCount, common::Barrier& barrier, void** shmem)
+        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
 
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum
@@ -130,25 +138,58 @@ public:
      * @param sumOp The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
      * @return The prefix sum for the position of this worker.
-     *
-     * DISCLAIMER: I'm not sure if prefix-sum is really a safe operation,
-     * if exposed to the user, since it breaks the synchronous control flow.
      */
     template <typename T, typename BinarySumOp = common::SumOp<T> >
     T PrefixSum(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
 
         T res = value;
+        std::vector<T> localPrefixBuffer(threadCount);
 
-        //Everyone except the first one needs
-        //to receive and add.
-        if (id != 0) {
-            ReceiveFrom(id - 1, &res);
-            res = sumOp(res, value);
+        //Local Reduce
+        if (threadId == 0) {
+            //Master allocate memory.
+            localPrefixBuffer[threadId] = value;
+            SetLocalShared(&localPrefixBuffer);
+            barrier.await();
+            //Slave store values.
+            barrier.await();
+
+            //Global Prefix
+
+            //Everyone except the first one needs
+            //to receive and add.
+            if (id != 0) {
+                ReceiveFrom(id - 1, &res);
+            }
+
+            for (int i = id == 0 ? 1 : 0; i < threadCount; i++) {
+                localPrefixBuffer[i] = sumOp(res, localPrefixBuffer[i]);
+                res = localPrefixBuffer[i];
+            }
+
+            //Everyone except the last one needs to forward.
+            if (id != count - 1) {
+                SendTo(id + 1, res);
+            }
+
+            barrier.await();
+            //Slave get result
+            barrier.await();
+            ClearLocalShared();
+
+            res = localPrefixBuffer[threadId];
         }
-
-        //Everyone except the last one needs to forward.
-        if (id != count - 1) {
-            SendTo(id + 1, res);
+        else {
+            //Master allocate memory.
+            barrier.await();
+            //Slave store values.
+            (*GetLocalShared<std::vector<T> >())[threadId] = value;
+            barrier.await();
+            //Global Prefix
+            barrier.await();
+            //Slave get result
+            res = (*GetLocalShared<std::vector<T> >())[threadId];
+            barrier.await();
         }
 
         return res;
@@ -177,6 +218,7 @@ public:
                 //Master has to send to all.
                 for (int i = 1; i < count; i++) {
                     SendTo(i, value);
+                    res = value;
                 }
             }
             else {
@@ -202,7 +244,7 @@ public:
      * @brief Reduces a value of an integral type T over all workers given a
      * certain reduce function.
      * @details This method is blocking. The reduce happens in order as with
-     * prefix sum.
+     * prefix sum. The operation is assumed to be associative.
      *
      * @param value The value to use for the reduce operation.
      * @param sumOp The operation to use for
@@ -212,21 +254,61 @@ public:
     template <typename T, typename BinarySumOp = common::SumOp<T> >
     T AllReduce(T& value, BinarySumOp sumOp = common::SumOp<T>()) {
         T res = value;
+        std::vector<T> localReduceBuffer(threadCount);
 
-        //The master receives from evereyone else.
-        if (id == 0) {
-            T msg;
-            for (int i = 1; i < count; i++) {
-                ReceiveFrom(i, &msg);
-                res = sumOp(msg, res);
+        //Local Reduce
+        if (threadId == 0) {
+            //Master allocate memory.
+            localReduceBuffer[threadId] = value;
+            SetLocalShared(&localReduceBuffer);
+            barrier.await();
+            //Slave store values.
+            barrier.await();
+
+            //Master reduce
+            for (int i = 1; i < threadCount; i++) {
+                res = sumOp(res, localReduceBuffer[i]);
             }
-        }
-        else {      //Each othe worker just sends the value to the master.
-            SendTo(0, res);
-        }
 
-        //Finally, the result is broadcasted.
-        res = Broadcast(res);
+            //Global Reduce
+            //The master receives from evereyone else.
+            if (id == 0) {
+                T msg;
+                for (int i = 1; i < count; i++) {
+                    ReceiveFrom(i, &msg);
+                    res = sumOp(msg, res);
+                }
+                //Finally, the result is broadcasted.
+                for (int i = 1; i < count; i++) {
+                    SendTo(i, res);
+                }
+            }
+            else {
+                //Each othe worker just sends the value to the master.
+                SendTo(0, res);
+                ReceiveFrom(0, &res);
+            }
+
+            ClearLocalShared();
+            SetLocalShared(&res);
+            barrier.await();
+            //Slave get result
+            barrier.await();
+            ClearLocalShared();
+        }
+        else {
+            //Master allocate memory.
+            barrier.await();
+            //Slave store values.
+            (*GetLocalShared<std::vector<T> >())[threadId] = value;
+            barrier.await();
+            //Master Reduce
+            //Global Reduce
+            barrier.await();
+            //Slave get result
+            res = *GetLocalShared<T>();
+            barrier.await();
+        }
 
         return res;
     }

@@ -46,6 +46,7 @@ public:
      * @details This method blocks and returns as soon as n threads are waiting inside the method.
      */
     void await() {
+        std::atomic_thread_fence(std::memory_order_release);
         m.lock();
         int localCurrent = current;
         counts[localCurrent]++;
@@ -61,7 +62,6 @@ public:
             event.notify_all();
         }
         m.unlock();
-        std::atomic_thread_fence(std::memory_order_acquire);
     }
 };
 } // namespace common
