@@ -91,15 +91,16 @@ build_test_group(common/tests
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_pool_test.cpp
+  common/barrier_test.cpp
   )
 #build_test(core/stage_builder_test)
-build_test(core/post_hash_table_test)
+#build_test(core/post_hash_table_test)
 build_test(core/pre_hash_table_linpro_test)
-build_test(core/pre_hash_table_test)
+#build_test(core/pre_hash_table_test)
 build_test(net/dispatcher_thread_test)
 build_test(net/group_test)
-build_test(net/flow_control_test)
 build_test(net/buffer_test)
+build_test(net/flow_control_test)
 build_test(data/binary_builder_test)
 #build_test(net/test_channel_multiplexer) //broken because buffer is non-#copyable
 build_test(net/stream_test)

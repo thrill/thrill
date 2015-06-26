@@ -103,9 +103,11 @@ public:
     template <typename AnyStack>
     DIARef(const DIARef<T, AnyStack>& rhs)
         __attribute__((deprecated))
-    // the attribute warning does not work with gcc?
+#if __GNUC__
+        // the attribute warning does not work with gcc?
         __attribute__((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
                                "Consider whether you can use auto instead of DIARef.")));
+#endif
 
     /*!
      * Returns a pointer to the according DIANode.

@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -49,19 +50,17 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    //clp.PrintResult();
-
     std::vector<int> elements(size);
 
     for (size_t i = 0; i < elements.size(); i++) {
         elements[i] = rand() % modulo;
     }
 
-    std::vector<c7a::data::Emitter<int>> emitter;
+    std::vector<c7a::data::Emitter<std::pair<int, int>>> emitter;
     for (size_t i = 0; i < workers; i++) {
-        emitter.emplace_back(manager.GetLocalEmitter<int>(id));
+        emitter.emplace_back(manager.GetLocalEmitter<std::pair<int,int>>(id));
     }
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::Emitter<int>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::Emitter<std::pair<int, int>>>
     table(workers, key_ex, red_fn, emitter);
 
     c7a::common::StatsTimer<true> timer(true);
