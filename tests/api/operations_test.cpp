@@ -30,9 +30,10 @@ using namespace c7a::net;
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
     using c7a::Context;
 
-    Context ctx;
     std::vector<std::string> self = { "127.0.0.1:1234" };
-    ctx.job_manager().Connect(0, Endpoint::ParseEndpointList(self));
+    JobManager jobMan; 
+    jobMan.Connect(0, Endpoint::ParseEndpointList(self), 1);
+    Context ctx(jobMan, 0);
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -271,7 +272,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
         ASSERT_EQ((size_t) 2, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::ExecuteThreads(2, port_base, start_func);
 
 }
 
@@ -293,7 +294,7 @@ TEST(Operations, ReduceToIndexCorrectResults) {
                 return std::stoi(line);
 			});
 
-        auto key = [](int in) {
+        auto key = [](size_t in) {
             return in / 2;
         };
 

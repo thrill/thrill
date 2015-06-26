@@ -59,6 +59,7 @@ public:
             partition_offset = p_off;
             global_index = g_id;
         }       
+
     };
 
 protected:
@@ -114,7 +115,7 @@ public:
                                partition_offset;
                            hash_result hr(partition_id, partition_offset, global_index);
                            return hr;
-                   }
+                       }
         )
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
@@ -152,7 +153,7 @@ public:
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function)
-    {
+                   {
         init();
     }
 

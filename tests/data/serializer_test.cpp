@@ -14,7 +14,6 @@
 #include <string>
 #include <typeinfo>
 
-
 #include "gtest/gtest.h"
 
 using namespace c7a::data;
@@ -141,10 +140,27 @@ TEST(Serializer, IntInt_Pair_SerializeDeserialize_Test) {
     ASSERT_EQ(std::get<1>(t), std::get<1>(result));
 }
 
-// TEST(Serializer, Tuple_SerializeDeserialize_Test) {
-//     std::tuple<int, std::string, int> foo = std::make_tuple (3, "foo", 5);
-//     auto res = Serialize<std::tuple<int, std::string, int>>(foo);
-//     LOG1 << res;
-// }
+TEST(Serializer, Tuple_SerializeDeserialize_Test) {
+    auto t = std::make_tuple(3, "foo", 5.5);
+
+    auto serialized = Serialize<std::tuple<int, std::string, float> >(t);
+    auto result = Deserialize<std::tuple<int, std::string, float> >(serialized);
+    ASSERT_EQ(std::get<0>(t), std::get<0>(result));
+    ASSERT_EQ(std::get<1>(t), std::get<1>(result));
+    ASSERT_EQ(std::get<2>(t), std::get<2>(result));
+}
+
+TEST(Serializer, TuplePair_SerializeDeserialize_Test) {
+    auto p = std::make_pair(-4.673, "string");
+    auto t = std::make_tuple(3, "foo", 5.5, p);
+
+    auto serialized = Serialize<std::tuple<int, std::string, float, std::pair<float, std::string> > >(t);
+    auto result = Deserialize<std::tuple<int, std::string, float, std::pair<float, std::string> > >(serialized);
+    ASSERT_EQ(std::get<0>(t), std::get<0>(result));
+    ASSERT_EQ(std::get<1>(t), std::get<1>(result));
+    ASSERT_EQ(std::get<2>(t), std::get<2>(result));
+    ASSERT_FLOAT_EQ(std::get<3>(t).first, std::get<3>(result).first);
+    ASSERT_EQ(std::get<3>(t).second, std::get<3>(result).second);
+}
 
 /******************************************************************************/
