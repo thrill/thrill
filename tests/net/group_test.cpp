@@ -13,6 +13,7 @@
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/manager.hpp>
 #include <c7a/net/collective_communication.hpp>
+#include <c7a/net/network.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -349,6 +350,20 @@ TEST(Group, TestBarrier) {
             sLOG << "Checking position" << i;
             ASSERT_EQ(result[i], 'A');
         }
+    }
+}
+
+TEST(Group, TestNetworkCreation) {
+    static const bool debug = true;
+
+    for (int p = 0; p <= 8; ++p) {
+        Network net2(p);
+        sLOG << "Topology of default network is:" << net2.getTopology();
+    }
+
+    for (int p = 0; p <= 8; ++p) {
+        Network net1(p, CreateLinkedListTopology);
+        sLOG << "Topology of network created with linked list topology is:" << net1.getTopology();
     }
 }
 

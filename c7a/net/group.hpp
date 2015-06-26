@@ -29,6 +29,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <memory>
 
 namespace c7a {
 namespace net {
@@ -49,7 +50,12 @@ class Group
 {
     static const bool debug = false;
 
+    friend class Network;
+
 public:
+    //! Pointer to next element in the linked list
+    std::shared_ptr<Group> next = NULL;
+
     //! \name Construction and Initialization
     //! \{
 
