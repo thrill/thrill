@@ -16,10 +16,8 @@
 #include <utility>
 #include <cassert>
 
-
 //TODO DELETE
 #include <iostream>
-
 
 //TODO(ts) this copies data. That is bad and makes me sad.
 
@@ -179,7 +177,7 @@ struct Impl<std::pair<std::string, int> >{
 // TODO(cn): do we have clusternodes working on 32 and 64bit systems at the same time??
 //! serializer for pairs
 template <typename T1, typename T2>
-struct Impl<std::pair<T1, T2>> {
+struct Impl<std::pair<T1, T2> >{
     static std::string Serialize(const std::pair<T1, T2>& x) {
         // UINT_MAX not working on Jenkins o.o
         // if( x.first.size() > UINT_MAX ) {
@@ -212,21 +210,21 @@ struct Impl<std::pair<T1, T2>> {
     }
 };
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //TODO(cn): ask Timo about memcpy things
 struct TupleHelper {
-    template<std::size_t> struct len_tuple {};
+    template <std::size_t>
+    struct len_tuple { };
 
     template <typename Tuple, size_t Id>
-    static std::string SerializeRecursively(const Tuple & t, len_tuple<Id>) {
-        auto elem = std::get< std::tuple_size<Tuple>::value - Id >(t);
+    static std::string SerializeRecursively(const Tuple& t, len_tuple<Id>) {
+        auto elem = std::get<std::tuple_size<Tuple>::value - Id>(t);
         auto s = serializers::Impl<decltype(elem)>::Serialize(elem);
         uint16_t len_s = s.size();
-        auto tail_s = SerializeRecursively(t, len_tuple<Id-1>());
+        auto tail_s = SerializeRecursively(t, len_tuple<Id - 1>());
 
         std::size_t len = s.size() + tail_s.size() + sizeof(uint16_t);
         char result[len];
@@ -238,7 +236,7 @@ struct TupleHelper {
     }
 
     template <typename Tuple>
-    static std::string SerializeRecursively(const Tuple & t, len_tuple<1> /*i am useless*/) {
+    static std::string SerializeRecursively(const Tuple& t, len_tuple<1>/*i am useless*/) {
         auto elem = std::get<std::tuple_size<Tuple>::value - 1>(t);
         auto s = serializers::Impl<decltype(elem)>::Serialize(elem);
         uint16_t len_s = s.size();
@@ -251,9 +249,8 @@ struct TupleHelper {
         return std::string(result, len);
     }
 
-
-    template <typename T, typename... Tail>
-    static std::tuple<T, Tail...> DeserializeRecursively(const std::string& x, len_tuple<1>) {
+    template <typename T, typename ... Tail>
+    static std::tuple<T, Tail ...> DeserializeRecursively(const std::string& x, len_tuple<1>) {
         uint16_t len_elem;
         std::memcpy(&len_elem, x.c_str(), sizeof(uint16_t));
         const std::string elem_str = x.substr(sizeof(uint16_t), len_elem);
@@ -262,41 +259,35 @@ struct TupleHelper {
         return std::make_tuple(elem);
     }
 
-    template <typename T, typename... Tail, size_t Id>
-    static std::tuple<T, Tail...> DeserializeRecursively(const std::string& x, len_tuple<Id>) {
+    template <typename T, typename ... Tail, size_t Id>
+    static std::tuple<T, Tail ...> DeserializeRecursively(const std::string& x, len_tuple<Id>) {
         uint16_t len_elem;
         std::memcpy(&len_elem, x.c_str(), sizeof(uint16_t));
         const std::string elem_str = x.substr(sizeof(uint16_t), len_elem);
         const T elem = serializers::Impl<T>::Deserialize(elem_str);
 
         const std::string x_tail = x.substr(len_elem + sizeof(uint16_t));
-        auto tuple_tail = DeserializeRecursively<Tail...>(x_tail, len_tuple<Id-1>());
+        auto tuple_tail = DeserializeRecursively<Tail ...>(x_tail, len_tuple<Id - 1>());
 
         return std::tuple_cat(std::make_tuple(elem), tuple_tail);
     }
 };
 
-template <typename... Args>
-struct Impl<std::tuple<Args...>> {
+template <typename ... Args>
+struct Impl<std::tuple<Args ...> >{
 
-    static std::string Serialize(const std::tuple<Args...>& t) {
-        return TupleHelper::SerializeRecursively(t, TupleHelper::len_tuple<sizeof...(Args)>());
+    static std::string Serialize(const std::tuple<Args ...>& t) {
+        return TupleHelper::SerializeRecursively(t, TupleHelper::len_tuple<sizeof ... (Args)>());
     }
 
-    static std::tuple<Args...> Deserialize(const std::string& x) {
-        return TupleHelper::DeserializeRecursively<Args...>(x, TupleHelper::len_tuple<sizeof...(Args)>());
+    static std::tuple<Args ...> Deserialize(const std::string& x) {
+        return TupleHelper::DeserializeRecursively<Args ...>(x, TupleHelper::len_tuple<sizeof ... (Args)>());
     }
 };
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 
 //! binary serializer for any integral type, usable as template.
 template <typename Type>
@@ -305,7 +296,7 @@ struct GenericImpl {
         return std::string(reinterpret_cast<const char*>(&v), sizeof(v));
     }
 
-    static Type Deserialize(const std::string& s) {
+    static Type        Deserialize(const std::string& s) {
         assert(s.size() == sizeof(Type));
         return Type(*reinterpret_cast<const Type*>(s.data()));
     }
@@ -314,8 +305,7 @@ struct GenericImpl {
 template <>
 struct Impl<std::pair<int, int> >: public GenericImpl<std::pair<int, int> >
 { };
-
-} // namespace serializers
+}       // namespace serializers
 
 //! Serialize the type to std::string
 template <class T>
@@ -328,7 +318,6 @@ template <class T>
 inline T Deserialize(const std::string& x) {
     return serializers::Impl<T>::Deserialize(x);
 }
-
 } // namespace data
 } // namespace c7a
 
