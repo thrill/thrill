@@ -10,22 +10,26 @@
 
 #include <c7a/net/group.hpp>
 #include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <thread>
 #include <vector>
 #include <string>
 #include <random>
+#include <thread>
 
 using namespace c7a::net;
 
 /**
  * Calculates a prefix sum over all worker ids.
  */
-static void ThreadPrefixSum(Group* net) {
-    FlowControlChannel channel(*net);
+static void SingleThreadPrefixSum(Group* net) {
+    FlowControlChannelManager manager(*net, 1);
+    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     int myRank = (int)net->MyRank();
 
     int sum = channel.PrefixSum(myRank);
@@ -41,20 +45,55 @@ static void ThreadPrefixSum(Group* net) {
 /**
  * Broadcasts the ID of the master, which is 0.
  */
-static void ThreadBroadcast(Group* net) {
-    FlowControlChannel channel(*net);
+static void SingleThreadBroadcast(Group* net) {
+    FlowControlChannelManager manager(*net, 1);
+    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+    int magic = 1337;
     int myRank = (int)net->MyRank();
+    int value = myRank + magic;
 
-    int res = channel.Broadcast(myRank);
+    int res = channel.Broadcast(value);
 
-    ASSERT_EQ(res, 0);
+    ASSERT_EQ(res, magic);
+}
+
+static void ExecuteMultiThreads(Group* net, int count, std::function<void(FlowControlChannel&, int)> function) {
+
+    std::vector<std::thread*> threads(count);
+    FlowControlChannelManager manager(*net, count);
+
+    for (int i = 0; i < count; i++) {
+        threads[i] = new std::thread([i, function, &manager] {
+                                         function(manager.GetFlowControlChannel(i), i);
+                                     });
+    }
+
+    for (int i = 0; i < count; i++) {
+        threads[i]->join();
+    }
+}
+
+/**
+ * Broadcasts the ID of the master, which is 0.
+ */
+static void MultiThreadBroadcast(Group* net) {
+    const int count = 4;
+    const int magic = 1337;
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel & channel, int id) {
+                            int myRank = (int)net->MyRank() * count + id + magic;
+
+                            int res = channel.Broadcast(myRank);
+
+                            ASSERT_EQ(res, magic);
+                        });
 }
 
 /**
  * Calculates a sum over all worker ids.
  */
-static void ThreadAllReduce(Group* net) {
-    FlowControlChannel channel(*net);
+static void SingleThreadAllReduce(Group* net) {
+    FlowControlChannelManager manager(*net, 1);
+    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
     int myRank = (int)net->MyRank();
 
@@ -68,16 +107,68 @@ static void ThreadAllReduce(Group* net) {
     ASSERT_EQ(res, expected);
 }
 
+/**
+ * Calculates a sum over all worker and thread ids.
+ */
+static void MultiThreadAllReduce(Group* net) {
+
+    const int count = 4;
+
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel & channel, int id) {
+                            int myRank = (int)net->MyRank() * count + id;
+
+                            int res = channel.AllReduce(myRank);
+                            int expected = 0;
+                            for (size_t i = 0; i < net->Size() * count; i++) {
+                                expected += i;
+                            }
+
+                            ASSERT_EQ(res, expected);
+                        });
+}
+
+/**
+ * Calculates a sum over all worker and thread ids.
+ */
+static void MultiThreadPrefixSum(Group* net) {
+
+    const int count = 4;
+
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel & channel, int id) {
+                            int myRank = (int)net->MyRank() * count + id;
+
+                            int res = channel.PrefixSum(myRank);
+                            int expected = 0;
+                            for (size_t i = 0; i <= net->MyRank() * count + id; i++) {
+                                expected += i;
+                            }
+
+                            ASSERT_EQ(res, expected);
+                        });
+}
+
 TEST(Group, PrefixSum) {
-    Group::ExecuteLocalMock(6, ThreadPrefixSum);
+    Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
+}
+
+TEST(Group, MultiThreadPrefixSum) {
+    Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
 }
 
 TEST(Group, Broadcast) {
-    Group::ExecuteLocalMock(6, ThreadBroadcast);
+    Group::ExecuteLocalMock(6, SingleThreadBroadcast);
+}
+
+TEST(Group, MultiThreadBroadcast) {
+    Group::ExecuteLocalMock(6, MultiThreadBroadcast);
 }
 
 TEST(Group, AllReduce) {
-    Group::ExecuteLocalMock(6, ThreadAllReduce);
+    Group::ExecuteLocalMock(6, SingleThreadAllReduce);
+}
+
+TEST(Group, MultiThreadAllReduce) {
+    Group::ExecuteLocalMock(6, MultiThreadAllReduce);
 }
 
 /******************************************************************************/
