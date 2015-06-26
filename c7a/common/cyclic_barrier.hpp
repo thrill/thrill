@@ -24,6 +24,8 @@ namespace common {
  */
 class Barrier
 {
+
+private:
     std::mutex m;
     std::condition_variable_any event;
     const int threadCount;
