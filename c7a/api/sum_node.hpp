@@ -107,8 +107,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        //TODO introduce a fixed context for each thread. 
-        net::FlowControlChannel& channel = context_.get_flow_control_channel(0);
+        net::FlowControlChannel& channel = context_.get_flow_control_channel();
 
         // process the reduce
         global_sum = channel.AllReduce(local_sum, sum_function_);
