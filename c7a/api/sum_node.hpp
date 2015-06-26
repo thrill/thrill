@@ -107,12 +107,8 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::Group& flow_group = context_.get_flow_net_group();
-
-        //TODO(ms) The creation of a new FlowControlManager is expensive - please
-        //create it once and share the flow control channels between node instances. 
-        net::FlowControlChannelManager manager(flow_group, 1);
-        net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+        //TODO introduce a fixed context for each thread. 
+        net::FlowControlChannel& channel = context_.get_flow_control_channel(0);
 
         // process the reduce
         global_sum = channel.AllReduce(local_sum, sum_function_);

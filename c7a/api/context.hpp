@@ -19,6 +19,8 @@
 
 #include <c7a/data/manager.hpp>
 #include <c7a/core/job_manager.hpp>
+#include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/flow_control_manager.hpp>
 #include "c7a/common/stats.hpp"
 
 #include <stdio.h>
@@ -46,10 +48,19 @@ public:
         return job_manager_.get_data_manager();
     }
 
-    //! Returns a reference to the net group, which is used to perform network
-    //! operations.
-    net::Group & get_flow_net_group() {
-        return job_manager_.get_net_manager().GetFlowGroup();
+    // This is forbidden now. Muha. >) (ej)
+    //net::Group & get_flow_net_group() {
+    //   return job_manager_.get_net_manager().GetFlowGroup();
+    //}
+
+    /**
+     * @brief Gets the flow control channel for a certain thread.
+     * 
+     * @param threadId The ID of the thread to get the flow channel for. 
+     * @return The flow control channel associated with the given ID. 
+     */
+    net::FlowControlChannel & get_flow_control_channel(int threadId) {
+        return job_manager_.get_flow_manager().GetFlowControlChannel(threadId);
     }
 
     //! Returns the total number of workers.
