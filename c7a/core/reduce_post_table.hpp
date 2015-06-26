@@ -86,8 +86,8 @@ public:
 
     using KeyValuePair = std::pair<Key, Value>;
 
-
-    template <typename key_t, typename value_t>
+protected:
+    template <typename Key, typename Value>
     struct node {
         Key   key;
         Value value;
@@ -152,6 +152,7 @@ public:
      * in case the key already exists.
      */
     void Insert(KeyValuePair p) {
+
 
         Key key = p.first;
 
