@@ -18,6 +18,7 @@
 #include <c7a/net/group.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/flow_control_manager.hpp>
 
 namespace c7a {
 
@@ -106,9 +107,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::Group& flow_group = context_.get_flow_net_group();
-
-        net::FlowControlChannel channel(flow_group);
+        net::FlowControlChannel& channel = context_.get_flow_control_channel();
 
         // process the reduce
         global_sum = channel.AllReduce(local_sum, sum_function_);
