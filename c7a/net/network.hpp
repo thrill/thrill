@@ -1,6 +1,11 @@
 /*******************************************************************************
  * c7a/net/network.hpp
- *        
+ * 
+ * The Network class provides a collection of workers which are arragnged in a
+ * certain speified topology. The developer of the network can specify her own
+ * new topologies. This arrangement helps with efficient collective
+ * communication.
+ *
  * Part of Project c7a.
  *
  *      
@@ -24,21 +29,6 @@ enum Topology { EMPTY, LINKED_LIST }; // FIBONACCI_TREE might be inside here too
 //! A collection of group pointers
 typedef std::vector<std::shared_ptr<Group> > group_coll_t;
 
-//! \name Topology Creators
-//! \{
-
-//! Creates a linked list topology, by setting the next and prev fields in each
-//! group in the collection
-void CreateLinkedListTopology(group_coll_t& workers, Topology& actual_topology) {
-    actual_topology = LINKED_LIST;
-
-    for (int i = 0; i < workers.size() - 1; ++i) {
-        workers[i].next = workers[i + 1];
-    }
-}
-
-//! \}
-
 //! @brief Network with a given topology
 // 
 //! @details
@@ -61,7 +51,7 @@ class Network
 
 public:
     //! @brief   Creates a fully connected network of groups (i.e. workers) with
-    //!          a given topology
+    //!          an empty topology.
     //!
     //! @details By default creates a network with no topology. The supplied
     //!          topology creation function sets the pointers of each worker to
@@ -70,12 +60,10 @@ public:
     //!          topology that was used.
 
     //! @param   num_clients_ The number of workers in the network
-    //! @param   topology_creator_fn The function which creates the topology. It
-    //!                              receives the collection of workers of the
-    //!                              network and the topology variable.
-    Network(size_t num_clients,
-            const std::function<void(group_coll_t&, Topology&)>& topology_creator_fn
-                = [](group_coll_t& workers, Topology& topology){}) 
+    //// @param   topology_creator_fn The function which creates the topology. It
+    ////                              receives the collection of workers of the
+    ////                              network and the topology variable.
+    Network(size_t num_clients) 
         : num_clients_(num_clients),
           what_topology_(EMPTY) {
         using lowlevel::Socket;
@@ -97,8 +85,23 @@ public:
                 workers_[j]->connections_[i] = std::move(Connection(sp.second));
             }
         }
+    }
 
-        topology_creator_fn(workers_, what_topology_);
+    //! Creates a linked list topology, by setting the next and prev fields in
+    //! each group in the collection
+    void CreateLinkedListTopology() {
+        what_topology_ = LINKED_LIST;
+
+        for (size_t i = 0; i < workers_.size() - 1; ++i) {
+            workers_[i]->next = workers_[i + 1];
+        }
+
+        root = workers_[0];
+    }
+
+    //! Returns the root of the data structure
+    std::shared_ptr<Group> getRoot() {
+        return root;
     }
 
     //! Returns what topology the network currently has

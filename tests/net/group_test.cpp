@@ -356,14 +356,15 @@ TEST(Group, TestBarrier) {
 TEST(Group, TestNetworkCreation) {
     static const bool debug = true;
 
-    for (int p = 0; p <= 8; ++p) {
-        Network net2(p);
-        sLOG << "Topology of default network is:" << net2.getTopology();
-    }
+    Network net1(7);
+    sLOG << "Topology of default network is:" << net1.getTopology();
+    net1.CreateLinkedListTopology();
+    sLOG << "Topology has been modified to:" << net1.getTopology();
 
-    for (int p = 0; p <= 8; ++p) {
-        Network net1(p, CreateLinkedListTopology);
-        sLOG << "Topology of network created with linked list topology is:" << net1.getTopology();
+    sLOG << "Traversing the data structure";
+
+    for (std::shared_ptr<Group> it = net1.getRoot(); it; it = it->getNext()) {
+        sLOG << "Worker with index: " << it->MyRank();
     }
 }
 
