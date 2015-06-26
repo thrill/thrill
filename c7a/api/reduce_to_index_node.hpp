@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_REDUCE_NODE_HEADER
-#define C7A_API_REDUCE_NODE_HEADER
+#ifndef C7A_API_REDUCE_TO_INDEX_NODE_HEADER
+#define C7A_API_REDUCE_TO_INDEX_NODE_HEADER
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/api/context.hpp>
@@ -20,23 +20,26 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
+#include <c7a/data/emitter.hpp>
 
 #include <unordered_map>
 #include <functional>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 namespace c7a {
 //! \addtogroup api Interface
 //! \{
 
 /*!
- * A DIANode which performs a Reduce operation. Reduce groups the elements in a
+ * A DIANode which performs a ReduceToIndex operation. ReduceToIndex groups the elements in a
  * DIA by their key and reduces every key bucket to a single element each. The
- * ReduceNode stores the key_extractor and the reduce_function UDFs. The
+ * ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
  * chainable LOps ahead of the Reduce operation are stored in the Stack. The
- * ReduceNode has the type Output, which is the result type of the
- * reduce_function.
+ * ReduceToIndexNode has the type Output, which is the result type of the
+ * reduce_function. The key type is an unsigned integer and the output DIA will have element
+ * with key K at index K.
  *
  * \tparam Input Input type of the Reduce operation
  * \tparam Output Output type of the Reduce operation
@@ -46,7 +49,7 @@ namespace c7a {
  */
 template <typename Input, typename Output, typename Stack,
           typename KeyExtractor, typename ReduceFunction>
-class ReduceNode : public DOpNode<Output>
+class ReduceToIndexNode : public DOpNode<Output>
 {
     static const bool debug = false;
 
@@ -56,6 +59,8 @@ class ReduceNode : public DOpNode<Output>
     
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
+	static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
+
     using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
@@ -64,8 +69,12 @@ class ReduceNode : public DOpNode<Output>
     using Super::data_id_;
 
 public:
+
+	using PreHashTable = typename c7a::core::ReducePreTable<KeyExtractor, ReduceFunction,
+															data::Emitter<KeyValuePair> >;
+
     /*!
-     * Constructor for a ReduceNode. Sets the DataManager, parent, stack,
+     * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
      * \param ctx Reference to Context, which holds references to data and
@@ -76,11 +85,12 @@ public:
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    ReduceNode(Context& ctx,
-               DIANode<Input>* parent,
-               Stack& stack,
-               KeyExtractor key_extractor,
-               ReduceFunction reduce_function)
+    ReduceToIndexNode(Context& ctx,
+					  DIANode<Input>* parent,
+					  Stack& stack,
+					  KeyExtractor key_extractor,
+					  ReduceFunction reduce_function,
+					  size_t max_index)
         : DOpNode<Output>(ctx, { parent }),
           local_stack_(stack),
           key_extractor_(key_extractor),
@@ -89,7 +99,14 @@ public:
           emitters_(ctx.get_data_manager().
                     template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
-                            reduce_function_, emitters_)
+                            reduce_function_, emitters_, 
+							[=](int key, PreHashTable* ht) {
+								size_t global_index = key * ht->NumBuckets() / max_index;
+								size_t partition_id = key * ht->NumPartitions() / max_index;
+								size_t partition_offset = global_index - (partition_id * ht->NumBucketsPerPartition()); 
+								return typename PreHashTable::hash_result(partition_id, partition_offset, global_index);
+							}),
+		  max_index_(max_index)
     {
         // Hook PreOp
         auto pre_op_fn = [=](ReduceArg input) {
@@ -100,11 +117,11 @@ public:
         parent->RegisterChild(lop_chain);
     }
 
-    //! Virtual destructor for a ReduceNode.
-    virtual ~ReduceNode() { }
+    //! Virtual destructor for a ReduceToIndexNode.
+    virtual ~ReduceToIndexNode() { }
 
     /*!
-     * Actually executes the reduce operation. Uses the member functions PreOp,
+     * Actually executes the reduce to index operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
     void execute() override {
@@ -126,11 +143,11 @@ public:
     }
 
     /*!
-     * Returns "[ReduceNode]" and its id as a string.
-     * \return "[ReduceNode]"
+     * Returns "[ReduceToIndexNode]" and its id as a string.
+     * \return "[ReduceToIndexNode]"
      */
     std::string ToString() override {
-        return "[ReduceNode] Id: " + data_id_.ToString();
+        return "[ReduceToIndexNode] Id: " + data_id_.ToString();
     }
 
 private:
@@ -147,6 +164,8 @@ private:
 
     core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
     reduce_pre_table_;
+
+	size_t max_index_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -165,10 +184,15 @@ private:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(Output)> >;
+                                          std::function<void(Output)>,
+										  true>;
 
         ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<Output>::callbacks());
+                          DIANode<Output>::callbacks(),
+						  [=](Key key, ReduceTable* ht) {							  
+							  return key * ht->NumBuckets() / max_index_;
+						  },
+						  max_index_);
 
         auto it = context_.get_data_manager().
             template GetIterator<KeyValuePair>(channel_id_);
@@ -195,13 +219,14 @@ private:
 
 template <typename T, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
-                                const ReduceFunction &reduce_function) {
+auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
+									 const ReduceFunction &reduce_function,
+									 size_t max_index) {
 
     using DOpResult
         = typename FunctionTraits<ReduceFunction>::result_type;
     using ReduceResultNode
-        = ReduceNode<T, DOpResult, decltype(local_stack_),
+        = ReduceToIndexNode<T, DOpResult, decltype(local_stack_),
                      KeyExtractor, ReduceFunction>;
 
     auto shared_node
@@ -209,12 +234,13 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
                                              node_.get(),
                                              local_stack_,
                                              key_extractor,
-                                             reduce_function);
+                                             reduce_function,
+											 max_index);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
-        (std::move(shared_node), reduce_stack);
+	(std::move(shared_node), reduce_stack);
 }
 
 } // namespace c7a

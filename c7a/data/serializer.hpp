@@ -172,7 +172,7 @@ struct Impl<std::pair<std::string, int> >{
         std::size_t str_len = x.size() - sizeof(int);
         std::memcpy(&i, x.c_str(), sizeof(int));
         std::string s(x, sizeof(int), str_len);
-        return std::pair<std::string, int>(s, i);
+        return std::make_pair(s, i);
     }
 };
 
@@ -185,15 +185,16 @@ struct Impl<std::pair<T1, T2>> {
         // if( x.first.size() > UINT_MAX ) {
         //     //TODO ERROR
         // }
-        unsigned int len_t1 = static_cast<unsigned int>(x.first.size());
         std::string t1 = serializers::Impl<T1>::Serialize(x.first);
         std::string t2 = serializers::Impl<T2>::Serialize(x.second);
+        unsigned int len_t1 = t1.size();
 
         std::size_t len = t1.size() + t2.size() + sizeof(unsigned int);
         char result[len];
         std::memcpy(result, &len_t1, sizeof(unsigned int));
         std::memcpy(result + sizeof(unsigned int), t1.c_str(), t1.size());
-        std::memcpy(result + sizeof(unsigned int) + x.first.size(), t2.c_str(), t2.size());
+        std::memcpy(result + sizeof(unsigned int) + t1.size(), t2.c_str(), t2.size());
+        //resulting string is: len(x.first) + serialized(x.first) + serialized(x.second)
         return std::string(result, len);
     }
     static std::pair<T1, T2> Deserialize(const std::string& x) {
@@ -205,9 +206,9 @@ struct Impl<std::pair<T1, T2>> {
         std::string t2_str = x.substr(sizeof(unsigned int) + len_t1, len_t2);
 
         T1 t1 = serializers::Impl<T1>::Deserialize(t1_str);
-        T1 t2 = serializers::Impl<T2>::Deserialize(t2_str);
+        T2 t2 = serializers::Impl<T2>::Deserialize(t2_str);
 
-        return std::pair<T1, T2>(t1, t2);
+        return std::make_pair(t1, t2);
     }
 };
 
