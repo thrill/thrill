@@ -13,6 +13,7 @@
 
 #include <c7a/data/manager.hpp>
 #include <c7a/net/manager.hpp>
+#include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -23,11 +24,13 @@ class JobManager
 {
 public:
     JobManager()
-        : data_manager_(net_dispatcher_) { }
+        : flow_manager_(NULL), data_manager_(net_dispatcher_){ }
 
-    bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints) {
+    bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints, int thread_count = 1) {
+        thread_count_ = thread_count;
         net_manager_.Initialize(my_rank, endpoints);
         data_manager_.Connect(&net_manager_.GetDataGroup());
+        flow_manager_ = new net::FlowControlChannelManager(net_manager_.GetFlowGroup(), thread_count);
         //TODO(??) connect control flow and system control channels here
         return true;
     }
@@ -40,11 +43,27 @@ public:
         return net_manager_;
     }
 
+    net::FlowControlChannelManager & get_flow_manager() {
+        return *flow_manager_;
+    }
+
+    int get_thread_count() {
+        return thread_count_;
+    }
+
+    ~JobManager() {
+        if(flow_manager_ != NULL) {
+            delete flow_manager_;
+        }
+    }
+
 private:
     net::Manager net_manager_;
     net::DispatcherThread net_dispatcher_;
+    net::FlowControlChannelManager* flow_manager_;
     data::Manager data_manager_;
     const static bool debug = false;
+    int thread_count_;
 };
 
 } // namespace core
