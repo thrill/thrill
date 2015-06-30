@@ -3,15 +3,13 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/api/read_node.hpp>
-#include <c7a/api/generate_file_node.hpp>
+#include <c7a/api/node_include.hpp>
 
 using c7a::api::Context;
 using c7a::api::DIARef;

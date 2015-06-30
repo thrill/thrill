@@ -8,20 +8,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia_base.hpp>
+//#include <c7a/api/dia_base.hpp>
 #include <c7a/net/endpoint.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/core/stage_builder.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/reduce_node.hpp>
-#include <c7a/api/sum_node.hpp>
+#include <c7a/api/node_include.hpp>
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/api/reduce_to_index_node.hpp>
-#include <c7a/api/write_node.hpp>
-#include <c7a/api/allgather_node.hpp>
-#include <c7a/api/read_node.hpp>
-#include <c7a/api/generate_file_node.hpp>
-#include <c7a/api/generate_node.hpp>
 
 #include <algorithm>
 #include <random>
