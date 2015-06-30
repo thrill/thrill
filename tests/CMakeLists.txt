@@ -94,9 +94,9 @@ build_test_group(common/tests
   common/barrier_test.cpp
   )
 #build_test(core/stage_builder_test)
-build_test(core/post_hash_table_test)
+#build_test(core/post_hash_table_test)
 build_test(core/pre_hash_table_linpro_test)
-build_test(core/pre_hash_table_test)
+#build_test(core/pre_hash_table_test)
 build_test(net/dispatcher_thread_test)
 build_test(net/group_test)
 build_test(net/buffer_test)
