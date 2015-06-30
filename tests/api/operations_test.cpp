@@ -111,12 +111,12 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
     std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
 
-        auto integers = ReadLines(
+        auto integers = Generate(
             ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            });
+            [](const size_t& input) {
+                return input + 1;
+            },
+			16);
 
         std::function<double(int)> double_elements = [](int in) {
             return (double) 2 * in;
@@ -153,12 +153,12 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
     std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
 
-        auto integers = ReadLines(
+		auto integers = Generate(
             ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            });
+            [](const size_t& input) {
+                return input + 1;
+            },
+			16);
 
         auto flatmap_double = [](int in, auto emit) {
             emit((double) 2 * in);
@@ -196,12 +196,12 @@ TEST(Operations, FilterResultsCorrectly) {
 
     std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
 
-        auto integers = ReadLines(
+        auto integers = Generate(
             ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            });
+            [](const size_t& input) {
+                return input + 1;
+            },
+			16);
 
         std::function<double(int)> even = [](int in) {
             return (in % 2 == 0);
@@ -238,12 +238,12 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 
     std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
 
-        auto integers = ReadLines(
+		auto integers = Generate(
             ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            });
+            [](const size_t& input) {
+                return input + 1;
+            },
+			16);
 
         auto modulo_two = [](int in) {
             return (in % 2);
@@ -285,12 +285,12 @@ TEST(Operations, ReduceToIndexCorrectResults) {
 
     std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
 
-		auto integers = ReadLines(
+		auto integers = Generate(
             ctx,
-            "test1",
-			[](const std::string& line) {
-                return std::stoi(line);
-			});
+            [](const size_t& input) {
+                return input + 1;
+            },
+			16);
 
         auto key = [](size_t in) {
             return in / 2;
@@ -354,7 +354,7 @@ TEST(Operations, ReduceToIndexCorrectResults) {
 
 }
 
-TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {
+TEST(Operations, GenerateAndSumHaveEqualAmount) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());

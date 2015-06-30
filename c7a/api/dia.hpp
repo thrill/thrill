@@ -30,7 +30,8 @@
 #include "read_node.hpp"
 #include "context.hpp"
 #include "write_node.hpp"
-#include "generator_node.hpp"
+#include "generate_node.hpp"
+#include "generate_file_node.hpp"
 #include "allgather_node.hpp"
 
 #include <c7a/net/collective_communication.hpp>
@@ -413,14 +414,34 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
                       size_t size) {
     using GeneratorResult =
         typename FunctionTraits<GeneratorFunction>::result_type;
-    using GeneratorResultNode =
-        GeneratorNode<GeneratorResult, GeneratorFunction>;
+    using GenerateResultNode =
+        GenerateFileNode<GeneratorResult, GeneratorFunction>;
 
     auto shared_node =
-        std::make_shared<GeneratorResultNode>(ctx,
-                                              generator_function,
-                                              filepath,
-                                              size);
+        std::make_shared<GenerateResultNode>(ctx,
+											 generator_function,
+											 filepath,
+											 size);
+
+    auto generator_stack = shared_node->ProduceStack();
+
+    return DIARef<GeneratorResult, decltype(generator_stack)>
+               (std::move(shared_node), generator_stack);
+}
+
+template <typename GeneratorFunction>
+auto Generate(Context & ctx,
+			  const GeneratorFunction &generator_function,
+			  size_t size) {
+    using GeneratorResult =
+        typename FunctionTraits<GeneratorFunction>::result_type;
+    using GenerateResultNode =
+        GenerateNode<GeneratorResult, GeneratorFunction>;
+
+    auto shared_node =
+        std::make_shared<GenerateResultNode>(ctx,
+											 generator_function,
+											 size);
 
     auto generator_stack = shared_node->ProduceStack();
 
