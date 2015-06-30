@@ -111,6 +111,26 @@ private:
     static const bool debug = false;
 };
 
+template <typename T, typename Stack>
+template <typename WriteFunction>
+void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
+										 const WriteFunction& write_function) {
+
+	using WriteResult = typename FunctionTraits<WriteFunction>::result_type;	
+	using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
+									  decltype(local_stack_)>;
+	
+	auto shared_node =
+		std::make_shared<WriteResultNode>(node_->get_context(),
+										  node_.get(),
+										  local_stack_,
+										  write_function,
+										  filepath);
+
+	auto write_stack = shared_node->ProduceStack();
+	core::StageBuilder().RunScope(shared_node.get());
+}
+
 }
 } // namespace c7a
 

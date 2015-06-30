@@ -17,6 +17,8 @@
 #include <c7a/api/sum_node.hpp>
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/api/reduce_to_index_node.hpp>
+#include <c7a/api/write_node.hpp>
+#include <c7a/api/allgather_node.hpp>
 
 #include <algorithm>
 #include <random>
@@ -52,7 +54,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
     size_t writer_size = 0;
 
-    input.WriteToFileSystem("test1.out",
+	input.WriteToFileSystem("test1.out",
                            [&writer_size](const int& item) {
                                 //file contains ints between 1  and 15
                                 //fails if wrong integer is generated
@@ -60,7 +62,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
                                 EXPECT_GE(16, item);
                                 writer_size++;
                                 return std::to_string(item);
-                           });
+							});
 
     ASSERT_EQ(generate_size, writer_size);
 }

@@ -15,6 +15,8 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/common/string.hpp>
+#include <c7a/api/write_node.hpp>
+#include <c7a/api/allgather_node.hpp>
 
 #include <examples/word_count_user_program.cpp>
 
