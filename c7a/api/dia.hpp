@@ -38,6 +38,7 @@
 #include <c7a/common/future.hpp>
 
 namespace c7a {
+namespace api{
 
 //! \addtogroup api Interface
 //! \{
@@ -449,6 +450,7 @@ auto Generate(Context & ctx,
                (std::move(shared_node), generator_stack);
 }
 
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER
