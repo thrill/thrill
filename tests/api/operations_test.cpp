@@ -26,10 +26,10 @@
 
 using namespace c7a::core;
 using namespace c7a::net;
+using c7a::api::Context;
+using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::vector<std::string> self = { "127.0.0.1:1234" };
     JobManager jobMan; 
@@ -66,9 +66,6 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
-	
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -105,9 +102,6 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
 }
 
 TEST(Operations, MapResultsCorrectChangingType) {
-
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -150,9 +144,6 @@ TEST(Operations, MapResultsCorrectChangingType) {
 }
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
-
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -197,9 +188,6 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
 TEST(Operations, FilterResultsCorrectly) {
 
-    using c7a::api::Context;
-	using c7a::api::DIARef;
-
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(1, 4);
@@ -241,9 +229,6 @@ TEST(Operations, FilterResultsCorrectly) {
 }
 
 TEST(Operations, ReduceModulo2CorrectResults) {
-   
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -291,9 +276,6 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 }
 
 TEST(Operations, ReduceToIndexCorrectResults) {
-
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -374,9 +356,6 @@ TEST(Operations, ReduceToIndexCorrectResults) {
 }
 
 TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {
-
-    using c7a::api::Context;
-	using c7a::api::DIARef;
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
