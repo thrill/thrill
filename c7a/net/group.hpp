@@ -29,7 +29,6 @@
 #include <thread>
 #include <utility>
 #include <vector>
-#include <memory>
 
 namespace c7a {
 namespace net {
@@ -49,8 +48,6 @@ typedef unsigned int ClientId;
 class Group
 {
     static const bool debug = false;
-
-    friend class Network;
 
 public:
     //! \name Construction and Initialization
@@ -155,12 +152,6 @@ public:
     //! Closes all client connections
     ~Group() {
         Close();
-    }
-
-    //! Returns the next Group in the corresponding data structure given by its
-    //! network.
-    std::shared_ptr<Group> getNext() {
-        return next;
     }
 
     //! \}
@@ -374,9 +365,6 @@ private:
 
     //! Socket on which to listen for incoming connections.
     Connection listener_;
-
-    //! Pointer to the next element in the linked list
-    std::shared_ptr<Group> next = NULL;
 };
 
 //! \}
