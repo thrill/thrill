@@ -18,6 +18,7 @@
 #include "function_stack.hpp"
 
 namespace c7a {
+namespace api {
 
 template <typename Input, typename Output,
           typename WriteFunction, typename Stack>
@@ -110,6 +111,7 @@ private:
     static const bool debug = false;
 };
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER

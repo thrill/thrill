@@ -20,6 +20,10 @@
 using namespace c7a::core;
 using namespace c7a::net;
 
+
+using c7a::api::Context;
+using c7a::api::DIARef;
+
 TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
     std::random_device random_device;
@@ -33,7 +37,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
     std::uniform_int_distribution<int> distribution2(1000, 10000);
     size_t generate_size = distribution2(generator);
 
-    std::function<void(c7a::Context&)> start_func = [generate_size](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [generate_size](Context& ctx) {
 
         auto input = GenerateFromFile(
                 ctx,
@@ -55,7 +59,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
         ASSERT_EQ((int) generate_size, ones.Sum(add_function));
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 }
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
@@ -68,7 +72,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
 
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
         auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
                 ctx,
@@ -88,7 +92,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
         ASSERT_EQ(136, ones.Sum(add_function));
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 }
 
 /******************************************************************************/
