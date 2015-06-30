@@ -8,17 +8,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia_base.hpp>
 #include <c7a/net/endpoint.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/core/stage_builder.hpp>
-#include <c7a/api/dia.hpp>
+#include <c7a/api/node_include.hpp>
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/api/write_node.hpp>
-#include <c7a/api/allgather_node.hpp>
-#include <c7a/api/read_node.hpp>
-
 #include <examples/word_count_user_program.cpp>
 
 #include <map>

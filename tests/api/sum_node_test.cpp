@@ -8,13 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia_base.hpp>
-#include <c7a/core/stage_builder.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/sum_node.hpp>
-#include <c7a/api/write_node.hpp>
-#include <c7a/api/read_node.hpp>
-#include <c7a/api/generate_file_node.hpp>
+#include <c7a/api/node_include.hpp>
 
 #include "gtest/gtest.h"
 
