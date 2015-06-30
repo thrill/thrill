@@ -21,6 +21,7 @@
 #include <c7a/data/manager.hpp>
 
 namespace c7a {
+namespace api {
 
 /*!
  * Possible states a DIABase can be in.
@@ -152,6 +153,7 @@ protected:
 
 //! \}
 
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER

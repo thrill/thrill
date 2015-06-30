@@ -26,9 +26,10 @@
 
 using namespace c7a::core;
 using namespace c7a::net;
+using c7a::api::Context;
+using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
-    using c7a::Context;
 
     std::vector<std::string> self = { "127.0.0.1:1234" };
     JobManager jobMan; 
@@ -73,7 +74,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
         auto integers = ReadLines(
             ctx,
@@ -96,7 +97,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
         ASSERT_EQ((size_t) 16, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 
@@ -109,7 +110,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
         auto integers = Generate(
             ctx,
@@ -138,7 +139,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
         ASSERT_EQ((size_t) 16, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 
@@ -151,7 +152,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
 		auto integers = Generate(
             ctx,
@@ -181,7 +182,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
         ASSERT_EQ((size_t) 32, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 
@@ -194,7 +195,7 @@ TEST(Operations, FilterResultsCorrectly) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
         auto integers = Generate(
             ctx,
@@ -223,7 +224,7 @@ TEST(Operations, FilterResultsCorrectly) {
         ASSERT_EQ((size_t) 8, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 
@@ -236,7 +237,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
 		auto integers = Generate(
             ctx,
@@ -270,7 +271,7 @@ TEST(Operations, ReduceModulo2CorrectResults) {
         ASSERT_EQ((size_t) 2, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 
@@ -283,7 +284,7 @@ TEST(Operations, ReduceToIndexCorrectResults) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
 
 		auto integers = Generate(
             ctx,
@@ -350,7 +351,7 @@ TEST(Operations, ReduceToIndexCorrectResults) {
         ASSERT_EQ((size_t) 9, out_vec.size());
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 
@@ -369,7 +370,7 @@ TEST(Operations, GenerateAndSumHaveEqualAmount) {
 
 
 
-    std::function<void(c7a::Context&)> start_func = [generate_size](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [generate_size](Context& ctx) {
 
         auto input = GenerateFromFile(
         ctx,
@@ -391,7 +392,7 @@ TEST(Operations, GenerateAndSumHaveEqualAmount) {
         ASSERT_EQ((int) generate_size, ones.Sum(add_function));
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 
 }
 

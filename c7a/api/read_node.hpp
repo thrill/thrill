@@ -22,6 +22,7 @@
 #include <fstream>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -123,6 +124,7 @@ private:
     std::string path_in_;
 };
 
+}
 } // namespace c7a
 
 //! \}

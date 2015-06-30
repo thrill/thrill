@@ -27,6 +27,7 @@
 #include <vector>
 
 namespace c7a {
+namespace api {
 //! \addtogroup api Interface
 //! \{
 
@@ -217,6 +218,7 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
         (std::move(shared_node), reduce_stack);
 }
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER

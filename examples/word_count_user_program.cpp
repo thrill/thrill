@@ -11,8 +11,11 @@
 #include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
 
+using c7a::api::Context;
+using c7a::api::DIARef;
+
 template <typename InStack>
-auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
+auto word_count_user(DIARef<std::string, InStack> & input) {
    
     using WordCount = std::pair<std::string, int>;
 
@@ -37,8 +40,7 @@ auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
 }
 
 //! The WordCount user program
-int word_count(c7a::Context& ctx) {
-    using c7a::Context;
+int word_count(Context& ctx) {
     using WordCount = std::pair<std::string, int>;
    
     auto lines = ReadLines(
@@ -59,8 +61,7 @@ int word_count(c7a::Context& ctx) {
     return 0;
 }
 
-int word_count_generated(c7a::Context& ctx, size_t size) {
-    using c7a::Context;
+int word_count_generated(Context& ctx, size_t size) {
     using WordCount = std::pair<std::string, int>;
 
     auto lines = GenerateFromFile(
