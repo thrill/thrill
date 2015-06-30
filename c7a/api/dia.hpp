@@ -25,12 +25,10 @@
 #include <utility>
 
 #include "dia_node.hpp"
+#include "function_stack.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
-#include "read_node.hpp"
 #include "context.hpp"
-#include "generate_node.hpp"
-#include "generate_file_node.hpp"
 
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/common/future.hpp>
@@ -363,61 +361,17 @@ DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
 
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
-                        const ReadFunction &read_function) {
-    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
-    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
-
-    auto shared_node =
-        std::make_shared<ReadResultNode>(ctx,
-                                         read_function,
-                                         filepath);
-
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIARef<ReadResult, decltype(read_stack)>
-               (std::move(shared_node), read_stack);
-}
+			   const ReadFunction &read_function);
 
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
-                      size_t size) {
-    using GeneratorResult =
-        typename FunctionTraits<GeneratorFunction>::result_type;
-    using GenerateResultNode =
-        GenerateFileNode<GeneratorResult, GeneratorFunction>;
-
-    auto shared_node =
-        std::make_shared<GenerateResultNode>(ctx,
-											 generator_function,
-											 filepath,
-											 size);
-
-    auto generator_stack = shared_node->ProduceStack();
-
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (std::move(shared_node), generator_stack);
-}
+                      size_t size);
 
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
 			  const GeneratorFunction &generator_function,
-			  size_t size) {
-    using GeneratorResult =
-        typename FunctionTraits<GeneratorFunction>::result_type;
-    using GenerateResultNode =
-        GenerateNode<GeneratorResult, GeneratorFunction>;
-
-    auto shared_node =
-        std::make_shared<GenerateResultNode>(ctx,
-											 generator_function,
-											 size);
-
-    auto generator_stack = shared_node->ProduceStack();
-
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (std::move(shared_node), generator_stack);
-}
+			  size_t size);
 
 } // namespace api
 } // namespace c7a
