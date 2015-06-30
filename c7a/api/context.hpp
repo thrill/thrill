@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 namespace c7a {
+namespace api {
 
 /*!
  * The Context of a job is a unique structure inside a worker, which holds
@@ -95,6 +96,7 @@ private:
     int thread_id_;
 };
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
