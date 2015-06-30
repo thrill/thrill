@@ -21,6 +21,7 @@
 #include <c7a/net/flow_control_manager.hpp>
 
 namespace c7a {
+namespace api {
 
 template <typename Input, typename Output, typename Stack, typename SumFunction>
 class SumNode : public ActionNode<Input>
@@ -107,12 +108,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::Group& flow_group = context_.get_flow_net_group();
-
-        //TODO(ms) The creation of a new FlowControlManager is expensive - please
-        //create it once and share the flow control channels between node instances. 
-        net::FlowControlChannelManager manager(flow_group, 1);
-        net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+        net::FlowControlChannel& channel = context_.get_flow_control_channel();
 
         // process the reduce
         global_sum = channel.AllReduce(local_sum, sum_function_);
@@ -143,7 +139,7 @@ auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
     return shared_node.get()->result();
 }
 
-
+}
 } // namespace c7a
 
 #endif // !C7A_API_SUM_NODE_HEADER

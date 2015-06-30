@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <c7a/net/group.hpp>
+#include <c7a/net/flow_control_channel.hpp>
 #include <c7a/common/cyclic_barrier.hpp>
 
 namespace c7a {

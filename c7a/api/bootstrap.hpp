@@ -13,8 +13,11 @@
 #define C7A_API_BOOTSTRAP_HEADER
 
 #include <tuple>
+#include <thread>
+#include <atomic>
 
 #include <c7a/api/context.hpp>
+#include <c7a/core/job_manager.hpp>
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 
@@ -64,12 +67,14 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 }
 }   //namespace bootstrap
 
+namespace api {
+
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
 //! different context instances.
 //!
-//! \returns result of word_count if bootstrapping was successfull, -1 otherwise.
-static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint) {
+//! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned. 
+	static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1) {
 
     //!True if program time should be taken and printed
 
@@ -77,32 +82,48 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
 
     size_t my_rank;
     std::vector<std::string> endpoints;
-    int result;
+    int result = 0;
     std::tie(result, my_rank, endpoints) = bootstrap::ParseArgs(argc, argv);
     if (result != 0)
-        return -1;
+        return {-1};
 
     if (my_rank >= endpoints.size()) {
         std::cerr << "endpoint list (" <<
             endpoints.size() <<
             " entries) does not include my rank (" <<
             my_rank << ")" << std::endl;
-        return -1;
+        return {-1};
     }
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
     for (const auto& ep : endpoints)
         LOG << ep << " ";
 
-    Context ctx;
-    LOG << "connecting to peers";
-    ctx.job_manager().Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints));
-    LOG << "Starting job on Worker " << ctx.rank();
-    auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
-    auto job_result = job_startpoint(ctx);
-    overall_timer->Stop();
-    LOG << "Worker " << ctx.rank() << " done!";
-    return job_result;
+    core::JobManager jobMan;
+    jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints), thread_count);
+
+    std::vector<std::thread*> threads(thread_count);
+    std::vector<std::atomic<int> > atomic_results(thread_count);
+
+    for(int i = 0; i < thread_count; i++) {
+        threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i] {
+			Context ctx(jobMan, i);
+            LOG << "connecting to peers";
+            LOG << "Starting job on Worker " << ctx.rank();
+            auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+            int job_result = job_startpoint(ctx);
+            overall_timer->Stop();
+            LOG << "Worker " << ctx.rank() << " done!";
+            atomic_results[i] = job_result;
+        });
+    }
+    for(int i = 0; i < thread_count; i++) {
+        threads[i]->join();
+        delete threads[i];
+        if(atomic_results[i] != 0 && result == 0)
+            result = atomic_results[i];
+    }
+    return result;
 }
 
 static inline void
@@ -144,7 +165,8 @@ ExecuteThreads(const size_t & workers, const size_t & port_base,
     }
 }
 
-} // namespace bootstrap
+} // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_BOOTSTRAP_HEADER
 
