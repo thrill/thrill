@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace c7a {
+namespace api {
 
 class DIABase;
 
@@ -26,6 +27,7 @@ using DIABasePtr = DIABase *;
 using DIASharedVector = std::vector<std::shared_ptr<DIABase> >;
 using DIASharedPtr = std::shared_ptr<DIABase>;
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_TYPES_HEADER

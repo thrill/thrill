@@ -21,6 +21,7 @@
 #include <c7a/net/flow_control_manager.hpp>
 
 namespace c7a {
+namespace api {
 
 template <typename Input, typename Output, typename Stack, typename SumFunction>
 class SumNode : public ActionNode<Input>
@@ -138,7 +139,7 @@ auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
     return shared_node.get()->result();
 }
 
-
+}
 } // namespace c7a
 
 #endif // !C7A_API_SUM_NODE_HEADER
