@@ -15,6 +15,7 @@
 #include <c7a/core/stage_builder.hpp>
 
 namespace c7a {
+namespace api {
 
 template <typename T>
 class ActionNode : public DIANode<T>
@@ -28,6 +29,7 @@ public:
     virtual ~ActionNode() { }
 };
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_ACTION_NODE_HEADER
