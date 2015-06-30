@@ -24,6 +24,7 @@
 #include <type_traits>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -129,6 +130,7 @@ private:
 
 //! \}
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_GENERATOR_NODE_HEADER
