@@ -17,6 +17,7 @@
 #include <c7a/common/string.hpp>
 #include <c7a/api/write_node.hpp>
 #include <c7a/api/allgather_node.hpp>
+#include <c7a/api/read_node.hpp>
 
 #include <examples/word_count_user_program.cpp>
 

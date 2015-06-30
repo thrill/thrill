@@ -10,6 +10,8 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
+#include <c7a/api/read_node.hpp>
+#include <c7a/api/generate_file_node.hpp>
 
 using c7a::api::Context;
 using c7a::api::DIARef;
