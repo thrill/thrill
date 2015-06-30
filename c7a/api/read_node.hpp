@@ -124,6 +124,24 @@ private:
     std::string path_in_;
 };
 
+//template <typename T, typename Stack>
+template <typename ReadFunction>
+auto ReadLines(Context & ctx, std::string filepath,
+                        const ReadFunction &read_function) {
+    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
+    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
+
+    auto shared_node =
+        std::make_shared<ReadResultNode>(ctx,
+                                         read_function,
+                                         filepath);
+
+    auto read_stack = shared_node->ProduceStack();
+
+    return DIARef<ReadResult, decltype(read_stack)>
+               (std::move(shared_node), read_stack);
+}
+
 }
 } // namespace c7a
 

@@ -130,6 +130,26 @@ private:
 
 //! \}
 
+template <typename GeneratorFunction>
+auto Generate(Context & ctx,
+			  const GeneratorFunction &generator_function,
+			  size_t size) {
+    using GeneratorResult =
+        typename FunctionTraits<GeneratorFunction>::result_type;
+    using GenerateResultNode =
+        GenerateNode<GeneratorResult, GeneratorFunction>;
+
+    auto shared_node =
+        std::make_shared<GenerateResultNode>(ctx,
+											 generator_function,
+											 size);
+
+    auto generator_stack = shared_node->ProduceStack();
+
+    return DIARef<GeneratorResult, decltype(generator_stack)>
+               (std::move(shared_node), generator_stack);
+}
+
 }
 } // namespace c7a
 

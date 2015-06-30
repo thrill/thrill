@@ -13,6 +13,8 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/sum_node.hpp>
 #include <c7a/api/write_node.hpp>
+#include <c7a/api/read_node.hpp>
+#include <c7a/api/generate_file_node.hpp>
 
 #include "gtest/gtest.h"
 

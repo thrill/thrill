@@ -19,6 +19,9 @@
 #include <c7a/api/reduce_to_index_node.hpp>
 #include <c7a/api/write_node.hpp>
 #include <c7a/api/allgather_node.hpp>
+#include <c7a/api/read_node.hpp>
+#include <c7a/api/generate_file_node.hpp>
+#include <c7a/api/generate_node.hpp>
 
 #include <algorithm>
 #include <random>
