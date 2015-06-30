@@ -17,6 +17,7 @@
 #include <string>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -54,6 +55,7 @@ public:
     }
 };
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_DOP_NODE_HEADER
