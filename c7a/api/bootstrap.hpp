@@ -67,12 +67,14 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 }
 }   //namespace bootstrap
 
+namespace api {
+
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
 //! different context instances.
 //!
 //! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned. 
-static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1) {
+	static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1) {
 
     //!True if program time should be taken and printed
 
@@ -105,7 +107,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
 
     for(int i = 0; i < thread_count; i++) {
         threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i] {
-            Context ctx(jobMan, i);
+			Context ctx(jobMan, i);
             LOG << "connecting to peers";
             LOG << "Starting job on Worker " << ctx.rank();
             auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
@@ -163,7 +165,8 @@ ExecuteThreads(const size_t & workers, const size_t & port_base,
     }
 }
 
-} // namespace bootstrap
+} // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_BOOTSTRAP_HEADER
 
