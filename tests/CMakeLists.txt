@@ -76,7 +76,7 @@ build_test(api/sum_node_test)
 build_test(data/manager_test)
 build_test(data/buffer_chain_test)
 build_test(data/emitter_iterator_test)
-build_only(data/manager_channels_test) #TODO(tb, ej, ts): where do the invalid fd come from?
+build_test(data/manager_channels_test)
 build_test(data/iterator_test)
 #build_test(data/dia_allocate_test)
 build_test(data/serializer_test)
@@ -102,7 +102,7 @@ build_test(net/group_test)
 build_test(net/buffer_test)
 build_test(net/flow_control_test)
 build_test(data/binary_builder_test)
-#build_test(net/test_channel_multiplexer) //broken because buffer is non-copyable
+#build_test(net/test_channel_multiplexer) //broken because buffer is non-#copyable
 build_test(net/stream_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
