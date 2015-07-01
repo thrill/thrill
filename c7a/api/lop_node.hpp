@@ -17,6 +17,7 @@
 #include <vector>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -95,6 +96,7 @@ private:
     LOpStack lop_stack_;
 };
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER

@@ -25,6 +25,11 @@
 using namespace c7a::core;
 using namespace c7a::net;
 
+
+using c7a::api::Context;
+using c7a::api::DIARef;
+
+
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 
     std::random_device random_device;
@@ -36,7 +41,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
         auto lines = ReadLines(
             ctx,
             "wordcounttest",
@@ -71,7 +76,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
         ASSERT_EQ(std::make_pair(this_str, 1), words[4]);
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 }
 
 
@@ -83,11 +88,11 @@ TEST(WordCount, Generate1024DoesNotCrash) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
            word_count_generated(ctx, 1024);
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
@@ -98,10 +103,10 @@ TEST(WordCount, ReadBaconDoesNotCrash) {
     size_t workers = distribution(generator);
     size_t port_base = 8080;
 
-    std::function<void(c7a::Context&)> start_func = [](c7a::Context& ctx) {
+    std::function<void(Context&)> start_func = [](Context& ctx) {
            word_count(ctx);
     };
 
-    c7a::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
 }
 

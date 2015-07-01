@@ -22,6 +22,7 @@
 #include "function_stack.hpp"
 
 namespace c7a {
+namespace api {
 
 template <typename Input, typename Output, typename Stack>
 class AllGatherNode : public ActionNode<Input>
@@ -99,6 +100,7 @@ private:
     std::vector<data::Emitter<Output>> emitters_;
 };
 
+}
 } // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER
