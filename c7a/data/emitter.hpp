@@ -62,8 +62,10 @@ public:
 
     //! Writes the data to the target without closing the emitter
     void Flush() {
-        target_->Append(builder_);
-        builder_ = BinaryBufferBuilder(BinaryBuffer::DEFAULT_SIZE);
+        if (builder_.size() > 0) {
+            target_->Append(builder_);
+            builder_ = BinaryBufferBuilder(BinaryBuffer::DEFAULT_SIZE);
+        }
     }
 
 private:

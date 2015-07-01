@@ -163,7 +163,7 @@ public:
         return capacity_;
     }
 
-    //! \}
+    //! \} //do not append empty end-of-stream buffer
 
     //! \name Buffer Growing, Clearing, and other Management
     //! \{

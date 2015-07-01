@@ -34,7 +34,8 @@ public:
     //! Appends data to the SocketTarget.
     //! Data may be sent but may be delayed.
     void Append(BinaryBufferBuilder& buffer) override {
-        //virtual does not hurt because not in tight loop
+        //prevent sending endo-of-stream message if flush is called without any
+        //elements in the buffer
         if (buffer.size() == 0) {
             return;
         }
