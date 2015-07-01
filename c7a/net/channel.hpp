@@ -135,9 +135,11 @@ private:
         else {
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             data_.set_elements(stream->header.expected_elements);
-            target_->Append(data_);
-            data_.Detach();
-            data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);
+            if(data_.size() > 0) { //do not append empty end-of-stream buffer
+                target_->Append(data_);
+                data_.Detach();
+                data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);
+            }
             active_streams_--;
             stream->lifetime_timer->Stop();
             *waiting_timer_ += stream->wait_timer; //accumulate
