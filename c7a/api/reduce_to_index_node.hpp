@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/reduce_node.hpp
+ * c7a/api/reduce_to_index_node.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
@@ -57,10 +57,10 @@ class ReduceToIndexNode : public DOpNode<Output>
     using Super = DOpNode<Output>;
 
     using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
-    
+
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
-	static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
+    static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
 
     using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
@@ -70,9 +70,8 @@ class ReduceToIndexNode : public DOpNode<Output>
     using Super::data_id_;
 
 public:
-
-	using PreHashTable = typename c7a::core::ReducePreTable<KeyExtractor, ReduceFunction,
-															data::Emitter<KeyValuePair> >;
+    using PreHashTable = typename c7a::core::ReducePreTable<KeyExtractor, ReduceFunction,
+                                                            data::Emitter<KeyValuePair> >;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -87,11 +86,11 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceToIndexNode(Context& ctx,
-					  DIANode<Input>* parent,
-					  Stack& stack,
-					  KeyExtractor key_extractor,
-					  ReduceFunction reduce_function,
-					  size_t max_index)
+                      DIANode<Input>* parent,
+                      Stack& stack,
+                      KeyExtractor key_extractor,
+                      ReduceFunction reduce_function,
+                      size_t max_index)
         : DOpNode<Output>(ctx, { parent }),
           local_stack_(stack),
           key_extractor_(key_extractor),
@@ -100,14 +99,14 @@ public:
           emitters_(ctx.get_data_manager().
                     template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
-                            reduce_function_, emitters_, 
-							[=](int key, PreHashTable* ht) {
-								size_t global_index = key * ht->NumBuckets() / max_index;
-								size_t partition_id = key * ht->NumPartitions() / max_index;
-								size_t partition_offset = global_index - (partition_id * ht->NumBucketsPerPartition()); 
-								return typename PreHashTable::hash_result(partition_id, partition_offset, global_index);
-							}),
-		  max_index_(max_index)
+                            reduce_function_, emitters_,
+                            [=](int key, PreHashTable* ht) {
+                                size_t global_index = key * ht->NumBuckets() / max_index;
+                                size_t partition_id = key * ht->NumPartitions() / max_index;
+                                size_t partition_offset = global_index - (partition_id * ht->NumBucketsPerPartition());
+                                return typename PreHashTable::hash_result(partition_id, partition_offset, global_index);
+                            }),
+          max_index_(max_index)
     {
         // Hook PreOp
         auto pre_op_fn = [=](ReduceArg input) {
@@ -166,7 +165,7 @@ private:
     core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
     reduce_pre_table_;
 
-	size_t max_index_;
+    size_t max_index_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -186,17 +185,17 @@ private:
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
                                           std::function<void(Output)>,
-										  true>;
+                                          true>;
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<Output>::callbacks(),
-						  [=](Key key, ReduceTable* ht) {							  
-							  return key * ht->NumBuckets() / max_index_;
-						  },
-						  max_index_);
+                          [=](Key key, ReduceTable* ht) {
+                              return key * ht->NumBuckets() / max_index_;
+                          },
+                          max_index_);
 
         auto it = context_.get_data_manager().
-            template GetIterator<KeyValuePair>(channel_id_);
+                  template GetIterator<KeyValuePair>(channel_id_);
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {
@@ -221,14 +220,14 @@ private:
 template <typename T, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-									 const ReduceFunction &reduce_function,
-									 size_t max_index) {
+                                     const ReduceFunction &reduce_function,
+                                     size_t max_index) {
 
     using DOpResult
-        = typename FunctionTraits<ReduceFunction>::result_type;
+              = typename FunctionTraits<ReduceFunction>::result_type;
     using ReduceResultNode
-        = ReduceToIndexNode<T, DOpResult, decltype(local_stack_),
-                     KeyExtractor, ReduceFunction>;
+              = ReduceToIndexNode<T, DOpResult, decltype(local_stack_),
+                                  KeyExtractor, ReduceFunction>;
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->get_context(),
@@ -236,17 +235,17 @@ auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                              local_stack_,
                                              key_extractor,
                                              reduce_function,
-											 max_index);
+                                             max_index);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
-	(std::move(shared_node), reduce_stack);
+               (std::move(shared_node), reduce_stack);
+}
 }
 
-}
-} // namespace c7a
+} // namespace api
 
-#endif // !C7A_API_REDUCE_NODE_HEADER
+#endif // !C7A_API_REDUCE_TO_INDEX_NODE_HEADER
 
 /******************************************************************************/

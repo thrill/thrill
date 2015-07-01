@@ -55,7 +55,7 @@ class ReduceNode : public DOpNode<Output>
     using Super = DOpNode<Output>;
 
     using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
-    
+
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
     using Value = typename FunctionTraits<ReduceFunction>::result_type;
@@ -173,7 +173,7 @@ private:
                           DIANode<Output>::callbacks());
 
         auto it = context_.get_data_manager().
-            template GetIterator<KeyValuePair>(channel_id_);
+                  template GetIterator<KeyValuePair>(channel_id_);
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
         do {
@@ -201,10 +201,10 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
                                 const ReduceFunction &reduce_function) {
 
     using DOpResult
-        = typename FunctionTraits<ReduceFunction>::result_type;
+              = typename FunctionTraits<ReduceFunction>::result_type;
     using ReduceResultNode
-        = ReduceNode<T, DOpResult, decltype(local_stack_),
-                     KeyExtractor, ReduceFunction>;
+              = ReduceNode<T, DOpResult, decltype(local_stack_),
+                           KeyExtractor, ReduceFunction>;
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->get_context(),
@@ -216,11 +216,11 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
-        (std::move(shared_node), reduce_stack);
+               (std::move(shared_node), reduce_stack);
+}
 }
 
-}
-} // namespace c7a
+} // namespace api
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
 

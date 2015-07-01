@@ -135,7 +135,7 @@ private:
         else {
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             data_.set_elements(stream->header.expected_elements);
-            if(data_.size() > 0) { //do not append empty end-of-stream buffer
+            if (data_.size() > 0) { //do not append empty end-of-stream buffer
                 target_->Append(data_);
                 data_.Detach();
                 data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);

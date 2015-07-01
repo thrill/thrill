@@ -27,7 +27,6 @@ public:
     //! Closes the target. Must not be called multiple times
     virtual void Close() = 0;
 
-
     //! Appends the BinaryBufferBuilder and detaches it afterwards.
     virtual void Append(BinaryBufferBuilder& buffer) = 0;
 };
