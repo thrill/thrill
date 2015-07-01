@@ -35,9 +35,9 @@ struct TestIterator : public::testing::Test {
 
     std::vector<std::string> threeStrings;
     std::vector<std::string> oneString;
-    BinaryBufferBuilder             emptyBuffer;
-    BinaryBufferBuilder             threeStringsBuffer;
-    BinaryBufferBuilder             oneStringBuffer;
+    BinaryBufferBuilder      emptyBuffer;
+    BinaryBufferBuilder      threeStringsBuffer;
+    BinaryBufferBuilder      oneStringBuffer;
     BufferChain              chain;
 };
 

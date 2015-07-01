@@ -25,22 +25,22 @@ namespace data {
 struct BufferChainElement {
     BufferChainElement(BinaryBuffer b, size_t element_count, size_t offset = 0)
         : buffer(b),
-        element_count(element_count),
-        offset_of_first(offset) {
-            //TODO(ts, sl) implement offset logic
-            assert(offset_of_first == 0); //no support for offset right now
-        }
+          element_count(element_count),
+          offset_of_first(offset) {
+        //TODO(ts, sl) implement offset logic
+        assert(offset_of_first == 0);     //no support for offset right now
+    }
 
     //! BinaryBuffer holds the data
     BinaryBuffer buffer;
 
     //! prefixsum of number of elements of previous BufferChainElements and
     //! this BufferChainElement
-    size_t element_count;
+    size_t       element_count;
 
     //! offset to the first element in the BinaryBuffer
     //! The cut-off element before that offset is not included in the element_count
-    size_t offset_of_first;
+    size_t       offset_of_first;
 };
 
 using BufferChainIterator = std::deque<BufferChainElement>::const_iterator;

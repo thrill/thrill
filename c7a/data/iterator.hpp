@@ -84,8 +84,8 @@ public:
     //! Blocks that are finished once cannot be opened again
     inline bool IsFinished() {
         return !HasNext()
-            && (buffer_chain_.size() == 0 || current_ == buffer_chain_.End())
-            && buffer_chain_.IsClosed();
+               && (buffer_chain_.size() == 0 || current_ == buffer_chain_.End())
+               && buffer_chain_.IsClosed();
     }
 
 private:
