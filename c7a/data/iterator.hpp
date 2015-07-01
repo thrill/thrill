@@ -65,23 +65,27 @@ public:
     }
 
     //! Waits until either an element is accessible (HasNext() == true) or the
-    //! Iterator is closed (IsClosed == true)
-    //! Does not enter idle state if HasNext() == true || IsClosed() == true
+    //! buffer chain was closed
+    //! Does not enter idle state if HasNext() == true || buffer_chain_.Closed() == true
     void WaitForMore() {
-        while (!HasNext() && !IsClosed())
+        while (!HasNext() && !buffer_chain_.IsClosed())
             buffer_chain_.Wait();
     }
 
-    //! Waits until all elements are available at the iterator and the iterator
-    //! is closed (IsClosed == true)
+    //! Waits until all elements are available at the iterator and the BufferChain
+    //! is closed
     void WaitForAll() {
         buffer_chain_.WaitUntilClosed();
     }
 
     //! Indicates whether elements can be appended (not closed) or not (closed).
-    //! Blocks that are closed once cannot be opened again
-    inline bool IsClosed() const {
-        return buffer_chain_.IsClosed();
+    //! Returns only true when this iterator instance points after the end of
+    //! the according BufferChain
+    //! Blocks that are finished once cannot be opened again
+    inline bool IsFinished() {
+        return !HasNext()
+            && (buffer_chain_.size() == 0 || current_ == buffer_chain_.End())
+            && buffer_chain_.IsClosed();
     }
 
 private:
@@ -94,7 +98,8 @@ private:
 
         //reader is initialized with size 0 if BufferChain was empty on creation
         //do not traverse, but instead re-load current buffer into reader.
-        if (current_reader_.Size() != 0)
+
+        if (!current_reader_.IsNull())
             current_++;
 
         if (current_ == buffer_chain_.End())

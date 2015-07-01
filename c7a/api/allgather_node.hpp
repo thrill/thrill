@@ -74,7 +74,7 @@ public:
             while (it.HasNext()) {
                 out_vector_->push_back(it.Next());
             }
-        } while (!it.IsClosed());
+        } while (!it.IsFinished());
     }
 
     /*!
