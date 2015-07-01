@@ -55,7 +55,7 @@ When data is pushed / pulled via these classes, data elements are serialized if 
 Emitters and Iterators can access locally stored data and channel data by accessing \ref BufferChain instances.
 Both types of emitters may buffer pushed elements until \ref Emitter::Flush() "flush" or \ref Emitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
 Emitters and Iterators can operate concurrently - emitters can push data even after an iterator was created.
-Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsClosed() "IsClosed() method".
+Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsFinished() "IsFinished() method".
 If multiple emitters exist, multiple calls to \ref Emitter::Close() "close" lead to undefined behaviour.
 
 ## Examples
@@ -100,8 +100,8 @@ void Produce(c7a::data::Manager& manager, c7a::data::ChannelId id) {
 void Consume(c7a::data::Manager& manager, c7a::data::ChannelId id) {
     auto it = manager.GetIterator(id);
 
-    //loop until every emitter in produce has been closed.
-    while (!it.IsClosed()) {
+    //loop until every emitter in produce has been closed AND iterator is on end of chain
+    while (!it.IsFinished()) {
         it.WaitForMore(); //returns instantly when data available or it was closed, blocks if not
         while (it.HasNext()) { //can return false even if more data is available
             std::cout << "received " << it.Next() << std::endl;
