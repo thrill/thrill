@@ -100,7 +100,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAr
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0].Close();
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   ASSERT_TRUE(manager.GetIterator<int>(channel_id).IsFinished());
               };
     auto w1 = [](Manager& manager) {
@@ -108,7 +108,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAr
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0].Close();
                   emitters[1].Close();
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   ASSERT_FALSE(manager.GetIterator<int>(channel_id).IsFinished());
               };
     Execute(w0, w1);
@@ -140,6 +140,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
                   std::this_thread::sleep_for(1ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
+				  std::this_thread::sleep_for(10ms);
                   ASSERT_TRUE(it.HasNext());
               };
     Execute(w0, w1);
@@ -212,6 +213,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
                   std::this_thread::sleep_for(1ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
+				  std::this_thread::sleep_for(10ms);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
               };
@@ -247,12 +249,14 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
                   std::this_thread::sleep_for(1ms);
                   auto channel_id1 = manager.AllocateNetworkChannel();
                   auto it1 = manager.GetIterator<int>(channel_id1);
+				  std::this_thread::sleep_for(10ms);
                   auto vals1 = ReadIterator(it1);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals1));
 
                   auto channel_id2 = manager.AllocateNetworkChannel();
                   auto it2 = manager.GetIterator<int>(channel_id2);
-                  auto vals2 = ReadIterator(it2);
+                  std::this_thread::sleep_for(10ms);
+				  auto vals2 = ReadIterator(it2);
                   ASSERT_TRUE(VectorCompare({ 5, 6, 7, 8 }, vals2));
               };
     Execute(w0, w1, w2);
@@ -268,7 +272,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   emitters[0].Flush();
                   emitters[1].Flush();
                   emitters[2].Close();
-                  std::this_thread::sleep_for(2ms);
+                  std::this_thread::sleep_for(10ms);
                   auto it = manager.GetIterator<int>(channel_id);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 1, 11, 21 }, vals));
@@ -282,7 +286,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   emitters[0].Close();
                   emitters[1].Flush();
                   emitters[2].Flush();
-                  std::this_thread::sleep_for(2ms);
+                  std::this_thread::sleep_for(10ms);
                   auto it = manager.GetIterator<int>(channel_id);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 2, 12, 22 }, vals));
@@ -296,7 +300,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   emitters[0].Flush();
                   emitters[1].Close();
                   emitters[2].Flush();
-                  std::this_thread::sleep_for(2ms);
+                  std::this_thread::sleep_for(10ms);
                   auto it = manager.GetIterator<int>(channel_id);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 0, 10, 20 }, vals));
