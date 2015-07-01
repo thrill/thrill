@@ -64,5 +64,4 @@ TEST(BufferChain, Size_2_WhenAppendedTwoBuffersOneElementEach) {
     ASSERT_EQ(2u, candidate.size());
 }
 
-
 /******************************************************************************/
