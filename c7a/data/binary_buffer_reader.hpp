@@ -72,6 +72,11 @@ public:
         return size_;
     }
 
+    //! Indicates if the reader was initialized with a nullptr and size 0
+    bool IsNull() const {
+        return data_ == nullptr;
+    }
+
     //! \}
 
     //! \name Cursor Movement and Checks

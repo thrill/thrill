@@ -13,6 +13,7 @@
 
 #include <c7a/net/connection.hpp>
 #include <c7a/net/stream.hpp>
+#include <c7a/data/binary_buffer_builder.hpp>
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
 #include <c7a/common/stats.hpp>
@@ -118,6 +119,7 @@ private:
     size_t bytes_received_;
 
     std::shared_ptr<data::BufferChain> target_;
+    data::BinaryBufferBuilder data_;
 
     std::shared_ptr<common::Stats> stats_;
     common::TimerPtr waiting_timer_;
@@ -132,6 +134,12 @@ private:
         }
         else {
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
+            data_.set_elements(stream->header.expected_elements);
+            if (data_.size() > 0) { //do not append empty end-of-stream buffer
+                target_->Append(data_);
+                data_.Detach();
+                data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);
+            }
             active_streams_--;
             stream->lifetime_timer->Stop();
             *waiting_timer_ += stream->wait_timer; //accumulate
@@ -171,7 +179,7 @@ private:
         stream->wait_timer.Stop();
         sLOG << "read data on" << stream->socket << "in channel" << id_;
         stream->bytes_read += buffer.size();
-        target_->Append(data::BinaryBuffer(buffer.data(), buffer.size()));
+        data_.Append(buffer.data(), buffer.size());
         ReadFromStream(stream);
     }
 };
