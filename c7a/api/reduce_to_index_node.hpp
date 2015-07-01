@@ -203,7 +203,7 @@ private:
             while (it.HasNext()) {
                 table.Insert(std::move(it.Next()));
             }
-        } while (!it.IsClosed());
+        } while (!it.IsFinished());
 
         table.Flush();
     }

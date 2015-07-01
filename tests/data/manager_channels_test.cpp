@@ -92,13 +92,13 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
     Execute(w0, w1);
 }
 
-TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosedOnlyIfAllEmittersAreClosed) {
+TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAreClosed) {
     auto w0 = [](Manager& manager) {
         auto channel_id = manager.AllocateNetworkChannel();
         auto emitters = manager.GetNetworkEmitters<int>(channel_id);
         emitters[0].Close();
         std::this_thread::sleep_for(1ms);
-        ASSERT_TRUE(manager.GetIterator<int>(channel_id).IsClosed());
+        ASSERT_TRUE(manager.GetIterator<int>(channel_id).IsFinished());
     };
     auto w1 = [](Manager& manager) {
         auto channel_id = manager.AllocateNetworkChannel();
@@ -106,7 +106,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsClosedOnlyIfAllEmittersAreC
         emitters[0].Close();
         emitters[1].Close();
         std::this_thread::sleep_for(1ms);
-        ASSERT_FALSE(manager.GetIterator<int>(channel_id).IsClosed());
+        ASSERT_FALSE(manager.GetIterator<int>(channel_id).IsFinished());
     };
     Execute(w0, w1);
 }

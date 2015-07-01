@@ -48,14 +48,22 @@ TEST_F(TestIterator, EmptyHasNotNext) {
 
 TEST_F(TestIterator, EmptyIsNotClosed) {
     Iterator<std::string> it(chain);
-    ASSERT_FALSE(it.IsClosed());
+    ASSERT_FALSE(it.IsFinished());
 }
 
-TEST_F(TestIterator, ClosedReturnsIsClosed) {
+TEST_F(TestIterator, ClosedIsNotFinished) {
     chain.Append(oneStringBuffer);
     chain.Close();
     Iterator<std::string> it(chain);
-    ASSERT_TRUE(it.IsClosed());
+    ASSERT_FALSE(it.IsFinished());
+}
+
+TEST_F(TestIterator, ClosedIsFinishedWhenAtEnd) {
+    chain.Append(oneStringBuffer);
+    chain.Close();
+    Iterator<std::string> it(chain);
+    it.Next();
+    ASSERT_TRUE(it.IsFinished());
 }
 
 TEST_F(TestIterator, IterateOverStringsInSingleBuffer) {
@@ -82,13 +90,13 @@ TEST_F(TestIterator, HasNextReturnsFalseAtTheEnd) {
     ASSERT_FALSE(it.HasNext());
 }
 
-TEST_F(TestIterator, IsClosedReturnsFalseAtTheEnd) {
+TEST_F(TestIterator, IsFinishedReturnsFalseAtTheEnd) {
     chain.Append(threeStringsBuffer);
     Iterator<std::string> it(chain);
     (void)it.Next();
     (void)it.Next();
     (void)it.Next();
-    ASSERT_FALSE(it.IsClosed());
+    ASSERT_FALSE(it.IsFinished());
 }
 
 TEST_F(TestIterator, HasNextReturnsTrueInTheMiddle) {

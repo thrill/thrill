@@ -180,7 +180,7 @@ private:
             while (it.HasNext()) {
                 table.Insert(it.Next());
             }
-        } while (!it.IsClosed());
+        } while (!it.IsFinished());
 
         table.Flush();
     }
