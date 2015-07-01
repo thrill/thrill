@@ -93,7 +93,6 @@ struct BufferChain : public EmitterTarget {
     }
 
     BufferChainIterator End() {
-        //TODO(ts) this should point to the last element in the buffer
         return elements_.end();
     }
 
