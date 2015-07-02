@@ -14,13 +14,14 @@
 using namespace c7a::data;
 using namespace c7a::net;
 using StringPair = std::pair<std::string, int>;
+using IntIntPair = std::pair<int, int>;
 
 struct ReducePreLinProTable : public::testing::Test {
     ReducePreLinProTable()
-        : dispatcher(),
-          manager(dispatcher),
-          id1(manager.AllocateDIA()),
-          id2(manager.AllocateDIA()) {
+            : dispatcher(),
+              manager(dispatcher),
+              id1(manager.AllocateDIA()),
+              id2(manager.AllocateDIA()) {
         one_int_emitter.emplace_back(manager.GetLocalEmitter<int>(id1));
         one_pair_emitter.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
 
@@ -88,13 +89,13 @@ TEST_F(ReducePreLinProTable, AddIntegers) {
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
     table(1, key_ex, red_fn, one_int_emitter);
 
-    table.Insert(1);
-    table.Insert(2);
-    table.Insert(3);
+    table.Insert(1u);
+    table.Insert(2u);
+    table.Insert(3u);
 
     ASSERT_EQ(3u, table.Size());
 
-    table.Insert(2);
+    table.Insert(2u);
 
     ASSERT_EQ(3u, table.Size());
 }
@@ -109,13 +110,13 @@ TEST_F(ReducePreLinProTable, CreateEmptyTable) {
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
             table(1, key_ex, red_fn, one_int_emitter);
 
-    table.Insert(1);
-    table.Insert(2);
-    table.Insert(3);
+    table.Insert(1u);
+    table.Insert(2u);
+    table.Insert(3u);
 
     ASSERT_EQ(3u, table.Size());
 
-    table.Insert(2);
+    table.Insert(2u);
 
     ASSERT_EQ(3u, table.Size());
 }
@@ -132,14 +133,14 @@ TEST_F(ReducePreLinProTable, TestSetMaxSizeSetter) {
 
     table.SetMaxSize(3);
 
-    table.Insert(1);
-    table.Insert(2);
-    table.Insert(3);
-    table.Insert(4);
+    table.Insert(1u);
+    table.Insert(2u);
+    table.Insert(3u);
+    table.Insert(4u);
 
     ASSERT_EQ(0u, table.Size());
 
-    table.Insert(1);
+    table.Insert(1u);
 
     ASSERT_EQ(1u, table.Size());
 }
@@ -158,11 +159,11 @@ TEST_F(ReducePreLinProTable, FlushIntegersManuallyOnePartition) {
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
             table(1, 10, 2, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
 
-    table.Insert(0);
-    table.Insert(1);
-    table.Insert(2);
-    table.Insert(3);
-    table.Insert(4);
+    table.Insert(1u);
+    table.Insert(2u);
+    table.Insert(3u);
+    table.Insert(4u);
+    table.Insert(5u);
 
     ASSERT_EQ(5u, table.Size());
 
@@ -193,11 +194,11 @@ TEST_F(ReducePreLinProTable, FlushIntegersManuallyTwoPartitions) {
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
             table(2, 5, 2, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
 
-    table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
     table.Insert(4);
+    table.Insert(5);
 
     ASSERT_EQ(5u, table.Size());
 
@@ -210,7 +211,7 @@ TEST_F(ReducePreLinProTable, FlushIntegersManuallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
+    ASSERT_EQ(2, c1);
 
     auto it2 = manager.GetIterator<int>(id2);
     int c2 = 0;
@@ -219,7 +220,7 @@ TEST_F(ReducePreLinProTable, FlushIntegersManuallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(3, c2);
     ASSERT_EQ(0u, table.Size());
 }
 
@@ -237,14 +238,14 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyOnePartition) {
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
             table(1, 10, 2, 1, 10, 1.0f, 4, key_ex, red_fn, one_int_emitter);
 
-    table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
+    table.Insert(4);
 
     ASSERT_EQ(4u, table.Size());
 
-    table.Insert(4);
+    table.Insert(5);
 
     auto it = manager.GetIterator<int>(id1);
     int c = 0;
@@ -271,14 +272,14 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyTwoPartitions) {
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
             table(2, 5, 2, 1, 10, 1.0f, 4, key_ex, red_fn, two_int_emitters);
 
-    table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
+    table.Insert(4);
 
     ASSERT_EQ(4u, table.Size());
 
-    table.Insert(4);
+    table.Insert(5);
     table.Flush();
 
     auto it1 = manager.GetIterator<int>(id1);
@@ -288,7 +289,7 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyTwoPartitions) {
         c1++;
     }
 
-    ASSERT_EQ(3, c1);
+    ASSERT_EQ(2, c1);
     table.Flush();
 
     auto it2 = manager.GetIterator<int>(id2);
@@ -298,34 +299,33 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyTwoPartitions) {
         c2++;
     }
 
-    ASSERT_EQ(2, c2);
+    ASSERT_EQ(3, c2);
     ASSERT_EQ(0u, table.Size());
 }
 
 TEST_F(ReducePreLinProTable, ComplexType) {
-
     auto key_ex = [](StringPair in) {
         return in.first;
     };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-        return std::make_pair(in1.first, in1.second + in2.second);
+        return StringPair(in1.first, in1.second + in2.second);
     };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
-            table(1, 2, 2, 1, 10, 1.0f, 3, key_ex, red_fn, one_pair_emitter);
+            table(1, 10, 2, 1, 10, 1.1f, 3, key_ex, red_fn, one_pair_emitter);
 
-    table.Insert(std::make_pair("hallo", 1));
-    table.Insert(std::make_pair("hello", 2));
-    table.Insert(std::make_pair("bonjour", 3));
-
-    ASSERT_EQ(3u, table.Size());
-
-    table.Insert(std::make_pair("hello", 5));
+    table.Insert(StringPair("hallo", 1));
+    table.Insert(StringPair("hello", 1));
+    table.Insert(StringPair("bonjour", 1));
 
     ASSERT_EQ(3u, table.Size());
 
-    table.Insert(std::make_pair("baguette", 42));
+    table.Insert(StringPair("hello", 1));
+
+    ASSERT_EQ(3u, table.Size());
+
+    table.Insert(StringPair("baguette", 42));
 
     ASSERT_EQ(0u, table.Size());
 }
@@ -427,29 +427,28 @@ TEST_F(ReducePreLinProTable, ResizeTwoPartitions) {
 }
 
 TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
-    auto key_ex = [](const MyStruct& in) {
-        return in.key;
+    auto key_ex = [](const IntIntPair in) {
+        return in.first;
     };
 
-    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
+    auto red_fn = [](const IntIntPair in1, const IntIntPair in2) {
+        return IntIntPair(in1.first, in1.second + in2.second);
     };
 
     size_t num_partitions = 3;
     size_t num_items_init_scale = 2;
     size_t nitems = num_partitions * num_items_init_scale;
 
-    std::vector<Emitter<MyStruct> > emitters;
+    std::vector<Emitter<IntIntPair> > emitters;
     std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
     std::vector<DIAId> ids;
     for (size_t i = 0; i != num_partitions; ++i) {
         auto id = manager.AllocateDIA();
         ids.emplace_back(id);
-        emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id));
+        emitters.emplace_back(manager.GetLocalEmitter<IntIntPair>(id));
     }
 
-    c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct> >
+    c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<IntIntPair> >
             table(num_partitions, num_items_init_scale, 10, 1, 10, 1.0f,
                   nitems, key_ex, red_fn, { emitters });
 
@@ -461,7 +460,7 @@ TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
 
     // insert as many items which DO NOT lead to partition overflow
     for (size_t i = 0; i != num_items_init_scale; ++i) {
-        table.Insert(MyStruct(i, 0));
+        table.Insert(IntIntPair(i, 0));
     }
 
     ASSERT_EQ(num_partitions * num_items_init_scale, table.NumItems());
@@ -486,7 +485,7 @@ TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
     // insert as many items which DO NOT lead to partition overflow
     // (need to insert again because of previous flush call needed to backup data)
     for (size_t i = 0; i != num_items_init_scale; ++i) {
-        table.Insert(MyStruct(i, 0));
+        table.Insert(IntIntPair(i, 0));
     }
 
     ASSERT_EQ(num_partitions * num_items_init_scale, table.NumItems());
@@ -495,15 +494,15 @@ TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
     // insert as many items guaranteed to DO lead to partition overflow
     // resize happens here
     for (size_t i = 0; i != table.NumItems(); ++i) {
-        table.Insert(MyStruct(i, 1));
+        table.Insert(IntIntPair(i, 1));
     }
 
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0, table.PartitionSize(i));
     }
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = manager.GetIterator<MyStruct>(ids[i]);
@@ -517,40 +516,40 @@ TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce1) {
-    auto key_ex = [](const MyStruct& in) {
-        return in.key % 500;
+TEST_F(ReducePreLinProTable, DISABLED_InsertManyIntsAndTestReduce1) {
+    auto key_ex = [](const IntIntPair in) {
+        return in.first % 501;
     };
 
-    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
+    auto red_fn = [](const IntIntPair in1, const IntIntPair in2) {
+        return IntIntPair(in1.first, in1.second + in2.second);
     };
 
     size_t total_sum = 0, total_count = 0;
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+    std::vector<Emitter<IntIntPair> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<IntIntPair>(id1));
 
     size_t nitems = 1 * 1024 * 1024;
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct> >
+            Emitter<IntIntPair> >
             table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
-    for (size_t i = 0; i != nitems; ++i) {
-        table.Insert(MyStruct(i, 1));
+    for (size_t i = 1; i <= nitems; ++i) {
+        table.Insert(IntIntPair(i, 1));
     }
 
     table.Flush();
 
-    auto it1 = manager.GetIterator<MyStruct>(id1);
+    auto it1 = manager.GetIterator<IntIntPair>(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
         total_count++;
-        total_sum += n.count;
+        total_sum += n.second;
     }
 
     // actually check that the reduction worked
@@ -558,33 +557,33 @@ TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce1) {
     ASSERT_EQ(nitems, total_sum);
 }
 
-TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce2) {
-    auto key_ex = [](const MyStruct& in) {
-        return in.key;
+TEST_F(ReducePreLinProTable, DISABLED_InsertManyIntsAndTestReduce2) {
+    auto key_ex = [](const IntIntPair in) {
+        return in.first;
     };
 
-    auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
+    auto red_fn = [](const IntIntPair in1, const IntIntPair in2) {
+        return IntIntPair(in1.first, in1.second + in2.second);
     };
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+    std::vector<Emitter<IntIntPair> > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<IntIntPair>(id1));
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct> >
+            Emitter<IntIntPair> >
             table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     int sum = 0;
-    for (size_t i = 0; i != nitems_per_key; ++i) {
+    for (size_t i = 1; i <= nitems_per_key; ++i) {
         sum += i;
-        for (size_t j = 0; j != nitems; ++j) {
-            table.Insert(MyStruct(j, i));
+        for (size_t j = 1; j <= nitems; ++j) {
+            table.Insert(IntIntPair(j, i));
         }
     }
 
@@ -594,10 +593,10 @@ TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce2) {
 
     ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<MyStruct>(id1);
+    auto it1 = manager.GetIterator<IntIntPair>(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
-        ASSERT_EQ(sum, n.count);
+        ASSERT_EQ(sum, n.second);
     }
 }
 
@@ -629,17 +628,17 @@ TEST_F(ReducePreLinProTable, DISABLED_InsertManyStringItemsAndTestReduce) {
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
             Emitter<StringPair> >
-            table(1, 10, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, {emitters});
+            table(1, nitems, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, {emitters});
 
     // insert lots of items
     int sum = 0;
-    for (size_t j = 0; j != nitems; ++j) {
+    for (size_t j = 1; j <= nitems; ++j) {
         sum = 0;
         std::string str;
         randomStr(str, 10);
-        for (size_t i = 0; i != nitems_per_key; ++i) {
+        for (size_t i = 1; i <= nitems_per_key; ++i) {
             sum += i;
-            table.Insert(std::make_pair(str, i));
+            table.Insert(StringPair(str, i));
         }
     }
 
