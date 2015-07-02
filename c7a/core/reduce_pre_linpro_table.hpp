@@ -5,6 +5,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -27,81 +28,81 @@
 #include <utility>
 
 namespace c7a {
-namespace core {
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
-class ReducePreLinProTable
-{
-    static const bool debug = false;
+    namespace core {
+        template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
+        class ReducePreLinProTable
+        {
+            static const bool debug = false;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+            using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+            using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+            typedef std::pair<Key, Value> KeyValuePair;
 
-protected:
-    struct hash_result
-    {
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the partition's sub-hashtable of this item
-        size_t partition_offset;
-        //! index within the whole hashtable
-        size_t global_index;
+        protected:
+            struct hash_result
+            {
+                //! which partition number the item belongs to.
+                size_t partition_id;
+                //! index within the partition's sub-hashtable of this item
+                size_t partition_offset;
+                //! index within the whole hashtable
+                size_t global_index;
 
-        hash_result(Key v, const ReducePreLinProTable& ht) {
-            size_t hashed = std::hash<Key>() (v);
+                hash_result(Key v, const ReducePreLinProTable& ht) {
+                    size_t hashed = std::hash<Key>() (v);
 
-            // partition idx
-            partition_offset = hashed % ht.num_items_per_partition_;
+                    // partition idx
+                    partition_offset = hashed % ht.num_items_per_partition_;
 
-            // partition id
-            partition_id = hashed % ht.num_partitions_;
+                    // partition id
+                    partition_id = hashed % ht.num_partitions_;
 
-            // global idx
-            global_index = partition_id * ht.num_items_per_partition_ + partition_offset;
-        }
-    };
+                    // global idx
+                    global_index = partition_id * ht.num_items_per_partition_ + partition_offset;
+                }
+            };
 
-public:
-    ReducePreLinProTable(size_t num_partitions,
-                         size_t num_items_init_scale,
-                         size_t num_items_resize_scale,
-                         size_t stepsize,
-                         size_t max_stepsize,
-                         double max_partition_fill_ratio,
-                         size_t max_num_items_table,
-                    KeyExtractor key_extractor, ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit)
-        : num_partitions_(num_partitions),
-          num_items_init_scale_(num_items_init_scale),
-          num_items_resize_scale_(num_items_resize_scale),
-          stepsize_(stepsize),
-          max_stepsize_(max_stepsize),
-          max_partition_fill_ratio_(max_partition_fill_ratio),
-          max_num_items_table_(max_num_items_table),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
-        init();
-    }
+        public:
+            ReducePreLinProTable(size_t num_partitions,
+                                 size_t num_items_init_scale,
+                                 size_t num_items_resize_scale,
+                                 size_t stepsize,
+                                 size_t max_stepsize,
+                                 double max_partition_fill_ratio,
+                                 size_t max_num_items_table,
+                                 KeyExtractor key_extractor, ReduceFunction reduce_function,
+                                 std::vector<EmitterFunction>& emit)
+                    : num_partitions_(num_partitions),
+                      num_items_init_scale_(num_items_init_scale),
+                      num_items_resize_scale_(num_items_resize_scale),
+                      stepsize_(stepsize),
+                      max_stepsize_(max_stepsize),
+                      max_partition_fill_ratio_(max_partition_fill_ratio),
+                      max_num_items_table_(max_num_items_table),
+                      key_extractor_(key_extractor),
+                      reduce_function_(reduce_function),
+                      emit_(std::move(emit)) {
+                init();
+            }
 
-    ReducePreLinProTable(size_t num_partitions, KeyExtractor key_extractor,
-                   ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
-        : num_partitions_(num_partitions),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
-        init();
-    }
+            ReducePreLinProTable(size_t num_partitions, KeyExtractor key_extractor,
+                                 ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+                    : num_partitions_(num_partitions),
+                      key_extractor_(key_extractor),
+                      reduce_function_(reduce_function),
+                      emit_(std::move(emit)) {
+                init();
+            }
 
-    //! non-copyable: delete copy-constructor
-    ReducePreLinProTable(const ReducePreLinProTable&) = delete;
-    //! non-copyable: delete assignment operator
-    ReducePreLinProTable& operator = (const ReducePreLinProTable&) = delete;
+            //! non-copyable: delete copy-constructor
+            ReducePreLinProTable(const ReducePreLinProTable&) = delete;
+            //! non-copyable: delete assignment operator
+            ReducePreLinProTable& operator = (const ReducePreLinProTable&) = delete;
 
-    ~ReducePreLinProTable() {
-    }
+            ~ReducePreLinProTable() {
+            }
 
     void init() {
         sLOG << "creating reducePreLinProTable with" << emit_.size() << "output emiters";
@@ -116,7 +117,8 @@ public:
         }
         num_items_per_partition_ = num_items_ / num_partitions_;
 
-        vector_.resize(num_items_, NULL);
+        KeyValuePair _sentinel;
+        vector_.resize(num_items_, _sentinel);
         items_per_partition_.resize(num_partitions_, 0);
     }
 
@@ -128,7 +130,6 @@ public:
      */
     void Insert(Value&& p) {
         Key key = key_extractor_(p);
-        LOG << "key " << key;
 
         hash_result h = hash_result(key, *this);
 
@@ -136,16 +137,18 @@ public:
 
         int pos = h.global_index;
         size_t count = 0;
-        KeyValuePair *current = vector_[pos];
 
-        while (current != NULL)
+        KeyValuePair current = vector_[pos];
+
+        KeyValuePair _sentinel;
+        while (current != _sentinel)
         {
-            if (current->first == key)
+            if (current.first == key)
             {
                 LOG << "match of key: " << key
-                << " and " << current->first << " ... reducing...";
+                    << " and " << current.first << " ... reducing...";
 
-                current->second = reduce_function_(current->second, p);
+                current.second = reduce_function_(current.second, p);
 
                 LOG << "...finished reduce!";
                 return;
@@ -168,9 +171,9 @@ public:
         }
 
         // insert new pair
-        if (current == NULL)
+        if (current == _sentinel)
         {
-            vector_[pos + count] = new KeyValuePair(key, std::move(p));
+            vector_[pos + count] = KeyValuePair(key, p);
 
             // increase total counter
             table_size_++;
@@ -185,19 +188,17 @@ public:
             FlushLargestPartition();
         }
 
-
         if (items_per_partition_[h.partition_id]
             / num_items_per_partition_ >= max_partition_fill_ratio_)
         {
             LOG << "resize";
             ResizeUp();
         }
-
     }
 
     /*!
-     * Flushes all items.
-     */
+    * Flushes all items.
+    */
     void Flush() {
         LOG << "Flushing all items";
 
@@ -231,16 +232,16 @@ public:
         }
 
         LOG << "currMax: "
-            << p_size_max
-            << " currentIdx: "
-            << p_idx
-            << " currentIdx*p_size: "
-            << p_idx * num_items_per_partition_
-            << " CurrentIdx*p_size+p_size-1 "
-            << p_idx * num_items_per_partition_ + num_items_per_partition_ - 1;
+        << p_size_max
+        << " currentIdx: "
+        << p_idx
+        << " currentIdx*p_size: "
+        << p_idx * num_items_per_partition_
+        << " CurrentIdx*p_size+p_size-1 "
+        << p_idx * num_items_per_partition_ + num_items_per_partition_ - 1;
 
         LOG << "Largest patition id: "
-            << p_idx;
+        << p_idx;
 
         FlushPartition(p_idx);
 
@@ -252,17 +253,18 @@ public:
      */
     void FlushPartition(size_t partition_id) {
         LOG << "Flushing items of partition with id: "
-            << partition_id;
+        << partition_id;
 
+        KeyValuePair _sentinel;
         for (size_t i = partition_id * num_items_per_partition_;
              i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
         {
-            KeyValuePair *current = vector_[i];
-            if (current != NULL)
+            KeyValuePair current = vector_[i];
+            //std::cout << current.first << " " << current.second << std::endl;
+            if (current.first != _sentinel.first)
             {
-                emit_[partition_id](std::move(current->second));
-                operator delete (vector_[i]);
-                vector_[i] = NULL;
+                emit_[partition_id](std::move(current.second));
+                vector_[i] = _sentinel;
             }
         }
 
@@ -274,7 +276,7 @@ public:
         emit_[partition_id].Flush();
 
         LOG << "Flushed items of partition with id: "
-            << partition_id;
+        << partition_id;
     }
 
     /*!
@@ -331,19 +333,20 @@ public:
         table_size_ = 0;
 
         // move old hash array
-        std::vector<KeyValuePair*> vector_old;
+        std::vector<KeyValuePair> vector_old;
         std::swap(vector_old, vector_);
 
         // init new hash array
-        vector_.resize(num_items_, NULL);
+        KeyValuePair _sentinel;
+        vector_.resize(num_items_, _sentinel);
 
         // rehash all items in old array
-        for (KeyValuePair* k_v_pair : vector_old)
+        for (KeyValuePair k_v_pair : vector_old)
         {
-            KeyValuePair* current = k_v_pair;
-            if (current != NULL)
+            KeyValuePair current = k_v_pair;
+            if (current.first != _sentinel.first)
             {
-                Insert(std::move(current->second));
+                Insert(std::move(current.second));
             }
         }
         LOG << "Resized";
@@ -355,9 +358,10 @@ public:
     void Clear() {
         LOG << "Clearing";
 
-        for (KeyValuePair* k_v_pair : vector_)
+        KeyValuePair _sentinel;
+        for (KeyValuePair k_v_pair : vector_)
         {
-            k_v_pair = NULL; // TODO(ms): fix, doesnt work
+            k_v_pair = _sentinel; // TODO(ms): fix, doesnt work
         }
 
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
@@ -373,27 +377,29 @@ public:
         num_items_ = num_partitions_ * num_items_init_scale_;
         num_items_per_partition_ = num_items_ / num_partitions_;
 
-        for (KeyValuePair* k_v_pair : vector_)
+        KeyValuePair _sentinel;
+        for (KeyValuePair k_v_pair : vector_)
         {
-            k_v_pair = NULL; // TODO(ms): fix, doesnt work
+            k_v_pair = _sentinel; // TODO(ms): fix, doesnt work
         }
 
-        vector_.resize(num_items_, NULL);
+        vector_.resize(num_items_, _sentinel);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         table_size_ = 0;
         LOG << "Resetted";
     }
 
     /*!
-     * Prints content of hash table.
-     */
+    * Prints content of hash table.
+    */
     void Print() {
 
         std::string log = "Printing\n";
 
+        KeyValuePair _sentinel;
         for (int i = 0; i < num_items_; i++)
         {
-            if (vector_[i] == NULL)
+            if (vector_[i] == _sentinel)
             {
                 log += "item: ";
                 log += std::to_string(i);
@@ -404,9 +410,9 @@ public:
             log += "item: ";
             log += std::to_string(i);
             log += " (";
-            log += vector_[i]->first;
+            log += vector_[i].first;
             log += ", ";
-            //log += vector_[i]->second; // TODO(ms): How to convert Value to a string?
+            //log += vector_[i].second; // TODO(ms): How to convert Value to a string?
             log += ")\n";
         }
 
@@ -415,42 +421,41 @@ public:
         return;
     }
 
-private:
-    size_t num_partitions_;                 // partition size
+        private:
+            size_t num_partitions_;                 // partition size
 
-    size_t num_items_init_scale_ = 10;      // set number of items per partition based on num_partitions
-    // multiplied with some scaling factor, must be equal to or greater than 1
+            size_t num_items_init_scale_ = 10;      // set number of items per partition based on num_partitions
+            // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_items_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
+            size_t num_items_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
 
-    size_t stepsize_ = 1;                   // stepsize in case of collision
+            size_t stepsize_ = 1;                   // stepsize in case of collision
 
-    size_t max_stepsize_ = 10;              // max stepsize before resize
+            size_t max_stepsize_ = 10;              // max stepsize before resize
 
-    double max_partition_fill_ratio_ = 0.9;  // max partition fill ratio before resize
+            double max_partition_fill_ratio_ = 0.9;  // max partition fill ratio before resize
 
-    size_t max_num_items_table_ = 1048576;   // max num of items before spilling of largest partition
+            size_t max_num_items_table_ = 1048576;   // max num of items before spilling of largest partition
 
-    size_t num_items_;                      // num items
+            size_t num_items_;                      // num items
 
-    size_t num_items_per_partition_;        // num items per partition
+            size_t num_items_per_partition_;        // num items per partition
 
-    std::vector<size_t> items_per_partition_; // num items per partition
+            std::vector<size_t> items_per_partition_; // num items per partition
 
-    size_t table_size_ = 0;                   // total number of items
+            size_t table_size_ = 0;                   // total number of items
 
-    KeyExtractor key_extractor_;
+            KeyExtractor key_extractor_;
 
-    ReduceFunction reduce_function_;
+            ReduceFunction reduce_function_;
 
-    std::vector<EmitterFunction> emit_;
-    std::vector<int> emit_stats_;
+            std::vector<EmitterFunction> emit_;
+            std::vector<int> emit_stats_;
 
-    // TODO(ms): remove *
-    std::vector<KeyValuePair*> vector_;
-};
+            std::vector<KeyValuePair> vector_;
+        };
 
-} // namespace core
+    } // namespace core
 } // namespace c7a
 
 #endif // !C7A_CORE_REDUCE_PRE_LINPRO_TABLE_HEADER
