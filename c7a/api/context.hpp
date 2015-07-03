@@ -45,7 +45,7 @@ public:
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
     data::Manager & get_data_manager() {
-        if(thread_id_ != 0)
+        if (thread_id_ != 0)
         {
             //TODO (ts)
             assert(false && "Data Manager does not support multi-threading at the moment.");
@@ -60,9 +60,9 @@ public:
 
     /**
      * @brief Gets the flow control channel for a certain thread.
-     * 
-     * @param threadId The ID of the thread to get the flow channel for. 
-     * @return The flow control channel associated with the given ID. 
+     *
+     * @param threadId The ID of the thread to get the flow channel for.
+     * @return The flow control channel associated with the given ID.
      */
     net::FlowControlChannel & get_flow_control_channel() {
         return job_manager_.get_flow_manager().GetFlowControlChannel(thread_id_);
@@ -95,9 +95,9 @@ private:
     common::Stats stats_;
     int thread_id_;
 };
-
 }
-} // namespace c7a
+
+} // namespace api
 
 #endif // !C7A_API_CONTEXT_HEADER
 

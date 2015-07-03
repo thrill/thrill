@@ -318,7 +318,10 @@ public:
         i = AllReduce(0);
     }
 };
+
 } // namespace net
 } // namespace c7a
 
-#endif //! C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
+#endif // !C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
+
+/******************************************************************************/
