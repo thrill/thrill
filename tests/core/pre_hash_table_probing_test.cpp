@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/pre_hash_table_test.cpp
+ * tests/core/pre_hash_table_probing_test.cpp
  *
  * Part of Project c7a.
  *
@@ -18,10 +18,10 @@ using IntIntPair = std::pair<int, int>;
 
 struct ReducePreProbingTable : public::testing::Test {
     ReducePreProbingTable()
-            : dispatcher(),
-              manager(dispatcher),
-              id1(manager.AllocateDIA()),
-              id2(manager.AllocateDIA()) {
+        : dispatcher(),
+          manager(dispatcher),
+          id1(manager.AllocateDIA()),
+          id2(manager.AllocateDIA()) {
         one_int_emitter.emplace_back(manager.GetLocalEmitter<int>(id1));
         one_pair_emitter.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
 
@@ -54,27 +54,27 @@ struct MyStruct
 };
 
 namespace c7a {
-    namespace data {
-        namespace serializers {
-            template <>
-            struct Impl<MyStruct>{
-                static std::string Serialize(const MyStruct& s) {
-                    std::size_t len = 2 * sizeof(int);
-                    char result[len];
-                    std::memcpy(result, &(s.key), sizeof(int));
-                    std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
-                    return std::string(result, len);
-                }
-
-                static MyStruct Deserialize(const std::string& x) {
-                    int i, j;
-                    std::memcpy(&i, x.c_str(), sizeof(int));
-                    std::memcpy(&j, x.substr(sizeof(int), 2 * sizeof(int)).c_str(), sizeof(int));
-                    return MyStruct(i, j);
-                }
-            };
-        }
+namespace data {
+namespace serializers {
+template <>
+struct Impl<MyStruct>{
+    static std::string Serialize(const MyStruct& s) {
+        std::size_t len = 2 * sizeof(int);
+        char result[len];
+        std::memcpy(result, &(s.key), sizeof(int));
+        std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
+        return std::string(result, len);
     }
+
+    static MyStruct Deserialize(const std::string& x) {
+        int i, j;
+        std::memcpy(&i, x.c_str(), sizeof(int));
+        std::memcpy(&j, x.substr(sizeof(int), 2 * sizeof(int)).c_str(), sizeof(int));
+        return MyStruct(i, j);
+    }
+};
+}
+}
 }
 
 TEST_F(ReducePreProbingTable, AddIntegers) {
@@ -104,11 +104,11 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, key_ex, red_fn, one_int_emitter);
+    table(1, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1u);
     table.Insert(2u);
@@ -123,13 +123,13 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
 
 TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     auto key_ex = [](int in) { return in; };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, key_ex, red_fn, one_int_emitter);
+    table(1, key_ex, red_fn, one_int_emitter);
 
     table.SetMaxSize(3);
 
@@ -149,15 +149,15 @@ TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
 // no size constraint, one partition
 TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, 10, 2, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
+    table(1, 10, 2, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1u);
     table.Insert(2u);
@@ -184,15 +184,15 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
 // no size constraint, two partitions
 TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, 5, 2, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
+    table(2, 5, 2, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
 
     table.Insert(1);
     table.Insert(2);
@@ -228,15 +228,15 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
 // max table size constraint, one partition
 TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, 10, 2, 1, 10, 1.0f, 4, key_ex, red_fn, one_int_emitter);
+    table(1, 10, 2, 1, 10, 1.0f, 4, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
     table.Insert(2);
@@ -262,15 +262,15 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
 //// max table size constraint, two partitions
 TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, 5, 2, 1, 10, 1.0f, 4, key_ex, red_fn, two_int_emitters);
+    table(2, 5, 2, 1, 10, 1.0f, 4, key_ex, red_fn, two_int_emitters);
 
     table.Insert(1);
     table.Insert(2);
@@ -303,17 +303,17 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(0u, table.Size());
 }
 
-TEST_F(ReducePreProbingTable, ComplexType) {
+TEST_F(ReducePreProbingTable, DISABLED_ComplexType) {
     auto key_ex = [](StringPair in) {
-        return in.first;
-    };
+                      return in.first;
+                  };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-        return StringPair(in1.first, in1.second + in2.second);
-    };
+                      return StringPair(in1.first, in1.second + in2.second);
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
-            table(1, 10, 2, 1, 10, 1.1f, 3, key_ex, red_fn, one_pair_emitter);
+    table(1, 10, 2, 1, 10, 1.1f, 3, key_ex, red_fn, one_pair_emitter);
 
     table.Insert(StringPair("hallo", 1));
     table.Insert(StringPair("hello", 1));
@@ -332,15 +332,15 @@ TEST_F(ReducePreProbingTable, ComplexType) {
 
 TEST_F(ReducePreProbingTable, MultipleWorkers) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, key_ex, red_fn, one_int_emitter);
+    table(2, key_ex, red_fn, one_int_emitter);
 
     ASSERT_EQ(0u, table.Size());
     table.SetMaxSize(5);
@@ -357,15 +357,15 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
 // then add 2 items with different key, but having same hash value, one partition
 TEST_F(ReducePreProbingTable, ResizeOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
+    table(1, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
 
@@ -396,15 +396,15 @@ TEST_F(ReducePreProbingTable, ResizeOnePartition) {
 // Check that same items are in same partition after resize
 TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
+    table(2, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
 
     ASSERT_EQ(0u, table.Size());
     ASSERT_EQ(4u, table.NumItems());
@@ -428,12 +428,12 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
 
 TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeys) {
     auto key_ex = [](const IntIntPair in) {
-        return in.first;
-    };
+                      return in.first;
+                  };
 
     auto red_fn = [](const IntIntPair in1, const IntIntPair in2) {
-        return IntIntPair(in1.first, in1.second + in2.second);
-    };
+                      return IntIntPair(in1.first, in1.second + in2.second);
+                  };
 
     size_t num_partitions = 3;
     size_t num_items_init_scale = 2;
@@ -449,8 +449,8 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<IntIntPair> >
-            table(num_partitions, num_items_init_scale, 10, 1, 10, 1.0f,
-                  nitems, key_ex, red_fn, { emitters });
+    table(num_partitions, num_items_init_scale, 10, 1, 10, 1.0f,
+          nitems, key_ex, red_fn, { emitters });
 
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
@@ -500,9 +500,9 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0, table.PartitionSize(i));
+        ASSERT_EQ((size_t) 0, table.PartitionSize(i));
     }
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ((size_t) 0, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = manager.GetIterator<MyStruct>(ids[i]);
@@ -518,12 +518,12 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeys) {
 // Insert several items with same key and test application of local reduce
 TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce1) {
     auto key_ex = [](const IntIntPair in) {
-        return in.first % 501;
-    };
+                      return in.first % 501;
+                  };
 
     auto red_fn = [](const IntIntPair in1, const IntIntPair in2) {
-        return IntIntPair(in1.first, in1.second + in2.second);
-    };
+                      return IntIntPair(in1.first, in1.second + in2.second);
+                  };
 
     size_t total_sum = 0, total_count = 0;
 
@@ -535,8 +535,8 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce1) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
-            Emitter<IntIntPair> >
-            table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
+                                     Emitter<IntIntPair> >
+    table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     for (size_t i = 1; i <= nitems; ++i) {
@@ -559,12 +559,12 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce1) {
 
 TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce2) {
     auto key_ex = [](const IntIntPair in) {
-        return in.first;
-    };
+                      return in.first;
+                  };
 
     auto red_fn = [](const IntIntPair in1, const IntIntPair in2) {
-        return IntIntPair(in1.first, in1.second + in2.second);
-    };
+                      return IntIntPair(in1.first, in1.second + in2.second);
+                  };
 
     auto id1 = manager.AllocateDIA();
     std::vector<Emitter<IntIntPair> > emitters;
@@ -575,8 +575,8 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce2) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
-            Emitter<IntIntPair> >
-            table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
+                                     Emitter<IntIntPair> >
+    table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     int sum = 0;
@@ -616,8 +616,8 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-        return std::make_pair(in1.first, in1.second + in2.second);
-    };
+                      return std::make_pair(in1.first, in1.second + in2.second);
+                  };
 
     auto id1 = manager.AllocateDIA();
     std::vector<Emitter<StringPair> > emitters;
@@ -627,8 +627,8 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
-            Emitter<StringPair> >
-            table(1, nitems, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, {emitters});
+                                     Emitter<StringPair> >
+    table(1, nitems, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     int sum = 0;

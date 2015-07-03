@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/generator_node.hpp
+ * c7a/api/generate_file_node.hpp
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_GENERATOR_NODE_HEADER
-#define C7A_API_GENERATOR_NODE_HEADER
+#ifndef C7A_API_GENERATE_FILE_NODE_HEADER
+#define C7A_API_GENERATE_FILE_NODE_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/api/dop_node.hpp>
@@ -39,7 +39,7 @@ namespace api {
  * \tparam ReadFunction Type of the generate function.
  */
 template <typename Output, typename GeneratorFunction>
-class GeneratorNode : public DOpNode<Output>
+class GenerateFileNode : public DOpNode<Output>
 {
 public:
     using Super = DOpNode<Output>;
@@ -54,17 +54,17 @@ public:
     * \param path_in Path of the input file
     * \param size Number of elements in the generated DIA
     */
-    GeneratorNode(Context& ctx,
-                  GeneratorFunction generator_function,
-                  std::string path_in,
-                  size_t size)
+    GenerateFileNode(Context& ctx,
+                     GeneratorFunction generator_function,
+                     std::string path_in,
+                     size_t size)
         : DOpNode<Output>(ctx, { }),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
     { }
 
-    virtual ~GeneratorNode() { }
+    virtual ~GenerateFileNode() { }
 
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
@@ -85,14 +85,14 @@ public:
             elements_.push_back(generator_function_(line));
         }
 
-        
         size_t local_elements;
         if (context_.number_worker() == context_.rank() + 1) {
             //last worker gets leftovers
             local_elements = size_ -
-                ((context_.number_worker() - 1) *
-                 (size_ / context_.number_worker())); 
-        } else {
+                             ((context_.number_worker() - 1) *
+                              (size_ / context_.number_worker()));
+        }
+        else {
             local_elements = (size_ / context_.number_worker());
         }
 
@@ -145,9 +145,30 @@ private:
 
 //! \}
 
-}
-} // namespace c7a
+template <typename GeneratorFunction>
+auto GenerateFromFile(Context & ctx, std::string filepath,
+                      const GeneratorFunction &generator_function,
+                      size_t size) {
+    using GeneratorResult =
+              typename FunctionTraits<GeneratorFunction>::result_type;
+    using GenerateResultNode =
+              GenerateFileNode<GeneratorResult, GeneratorFunction>;
 
-#endif // !C7A_API_GENERATOR_NODE_HEADER
+    auto shared_node =
+        std::make_shared<GenerateResultNode>(ctx,
+                                             generator_function,
+                                             filepath,
+                                             size);
+
+    auto generator_stack = shared_node->ProduceStack();
+
+    return DIARef<GeneratorResult, decltype(generator_stack)>
+               (std::move(shared_node), generator_stack);
+}
+}
+
+} // namespace api
+
+#endif // !C7A_API_GENERATE_FILE_NODE_HEADER
 
 /******************************************************************************/

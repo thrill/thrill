@@ -15,7 +15,7 @@
 using namespace c7a::data;
 using namespace c7a::net;
 using IntPair = std::pair<int, int>;
-using StringPairPair = std::pair<std::string, std::pair<std::string, int>>;
+using StringPairPair = std::pair<std::string, std::pair<std::string, int> >;
 using StringPair = std::pair<std::string, int>;
 
 struct PreTable : public::testing::Test {
@@ -34,10 +34,10 @@ struct PreTable : public::testing::Test {
         two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPairPair>(id2));
     }
 
-    DispatcherThread                  dispatcher;
-    Manager                           manager;
-    DIAId                             id1;
-    DIAId                             id2;
+    DispatcherThread                      dispatcher;
+    Manager                               manager;
+    DIAId                                 id1;
+    DIAId                                 id2;
     // all emitters access the same dia id, which is bad if you use them both
     std::vector<Emitter<IntPair> >        one_int_emitter;
     std::vector<Emitter<IntPair> >        two_int_emitters;
@@ -81,7 +81,7 @@ struct Impl<MyStruct>{
 
 TEST_F(PreTable, CustomHashFunction) {
 
-	auto key_ex = [](int in) {
+    auto key_ex = [](int in) {
                       return in;
                   };
 
@@ -89,36 +89,35 @@ TEST_F(PreTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-	using HashTable = typename c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-														 Emitter<IntPair> >;
+    using HashTable = typename c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
+                                                         Emitter<IntPair> >;
 
-	auto hash_function = [](int key, HashTable*) {
+    auto hash_function = [](int key, HashTable*) {
 
-		size_t global_index = key / 2;
-		size_t partition_id = 0;
-		size_t partition_offset = key / 2; 
-		
-		return HashTable::hash_result(partition_id, partition_offset, global_index);
-	};
+                             size_t global_index = key / 2;
+                             size_t partition_id = 0;
+                             size_t partition_offset = key / 2;
 
-	HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, one_int_emitter, hash_function);
+                             return HashTable::hash_result(partition_id, partition_offset, global_index);
+                         };
 
-	for (int i = 0; i < 16; i++) {
-		table.Insert(std::move(i));
-	}
+    HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, one_int_emitter, hash_function);
 
-	table.Flush();
+    for (int i = 0; i < 16; i++) {
+        table.Insert(std::move(i));
+    }
 
-	auto it1 = manager.GetIterator<IntPair>(id1);
+    table.Flush();
+
+    auto it1 = manager.GetIterator<IntPair>(id1);
     int c = 0;
     while (it1.HasNext()) {
         IntPair keyvalue = it1.Next();
-		ASSERT_EQ(keyvalue.first, keyvalue.second); 		
+        ASSERT_EQ(keyvalue.first, keyvalue.second);
         c++;
     }
 
     ASSERT_EQ(16, c);
-	
 }
 
 TEST_F(PreTable, AddIntegers) {
@@ -485,17 +484,17 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     size_t bucket_size = 1 * 1024;
     size_t nitems = bucket_size + (num_partitions * num_buckets_init_scale * bucket_size);
 
-    std::vector<Emitter<std::pair<int,MyStruct> > > emitters;
+    std::vector<Emitter<std::pair<int, MyStruct> > > emitters;
     std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
     std::vector<DIAId> ids;
     for (size_t i = 0; i != num_partitions; ++i) {
         auto id = manager.AllocateDIA();
         ids.emplace_back(id);
-        emitters.emplace_back(manager.GetLocalEmitter<std::pair<int,MyStruct>>(id));
+        emitters.emplace_back(manager.GetLocalEmitter<std::pair<int, MyStruct> >(id));
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<std::pair<int,MyStruct>>, 16*1024>
+                              Emitter<std::pair<int, MyStruct> >, 16*1024>
     table(num_partitions, num_buckets_init_scale, 10, bucket_size,
           nitems, key_ex, red_fn, { emitters });
 
@@ -516,7 +515,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = manager.GetIterator<std::pair<int,MyStruct>>(ids[i]);
+        auto it = manager.GetIterator<std::pair<int, MyStruct> >(ids[i]);
         while (it.HasNext()) {
             auto n = it.Next();
             keys[i].push_back(n.second.key);
@@ -552,7 +551,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     ASSERT_EQ(0u, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = manager.GetIterator<std::pair<int,MyStruct>>(ids[i]);
+        auto it = manager.GetIterator<std::pair<int, MyStruct> >(ids[i]);
         while (it.HasNext()) {
             auto n = it.Next();
             if (n.second.count == 0) {
@@ -575,12 +574,12 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     size_t total_sum = 0, total_count = 0;
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<std::pair<int,MyStruct>> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<std::pair<int,MyStruct>>(id1));
+    std::vector<Emitter<std::pair<int, MyStruct> > > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<std::pair<int, MyStruct> >(id1));
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<std::pair<int,MyStruct>>, 16*1024>
+                              Emitter<std::pair<int, MyStruct> >, 16*1024>
     table(1, 2, 2, 128 * 1024, 1024 * 1024,
           key_ex, red_fn, { emitters });
 
@@ -592,7 +591,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     table.Flush();
 
-    auto it1 = manager.GetIterator<std::pair<int,MyStruct>>(id1);
+    auto it1 = manager.GetIterator<std::pair<int, MyStruct> >(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
         total_count++;
@@ -614,15 +613,15 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                   };
 
     auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<std::pair<int,MyStruct>> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<std::pair<int,MyStruct>>(id1));
+    std::vector<Emitter<std::pair<int, MyStruct> > > emitters;
+    emitters.emplace_back(manager.GetLocalEmitter<std::pair<int, MyStruct> >(id1));
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<std::pair<int,MyStruct>>, 16*1024>
+                              Emitter<std::pair<int, MyStruct> >, 16*1024>
     table(1, 2, 2, 128, nitems,
           key_ex, red_fn, { emitters });
 
@@ -641,7 +640,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<std::pair<int,MyStruct>>(id1);
+    auto it1 = manager.GetIterator<std::pair<int, MyStruct> >(id1);
     while (it1.HasNext()) {
         auto n = it1.Next();
         ASSERT_EQ(sum, n.second.count);
