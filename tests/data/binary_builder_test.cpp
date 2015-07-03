@@ -18,6 +18,32 @@ using c7a::data::BinaryBuffer;
 using c7a::data::BinaryBufferReader;
 using c7a::net::Buffer;
 
+TEST(BinaryBufferBuilder, PutsIncreaseElementCount) {
+    // construct a binary blob
+    BinaryBufferBuilder bb;
+    ASSERT_EQ(0u, bb.elements());
+    bb.Put<unsigned int>(1);
+    ASSERT_EQ(1u, bb.elements());
+    bb.PutString("test");
+    ASSERT_EQ(2u, bb.elements());
+    bb.PutVarint(42);
+    ASSERT_EQ(3u, bb.elements());
+}
+
+TEST(BinaryBufferBuilder, AppendIncreasesElementCount) {
+    // construct a binary blob
+    BinaryBufferBuilder bb;
+    ASSERT_EQ(0u, bb.elements());
+    bb.Put<unsigned int>(1);
+    ASSERT_EQ(1u, bb.elements());
+    bb.PutString("test");
+    ASSERT_EQ(2u, bb.elements());
+    bb.PutVarint(42);
+    ASSERT_EQ(3u, bb.elements());
+    bb.AppendString("test", 4);
+    ASSERT_EQ(7u, bb.elements());
+}
+
 TEST(BinaryBufferBuilder, Test1) {
     // construct a binary blob
     BinaryBufferBuilder bb;
@@ -27,13 +53,6 @@ TEST(BinaryBufferBuilder, Test1) {
 
         bb.PutVarint(42);
         bb.PutVarint(12345678);
-
-        // add a sub block
-        BinaryBufferBuilder sub;
-        sub.PutString("sub block");
-        sub.PutVarint(6 * 9);
-
-        bb.PutString(sub);
     }
 
     // read binary block and verify content
@@ -49,12 +68,6 @@ TEST(BinaryBufferBuilder, Test1) {
         0x2a,
         // bb.PutVarint(12345678);
         0xce, 0xc2, 0xf1, 0x05,
-        // begin sub block (length)
-        0x0b,
-        // sub.PutString("sub block");
-        0x09, 0x73, 0x75, 0x62, 0x20, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
-        // sub.PutVarint(6 * 9);
-        0x36,
     };
 
     BinaryBuffer bb_verify(bb_data, sizeof(bb_data));
@@ -72,13 +85,6 @@ TEST(BinaryBufferBuilder, Test1) {
     ASSERT_EQ(br.GetString(), "test");
     ASSERT_EQ(br.GetVarint(), 42u);
     ASSERT_EQ(br.GetVarint(), 12345678u);
-
-    {
-        BinaryBufferReader sub_br = br.GetBinaryBuffer();
-        ASSERT_EQ(sub_br.GetString(), "sub block");
-        ASSERT_EQ(sub_br.GetVarint(), 6 * 9u);
-        ASSERT_TRUE(sub_br.empty());
-    }
 
     ASSERT_TRUE(br.empty());
 

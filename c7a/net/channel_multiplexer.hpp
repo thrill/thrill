@@ -148,7 +148,7 @@ private:
 
     //! expects the next header from a socket and passes to ReadFirstHeaderPartFrom
     void ExpectHeaderFrom(Connection& s) {
-        auto expected_size = sizeof(StreamBlockHeader::expected_bytes) + sizeof(StreamBlockHeader::channel_id);
+        auto expected_size = sizeof(StreamBlockHeader);
         auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
         dispatcher_.AsyncRead(s, expected_size, callback);
     }

@@ -13,7 +13,6 @@
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/manager.hpp>
 #include <c7a/net/collective_communication.hpp>
-#include <c7a/net/network.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -260,19 +259,18 @@ TEST(Group, InitializeBroadcast) {
 TEST(Group, SendCyclic) {
     Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
 }
-/*
+
 TEST(Group, TestPrefixSum) {
-    for (size_t p = 2; p <= 8; p *= 2) {
+    for (size_t p = 1; p <= 8; ++p) {
         // Construct Group of p workers which perform a PrefixSum collective
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = 1;
-                net->PrefixSum(local_value);
+                PrefixSum(*net, local_value);
                 ASSERT_EQ(local_value, net->MyRank() + 1);
             });
     }
 }
-*/
 
 TEST(Group, TestAllReduce) {
     for (size_t p = 0; p <= 8; ++p) {
@@ -280,7 +278,7 @@ TEST(Group, TestAllReduce) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = net->MyRank();
-                c7a::net::AllReduce(*net, local_value);
+                AllReduce(*net, local_value);
                 ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
     }
@@ -293,7 +291,7 @@ TEST(Group, TestBroadcast) {
             p, [](Group* net) {
                 size_t local_value;
                 if (net->MyRank() == 0) local_value = 42;
-                c7a::net::Broadcast(*net, local_value);
+                Broadcast(*net, local_value);
                 ASSERT_EQ(local_value, 42u);
             });
     }
@@ -305,7 +303,7 @@ TEST(Group, TestReduceToRoot) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = net->MyRank();
-                c7a::net::ReduceToRoot(*net, local_value);
+                ReduceToRoot(*net, local_value);
                 if (net->MyRank() == 0)
                     ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
@@ -334,7 +332,7 @@ TEST(Group, TestBarrier) {
 
                 sLOG << "Before Barrier, worker" << net->MyRank();
 
-                c7a::net::ThreadBarrier(sync_mtx, cv, workers_copy);
+                ThreadBarrier(sync_mtx, cv, workers_copy);
 
                 local_mtx.lock();
                 result[k++] = 'A'; // A stands for 'After barrier'
@@ -350,21 +348,6 @@ TEST(Group, TestBarrier) {
             sLOG << "Checking position" << i;
             ASSERT_EQ(result[i], 'A');
         }
-    }
-}
-
-TEST(Group, TestNetworkCreation) {
-    static const bool debug = true;
-
-    Network net1(7);
-    sLOG << "Topology of default network is:" << net1.getTopology();
-    net1.CreateLinkedListTopology();
-    sLOG << "Topology has been modified to:" << net1.getTopology();
-
-    sLOG << "Traversing the data structure";
-
-    for (std::shared_ptr<Group> it = net1.getRoot(); it; it = it->getNext()) {
-        sLOG << "Worker with index: " << it->MyRank();
     }
 }
 
