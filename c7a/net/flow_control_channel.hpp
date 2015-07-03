@@ -313,6 +313,9 @@ public:
         return res;
     }
 
+    /**
+     * @brief A trivial global barrier.
+     */
     void await() {
         int i = 0;
         i = AllReduce(i);
