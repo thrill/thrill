@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/reduce_pre_table.hpp
+ * c7a/core/reduce_pre_linpro_table.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -71,8 +71,8 @@ public:
                          size_t max_stepsize,
                          double max_partition_fill_ratio,
                          size_t max_num_items_table,
-                    KeyExtractor key_extractor, ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit)
+                         KeyExtractor key_extractor, ReduceFunction reduce_function,
+                         std::vector<EmitterFunction>& emit)
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -87,7 +87,7 @@ public:
     }
 
     ReducePreLinProTable(size_t num_partitions, KeyExtractor key_extractor,
-                   ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+                         ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -100,8 +100,7 @@ public:
     //! non-copyable: delete assignment operator
     ReducePreLinProTable& operator = (const ReducePreLinProTable&) = delete;
 
-    ~ReducePreLinProTable() {
-    }
+    ~ReducePreLinProTable() { }
 
     void init() {
         sLOG << "creating reducePreLinProTable with" << emit_.size() << "output emiters";
@@ -136,14 +135,14 @@ public:
 
         int pos = h.global_index;
         size_t count = 0;
-        KeyValuePair *current = vector_[pos];
+        KeyValuePair* current = vector_[pos];
 
         while (current != NULL)
         {
             if (current->first == key)
             {
                 LOG << "match of key: " << key
-                << " and " << current->first << " ... reducing...";
+                    << " and " << current->first << " ... reducing...";
 
                 current->second = reduce_function_(current->second, p);
 
@@ -185,14 +184,12 @@ public:
             FlushLargestPartition();
         }
 
-
         if (items_per_partition_[h.partition_id]
             / num_items_per_partition_ >= max_partition_fill_ratio_)
         {
             LOG << "resize";
             ResizeUp();
         }
-
     }
 
     /*!
@@ -257,7 +254,7 @@ public:
         for (size_t i = partition_id * num_items_per_partition_;
              i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
         {
-            KeyValuePair *current = vector_[i];
+            KeyValuePair* current = vector_[i];
             if (current != NULL)
             {
                 emit_[partition_id](std::move(current->second));
@@ -416,24 +413,24 @@ public:
     }
 
 private:
-    size_t num_partitions_;                 // partition size
+    size_t num_partitions_;                   // partition size
 
-    size_t num_items_init_scale_ = 10;      // set number of items per partition based on num_partitions
+    size_t num_items_init_scale_ = 10;        // set number of items per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_items_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
+    size_t num_items_resize_scale_ = 2;       // resize scale on max_num_items_per_bucket_
 
-    size_t stepsize_ = 1;                   // stepsize in case of collision
+    size_t stepsize_ = 1;                     // stepsize in case of collision
 
-    size_t max_stepsize_ = 10;              // max stepsize before resize
+    size_t max_stepsize_ = 10;                // max stepsize before resize
 
-    double max_partition_fill_ratio_ = 0.9;  // max partition fill ratio before resize
+    double max_partition_fill_ratio_ = 0.9;   // max partition fill ratio before resize
 
-    size_t max_num_items_table_ = 1048576;   // max num of items before spilling of largest partition
+    size_t max_num_items_table_ = 1048576;    // max num of items before spilling of largest partition
 
-    size_t num_items_;                      // num items
+    size_t num_items_;                        // num items
 
-    size_t num_items_per_partition_;        // num items per partition
+    size_t num_items_per_partition_;          // num items per partition
 
     std::vector<size_t> items_per_partition_; // num items per partition
 

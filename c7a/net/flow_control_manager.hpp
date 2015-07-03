@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/flow_control_channel.hpp
+ * c7a/net/flow_control_manager.hpp
  *
  * Part of Project c7a.
  *
@@ -70,7 +70,10 @@ public:
         return channels[threadId];
     }
 };
+
 } // namespace net
 } // namespace c7a
 
 #endif //! C7A_NET_FLOW_CONTROL_MANAGER_HEADER
+
+/******************************************************************************/
