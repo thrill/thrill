@@ -27,7 +27,6 @@ template <typename Input, typename Output, typename Stack>
 class AllGatherNode : public ActionNode<Input>
 {
 public:
-
     using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
@@ -36,18 +35,18 @@ public:
                   DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
                   Stack& stack,
                   std::vector<Output>* out_vector
-        )
+                  )
         : ActionNode<Input>(ctx, { parent }),
           local_stack_(stack),
           out_vector_(out_vector),
           channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
     {
         emitters_ = context_.
-            get_data_manager().template GetNetworkEmitters<Output>(channel_used_);
+                    get_data_manager().template GetNetworkEmitters<Output>(channel_used_);
 
         auto pre_op_function = [=](Output input) {
-            PreOp(input);
-        };
+                                   PreOp(input);
+                               };
         auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
     }
@@ -74,7 +73,7 @@ public:
             while (it.HasNext()) {
                 out_vector_->push_back(it.Next());
             }
-        } while (!it.IsClosed());
+        } while (!it.IsFinished());
     }
 
     /*!
@@ -86,17 +85,16 @@ public:
     }
 
 private:
-
     //! Local stack
     Stack local_stack_;
 
-    std::vector<Output> * out_vector_;
+    std::vector<Output>* out_vector_;
 
     data::ChannelId channel_used_;
 
     static const bool debug = false;
 
-    std::vector<data::Emitter<Output>> emitters_;
+    std::vector<data::Emitter<Output> > emitters_;
 };
 
 template<typename T, typename Stack>
@@ -115,8 +113,9 @@ void DIARef<T, Stack>::AllGather(std::vector<Out>* out_vector) {
 }
 
 }
-} // namespace c7a
 
-#endif // !C7A_API_WRITE_NODE_HEADER
+} // namespace api
+
+#endif // !C7A_API_ALLGATHER_NODE_HEADER
 
 /******************************************************************************/

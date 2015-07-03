@@ -12,26 +12,26 @@
 #ifndef C7A_COMMON_CONCURRENT_QUEUE_HEADER
 #define C7A_COMMON_CONCURRENT_QUEUE_HEADER
 
-#if HAVE_INTELTBB
+//#if HAVE_INTELTBB
 
-#include <tbb/concurrent_queue.h>
+//#include <tbb/concurrent_queue.h>
 
-#else // !HAVE_INTELTBB
+//#else // !HAVE_INTELTBB
 
 #include <queue>
 #include <mutex>
 
-#endif // !HAVE_INTELTBB
+//#endif // !HAVE_INTELTBB
 
 namespace c7a {
 namespace common {
 
-#if HAVE_INTELTBB
+/*#if HAVE_INTELTBB
 
 template <typename T>
 using concurrent_queue = tbb::concurrent_queue<T>;
 
-#else   // !HAVE_INTELTBB
+#else   // !HAVE_INTELTBB*/
 
 /*!
  * This is a queue, similar to std::queue and tbb::concurrent_queue, except that
@@ -105,7 +105,7 @@ public:
     }
 };
 
-#endif // !HAVE_INTELTBB
+//#endif // !HAVE_INTELTBB
 
 } // namespace common
 } // namespace c7a
