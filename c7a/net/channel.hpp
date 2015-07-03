@@ -92,7 +92,7 @@ public:
             delete stream;
         }
         else {
-            sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
+            sLOG << "pickup stream on" << stream->socket << "in channel" << id_ << "from" << stream->header.sender_rank;
             active_streams_++;
             ReadFromStream(stream);
         }
