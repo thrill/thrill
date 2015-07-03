@@ -81,8 +81,9 @@ public:
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
                           std::vector<EmitterFunction>& emit,
+                          std::pair<Key, Value> sentinel,
                           HashFunction hash_function
-                              = [](Key v, ReducePreProbingTable* ht) {
+                          = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
 
                                     size_t partition_offset = hashed %
@@ -93,13 +94,13 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                },
+                          },
                           ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable*) {
+                          = [](int pos, ReducePreProbingTable*) {
                                     int probing_offset = pos + 1;
                                     probing_result pr(probing_offset);
                                     return pr;
-                                })
+                          })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -112,11 +113,12 @@ public:
           emit_(std::move(emit)),
           hash_function_(hash_function),
           probing_function_(probing_function) {
-        init();
+        init(sentinel);
     }
 
     ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
                           ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
+                          std::pair<Key, Value> sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
@@ -142,7 +144,7 @@ public:
           emit_(std::move(emit)),
           hash_function_(hash_function),
           probing_function_(probing_function) {
-        init();
+        init(sentinel);
     }
 
     //! non-copyable: delete copy-constructor
@@ -152,7 +154,7 @@ public:
 
     ~ReducePreProbingTable() { }
 
-    void init() {
+    void init(std::pair<Key, Value> sentinel) {
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -165,8 +167,9 @@ public:
         }
         num_items_per_partition_ = num_items_ / num_partitions_;
 
-        KeyValuePair _sentinel;
-        vector_.resize(num_items_, _sentinel);
+        // set the key to initial key
+        sentinel_ = KeyValuePair(sentinel.first, sentinel.second);
+        vector_.resize(num_items_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
     }
 
@@ -181,24 +184,19 @@ public:
 
         hash_result h = hash_function_(key, this);
 
-        //hash_result h = hash_result(key, *this);
-
-        LOG << num_items_;
-
         int pos = h.global_index;
         size_t count = 0;
 
-        KeyValuePair current = vector_[pos];
+        KeyValuePair* current = &vector_[pos];
 
-        KeyValuePair _sentinel;
-        while (current != _sentinel)
+        while (current->first != sentinel_.first)
         {
-            if (current.first == key)
+            if (current->first == key)
             {
                 LOG << "match of key: " << key
-                    << " and " << current.first << " ... reducing...";
+                    << " and " << current->first << " ... reducing...";
 
-                current.second = reduce_function_(current.second, p);
+                current->second = reduce_function_(current->second, p);
 
                 LOG << "...finished reduce!";
                 return;
@@ -208,7 +206,7 @@ public:
             probing_result pr = probing_function_(pos, this);
             count += pr.probing_offset;
 
-            if (count >= max_stepsize_ || count >= num_items_per_partition_)
+            if (count > max_stepsize_ || count > num_items_per_partition_)
             {
                 ResizeUp();
                 Insert(std::move(p));
@@ -220,11 +218,11 @@ public:
                 pos -= (h.partition_offset + count);
             }
 
-            current = vector_[pos + count];
+            current = &vector_[pos + count];
         }
 
         // insert new pair
-        if (current == _sentinel)
+        if (current->first == sentinel_.first)
         {
             vector_[pos + count] = KeyValuePair(key, p);
 
@@ -242,7 +240,7 @@ public:
         }
 
         if (items_per_partition_[h.partition_id]
-            / num_items_per_partition_ >= max_partition_fill_ratio_)
+            / num_items_per_partition_ > max_partition_fill_ratio_)
         {
             LOG << "resize";
             ResizeUp();
@@ -308,16 +306,14 @@ public:
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
-        KeyValuePair _sentinel;
         for (size_t i = partition_id * num_items_per_partition_;
              i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
         {
             KeyValuePair current = vector_[i];
-            //std::cout << current.first << " " << current.second << std::endl;
-            if (current.first != _sentinel.first)
+            if (current.first != sentinel_.first)
             {
                 emit_[partition_id](std::move(current.second));
-                vector_[i] = _sentinel;
+                vector_[i] = sentinel_;
             }
         }
 
@@ -404,14 +400,13 @@ public:
         std::swap(vector_old, vector_);
 
         // init new hash array
-        KeyValuePair _sentinel;
-        vector_.resize(num_items_, _sentinel);
+        vector_.resize(num_items_, sentinel_);
 
         // rehash all items in old array
         for (KeyValuePair k_v_pair : vector_old)
         {
             KeyValuePair current = k_v_pair;
-            if (current.first != _sentinel.first)
+            if (current.first != sentinel_.first)
             {
                 Insert(std::move(current.second));
             }
@@ -425,10 +420,9 @@ public:
     void Clear() {
         LOG << "Clearing";
 
-        KeyValuePair _sentinel;
         for (KeyValuePair k_v_pair : vector_)
         {
-            k_v_pair = _sentinel; // TODO(ms): fix, doesnt work
+            k_v_pair = sentinel_; // TODO(ms): fix, doesnt work
         }
 
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
@@ -444,13 +438,12 @@ public:
         num_items_ = num_partitions_ * num_items_init_scale_;
         num_items_per_partition_ = num_items_ / num_partitions_;
 
-        KeyValuePair _sentinel;
         for (KeyValuePair k_v_pair : vector_)
         {
-            k_v_pair = _sentinel; // TODO(ms): fix, doesnt work
+            k_v_pair = sentinel_; // TODO(ms): fix, doesnt work
         }
 
-        vector_.resize(num_items_, _sentinel);
+        vector_.resize(num_items_, sentinel_);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         table_size_ = 0;
         LOG << "Resetted";
@@ -463,10 +456,9 @@ public:
 
         std::string log = "Printing\n";
 
-        KeyValuePair _sentinel;
-        for (int i = 0; i < num_items_; i++)
+        for (size_t i = 0; i < num_items_; i++)
         {
-            if (vector_[i] == _sentinel)
+            if (vector_[i].first == sentinel_.first)
             {
                 log += "item: ";
                 log += std::to_string(i);
@@ -520,6 +512,8 @@ private:
     std::vector<int> emit_stats_;
 
     std::vector<KeyValuePair> vector_;
+
+    KeyValuePair sentinel_;
 
     HashFunction hash_function_;
     ProbingFunction probing_function_;
