@@ -500,9 +500,9 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0, table.PartitionSize(i));
+        ASSERT_EQ((size_t) 0, table.PartitionSize(i));
     }
-    ASSERT_EQ(0, table.Size());
+    ASSERT_EQ((size_t) 0, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = manager.GetIterator<MyStruct>(ids[i]);
