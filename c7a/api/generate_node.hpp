@@ -30,11 +30,9 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a GenerateFromFile operation. Generate uses a file
- * from the file system to generate random inputs. Therefore Generate reads the
- * complete file and applies the generator function on each element. Afterwards
- * each worker generates a DIA with a certain number of random (possibly
- * duplicate) elements from the generator file.
+ * A DIANode which performs a Generate operation. Generate creates an DIA according
+ * to a generator function. This function is used to generate a DIA of a certain
+ * size by applying it to integers from 0 to size - 1.
  *
  * \tparam Output Output type of the Generate operation.
  * \tparam ReadFunction Type of the generate function.
@@ -46,7 +44,7 @@ public:
     using Super = DOpNode<Output>;
     using Super::context_;
     /*!
-    * Constructor for a GeneratorNode. Sets the Context, parents, generator
+    * Constructor for a GenerateNode. Sets the Context, parents, generator
     * function and file path.
     *
     * \param ctx Reference to Context, which holds references to data and network.
