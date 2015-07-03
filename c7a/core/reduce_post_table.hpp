@@ -5,6 +5,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
@@ -204,7 +205,7 @@ public:
 
             // no item found with key
             if (curr_node == nullptr) {
-                LOG << "key doesn't exist in baguette, appending...";
+                LOG << "key doesn't exist, appending...";
 
                 // insert at first pos
                 node<Key, Value>* n = new node<Key, Value>;

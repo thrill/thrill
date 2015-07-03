@@ -53,6 +53,22 @@ TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
     ASSERT_EQ(22, it.Next());
 }
 
+TEST_F(DataManagerFixture, GetNumElements_EmptyDIA) {
+    auto emitFn = manager.GetLocalEmitter<int>(id);
+    emitFn.Close();
+    ASSERT_EQ(0u, manager.GetNumElements(id));
+}
+
+TEST_F(DataManagerFixture, GetNumElements) {
+    auto emitFn = manager.GetLocalEmitter<int>(id);
+    emitFn(0);
+    emitFn(1);
+    emitFn.Flush();
+    emitFn(2);
+    emitFn.Close();
+    ASSERT_EQ(3u, manager.GetNumElements(id));
+}
+
 TEST_F(DataManagerFixture, AllocateMultiple) {
     manager.AllocateDIA();
     manager.AllocateDIA();
