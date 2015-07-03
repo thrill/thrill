@@ -90,11 +90,6 @@ public:
         return dias_.AllocateNext();
     }
 
-    // TODO Get size of current partition
-    size_t get_current_size(const ChainId& /* id */) {
-        return 0;
-    }
-
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
