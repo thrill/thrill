@@ -23,7 +23,6 @@
 namespace c7a {
 namespace api {
 
-
 template <typename Input, typename Output, typename Stack, typename SumFunction>
 class PrefixSumNode : public DOpNode<Output>
 {
@@ -36,15 +35,15 @@ class PrefixSumNode : public DOpNode<Output>
 
 public:
     PrefixSumNode(Context& ctx,
-            DIANode<Input>* parent,
-            Stack& stack,
-            SumFunction sum_function)
+                  DIANode<Input>* parent,
+                  Stack& stack,
+                  SumFunction sum_function)
         : DOpNode<Output>(ctx, { parent }),
           stack_(stack),
           sum_function_(sum_function)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](Input input) {
+        auto pre_op_fn = [ = ](Input input) {
                              PreOp(input);
                          };
 
@@ -66,7 +65,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Input t, auto emit_func) {
+        auto id_fn = [ = ](Input t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -109,9 +108,8 @@ private:
             for (auto func : DIANode<Output>::callbacks_) {
                 func(prefix_sum);
             }
-         }
+        }
     }
-
 
     void PostOp() { }
 };
@@ -126,7 +124,7 @@ auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function) {
 
     using SumResultNode
               = PrefixSumNode<SumArgument0, SumResult,
-                        decltype(local_stack_), SumFunction>;
+                              decltype(local_stack_), SumFunction>;
 
     auto shared_node
         = std::make_shared<SumResultNode>(node_->get_context(),
@@ -134,14 +132,12 @@ auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function) {
                                           local_stack_,
                                           sum_function);
 
-
     auto sum_stack = shared_node->ProduceStack();
 
     return DIARef<SumResult, decltype(sum_stack)>
                (std::move(shared_node), sum_stack);
 }
 }
-
 } // namespace api
 
 #endif // !C7A_API_PREFIXSUM_NODE_HEADER
