@@ -58,8 +58,8 @@ public:
     //! \}
 
 public:
-    DispatcherThread()
-        : dispatcher_() {
+    DispatcherThread(const std::string& thread_name)
+        : dispatcher_(), name_(thread_name) {
         thread_ = std::thread(&DispatcherThread::Work, this);
     }
 
@@ -177,6 +177,7 @@ protected:
 
     //! What happens in the dispatcher thread
     void Work() {
+        c7a::common::ThreadDirectory.NameThisThread(name_);
         {
             // Set ALRM signal handler
             struct sigaction sa;
@@ -231,6 +232,9 @@ private:
 
     //! enclosed dispatcher.
     Dispatcher dispatcher_;
+
+    //! thread name for logging
+    std::string name_;
 };
 
 //! \}

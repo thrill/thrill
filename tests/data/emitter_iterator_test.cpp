@@ -21,7 +21,7 @@ using namespace c7a::net;
 
 struct EmitterIteratorIntegration : public::testing::Test {
     EmitterIteratorIntegration()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id(manager.AllocateDIA()) { }
 
