@@ -25,10 +25,11 @@ class SocketTarget : public EmitterTarget
 {
 public:
     SocketTarget(net::DispatcherThread* dispatcher,
-                 net::Connection* connection, size_t channel_id)
+                 net::Connection* connection, size_t channel_id, size_t own_rank)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
+          own_rank_(own_rank),
           closed_(false) { }
 
     //! Appends data to the SocketTarget.
@@ -60,6 +61,7 @@ protected:
     net::DispatcherThread* dispatcher_;
     net::Connection* connection_;
     size_t id_;
+    size_t own_rank_;
     bool closed_;
 
     void SendHeader(size_t num_bytes, size_t elements) {
@@ -67,6 +69,7 @@ protected:
         header.channel_id = id_;
         header.expected_bytes = num_bytes;
         header.expected_elements = elements;
+        header.sender_rank = own_rank_;
         net::Buffer header_buffer(&header, sizeof(header));
         dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
     }

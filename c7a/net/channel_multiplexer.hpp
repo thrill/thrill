@@ -112,7 +112,8 @@ public:
                 auto target = std::make_shared<data::SocketTarget>(
                     &dispatcher_,
                     &(group_->connection(worker_id)),
-                    id.identifier);
+                    id.identifier,
+                    group_->MyRank());
 
                 result.emplace_back(data::Emitter<T>(target));
             }
