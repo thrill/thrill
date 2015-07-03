@@ -26,9 +26,9 @@ using DIABaseVector = std::vector<DIABase*>;
 using DIABasePtr = DIABase *;
 using DIASharedVector = std::vector<std::shared_ptr<DIABase> >;
 using DIASharedPtr = std::shared_ptr<DIABase>;
-
 }
-} // namespace c7a
+
+} // namespace api
 
 #endif // !C7A_API_TYPES_HEADER
 

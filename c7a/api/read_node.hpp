@@ -38,7 +38,7 @@ template <typename Output, typename ReadFunction>
 class ReadNode : public DOpNode<Output>
 {
 public:
-    using Super = DOpNode<Output>;     
+    using Super = DOpNode<Output>;
     using Super::context_;
     using Super::data_id_;
 
@@ -80,10 +80,10 @@ public:
         assert(file.good());
 
         InputLineIterator it = GetInputLineIterator(
-                file, context_.rank(), context_.number_worker());
+            file, context_.rank(), context_.number_worker());
 
         auto emit = context_.get_data_manager().
-            template GetLocalEmitter<Output>(this->data_id_);
+                    template GetLocalEmitter<Output>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {
@@ -117,15 +117,32 @@ public:
     }
 
 private:
-
     //! The read function which is applied on every line read.
     ReadFunction read_function_;
     //! Path of the input file.
     std::string path_in_;
 };
 
+//template <typename T, typename Stack>
+template <typename ReadFunction>
+auto ReadLines(Context & ctx, std::string filepath,
+               const ReadFunction &read_function) {
+    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
+    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
+
+    auto shared_node =
+        std::make_shared<ReadResultNode>(ctx,
+                                         read_function,
+                                         filepath);
+
+    auto read_stack = shared_node->ProduceStack();
+
+    return DIARef<ReadResult, decltype(read_stack)>
+               (std::move(shared_node), read_stack);
 }
-} // namespace c7a
+}
+
+} // namespace api
 
 //! \}
 

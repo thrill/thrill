@@ -8,15 +8,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia_base.hpp>
+//#include <c7a/api/dia_base.hpp>
 #include <c7a/net/endpoint.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/core/stage_builder.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/reduce_node.hpp>
-#include <c7a/api/sum_node.hpp>
+#include <c7a/api/node_include.hpp>
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/api/reduce_to_index_node.hpp>
 
 #include <algorithm>
 #include <random>
@@ -111,12 +106,12 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
     std::function<void(Context&)> start_func = [](Context& ctx) {
 
-                                                   auto integers = ReadLines(
+                                                   auto integers = Generate(
                                                        ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+                                                       [](const size_t& input) {
+                                                           return input + 1;
+                                                       },
+                                                       16);
 
                                                    std::function<double(int)> double_elements = [](int in) {
                                                                                                     return (double)2 * in;
@@ -152,12 +147,12 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
     std::function<void(Context&)> start_func = [](Context& ctx) {
 
-                                                   auto integers = ReadLines(
+                                                   auto integers = Generate(
                                                        ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+                                                       [](const size_t& input) {
+                                                           return input + 1;
+                                                       },
+                                                       16);
 
                                                    auto flatmap_double = [](int in, auto emit) {
                                                                              emit((double)2 * in);
@@ -194,12 +189,12 @@ TEST(Operations, FilterResultsCorrectly) {
 
     std::function<void(Context&)> start_func = [](Context& ctx) {
 
-                                                   auto integers = ReadLines(
+                                                   auto integers = Generate(
                                                        ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+                                                       [](const size_t& input) {
+                                                           return input + 1;
+                                                       },
+                                                       16);
 
                                                    std::function<double(int)> even = [](int in) {
                                                                                          return (in % 2 == 0);
@@ -236,12 +231,12 @@ TEST(Operations, ReduceModulo2CorrectResults) {
 
     std::function<void(Context&)> start_func = [](Context& ctx) {
 
-                                                   auto integers = ReadLines(
+                                                   auto integers = Generate(
                                                        ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+                                                       [](const size_t& input) {
+                                                           return input + 1;
+                                                       },
+                                                       16);
 
                                                    auto modulo_two = [](int in) {
                                                                          return (in % 2);
@@ -282,12 +277,12 @@ TEST(Operations, ReduceToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func = [](Context& ctx) {
 
-                                                   auto integers = ReadLines(
+                                                   auto integers = Generate(
                                                        ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+                                                       [](const size_t& input) {
+                                                           return input + 1;
+                                                       },
+                                                       16);
 
                                                    auto key = [](size_t in) {
                                                                   return in / 2;
@@ -343,43 +338,6 @@ TEST(Operations, ReduceToIndexCorrectResults) {
                                                    }
 
                                                    ASSERT_EQ((size_t)9, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
-}
-
-TEST(Operations, DISABLED_GenerateAndSumHaveEqualAmount) {
-
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
-
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
-
-    std::uniform_int_distribution<int> distribution2(1000, 10000);
-
-    size_t generate_size = distribution2(generator);
-
-    std::function<void(Context&)> start_func = [generate_size](Context& ctx) {
-
-                                                   auto input = GenerateFromFile(
-                                                       ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       },
-                                                       generate_size);
-
-                                                   auto ones = input.Map([](int) {
-                                                                             return 1;
-                                                                         });
-
-                                                   auto add_function = [](int in1, int in2) {
-                                                                           return in1 + in2;
-                                                                       };
-
-                                                   ASSERT_EQ((int)generate_size, ones.Sum(add_function));
                                                };
 
     c7a::api::ExecuteThreads(workers, port_base, start_func);

@@ -25,19 +25,16 @@
 #include <utility>
 
 #include "dia_node.hpp"
+#include "function_stack.hpp"
 #include "function_traits.hpp"
 #include "lop_node.hpp"
-#include "read_node.hpp"
 #include "context.hpp"
-#include "write_node.hpp"
-#include "generator_node.hpp"
-#include "allgather_node.hpp"
 
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/common/future.hpp>
 
 namespace c7a {
-namespace api{
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -103,11 +100,11 @@ public:
      */
     template <typename AnyStack>
     DIARef(const DIARef<T, AnyStack>& rhs)
-        __attribute__((deprecated))
+    __attribute__ ((deprecated))
 #if __GNUC__
-        // the attribute warning does not work with gcc?
-        __attribute__((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                               "Consider whether you can use auto instead of DIARef.")));
+    // the attribute warning does not work with gcc?
+    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                            "Consider whether you can use auto instead of DIARef.")));
 #endif
 
     /*!
@@ -148,8 +145,8 @@ public:
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
-                             emit_func(map_function(input));
-                         };
+                                     emit_func(map_function(input));
+                                 };
 
         auto new_stack = local_stack_.push(conv_map_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -173,8 +170,8 @@ public:
         using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
-                                  if (filter_function(input)) emit_func(input);
-                              };
+                                        if (filter_function(input)) emit_func(input);
+                                    };
 
         auto new_stack = local_stack_.push(conv_filter_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -227,9 +224,9 @@ public:
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
 
-	template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
-					   const ReduceFunction &reduce_function, size_t max_index);
+                       const ReduceFunction &reduce_function, size_t max_index);
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
@@ -273,44 +270,15 @@ public:
      */
     template <typename WriteFunction>
     void WriteToFileSystem(const std::string& filepath,
-                           const WriteFunction& write_function) {
-        using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
-
-        using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
-                                          decltype(local_stack_)>;
-
-        auto shared_node =
-            std::make_shared<WriteResultNode>(node_->get_context(),
-                                              node_.get(),
-                                              local_stack_,
-                                              write_function,
-                                              filepath);
-
-        auto write_stack = shared_node->ProduceStack();
-        core::StageBuilder().RunScope(shared_node.get());
-    }
+                           const WriteFunction& write_function);
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
      */
-    template<typename Out>
-     void AllGather(std::vector<Out>* out_vector) {
-
-        using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
-
-
-
-        auto shared_node =
-            std::make_shared<AllGatherResultNode>(node_->get_context(),
-                                                  node_.get(),
-                                                  local_stack_,
-                                                  out_vector);
-
-
-        core::StageBuilder().RunScope(shared_node.get());
-    }
+    template <typename Out>
+    void AllGather(std::vector<Out>* out_vector);
 
     /*!
      * Returns Chuck Norris!
@@ -372,13 +340,13 @@ private:
 
 template <typename T, typename Stack>
 template <typename AnyStack>
-DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
+DIARef<T, Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
     // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
     // DIARef with empty stack and LOpNode
     auto rhs_node = std::move(rhs.get_node());
     auto rhs_stack = rhs.get_stack();
     using LOpChainNode
-        = LOpNode<T, decltype(rhs_stack)>;
+              = LOpNode<T, decltype(rhs_stack)>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -393,41 +361,17 @@ DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
 
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
-                        const ReadFunction &read_function) {
-    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
-    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
-
-    auto shared_node =
-        std::make_shared<ReadResultNode>(ctx,
-                                         read_function,
-                                         filepath);
-
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIARef<ReadResult, decltype(read_stack)>
-               (std::move(shared_node), read_stack);
-}
+               const ReadFunction &read_function);
 
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
-                      size_t size) {
-    using GeneratorResult =
-        typename FunctionTraits<GeneratorFunction>::result_type;
-    using GeneratorResultNode =
-        GeneratorNode<GeneratorResult, GeneratorFunction>;
+                      size_t size);
 
-    auto shared_node =
-        std::make_shared<GeneratorResultNode>(ctx,
-                                              generator_function,
-                                              filepath,
-                                              size);
-
-    auto generator_stack = shared_node->ProduceStack();
-
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (std::move(shared_node), generator_stack);
-}
+template <typename GeneratorFunction>
+auto Generate(Context & ctx,
+              const GeneratorFunction &generator_function,
+              size_t size);
 
 } // namespace api
 } // namespace c7a

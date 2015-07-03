@@ -96,6 +96,21 @@ private:
 
     std::vector<data::Emitter<Output> > emitters_;
 };
+
+template <typename T, typename Stack>
+template <typename Out>
+void DIARef<T, Stack>::AllGather(std::vector<Out>* out_vector) {
+
+    using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
+
+    auto shared_node =
+        std::make_shared<AllGatherResultNode>(node_->get_context(),
+                                              node_.get(),
+                                              local_stack_,
+                                              out_vector);
+
+    core::StageBuilder().RunScope(shared_node.get());
+}
 }
 
 } // namespace api

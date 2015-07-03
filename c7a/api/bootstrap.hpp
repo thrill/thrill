@@ -73,8 +73,8 @@ namespace api {
 //! Startpoint may be called multiple times with concurrent threads and
 //! different context instances.
 //!
-//! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned. 
-	static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1) {
+//! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned.
+static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1) {
 
     //!True if program time should be taken and printed
 
@@ -85,14 +85,18 @@ namespace api {
     int result = 0;
     std::tie(result, my_rank, endpoints) = bootstrap::ParseArgs(argc, argv);
     if (result != 0)
-        return {-1};
+        return {
+                   -1
+        };
 
     if (my_rank >= endpoints.size()) {
         std::cerr << "endpoint list (" <<
             endpoints.size() <<
             " entries) does not include my rank (" <<
             my_rank << ")" << std::endl;
-        return {-1};
+        return {
+                   -1
+        };
     }
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
@@ -105,31 +109,31 @@ namespace api {
     std::vector<std::thread*> threads(thread_count);
     std::vector<std::atomic<int> > atomic_results(thread_count);
 
-    for(int i = 0; i < thread_count; i++) {
+    for (int i = 0; i < thread_count; i++) {
         threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i] {
-			Context ctx(jobMan, i);
-            LOG << "connecting to peers";
-            LOG << "Starting job on Worker " << ctx.rank();
-            auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
-            int job_result = job_startpoint(ctx);
-            overall_timer->Stop();
-            LOG << "Worker " << ctx.rank() << " done!";
-            atomic_results[i] = job_result;
-        });
+                                         Context ctx(jobMan, i);
+                                         LOG << "connecting to peers";
+                                         LOG << "Starting job on Worker " << ctx.rank();
+                                         auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+                                         int job_result = job_startpoint(ctx);
+                                         overall_timer->Stop();
+                                         LOG << "Worker " << ctx.rank() << " done!";
+                                         atomic_results[i] = job_result;
+                                     });
     }
-    for(int i = 0; i < thread_count; i++) {
+    for (int i = 0; i < thread_count; i++) {
         threads[i]->join();
         delete threads[i];
-        if(atomic_results[i] != 0 && result == 0)
+        if (atomic_results[i] != 0 && result == 0)
             result = atomic_results[i];
     }
     return result;
 }
 
 static inline void
-ExecuteThreads(const size_t & workers, const size_t & port_base,
+ExecuteThreads(const size_t& workers, const size_t& port_base,
                std::function<void(Context&)> job_startpoint) {
-    
+
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
     std::vector<std::vector<std::string> > strargs(workers);
@@ -153,20 +157,20 @@ ExecuteThreads(const size_t & workers, const size_t & port_base,
         arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
 
         std::function<int(Context&)> intReturningFunction = [job_startpoint](Context& ctx) {
-            job_startpoint(ctx);
-            return 1;
-        };
+                                                                job_startpoint(ctx);
+                                                                return 1;
+                                                            };
 
         threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], intReturningFunction); });
     }
 
     for (size_t i = 0; i < workers; i++) {
-      threads[i].join();
+        threads[i].join();
     }
 }
 
 } // namespace api
-} // namespace c7a
+} // namespace bootstrap
 
 #endif // !C7A_API_BOOTSTRAP_HEADER
 

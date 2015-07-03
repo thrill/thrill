@@ -28,9 +28,9 @@ public:
 
     virtual ~ActionNode() { }
 };
-
 }
-} // namespace c7a
+
+} // namespace api
 
 #endif // !C7A_API_ACTION_NODE_HEADER
 
