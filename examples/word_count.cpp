@@ -15,8 +15,8 @@ int main(int argc, char* argv[]) {
 
     size_t elements = pow(2, 26);
     std::function<int(c7a::api::Context&)> start_func = [elements](c7a::api::Context& ctx) {
-                                                       return word_count_generated(ctx, elements);
-                                                   };
+                                                            return word_count_generated(ctx, elements);
+                                                        };
 
     return c7a::api::Execute(argc, argv, start_func);
 }
