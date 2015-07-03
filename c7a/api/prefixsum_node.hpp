@@ -12,7 +12,6 @@
 #ifndef C7A_API_PREFIXSUM_NODE_HEADER
 #define C7A_API_PREFIXSUM_NODE_HEADER
 
-#include "action_node.hpp"
 #include "function_stack.hpp"
 #include "dia.hpp"
 #include <c7a/net/group.hpp>
@@ -89,27 +88,27 @@ private:
     SumFunction sum_function_;
     //! Local sum to be used in all reduce operation.
     Input local_sum = 0;
-	//! Local data
-	std::vector<Input> data_;
+    //! Local data
+    std::vector<Input> data_;
 
     void PreOp(SumArg0 input) {
-		LOG << "Input: " << input;
+        LOG << "Input: " << input;
         local_sum = sum_function_(local_sum, input);
-		data_.push_back(input);
+        data_.push_back(input);
     }
 
     void MainOp() {
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.get_flow_control_channel();
-		
-		Input prefix_sum = channel.PrefixSum(local_sum, sum_function_, false);
 
-		for (size_t i = 0; i < data_.size(); i++) {
-			prefix_sum = sum_function_(prefix_sum, data_[i]);
-			for (auto func : DIANode<Output>::callbacks_) {
-				func(prefix_sum);
-			}
-	   }
+        Input prefix_sum = channel.PrefixSum(local_sum, sum_function_, false);
+
+        for (size_t i = 0; i < data_.size(); i++) {
+            prefix_sum = sum_function_(prefix_sum, data_[i]);
+            for (auto func : DIANode<Output>::callbacks_) {
+                func(prefix_sum);
+            }
+         }
     }
 
     void PostOp() { }
@@ -133,7 +132,7 @@ auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function) {
                                           local_stack_,
                                           sum_function);
 
-	
+
     auto sum_stack = shared_node->ProduceStack();
 
     return DIARef<SumResult, decltype(sum_stack)>
