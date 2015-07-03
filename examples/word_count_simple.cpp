@@ -18,7 +18,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/api/node_include.hpp>
 
-using c7a::api::Execute;
 using c7a::api::ExecuteThreads;
 using c7a::api::Context;
 
