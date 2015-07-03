@@ -140,7 +140,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
                   std::this_thread::sleep_for(1ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
-				  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(10ms);
                   ASSERT_TRUE(it.HasNext());
               };
     Execute(w0, w1);
@@ -213,7 +213,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
                   std::this_thread::sleep_for(1ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
-				  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(10ms);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
               };
@@ -249,14 +249,14 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
                   std::this_thread::sleep_for(1ms);
                   auto channel_id1 = manager.AllocateNetworkChannel();
                   auto it1 = manager.GetIterator<int>(channel_id1);
-				  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(10ms);
                   auto vals1 = ReadIterator(it1);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals1));
 
                   auto channel_id2 = manager.AllocateNetworkChannel();
                   auto it2 = manager.GetIterator<int>(channel_id2);
                   std::this_thread::sleep_for(10ms);
-				  auto vals2 = ReadIterator(it2);
+                  auto vals2 = ReadIterator(it2);
                   ASSERT_TRUE(VectorCompare({ 5, 6, 7, 8 }, vals2));
               };
     Execute(w0, w1, w2);

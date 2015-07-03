@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/generator_node.hpp
+ * c7a/api/generate_node.hpp
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_GENERATOR_NODE_HEADER
-#define C7A_API_GENERATOR_NODE_HEADER
+#ifndef C7A_API_GENERATE_NODE_HEADER
+#define C7A_API_GENERATE_NODE_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/api/dop_node.hpp>
@@ -21,6 +21,7 @@
 #include <string>
 #include <fstream>
 #include <random>
+#include <type_traits>
 
 namespace c7a {
 namespace api {
@@ -39,7 +40,7 @@ namespace api {
  * \tparam ReadFunction Type of the generate function.
  */
 template <typename Output, typename GeneratorFunction>
-class GeneratorNode : public DOpNode<Output>
+class GenerateNode : public DOpNode<Output>
 {
 public:
     using Super = DOpNode<Output>;
@@ -54,17 +55,15 @@ public:
     * \param path_in Path of the input file
     * \param size Number of elements in the generated DIA
     */
-    GeneratorNode(Context& ctx,
-                  GeneratorFunction generator_function,
-                  std::string path_in,
-                  size_t size)
+    GenerateNode(Context& ctx,
+                 GeneratorFunction generator_function,
+                 size_t size)
         : DOpNode<Output>(ctx, { }),
           generator_function_(generator_function),
-          path_in_(path_in),
           size_(size)
     { }
 
-    virtual ~GeneratorNode() { }
+    virtual ~GenerateNode() { }
 
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
@@ -73,37 +72,27 @@ public:
 
         LOG << "GENERATING data with id " << this->data_id_;
 
-        std::ifstream file(path_in_);
-        assert(file.good());
+        using InputArgument
+                  = typename FunctionTraits<GeneratorFunction>::template arg<0>;
 
-        std::string line;
-        while (std::getline(file, line))
-        {
-            if (*line.rbegin() == '\r') {
-                line.erase(line.length() - 1);
-            }
-            elements_.push_back(generator_function_(line));
-        }
+        static_assert(std::is_same<InputArgument, const size_t&>::value, "The GeneratorFunction needs an unsigned integer as input parameter");
 
-        
+        size_t offset = (size_ / context_.number_worker()) * context_.rank();
         size_t local_elements;
+
         if (context_.number_worker() == context_.rank() + 1) {
             //last worker gets leftovers
             local_elements = size_ -
-                ((context_.number_worker() - 1) *
-                 (size_ / context_.number_worker())); 
-        } else {
+                             ((context_.number_worker() - 1) *
+                              (size_ / context_.number_worker()));
+        }
+        else {
             local_elements = (size_ / context_.number_worker());
         }
 
-        std::random_device random_device;
-        std::default_random_engine generator(random_device());
-        std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
-
         for (size_t i = 0; i < local_elements; i++) {
-            size_t rand_element = distribution(generator);
             for (auto func : DIANode<Output>::callbacks_) {
-                func(elements_[rand_element]);
+                func(generator_function_(i + offset));
             }
         }
     }
@@ -133,10 +122,6 @@ public:
 private:
     //! The read function which is applied on every line read.
     GeneratorFunction generator_function_;
-    //! Path of the input file.
-    std::string path_in_;
-    //! Element vector used for generation
-    std::vector<Output> elements_;
     //! Size of the output DIA.
     size_t size_;
 
@@ -145,9 +130,29 @@ private:
 
 //! \}
 
-}
-} // namespace c7a
+template <typename GeneratorFunction>
+auto Generate(Context & ctx,
+              const GeneratorFunction &generator_function,
+              size_t size) {
+    using GeneratorResult =
+              typename FunctionTraits<GeneratorFunction>::result_type;
+    using GenerateResultNode =
+              GenerateNode<GeneratorResult, GeneratorFunction>;
 
-#endif // !C7A_API_GENERATOR_NODE_HEADER
+    auto shared_node =
+        std::make_shared<GenerateResultNode>(ctx,
+                                             generator_function,
+                                             size);
+
+    auto generator_stack = shared_node->ProduceStack();
+
+    return DIARef<GeneratorResult, decltype(generator_stack)>
+               (std::move(shared_node), generator_stack);
+}
+}
+
+} // namespace api
+
+#endif // !C7A_API_GENERATE_NODE_HEADER
 
 /******************************************************************************/

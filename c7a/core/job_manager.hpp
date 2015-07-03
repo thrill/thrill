@@ -24,7 +24,7 @@ class JobManager
 {
 public:
     JobManager()
-        : flow_manager_(NULL), data_manager_(net_dispatcher_){ }
+        : flow_manager_(NULL), data_manager_(net_dispatcher_) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints, int thread_count = 1) {
         thread_count_ = thread_count;
@@ -52,7 +52,7 @@ public:
     }
 
     ~JobManager() {
-        if(flow_manager_ != NULL) {
+        if (flow_manager_ != NULL) {
             delete flow_manager_;
         }
     }

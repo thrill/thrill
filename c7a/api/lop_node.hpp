@@ -77,7 +77,7 @@ public:
 
         // Emit new elements
         auto emit = context_.get_data_manager().
-            template GetLocalEmitter<Input>(DIABase::data_id_);
+                    template GetLocalEmitter<Input>(DIABase::data_id_);
         for (auto elem : elements) {
             emit(elem);
         }
@@ -95,9 +95,9 @@ private:
     //! Local stack
     LOpStack lop_stack_;
 };
-
 }
-} // namespace c7a
+
+} // namespace api
 
 #endif // !C7A_API_LOP_NODE_HEADER
 

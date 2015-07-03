@@ -30,55 +30,53 @@
 namespace c7a {
 namespace core {
 
-	template <bool, typename T, typename Value, typename Table> struct FlushImpl;
+template <bool, typename T, typename Value, typename Table>
+struct FlushImpl;
 
-	template <typename T, typename Value, typename Table>
-	struct FlushImpl<true, T, Value, Table>{
-		void doSth(std::vector<T>* vector_, size_t num_buckets_, size_t max_index_, Table* table){
-			 // retrieve items
-			for (size_t i = 0; i < num_buckets_; i++) {
-				if ((*vector_)[i] != nullptr) {
-					T curr_node = (*vector_)[i];
-					std::map<size_t,Value> elements_to_emit;
-					size_t min_index_bucket = ((double) max_index_ / (double) num_buckets_) * i;
-					do {
-						elements_to_emit[curr_node->key - min_index_bucket] = curr_node->value;
-						curr_node = curr_node->next;
-					} while (curr_node != nullptr);
-					for (auto element_to_emit : elements_to_emit) {
-						table->EmitAll(element_to_emit.second);
-					}
-				
-					(*vector_)[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
-				
-				}
-			}		   
-		}
-	};
+template <typename T, typename Value, typename Table>
+struct FlushImpl<true, T, Value, Table>{
+    void doSth(std::vector<T>* vector_, size_t num_buckets_, size_t max_index_, Table* table) {
+        // retrieve items
+        for (size_t i = 0; i < num_buckets_; i++) {
+            if ((*vector_)[i] != nullptr) {
+                T curr_node = (*vector_)[i];
+                std::map<size_t, Value> elements_to_emit;
+                size_t min_index_bucket = ((double)max_index_ / (double)num_buckets_) * i;
+                do {
+                    elements_to_emit[curr_node->key - min_index_bucket] = curr_node->value;
+                    curr_node = curr_node->next;
+                } while (curr_node != nullptr);
+                for (auto element_to_emit : elements_to_emit) {
+                    table->EmitAll(element_to_emit.second);
+                }
 
-	template <typename T, typename Value, typename Table>
-	struct FlushImpl<false, T, Value, Table>{
-		void doSth (std::vector<T>* vector_, size_t num_buckets_, size_t, Table* table){
-			for (size_t i = 0; i < num_buckets_; i++) {
-				if ((*vector_)[i] != nullptr) {
-					T curr_node = (*vector_)[i];
-					do {
-						table->EmitAll(curr_node->value);
-						curr_node = curr_node->next;
-					} while (curr_node != nullptr);
-								
-					(*vector_)[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
-				
-				}
-			}		
-		}
-	};
+                (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+            }
+        }
+    }
+};
+
+template <typename T, typename Value, typename Table>
+struct FlushImpl<false, T, Value, Table>{
+    void doSth(std::vector<T>* vector_, size_t num_buckets_, size_t, Table* table) {
+        for (size_t i = 0; i < num_buckets_; i++) {
+            if ((*vector_)[i] != nullptr) {
+                T curr_node = (*vector_)[i];
+                do {
+                    table->EmitAll(curr_node->value);
+                    curr_node = curr_node->next;
+                } while (curr_node != nullptr);
+
+                (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+            }
+        }
+    }
+};
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction, const bool ToIndex = false>
 class ReducePostTable
 {
 public:
-
     static const bool debug = false;
 
     using Key = typename FunctionTraits<KeyExtractor>::result_type;
@@ -92,7 +90,7 @@ protected:
     struct node {
         Key   key;
         Value value;
-        node    * next;
+        node  * next;
     };
 
 public:
@@ -104,10 +102,10 @@ public:
                     std::vector<EmitterFunction>& emit,
                     HashFunction hash_function = [](Key key,
                                                     ReducePostTable* pt) {
-                        return std::hash<Key>() (key) % pt->num_buckets_;
-                    },
-					size_t max_index = 0
-        )
+                                                     return std::hash<Key>() (key) % pt->num_buckets_;
+                                                 },
+                    size_t max_index = 0
+                    )
         : num_buckets_init_scale_(num_buckets),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
@@ -116,7 +114,7 @@ public:
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-		  max_index_(max_index)
+          max_index_(max_index)
     {
         init();
     }
@@ -126,15 +124,15 @@ public:
                     std::vector<EmitterFunction>& emit,
                     HashFunction hash_function = [](Key key,
                                                     ReducePostTable* pt) {
-                        return std::hash<Key>() (key) % pt->num_buckets_;
-                    },
-					size_t max_index = 0
-)
+                                                     return std::hash<Key>() (key) % pt->num_buckets_;
+                                                 },
+                    size_t max_index = 0
+                    )
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-		  max_index_(max_index)
+          max_index_(max_index)
     {
         init();
     }
@@ -153,7 +151,6 @@ public:
      * in case the key already exists.
      */
     void Insert(KeyValuePair p) {
-
 
         Key key = p.first;
 
@@ -235,16 +232,16 @@ public:
         }
     }
 
-	/*!
-	 * Flushes all items.
-	 */
-	void Flush() {
+    /*!
+     * Flushes all items.
+     */
+    void Flush() {
 
-		FlushImpl<ToIndex, node<Key, Value>*, Value, ReducePostTable<KeyExtractor, ReduceFunction,
-																	 EmitterFunction, ToIndex>> test;
-		test.doSth(&vector_, num_buckets_, max_index_, this);
-		table_size_ = 0;
-	}
+        FlushImpl<ToIndex, node<Key, Value>*, Value, ReducePostTable<KeyExtractor, ReduceFunction,
+                                                                     EmitterFunction, ToIndex> > test;
+        test.doSth(&vector_, num_buckets_, max_index_, this);
+        table_size_ = 0;
+    }
 
     /*!
      * Returns the total num of items.
@@ -370,7 +367,7 @@ private:
 
     HashFunction hash_function_;
 
-	size_t max_index_;
+    size_t max_index_;
 };
 
 } // namespace core
