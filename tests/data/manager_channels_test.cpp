@@ -21,7 +21,7 @@ using namespace std::literals; //for nicer sleep_for
 
 struct DataManagerChannelFixture : public::testing::Test {
     DataManagerChannelFixture()
-        : dispatcher(), manager(dispatcher), single_group(0, 1) {
+        : dispatcher("dispatcher"), manager(dispatcher), single_group(0, 1) {
         manager.Connect(&single_group);
     }
 

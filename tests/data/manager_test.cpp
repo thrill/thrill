@@ -17,7 +17,7 @@ using namespace c7a::net;
 
 struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
-        : dispatcher(),
+        : dispatcher("disptacher"),
           manager(dispatcher),
           id(manager.AllocateDIA()) { }
 

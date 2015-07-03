@@ -23,8 +23,10 @@ namespace core {
 class JobManager
 {
 public:
-    JobManager()
-        : flow_manager_(NULL), data_manager_(net_dispatcher_) { }
+    JobManager(const std::string& log_prefix = "")
+        : flow_manager_(NULL),
+          net_dispatcher_(log_prefix + " dm-disp"),
+          data_manager_(net_dispatcher_) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints, int thread_count = 1) {
         thread_count_ = thread_count;
@@ -59,8 +61,8 @@ public:
 
 private:
     net::Manager net_manager_;
-    net::DispatcherThread net_dispatcher_;
     net::FlowControlChannelManager* flow_manager_;
+    net::DispatcherThread net_dispatcher_;
     data::Manager data_manager_;
     const static bool debug = false;
     int thread_count_;
