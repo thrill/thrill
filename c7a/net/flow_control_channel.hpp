@@ -312,6 +312,11 @@ public:
 
         return res;
     }
+
+    void await() {
+        int i = 0;
+        i = AllReduce(0);
+    }
 };
 } // namespace net
 } // namespace c7a
