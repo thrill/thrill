@@ -31,7 +31,7 @@
 namespace c7a {
 namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
-          size_t TargetBlockSize = 1024 * 1024>
+          size_t TargetBlockSize = 1024* 1024>
 class ReducePreTable
 {
 
@@ -58,8 +58,7 @@ public:
             partition_id = p_id;
             partition_offset = p_off;
             global_index = g_id;
-        }       
-
+        }
     };
 
 protected:
@@ -95,7 +94,6 @@ protected:
     };
 
 public:
-    
     typedef std::function<hash_result(Key, ReducePreTable*)> HashFunction;
 
     ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale,
@@ -104,19 +102,19 @@ public:
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<EmitterFunction>& emit,
                    HashFunction hash_function
-                   = [](Key v, ReducePreTable* ht) {
-                           size_t hashed = std::hash<Key>() (v);
+                       = [](Key v, ReducePreTable* ht) {
+                             size_t hashed = std::hash<Key>() (v);
 
-                           size_t partition_offset = hashed %
-                               ht->num_buckets_per_partition_;
-                           size_t partition_id = hashed % ht->num_partitions_;
-                           size_t global_index = partition_id * 
-                               ht->num_buckets_per_partition_ +
-                               partition_offset;
-                           hash_result hr(partition_id, partition_offset, global_index);
-                           return hr;
-                       }
-        )
+                             size_t partition_offset = hashed %
+                                                       ht->num_buckets_per_partition_;
+                             size_t partition_id = hashed % ht->num_partitions_;
+                             size_t global_index = partition_id *
+                                                   ht->num_buckets_per_partition_ +
+                                                   partition_offset;
+                             hash_result hr(partition_id, partition_offset, global_index);
+                             return hr;
+                         }
+                       )
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -135,25 +133,25 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<EmitterFunction>& emit,
                    HashFunction hash_function
-                   = [](Key v, ReducePreTable* ht) {
-                           size_t hashed = std::hash<Key>() (v);
+                       = [](Key v, ReducePreTable* ht) {
+                             size_t hashed = std::hash<Key>() (v);
 
-                           size_t partition_offset = hashed %
-                               ht->num_buckets_per_partition_;
-                           size_t partition_id = hashed % ht->num_partitions_;
-                           size_t global_index = partition_id * 
-                               ht->num_buckets_per_partition_ +
-                               partition_offset;
-                           hash_result hr(partition_id, partition_offset, global_index);
-                           return hr;
-                       }
-        )
+                             size_t partition_offset = hashed %
+                                                       ht->num_buckets_per_partition_;
+                             size_t partition_id = hashed % ht->num_partitions_;
+                             size_t global_index = partition_id *
+                                                   ht->num_buckets_per_partition_ +
+                                                   partition_offset;
+                             hash_result hr(partition_id, partition_offset, global_index);
+                             return hr;
+                         }
+                       )
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function)
-                   {
+    {
         init();
     }
 
@@ -384,21 +382,19 @@ public:
         return num_buckets_;
     }
 
-	/*!
-	 * Returns the number of buckets per partition.
-	 */
-	size_t NumBucketsPerPartition() {
+    /*!
+     * Returns the number of buckets per partition.
+     */
+    size_t NumBucketsPerPartition() {
         return num_buckets_per_partition_;
     }
 
-	/*!
-	 * Returns the number of partitions.
-	 */
-	size_t NumPartitions() {
+    /*!
+     * Returns the number of partitions.
+     */
+    size_t NumPartitions() {
         return num_partitions_;
     }
-
-
 
     /*!
      * Returns the size of a partition referenzed by partition_id.
@@ -590,11 +586,10 @@ private:
     ReduceFunction reduce_function_;
     std::vector<EmitterFunction> emit_;
     std::vector<int> emit_stats_;
-                   
+
     std::vector<BucketBlock*> vector_;
 
     HashFunction hash_function_;
-
 };
 
 } // namespace core

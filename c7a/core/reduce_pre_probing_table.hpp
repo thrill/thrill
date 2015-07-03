@@ -28,131 +28,129 @@
 #include <utility>
 
 namespace c7a {
-    namespace core {
-        template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
-        class ReducePreProbingTable
-        {
-            static const bool debug = false;
+namespace core {
+template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
+class ReducePreProbingTable
+{
+    static const bool debug = false;
 
-            using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename FunctionTraits<KeyExtractor>::result_type;
 
-            using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename FunctionTraits<ReduceFunction>::result_type;
 
-            typedef std::pair<Key, Value> KeyValuePair;
+    typedef std::pair<Key, Value> KeyValuePair;
 
-        protected:
-            struct hash_result
-            {
-                //! which partition number the item belongs to.
-                size_t partition_id;
-                //! index within the partition's sub-hashtable of this item
-                size_t partition_offset;
-                //! index within the whole hashtable
-                size_t global_index;
+protected:
+    struct hash_result
+    {
+        //! which partition number the item belongs to.
+        size_t partition_id;
+        //! index within the partition's sub-hashtable of this item
+        size_t partition_offset;
+        //! index within the whole hashtable
+        size_t global_index;
 
-                hash_result(size_t p_id, size_t p_off, size_t g_id) {
-                    partition_id = p_id;
-                    partition_offset = p_off;
-                    global_index = g_id;
-                }
-            };
+        hash_result(size_t p_id, size_t p_off, size_t g_id) {
+            partition_id = p_id;
+            partition_offset = p_off;
+            global_index = g_id;
+        }
+    };
 
-            struct probing_result
-            {
-                //! the offset relativ to provided pos.
-                int probing_offset;
+    struct probing_result
+    {
+        //! the offset relativ to provided pos.
+        int probing_offset;
 
-                probing_result(int o) {
-                    probing_offset = o;
-                }
-            };
+        probing_result(int o) {
+            probing_offset = o;
+        }
+    };
 
-        public:
+public:
+    typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
 
-            typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
+    typedef std::function<probing_result(int, ReducePreProbingTable*)> ProbingFunction;
 
-            typedef std::function<probing_result(int, ReducePreProbingTable*)> ProbingFunction;
+    ReducePreProbingTable(size_t num_partitions,
+                          size_t num_items_init_scale,
+                          size_t num_items_resize_scale,
+                          size_t stepsize,
+                          size_t max_stepsize,
+                          double max_partition_fill_ratio,
+                          size_t max_num_items_table,
+                          KeyExtractor key_extractor, ReduceFunction reduce_function,
+                          std::vector<EmitterFunction>& emit,
+                          HashFunction hash_function
+                              = [](Key v, ReducePreProbingTable* ht) {
+                                    size_t hashed = std::hash<Key>() (v);
 
-            ReducePreProbingTable(size_t num_partitions,
-                                 size_t num_items_init_scale,
-                                 size_t num_items_resize_scale,
-                                 size_t stepsize,
-                                 size_t max_stepsize,
-                                 double max_partition_fill_ratio,
-                                 size_t max_num_items_table,
-                                 KeyExtractor key_extractor, ReduceFunction reduce_function,
-                                 std::vector<EmitterFunction>& emit,
-                                 HashFunction hash_function
-                                 = [](Key v, ReducePreProbingTable* ht) {
-                                     size_t hashed = std::hash<Key>() (v);
+                                    size_t partition_offset = hashed %
+                                                              ht->num_items_per_partition_;
+                                    size_t partition_id = hashed % ht->num_partitions_;
+                                    size_t global_index = partition_id *
+                                                          ht->num_items_per_partition_ +
+                                                          partition_offset;
+                                    hash_result hr(partition_id, partition_offset, global_index);
+                                    return hr;
+                                },
+                          ProbingFunction probing_function
+                              = [](int pos, ReducePreProbingTable* ht) {
+                                    int probing_offset = pos + 1;
+                                    probing_result pr(probing_offset);
+                                    return pr;
+                                })
+        : num_partitions_(num_partitions),
+          num_items_init_scale_(num_items_init_scale),
+          num_items_resize_scale_(num_items_resize_scale),
+          stepsize_(stepsize),
+          max_stepsize_(max_stepsize),
+          max_partition_fill_ratio_(max_partition_fill_ratio),
+          max_num_items_table_(max_num_items_table),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+          probing_function_(probing_function) {
+        init();
+    }
 
-                                     size_t partition_offset = hashed %
-                                             ht->num_items_per_partition_;
-                                     size_t partition_id = hashed % ht->num_partitions_;
-                                     size_t global_index = partition_id *
-                                                           ht->num_items_per_partition_ +
-                                                           partition_offset;
-                                     hash_result hr(partition_id, partition_offset, global_index);
-                                     return hr;
-                                 },
-                                 ProbingFunction probing_function
-                                    = [](int pos, ReducePreProbingTable* ht) {
-                                        int probing_offset = pos+1;
-                                        probing_result pr(probing_offset);
-                                        return pr;
-                                 })
-                    : num_partitions_(num_partitions),
-                      num_items_init_scale_(num_items_init_scale),
-                      num_items_resize_scale_(num_items_resize_scale),
-                      stepsize_(stepsize),
-                      max_stepsize_(max_stepsize),
-                      max_partition_fill_ratio_(max_partition_fill_ratio),
-                      max_num_items_table_(max_num_items_table),
-                      key_extractor_(key_extractor),
-                      reduce_function_(reduce_function),
-                      emit_(std::move(emit)),
-                      hash_function_(hash_function),
-                      probing_function_(probing_function){
-                init();
-            }
+    ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
+                          ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
+                          HashFunction hash_function
+                              = [](Key v, ReducePreProbingTable* ht) {
+                                    size_t hashed = std::hash<Key>() (v);
 
-            ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
-                                 ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
-                                 HashFunction hash_function
-                                 = [](Key v, ReducePreProbingTable* ht) {
-                                     size_t hashed = std::hash<Key>() (v);
+                                    size_t partition_offset = hashed %
+                                                              ht->num_items_per_partition_;
+                                    size_t partition_id = hashed % ht->num_partitions_;
+                                    size_t global_index = partition_id *
+                                                          ht->num_items_per_partition_ +
+                                                          partition_offset;
+                                    hash_result hr(partition_id, partition_offset, global_index);
+                                    return hr;
+                                },
+                          ProbingFunction probing_function
+                              = [](int pos, ReducePreProbingTable* ht) {
+                                    int probing_offset = pos + 1;
+                                    probing_result pr(probing_offset);
+                                    return pr;
+                                })
+        : num_partitions_(num_partitions),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+          probing_function_(probing_function) {
+        init();
+    }
 
-                                     size_t partition_offset = hashed %
-                                                               ht->num_items_per_partition_;
-                                     size_t partition_id = hashed % ht->num_partitions_;
-                                     size_t global_index = partition_id *
-                                                           ht->num_items_per_partition_ +
-                                                           partition_offset;
-                                     hash_result hr(partition_id, partition_offset, global_index);
-                                     return hr;
-                                 },
-                                 ProbingFunction probing_function
-                                    = [](int pos, ReducePreProbingTable* ht) {
-                                        int probing_offset = pos+1;
-                                        probing_result pr(probing_offset);
-                                        return pr;
-                                 })
-                    : num_partitions_(num_partitions),
-                      key_extractor_(key_extractor),
-                      reduce_function_(reduce_function),
-                      emit_(std::move(emit)),
-                      hash_function_(hash_function),
-                      probing_function_(probing_function){
-                init();
-            }
+    //! non-copyable: delete copy-constructor
+    ReducePreProbingTable(const ReducePreProbingTable&) = delete;
+    //! non-copyable: delete assignment operator
+    ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
 
-            //! non-copyable: delete copy-constructor
-            ReducePreProbingTable(const ReducePreProbingTable&) = delete;
-            //! non-copyable: delete assignment operator
-            ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
-
-            ~ReducePreProbingTable() {
-            }
+    ~ReducePreProbingTable() { }
 
     void init() {
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
@@ -287,16 +285,16 @@ namespace c7a {
         }
 
         LOG << "currMax: "
-        << p_size_max
-        << " currentIdx: "
-        << p_idx
-        << " currentIdx*p_size: "
-        << p_idx * num_items_per_partition_
-        << " CurrentIdx*p_size+p_size-1 "
-        << p_idx * num_items_per_partition_ + num_items_per_partition_ - 1;
+            << p_size_max
+            << " currentIdx: "
+            << p_idx
+            << " currentIdx*p_size: "
+            << p_idx * num_items_per_partition_
+            << " CurrentIdx*p_size+p_size-1 "
+            << p_idx * num_items_per_partition_ + num_items_per_partition_ - 1;
 
         LOG << "Largest patition id: "
-        << p_idx;
+            << p_idx;
 
         FlushPartition(p_idx);
 
@@ -308,7 +306,7 @@ namespace c7a {
      */
     void FlushPartition(size_t partition_id) {
         LOG << "Flushing items of partition with id: "
-        << partition_id;
+            << partition_id;
 
         KeyValuePair _sentinel;
         for (size_t i = partition_id * num_items_per_partition_;
@@ -331,7 +329,7 @@ namespace c7a {
         emit_[partition_id].Flush();
 
         LOG << "Flushed items of partition with id: "
-        << partition_id;
+            << partition_id;
     }
 
     /*!
@@ -490,44 +488,44 @@ namespace c7a {
         return;
     }
 
-        private:
-            size_t num_partitions_;                 // partition size
+private:
+    size_t num_partitions_;                         // partition size
 
-            size_t num_items_init_scale_ = 10;      // set number of items per partition based on num_partitions
-            // multiplied with some scaling factor, must be equal to or greater than 1
+    size_t num_items_init_scale_ = 10;              // set number of items per partition based on num_partitions
+    // multiplied with some scaling factor, must be equal to or greater than 1
 
-            size_t num_items_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
+    size_t num_items_resize_scale_ = 2;             // resize scale on max_num_items_per_bucket_
 
-            size_t stepsize_ = 1;                   // stepsize in case of collision
+    size_t stepsize_ = 1;                           // stepsize in case of collision
 
-            size_t max_stepsize_ = 10;              // max stepsize before resize
+    size_t max_stepsize_ = 10;                      // max stepsize before resize
 
-            double max_partition_fill_ratio_ = 0.9;  // max partition fill ratio before resize
+    double max_partition_fill_ratio_ = 0.9;         // max partition fill ratio before resize
 
-            size_t max_num_items_table_ = 1048576;   // max num of items before spilling of largest partition
+    size_t max_num_items_table_ = 1048576;          // max num of items before spilling of largest partition
 
-            size_t num_items_;                      // num items
+    size_t num_items_;                              // num items
 
-            size_t num_items_per_partition_;        // num items per partition
+    size_t num_items_per_partition_;                // num items per partition
 
-            std::vector<size_t> items_per_partition_; // num items per partition
+    std::vector<size_t> items_per_partition_;       // num items per partition
 
-            size_t table_size_ = 0;                   // total number of items
+    size_t table_size_ = 0;                         // total number of items
 
-            KeyExtractor key_extractor_;
+    KeyExtractor key_extractor_;
 
-            ReduceFunction reduce_function_;
+    ReduceFunction reduce_function_;
 
-            std::vector<EmitterFunction> emit_;
-            std::vector<int> emit_stats_;
+    std::vector<EmitterFunction> emit_;
+    std::vector<int> emit_stats_;
 
-            std::vector<KeyValuePair> vector_;
+    std::vector<KeyValuePair> vector_;
 
-            HashFunction hash_function_;
-            ProbingFunction probing_function_;
-        };
+    HashFunction hash_function_;
+    ProbingFunction probing_function_;
+};
 
-    } // namespace core
+} // namespace core
 } // namespace c7a
 
 #endif // !C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER

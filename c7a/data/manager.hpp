@@ -91,7 +91,7 @@ public:
     }
 
     // TODO Get size of current partition
-    size_t get_current_size(const ChainId & /* id */) {
+    size_t get_current_size(const ChainId& /* id */) {
         return 0;
     }
 
@@ -149,7 +149,6 @@ private:
             return cmp_.AccessData(id);
         }
     }
-
 };
 
 } // namespace data

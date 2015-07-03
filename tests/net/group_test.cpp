@@ -52,17 +52,17 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 }
 
-static void ThreadInitializeSendCyclic(Group *net) {
+static void ThreadInitializeSendCyclic(Group* net) {
 
     size_t id = net->MyRank();
 
-    if(id != 0) {
+    if (id != 0) {
         size_t res;
         net->ReceiveFrom<size_t>(id - 1, &res);
         ASSERT_EQ(id - 1, res);
     }
 
-    if(id != net->Size() - 1) {
+    if (id != net->Size() - 1) {
         net->SendTo(id + 1, id);
     }
 }
@@ -233,7 +233,6 @@ TEST(Group, RealSendCyclic) {
     RealGroupConstructAndCall(ThreadInitializeSendCyclic);
 }
 
-
 TEST(Group, InitializeAndClose) {
     // Construct a Group of 6 workers which do nothing but terminate.
     Group::ExecuteLocalMock(6, [](Group*) { });
@@ -312,16 +311,16 @@ TEST(Group, TestReduceToRoot) {
 
 TEST(Group, TestBarrier) {
     static const bool debug = false;
-    std::mutex sync_mtx; // Synchronisation mutex for the barrier
-    std::mutex local_mtx; // Mutex for writing to the results array
-    std::condition_variable cv; // Condition variable for the barrier
+    std::mutex sync_mtx;            // Synchronisation mutex for the barrier
+    std::mutex local_mtx;           // Mutex for writing to the results array
+    std::condition_variable cv;     // Condition variable for the barrier
 
     for (int p = 0; p <= 8; ++p) {
         int workers = p;
         int workers_copy = workers; // Will be decremented by the barrier function
 
         std::vector<char> result(2 * workers);
-        int k = 0; // The counter for the result array
+        int k = 0;                  // The counter for the result array
         sLOG << "I'm in test" << workers;
 
         Group::ExecuteLocalMock(
@@ -339,7 +338,7 @@ TEST(Group, TestBarrier) {
                 local_mtx.unlock();
 
                 sLOG << "After Barrier, worker" << net->MyRank();
-                });
+            });
         for (int i = 0; i < workers; ++i) {
             sLOG << "Checking position" << i;
             ASSERT_EQ(result[i], 'B');
