@@ -100,11 +100,11 @@ public:
      */
     template <typename AnyStack>
     DIARef(const DIARef<T, AnyStack>& rhs)
-        __attribute__((deprecated))
+    __attribute__ ((deprecated))
 #if __GNUC__
-        // the attribute warning does not work with gcc?
-        __attribute__((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                               "Consider whether you can use auto instead of DIARef.")));
+    // the attribute warning does not work with gcc?
+    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                            "Consider whether you can use auto instead of DIARef.")));
 #endif
 
     /*!
@@ -145,8 +145,8 @@ public:
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
-                             emit_func(map_function(input));
-                         };
+                                     emit_func(map_function(input));
+                                 };
 
         auto new_stack = local_stack_.push(conv_map_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -170,8 +170,8 @@ public:
         using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
-                                  if (filter_function(input)) emit_func(input);
-                              };
+                                        if (filter_function(input)) emit_func(input);
+                                    };
 
         auto new_stack = local_stack_.push(conv_filter_function);
         return DIARef<T, decltype(new_stack)>(node_, new_stack);
@@ -224,9 +224,9 @@ public:
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
 
-	template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
-					   const ReduceFunction &reduce_function, size_t max_index);
+                       const ReduceFunction &reduce_function, size_t max_index);
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
@@ -277,8 +277,8 @@ public:
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
      */
-    template<typename Out>
-	void AllGather(std::vector<Out>* out_vector);
+    template <typename Out>
+    void AllGather(std::vector<Out>* out_vector);
 
     /*!
      * Returns Chuck Norris!
@@ -340,13 +340,13 @@ private:
 
 template <typename T, typename Stack>
 template <typename AnyStack>
-DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
+DIARef<T, Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
     // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
     // DIARef with empty stack and LOpNode
     auto rhs_node = std::move(rhs.get_node());
     auto rhs_stack = rhs.get_stack();
     using LOpChainNode
-        = LOpNode<T, decltype(rhs_stack)>;
+              = LOpNode<T, decltype(rhs_stack)>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -361,7 +361,7 @@ DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
 
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
-			   const ReadFunction &read_function);
+               const ReadFunction &read_function);
 
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
@@ -370,8 +370,8 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
-			  const GeneratorFunction &generator_function,
-			  size_t size);
+              const GeneratorFunction &generator_function,
+              size_t size);
 
 } // namespace api
 } // namespace c7a

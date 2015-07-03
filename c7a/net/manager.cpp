@@ -4,7 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
- * 
+ *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 

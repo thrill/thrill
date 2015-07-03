@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/wordcount/word_count_user_program.cpp
+ * examples/word_count_user_program.cpp
  *
  * Part of Project c7a.
  *
@@ -15,8 +15,8 @@ using c7a::api::Context;
 using c7a::api::DIARef;
 
 template <typename InStack>
-auto word_count_user(DIARef<std::string, InStack> & input) {
-   
+auto word_count_user(DIARef<std::string, InStack>&input) {
+
     using WordCount = std::pair<std::string, int>;
 
     auto word_pairs = input.FlatMap(
@@ -42,7 +42,7 @@ auto word_count_user(DIARef<std::string, InStack> & input) {
 //! The WordCount user program
 int word_count(Context& ctx) {
     using WordCount = std::pair<std::string, int>;
-   
+
     auto lines = ReadLines(
         ctx,
         "wordcount.in",

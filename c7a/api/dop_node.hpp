@@ -54,9 +54,9 @@ public:
         return "[DOpNode]";
     }
 };
-
 }
-} // namespace c7a
+
+} // namespace api
 
 #endif // !C7A_API_DOP_NODE_HEADER
 
