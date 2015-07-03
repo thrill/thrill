@@ -197,19 +197,19 @@ TEST(Operations, PrefixSumCorrectResults) {
                                                        16);
 
                                                    auto prefixsums = integers.PrefixSum(
-													   [](size_t in1, size_t in2) {
-														   return in1 + in2;
-													   });
+                             [](size_t in1, size_t in2) {
+                               return in1 + in2;
+                             });
 
                                                    std::vector<size_t> out_vec;
 
                                                    prefixsums.AllGather(&out_vec);
 
                                                    std::sort(out_vec.begin(), out_vec.end());
-												   size_t ctr = 0;
+                           size_t ctr = 0;
                                                    for (size_t i = 0; i < out_vec.size(); i++) {
-													   ctr += i + 1;
-													   ASSERT_EQ(out_vec[i], ctr);
+                             ctr += i + 1;
+                             ASSERT_EQ(out_vec[i], ctr);
                                                    }
 
                                                    ASSERT_EQ((size_t)16, out_vec.size());

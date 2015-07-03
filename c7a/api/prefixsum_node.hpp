@@ -23,6 +23,7 @@
 namespace c7a {
 namespace api {
 
+
 template <typename Input, typename Output, typename Stack, typename SumFunction>
 class PrefixSumNode : public DOpNode<Output>
 {
@@ -110,6 +111,7 @@ private:
             }
          }
     }
+
 
     void PostOp() { }
 };
