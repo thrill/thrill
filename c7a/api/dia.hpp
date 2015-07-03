@@ -274,8 +274,19 @@ public:
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(const ZipFunction &zip_function, SecondDIA second_dia);
 
+	 /*!
+     * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
+	 * function defines how two elements are combined to a single element.
+     *
+     * \tparam SumFunction Type of the sum_function.
+     *
+     * \param sum_function Sum function.
+     */
+    template <typename SumFunction>
+    auto PrefixSum(const SumFunction &sum_function);
+
     /*!
-     * Sum is an Action, which computes the sum of elements of all workers.
+     * Sum is an Action, which computes the sum of all elements globally.
      *
      * \tparam SumFunction Type of the sum_function.
      *
