@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/reduce_pre_table.hpp
+ * c7a/core/reduce_pre_probing_table.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_REDUCE_PRE_LINPRO_TABLE_HEADER
-#define C7A_CORE_REDUCE_PRE_LINPRO_TABLE_HEADER
+#ifndef C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
+#define C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
 #include <c7a/api/function_traits.hpp>
 #include <c7a/data/manager.hpp>
@@ -30,7 +30,7 @@
 namespace c7a {
     namespace core {
         template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
-        class ReducePreLinProTable
+        class ReducePreProbingTable
         {
             static const bool debug = false;
 
@@ -50,22 +50,30 @@ namespace c7a {
                 //! index within the whole hashtable
                 size_t global_index;
 
-                hash_result(Key v, const ReducePreLinProTable& ht) {
-                    size_t hashed = std::hash<Key>() (v);
+                hash_result(size_t p_id, size_t p_off, size_t g_id) {
+                    partition_id = p_id;
+                    partition_offset = p_off;
+                    global_index = g_id;
+                }
+            };
 
-                    // partition idx
-                    partition_offset = hashed % ht.num_items_per_partition_;
+            struct probing_result
+            {
+                //! the offset relativ to provided pos.
+                int probing_offset;
 
-                    // partition id
-                    partition_id = hashed % ht.num_partitions_;
-
-                    // global idx
-                    global_index = partition_id * ht.num_items_per_partition_ + partition_offset;
+                probing_result(int o) {
+                    probing_offset = o;
                 }
             };
 
         public:
-            ReducePreLinProTable(size_t num_partitions,
+
+            typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
+
+            typedef std::function<probing_result(int, ReducePreProbingTable*)> ProbingFunction;
+
+            ReducePreProbingTable(size_t num_partitions,
                                  size_t num_items_init_scale,
                                  size_t num_items_resize_scale,
                                  size_t stepsize,
@@ -73,7 +81,26 @@ namespace c7a {
                                  double max_partition_fill_ratio,
                                  size_t max_num_items_table,
                                  KeyExtractor key_extractor, ReduceFunction reduce_function,
-                                 std::vector<EmitterFunction>& emit)
+                                 std::vector<EmitterFunction>& emit,
+                                 HashFunction hash_function
+                                 = [](Key v, ReducePreProbingTable* ht) {
+                                     size_t hashed = std::hash<Key>() (v);
+
+                                     size_t partition_offset = hashed %
+                                             ht->num_items_per_partition_;
+                                     size_t partition_id = hashed % ht->num_partitions_;
+                                     size_t global_index = partition_id *
+                                                           ht->num_items_per_partition_ +
+                                                           partition_offset;
+                                     hash_result hr(partition_id, partition_offset, global_index);
+                                     return hr;
+                                 },
+                                 ProbingFunction probing_function
+                                    = [](int pos, ReducePreProbingTable* ht) {
+                                        int probing_offset = pos+1;
+                                        probing_result pr(probing_offset);
+                                        return pr;
+                                 })
                     : num_partitions_(num_partitions),
                       num_items_init_scale_(num_items_init_scale),
                       num_items_resize_scale_(num_items_resize_scale),
@@ -83,29 +110,52 @@ namespace c7a {
                       max_num_items_table_(max_num_items_table),
                       key_extractor_(key_extractor),
                       reduce_function_(reduce_function),
-                      emit_(std::move(emit)) {
+                      emit_(std::move(emit)),
+                      hash_function_(hash_function),
+                      probing_function_(probing_function){
                 init();
             }
 
-            ReducePreLinProTable(size_t num_partitions, KeyExtractor key_extractor,
-                                 ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+            ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
+                                 ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
+                                 HashFunction hash_function
+                                 = [](Key v, ReducePreProbingTable* ht) {
+                                     size_t hashed = std::hash<Key>() (v);
+
+                                     size_t partition_offset = hashed %
+                                                               ht->num_items_per_partition_;
+                                     size_t partition_id = hashed % ht->num_partitions_;
+                                     size_t global_index = partition_id *
+                                                           ht->num_items_per_partition_ +
+                                                           partition_offset;
+                                     hash_result hr(partition_id, partition_offset, global_index);
+                                     return hr;
+                                 },
+                                 ProbingFunction probing_function
+                                    = [](int pos, ReducePreProbingTable* ht) {
+                                        int probing_offset = pos+1;
+                                        probing_result pr(probing_offset);
+                                        return pr;
+                                 })
                     : num_partitions_(num_partitions),
                       key_extractor_(key_extractor),
                       reduce_function_(reduce_function),
-                      emit_(std::move(emit)) {
+                      emit_(std::move(emit)),
+                      hash_function_(hash_function),
+                      probing_function_(probing_function){
                 init();
             }
 
             //! non-copyable: delete copy-constructor
-            ReducePreLinProTable(const ReducePreLinProTable&) = delete;
+            ReducePreProbingTable(const ReducePreProbingTable&) = delete;
             //! non-copyable: delete assignment operator
-            ReducePreLinProTable& operator = (const ReducePreLinProTable&) = delete;
+            ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
 
-            ~ReducePreLinProTable() {
+            ~ReducePreProbingTable() {
             }
 
     void init() {
-        sLOG << "creating reducePreLinProTable with" << emit_.size() << "output emiters";
+        sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
@@ -131,7 +181,9 @@ namespace c7a {
     void Insert(Value&& p) {
         Key key = key_extractor_(p);
 
-        hash_result h = hash_result(key, *this);
+        hash_result h = hash_function_(key, this);
+
+        //hash_result h = hash_result(key, *this);
 
         LOG << num_items_;
 
@@ -154,7 +206,10 @@ namespace c7a {
                 return;
             }
 
-            ++count;
+            //++count;
+            probing_result pr = probing_function_(pos, this);
+            count += pr.probing_offset;
+
             if (count >= max_stepsize_ || count >= num_items_per_partition_)
             {
                 ResizeUp();
@@ -291,6 +346,20 @@ namespace c7a {
      */
     size_t NumItems() {
         return num_items_;
+    }
+
+    /*!
+     * Returns the number of buckets per partition.
+     */
+    size_t NumItemsPerPartition() {
+        return num_items_per_partition_;
+    }
+
+    /*!
+     * Returns the number of partitions.
+     */
+    size_t NumPartitions() {
+        return num_partitions_;
     }
 
     /*!
@@ -453,11 +522,14 @@ namespace c7a {
             std::vector<int> emit_stats_;
 
             std::vector<KeyValuePair> vector_;
+
+            HashFunction hash_function_;
+            ProbingFunction probing_function_;
         };
 
     } // namespace core
 } // namespace c7a
 
-#endif // !C7A_CORE_REDUCE_PRE_LINPRO_TABLE_HEADER
+#endif // !C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
 /******************************************************************************/
