@@ -110,7 +110,7 @@ void Broadcast(Group& net, T& value) {
     }
 }
 
-//! @brief   Perform an All-Reduce on the workers. 
+//! @brief   Perform an All-Reduce on the workers.
 //! @details This is done by aggregating all values according to a summation
 //!          operator and sending them backto all workers.
 //!
@@ -132,7 +132,7 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   cv  A condition variable which locks on the given mutex
 //! @param   num_workers The total number of workers in the network
 static inline
-void ThreadBarrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
+void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
         --num_workers;

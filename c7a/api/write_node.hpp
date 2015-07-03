@@ -25,8 +25,7 @@ template <typename Input, typename Output,
 class WriteNode : public ActionNode<Input>
 {
 public:
-
-    using Super = ActionNode<Input>;     
+    using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
     using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
@@ -45,10 +44,10 @@ public:
                 template GetOutputLineEmitter<Output>(file_))
     {
         sLOG << "Creating write node.";
-        
+
         auto pre_op_function = [=](WriteArg input) {
-                             PreOp(input);
-                         };
+                                   PreOp(input);
+                               };
         auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
     }
@@ -73,8 +72,8 @@ public:
     auto ProduceStack() {
         // Hook Identity
 
-        using WriteArg = 
-            typename FunctionTraits<WriteFunction>::template arg<0>;
+        using WriteArg =
+                  typename FunctionTraits<WriteFunction>::template arg<0>;
         auto id_fn = [=](WriteArg t, auto emit_func) {
                          return emit_func(t);
                      };
@@ -92,7 +91,6 @@ public:
     }
 
 private:
-
     //! Local stack
     Stack local_stack_;
 
@@ -114,25 +112,25 @@ private:
 template <typename T, typename Stack>
 template <typename WriteFunction>
 void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
-										 const WriteFunction& write_function) {
+                                         const WriteFunction& write_function) {
 
-	using WriteResult = typename FunctionTraits<WriteFunction>::result_type;	
-	using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
-									  decltype(local_stack_)>;
-	
-	auto shared_node =
-		std::make_shared<WriteResultNode>(node_->get_context(),
-										  node_.get(),
-										  local_stack_,
-										  write_function,
-										  filepath);
+    using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
+    using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
+                                      decltype(local_stack_)>;
 
-	auto write_stack = shared_node->ProduceStack();
-	core::StageBuilder().RunScope(shared_node.get());
+    auto shared_node =
+        std::make_shared<WriteResultNode>(node_->get_context(),
+                                          node_.get(),
+                                          local_stack_,
+                                          write_function,
+                                          filepath);
+
+    auto write_stack = shared_node->ProduceStack();
+    core::StageBuilder().RunScope(shared_node.get());
+}
 }
 
-}
-} // namespace c7a
+} // namespace api
 
 #endif // !C7A_API_WRITE_NODE_HEADER
 

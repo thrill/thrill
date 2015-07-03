@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/thread_pool_test.cpp
+ * tests/common/barrier_test.cpp
  *
  * Part of Project c7a.
  *

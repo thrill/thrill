@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/pre_hash_table_test.cpp
+ * tests/core/pre_hash_table_linpro_test.cpp
  *
  * Part of Project c7a.
  *
@@ -53,27 +53,27 @@ struct MyStruct
 };
 
 namespace c7a {
-    namespace data {
-        namespace serializers {
-            template <>
-            struct Impl<MyStruct>{
-                static std::string Serialize(const MyStruct& s) {
-                    std::size_t len = 2 * sizeof(int);
-                    char result[len];
-                    std::memcpy(result, &(s.key), sizeof(int));
-                    std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
-                    return std::string(result, len);
-                }
-
-                static MyStruct Deserialize(const std::string& x) {
-                    int i, j;
-                    std::memcpy(&i, x.c_str(), sizeof(int));
-                    std::memcpy(&j, x.substr(sizeof(int), 2 * sizeof(int)).c_str(), sizeof(int));
-                    return MyStruct(i, j);
-                }
-            };
-        }
+namespace data {
+namespace serializers {
+template <>
+struct Impl<MyStruct>{
+    static std::string Serialize(const MyStruct& s) {
+        std::size_t len = 2 * sizeof(int);
+        char result[len];
+        std::memcpy(result, &(s.key), sizeof(int));
+        std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
+        return std::string(result, len);
     }
+
+    static MyStruct Deserialize(const std::string& x) {
+        int i, j;
+        std::memcpy(&i, x.c_str(), sizeof(int));
+        std::memcpy(&j, x.substr(sizeof(int), 2 * sizeof(int)).c_str(), sizeof(int));
+        return MyStruct(i, j);
+    }
+};
+}
+}
 }
 
 TEST_F(ReducePreLinProTable, AddIntegers) {
@@ -103,11 +103,11 @@ TEST_F(ReducePreLinProTable, CreateEmptyTable) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, key_ex, red_fn, one_int_emitter);
+    table(1, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
     table.Insert(2);
@@ -122,13 +122,13 @@ TEST_F(ReducePreLinProTable, CreateEmptyTable) {
 
 TEST_F(ReducePreLinProTable, TestSetMaxSizeSetter) {
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     auto key_ex = [](int in) { return in; };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, key_ex, red_fn, one_int_emitter);
+    table(1, key_ex, red_fn, one_int_emitter);
 
     table.SetMaxSize(3);
 
@@ -148,15 +148,15 @@ TEST_F(ReducePreLinProTable, TestSetMaxSizeSetter) {
 // no size constraint, one partition
 TEST_F(ReducePreLinProTable, FlushIntegersManuallyOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, 10, 2, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
+    table(1, 10, 2, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(0);
     table.Insert(1);
@@ -183,15 +183,15 @@ TEST_F(ReducePreLinProTable, FlushIntegersManuallyOnePartition) {
 // no size constraint, two partitions
 TEST_F(ReducePreLinProTable, FlushIntegersManuallyTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, 5, 2, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
+    table(2, 5, 2, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
 
     table.Insert(0);
     table.Insert(1);
@@ -227,15 +227,15 @@ TEST_F(ReducePreLinProTable, FlushIntegersManuallyTwoPartitions) {
 // max table size constraint, one partition
 TEST_F(ReducePreLinProTable, FlushIntegersPartiallyOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, 10, 2, 1, 10, 1.0f, 4, key_ex, red_fn, one_int_emitter);
+    table(1, 10, 2, 1, 10, 1.0f, 4, key_ex, red_fn, one_int_emitter);
 
     table.Insert(0);
     table.Insert(1);
@@ -261,15 +261,15 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyOnePartition) {
 //// max table size constraint, two partitions
 TEST_F(ReducePreLinProTable, FlushIntegersPartiallyTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, 5, 2, 1, 10, 1.0f, 4, key_ex, red_fn, two_int_emitters);
+    table(2, 5, 2, 1, 10, 1.0f, 4, key_ex, red_fn, two_int_emitters);
 
     table.Insert(0);
     table.Insert(1);
@@ -305,15 +305,15 @@ TEST_F(ReducePreLinProTable, FlushIntegersPartiallyTwoPartitions) {
 TEST_F(ReducePreLinProTable, ComplexType) {
 
     auto key_ex = [](StringPair in) {
-        return in.first;
-    };
+                      return in.first;
+                  };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-        return std::make_pair(in1.first, in1.second + in2.second);
-    };
+                      return std::make_pair(in1.first, in1.second + in2.second);
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
-            table(1, 2, 2, 1, 10, 1.0f, 3, key_ex, red_fn, one_pair_emitter);
+    table(1, 2, 2, 1, 10, 1.0f, 3, key_ex, red_fn, one_pair_emitter);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
@@ -332,15 +332,15 @@ TEST_F(ReducePreLinProTable, ComplexType) {
 
 TEST_F(ReducePreLinProTable, MultipleWorkers) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, key_ex, red_fn, one_int_emitter);
+    table(2, key_ex, red_fn, one_int_emitter);
 
     ASSERT_EQ(0u, table.Size());
     table.SetMaxSize(5);
@@ -357,15 +357,15 @@ TEST_F(ReducePreLinProTable, MultipleWorkers) {
 // then add 2 items with different key, but having same hash value, one partition
 TEST_F(ReducePreLinProTable, ResizeOnePartition) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(1, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
+    table(1, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, one_int_emitter);
 
     table.Insert(1);
 
@@ -396,15 +396,15 @@ TEST_F(ReducePreLinProTable, ResizeOnePartition) {
 // Check that same items are in same partition after resize
 TEST_F(ReducePreLinProTable, ResizeTwoPartitions) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-            table(2, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
+    table(2, 2, 10, 1, 10, 1.0f, 10, key_ex, red_fn, two_int_emitters);
 
     ASSERT_EQ(0u, table.Size());
     ASSERT_EQ(4u, table.NumItems());
@@ -428,12 +428,12 @@ TEST_F(ReducePreLinProTable, ResizeTwoPartitions) {
 
 TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
     auto key_ex = [](const MyStruct& in) {
-        return in.key;
-    };
+                      return in.key;
+                  };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
-    };
+                      return MyStruct(in1.key, in1.count + in2.count);
+                  };
 
     size_t num_partitions = 3;
     size_t num_items_init_scale = 2;
@@ -449,9 +449,9 @@ TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct> >
-            table(num_partitions, num_items_init_scale, 10, 1, 10, 1.0f,
-                  nitems, key_ex, red_fn, { emitters });
+                                    Emitter<MyStruct> >
+    table(num_partitions, num_items_init_scale, 10, 1, 10, 1.0f,
+          nitems, key_ex, red_fn, { emitters });
 
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
@@ -519,12 +519,12 @@ TEST_F(ReducePreLinProTable, ResizeAndTestPartitionsHaveSameKeys) {
 // Insert several items with same key and test application of local reduce
 TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce1) {
     auto key_ex = [](const MyStruct& in) {
-        return in.key % 500;
-    };
+                      return in.key % 500;
+                  };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
-    };
+                      return MyStruct(in1.key, in1.count + in2.count);
+                  };
 
     size_t total_sum = 0, total_count = 0;
 
@@ -536,8 +536,8 @@ TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce1) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct> >
-            table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
+                                    Emitter<MyStruct> >
+    table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
@@ -560,12 +560,12 @@ TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce1) {
 
 TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce2) {
     auto key_ex = [](const MyStruct& in) {
-        return in.key;
-    };
+                      return in.key;
+                  };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-        return MyStruct(in1.key, in1.count + in2.count);
-    };
+                      return MyStruct(in1.key, in1.count + in2.count);
+                  };
 
     auto id1 = manager.AllocateDIA();
     std::vector<Emitter<MyStruct> > emitters;
@@ -576,8 +576,8 @@ TEST_F(ReducePreLinProTable, InsertManyIntsAndTestReduce2) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<MyStruct> >
-            table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
+                                    Emitter<MyStruct> >
+    table(1, 2, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     int sum = 0;
@@ -617,8 +617,8 @@ TEST_F(ReducePreLinProTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
-        return std::make_pair(in1.first, in1.second + in2.second);
-    };
+                      return std::make_pair(in1.first, in1.second + in2.second);
+                  };
 
     auto id1 = manager.AllocateDIA();
     std::vector<Emitter<StringPair> > emitters;
@@ -628,8 +628,8 @@ TEST_F(ReducePreLinProTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreLinProTable<decltype(key_ex), decltype(red_fn),
-            Emitter<StringPair> >
-            table(1, 10, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, {emitters});
+                                    Emitter<StringPair> >
+    table(1, 10, 2, 1, nitems, 1.0f, nitems, key_ex, red_fn, { emitters });
 
     // insert lots of items
     int sum = 0;
