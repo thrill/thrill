@@ -18,7 +18,7 @@ using IntIntPair = std::pair<int, int>;
 
 struct ReducePreProbingTable : public::testing::Test {
     ReducePreProbingTable()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id1(manager.AllocateDIA()),
           id2(manager.AllocateDIA()) {

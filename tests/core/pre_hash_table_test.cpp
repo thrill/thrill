@@ -20,7 +20,7 @@ using StringPair = std::pair<std::string, int>;
 
 struct PreTable : public::testing::Test {
     PreTable()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id1(manager.AllocateDIA()),
           id2(manager.AllocateDIA()) {

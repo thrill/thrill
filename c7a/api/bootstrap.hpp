@@ -74,7 +74,7 @@ namespace api {
 //! different context instances.
 //!
 //! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned.
-static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1) {
+static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1, const std::string& log_prefix = "") {
 
     //!True if program time should be taken and printed
 
@@ -103,15 +103,16 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     for (const auto& ep : endpoints)
         LOG << ep << " ";
 
-    core::JobManager jobMan;
+    core::JobManager jobMan(log_prefix);
     jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints), thread_count);
 
     std::vector<std::thread*> threads(thread_count);
     std::vector<std::atomic<int> > atomic_results(thread_count);
 
     for (int i = 0; i < thread_count; i++) {
-        threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i] {
+        threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
                                          Context ctx(jobMan, i);
+                                         common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
                                          LOG << "connecting to peers";
                                          LOG << "Starting job on Worker " << ctx.rank();
                                          auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
@@ -161,7 +162,9 @@ ExecuteThreads(const size_t& workers, const size_t& port_base,
                                                                 return 1;
                                                             };
 
-        threads[i] = std::thread([=]() { Execute(workers + 3, arguments[i], intReturningFunction); });
+        threads[i] = std::thread([=]() {
+                                     Execute(workers + 3, arguments[i], intReturningFunction, 1, "worker " + std::to_string(i));
+                                 });
     }
 
     for (size_t i = 0; i < workers; i++) {

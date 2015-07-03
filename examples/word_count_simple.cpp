@@ -25,14 +25,13 @@ using c7a::api::Context;
 static void local_word_count(size_t workers, size_t elements, size_t port_base) {
 
     std::function<void(Context&)> start_func = [elements](Context& ctx) {
-                                                        word_count_generated(ctx, elements);
-                                                    };
+                                                   word_count_generated(ctx, elements);
+                                               };
 
     ExecuteThreads(workers, port_base, start_func);
 }
 
 int main(int argc, char* argv[]) {
-
 
     const size_t port_base = 8080;
 
