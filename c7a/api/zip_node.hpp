@@ -49,8 +49,8 @@ template <typename Input1, typename Input2, typename Output,
 class TwoZipNode : public DOpNode<Output>
 {
     static const bool debug = false;
-    
-    using Super = DOpNode<Output>;     
+
+    using Super = DOpNode<Output>;
     using Super::context_;
     using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
@@ -96,9 +96,9 @@ public:
             id_.push_back(context_.get_data_manager().AllocateDIA());
         }
         emit1_ = context_.get_data_manager().
-            template GetLocalEmitter<ZipArg0>(id_[0]);
+                 template GetLocalEmitter<ZipArg0>(id_[0]);
         emit2_ = context_.get_data_manager().
-            template GetLocalEmitter<ZipArg1>(id_[1]);
+                 template GetLocalEmitter<ZipArg1>(id_[1]);
     }
 
     /*!
@@ -109,9 +109,9 @@ public:
         MainOp();
         // get data from data manager
         auto it1 = context_.get_data_manager().
-            template GetIterator<ZipArg0>(id_[0]);
+                   template GetIterator<ZipArg0>(id_[0]);
         auto it2 = context_.get_data_manager().
-            template GetIterator<ZipArg1>(id_[1]);
+                   template GetIterator<ZipArg1>(id_[1]);
         do {
             it1.WaitForMore();
             it2.WaitForMore();
@@ -147,7 +147,6 @@ public:
     }
 
 private:
-
     //! Local stacks
     Stack1 stack1_;
     Stack2 stack2_;
@@ -212,16 +211,16 @@ template <typename ZipFunction, typename SecondDIA>
 auto DIARef<T, Stack>::Zip(
     const ZipFunction &zip_function, SecondDIA second_dia) {
     using ZipResult
-        = typename FunctionTraits<ZipFunction>::result_type;
+              = typename FunctionTraits<ZipFunction>::result_type;
     using ZipArgument0
-        = typename FunctionTraits<ZipFunction>::template arg<0>;
+              = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArgument1
-        = typename FunctionTraits<ZipFunction>::template arg<1>;
+              = typename FunctionTraits<ZipFunction>::template arg<1>;
     using ZipResultNode
-        = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
-                     decltype(local_stack_),
-                     decltype(second_dia.get_stack()),
-                     ZipFunction>;
+              = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
+                           decltype(local_stack_),
+                           decltype(second_dia.get_stack()),
+                           ZipFunction>;
 
     auto shared_node
         = std::make_shared<ZipResultNode>(node_->get_context(),
@@ -233,7 +232,7 @@ auto DIARef<T, Stack>::Zip(
 
     auto zip_stack = shared_node->ProduceStack();
     return DIARef<ZipResult, decltype(zip_stack)>
-        (std::move(shared_node), zip_stack);
+               (std::move(shared_node), zip_stack);
 }
 
 } // namespace c7a

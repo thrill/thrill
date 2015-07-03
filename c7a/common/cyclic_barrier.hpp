@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2015 Emanuel Jbstl <emanuel.joebstl@gmail.com>
  *
- * This file has no license. Only Timo Bingmann can compile it.
+ * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #pragma once
@@ -66,6 +66,7 @@ public:
         m.unlock();
     }
 };
+
 } // namespace common
 } // namespace c7a
 

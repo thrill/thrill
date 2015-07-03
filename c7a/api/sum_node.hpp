@@ -28,8 +28,7 @@ class SumNode : public ActionNode<Input>
 {
     static const bool debug = false;
 
-    
-    using Super = ActionNode<Input>;     
+    using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
     using SumArg0 = typename FunctionTraits<SumFunction>::template arg<0>;
@@ -91,7 +90,6 @@ public:
     }
 
 private:
-
     //! Local stack.
     Stack stack_;
     //! The sum function which is applied to two elements.
@@ -121,13 +119,13 @@ template <typename T, typename Stack>
 template <typename SumFunction>
 auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
     using SumResult
-        = typename FunctionTraits<SumFunction>::result_type;
+              = typename FunctionTraits<SumFunction>::result_type;
     using SumArgument0
-        = typename FunctionTraits<SumFunction>::template arg<0>;
+              = typename FunctionTraits<SumFunction>::template arg<0>;
 
     using SumResultNode
-        = SumNode<SumArgument0, SumResult,
-                  decltype(local_stack_), SumFunction>;
+              = SumNode<SumArgument0, SumResult,
+                        decltype(local_stack_), SumFunction>;
 
     auto shared_node
         = std::make_shared<SumResultNode>(node_->get_context(),
@@ -138,9 +136,9 @@ auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
-
 }
-} // namespace c7a
+
+} // namespace api
 
 #endif // !C7A_API_SUM_NODE_HEADER
 

@@ -306,7 +306,8 @@ struct GenericImpl {
 template <>
 struct Impl<std::pair<int, int> >: public GenericImpl<std::pair<int, int> >
 { };
-}       // namespace serializers
+
+} // namespace serializers
 
 //! Serialize the type to std::string
 template <class T>
@@ -319,6 +320,7 @@ template <class T>
 inline T Deserialize(const std::string& x) {
     return serializers::Impl<T>::Deserialize(x);
 }
+
 } // namespace data
 } // namespace c7a
 
