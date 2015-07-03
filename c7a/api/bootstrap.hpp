@@ -20,6 +20,7 @@
 #include <c7a/core/job_manager.hpp>
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/cmdline_parser.hpp>
+#include <c7a/common/logger.hpp>
 
 namespace c7a {
 namespace bootstrap {
@@ -119,6 +120,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
                                          overall_timer->Stop();
                                          LOG << "Worker " << ctx.rank() << " done!";
                                          atomic_results[i] = job_result;
+										 jobMan.get_flow_manager().GetFlowControlChannel(0).await();
                                      });
     }
     for (int i = 0; i < thread_count; i++) {
