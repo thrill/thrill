@@ -315,7 +315,7 @@ public:
 
     void await() {
         int i = 0;
-        i = AllReduce(0);
+        i = AllReduce(i);
     }
 };
 
