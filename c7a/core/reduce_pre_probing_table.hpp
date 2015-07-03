@@ -95,7 +95,7 @@ public:
                                     return hr;
                                 },
                           ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable* ht) {
+                              = [](int pos, ReducePreProbingTable*) {
                                     int probing_offset = pos + 1;
                                     probing_result pr(probing_offset);
                                     return pr;
@@ -131,7 +131,7 @@ public:
                                     return hr;
                                 },
                           ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable* ht) {
+                              = [](int pos, ReducePreProbingTable*) {
                                     int probing_offset = pos + 1;
                                     probing_result pr(probing_offset);
                                     return pr;
