@@ -166,7 +166,6 @@ public:
                 exclusiveRes = res;
             }
 
-
             for (int i = id == 0 ? 1 : 0; i < threadCount; i++) {
                 localPrefixBuffer[i] = sumOp(res, localPrefixBuffer[i]);
                 res = localPrefixBuffer[i];
@@ -195,14 +194,16 @@ public:
             //Slave get result
             if (inclusive) {
                 res = (*GetLocalShared<std::vector<T> >())[threadId];
-            } else {
+            }
+            else {
                 res = (*GetLocalShared<std::vector<T> >())[threadId - 1];
             }
             barrier.await();
         }
         if (inclusive) {
             return res;
-        } else {
+        }
+        else {
             return exclusiveRes;
         }
     }
@@ -331,10 +332,8 @@ public:
     void await() {
         int i = 0;
         i = AllReduce(i);
-
     }
 };
-
 } // namespace net
 } // namespace c7a
 
