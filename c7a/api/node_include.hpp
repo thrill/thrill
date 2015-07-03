@@ -21,6 +21,7 @@
 #include <c7a/api/read_node.hpp>
 #include <c7a/api/generate_file_node.hpp>
 #include <c7a/api/generate_node.hpp>
+#include <c7a/api/prefixsum_node.hpp>
 
 #endif // !C7A_API_NODE_INCLUDE_HEADER
 
