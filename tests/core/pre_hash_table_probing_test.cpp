@@ -303,7 +303,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(0u, table.Size());
 }
 
-TEST_F(ReducePreProbingTable, ComplexType) {
+TEST_F(ReducePreProbingTable, DISABLED_ComplexType) {
     auto key_ex = [](StringPair in) {
                       return in.first;
                   };
