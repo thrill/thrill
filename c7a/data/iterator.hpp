@@ -54,6 +54,30 @@ public:
         return Deserialize<T>(current_reader_.GetString());
     }
 
+    //! Seeks the next num_elements elements in the BufferChain
+    //! out_data and out_len specify the memory block that contains the elements.
+    //! Since the elements are continuous in memory, the number of seeked
+    //! elements may be smaller than num_elements. In this case, a subsequent
+    //! call is required.
+    //! \param num_elements max number of elements to seek
+    //! \param out_data base address of result. Is nullptr if return value is 0
+    //! \param out_len number of bytes in the memory segment
+    //! \returns the number of elements in the seeked block.
+    size_t Seek(size_t num_elements, void ** out_data, size_t* out_len) {
+        //TODO(ts) case for fixed-size elements
+
+        if(current_reader_.empty() && current_ != buffer_chain_.End()) {
+            MoveToNextBuffer();
+        }
+        *out_data = nullptr;
+        *out_len = 0;
+       if (current_reader_.IsNull()) {
+           return 0;
+       }
+       *out_data = (void*)((char*)(current_->buffer.data()) + current_reader_.cursor());
+       return current_reader_.SeekStringElements(num_elements, out_len);
+    }
+
     //! returns true if currently at least one element is available
     //! If concurrent read and writes operate on this block, this method might
     //! once return false and then true, if new data arrived.
