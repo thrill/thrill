@@ -4,8 +4,6 @@
 # CMake file for c7a testsuite
 ################################################################################
 
-set(ALL_LIBRARIES protobuf ${ALL_LIBRARIES})
-
 # macro for building test programs with correct libraries
 macro(c7a_build TARGETNAME)
 

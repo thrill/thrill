@@ -9,6 +9,7 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/data/serializer.hpp>
+#include <c7a/data/serializer_objects.hpp>
 
 #include <utility>
 #include <string>
@@ -161,6 +162,14 @@ TEST(Serializer, TuplePair_SerializeDeserialize_Test) {
     ASSERT_EQ(std::get<2>(t), std::get<2>(result));
     ASSERT_FLOAT_EQ(std::get<3>(t).first, std::get<3>(result).first);
     ASSERT_EQ(std::get<3>(t).second, std::get<3>(result).second);
+}
+
+TEST(Serializer, ProtoBuf_Test) {
+    serializers::TestSerializeObject t(1, 2);
+    auto serialized = Serialize<serializers::TestSerializeObject>(t);
+    auto result = Deserialize<serializers::TestSerializeObject>(serialized);
+    ASSERT_EQ(t.bla_, result.bla_);
+    ASSERT_EQ(t.blu_, result.blu_);
 }
 
 /******************************************************************************/
