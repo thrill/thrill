@@ -159,6 +159,10 @@ endif()
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
 ################################################################################
+set(ALL_LIBRARIES protobuf ${ALL_LIBRARIES})
+################################################################################
+
+
 ### Descend into Subdirectories
 
 include_directories(${CMAKE_SOURCE_DIR})
@@ -175,3 +179,4 @@ add_subdirectory(examples)
 add_subdirectory(benchmarks)
 
 ################################################################################
+
