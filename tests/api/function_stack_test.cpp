@@ -79,4 +79,22 @@ TEST(API, FunctionStackTest) {
     return;
 }
 
+TEST(API, SimpleDeductionTest) {
+    using c7a::FunctionStack;
+    using c7a::MakeFunctionStack;
+
+    auto fmap_fn =
+        [=](int input, auto emit_func) {
+            emit_func(std::to_string(input));
+        };
+
+    auto fmap_fn_2 =
+        [=](std::string input, auto emit_func) {
+            emit_func(input + " Hello");
+        };
+
+    auto new_stack = MakeFunctionStack<int>(fmap_fn);
+    auto new_stack_2 = MakeFunctionStack<int>(fmap_fn_2);
+}
+
 /******************************************************************************/
