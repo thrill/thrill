@@ -9,12 +9,14 @@
 
 #include "gtest/gtest.h"
 #include "c7a/data/manager.hpp"
+#include "c7a/common/logger.hpp"
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/channel_multiplexer.hpp>
 #include <thread>
 
 using namespace c7a::data;
+using namespace c7a::common;
 using namespace c7a::net;
 using namespace c7a::net::lowlevel;
 using namespace std::literals; //for nicer sleep_for
@@ -30,11 +32,17 @@ struct DataManagerChannelFixture : public::testing::Test {
         Manager manager(dispatcher);
         manager.Connect(group);
         switch (group->MyRank()) {
-        case 0: f1(manager);
+        case 0:
+            ThreadDirectory.NameThisThread("t0");
+            f1(manager);
             break;
-        case 1: f2(manager);
+        case 1:
+            ThreadDirectory.NameThisThread("t1");
+            f2(manager);
             break;
-        case 2: f3(manager);
+        case 2:
+            ThreadDirectory.NameThisThread("t2");
+            f3(manager);
             break;
         }
     }
@@ -46,18 +54,33 @@ struct DataManagerChannelFixture : public::testing::Test {
                                 });
     }
 
-    void Execute(WorkerThread f1, WorkerThread f2 = [](Manager&) { }) {
+    void Execute(WorkerThread f1, WorkerThread f2) {
         Group::ExecuteLocalMock(2,
                                 [=](Group* g) {
-                                    FunctionSelect(g, f1, f2, [](Manager&) { });
+                                    FunctionSelect(g, f1, f2);
+                                });
+    }
+
+    void Execute(WorkerThread f1) {
+        Group::ExecuteLocalMock(1,
+                                [=](Group* g) {
+                                    FunctionSelect(g, f1, [](Manager&) { });
                                 });
     }
 
     template <class T>
-    static std::vector<T> ReadIterator(Iterator<T>& it) {
+    static std::vector<T> ReadIterator(Iterator<T>& it, bool wait_for_all = false) {
+        sLOG << "reading iterator";
         std::vector<T> result;
-        while (it.HasNext())
-            result.push_back(it.Next());
+        do {
+            if(wait_for_all)
+                it.WaitForAll();
+            while (it.HasNext()) {
+                auto element = it.Next();
+                std::cout << "read '" << element << "'" << std::endl;
+                result.push_back(element);
+            }
+        } while (!it.IsFinished() && wait_for_all);
         return result;
     }
 
