@@ -14,9 +14,8 @@
 #include "word_count_user_program.cpp"
 
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/common/cmdline_parser.hpp>
-#include <c7a/api/node_include.hpp>
+#include <c7a/c7a.hpp>
 
 using c7a::api::ExecuteThreads;
 using c7a::api::Context;

@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/net/endpoint.hpp>
-#include <c7a/api/node_include.hpp>
+#include <c7a/c7a.hpp>
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/common/string.hpp>
 #include <examples/word_count_user_program.cpp>

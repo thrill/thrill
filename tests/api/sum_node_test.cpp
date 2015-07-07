@@ -8,11 +8,12 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/node_include.hpp>
+#include <c7a/api/sum_node.hpp>
+#include <c7a/api/generate_file_node.hpp>
+#include <c7a/api/read_node.hpp>
+#include <c7a/api/bootstrap.hpp>
 
 #include "gtest/gtest.h"
-
-#include <c7a/api/bootstrap.hpp>
 
 using namespace c7a::core;
 using namespace c7a::net;
