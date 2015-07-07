@@ -106,8 +106,9 @@ TEST(API, SimpleDeductionTest) {
     auto new_stack3 = new_stack2.push(save_output);
     new_stack3.emit()(42);
 
-    ASSERT_EQ(output.size(), 1u);
-    ASSERT_EQ(output[0], "42 Hello");
+    ASSERT_EQ(output.size(), 2u);
+    ASSERT_EQ(output[0], "123");
+    ASSERT_EQ(output[1], "123");
 }
 
 /******************************************************************************/
