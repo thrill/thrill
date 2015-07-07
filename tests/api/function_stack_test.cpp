@@ -61,8 +61,7 @@ TEST(API, FunctionStackTest) {
     std::cout << "==============" << std::endl;
     std::cout << "FunctionStack" << std::endl;
     std::cout << "==============" << std::endl;
-    FunctionStack<> stack;
-    auto new_stack = stack.push(fmap_fn);
+    auto new_stack = c7a::MakeFunctionStack<double>(fmap_fn);
     auto new_stack2 = new_stack.push(conv_map_fn);
     auto new_stack3 = new_stack2.push(conv_filter_fn);
     auto new_stack4 = new_stack3.push(save_fn);

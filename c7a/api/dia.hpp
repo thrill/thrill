@@ -53,7 +53,7 @@ namespace api {
  *
  * \tparam Stack Type of the function chain.
  */
-template <typename T, typename Stack = FunctionStack<> >
+template <typename T, typename Stack = FunctionStack<T> >
 class DIARef
 {
     friend class Context;
@@ -384,7 +384,7 @@ DIARef<T, Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);
-    local_stack_ = FunctionStack<>();
+    local_stack_ = FunctionStack<T>();
 }
 
 /*!

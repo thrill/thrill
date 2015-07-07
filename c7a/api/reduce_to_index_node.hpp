@@ -138,8 +138,7 @@ public:
                               return this->PostOp(elem, emit_func);
                           };
 
-        FunctionStack<> stack;
-        return stack.push(post_op_fn);
+        return MakeFunctionStack<Output>(post_op_fn);
     }
 
     /*!
