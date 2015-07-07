@@ -52,7 +52,7 @@ struct BufferChain : public EmitterTarget {
 
     //! Appends a BinaryBufferBuffer's content to the chain
     //! This method is thread-safe and runs in O(1)
-    //! \Param b buffer to append
+    //! \param b buffer to append
     void Append(BinaryBufferBuilder& b) {
         std::unique_lock<std::mutex> lock(append_mutex_);
         elements_.emplace_back(BufferChainElement(BinaryBuffer(b), size() + b.elements()));
