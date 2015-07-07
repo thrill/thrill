@@ -95,9 +95,9 @@ private:
     common::Stats stats_;
     int thread_id_;
 };
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
 

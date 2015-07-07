@@ -135,9 +135,9 @@ auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_SUM_NODE_HEADER
 
