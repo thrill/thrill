@@ -91,6 +91,7 @@ TEST(API, SimpleDeductionTest) {
     auto fmap_fn2 =
         [=](const std::string& input, auto emit_func) {
             emit_func(input + " Hello");
+            emit_func(10);
         };
 
     auto new_stack1 = MakeFunctionStack<int>(fmap_fn1);
@@ -98,8 +99,8 @@ TEST(API, SimpleDeductionTest) {
 
     std::vector<std::string> output;
 
-    auto save_output = [&](const std::string& input) {
-        output.push_back(input);
+    auto save_output = [&](auto) {
+        output.push_back("123");
     };
 
     auto new_stack3 = new_stack2.push(save_output);
