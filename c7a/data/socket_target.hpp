@@ -49,7 +49,7 @@ public:
 
     //! Sends bare data via the socket
     //! \param data base address of the data
-    //! \param lenght of data to be sent in bytes
+    //! \param len of data to be sent in bytes
     //! \param num_elements number of elements in the send-range
     void Pipe(const void* data, size_t len, size_t num_elements) {
         if (len == 0) {

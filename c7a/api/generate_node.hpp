@@ -50,7 +50,7 @@ public:
     * \param ctx Reference to Context, which holds references to data and network.
     * \param generator_function Generator function, which defines how each line
     * of the file is read and used for generation of a DIA.
-    * \param path_in Path of the input file
+    * \param generator_function generates elements from an index
     * \param size Number of elements in the generated DIA
     */
     GenerateNode(Context& ctx,
