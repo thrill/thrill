@@ -23,7 +23,9 @@
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
-namespace bootstrap {
+namespace api {
+
+namespace {
 
 std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
     //replace with arbitrary complex implementation
@@ -66,16 +68,18 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
     }
     return std::make_tuple(0, my_rank, endpoints);
 }
-}   //namespace bootstrap
 
-namespace api {
+} // namespace
 
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
 //! different context instances.
 //!
 //! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned.
-static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1, const std::string& log_prefix = "") {
+static inline int Execute(
+    int argc, char* argv[],
+    std::function<int(Context&)> job_startpoint,
+    int thread_count = 1, const std::string& log_prefix = "") {
 
     //!True if program time should be taken and printed
 
@@ -84,7 +88,7 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result = 0;
-    std::tie(result, my_rank, endpoints) = bootstrap::ParseArgs(argc, argv);
+    std::tie(result, my_rank, endpoints) = ParseArgs(argc, argv);
     if (result != 0)
         return {
                    -1
@@ -111,18 +115,19 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     std::vector<std::atomic<int> > atomic_results(thread_count);
 
     for (int i = 0; i < thread_count; i++) {
-        threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
-                                         Context ctx(jobMan, i);
-                                         common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
-                                         LOG << "connecting to peers";
-                                         LOG << "Starting job on Worker " << ctx.rank();
-                                         auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
-                                         int job_result = job_startpoint(ctx);
-                                         overall_timer->Stop();
-                                         LOG << "Worker " << ctx.rank() << " done!";
-                                         atomic_results[i] = job_result;
-										 jobMan.get_flow_manager().GetFlowControlChannel(0).await();
-                                     });
+        threads[i] = new std::thread(
+            [&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
+                Context ctx(jobMan, i);
+                common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
+                LOG << "connecting to peers";
+                LOG << "Starting job on Worker " << ctx.rank();
+                auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+                int job_result = job_startpoint(ctx);
+                overall_timer->Stop();
+                LOG << "Worker " << ctx.rank() << " done!";
+                atomic_results[i] = job_result;
+                jobMan.get_flow_manager().GetFlowControlChannel(0).await();
+            });
     }
     for (int i = 0; i < thread_count; i++) {
         threads[i]->join();
@@ -159,14 +164,17 @@ ExecuteThreads(const size_t& workers, const size_t& port_base,
         strargs[i][2] = std::to_string(i);
         arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
 
-        std::function<int(Context&)> intReturningFunction = [job_startpoint](Context& ctx) {
-                                                                job_startpoint(ctx);
-                                                                return 1;
-                                                            };
+        std::function<int(Context&)> intReturningFunction =
+            [job_startpoint](Context& ctx) {
+            job_startpoint(ctx);
+            return 1;
+        };
 
-        threads[i] = std::thread([=]() {
-                                     Execute(workers + 3, arguments[i], intReturningFunction, 1, "worker " + std::to_string(i));
-                                 });
+        threads[i] = std::thread(
+            [=]() {
+                Execute(workers + 3, arguments[i],
+                        intReturningFunction, 1, "worker " + std::to_string(i));
+            });
     }
 
     for (size_t i = 0; i < workers; i++) {
@@ -175,7 +183,7 @@ ExecuteThreads(const size_t& workers, const size_t& port_base,
 }
 
 } // namespace api
-} // namespace bootstrap
+} // namespace c7a
 
 #endif // !C7A_API_BOOTSTRAP_HEADER
 
