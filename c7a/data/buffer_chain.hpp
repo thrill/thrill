@@ -88,11 +88,11 @@ struct BufferChain : public EmitterTarget {
         return elements_.back().element_count;
     }
 
-    BufferChainIterator Begin() {
+    BufferChainIterator Begin() const {
         return elements_.begin();
     }
 
-    BufferChainIterator End() {
+    BufferChainIterator End() const {
         return elements_.end();
     }
 
