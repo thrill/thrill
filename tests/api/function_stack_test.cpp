@@ -83,18 +83,30 @@ TEST(API, SimpleDeductionTest) {
     using c7a::FunctionStack;
     using c7a::MakeFunctionStack;
 
-    auto fmap_fn =
+    auto fmap_fn1 =
         [=](int input, auto emit_func) {
             emit_func(std::to_string(input));
         };
 
-    auto fmap_fn_2 =
-        [=](std::string input, auto emit_func) {
+    auto fmap_fn2 =
+        [=](const std::string& input, auto emit_func) {
             emit_func(input + " Hello");
         };
 
-    auto new_stack = MakeFunctionStack<int>(fmap_fn);
-    auto new_stack_2 = MakeFunctionStack<int>(fmap_fn_2);
+    auto new_stack1 = MakeFunctionStack<int>(fmap_fn1);
+    auto new_stack2 = new_stack1.push(fmap_fn2);
+
+    std::vector<std::string> output;
+
+    auto save_output = [&](const std::string& input) {
+        output.push_back(input);
+    };
+
+    auto new_stack3 = new_stack2.push(save_output);
+    new_stack3.emit()(42);
+
+    ASSERT_EQ(output.size(), 1u);
+    ASSERT_EQ(output[0], "42 Hello");
 }
 
 /******************************************************************************/
