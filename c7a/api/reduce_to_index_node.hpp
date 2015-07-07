@@ -241,9 +241,9 @@ auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     return DIARef<DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_REDUCE_TO_INDEX_NODE_HEADER
 

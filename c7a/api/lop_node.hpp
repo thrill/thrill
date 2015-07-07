@@ -95,9 +95,9 @@ private:
     //! Local stack
     LOpStack lop_stack_;
 };
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER
 

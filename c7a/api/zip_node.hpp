@@ -25,6 +25,7 @@
 #include <vector>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -234,6 +235,7 @@ auto DIARef<T, Stack>::Zip(
                (std::move(shared_node), zip_stack);
 }
 
+} // namespace api
 } // namespace c7a
 
 //! \}
