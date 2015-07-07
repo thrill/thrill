@@ -26,7 +26,7 @@
 
 #include "dia_node.hpp"
 #include "function_stack.hpp"
-#include "function_traits.hpp"
+#include <c7a/common/function_traits.hpp>
 #include "lop_node.hpp"
 #include "context.hpp"
 
@@ -143,7 +143,7 @@ public:
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) {
         using MapArgument
-                  = typename FunctionTraits<MapFunction>::template arg<0>;
+            = typename common::FunctionTraits<MapFunction>::template arg<0>;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
@@ -168,7 +168,7 @@ public:
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) {
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
+            = typename common::FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
                                         if (filter_function(input)) emit_func(input);
                                     };
