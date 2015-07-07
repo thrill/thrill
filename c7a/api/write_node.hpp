@@ -78,8 +78,7 @@ public:
                          return emit_func(t);
                      };
 
-        FunctionStack<> stack;
-        return stack.push(id_fn);
+        return MakeFunctionStack<WriteArg>(id_fn);
     }
 
     /*!

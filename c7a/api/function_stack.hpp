@@ -95,17 +95,17 @@ struct make_index_sequence : public make_index_sequence_helper<Length>::type
  *
  * \tparam Lambdas Types of the different lambda functions.
  */
-template <typename ... Lambdas>
+template <typename Input, typename ... Lambdas>
 class FunctionStack
 {
 public:
-    /*!
-     * Default constructor that initializes an empty tuple of functions.
-     */
-    FunctionStack() { }
+
+    template <typename Lambda> 
+    explicit FunctionStack(Lambda lambda)
+        : stack_(std::make_tuple(lambda)) { }
 
     /*!
-     * Initialize the function chain with a fiven tuple of functions.
+     * Initialize the function chain with a given tuple of functions.
      *
      * \param stack Tuple of lambda functions.
      */
@@ -131,7 +131,7 @@ public:
         std::tuple<Lambdas ..., Function> new_stack
             = std::tuple_cat(stack_, std::make_tuple(append_func));
 
-        return FunctionStack<Lambdas ..., Function>(new_stack);
+        return FunctionStack<Input, Lambdas ..., Function>(new_stack);
     }
 
     /*!
@@ -166,6 +166,11 @@ private:
         return run_emitter(std::get<Is>(stack_) ...);
     }
 };
+
+template <typename Input, typename Lambda> 
+static inline auto MakeFunctionStack(Lambda lambda) {
+    return FunctionStack<Input, Lambda>(lambda);
+}
 
 } // namespace c7a
 
