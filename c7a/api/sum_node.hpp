@@ -31,7 +31,7 @@ class SumNode : public ActionNode<Input>
     using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
-    using SumArg0 = typename FunctionTraits<SumFunction>::template arg<0>;
+    using SumArg0 = typename common::FunctionTraits<SumFunction>::template arg<0>;
 
 public:
     SumNode(Context& ctx,
@@ -118,9 +118,9 @@ template <typename T, typename Stack>
 template <typename SumFunction>
 auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
     using SumResult
-              = typename FunctionTraits<SumFunction>::result_type;
+              = typename common::FunctionTraits<SumFunction>::result_type;
     using SumArgument0
-              = typename FunctionTraits<SumFunction>::template arg<0>;
+              = typename common::FunctionTraits<SumFunction>::template arg<0>;
 
     using SumResultNode
               = SumNode<SumArgument0, SumResult,

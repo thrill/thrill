@@ -19,7 +19,7 @@
 #include <array>
 #include <utility>
 
-#include "function_traits.hpp"
+#include <c7a/common/function_traits.hpp>
 
 namespace c7a {
 namespace api {

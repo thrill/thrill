@@ -54,11 +54,11 @@ class ReduceNode : public DOpNode<Output>
 
     using Super = DOpNode<Output>;
 
-    using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
+    using ReduceArg = typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -200,7 +200,8 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
                                 const ReduceFunction &reduce_function) {
 
     using DOpResult
-              = typename FunctionTraits<ReduceFunction>::result_type;
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+    
     using ReduceResultNode
               = ReduceNode<T, DOpResult, decltype(local_stack_),
                            KeyExtractor, ReduceFunction>;

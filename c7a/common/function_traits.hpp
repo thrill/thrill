@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/function_traits.hpp
+ * c7a/common/function_traits.hpp
  *
  * Part of Project c7a.
  *
@@ -14,6 +14,7 @@
 #include <tuple>
 
 namespace c7a {
+namespace common {
 
 #ifndef C7A_DOXYGEN_IGNORE
 
@@ -38,6 +39,7 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
     // composed of those arguments.
 };
 
+} // namespace common
 } // namespace c7a
 
 #endif // !C7A_API_FUNCTION_TRAITS_HEADER

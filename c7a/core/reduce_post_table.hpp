@@ -15,7 +15,7 @@
 #ifndef C7A_CORE_REDUCE_POST_TABLE_HEADER
 #define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
-#include <c7a/api/function_traits.hpp>
+#include <c7a/common/function_traits.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -79,9 +79,9 @@ class ReducePostTable
 public:
     static const bool debug = false;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using KeyValuePair = std::pair<Key, Value>;
 
