@@ -251,7 +251,9 @@ public:
      * \param reduce_function Reduce function, which defines how the key buckets
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
-     * \param max_index //TODO(an) docu
+     *
+     * \param max_index Largest index given by the key_extractor function for any
+     * element in the input DIA.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
