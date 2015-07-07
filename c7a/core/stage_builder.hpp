@@ -34,7 +34,7 @@ public:
     }
     void Run() {
         LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
-        node_->execute();
+        node_->Execute();
     }
 
 private:

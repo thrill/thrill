@@ -69,7 +69,7 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void execute() {
+    void Execute() {
 
         LOG << "GENERATING data with id " << this->data_id_;
 
