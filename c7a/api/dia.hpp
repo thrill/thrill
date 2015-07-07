@@ -367,8 +367,6 @@ private:
     Stack local_stack_;
 };
 
-//! \}
-
 template <typename T, typename Stack>
 template <typename AnyStack>
 DIARef<T, Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
@@ -441,6 +439,8 @@ template <typename GeneratorFunction>
 auto Generate(Context & ctx,
               const GeneratorFunction &generator_function,
               size_t size);
+
+//! \}
 
 } // namespace api
 } // namespace c7a
