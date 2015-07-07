@@ -164,9 +164,9 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (std::move(shared_node), generator_stack);
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_GENERATE_FILE_NODE_HEADER
 

@@ -111,9 +111,9 @@ void DIARef<T, Stack>::AllGather(std::vector<Out>* out_vector) {
 
     core::StageBuilder().RunScope(shared_node.get());
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_ALLGATHER_NODE_HEADER
 

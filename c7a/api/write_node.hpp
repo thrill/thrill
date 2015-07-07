@@ -127,9 +127,9 @@ void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
     auto write_stack = shared_node->ProduceStack();
     core::StageBuilder().RunScope(shared_node.get());
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER
 

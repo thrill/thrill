@@ -146,9 +146,9 @@ auto Generate(Context & ctx,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (std::move(shared_node), generator_stack);
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_GENERATE_NODE_HEADER
 
