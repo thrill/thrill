@@ -48,7 +48,7 @@ public:
                 MoveToNextBuffer();
             }
             else {
-                throw "buffer chain element has no follow-up element.";
+                die("buffer chain element has no follow-up element.");
             }
         }
         return Deserialize<T>(current_reader_.GetString());
