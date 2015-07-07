@@ -52,12 +52,20 @@ struct BufferChain : public EmitterTarget {
 
     //! Appends a BinaryBufferBuffer's content to the chain
     //! This method is thread-safe and runs in O(1)
-    //! \Param b buffer to append
+    //! \param b buffer to append
     void Append(BinaryBufferBuilder& b) {
         std::unique_lock<std::mutex> lock(append_mutex_);
         elements_.emplace_back(BufferChainElement(BinaryBuffer(b), size() + b.elements()));
         b.Detach();
         lock.unlock();
+        NotifyWaitingThreads();
+    }
+
+    //! Appends an existing element to the chain.
+    //! This method is not thread-safe since it is called only when channels
+    //! are closed once.
+    void Append(BufferChainElement&& element) {
+        elements_.emplace_back(std::move(element));
         NotifyWaitingThreads();
     }
 
@@ -88,11 +96,11 @@ struct BufferChain : public EmitterTarget {
         return elements_.back().element_count;
     }
 
-    BufferChainIterator Begin() {
+    BufferChainIterator Begin() const {
         return elements_.begin();
     }
 
-    BufferChainIterator End() {
+    BufferChainIterator End() const {
         return elements_.end();
     }
 
@@ -116,6 +124,42 @@ private:
         condition_variable_.notify_all();
     }
 };
+
+//! Collects buffers ina map and moves them to a BufferChain in the order of
+//! the keys. Buffers with the same key are moved in the order they where
+//! appended to the OrderedBufferChain
+class OrderedBufferChain {
+public:
+    //! Appends data from the BinaryBufferBuilder and detaches it
+    //! \param rank of the sender of the data
+    //! \param b received data
+    void Append(size_t rank, BinaryBufferBuilder& b) {
+        std::unique_lock<std::mutex> lock(append_mutex_);
+        if (buffers_.find(rank) == buffers_.end())
+            buffers_[rank] = std::vector<BufferChainElement>();
+        buffers_[rank].emplace_back(BufferChainElement(BinaryBuffer(b), b.elements()));
+        b.Detach();
+    }
+
+    void MoveTo(std::shared_ptr<data::BufferChain> target) {
+        size_t elements = 0;
+
+        //iterate over keys in their order
+        for (auto it = buffers_.begin(); it != buffers_.end(); it++) {
+            //for each key - iterate over all it's buffers
+            for (auto& buf_elem : it->second) {
+                //update the elements field
+                elements += buf_elem.element_count;
+                target->Append(BufferChainElement(buf_elem.buffer, elements));
+            }
+        }
+    }
+
+private:
+    std::map<size_t, std::vector<BufferChainElement>> buffers_;
+    std::mutex append_mutex_;
+};
+
 
 } // namespace data
 } // namespace c7a

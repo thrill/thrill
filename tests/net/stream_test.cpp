@@ -24,6 +24,7 @@ struct StreamTest : public::testing::Test {
         candidate.channel_id = 2;
         candidate.expected_bytes = 4;
         candidate.expected_elements = 5;
+        candidate.sender_rank = 6;
     }
 
     struct StreamBlockHeader candidate;
@@ -37,6 +38,7 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesHeader) {
     ASSERT_EQ(candidate.channel_id, result.channel_id);
     ASSERT_EQ(candidate.expected_bytes, result.expected_bytes);
     ASSERT_EQ(candidate.expected_elements, result.expected_elements);
+    ASSERT_EQ(candidate.sender_rank, result.sender_rank);
 }
 
 TEST_F(StreamTest, StreamBlockHeaderIsStreamEnd) {

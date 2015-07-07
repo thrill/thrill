@@ -83,6 +83,15 @@ public:
         return chain->size();
     }
 
+    //! Docu see net::ChannelMultiplexer::Scatter()
+    template<class T>
+    void Scatter(const ChainId& source, const ChainId& target, std::vector<size_t> offsets) {
+        assert(source.type == LOCAL);
+        assert(target.type == NETWORK);
+        assert(dias_.Contains(source));
+        cmp_.Scatter<T>(dias_.Chain(source), target, offsets);
+    }
+
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
@@ -90,16 +99,12 @@ public:
         return dias_.AllocateNext();
     }
 
-    // TODO Get size of current partition
-    size_t get_current_size(const ChainId& /* id */) {
-        return 0;
-    }
-
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    ChannelId AllocateNetworkChannel() {
-        return cmp_.AllocateNext();
+    //! \param order_preserving indicates if the channel should preserve the order of the receiving packages
+    ChannelId AllocateNetworkChannel(bool order_preserving = false) {
+        return cmp_.AllocateNext(order_preserving);
     }
 
     //! Returns an emitter that can be used to fill a DIA
