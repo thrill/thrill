@@ -80,7 +80,7 @@ public:
     virtual ~DIABase() { }
 
     //! Virtual execution method. Triggers actual computation in sub-classes.
-    virtual void execute() = 0;
+    virtual void Execute() = 0;
 
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;

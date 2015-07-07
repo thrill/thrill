@@ -106,7 +106,7 @@ public:
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override {
+    void Execute() override {
         MainOp();
         // get data from data manager
         auto it1 = context_.get_data_manager().

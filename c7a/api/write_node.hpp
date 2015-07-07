@@ -61,7 +61,7 @@ public:
     virtual ~WriteNode() { }
 
     //! Closes the output file
-    void execute() override {
+    void Execute() override {
         sLOG << "closing file" << path_out_;
         emit_.Close();
     }

@@ -60,7 +60,7 @@ public:
     virtual ~AllGatherNode() { }
 
     //! Closes the output file
-    void execute() override {
+    void Execute() override {
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
