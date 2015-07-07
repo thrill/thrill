@@ -58,7 +58,7 @@ public:
     /*!
      * Actually executes the local operations.
      */
-    void execute() override {
+    void Execute() override {
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager

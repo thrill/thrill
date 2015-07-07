@@ -72,7 +72,7 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void execute() {
+    void Execute() {
         static const bool debug = false;
         LOG << "READING data with id " << data_id_;
 

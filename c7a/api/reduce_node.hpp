@@ -109,7 +109,7 @@ public:
      * Actually executes the reduce operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override {
+    void Execute() override {
         MainOp();
     }
 

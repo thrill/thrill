@@ -55,7 +55,7 @@ public:
     virtual ~SumNode() { }
 
     //! Executes the sum operation.
-    void execute() override {
+    void Execute() override {
         MainOp();
     }
 
