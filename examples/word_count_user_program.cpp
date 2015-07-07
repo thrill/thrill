@@ -9,13 +9,13 @@
  ******************************************************************************/
 
 #include <c7a/common/string.hpp>
-#include <c7a/api/node_include.hpp>
+#include <c7a/c7a.hpp>
 
-using c7a::api::Context;
-using c7a::api::DIARef;
+using c7a::Context;
+using c7a::DIARef;
 
 template <typename InStack>
-auto word_count_user(DIARef<std::string, InStack>&input) {
+auto word_count_user(DIARef<std::string, InStack>& input) {
 
     using WordCount = std::pair<std::string, int>;
 
