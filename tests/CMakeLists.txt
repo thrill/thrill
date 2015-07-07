@@ -8,7 +8,8 @@
 macro(c7a_build TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME} c7a gtest gmock ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME}
+    c7a gtest gtest_main gmock ${ALL_LIBRARIES})
 
 endmacro(c7a_build)
 
@@ -25,7 +26,7 @@ endmacro(build_plain)
 macro(build_only PROGNAME)
 
   # append gtest runner program.
-  build_plain(${PROGNAME} c7a_tests.cpp ${ARGN})
+  build_plain(${PROGNAME} ${ARGN})
 
 endmacro(build_only)
 
@@ -62,7 +63,7 @@ macro(build_test_group TESTNAME)
 
   string(REPLACE "/" "_" TARGETNAME "${TESTNAME}") # replace slashes
 
-  c7a_build(${TARGETNAME} c7a_tests.cpp ${ARGN})
+  c7a_build(${TARGETNAME} ${ARGN})
   test_only(${TARGETNAME})
 
 endmacro(build_test_group)
