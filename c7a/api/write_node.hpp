@@ -28,7 +28,9 @@ public:
     using Super = ActionNode<Input>;
     using Super::context_;
     using Super::data_id_;
-    using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
+
+    using WriteArg =
+        typename common::FunctionTraits<WriteFunction>::template arg<0>;
 
     WriteNode(Context& ctx,
               DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
@@ -73,7 +75,8 @@ public:
         // Hook Identity
 
         using WriteArg =
-                  typename FunctionTraits<WriteFunction>::template arg<0>;
+                  typename common::FunctionTraits<WriteFunction>::template arg<0>;
+        
         auto id_fn = [=](WriteArg t, auto emit_func) {
                          return emit_func(t);
                      };
@@ -113,7 +116,9 @@ template <typename WriteFunction>
 void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
                                          const WriteFunction& write_function) {
 
-    using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
+    using WriteResult =
+        typename common::FunctionTraits<WriteFunction>::result_type;
+    
     using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
                                       decltype(local_stack_)>;
 

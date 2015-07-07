@@ -56,13 +56,15 @@ class ReduceToIndexNode : public DOpNode<Output>
 
     using Super = DOpNode<Output>;
 
-    using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
+    using ReduceArg =
+        typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key =
+        typename common::FunctionTraits<KeyExtractor>::result_type;
 
     static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -223,7 +225,8 @@ auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                      size_t max_index) {
 
     using DOpResult
-              = typename FunctionTraits<ReduceFunction>::result_type;
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+    
     using ReduceResultNode
               = ReduceToIndexNode<T, DOpResult, decltype(local_stack_),
                                   KeyExtractor, ReduceFunction>;

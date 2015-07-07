@@ -148,8 +148,10 @@ template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
                       size_t size) {
+    
     using GeneratorResult =
-              typename FunctionTraits<GeneratorFunction>::result_type;
+              typename common::FunctionTraits<GeneratorFunction>::result_type;
+    
     using GenerateResultNode =
               GenerateFileNode<GeneratorResult, GeneratorFunction>;
 
