@@ -85,6 +85,21 @@ template <size_t Length>
 struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
 
+template<typename Tuple>
+struct LastFuncType;
+
+template<>
+struct LastFuncType<std::tuple<>> {
+    using FunctionType = void;
+    using InputType = void;
+};
+
+template<typename ... Types>
+struct LastFuncType<std::tuple<Types ...>> {
+    using FunctionType = typename std::tuple_element<sizeof... (Types) - 1,
+                                            std::tuple<Types ...>>::type;
+};
+
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single
  * lambda functions.  The FunctionStack basically consists of a tuple that
