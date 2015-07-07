@@ -19,7 +19,9 @@
 using namespace c7a::core;
 
 TEST(API, FunctionStackTest) {
-    using c7a::FunctionStack;
+    using c7a::api::FunctionStack;
+    using c7a::api::MakeFunctionStack;
+
     std::vector<double> elements;
 
     // User-defined functions
@@ -61,7 +63,7 @@ TEST(API, FunctionStackTest) {
     std::cout << "==============" << std::endl;
     std::cout << "FunctionStack" << std::endl;
     std::cout << "==============" << std::endl;
-    auto new_stack = c7a::MakeFunctionStack<double>(fmap_fn);
+    auto new_stack = MakeFunctionStack<double>(fmap_fn);
     auto new_stack2 = new_stack.push(conv_map_fn);
     auto new_stack3 = new_stack2.push(conv_filter_fn);
     auto new_stack4 = new_stack3.push(save_fn);
@@ -80,8 +82,8 @@ TEST(API, FunctionStackTest) {
 }
 
 TEST(API, SimpleDeductionTest) {
-    using c7a::FunctionStack;
-    using c7a::MakeFunctionStack;
+    using c7a::api::FunctionStack;
+    using c7a::api::MakeFunctionStack;
 
     auto fmap_fn1 =
         [=](int input, auto emit_func) {
