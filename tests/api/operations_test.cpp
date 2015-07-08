@@ -218,6 +218,46 @@ TEST(Operations, PrefixSumCorrectResults) {
     c7a::api::ExecuteThreads(workers, port_base, start_func);
 }
 
+TEST(Operations, PrefixSumFacultyCorrectResults) {
+
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(1, 4);
+
+    size_t workers = distribution(generator);
+    size_t port_base = 8080;
+
+    std::function<void(Context&)> start_func = [](Context& ctx) {
+
+                                                   auto integers = Generate(
+                                                       ctx,
+                                                       [](const size_t& input) {
+                                                           return input + 1;
+                                                       },
+                                                       10);
+
+                                                   auto prefixsums = integers.PrefixSum(
+													   [](size_t in1, size_t in2) {
+														   return in1 * in2;
+													   }, 1);
+
+                                                   std::vector<size_t> out_vec;
+
+                                                   prefixsums.AllGather(&out_vec);
+
+                                                   std::sort(out_vec.begin(), out_vec.end());
+												   size_t ctr = 1;
+                                                   for (size_t i = 0; i < out_vec.size(); i++) {
+													   ctr *= i + 1;
+													   ASSERT_EQ(out_vec[i], ctr);
+                                                   }
+
+                                                   ASSERT_EQ((size_t)10, out_vec.size());
+                                               };
+
+    c7a::api::ExecuteThreads(workers, port_base, start_func);
+}
+
 TEST(Operations, FilterResultsCorrectly) {
 
     std::random_device random_device;
