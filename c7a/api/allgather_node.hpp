@@ -31,11 +31,11 @@ public:
     using Super::context_;
     using Super::data_id_;
 
-    using ParentType = typename ParentStack::InputType;
+    using ParentInput = typename ParentStack::Input;
 
     AllGatherNode(Context& ctx,
                   //TODO(??) don't we need to pass shared ptrs for the ref counting?
-                  DIANode<ParentType>* parent,
+                  DIANode<ParentInput>* parent,
                   ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )

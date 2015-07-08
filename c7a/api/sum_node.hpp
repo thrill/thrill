@@ -33,11 +33,11 @@ class SumNode : public ActionNode
     using Super::data_id_;
     using SumArg0 = ValueType;
 
-    using ParentType = typename ParentStack::InputType;
+    using ParentInput = typename ParentStack::Input;
 
 public:
     SumNode(Context& ctx,
-            DIANode<ParentType>* parent,
+            DIANode<ParentInput>* parent,
             ParentStack& parent_stack,
             SumFunction sum_function)
         : ActionNode(ctx, { parent }),

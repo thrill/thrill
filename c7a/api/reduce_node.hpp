@@ -60,7 +60,7 @@ class ReduceNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    using ParentType = typename ParentStack::InputType;
+    using ParentInput = typename ParentStack::Input;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -81,7 +81,7 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
-               DIANode<ParentType>* parent,
+               DIANode<ParentInput>* parent,
                ParentStack& parent_stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
