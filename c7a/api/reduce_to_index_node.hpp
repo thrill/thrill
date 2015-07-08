@@ -38,31 +38,33 @@ namespace api {
  * DIA by their key and reduces every key bucket to a single element each. The
  * ReduceToIndexNode stores the key_extractor and the reduce_function UDFs. The
  * chainable LOps ahead of the Reduce operation are stored in the Stack. The
- * ReduceToIndexNode has the type Output, which is the result type of the
+ * ReduceToIndexNode has the type ValueType, which is the result type of the
  * reduce_function. The key type is an unsigned integer and the output DIA will have element
  * with key K at index K.
  *
- * \tparam Input Input type of the Reduce operation
- * \tparam Output Output type of the Reduce operation
+ * \tparam ParentType Input type of the Reduce operation
+ * \tparam ValueType Output type of the Reduce operation
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename Input, typename Output, typename Stack,
+template <typename ParentType, typename ValueType, typename Stack,
           typename KeyExtractor, typename ReduceFunction>
-class ReduceToIndexNode : public DOpNode<Output>
+class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
 
-    using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
+    using ReduceArg =
+        typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key =
+        typename common::FunctionTraits<KeyExtractor>::result_type;
 
     static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -86,12 +88,12 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceToIndexNode(Context& ctx,
-                      DIANode<Input>* parent,
+                      DIANode<ParentType>* parent,
                       Stack& stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index)
-        : DOpNode<Output>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }),
           local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -124,7 +126,7 @@ public:
      * Actually executes the reduce to index operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override {
+    void Execute() override {
         MainOp();
     }
 
@@ -134,12 +136,11 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, auto emit_func) {
+        auto post_op_fn = [=](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
-        FunctionStack<> stack;
-        return stack.push(post_op_fn);
+        return MakeFunctionStack<ValueType>(post_op_fn);
     }
 
     /*!
@@ -184,11 +185,11 @@ private:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(Output)>,
+                                          std::function<void(ValueType)>,
                                           true>;
 
         ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<Output>::callbacks(),
+                          DIANode<ValueType>::callbacks(),
                           [=](Key key, ReduceTable* ht) {
                               return key * ht->NumBuckets() / max_index_;
                           },
@@ -210,23 +211,24 @@ private:
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     template <typename Emitter>
-    void PostOp(Output input, Emitter emit_func) {
+    void PostOp(ValueType input, Emitter emit_func) {
         emit_func(input);
     }
 };
 
 //! \}
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
+auto DIARef<NodeType, CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                      const ReduceFunction &reduce_function,
                                      size_t max_index) {
 
     using DOpResult
-              = typename FunctionTraits<ReduceFunction>::result_type;
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+    
     using ReduceResultNode
-              = ReduceToIndexNode<T, DOpResult, decltype(local_stack_),
+              = ReduceToIndexNode<NodeType, DOpResult, decltype(local_stack_),
                                   KeyExtractor, ReduceFunction>;
 
     auto shared_node
@@ -239,12 +241,12 @@ auto DIARef<T, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>
+    return DIARef<DOpResult, DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
-}
 }
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_REDUCE_TO_INDEX_NODE_HEADER
 

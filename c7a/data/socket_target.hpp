@@ -25,10 +25,11 @@ class SocketTarget : public EmitterTarget
 {
 public:
     SocketTarget(net::DispatcherThread* dispatcher,
-                 net::Connection* connection, size_t channel_id)
+                 net::Connection* connection, size_t channel_id, size_t own_rank)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
+          own_rank_(own_rank),
           closed_(false) { }
 
     //! Appends data to the SocketTarget.
@@ -46,10 +47,25 @@ public:
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
     }
 
+    //! Sends bare data via the socket
+    //! \param data base address of the data
+    //! \param len of data to be sent in bytes
+    //! \param num_elements number of elements in the send-range
+    void Pipe(const void* data, size_t len, size_t num_elements) {
+        if (len == 0) {
+            return;
+        }
+        SendHeader(len, num_elements);
+        //TODO(ts) this copies the data.
+        net::Buffer payload_buf = net::Buffer(data, len);
+        dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
+    }
+
     //! Closes the connection
     void Close() override {
         assert(!closed_);
         closed_ = true;
+        sLOG << "sending 'close channel' from worker" << own_rank_ << "on" << id_;
         SendHeader(0, 0);
     }
 
@@ -60,6 +76,7 @@ protected:
     net::DispatcherThread* dispatcher_;
     net::Connection* connection_;
     size_t id_;
+    size_t own_rank_;
     bool closed_;
 
     void SendHeader(size_t num_bytes, size_t elements) {
@@ -67,6 +84,7 @@ protected:
         header.channel_id = id_;
         header.expected_bytes = num_bytes;
         header.expected_elements = elements;
+        header.sender_rank = own_rank_;
         net::Buffer header_buffer(&header, sizeof(header));
         dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
     }

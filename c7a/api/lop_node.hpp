@@ -26,16 +26,16 @@ namespace api {
  * A LOpNode which performs a chain of local operations.  LOp nodes are used for
  * caching local operation results and assignment operations.
  *
- * \tparam Input Input type of the Reduce operation
+ * \tparam ParentType ParentType type of the Reduce operation
  *
  * \tparam LOpStack Function chain, which contains the chained lambdas between
  * the last and this DIANode.
  */
-template <typename Input, typename LOpStack>
-class LOpNode : public DIANode<Input>
+template <typename ParentType, typename LOpStack>
+class LOpNode : public DIANode<ParentType>
 {
 public:
-    using Super = DIANode<Input>;
+    using Super = DIANode<ParentType>;
     using Super::context_;
 
     /*!
@@ -46,9 +46,9 @@ public:
      * \param lop_stack Function chain with all lambdas between the parent and this node
      */
     LOpNode(Context& ctx,
-            DIANode<Input>* parent,
+            DIANode<ParentType>* parent,
             LOpStack& lop_stack)
-        : DIANode<Input>(ctx, { parent }),
+        : DIANode<ParentType>(ctx, { parent }),
           lop_stack_(lop_stack)
     { }
 
@@ -58,14 +58,14 @@ public:
     /*!
      * Actually executes the local operations.
      */
-    void execute() override {
+    void Execute() override {
         // Execute LOpChain
         data::DIAId pid = this->get_parents()[0]->get_data_id();
         // //get data from data manager
-        auto it = context_.get_data_manager().template GetIterator<Input>(pid);
+        auto it = context_.get_data_manager().template GetIterator<ParentType>(pid);
 
-        std::vector<Input> elements;
-        auto save_fn = [&elements](Input input) {
+        std::vector<ParentType> elements;
+        auto save_fn = [&elements](ParentType input) {
                            elements.push_back(input);
                        };
         auto lop_chain = lop_stack_.push(save_fn).emit();
@@ -77,7 +77,7 @@ public:
 
         // Emit new elements
         auto emit = context_.get_data_manager().
-                    template GetLocalEmitter<Input>(DIABase::data_id_);
+                    template GetLocalEmitter<ParentType>(DIABase::data_id_);
         for (auto elem : elements) {
             emit(elem);
         }
@@ -95,9 +95,9 @@ private:
     //! Local stack
     LOpStack lop_stack_;
 };
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_LOP_NODE_HEADER
 

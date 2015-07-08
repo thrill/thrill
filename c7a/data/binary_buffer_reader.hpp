@@ -103,6 +103,23 @@ public:
         return *this;
     }
 
+    //! Seeks elements in this reader by traversing the internal buffer from the current position
+    //! No checks if the cursor points to a valid position in the buffer
+    //! This method is not thread-safe
+    //! \param num max numumber number of elements to seek
+    //! \param out_num_bytes sum of bytes of seeked elements
+    //! \returns number of seeked elements. <= num_elements
+    size_t SeekStringElements(size_t num, size_t* out_num_bytes) {
+        size_t num_elements = 0;
+        auto old_cursor = cursor_;
+        while(cursor_ < size_ && num > num_elements) {
+            cursor_ += GetVarint(); //not use Skip. No CheckAvailable required
+            num_elements++;
+        }
+        *out_num_bytes = cursor_ - old_cursor;
+        return num_elements;
+    }
+
     //! \}
 
     //! \name Cursor Reading Methods

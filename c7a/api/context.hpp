@@ -61,7 +61,6 @@ public:
     /**
      * @brief Gets the flow control channel for a certain thread.
      *
-     * @param threadId The ID of the thread to get the flow channel for.
      * @return The flow control channel associated with the given ID.
      */
     net::FlowControlChannel & get_flow_control_channel() {
@@ -95,9 +94,9 @@ private:
     common::Stats stats_;
     int thread_id_;
 };
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
 

@@ -19,11 +19,13 @@
 #include <array>
 #include <utility>
 
-#include "function_traits.hpp"
+#include <c7a/common/function_traits.hpp>
 
 namespace c7a {
+namespace api {
 
-//! \addtogroup api Interface
+//! \defgroup api_internal API Internals
+//! \ingroup api
 //! \{
 
 /*!
@@ -33,14 +35,11 @@ namespace c7a {
  *
  * \param lambda Lambda function that represents the chain end.
  */
-template <typename L>
-auto run_emitter(L lambda)
+template <typename Lambda>
+auto run_emitter(Lambda lambda)
 {
-    using param_t = typename FunctionTraits<L>::template arg<0>;
-    // auto arity = FunctionTraits<L>::arity;
-
-    return [=](param_t i)->void {
-               lambda(i);
+    return [=](auto input)->void {
+               lambda(input);
     };
 }
 
@@ -54,13 +53,15 @@ auto run_emitter(L lambda)
  *
  * \param rest Remaining lambda functions.
  */
-template <typename L, typename ... Ls>
-auto run_emitter(L lambda, Ls ... rest)
+template <typename Lambda, typename ... MoreLambdas>
+auto run_emitter(Lambda lambda, MoreLambdas ... rest)
 {
-    return [=](auto i)->void {
-               lambda(i, run_emitter(rest ...));
+    return [=](auto input)->void {
+               lambda(input, run_emitter(rest ...));
     };
 }
+
+namespace {
 
 // Compile-time integer sequences, an implementation of std::index_sequence and
 // std::make_index_sequence, as these are not available in many current
@@ -88,6 +89,8 @@ template <size_t Length>
 struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
 
+} // namespace
+
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single
  * lambda functions.  The FunctionStack basically consists of a tuple that
@@ -96,24 +99,26 @@ struct make_index_sequence : public make_index_sequence_helper<Length>::type
  * function is used for chaining lambdas together.  The single exception to this
  * is the last lambda function, which receives no emitter.
  *
- * \tparam Types Types of the different lambda functions.
+ * \tparam Lambdas Types of the different lambda functions.
  */
-template <typename ... Types>
+template <typename Input, typename ... Lambdas>
 class FunctionStack
 {
 public:
-    /*!
-     * Default constructor that initializes an empty tuple of functions.
-     */
-    FunctionStack() { stack_ = std::make_tuple(); }
+    using FirstType = Input;
+
+    template <typename Lambda> 
+    explicit FunctionStack(Lambda lambda)
+        : stack_(std::make_tuple(lambda)) { }
 
     /*!
-     * Initialize the function chain with a fiven tuple of functions.
+     * Initialize the function chain with a given tuple of functions.
      *
      * \param stack Tuple of lambda functions.
      */
-    explicit FunctionStack(std::tuple<Types ...> stack)
+    explicit FunctionStack(std::tuple<Lambdas ...> stack)
         : stack_(stack) { }
+
     virtual ~FunctionStack() { }
 
     /*!
@@ -130,10 +135,10 @@ public:
     {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
-        std::tuple<Types ..., Function> new_stack
+        std::tuple<Lambdas ..., Function> new_stack
             = std::tuple_cat(stack_, std::make_tuple(append_func));
 
-        return FunctionStack<Types ..., Function>(new_stack);
+        return FunctionStack<Input, Lambdas ..., Function>(new_stack);
     }
 
     /*!
@@ -144,7 +149,7 @@ public:
      * \return Single "folded" lambda function representing the chain.
      */
     auto emit() {
-        typedef std::tuple<Types ...> StackType;
+        typedef std::tuple<Lambdas ...> StackType;
 
         const size_t Size = std::tuple_size<StackType>::value;
 
@@ -153,7 +158,7 @@ public:
 
 private:
     //! Tuple of varying type that stores all lambda functions.
-    std::tuple<Types ...> stack_;
+    std::tuple<Lambdas ...> stack_;
 
     /*!
      * Auxilary function for "folding" the chain.
@@ -169,6 +174,12 @@ private:
     }
 };
 
+template <typename Input, typename Lambda> 
+static inline auto MakeFunctionStack(Lambda lambda) {
+    return FunctionStack<Input, Lambda>(lambda);
+}
+
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_FUNCTION_STACK_HEADER

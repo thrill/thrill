@@ -24,31 +24,30 @@
 namespace c7a {
 namespace api {
 
-template <typename Input, typename Output, typename Stack, typename SumFunction>
-class PrefixSumNode : public DOpNode<Output>
+template <typename ParentType, typename ValueType, typename Stack, typename SumFunction>
+class PrefixSumNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
-    using Super = DOpNode<Input>;
+    using Super = DOpNode<ParentType>;
     using Super::context_;
     using Super::data_id_;
-    using SumArg0 = typename FunctionTraits<SumFunction>::template arg<0>;
 
 public:
     PrefixSumNode(Context& ctx,
-				  DIANode<Input>* parent,
+				  DIANode<ParentType>* parent,
 				  Stack& stack,
 				  SumFunction sum_function,
-				  SumArg0 neutral_element
+				  ValueType neutral_element
 		)
-        : DOpNode<Output>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }),
           stack_(stack),
           sum_function_(sum_function),
 		  local_sum_(neutral_element),
 		  neutral_element_(neutral_element)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](Input input) {
+        auto pre_op_fn = [=](ParentType input) {
                              PreOp(input);
                          };
 
@@ -60,7 +59,7 @@ public:
     virtual ~PrefixSumNode() { }
 
     //! Executes the sum operation.
-    void execute() override {
+    void Execute() override {
         MainOp();
     }
 
@@ -70,12 +69,12 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Input t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        FunctionStack<> stack;
-        return stack.push(id_fn);
+		
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!
@@ -92,13 +91,13 @@ private:
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
     //! Local sum to be used in all reduce operation.
-    Input local_sum_;
+    ValueType local_sum_;
 	//! Neutral element.
-	Input neutral_element_;
+	ValueType neutral_element_;
 	//! Local data
-	std::vector<Input> data_;
+	std::vector<ParentType> data_;
 
-    void PreOp(SumArg0 input) {
+    void PreOp(ValueType input) {
 		LOG << "Input: " << input;
         local_sum_ = sum_function_(local_sum_, input);
 		data_.push_back(input);
@@ -108,7 +107,7 @@ private:
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.get_flow_control_channel();
 		
-		Input prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
+		ValueType prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
 		if(context_.rank() == 0) {
 			prefix_sum = neutral_element_;
@@ -116,7 +115,7 @@ private:
 
 		for (size_t i = 0; i < data_.size(); i++) {
 			prefix_sum = sum_function_(prefix_sum, data_[i]);
-			for (auto func : DIANode<Output>::callbacks_) {
+			for (auto func : DIANode<ValueType>::callbacks_) {
 				func(prefix_sum);
 			}
 	   }
@@ -125,16 +124,12 @@ private:
     void PostOp() { }
 };
 
-template <typename T, typename Stack>
+template <typename ParentType, typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function, typename FunctionTraits<SumFunction>::template arg<0> neutral_element) {
-    using SumResult
-              = typename FunctionTraits<SumFunction>::result_type;
-    using SumArgument0
-              = typename FunctionTraits<SumFunction>::template arg<0>;
+auto DIARef<ParentType, ValueType, Stack>::PrefixSum(const SumFunction &sum_function, ValueType neutral_element) {
 
     using SumResultNode
-              = PrefixSumNode<SumArgument0, SumResult,
+              = PrefixSumNode<ParentType, ValueType,
                         decltype(local_stack_), SumFunction>;
 
     auto shared_node
@@ -148,7 +143,7 @@ auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function, typename Funct
 	
     auto sum_stack = shared_node->ProduceStack();
 
-    return DIARef<SumResult, decltype(sum_stack)>
+    return DIARef<ValueType, ValueType, decltype(sum_stack)>
                (std::move(shared_node), sum_stack);
 }
 }

@@ -23,35 +23,35 @@
 namespace c7a {
 namespace api {
 
-template <typename Input, typename Output, typename Stack>
-class AllGatherNode : public ActionNode<Input>
+template <typename ParentType, typename ValueType, typename Stack>
+class AllGatherNode : public ActionNode
 {
 public:
-    using Super = ActionNode<Input>;
+    using Super = ActionNode;
     using Super::context_;
     using Super::data_id_;
 
     AllGatherNode(Context& ctx,
-                  DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
+                  DIANode<ParentType>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
                   Stack& stack,
-                  std::vector<Output>* out_vector
+                  std::vector<ValueType>* out_vector
                   )
-        : ActionNode<Input>(ctx, { parent }),
+        : ActionNode(ctx, { parent }),
           local_stack_(stack),
           out_vector_(out_vector),
           channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
     {
         emitters_ = context_.
-                    get_data_manager().template GetNetworkEmitters<Output>(channel_used_);
+                    get_data_manager().template GetNetworkEmitters<ValueType>(channel_used_);
 
-        auto pre_op_function = [=](Output input) {
+        auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
         auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
     }
 
-    void PreOp(Output element) {
+    void PreOp(ValueType element) {
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i](element);
         }
@@ -60,13 +60,13 @@ public:
     virtual ~AllGatherNode() { }
 
     //! Closes the output file
-    void execute() override {
+    void Execute() override {
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
         }
 
-        auto it = context_.get_data_manager().template GetIterator<Output>(channel_used_);
+        auto it = context_.get_data_manager().template GetIterator<ValueType>(channel_used_);
 
         do {
             it.WaitForMore();
@@ -88,20 +88,19 @@ private:
     //! Local stack
     Stack local_stack_;
 
-    std::vector<Output>* out_vector_;
+    std::vector<ValueType>* out_vector_;
 
     data::ChannelId channel_used_;
 
     static const bool debug = false;
 
-    std::vector<data::Emitter<Output> > emitters_;
+    std::vector<data::Emitter<ValueType> > emitters_;
 };
 
-template <typename T, typename Stack>
-template <typename Out>
-void DIARef<T, Stack>::AllGather(std::vector<Out>* out_vector) {
+template <typename ParentType, typename ValueType, typename Stack>
+void DIARef<ParentType, ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
 
-    using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
+    using AllGatherResultNode = AllGatherNode<ParentType, ValueType, decltype(local_stack_)>;
 
     auto shared_node =
         std::make_shared<AllGatherResultNode>(node_->get_context(),
@@ -111,9 +110,9 @@ void DIARef<T, Stack>::AllGather(std::vector<Out>* out_vector) {
 
     core::StageBuilder().RunScope(shared_node.get());
 }
-}
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_ALLGATHER_NODE_HEADER
 
