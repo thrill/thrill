@@ -95,8 +95,8 @@ template <typename WriteFunction>
 void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
                                          const WriteFunction& write_function) {
 
-    using WriteResultNode = WriteNode<ValueType, 
-                                      decltype(local_stack_), WriteFunction>;
+    using WriteResultNode = WriteNode<
+        ValueType, Stack, WriteFunction>;
 
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->get_context(),

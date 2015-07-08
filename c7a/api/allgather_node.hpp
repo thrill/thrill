@@ -102,7 +102,7 @@ private:
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
 
-    using AllGatherResultNode = AllGatherNode<ValueType, decltype(local_stack_)>;
+    using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 
     auto shared_node =
         std::make_shared<AllGatherResultNode>(node_->get_context(),
