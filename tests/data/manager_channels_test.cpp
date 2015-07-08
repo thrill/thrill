@@ -125,7 +125,7 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
               };
 
     auto w1 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   ASSERT_NO_THROW(manager.GetIterator<int>(channel_id));
               };
@@ -157,7 +157,7 @@ TEST_F(DataManagerChannelFixture, Scatter_OneWorker) {
 TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_OnlyLocalCopy) {
     auto w0 = [](Manager& manager) {
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("foo");
@@ -170,7 +170,7 @@ TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_OnlyLocalCopy) {
               };
     auto w1 = [](Manager& manager) {
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("hello");
@@ -189,7 +189,7 @@ TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_OnlyLocalCopy) {
 TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_CompleteExchange) {
     auto w0 = [](Manager& manager) {
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("foo");
@@ -202,7 +202,7 @@ TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_CompleteExchange) {
               };
     auto w1 = [](Manager& manager) {
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("hello");
@@ -222,7 +222,7 @@ TEST_F(DataManagerChannelFixture, Scatter_ThreeWorkers_PartialExchange) {
     auto w0 = [](Manager& manager) {
                   sLOG << "worker0";
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("1");
@@ -236,7 +236,7 @@ TEST_F(DataManagerChannelFixture, Scatter_ThreeWorkers_PartialExchange) {
     auto w1 = [](Manager& manager) {
                   sLOG << "worker1";
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("3");
@@ -252,7 +252,7 @@ TEST_F(DataManagerChannelFixture, Scatter_ThreeWorkers_PartialExchange) {
     auto w2 = [](Manager& manager) {
                   sLOG << "worker2";
                   auto channel_id = manager.AllocateNetworkChannel(true);
-                  std::this_thread::sleep_for(20ms);
+                  std::this_thread::sleep_for(50ms);
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter.Close();
@@ -270,7 +270,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAr
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0].Close();
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(50ms);
                   ASSERT_TRUE(manager.GetIterator<int>(channel_id).IsFinished());
               };
     auto w1 = [](Manager& manager) {
@@ -278,7 +278,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAr
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0].Close();
                   emitters[1].Close();
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(50ms);
                   ASSERT_FALSE(manager.GetIterator<int>(channel_id).IsFinished());
               };
     Execute(w0, w1);
@@ -291,7 +291,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
                   emitters[1](42);
               };
     auto w1 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
                   ASSERT_FALSE(it.HasNext());
@@ -307,10 +307,10 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
                   emitters[1].Flush();
               };
     auto w1 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   ASSERT_TRUE(it.HasNext());
               };
     Execute(w0, w1);
@@ -324,7 +324,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerA
                   emitters[1].Flush();
               };
     auto w1 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
                   ASSERT_EQ(42, it.Next());
@@ -348,7 +348,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerM
                   emitters[1].Flush();
               };
     auto w1 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
                   ASSERT_EQ(1, it.Next());
@@ -380,10 +380,10 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
                   emitters[0].Close();
               };
     auto w0 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id = manager.AllocateNetworkChannel();
                   auto it = manager.GetIterator<int>(channel_id);
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals));
               };
@@ -416,16 +416,16 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
                   emitters2[0].Close();
               };
     auto w0 = [](Manager& manager) {
-                  std::this_thread::sleep_for(1ms);
+                  std::this_thread::sleep_for(10ms);
                   auto channel_id1 = manager.AllocateNetworkChannel();
                   auto it1 = manager.GetIterator<int>(channel_id1);
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   auto vals1 = ReadIterator(it1);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals1));
 
                   auto channel_id2 = manager.AllocateNetworkChannel();
                   auto it2 = manager.GetIterator<int>(channel_id2);
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   auto vals2 = ReadIterator(it2);
                   ASSERT_TRUE(VectorCompare({ 5, 6, 7, 8 }, vals2));
               };
@@ -442,7 +442,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   emitters[0].Flush();
                   emitters[1].Flush();
                   emitters[2].Close();
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   auto it = manager.GetIterator<int>(channel_id);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 1, 11, 21 }, vals));
@@ -456,7 +456,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   emitters[0].Close();
                   emitters[1].Flush();
                   emitters[2].Flush();
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   auto it = manager.GetIterator<int>(channel_id);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 2, 12, 22 }, vals));
@@ -470,7 +470,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   emitters[0].Flush();
                   emitters[1].Close();
                   emitters[2].Flush();
-                  std::this_thread::sleep_for(10ms);
+                  std::this_thread::sleep_for(20ms);
                   auto it = manager.GetIterator<int>(channel_id);
                   auto vals = ReadIterator(it);
                   ASSERT_TRUE(VectorCompare({ 0, 10, 20 }, vals));
