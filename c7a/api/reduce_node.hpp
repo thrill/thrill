@@ -204,8 +204,7 @@ auto DIARef<CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using ReduceResultNode
-              = ReduceNode<DOpResult, decltype(local_stack_),
-                           KeyExtractor, ReduceFunction>;
+              = ReduceNode<DOpResult, Stack, KeyExtractor, ReduceFunction>;
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->get_context(),

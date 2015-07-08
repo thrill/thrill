@@ -228,7 +228,7 @@ auto DIARef<CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using ReduceResultNode
-              = ReduceToIndexNode<DOpResult, decltype(local_stack_),
+              = ReduceToIndexNode<DOpResult, Stack,
                                   KeyExtractor, ReduceFunction>;
 
     auto shared_node

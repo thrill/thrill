@@ -220,7 +220,7 @@ auto DIARef<CurrentType, Stack>::Zip(
               = typename FunctionTraits<ZipFunction>::template arg<1>;
     using ZipResultNode
               = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
-                           decltype(local_stack_),
+                           Stack,
                            decltype(second_dia.get_stack()),
                            ZipFunction>;
 
@@ -233,6 +233,7 @@ auto DIARef<CurrentType, Stack>::Zip(
                                           zip_function);
 
     auto zip_stack = shared_node->ProduceStack();
+
     return DIARef<ZipResult, decltype(zip_stack)>
                (std::move(shared_node), zip_stack);
 }
