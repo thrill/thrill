@@ -20,8 +20,7 @@
 namespace c7a {
 namespace api {
 
-template <typename ParentType, typename ValueType,
-          typename Stack, typename WriteFunction>
+template <typename ValueType, typename ParentStack, typename WriteFunction>
 class WriteNode : public ActionNode
 {
 public:
@@ -29,13 +28,15 @@ public:
     using Super::context_;
     using Super::data_id_;
 
+    using ParentType = typename ParentStack::InputType;
+
     WriteNode(Context& ctx,
-              DIANode<ParentType>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
-              Stack& stack,
+              //TODO(??) don't we need to pass shared ptrs for the ref counting?
+              DIANode<ParentType>* parent,
+              ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
         : ActionNode(ctx, { parent }),
-          local_stack_(stack),
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
@@ -47,7 +48,9 @@ public:
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
-        auto lop_chain = local_stack_.push(pre_op_function).emit();
+        // close the function stack with our pre op and register it at parent
+        // node for output
+        auto lop_chain = parent_stack.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
     }
 
@@ -72,9 +75,6 @@ public:
     }
 
 private:
-    //! Local stack
-    Stack local_stack_;
-
     //! The write function which is applied on every line read.
     WriteFunction write_function_;
 
@@ -94,7 +94,8 @@ template <typename ValueType, typename Stack>
 template <typename WriteFunction>
 void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
                                          const WriteFunction& write_function) {
-    using WriteResultNode = WriteNode<typename Stack::FirstType, ValueType, 
+
+    using WriteResultNode = WriteNode<ValueType, 
                                       decltype(local_stack_), WriteFunction>;
 
     auto shared_node =
