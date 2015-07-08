@@ -31,14 +31,14 @@ namespace api {
  * A DIANode which performs a Read operation. Read reads a file from the file system and
  * emits it to the DataManager according to a given read function.
  *
- * \tparam Output Output type of the Read operation.
+ * \tparam ValueType Output type of the Read operation.
  * \tparam ReadFunction Type of the read function.
  */
-template <typename Output, typename ReadFunction>
-class ReadNode : public DOpNode<Output>
+template <typename ValueType, typename ReadFunction>
+class ReadNode : public DOpNode<ValueType>
 {
 public:
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     using Super::data_id_;
 
@@ -52,7 +52,7 @@ public:
     ReadNode(Context& ctx,
              ReadFunction read_function,
              std::string path_in)
-        : DOpNode<Output>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }),
           read_function_(read_function),
           path_in_(path_in)
     { }
@@ -83,12 +83,12 @@ public:
             file, context_.rank(), context_.number_worker());
 
         auto emit = context_.get_data_manager().
-                    template GetLocalEmitter<Output>(this->data_id_);
+                    template GetLocalEmitter<ValueType>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
-            for (auto func : DIANode<Output>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 func(read_function_(item));
             }
         }
@@ -100,11 +100,11 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        return MakeFunctionStack<Output>(id_fn);
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!

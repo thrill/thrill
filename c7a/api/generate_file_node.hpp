@@ -35,14 +35,14 @@ namespace api {
  * on each element. Afterwards each worker generates a DIA with a certain number
  * of random (possibly duplicate) elements from the generator file.
  *
- * \tparam Output Output type of the Generate operation.
+ * \tparam ValueType Output type of the Generate operation.
  * \tparam ReadFunction Type of the generate function.
  */
-template <typename Output, typename GeneratorFunction>
-class GenerateFileNode : public DOpNode<Output>
+template <typename ValueType, typename GeneratorFunction>
+class GenerateFileNode : public DOpNode<ValueType>
 {
 public:
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     /*!
     * Constructor for a GenerateFileNode. Sets the Context, parents, generator
@@ -58,7 +58,7 @@ public:
                      GeneratorFunction generator_function,
                      std::string path_in,
                      size_t size)
-        : DOpNode<Output>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -102,7 +102,7 @@ public:
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);
-            for (auto func : DIANode<Output>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 func(elements_[rand_element]);
             }
         }
@@ -114,11 +114,11 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        return MakeFunctionStack<Output>(id_fn);
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!
@@ -135,7 +135,7 @@ private:
     //! Path of the input file.
     std::string path_in_;
     //! Element vector used for generation
-    std::vector<Output> elements_;
+    std::vector<ValueType> elements_;
     //! Size of the output DIA.
     size_t size_;
 
