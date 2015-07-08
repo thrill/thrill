@@ -101,11 +101,11 @@ private:
     void PostOp() { }
 };
 
-template <typename ParentType, typename ValueType, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ParentType, ValueType, Stack>::Sum(const SumFunction &sum_function) {
+auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function) {
     using SumResultNode
-              = SumNode<ParentType, ValueType,
+              = SumNode<typename Stack::FirstType, ValueType,
                         decltype(local_stack_), SumFunction>;
 
     auto shared_node

@@ -218,9 +218,9 @@ private:
 
 //! \}
 
-template <typename NodeType, typename CurrentType, typename Stack>
+template <typename CurrentType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<NodeType, CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
+auto DIARef<CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                      const ReduceFunction &reduce_function,
                                      size_t max_index) {
 
@@ -228,7 +228,7 @@ auto DIARef<NodeType, CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key
               = typename common::FunctionTraits<ReduceFunction>::result_type;
     
     using ReduceResultNode
-              = ReduceToIndexNode<NodeType, DOpResult, decltype(local_stack_),
+              = ReduceToIndexNode<typename Stack::FirstType, DOpResult, decltype(local_stack_),
                                   KeyExtractor, ReduceFunction>;
 
     auto shared_node
@@ -241,7 +241,7 @@ auto DIARef<NodeType, CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, DOpResult, decltype(reduce_stack)>
+    return DIARef<DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
 }
 
