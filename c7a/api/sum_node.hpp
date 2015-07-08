@@ -114,9 +114,9 @@ private:
     void PostOp() { }
 };
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename SumFunction>
-auto DIARef<T, Stack>::Sum(const SumFunction &sum_function) {
+auto DIARef<NodeType, CurrentType, Stack>::Sum(const SumFunction &sum_function) {
     using SumResult
               = typename common::FunctionTraits<SumFunction>::result_type;
     using SumArgument0

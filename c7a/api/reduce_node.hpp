@@ -194,16 +194,16 @@ private:
 
 //! \}
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
+auto DIARef<NodeType, CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
                                 const ReduceFunction &reduce_function) {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
     
     using ReduceResultNode
-              = ReduceNode<T, DOpResult, decltype(local_stack_),
+              = ReduceNode<NodeType, DOpResult, decltype(local_stack_),
                            KeyExtractor, ReduceFunction>;
 
     auto shared_node
@@ -215,7 +215,7 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>
+    return DIARef<DOpResult, DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
 }
 

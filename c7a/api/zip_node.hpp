@@ -206,9 +206,9 @@ private:
     }
 };
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
-auto DIARef<T, Stack>::Zip(
+auto DIARef<NodeType, CurrentType, Stack>::Zip(
     const ZipFunction &zip_function, SecondDIA second_dia) {
     using ZipResult
               = typename FunctionTraits<ZipFunction>::result_type;
@@ -231,7 +231,7 @@ auto DIARef<T, Stack>::Zip(
                                           zip_function);
 
     auto zip_stack = shared_node->ProduceStack();
-    return DIARef<ZipResult, decltype(zip_stack)>
+    return DIARef<ZipResult, ZipResult, decltype(zip_stack)>
                (std::move(shared_node), zip_stack);
 }
 
