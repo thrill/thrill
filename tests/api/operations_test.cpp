@@ -97,7 +97,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
         auto integers = Generate(
             ctx,
             [](const size_t& index) {
-                return index + 1;
+                return (int)index + 1;
             },
             16);
 
@@ -119,6 +119,8 @@ TEST(Operations, MapResultsCorrectChangingType) {
         }
 
         ASSERT_EQ((size_t)16, out_vec.size());
+        static_assert(std::is_same<decltype(doubled)::TypeOfDIA, double>::value, "DIA must be double");
+        static_assert(std::is_same<decltype(doubled)::TypeOfNode, int>::value, "Node must be int");
     };
 
     c7a::api::ExecuteLocalTests(start_func);
@@ -132,7 +134,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
         auto integers = Generate(
             ctx,
             [](const size_t& index) {
-                return index + 1;
+                return (int)index + 1;
             },
             16);
 
@@ -141,7 +143,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             emit((double)2 * (in + 16));
         };
 
-        auto doubled = integers.FlatMap(flatmap_double);
+        auto doubled = integers.FlatMap<double>(flatmap_double);
 
         std::vector<int> out_vec;
 
@@ -155,6 +157,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
         }
 
         ASSERT_EQ((size_t)32, out_vec.size());
+        static_assert(std::is_same<decltype(doubled)::TypeOfDIA, double>::value, "DIA must be double");
+        static_assert(std::is_same<decltype(doubled)::TypeOfNode, int>::value, "Node must be int");
     };
 
     c7a::api::ExecuteLocalTests(start_func);
