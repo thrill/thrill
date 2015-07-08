@@ -35,14 +35,14 @@ namespace api {
  * on each element. Afterwards each worker generates a DIA with a certain number
  * of random (possibly duplicate) elements from the generator file.
  *
- * \tparam Output Output type of the Generate operation.
+ * \tparam ValueType Output type of the Generate operation.
  * \tparam ReadFunction Type of the generate function.
  */
-template <typename Output, typename GeneratorFunction>
-class GenerateFileNode : public DOpNode<Output>
+template <typename ValueType, typename GeneratorFunction>
+class GenerateFileNode : public DOpNode<ValueType>
 {
 public:
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     /*!
     * Constructor for a GenerateFileNode. Sets the Context, parents, generator
@@ -58,7 +58,7 @@ public:
                      GeneratorFunction generator_function,
                      std::string path_in,
                      size_t size)
-        : DOpNode<Output>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -69,7 +69,7 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void execute() {
+    void Execute() {
 
         LOG << "GENERATING data with id " << this->data_id_;
 
@@ -102,7 +102,7 @@ public:
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);
-            for (auto func : DIANode<Output>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 func(elements_[rand_element]);
             }
         }
@@ -114,12 +114,11 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        FunctionStack<> stack;
-        return stack.push(id_fn);
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!
@@ -136,7 +135,7 @@ private:
     //! Path of the input file.
     std::string path_in_;
     //! Element vector used for generation
-    std::vector<Output> elements_;
+    std::vector<ValueType> elements_;
     //! Size of the output DIA.
     size_t size_;
 
@@ -149,8 +148,10 @@ template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
                       size_t size) {
+    
     using GeneratorResult =
-              typename FunctionTraits<GeneratorFunction>::result_type;
+              typename common::FunctionTraits<GeneratorFunction>::result_type;
+    
     using GenerateResultNode =
               GenerateFileNode<GeneratorResult, GeneratorFunction>;
 
@@ -162,12 +163,12 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>
+    return DIARef<GeneratorResult, GeneratorResult, decltype(generator_stack)>
                (std::move(shared_node), generator_stack);
-}
 }
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_GENERATE_FILE_NODE_HEADER
 

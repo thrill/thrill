@@ -31,14 +31,14 @@ namespace api {
  * A DIANode which performs a Read operation. Read reads a file from the file system and
  * emits it to the DataManager according to a given read function.
  *
- * \tparam Output Output type of the Read operation.
+ * \tparam ValueType Output type of the Read operation.
  * \tparam ReadFunction Type of the read function.
  */
-template <typename Output, typename ReadFunction>
-class ReadNode : public DOpNode<Output>
+template <typename ValueType, typename ReadFunction>
+class ReadNode : public DOpNode<ValueType>
 {
 public:
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     using Super::data_id_;
 
@@ -52,7 +52,7 @@ public:
     ReadNode(Context& ctx,
              ReadFunction read_function,
              std::string path_in)
-        : DOpNode<Output>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }),
           read_function_(read_function),
           path_in_(path_in)
     { }
@@ -72,7 +72,7 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void execute() {
+    void Execute() {
         static const bool debug = false;
         LOG << "READING data with id " << data_id_;
 
@@ -83,12 +83,12 @@ public:
             file, context_.rank(), context_.number_worker());
 
         auto emit = context_.get_data_manager().
-                    template GetLocalEmitter<Output>(this->data_id_);
+                    template GetLocalEmitter<ValueType>(this->data_id_);
 
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
-            for (auto func : DIANode<Output>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 func(read_function_(item));
             }
         }
@@ -100,12 +100,11 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        FunctionStack<> stack;
-        return stack.push(id_fn);
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!
@@ -127,7 +126,10 @@ private:
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
                const ReadFunction &read_function) {
-    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
+    
+    using ReadResult =
+        typename common::FunctionTraits<ReadFunction>::result_type;
+    
     using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
 
     auto shared_node =
@@ -137,12 +139,12 @@ auto ReadLines(Context & ctx, std::string filepath,
 
     auto read_stack = shared_node->ProduceStack();
 
-    return DIARef<ReadResult, decltype(read_stack)>
+    return DIARef<ReadResult, ReadResult, decltype(read_stack)>
                (std::move(shared_node), read_stack);
-}
 }
 
 } // namespace api
+} // namespace c7a
 
 //! \}
 

@@ -9,12 +9,14 @@
 
 #include "gtest/gtest.h"
 #include "c7a/data/manager.hpp"
+#include "c7a/common/logger.hpp"
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/channel_multiplexer.hpp>
 #include <thread>
 
 using namespace c7a::data;
+using namespace c7a::common;
 using namespace c7a::net;
 using namespace c7a::net::lowlevel;
 using namespace std::literals; //for nicer sleep_for
@@ -30,11 +32,17 @@ struct DataManagerChannelFixture : public::testing::Test {
         Manager manager(dispatcher);
         manager.Connect(group);
         switch (group->MyRank()) {
-        case 0: f1(manager);
+        case 0:
+            ThreadDirectory.NameThisThread("t0");
+            f1(manager);
             break;
-        case 1: f2(manager);
+        case 1:
+            ThreadDirectory.NameThisThread("t1");
+            f2(manager);
             break;
-        case 2: f3(manager);
+        case 2:
+            ThreadDirectory.NameThisThread("t2");
+            f3(manager);
             break;
         }
     }
@@ -46,18 +54,33 @@ struct DataManagerChannelFixture : public::testing::Test {
                                 });
     }
 
-    void Execute(WorkerThread f1, WorkerThread f2 = [](Manager&) { }) {
+    void Execute(WorkerThread f1, WorkerThread f2) {
         Group::ExecuteLocalMock(2,
                                 [=](Group* g) {
-                                    FunctionSelect(g, f1, f2, [](Manager&) { });
+                                    FunctionSelect(g, f1, f2);
+                                });
+    }
+
+    void Execute(WorkerThread f1) {
+        Group::ExecuteLocalMock(1,
+                                [=](Group* g) {
+                                    FunctionSelect(g, f1, [](Manager&) { });
                                 });
     }
 
     template <class T>
-    static std::vector<T> ReadIterator(Iterator<T>& it) {
+    static std::vector<T> ReadIterator(Iterator<T>& it, bool wait_for_all = false) {
+        sLOG << "reading iterator";
         std::vector<T> result;
-        while (it.HasNext())
-            result.push_back(it.Next());
+        do {
+            if(wait_for_all)
+                it.WaitForAll();
+            while (it.HasNext()) {
+                auto element = it.Next();
+                std::cout << "read '" << element << "'" << std::endl;
+                result.push_back(element);
+            }
+        } while (!it.IsFinished() && wait_for_all);
         return result;
     }
 
@@ -69,6 +92,20 @@ struct DataManagerChannelFixture : public::testing::Test {
             if (std::find(b.begin(), b.end(), x) == b.end())
                 return false;
         }
+        return true;
+    }
+
+    template <class T>
+    static bool OrderedVectorCompare(std::vector<T> a, std::vector<T> b) {
+        if (a.size() != b.size()) {
+            std::cout << "vectors differ in size (" << a.size() << " vs. " << b.size() << ")" << std::endl;
+            return false;
+        }
+        for(size_t i = 0; i < a.size(); i++)
+            if (a[i] != b[i]) {
+                std::cout << a[i] << " differs from " << b[i] << " @ " << i << std::endl;
+                return false;
+            }
         return true;
     }
 
@@ -93,6 +130,139 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
                   ASSERT_NO_THROW(manager.GetIterator<int>(channel_id));
               };
     Execute(w0, w1);
+}
+
+TEST_F(DataManagerChannelFixture, Scatter_OneWorker) {
+    auto w0 = [](Manager& manager) {
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("foo");
+                  emitter("bar");
+                  emitter.Flush();
+                  emitter("breakfast is the most important meal of the day.");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {3});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  ASSERT_TRUE(it.HasNext());
+                  ASSERT_EQ(it.Next(), "foo");
+                  ASSERT_EQ(it.Next(), "bar");
+                  ASSERT_EQ(it.Next(), "breakfast is the most important meal of the day.");
+                  ASSERT_TRUE(it.IsFinished());
+              };
+
+    Execute(w0);
+}
+
+TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_OnlyLocalCopy) {
+    auto w0 = [](Manager& manager) {
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("foo");
+                  emitter("bar");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {2, 2});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"foo", "bar"}, vals));
+              };
+    auto w1 = [](Manager& manager) {
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("hello");
+                  emitter("world");
+                  emitter(".");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {0, 3});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"hello", "world", "."}, vals));
+              };
+
+    Execute(w0, w1);
+}
+
+TEST_F(DataManagerChannelFixture, Scatter_TwoWorkers_CompleteExchange) {
+    auto w0 = [](Manager& manager) {
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("foo");
+                  emitter("bar");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {0, 2});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"hello", "world", "."}, vals));
+              };
+    auto w1 = [](Manager& manager) {
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("hello");
+                  emitter("world");
+                  emitter(".");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {3, 3});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"foo", "bar"}, vals));
+              };
+
+    Execute(w0, w1);
+}
+
+TEST_F(DataManagerChannelFixture, Scatter_ThreeWorkers_PartialExchange) {
+    auto w0 = [](Manager& manager) {
+                  sLOG << "worker0";
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("1");
+                  emitter("2");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {2, 2, 2});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"1", "2"}, vals));
+              };
+    auto w1 = [](Manager& manager) {
+                  sLOG << "worker1";
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter("3");
+                  emitter("4");
+                  emitter("5");
+                  emitter("6");
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {0, 2, 4});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"3", "4"}, vals));
+              };
+    auto w2 = [](Manager& manager) {
+                  sLOG << "worker2";
+                  auto channel_id = manager.AllocateNetworkChannel(true);
+                  std::this_thread::sleep_for(20ms);
+                  auto src_id = manager.AllocateDIA();
+                  auto emitter = manager.GetLocalEmitter<std::string>(src_id);
+                  emitter.Close();
+                  manager.Scatter<std::string>(src_id, channel_id, {0, 0, 0});
+                  auto it = manager.GetIterator<std::string>(channel_id);
+                  auto vals = ReadIterator(it, true);
+                  ASSERT_TRUE(OrderedVectorCompare({"5", "6"}, vals));
+              };
+
+    Execute(w0, w1, w2);
 }
 
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAreClosed) {

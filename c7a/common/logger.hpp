@@ -41,7 +41,7 @@ struct ThreadNameDirectory {
         return threadNames_.find(std::this_thread::get_id()) != threadNames_.end();
     }
 
-    //! Returns the name of the current thread or 'unknown <id>'
+    //! Returns the name of the current thread or 'unknown [id]'
     std::string                            NameForThisThread() {
         std::lock_guard<std::mutex> lock(threadNamesMutex_);
         if (HasNameForThisThread()) {

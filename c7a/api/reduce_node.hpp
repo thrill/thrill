@@ -37,28 +37,28 @@ namespace api {
  * DIA by their key and reduces every key bucket to a single element each. The
  * ReduceNode stores the key_extractor and the reduce_function UDFs. The
  * chainable LOps ahead of the Reduce operation are stored in the Stack. The
- * ReduceNode has the type Output, which is the result type of the
+ * ReduceNode has the type ValueType, which is the result type of the
  * reduce_function.
  *
- * \tparam Input Input type of the Reduce operation
- * \tparam Output Output type of the Reduce operation
+ * \tparam ParentType Input type of the Reduce operation
+ * \tparam ValueType Output type of the Reduce operation
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename Input, typename Output, typename Stack,
+template <typename ParentType, typename ValueType, typename Stack,
           typename KeyExtractor, typename ReduceFunction>
-class ReduceNode : public DOpNode<Output>
+class ReduceNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
 
-    using ReduceArg = typename FunctionTraits<ReduceFunction>::template arg<0>;
+    using ReduceArg = typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -79,11 +79,11 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
-               DIANode<Input>* parent,
+               DIANode<ParentType>* parent,
                Stack& stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<Output>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }),
           local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -109,7 +109,7 @@ public:
      * Actually executes the reduce operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override {
+    void Execute() override {
         MainOp();
     }
 
@@ -119,12 +119,11 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, auto emit_func) {
+        auto post_op_fn = [=](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
-        FunctionStack<> stack;
-        return stack.push(post_op_fn);
+        return MakeFunctionStack<ValueType>(post_op_fn);
     }
 
     /*!
@@ -167,10 +166,10 @@ private:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(Output)> >;
+                                          std::function<void(ValueType)> >;
 
         ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<Output>::callbacks());
+                          DIANode<ValueType>::callbacks());
 
         auto it = context_.get_data_manager().
                   template GetIterator<KeyValuePair>(channel_id_);
@@ -188,22 +187,23 @@ private:
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
     template <typename Emitter>
-    void PostOp(Output input, Emitter emit_func) {
+    void PostOp(ValueType input, Emitter emit_func) {
         emit_func(input);
     }
 };
 
 //! \}
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
+auto DIARef<NodeType, CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
                                 const ReduceFunction &reduce_function) {
 
     using DOpResult
-              = typename FunctionTraits<ReduceFunction>::result_type;
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+    
     using ReduceResultNode
-              = ReduceNode<T, DOpResult, decltype(local_stack_),
+              = ReduceNode<NodeType, DOpResult, decltype(local_stack_),
                            KeyExtractor, ReduceFunction>;
 
     auto shared_node
@@ -215,12 +215,12 @@ auto DIARef<T, Stack>::ReduceBy(const KeyExtractor &key_extractor,
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>
+    return DIARef<DOpResult, DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
-}
 }
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_REDUCE_NODE_HEADER
 

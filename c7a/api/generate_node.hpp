@@ -34,14 +34,14 @@ namespace api {
  * to a generator function. This function is used to generate a DIA of a certain
  * size by applying it to integers from 0 to size - 1.
  *
- * \tparam Output Output type of the Generate operation.
+ * \tparam ValueType Output type of the Generate operation.
  * \tparam ReadFunction Type of the generate function.
  */
-template <typename Output, typename GeneratorFunction>
-class GenerateNode : public DOpNode<Output>
+template <typename ValueType, typename GeneratorFunction>
+class GenerateNode : public DOpNode<ValueType>
 {
 public:
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     /*!
     * Constructor for a GenerateNode. Sets the Context, parents, generator
@@ -50,13 +50,13 @@ public:
     * \param ctx Reference to Context, which holds references to data and network.
     * \param generator_function Generator function, which defines how each line
     * of the file is read and used for generation of a DIA.
-    * \param path_in Path of the input file
+    * \param generator_function generates elements from an index
     * \param size Number of elements in the generated DIA
     */
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size)
-        : DOpNode<Output>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -66,12 +66,12 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void execute() {
+    void Execute() {
 
         LOG << "GENERATING data with id " << this->data_id_;
 
         using InputArgument
-                  = typename FunctionTraits<GeneratorFunction>::template arg<0>;
+            = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
 
         static_assert(std::is_same<InputArgument, const size_t&>::value, "The GeneratorFunction needs an unsigned integer as input parameter");
 
@@ -89,7 +89,7 @@ public:
         }
 
         for (size_t i = 0; i < local_elements; i++) {
-            for (auto func : DIANode<Output>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 func(generator_function_(i + offset));
             }
         }
@@ -101,12 +101,11 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        FunctionStack<> stack;
-        return stack.push(id_fn);
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!
@@ -132,8 +131,10 @@ template <typename GeneratorFunction>
 auto Generate(Context & ctx,
               const GeneratorFunction &generator_function,
               size_t size) {
+    
     using GeneratorResult =
-              typename FunctionTraits<GeneratorFunction>::result_type;
+              typename common::FunctionTraits<GeneratorFunction>::result_type;
+    
     using GenerateResultNode =
               GenerateNode<GeneratorResult, GeneratorFunction>;
 
@@ -144,12 +145,12 @@ auto Generate(Context & ctx,
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>
+    return DIARef<GeneratorResult, GeneratorResult, decltype(generator_stack)>
                (std::move(shared_node), generator_stack);
-}
 }
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_GENERATE_NODE_HEADER
 

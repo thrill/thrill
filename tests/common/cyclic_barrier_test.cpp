@@ -1,9 +1,8 @@
 /*******************************************************************************
- * tests/common/barrier_test.cpp
+ * tests/common/cyclic_barrier_test.cpp
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -30,34 +29,35 @@ static void TestWaitFor(int count, int slowThread = -1) {
     Barrier barrier(count);
     //Need to use atomic here, since setting a bool might not be atomic.
     std::vector<std::atomic<bool> > flags(count);
-    std::vector<std::thread*> threads(count);
+    std::vector<std::thread> threads(count);
 
     for (int i = 0; i < count; i++) {
         flags[i] = false;
     }
 
     for (int i = 0; i < count; i++) {
-        threads[i] = new std::thread([maxWaitTime, count, slowThread, &barrier, &flags, i] {
+        threads[i] = std::thread(
+            [maxWaitTime, count, slowThread, &barrier, &flags, i] {
 
-                                         if (slowThread == -1) {
-                                             usleep(rand() % maxWaitTime);
-                                         }
-                                         else if (i == slowThread) {
-                                             usleep(rand() % maxWaitTime);
-                                         }
+                if (slowThread == -1) {
+                    usleep(rand() % maxWaitTime);
+                }
+                else if (i == slowThread) {
+                    usleep(rand() % maxWaitTime);
+                }
 
-                                         flags[i] = true;
+                flags[i] = true;
 
-                                         barrier.await();
+                barrier.await();
 
-                                         for (int j = 0; j < count; j++) {
-                                             ASSERT_EQ(flags[j], true);
-                                         }
-                                     });
+                for (int j = 0; j < count; j++) {
+                    ASSERT_EQ(flags[j], true);
+                }
+            });
     }
 
     for (int i = 0; i < count; i++) {
-        threads[i]->join();
+        threads[i].join();
     }
 }
 
