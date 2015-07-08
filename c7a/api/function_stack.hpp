@@ -101,11 +101,11 @@ struct make_index_sequence : public make_index_sequence_helper<Length>::type
  *
  * \tparam Lambdas Types of the different lambda functions.
  */
-template <typename Input, typename ... Lambdas>
+template <typename _Input, typename ... Lambdas>
 class FunctionStack
 {
 public:
-    using InputType = Input;
+    using Input = _Input;
 
     template <typename Lambda> 
     explicit FunctionStack(Lambda lambda)

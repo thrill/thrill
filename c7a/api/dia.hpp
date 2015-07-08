@@ -57,17 +57,17 @@ public:
     //! type of the items delivered by the DOp, and pushed down the function
     //! stack towards the next nodes. If the function stack contains LOps nodes,
     //! these may transform the type.
-    using StackInputType = typename Stack::InputType;
+    using StackInput = typename Stack::Input;
 
     //! type of the items virtually in the DIA, which is the type emitted by the
     //! current LOp stack.
     using ItemType = ValueType;
 
     //! type of pointer to the real node object implementation. This object has
-    //! base item type StackInputType which is transformed by the function stack
+    //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = std::shared_ptr<DIANode<StackInputType>>;
+    using DIANodePtr = std::shared_ptr<DIANode<StackInput>>;
 
 
     /*!
@@ -376,9 +376,8 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // DIARef with empty stack and LOpNode
     auto rhs_node = std::move(rhs.get_node());
     auto rhs_stack = rhs.get_stack();
-    using AnyStackFirst = typename AnyStack::InputType;
-    using LOpChainNode
-              = LOpNode<AnyStackFirst, decltype(rhs_stack)>;
+    using AnyStackInput = typename AnyStack::Input;
+    using LOpChainNode = LOpNode<AnyStackInput, AnyStack>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -388,7 +387,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);
-    local_stack_ = FunctionStack<AnyStackFirst>();
+    local_stack_ = FunctionStack<AnyStackInput>();
 }
 
 /*!
