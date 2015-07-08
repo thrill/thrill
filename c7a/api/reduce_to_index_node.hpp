@@ -44,11 +44,11 @@ namespace api {
  *
  * \tparam ParentType Input type of the Reduce operation
  * \tparam ValueType Output type of the Reduce operation
- * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
+ * \tparam ParentStack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename ParentType, typename ValueType, typename Stack,
+template <typename ValueType, typename ParentStack,
           typename KeyExtractor, typename ReduceFunction>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
@@ -68,12 +68,14 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     typedef std::pair<Key, Value> KeyValuePair;
 
+    using ParentType = typename ParentStack::InputType;
+
     using Super::context_;
     using Super::data_id_;
 
 public:
-    using PreHashTable = typename c7a::core::ReducePreTable<KeyExtractor, ReduceFunction,
-                                                            data::Emitter<KeyValuePair> >;
+    using PreHashTable = typename c7a::core::ReducePreTable<
+      KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -82,19 +84,18 @@ public:
      * \param ctx Reference to Context, which holds references to data and
      * network.
      * \param parent Parent DIANode.
-     * \param stack Function chain with all lambdas between the parent and this
-     * node
+     * \param parent_stack Function chain with all lambdas between the parent
+     * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
     ReduceToIndexNode(Context& ctx,
                       DIANode<ParentType>* parent,
-                      Stack& stack,
+                      ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index)
         : DOpNode<ValueType>(ctx, { parent }),
-          local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
@@ -114,8 +115,9 @@ public:
         auto pre_op_fn = [=](ReduceArg input) {
                              PreOp(input);
                          };
-        auto lop_chain = local_stack_.push(pre_op_fn).emit();
-
+        // close the function stack with our pre op and register it at parent
+        // node for output
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
     }
 
@@ -152,8 +154,6 @@ public:
     }
 
 private:
-    //! Local stack
-    Stack local_stack_;
     //!Key extractor function
     KeyExtractor key_extractor_;
     //!Reduce function
@@ -226,9 +226,9 @@ auto DIARef<CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
-    
+
     using ReduceResultNode
-              = ReduceToIndexNode<typename Stack::FirstType, DOpResult, decltype(local_stack_),
+              = ReduceToIndexNode<DOpResult, decltype(local_stack_),
                                   KeyExtractor, ReduceFunction>;
 
     auto shared_node

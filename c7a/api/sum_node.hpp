@@ -23,7 +23,7 @@
 namespace c7a {
 namespace api {
 
-template <typename ParentType, typename ValueType, typename Stack, typename SumFunction>
+template <typename ValueType, typename ParentStack, typename SumFunction>
 class SumNode : public ActionNode
 {
     static const bool debug = false;
@@ -33,13 +33,14 @@ class SumNode : public ActionNode
     using Super::data_id_;
     using SumArg0 = ValueType;
 
+    using ParentType = typename ParentStack::InputType;
+
 public:
     SumNode(Context& ctx,
             DIANode<ParentType>* parent,
-            Stack& stack,
+            ParentStack& parent_stack,
             SumFunction sum_function)
         : ActionNode(ctx, { parent }),
-          stack_(stack),
           sum_function_(sum_function)
     {
         // Hook PreOp(s)
@@ -47,8 +48,7 @@ public:
                              PreOp(input);
                          };
 
-        auto lop_chain = stack_.push(pre_op_fn).emit();
-
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
     }
 
@@ -76,8 +76,6 @@ public:
     }
 
 private:
-    //! Local stack.
-    Stack stack_;
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
     // Local sum to be used in all reduce operation.
@@ -105,7 +103,7 @@ template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function) {
     using SumResultNode
-              = SumNode<typename Stack::FirstType, ValueType,
+              = SumNode<ValueType,
                         decltype(local_stack_), SumFunction>;
 
     auto shared_node

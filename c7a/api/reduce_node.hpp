@@ -46,7 +46,7 @@ namespace api {
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename ParentType, typename ValueType, typename Stack,
+template <typename ValueType, typename ParentStack,
           typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<ValueType>
 {
@@ -59,6 +59,8 @@ class ReduceNode : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    using ParentType = typename ParentStack::InputType;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -73,18 +75,17 @@ public:
      * \param ctx Reference to Context, which holds references to data and
      * network.
      * \param parent Parent DIANode.
-     * \param stack Function chain with all lambdas between the parent and this
-     * node
+     * \param parent_stack Function chain with all lambdas between the parent
+     * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
                DIANode<ParentType>* parent,
-               Stack& stack,
+               ParentStack& parent_stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
         : DOpNode<ValueType>(ctx, { parent }),
-          local_stack_(stack),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
@@ -97,8 +98,10 @@ public:
         auto pre_op_fn = [=](ReduceArg input) {
                              PreOp(input);
                          };
-        auto lop_chain = local_stack_.push(pre_op_fn).emit();
 
+        // close the function stack with our pre op and register it at parent
+        // node for output
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
     }
 
@@ -135,8 +138,6 @@ public:
     }
 
 private:
-    //! Local stack
-    Stack local_stack_;
     //!Key extractor function
     KeyExtractor key_extractor_;
     //!Reduce function
@@ -201,9 +202,9 @@ auto DIARef<CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
-    
+
     using ReduceResultNode
-              = ReduceNode<typename Stack::FirstType, DOpResult, decltype(local_stack_),
+              = ReduceNode<DOpResult, decltype(local_stack_),
                            KeyExtractor, ReduceFunction>;
 
     auto shared_node

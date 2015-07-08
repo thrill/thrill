@@ -54,9 +54,20 @@ class DIARef
     friend class Context;
 
 public:
-    using ParentType = typename Stack::FirstType;
+    //! type of the items delivered by the DOp, and pushed down the function
+    //! stack towards the next nodes. If the function stack contains LOps nodes,
+    //! these may transform the type.
+    using StackInputType = typename Stack::InputType;
+
+    //! type of the items virtually in the DIA, which is the type emitted by the
+    //! current LOp stack.
     using ItemType = ValueType;
-    using NodePtr = std::shared_ptr<DIANode<ParentType>>;
+
+    //! type of pointer to the real node object implementation. This object has
+    //! base item type StackInputType which is transformed by the function stack
+    //! lambdas further. But even pushing more lambdas does not change the stack
+    //! input type.
+    using DIANodePtr = std::shared_ptr<DIANode<StackInputType>>;
 
 
     /*!
@@ -69,7 +80,7 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(NodePtr& node, Stack& stack)
+    DIARef(DIANodePtr& node, Stack& stack)
         : node_(node),
           local_stack_(stack)
     { }
@@ -83,7 +94,7 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(NodePtr&& node, Stack& stack)
+    DIARef(DIANodePtr&& node, Stack& stack)
         : node_(std::move(node)),
           local_stack_(stack)
     { }
@@ -225,22 +236,22 @@ public:
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
 
-	 /*!
+         /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
-	 * to a single element using the associative reduce_function.
-	 * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
-	 * which has the reduced element with key i in position i.
-	 * The reduce_function defines how two elements can be reduced to a single
-	 * element of equal type. Since ReduceToIndex is a DOp, it creates a new
-	 * DIANode. The DIARef returned by ReduceToIndex links to this
+         * to a single element using the associative reduce_function.
+         * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
+         * which has the reduced element with key i in position i.
+         * The reduce_function defines how two elements can be reduced to a single
+         * element of equal type. Since ReduceToIndex is a DOp, it creates a new
+         * DIANode. The DIARef returned by ReduceToIndex links to this
      * newly created DIANode. The local_stack_ of the returned DIARef consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
      * \tparam KeyExtractor Type of the key_extractor function.
      * The key_extractor function is equal to a map function and has an unsigned
-	 * integer as it's output type.
+     * integer as it's output type.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
@@ -351,7 +362,7 @@ public:
 private:
     //! The DIANode which DIARef points to. The node represents the latest DOp
     //! or Action performed previously.
-    NodePtr node_;
+    DIANodePtr node_;
 
     //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
@@ -365,7 +376,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // DIARef with empty stack and LOpNode
     auto rhs_node = std::move(rhs.get_node());
     auto rhs_stack = rhs.get_stack();
-    using AnyStackFirst = typename AnyStack::FirstType;
+    using AnyStackFirst = typename AnyStack::InputType;
     using LOpChainNode
               = LOpNode<AnyStackFirst, decltype(rhs_stack)>;
 

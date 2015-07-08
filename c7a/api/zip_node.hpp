@@ -45,8 +45,9 @@ namespace api {
  *
  * \tparam Zip_Function Type of the ZipFunction.
  */
-template <typename ParentType1, typename ParentType2, typename ValueType,
-          typename Stack1, typename Stack2, typename ZipFunction>
+template <typename ValueType,
+          typename ParentStack1, typename ParentStack2,
+          typename ZipFunction>
 class TwoZipNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -56,6 +57,9 @@ class TwoZipNode : public DOpNode<ValueType>
     using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
 
+    using ParentType1 = typename ParentStack1::InputType;
+    using ParentType2 = typename ParentStack2::InputType;
+
 public:
     /*!
      * Constructor for a ZipNode.
@@ -63,19 +67,17 @@ public:
      * \param ctx Reference to the Context, which gives iterators for data
      * \param parent1 First parent of the ZipNode
      * \param parent2 Second parent of the ZipNode
-     * \param stack1 Function stack with all lambdas between the parent and this node for first DIA
-     * \param stack2 Function stack with all lambdas between the parent and this node for second DIA
+     * \param parent_stack1 Function stack with all lambdas between the parent and this node for first DIA
+     * \param parent_stack2 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
                DIANode<ParentType1>* parent1,
                DIANode<ParentType2>* parent2,
-               Stack1& stack1,
-               Stack2& stack2,
+               ParentStack1& parent_stack1,
+               ParentStack2& parent_stack2,
                ZipFunction zip_function)
         : DOpNode<ValueType>(ctx, { parent1, parent2 }),
-          stack1_(stack1),
-          stack2_(stack2),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
@@ -85,8 +87,11 @@ public:
         auto pre_op2_fn = [=](ParentType2 input) {
                               PreOpSecond(input);
                           };
-        auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
-        auto lop_chain2 = stack2_.push(pre_op2_fn).emit();
+
+        // close the function stacks with our pre ops and register it at parent
+        // nodes for output
+        auto lop_chain1 = parent_stack1.push(pre_op1_fn).emit();
+        auto lop_chain2 = parent_stack2.push(pre_op2_fn).emit();
 
         parent1->RegisterChild(lop_chain1);
         parent2->RegisterChild(lop_chain2);
@@ -147,9 +152,6 @@ public:
     }
 
 private:
-    //! Local stacks
-    Stack1 stack1_;
-    Stack2 stack2_;
     //! Zip function
     ZipFunction zip_function_;
     //! Emitter
