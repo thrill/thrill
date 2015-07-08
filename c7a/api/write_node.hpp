@@ -90,11 +90,11 @@ private:
     static const bool debug = false;
 };
 
-template <typename ParentType, typename ValueType, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename WriteFunction>
-void DIARef<ParentType, ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
+void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
                                          const WriteFunction& write_function) {
-    using WriteResultNode = WriteNode<ParentType, ValueType, 
+    using WriteResultNode = WriteNode<typename Stack::FirstType, ValueType, 
                                       decltype(local_stack_), WriteFunction>;
 
     auto shared_node =

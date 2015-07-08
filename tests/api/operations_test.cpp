@@ -124,8 +124,8 @@ TEST(Operations, MapResultsCorrectChangingType) {
         }
 
         ASSERT_EQ((size_t)16, out_vec.size());
-        static_assert(std::is_same<decltype(doubled)::TypeOfDIA, double>::value, "DIA must be double");
-        static_assert(std::is_same<decltype(doubled)::TypeOfNode, int>::value, "Node must be int");
+        static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
+        static_assert(std::is_same<decltype(doubled)::ParentType, int>::value, "Node must be int");
     };
 
     c7a::api::ExecuteLocalTests(start_func);
@@ -162,8 +162,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
         }
 
         ASSERT_EQ((size_t)32, out_vec.size());
-        static_assert(std::is_same<decltype(doubled)::TypeOfDIA, double>::value, "DIA must be double");
-        static_assert(std::is_same<decltype(doubled)::TypeOfNode, int>::value, "Node must be int");
+        static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
+        static_assert(std::is_same<decltype(doubled)::ParentType, int>::value, "Node must be int");
     };
 
     c7a::api::ExecuteLocalTests(start_func);
