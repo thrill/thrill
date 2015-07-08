@@ -17,13 +17,12 @@
 namespace c7a {
 namespace api {
 
-template <typename T>
-class ActionNode : public DIANode<T>
+class ActionNode : public DIABase
 {
 public:
     ActionNode(Context& ctx,
                const DIABaseVector& parents)
-        : DIANode<T>(ctx, parents)
+        : DIABase(ctx, parents)
     { }
 
     virtual ~ActionNode() { }

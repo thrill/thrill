@@ -23,27 +23,27 @@
 namespace c7a {
 namespace api {
 
-template <typename Input, typename Output, typename Stack, typename SumFunction>
-class SumNode : public ActionNode<Input>
+template <typename ParentType, typename ValueType, typename Stack, typename SumFunction>
+class SumNode : public ActionNode
 {
     static const bool debug = false;
 
-    using Super = ActionNode<Input>;
+    using Super = ActionNode;
     using Super::context_;
     using Super::data_id_;
-    using SumArg0 = typename common::FunctionTraits<SumFunction>::template arg<0>;
+    using SumArg0 = ValueType;
 
 public:
     SumNode(Context& ctx,
-            DIANode<Input>* parent,
+            DIANode<ParentType>* parent,
             Stack& stack,
             SumFunction sum_function)
-        : ActionNode<Input>(ctx, { parent }),
+        : ActionNode(ctx, { parent }),
           stack_(stack),
           sum_function_(sum_function)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](Input input) {
+        auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };
 
@@ -57,19 +57,6 @@ public:
     //! Executes the sum operation.
     void Execute() override {
         MainOp();
-    }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity emitter function.
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        // Hook Identity
-        auto id_fn = [=](Input t, auto emit_func) {
-                         return emit_func(t);
-                     };
-
-        return MakeFunctionStack<Input>(id_fn);
     }
 
     /*!
@@ -94,11 +81,11 @@ private:
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
     // Local sum to be used in all reduce operation.
-    Input local_sum = 0;
+    ValueType local_sum = 0;
     // Global sum resulting from all reduce.
-    Input global_sum = 0;
+    ValueType global_sum = 0;
 
-    void PreOp(SumArg0 input) {
+    void PreOp(ValueType input) {
         LOG << "PreOp: " << input;
         local_sum = sum_function_(local_sum, input);
     }
@@ -114,16 +101,11 @@ private:
     void PostOp() { }
 };
 
-template <typename NodeType, typename CurrentType, typename Stack>
+template <typename ParentType, typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<NodeType, CurrentType, Stack>::Sum(const SumFunction &sum_function) {
-    using SumResult
-              = typename common::FunctionTraits<SumFunction>::result_type;
-    using SumArgument0
-              = typename common::FunctionTraits<SumFunction>::template arg<0>;
-
+auto DIARef<ParentType, ValueType, Stack>::Sum(const SumFunction &sum_function) {
     using SumResultNode
-              = SumNode<SumArgument0, SumResult,
+              = SumNode<ParentType, ValueType,
                         decltype(local_stack_), SumFunction>;
 
     auto shared_node

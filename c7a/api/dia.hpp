@@ -39,26 +39,26 @@ namespace api {
 /*!
  * DIARef is the interface between the user and the c7a framework. A DIARef can
  * be imagined as an immutable array, even though the data does not need to be
- * materialized at all. A DIARef contains a pointer to a DIANode of type NodeType,
+ * materialized at all. A DIARef contains a pointer to a DIANode of type ParentType,
  * which represents the state after the previous DOp or Action. Additionally, a
  * DIARef stores the local lambda function chain of type Stack, which can transform
  * elements of the DIANode to elements of this DIARef. DOps/Actions create a
  * DIARef and a new DIANode, to which the DIARef links to. LOps only create a
  * new DIARef, which link to the previous DIANode.
  *
- * \tparam NodeType Type of elements of the according nodes.
- * \tparam CurrentType Type of elements currently in this DIA.
+ * \tparam ParentType Type of elements of the according nodes.
+ * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename NodeType, typename CurrentType, typename Stack = FunctionStack<NodeType> >
+template <typename ParentType, typename ValueType, typename Stack = FunctionStack<ParentType> >
 class DIARef
 {
     friend class Context;
-    using DIANodePtr = std::shared_ptr<DIANode<NodeType> >;
+    using DIANodePtr = std::shared_ptr<DIANode<ParentType> >;
 
 public:
-    using TypeOfNode = NodeType;
-    using TypeOfDIA = CurrentType;
+    using TypeOfNode = ParentType;
+    using TypeOfDIA = ValueType;
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -99,7 +99,7 @@ public:
      * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
-    DIARef(const DIARef<NodeType, CurrentType, AnyStack>& rhs)
+    DIARef(const DIARef<ParentType, ValueType, AnyStack>& rhs)
     __attribute__ ((deprecated))
 #if __GNUC__
     // the attribute warning does not work with gcc?
@@ -110,7 +110,7 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<NodeType> * get_node() const {
+    DIANode<ParentType> * get_node() const {
         return node_.get();
     }
 
@@ -151,7 +151,7 @@ public:
                                  };
 
         auto new_stack = local_stack_.push(conv_map_function);
-        return DIARef<NodeType, MapResult, decltype(new_stack)>(node_, new_stack);
+        return DIARef<ParentType, MapResult, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
@@ -176,7 +176,7 @@ public:
                                     };
 
         auto new_stack = local_stack_.push(conv_filter_function);
-        return DIARef<NodeType, CurrentType, decltype(new_stack)>(node_, new_stack);
+        return DIARef<ParentType, ValueType, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
@@ -192,10 +192,10 @@ public:
      * \param flatmap_function Map function of type FlatmapFunction, which maps
      * each element to elements of a possibly different type.
      */
-    template <typename ResultType = CurrentType, typename FlatmapFunction>
+    template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) {
         auto new_stack = local_stack_.push(flatmap_function);
-        return DIARef<NodeType, ResultType, decltype(new_stack)>(node_, new_stack);
+        return DIARef<ParentType, ResultType, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
@@ -310,16 +310,15 @@ public:
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
      */
-    template <typename Out>
-    void AllGather(std::vector<Out>* out_vector);
+    void AllGather(std::vector<ValueType>* out_vector);
 
     /*!
      * Returns Chuck Norris!
      *
      * \return Chuck Norris
      */
-    const std::vector<NodeType> & evil_get_data() const {
-        return (std::vector<NodeType>{ NodeType() });
+    const std::vector<ParentType> & evil_get_data() const {
+        return (std::vector<ParentType>{ ParentType() });
     }
 
     /*!
@@ -369,15 +368,15 @@ private:
     Stack local_stack_;
 };
 
-template <typename NodeType, typename CurrentType, typename Stack>
+template <typename ParentType, typename ValueType, typename Stack>
 template <typename AnyStack>
-DIARef<NodeType, CurrentType, Stack>::DIARef(const DIARef<NodeType, CurrentType, AnyStack>& rhs) {
+DIARef<ParentType, ValueType, Stack>::DIARef(const DIARef<ParentType, ValueType, AnyStack>& rhs) {
     // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
     // DIARef with empty stack and LOpNode
     auto rhs_node = std::move(rhs.get_node());
     auto rhs_stack = rhs.get_stack();
     using LOpChainNode
-              = LOpNode<NodeType, decltype(rhs_stack)>;
+              = LOpNode<ParentType, decltype(rhs_stack)>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -387,7 +386,7 @@ DIARef<NodeType, CurrentType, Stack>::DIARef(const DIARef<NodeType, CurrentType,
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);
-    local_stack_ = FunctionStack<NodeType>();
+    local_stack_ = FunctionStack<ParentType>();
 }
 
 /*!

@@ -35,7 +35,7 @@ namespace api {
  * element-by-element. The ZipNode stores the zip_function UDF. The chainable
  * LOps are stored in the Stack.
  *
- * \tparam Output Output type of the Zip operation.
+ * \tparam ValueType Output type of the Zip operation.
  *
  * \tparam Stack1 Function stack, which contains the chained lambdas between the
  * last and this DIANode for first input DIA.
@@ -45,13 +45,13 @@ namespace api {
  *
  * \tparam Zip_Function Type of the ZipFunction.
  */
-template <typename Input1, typename Input2, typename Output,
+template <typename ParentType1, typename ParentType2, typename ValueType,
           typename Stack1, typename Stack2, typename ZipFunction>
-class TwoZipNode : public DOpNode<Output>
+class TwoZipNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
@@ -68,21 +68,21 @@ public:
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
-               DIANode<Input1>* parent1,
-               DIANode<Input2>* parent2,
+               DIANode<ParentType1>* parent1,
+               DIANode<ParentType2>* parent2,
                Stack1& stack1,
                Stack2& stack2,
                ZipFunction zip_function)
-        : DOpNode<Output>(ctx, { parent1, parent2 }),
+        : DOpNode<ValueType>(ctx, { parent1, parent2 }),
           stack1_(stack1),
           stack2_(stack2),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [=](Input1 input) {
+        auto pre_op1_fn = [=](ParentType1 input) {
                               PreOp(input);
                           };
-        auto pre_op2_fn = [=](Input2 input) {
+        auto pre_op2_fn = [=](ParentType2 input) {
                               PreOpSecond(input);
                           };
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
@@ -119,7 +119,7 @@ public:
             // Iterate over smaller DIA
             while (it1.HasNext() && it2.HasNext()) {
                 auto item = std::make_pair(it1.Next(), it2.Next());
-                for (auto func : DIANode<Output>::callbacks_) {
+                for (auto func : DIANode<ValueType>::callbacks_) {
                     func(item);
                 }
             }
@@ -131,11 +131,11 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, auto emit_func) {
+        auto post_op_fn = [=](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
-        return MakeFunctionStack<Output>(pre_op_fn);
+        return MakeFunctionStack<ValueType>(pre_op_fn);
     }
 
     /*!
@@ -201,7 +201,7 @@ private:
 
     //! Use the ZipFunction to Zip workers
     template <typename Emitter>
-    void PostOp(Output input, Emitter emit_func) {
+    void PostOp(ValueType input, Emitter emit_func) {
         emit_func(zip_function_(input.first, input.second));
     }
 };

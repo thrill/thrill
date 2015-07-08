@@ -34,14 +34,14 @@ namespace api {
  * to a generator function. This function is used to generate a DIA of a certain
  * size by applying it to integers from 0 to size - 1.
  *
- * \tparam Output Output type of the Generate operation.
+ * \tparam ValueType Output type of the Generate operation.
  * \tparam ReadFunction Type of the generate function.
  */
-template <typename Output, typename GeneratorFunction>
-class GenerateNode : public DOpNode<Output>
+template <typename ValueType, typename GeneratorFunction>
+class GenerateNode : public DOpNode<ValueType>
 {
 public:
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     /*!
     * Constructor for a GenerateNode. Sets the Context, parents, generator
@@ -56,7 +56,7 @@ public:
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size)
-        : DOpNode<Output>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -89,7 +89,7 @@ public:
         }
 
         for (size_t i = 0; i < local_elements; i++) {
-            for (auto func : DIANode<Output>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 func(generator_function_(i + offset));
             }
         }
@@ -101,11 +101,11 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](Output t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
-        return MakeFunctionStack<Output>(id_fn);
+        return MakeFunctionStack<ValueType>(id_fn);
     }
 
     /*!

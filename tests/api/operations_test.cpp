@@ -150,7 +150,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
         auto doubled = integers.FlatMap<double>(flatmap_double);
 
-        std::vector<int> out_vec;
+        std::vector<double> out_vec;
 
         doubled.AllGather(&out_vec);
 
@@ -177,11 +177,11 @@ TEST(Operations, FilterResultsCorrectly) {
         auto integers = Generate(
             ctx,
             [](const size_t& index) {
-                return index + 1;
+                return (int)index + 1;
             },
             16);
 
-        std::function<double(int)> even = [](int in) {
+        std::function<bool(int)> even = [](int in) {
             return (in % 2 == 0);
         };
 

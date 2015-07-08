@@ -105,6 +105,7 @@ template <typename Input, typename ... Lambdas>
 class FunctionStack
 {
 public:
+    using FirstType = Input;
 
     template <typename Lambda> 
     explicit FunctionStack(Lambda lambda)
