@@ -15,7 +15,7 @@ using c7a::Context;
 using c7a::DIARef;
 
 template <typename InStack>
-auto word_count_user(DIARef<std::string, InStack>& input) {
+auto word_count_user(DIARef<std::string, std::string, InStack>& input) {
 
     using WordCount = std::pair<std::string, int>;
 

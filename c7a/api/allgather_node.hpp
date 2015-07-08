@@ -97,11 +97,11 @@ private:
     std::vector<data::Emitter<Output> > emitters_;
 };
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename Out>
-void DIARef<T, Stack>::AllGather(std::vector<Out>* out_vector) {
+void DIARef<NodeType, CurrentType, Stack>::AllGather(std::vector<Out>* out_vector) {
 
-    using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
+    using AllGatherResultNode = AllGatherNode<NodeType, Out, decltype(local_stack_)>;
 
     auto shared_node =
         std::make_shared<AllGatherResultNode>(node_->get_context(),

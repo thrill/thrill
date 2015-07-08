@@ -111,15 +111,15 @@ private:
     static const bool debug = false;
 };
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename WriteFunction>
-void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
+void DIARef<NodeType, CurrentType, Stack>::WriteToFileSystem(const std::string& filepath,
                                          const WriteFunction& write_function) {
 
     using WriteResult =
         typename common::FunctionTraits<WriteFunction>::result_type;
     
-    using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
+    using WriteResultNode = WriteNode<NodeType, WriteResult, WriteFunction,
                                       decltype(local_stack_)>;
 
     auto shared_node =
