@@ -12,9 +12,10 @@
 #ifndef C7A_API_PREFIXSUM_NODE_HEADER
 #define C7A_API_PREFIXSUM_NODE_HEADER
 
-#include "action_node.hpp"
 #include "function_stack.hpp"
 #include "dia.hpp"
+#include "context.hpp"
+#include "function_stack.hpp"
 #include <c7a/net/group.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -25,7 +26,7 @@ namespace c7a {
 namespace api {
 
 template <typename ParentType, typename ValueType, typename Stack, typename SumFunction>
-class PrefixSumNode : public DOpNode<ValueType>
+class PrefixSumNode : public DOpNode<ParentType>
 {
     static const bool debug = false;
 
@@ -34,27 +35,27 @@ class PrefixSumNode : public DOpNode<ValueType>
     using Super::data_id_;
 
 public:
+
     PrefixSumNode(Context& ctx,
 				  DIANode<ParentType>* parent,
 				  Stack& stack,
 				  SumFunction sum_function,
-				  ValueType neutral_element
-		)
+				  ValueType neutral_element)
         : DOpNode<ValueType>(ctx, { parent }),
-          stack_(stack),
+		  stack_(stack),
           sum_function_(sum_function),
 		  local_sum_(neutral_element),
 		  neutral_element_(neutral_element)
-    {
-        // Hook PreOp(s)
-        auto pre_op_fn = [=](ParentType input) {
-                             PreOp(input);
-                         };
+		{
+			// Hook PreOp(s)
+			auto pre_op_fn = [=](ValueType input) {
+				PreOp(input);
+			};
 
-        auto lop_chain = stack_.push(pre_op_fn).emit();
+			auto lop_chain = stack_.push(pre_op_fn).emit();
 
-        parent->RegisterChild(lop_chain);
-    }
+			parent->RegisterChild(lop_chain);
+		}
 
     virtual ~PrefixSumNode() { }
 
@@ -95,7 +96,7 @@ private:
 	//! Neutral element.
 	ValueType neutral_element_;
 	//! Local data
-	std::vector<ParentType> data_;
+	std::vector<ValueType> data_;
 
     void PreOp(ValueType input) {
 		LOG << "Input: " << input;
@@ -140,14 +141,12 @@ auto DIARef<ParentType, ValueType, Stack>::PrefixSum(const SumFunction &sum_func
 										  neutral_element
 			);
 
-	
     auto sum_stack = shared_node->ProduceStack();
 
     return DIARef<ValueType, ValueType, decltype(sum_stack)>
                (std::move(shared_node), sum_stack);
 }
 }
-
 } // namespace api
 
 #endif // !C7A_API_PREFIXSUM_NODE_HEADER
