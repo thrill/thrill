@@ -27,7 +27,8 @@ namespace api {
 
 namespace {
 
-std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
+std::tuple<int, size_t, std::vector<std::string> >
+ParseArgs(int argc, char* const* argv) {
     //replace with arbitrary complex implementation
     size_t my_rank;
     std::vector<std::string> endpoints;
@@ -77,7 +78,7 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
 //!
 //! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned.
 static inline int Execute(
-    int argc, char* argv[],
+    int argc, char* const* argv,
     std::function<int(Context&)> job_startpoint,
     int thread_count = 1, const std::string& log_prefix = "") {
 
@@ -90,18 +91,14 @@ static inline int Execute(
     int result = 0;
     std::tie(result, my_rank, endpoints) = ParseArgs(argc, argv);
     if (result != 0)
-        return {
-                   -1
-        };
+        return -1;
 
     if (my_rank >= endpoints.size()) {
         std::cerr << "endpoint list (" <<
             endpoints.size() <<
             " entries) does not include my rank (" <<
             my_rank << ")" << std::endl;
-        return {
-                   -1
-        };
+        return -1;
     }
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
@@ -147,26 +144,25 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
                     std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
-    std::vector<char**> arguments(workers);
     std::vector<std::vector<std::string> > strargs(workers);
+    std::vector<std::vector<char*>> args(workers);
 
     for (size_t i = 0; i < workers; i++) {
 
-        arguments[i] = new char*[workers + 3];
-        strargs[i].resize(workers + 3);
+        // construct command line for independent worker thread
 
-        for (size_t j = 0; j < workers; j++) {
-            strargs[i][j + 3] += "127.0.0.1:";
-            strargs[i][j + 3] += std::to_string(port_base + j);
-            arguments[i][j + 3] = const_cast<char*>(strargs[i][j + 3].c_str());
+        strargs[i] = { "local_c7a", "-r", std::to_string(i) };
+
+        for (size_t j = 0; j < workers; j++)
+            strargs[i].push_back("127.0.0.1:" + std::to_string(port_base + j));
+
+        // make a char*[] array from std::string array (argv compatible)
+
+        args[i].resize(strargs[i].size() + 1);
+        for (size_t j = 0; j != strargs[i].size(); ++j) {
+            args[i][j] = const_cast<char*>(strargs[i][j].c_str());
         }
-
-        strargs[i][0] = "local_c7a";
-        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
-        strargs[i][1] = "-r";
-        arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
-        strargs[i][2] = std::to_string(i);
-        arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
+        args[i].back() = NULL;
 
         std::function<int(Context&)> intReturningFunction =
             [job_startpoint](Context& ctx) {
@@ -176,7 +172,7 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
 
         threads[i] = std::thread(
             [=]() {
-                Execute(workers + 3, arguments[i],
+                Execute(strargs[i].size(), args[i].data(),
                         intReturningFunction, 1, "worker " + std::to_string(i));
             });
     }
