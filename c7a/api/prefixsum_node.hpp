@@ -36,12 +36,16 @@ class PrefixSumNode : public DOpNode<Output>
 
 public:
     PrefixSumNode(Context& ctx,
-            DIANode<Input>* parent,
-            Stack& stack,
-            SumFunction sum_function)
+				  DIANode<Input>* parent,
+				  Stack& stack,
+				  SumFunction sum_function,
+				  SumArg0 neutral_element
+		)
         : DOpNode<Output>(ctx, { parent }),
           stack_(stack),
-          sum_function_(sum_function)
+          sum_function_(sum_function),
+		  local_sum_(neutral_element),
+		  neutral_element_(neutral_element)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](Input input) {
@@ -88,13 +92,15 @@ private:
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
     //! Local sum to be used in all reduce operation.
-    Input local_sum = 0;
+    Input local_sum_;
+	//! Neutral element.
+	Input neutral_element_;
 	//! Local data
 	std::vector<Input> data_;
 
     void PreOp(SumArg0 input) {
 		LOG << "Input: " << input;
-        local_sum = sum_function_(local_sum, input);
+        local_sum_ = sum_function_(local_sum_, input);
 		data_.push_back(input);
     }
 
@@ -102,7 +108,11 @@ private:
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.get_flow_control_channel();
 		
-		Input prefix_sum = channel.PrefixSum(local_sum, sum_function_, false);
+		Input prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
+
+		if(context_.rank() == 0) {
+			prefix_sum = neutral_element_;
+		}
 
 		for (size_t i = 0; i < data_.size(); i++) {
 			prefix_sum = sum_function_(prefix_sum, data_[i]);
@@ -117,7 +127,7 @@ private:
 
 template <typename T, typename Stack>
 template <typename SumFunction>
-auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function) {
+auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function, typename FunctionTraits<SumFunction>::template arg<0> neutral_element) {
     using SumResult
               = typename FunctionTraits<SumFunction>::result_type;
     using SumArgument0
@@ -131,7 +141,9 @@ auto DIARef<T, Stack>::PrefixSum(const SumFunction &sum_function) {
         = std::make_shared<SumResultNode>(node_->get_context(),
                                           node_.get(),
                                           local_stack_,
-                                          sum_function);
+                                          sum_function,
+										  neutral_element
+			);
 
 	
     auto sum_stack = shared_node->ProduceStack();

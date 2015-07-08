@@ -281,9 +281,13 @@ public:
      * \tparam SumFunction Type of the sum_function.
      *
      * \param sum_function Sum function.
+	 *
+	 * \param neutral_element Neutral element of the sum function.
      */
     template <typename SumFunction>
-    auto PrefixSum(const SumFunction &sum_function);
+    auto PrefixSum(const SumFunction &sum_function,
+				   typename FunctionTraits<SumFunction>::template arg<0>
+				   neutral_element = 0);
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
