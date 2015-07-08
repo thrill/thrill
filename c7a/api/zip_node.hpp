@@ -57,8 +57,8 @@ class TwoZipNode : public DOpNode<ValueType>
     using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
 
-    using ParentType1 = typename ParentStack1::InputType;
-    using ParentType2 = typename ParentStack2::InputType;
+    using ParentInput1 = typename ParentStack1::Input;
+    using ParentInput2 = typename ParentStack2::Input;
 
 public:
     /*!
@@ -72,8 +72,8 @@ public:
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
-               DIANode<ParentType1>* parent1,
-               DIANode<ParentType2>* parent2,
+               DIANode<ParentInput1>* parent1,
+               DIANode<ParentInput2>* parent2,
                ParentStack1& parent_stack1,
                ParentStack2& parent_stack2,
                ZipFunction zip_function)
@@ -81,10 +81,10 @@ public:
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [=](ParentType1 input) {
+        auto pre_op1_fn = [=](const ParentInput1& input) {
                               PreOp(input);
                           };
-        auto pre_op2_fn = [=](ParentType2 input) {
+        auto pre_op2_fn = [=](const ParentInput2& input) {
                               PreOpSecond(input);
                           };
 

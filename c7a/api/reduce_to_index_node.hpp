@@ -68,7 +68,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     typedef std::pair<Key, Value> KeyValuePair;
 
-    using ParentType = typename ParentStack::InputType;
+    using ParentInput = typename ParentStack::Input;
 
     using Super::context_;
     using Super::data_id_;
@@ -90,7 +90,7 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceToIndexNode(Context& ctx,
-                      DIANode<ParentType>* parent,
+                      DIANode<ParentInput>* parent,
                       ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
