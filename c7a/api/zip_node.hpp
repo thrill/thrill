@@ -25,6 +25,7 @@
 #include <vector>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -34,7 +35,7 @@ namespace c7a {
  * element-by-element. The ZipNode stores the zip_function UDF. The chainable
  * LOps are stored in the Stack.
  *
- * \tparam Output Output type of the Zip operation.
+ * \tparam ValueType Output type of the Zip operation.
  *
  * \tparam Stack1 Function stack, which contains the chained lambdas between the
  * last and this DIANode for first input DIA.
@@ -44,13 +45,13 @@ namespace c7a {
  *
  * \tparam Zip_Function Type of the ZipFunction.
  */
-template <typename Input1, typename Input2, typename Output,
+template <typename ParentType1, typename ParentType2, typename ValueType,
           typename Stack1, typename Stack2, typename ZipFunction>
-class TwoZipNode : public DOpNode<Output>
+class TwoZipNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
 
-    using Super = DOpNode<Output>;
+    using Super = DOpNode<ValueType>;
     using Super::context_;
     using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
@@ -67,21 +68,21 @@ public:
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
-               DIANode<Input1>* parent1,
-               DIANode<Input2>* parent2,
+               DIANode<ParentType1>* parent1,
+               DIANode<ParentType2>* parent2,
                Stack1& stack1,
                Stack2& stack2,
                ZipFunction zip_function)
-        : DOpNode<Output>(ctx, { parent1, parent2 }),
+        : DOpNode<ValueType>(ctx, { parent1, parent2 }),
           stack1_(stack1),
           stack2_(stack2),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [=](Input1 input) {
+        auto pre_op1_fn = [=](ParentType1 input) {
                               PreOp(input);
                           };
-        auto pre_op2_fn = [=](Input2 input) {
+        auto pre_op2_fn = [=](ParentType2 input) {
                               PreOpSecond(input);
                           };
         auto lop_chain1 = stack1_.push(pre_op1_fn).emit();
@@ -105,7 +106,7 @@ public:
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void execute() override {
+    void Execute() override {
         MainOp();
         // get data from data manager
         auto it1 = context_.get_data_manager().
@@ -118,7 +119,7 @@ public:
             // Iterate over smaller DIA
             while (it1.HasNext() && it2.HasNext()) {
                 auto item = std::make_pair(it1.Next(), it2.Next());
-                for (auto func : DIANode<Output>::callbacks_) {
+                for (auto func : DIANode<ValueType>::callbacks_) {
                     func(item);
                 }
             }
@@ -130,12 +131,11 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](Output elem, auto emit_func) {
+        auto post_op_fn = [=](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
-        FunctionStack<> stack;
-        return stack.push(post_op_fn);
+        return MakeFunctionStack<ValueType>(pre_op_fn);
     }
 
     /*!
@@ -180,11 +180,11 @@ private:
         std::vector<size_t> blocks(num_dias_, 0);
 
         for (size_t i = 0; i < num_dias_; ++i) {
-            size_t prefix = data_manager.get_current_size(id_[i]);
+            size_t prefix = data_manager.GetNumElements(id_[i]);
             net::PrefixSum(flow_group, prefix);
-            size_t total = data_manager.get_current_size(id_[i]);
+            size_t total = data_manager.GetNumElements(id_[i]);
             // TODO: flow_group.TotalSum(prefix);
-            size_t size = data_manager.get_current_size(id_[i]);
+            size_t size = data_manager.GetNumElements(id_[i]);
             size_t per_pe = total / workers;
             size_t target = prefix / per_pe;
             size_t block = std::min(per_pe - prefix % per_pe, size);
@@ -201,14 +201,14 @@ private:
 
     //! Use the ZipFunction to Zip workers
     template <typename Emitter>
-    void PostOp(Output input, Emitter emit_func) {
+    void PostOp(ValueType input, Emitter emit_func) {
         emit_func(zip_function_(input.first, input.second));
     }
 };
 
-template <typename T, typename Stack>
+template <typename NodeType, typename CurrentType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
-auto DIARef<T, Stack>::Zip(
+auto DIARef<NodeType, CurrentType, Stack>::Zip(
     const ZipFunction &zip_function, SecondDIA second_dia) {
     using ZipResult
               = typename FunctionTraits<ZipFunction>::result_type;
@@ -231,10 +231,11 @@ auto DIARef<T, Stack>::Zip(
                                           zip_function);
 
     auto zip_stack = shared_node->ProduceStack();
-    return DIARef<ZipResult, decltype(zip_stack)>
+    return DIARef<ZipResult, ZipResult, decltype(zip_stack)>
                (std::move(shared_node), zip_stack);
 }
 
+} // namespace api
 } // namespace c7a
 
 //! \}

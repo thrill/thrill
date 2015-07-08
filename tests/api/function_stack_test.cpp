@@ -19,7 +19,9 @@
 using namespace c7a::core;
 
 TEST(API, FunctionStackTest) {
-    using c7a::FunctionStack;
+    using c7a::api::FunctionStack;
+    using c7a::api::MakeFunctionStack;
+
     std::vector<double> elements;
 
     // User-defined functions
@@ -61,8 +63,7 @@ TEST(API, FunctionStackTest) {
     std::cout << "==============" << std::endl;
     std::cout << "FunctionStack" << std::endl;
     std::cout << "==============" << std::endl;
-    FunctionStack<> stack;
-    auto new_stack = stack.push(fmap_fn);
+    auto new_stack = MakeFunctionStack<double>(fmap_fn);
     auto new_stack2 = new_stack.push(conv_map_fn);
     auto new_stack3 = new_stack2.push(conv_filter_fn);
     auto new_stack4 = new_stack3.push(save_fn);
@@ -78,6 +79,38 @@ TEST(API, FunctionStackTest) {
     ASSERT_EQ(total, 368000u);
 
     return;
+}
+
+TEST(API, SimpleDeductionTest) {
+    using c7a::api::FunctionStack;
+    using c7a::api::MakeFunctionStack;
+
+    auto fmap_fn1 =
+        [=](int input, auto emit_func) {
+            emit_func(std::to_string(input));
+        };
+
+    auto fmap_fn2 =
+        [=](const std::string& input, auto emit_func) {
+            emit_func(input + " Hello");
+            emit_func(10);
+        };
+
+    auto new_stack1 = MakeFunctionStack<int>(fmap_fn1);
+    auto new_stack2 = new_stack1.push(fmap_fn2);
+
+    std::vector<std::string> output;
+
+    auto save_output = [&](auto) {
+        output.push_back("123");
+    };
+
+    auto new_stack3 = new_stack2.push(save_output);
+    new_stack3.emit()(42);
+
+    ASSERT_EQ(output.size(), 2u);
+    ASSERT_EQ(output[0], "123");
+    ASSERT_EQ(output[1], "123");
 }
 
 /******************************************************************************/

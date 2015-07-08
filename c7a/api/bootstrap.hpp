@@ -23,9 +23,12 @@
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
-namespace bootstrap {
+namespace api {
 
-std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* argv[]) {
+namespace {
+
+std::tuple<int, size_t, std::vector<std::string> >
+ParseArgs(int argc, char* const* argv) {
     //replace with arbitrary complex implementation
     size_t my_rank;
     std::vector<std::string> endpoints;
@@ -66,16 +69,18 @@ std::tuple<int, size_t, std::vector<std::string> > ParseArgs(int argc, char* arg
     }
     return std::make_tuple(0, my_rank, endpoints);
 }
-}   //namespace bootstrap
 
-namespace api {
+} // namespace
 
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
 //! different context instances.
 //!
 //! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned.
-static int Execute(int argc, char* argv[], std::function<int(Context&)> job_startpoint, int thread_count = 1, const std::string& log_prefix = "") {
+static inline int Execute(
+    int argc, char* const* argv,
+    std::function<int(Context&)> job_startpoint,
+    int thread_count = 1, const std::string& log_prefix = "") {
 
     //!True if program time should be taken and printed
 
@@ -84,20 +89,16 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     size_t my_rank;
     std::vector<std::string> endpoints;
     int result = 0;
-    std::tie(result, my_rank, endpoints) = bootstrap::ParseArgs(argc, argv);
+    std::tie(result, my_rank, endpoints) = ParseArgs(argc, argv);
     if (result != 0)
-        return {
-                   -1
-        };
+        return -1;
 
     if (my_rank >= endpoints.size()) {
         std::cerr << "endpoint list (" <<
             endpoints.size() <<
             " entries) does not include my rank (" <<
             my_rank << ")" << std::endl;
-        return {
-                   -1
-        };
+        return -1;
     }
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
@@ -111,18 +112,19 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     std::vector<std::atomic<int> > atomic_results(thread_count);
 
     for (int i = 0; i < thread_count; i++) {
-        threads[i] = new std::thread([&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
-                                         Context ctx(jobMan, i);
-                                         common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
-                                         LOG << "connecting to peers";
-                                         LOG << "Starting job on Worker " << ctx.rank();
-                                         auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
-                                         int job_result = job_startpoint(ctx);
-                                         overall_timer->Stop();
-                                         LOG << "Worker " << ctx.rank() << " done!";
-                                         atomic_results[i] = job_result;
-										 jobMan.get_flow_manager().GetFlowControlChannel(0).await();
-                                     });
+        threads[i] = new std::thread(
+            [&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
+                Context ctx(jobMan, i);
+                common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
+                LOG << "connecting to peers";
+                LOG << "Starting job on Worker " << ctx.rank();
+                auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+                int job_result = job_startpoint(ctx);
+                overall_timer->Stop();
+                LOG << "Worker " << ctx.rank() << " done!";
+                atomic_results[i] = job_result;
+                jobMan.get_flow_manager().GetFlowControlChannel(0).await();
+            });
     }
     for (int i = 0; i < thread_count; i++) {
         threads[i]->join();
@@ -133,40 +135,46 @@ static int Execute(int argc, char* argv[], std::function<int(Context&)> job_star
     return result;
 }
 
+/*!
+ * Function to run a number of workers as locally independent threads, which
+ * still communicate via TCP sockets.
+ */
 static inline void
-ExecuteThreads(const size_t& workers, const size_t& port_base,
-               std::function<void(Context&)> job_startpoint) {
+ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
+                    std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
-    std::vector<char**> arguments(workers);
     std::vector<std::vector<std::string> > strargs(workers);
+    std::vector<std::vector<char*>> args(workers);
 
     for (size_t i = 0; i < workers; i++) {
 
-        arguments[i] = new char*[workers + 3];
-        strargs[i].resize(workers + 3);
+        // construct command line for independent worker thread
 
-        for (size_t j = 0; j < workers; j++) {
-            strargs[i][j + 3] += "127.0.0.1:";
-            strargs[i][j + 3] += std::to_string(port_base + j);
-            arguments[i][j + 3] = const_cast<char*>(strargs[i][j + 3].c_str());
+        strargs[i] = { "local_c7a", "-r", std::to_string(i) };
+
+        for (size_t j = 0; j < workers; j++)
+            strargs[i].push_back("127.0.0.1:" + std::to_string(port_base + j));
+
+        // make a char*[] array from std::string array (argv compatible)
+
+        args[i].resize(strargs[i].size() + 1);
+        for (size_t j = 0; j != strargs[i].size(); ++j) {
+            args[i][j] = const_cast<char*>(strargs[i][j].c_str());
         }
+        args[i].back() = NULL;
 
-        strargs[i][0] = "local_c7a";
-        arguments[i][0] = const_cast<char*>(strargs[i][0].c_str());
-        strargs[i][1] = "-r";
-        arguments[i][1] = const_cast<char*>(strargs[i][1].c_str());
-        strargs[i][2] = std::to_string(i);
-        arguments[i][2] = const_cast<char*>(strargs[i][2].c_str());
+        std::function<int(Context&)> intReturningFunction =
+            [job_startpoint](Context& ctx) {
+            job_startpoint(ctx);
+            return 1;
+        };
 
-        std::function<int(Context&)> intReturningFunction = [job_startpoint](Context& ctx) {
-                                                                job_startpoint(ctx);
-                                                                return 1;
-                                                            };
-
-        threads[i] = std::thread([=]() {
-                                     Execute(workers + 3, arguments[i], intReturningFunction, 1, "worker " + std::to_string(i));
-                                 });
+        threads[i] = std::thread(
+            [=]() {
+                Execute(strargs[i].size(), args[i].data(),
+                        intReturningFunction, 1, "worker " + std::to_string(i));
+            });
     }
 
     for (size_t i = 0; i < workers; i++) {
@@ -174,8 +182,22 @@ ExecuteThreads(const size_t& workers, const size_t& port_base,
     }
 }
 
+/*!
+ * Helper Function to ExecuteLocalThreads in test suite for many different
+ * numbers of local workers as independent threads.
+ */
+static inline void
+ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
+
+    static const size_t port_base = 8080;
+
+    for (size_t workers = 1; workers <= 8; ++workers) {
+        ExecuteLocalThreads(workers, port_base, job_startpoint);
+    }
+}
+
 } // namespace api
-} // namespace bootstrap
+} // namespace c7a
 
 #endif // !C7A_API_BOOTSTRAP_HEADER
 

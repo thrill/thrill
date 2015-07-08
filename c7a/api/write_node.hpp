@@ -20,66 +20,47 @@
 namespace c7a {
 namespace api {
 
-template <typename Input, typename Output,
-          typename WriteFunction, typename Stack>
-class WriteNode : public ActionNode<Input>
+template <typename ParentType, typename ValueType,
+          typename Stack, typename WriteFunction>
+class WriteNode : public ActionNode
 {
 public:
-    using Super = ActionNode<Input>;
+    using Super = ActionNode;
     using Super::context_;
     using Super::data_id_;
-    using WriteArg = typename FunctionTraits<WriteFunction>::template arg<0>;
 
     WriteNode(Context& ctx,
-              DIANode<Input>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
+              DIANode<ParentType>* parent, //TODO(??) don't we need to pass shared ptrs for the ref counting?
               Stack& stack,
               WriteFunction write_function,
               std::string path_out)
-        : ActionNode<Input>(ctx, { parent }),
+        : ActionNode(ctx, { parent }),
           local_stack_(stack),
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
           emit_(context_.get_data_manager().
-                template GetOutputLineEmitter<Output>(file_))
+                template GetOutputLineEmitter<std::string>(file_))
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_function = [=](WriteArg input) {
+        auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
         auto lop_chain = local_stack_.push(pre_op_function).emit();
         parent->RegisterChild(lop_chain);
     }
 
-    void PreOp(WriteArg input) {
+    void PreOp(ValueType input) {
         emit_(write_function_(input));
     }
 
     virtual ~WriteNode() { }
 
     //! Closes the output file
-    void execute() override {
+    void Execute() override {
         sLOG << "closing file" << path_out_;
         emit_.Close();
-    }
-
-    /*!
-     * Produces an 'empty' function stack, which only contains the identity
-     * emitter function.
-     * \return Empty function stack
-     */
-    auto ProduceStack() {
-        // Hook Identity
-
-        using WriteArg =
-                  typename FunctionTraits<WriteFunction>::template arg<0>;
-        auto id_fn = [=](WriteArg t, auto emit_func) {
-                         return emit_func(t);
-                     };
-
-        FunctionStack<> stack;
-        return stack.push(id_fn);
     }
 
     /*!
@@ -104,19 +85,17 @@ private:
     std::ofstream file_;
 
     //! Emitter to file
-    data::OutputLineEmitter<Output> emit_;
+    data::OutputLineEmitter<std::string> emit_;
 
     static const bool debug = false;
 };
 
-template <typename T, typename Stack>
+template <typename ParentType, typename ValueType, typename Stack>
 template <typename WriteFunction>
-void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
+void DIARef<ParentType, ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
                                          const WriteFunction& write_function) {
-
-    using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
-    using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
-                                      decltype(local_stack_)>;
+    using WriteResultNode = WriteNode<ParentType, ValueType, 
+                                      decltype(local_stack_), WriteFunction>;
 
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->get_context(),
@@ -125,12 +104,11 @@ void DIARef<T, Stack>::WriteToFileSystem(const std::string& filepath,
                                           write_function,
                                           filepath);
 
-    auto write_stack = shared_node->ProduceStack();
     core::StageBuilder().RunScope(shared_node.get());
-}
 }
 
 } // namespace api
+} // namespace c7a
 
 #endif // !C7A_API_WRITE_NODE_HEADER
 

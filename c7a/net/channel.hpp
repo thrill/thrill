@@ -53,9 +53,11 @@ public:
             ReleaseSocketCallback release_callback,
             size_t id, int expected_streams,
             std::shared_ptr<data::BufferChain> target,
-            std::shared_ptr<common::Stats> stats)
+            std::shared_ptr<common::Stats> stats,
+            bool preserve_order = false)
         : dispatcher_(dispatcher),
           release_(release_callback),
+          preserve_order_(preserve_order),
           id_(id),
           expected_streams_(expected_streams),
           finished_streams_(0),
@@ -92,7 +94,7 @@ public:
             delete stream;
         }
         else {
-            sLOG << "pickup stream on" << stream->socket << "in channel" << id_;
+            sLOG << "pickup stream on" << stream->socket << "in channel" << id_ << "from" << stream->header.sender_rank;
             active_streams_++;
             ReadFromStream(stream);
         }
@@ -107,10 +109,15 @@ public:
         return id_;
     }
 
+    bool preserve_order() {
+        return preserve_order_;
+    }
+
 private:
     static const bool debug = false;
     DispatcherThread& dispatcher_;
     ReleaseSocketCallback release_;
+    bool preserve_order_;
 
     size_t id_;
     int active_streams_;
@@ -118,6 +125,7 @@ private:
     int finished_streams_;
     size_t bytes_received_;
 
+    data::OrderedBufferChain buffer_sorter_;
     std::shared_ptr<data::BufferChain> target_;
     data::BinaryBufferBuilder data_;
 
@@ -125,6 +133,8 @@ private:
     common::TimerPtr waiting_timer_;
     common::TimedCounterPtr wait_counter_;
     common::TimedCounterPtr header_arrival_counter_;
+
+    friend class ChannelMultiplexer;
 
     //! Decides if there are more elements to read of a new stream block header
     //! is expected (transfers control back to multiplexer)
@@ -136,7 +146,10 @@ private:
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             data_.set_elements(stream->header.expected_elements);
             if (data_.size() > 0) { //do not append empty end-of-stream buffer
-                target_->Append(data_);
+                if (preserve_order_)
+                    buffer_sorter_.Append(stream->header.sender_rank, data_);
+                else
+                    target_->Append(data_);
                 data_.Detach();
                 data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);
             }
@@ -156,11 +169,24 @@ private:
         if (finished_streams_ == expected_streams_) {
             sLOG << "channel" << id_ << " is closed";
             stats_->AddReport("channel::bytes_read", std::to_string(id_), std::to_string(bytes_received_));
+            if (preserve_order_)
+                buffer_sorter_.MoveTo(target_);
             target_->Close();
         }
         else {
             sLOG << "channel" << id_ << " is not closed yet (expect:" << expected_streams_ << "actual:" << finished_streams_ << ")";
         }
+    }
+
+    void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
+        if (!preserve_order_) {
+            throw Exception("can only receive local data when perserve_order_ is true");
+        }
+        assert(finished_streams_ < expected_streams_);
+        LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
+        //TODO(ts) this is a copy
+        data::BinaryBufferBuilder bb(base, len, elements);
+        buffer_sorter_.Append(own_rank, bb);
     }
 
     //! Expect data to arrive at the socket.

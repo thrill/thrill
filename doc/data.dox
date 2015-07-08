@@ -18,7 +18,7 @@ namespace data {
 The \ref data::Manager is a facade for the subsystem access to remote and local data.
 
 ## DIAs-Partitions
-\ref c7a::DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
+\ref c7a::api::DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
 DIAs can be materialized (data elements are held in external or internal memory) or not (DIA refers internally to upstream DIAs and how to transform elements).
 Each worker holds a partition of each DIA.
 Partitions are most likely not balanced across workers and some partitions might be even empty.
@@ -57,6 +57,7 @@ Both types of emitters may buffer pushed elements until \ref Emitter::Flush() "f
 Emitters and Iterators can operate concurrently - emitters can push data even after an iterator was created.
 Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsFinished() "IsFinished() method".
 If multiple emitters exist, multiple calls to \ref Emitter::Close() "close" lead to undefined behaviour.
+Iterators offer \ref Iterator::HasNext() and \ref Iterator::Next() as most ocmmon interface to read data sequentially. \ref Iterator::Seek() can be used for internal use. Seek returns a base address and byte-length of the elements that where seeked. Seek always returns continuous memory and thus only operats on a single BinaryBufer. \ref Iterator::Seek() can be called multiple times to return multiple memory ranges until all elements have been reached, as shown in the example below.
 
 ## Examples
 To write into the local storage and then read from it use:
@@ -108,6 +109,19 @@ void Consume(c7a::data::Manager& manager, c7a::data::ChannelId id) {
         }
     }
 }
+\endcode
+
+Seek 100 elements from a Dia Partition
+\code
+    auto it = manager.GetIterator(id);
+    size_t element_count = 0;
+    while (element_count < 100) {
+        void* data;
+        size_t length;
+        size_t elements_seeked = it.Seek(100 - element_count, &data, &length)
+        //do something with data / length
+        element_count += elements_seeked;
+    }
 \endcode
 
 */
