@@ -88,13 +88,14 @@ build_test_group(common/tests
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
+  common/cyclic_barrier_test.cpp
   common/delegate_test.cpp
+  common/function_traits_test.cpp
   common/future_queue_test.cpp
   common/future_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_pool_test.cpp
-  common/cyclic_barrier_test.cpp
   )
 #build_test(core/stage_builder_test)
 #build_test(core/post_hash_table_test)
