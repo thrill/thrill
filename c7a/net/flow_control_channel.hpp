@@ -137,7 +137,7 @@ public:
      * @param value The local value of this worker.
      * @param sumOp The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
-	 * @param inclusive Whether the prefix sum is inclusive or exclusive.
+     * @param inclusive Whether the prefix sum is inclusive or exclusive.
      * @return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = common::SumOp<T> >
@@ -163,9 +163,8 @@ public:
             //to receive and add.
             if (id != 0) {
                 ReceiveFrom(id - 1, &res);
-				exclusiveRes = res;
+                exclusiveRes = res;
             }
-
 
             for (int i = id == 0 ? 1 : 0; i < threadCount; i++) {
                 localPrefixBuffer[i] = sumOp(res, localPrefixBuffer[i]);
@@ -193,19 +192,21 @@ public:
             //Global Prefix
             barrier.await();
             //Slave get result
-			if (inclusive) {
-				res = (*GetLocalShared<std::vector<T> >())[threadId];
-			} else {
-				res = (*GetLocalShared<std::vector<T> >())[threadId - 1];				
-			}
+            if (inclusive) {
+                res = (*GetLocalShared<std::vector<T> >())[threadId];
+            }
+            else {
+                res = (*GetLocalShared<std::vector<T> >())[threadId - 1];
+            }
             barrier.await();
         }
-		if (inclusive) {
-			return res;
-		} else {
-			return exclusiveRes;
-		}
-    } 
+        if (inclusive) {
+            return res;
+        }
+        else {
+            return exclusiveRes;
+        }
+    }
 
     /**
      * @brief Broadcasts a value of an integral type T from the master
@@ -333,7 +334,6 @@ public:
         i = AllReduce(i);
     }
 };
-
 } // namespace net
 } // namespace c7a
 
