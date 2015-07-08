@@ -17,7 +17,7 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/c7a.hpp>
 
-using c7a::api::ExecuteThreads;
+using c7a::api::ExecuteLocalThreads;
 using c7a::api::Context;
 
 static void local_word_count(size_t workers, size_t elements, size_t port_base) {
@@ -26,7 +26,7 @@ static void local_word_count(size_t workers, size_t elements, size_t port_base) 
                                                    word_count_generated(ctx, elements);
                                                };
 
-    ExecuteThreads(workers, port_base, start_func);
+    ExecuteLocalThreads(workers, port_base, start_func);
 }
 
 int main(int argc, char* argv[]) {

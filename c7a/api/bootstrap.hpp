@@ -138,9 +138,13 @@ static inline int Execute(
     return result;
 }
 
+/*!
+ * Function to run a number of workers as locally independent threads, which
+ * still communicate via TCP sockets.
+ */
 static inline void
-ExecuteThreads(const size_t& workers, const size_t& port_base,
-               std::function<void(Context&)> job_startpoint) {
+ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
+                    std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
     std::vector<char**> arguments(workers);
@@ -179,6 +183,20 @@ ExecuteThreads(const size_t& workers, const size_t& port_base,
 
     for (size_t i = 0; i < workers; i++) {
         threads[i].join();
+    }
+}
+
+/*!
+ * Helper Function to ExecuteLocalThreads in test suite for many different
+ * numbers of local workers as independent threads.
+ */
+static inline void
+ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
+
+    static const size_t port_base = 8080;
+
+    for (size_t workers = 1; workers <= 8; ++workers) {
+        ExecuteLocalThreads(workers, port_base, job_startpoint);
     }
 }
 
