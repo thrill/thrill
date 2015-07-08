@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -23,7 +24,7 @@ using namespace c7a::net;
 using c7a::api::Context;
 using c7a::api::DIARef;
 
-TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
+TEST(Operations2, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
     std::vector<std::string> self = { "127.0.0.1:1234" };
     JobManager jobMan;
@@ -61,285 +62,249 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1, 4);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
+        auto integers = ReadLines(
+            ctx,
+            "test1",
+            [](const std::string& line) {
+                return std::stoi(line);
+            });
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        std::vector<int> out_vec;
 
-                                                   auto integers = ReadLines(
-                                                       ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+        integers.AllGather(&out_vec);
 
-                                                   std::vector<int> out_vec;
+        std::sort(out_vec.begin(), out_vec.end());
 
-                                                   integers.AllGather(&out_vec);
+        int i = 1;
+        for (int element : out_vec) {
+            ASSERT_EQ(element, i++);
+        }
 
-                                                   std::sort(out_vec.begin(), out_vec.end());
+        ASSERT_EQ((size_t)16, out_vec.size());
+    };
 
-                                                   int i = 1;
-                                                   for (int element : out_vec) {
-                                                       ASSERT_EQ(element, i++);
-                                                   }
-
-                                                   ASSERT_EQ((size_t)16, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, MapResultsCorrectChangingType) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1, 4);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return index + 1;
+            },
+            16);
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        std::function<double(int)> double_elements = [](int in) {
+            return (double)2 * in;
+        };
 
-                                                   auto integers = Generate(
-                                                       ctx,
-                                                       [](const size_t& input) {
-                                                           return input + 1;
-                                                       },
-                                                       16);
+        auto doubled = integers.Map(double_elements);
 
-                                                   std::function<double(int)> double_elements = [](int in) {
-                                                                                                    return (double)2 * in;
-                                                                                                };
+        std::vector<double> out_vec;
 
-                                                   auto doubled = integers.Map(double_elements);
+        doubled.AllGather(&out_vec);
 
-                                                   std::vector<double> out_vec;
+        std::sort(out_vec.begin(), out_vec.end());
 
-                                                   doubled.AllGather(&out_vec);
+        int i = 1;
+        for (int element : out_vec) {
+            ASSERT_DOUBLE_EQ(element, (i++ *2));
+        }
 
-                                                   std::sort(out_vec.begin(), out_vec.end());
+        ASSERT_EQ((size_t)16, out_vec.size());
+    };
 
-                                                   int i = 1;
-                                                   for (int element : out_vec) {
-                                                       ASSERT_DOUBLE_EQ(element, (i++ *2));
-                                                   }
-
-                                                   ASSERT_EQ((size_t)16, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1, 4);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return index + 1;
+            },
+            16);
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        auto flatmap_double = [](int in, auto emit) {
+            emit((double)2 * in);
+            emit((double)2 * (in + 16));
+        };
 
-                                                   auto integers = Generate(
-                                                       ctx,
-                                                       [](const size_t& input) {
-                                                           return input + 1;
-                                                       },
-                                                       16);
+        auto doubled = integers.FlatMap(flatmap_double);
 
-                                                   auto flatmap_double = [](int in, auto emit) {
-                                                                             emit((double)2 * in);
-                                                                             emit((double)2 * (in + 16));
-                                                                         };
+        std::vector<int> out_vec;
 
-                                                   auto doubled = integers.FlatMap(flatmap_double);
+        doubled.AllGather(&out_vec);
 
-                                                   std::vector<int> out_vec;
+        std::sort(out_vec.begin(), out_vec.end());
 
-                                                   doubled.AllGather(&out_vec);
+        int i = 1;
+        for (int element : out_vec) {
+            ASSERT_DOUBLE_EQ(element, (i++ *2));
+        }
 
-                                                   std::sort(out_vec.begin(), out_vec.end());
+        ASSERT_EQ((size_t)32, out_vec.size());
+    };
 
-                                                   int i = 1;
-                                                   for (int element : out_vec) {
-                                                       ASSERT_DOUBLE_EQ(element, (i++ *2));
-                                                   }
-
-                                                   ASSERT_EQ((size_t)32, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, FilterResultsCorrectly) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1, 4);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return index + 1;
+            },
+            16);
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        std::function<double(int)> even = [](int in) {
+            return (in % 2 == 0);
+        };
 
-                                                   auto integers = Generate(
-                                                       ctx,
-                                                       [](const size_t& input) {
-                                                           return input + 1;
-                                                       },
-                                                       16);
+        auto doubled = integers.Filter(even);
 
-                                                   std::function<double(int)> even = [](int in) {
-                                                                                         return (in % 2 == 0);
-                                                                                     };
+        std::vector<int> out_vec;
 
-                                                   auto doubled = integers.Filter(even);
+        doubled.AllGather(&out_vec);
 
-                                                   std::vector<int> out_vec;
+        std::sort(out_vec.begin(), out_vec.end());
 
-                                                   doubled.AllGather(&out_vec);
+        int i = 1;
 
-                                                   std::sort(out_vec.begin(), out_vec.end());
+        for (int element : out_vec) {
+            ASSERT_DOUBLE_EQ(element, (i++ *2));
+        }
 
-                                                   int i = 1;
+        ASSERT_EQ((size_t)8, out_vec.size());
+    };
 
-                                                   for (int element : out_vec) {
-                                                       ASSERT_DOUBLE_EQ(element, (i++ *2));
-                                                   }
-
-                                                   ASSERT_EQ((size_t)8, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, ReduceModulo2CorrectResults) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1, 4);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return index + 1;
+            },
+            16);
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        auto modulo_two = [](int in) {
+            return (in % 2);
+        };
 
-                                                   auto integers = Generate(
-                                                       ctx,
-                                                       [](const size_t& input) {
-                                                           return input + 1;
-                                                       },
-                                                       16);
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
 
-                                                   auto modulo_two = [](int in) {
-                                                                         return (in % 2);
-                                                                     };
+        auto reduced = integers.ReduceBy(modulo_two, add_function);
 
-                                                   auto add_function = [](int in1, int in2) {
-                                                                           return in1 + in2;
-                                                                       };
+        std::vector<int> out_vec;
 
-                                                   auto reduced = integers.ReduceBy(modulo_two, add_function);
+        reduced.AllGather(&out_vec);
 
-                                                   std::vector<int> out_vec;
+        std::sort(out_vec.begin(), out_vec.end());
 
-                                                   reduced.AllGather(&out_vec);
+        int i = 1;
 
-                                                   std::sort(out_vec.begin(), out_vec.end());
+        for (int element : out_vec) {
+            ASSERT_EQ(element, 56 + (8 * i++));
+        }
 
-                                                   int i = 1;
+        ASSERT_EQ((size_t)2, out_vec.size());
+    };
 
-                                                   for (int element : out_vec) {
-                                                       ASSERT_EQ(element, 56 + (8 * i++));
-                                                   }
-
-                                                   ASSERT_EQ((size_t)2, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, ReduceToIndexCorrectResults) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1, 4);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return index + 1;
+            },
+            16);
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        auto key = [](size_t in) {
+            return in / 2;
+        };
 
-                                                   auto integers = Generate(
-                                                       ctx,
-                                                       [](const size_t& input) {
-                                                           return input + 1;
-                                                       },
-                                                       16);
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
 
-                                                   auto key = [](size_t in) {
-                                                                  return in / 2;
-                                                              };
+        size_t max_index = 9;
 
-                                                   auto add_function = [](int in1, int in2) {
-                                                                           return in1 + in2;
-                                                                       };
+        auto reduced = integers.ReduceToIndex(key, add_function, max_index);
 
-                                                   size_t max_index = 9;
+        std::vector<int> out_vec;
 
-                                                   auto reduced = integers.ReduceToIndex(key, add_function, max_index);
+        reduced.AllGather(&out_vec);
 
-                                                   std::vector<int> out_vec;
+        std::sort(out_vec.begin(), out_vec.end());
 
-                                                   reduced.AllGather(&out_vec);
+        int i = 0;
+        for (int element : out_vec) {
+            switch (i++) {
+            case 0:
+                ASSERT_EQ(1, element);
+                break;
+            case 1:
+                ASSERT_EQ(5, element);
+                break;
+            case 2:
+                ASSERT_EQ(9, element);
+                break;
+            case 3:
+                ASSERT_EQ(13, element);
+                break;
+            case 4:
+                ASSERT_EQ(16, element);
+                break;
+            case 5:
+                ASSERT_EQ(17, element);
+                break;
+            case 6:
+                ASSERT_EQ(21, element);
+                break;
+            case 7:
+                ASSERT_EQ(25, element);
+                break;
+            case 8:
+                ASSERT_EQ(29, element);
+                break;
+            default:
+                ASSERT_EQ(42, 420);
+            }
+        }
 
-                                                   std::sort(out_vec.begin(), out_vec.end());
+        ASSERT_EQ((size_t)9, out_vec.size());
+    };
 
-                                                   int i = 0;
-                                                   for (int element : out_vec) {
-                                                       switch (i++) {
-                                                       case 0:
-                                                           ASSERT_EQ(1, element);
-                                                           break;
-                                                       case 1:
-                                                           ASSERT_EQ(5, element);
-                                                           break;
-                                                       case 2:
-                                                           ASSERT_EQ(9, element);
-                                                           break;
-                                                       case 3:
-                                                           ASSERT_EQ(13, element);
-                                                           break;
-                                                       case 4:
-                                                           ASSERT_EQ(16, element);
-                                                           break;
-                                                       case 5:
-                                                           ASSERT_EQ(17, element);
-                                                           break;
-                                                       case 6:
-                                                           ASSERT_EQ(21, element);
-                                                           break;
-                                                       case 7:
-                                                           ASSERT_EQ(25, element);
-                                                           break;
-                                                       case 8:
-                                                           ASSERT_EQ(29, element);
-                                                           break;
-                                                       default:
-                                                           ASSERT_EQ(42, 420);
-                                                       }
-                                                   }
-
-                                                   ASSERT_EQ((size_t)9, out_vec.size());
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/

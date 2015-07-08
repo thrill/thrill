@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -25,70 +26,59 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(1000, 10000);
 
-    std::uniform_int_distribution<int> distribution(2, 4);
-    size_t workers = distribution(generator);
+    size_t generate_size = distribution(generator);
 
-    size_t port_base = 8080;
+    std::function<void(Context&)> start_func =
+        [generate_size](Context& ctx) {
 
-    std::uniform_int_distribution<int> distribution2(1000, 10000);
-    size_t generate_size = distribution2(generator);
+        auto input = GenerateFromFile(
+            ctx,
+            "test1",
+            [](const std::string& line) {
+                return std::stoi(line);
+            },
+            generate_size);
 
-    std::function<void(Context&)> start_func = [generate_size](Context& ctx) {
+        auto ones = input.Map([](int) {
+                return 1;
+            });
 
-                                                   auto input = GenerateFromFile(
-                                                       ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       },
-                                                       generate_size);
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
 
-                                                   auto ones = input.Map([](int) {
-                                                                             return 1;
-                                                                         });
+        ASSERT_EQ((int)generate_size, ones.Sum(add_function));
+    };
 
-                                                   auto add_function = [](int in1, int in2) {
-                                                                           return in1 + in2;
-                                                                       };
-
-                                                   ASSERT_EQ((int)generate_size, ones.Sum(add_function));
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    std::uniform_int_distribution<int> distribution(2, 4);
-    size_t workers = distribution(generator);
+        auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
+            ctx,
+            "test1",
+            [](const std::string& line) {
+                return std::stoi(line);
+            });
 
-    size_t port_base = 8080;
+        auto ones = input.Map([](int in) {
+                return in;
+            });
 
-    std::function<void(Context&)> start_func = [](Context& ctx) {
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
 
-                                                   auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
-                                                       ctx,
-                                                       "test1",
-                                                       [](const std::string& line) {
-                                                           return std::stoi(line);
-                                                       });
+        ASSERT_EQ(136, ones.Sum(add_function));
+    };
 
-                                                   auto ones = input.Map([](int in) {
-                                                                             return in;
-                                                                         });
-
-                                                   auto add_function = [](int in1, int in2) {
-                                                                           return in1 + in2;
-                                                                       };
-
-                                                   ASSERT_EQ(136, ones.Sum(add_function));
-                                               };
-
-    c7a::api::ExecuteThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/
