@@ -30,9 +30,6 @@
 #include "lop_node.hpp"
 #include "context.hpp"
 
-#include <c7a/net/collective_communication.hpp>
-#include <c7a/common/future.hpp>
-
 namespace c7a {
 namespace api {
 
