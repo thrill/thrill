@@ -109,7 +109,9 @@ public:
     }
 
     /*!
-     * Produces an 'empty' function stack, which only contains the identity emitter function.
+     * Produces an 'empty' function stack, which only contains the identity
+     * emitter function.
+     *
      * \return Empty function stack
      */
     auto ProduceStack() {
