@@ -83,9 +83,9 @@ public:
 
     //! Stop processing jobs, terminate threads.
     ~ThreadPool() {
-        // set stop-condition
         std::unique_lock<std::mutex> lock(mutex_);
-        terminate_.store(true, std::memory_order_release);
+        // set stop-condition
+        terminate_ = true;
         cv_jobs_.notify_all();
         lock.unlock();
 
@@ -98,7 +98,6 @@ public:
     void Enqueue(Job&& job) {
         std::unique_lock<std::mutex> lock(mutex_);
         jobs_.emplace_back(std::move(job));
-        std::atomic_thread_fence(std::memory_order_release);
         cv_jobs_.notify_all();
     }
 
@@ -107,32 +106,28 @@ public:
     void LoopUntilEmpty() {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_finished_.wait(
-            lock, [this]() {
-                std::atomic_thread_fence(std::memory_order_acquire);
-                return jobs_.empty() && (busy_ == 0);
-            });
+            lock, [this]() { return jobs_.empty() && (busy_ == 0); });
     }
 
     //! Loop until terminate flag was set.
     void LoopUntilTerminate() {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_finished_.wait(
-            lock, [this]() {
-                std::atomic_thread_fence(std::memory_order_acquire);
-                return terminate_ && (busy_ == 0);
-            });
+            lock, [this]() { return terminate_ && (busy_ == 0); });
     }
 
     //! Terminate thread pool gracefully, wait until currently running jobs
     //! finish and then exit. This should be called from within one of the
     //! enqueue jobs or from an outside thread.
     void Terminate() {
+        std::unique_lock<std::mutex> lock(mutex_);
         // flag termination
-        terminate_.store(true, std::memory_order_release);
+        terminate_ = true;
         // wake up all worker threads and let them terminate.
         cv_jobs_.notify_all();
         // notify LoopUntilTerminate in case all threads are idle.
         cv_finished_.notify_one();
+        lock.unlock();
     }
 
     //! Return number of jobs currently completed.
@@ -160,10 +155,7 @@ protected:
 
             // wait on condition variable until job arrives, frees lock
             cv_jobs_.wait(
-                lock, [this]() {
-                    std::atomic_thread_fence(std::memory_order_acquire);
-                    return terminate_ || !jobs_.empty();
-                });
+                lock, [this]() { return terminate_ || !jobs_.empty(); });
 
             if (terminate_) break;
 
@@ -190,8 +182,9 @@ protected:
 
                 ++done_;
                 --busy_;
-                std::atomic_thread_fence(std::memory_order_release);
 
+                // relock mutex before signaling condition.
+                lock.lock();
                 cv_finished_.notify_one();
             }
         }
