@@ -54,19 +54,20 @@ struct BufferChain : public EmitterTarget {
     //! This method is thread-safe and runs in O(1)
     //! \param b buffer to append
     void Append(BinaryBufferBuilder& b) {
-        std::unique_lock<std::mutex> lock(append_mutex_);
-        elements_.emplace_back(BufferChainElement(BinaryBuffer(b), size() + b.elements()));
+        std::unique_lock<std::mutex> lock(mutex_);
+        elements_.emplace_back(
+            BufferChainElement(BinaryBuffer(b), _size() + b.elements()));
         b.Detach();
-        lock.unlock();
-        NotifyWaitingThreads();
+        condition_variable_.notify_all();
     }
 
     //! Appends an existing element to the chain.
     //! This method is not thread-safe since it is called only when channels
     //! are closed once.
     void Append(BufferChainElement&& element) {
+        std::unique_lock<std::mutex> lock(mutex_);
         elements_.emplace_back(std::move(element));
-        NotifyWaitingThreads();
+        condition_variable_.notify_all();
     }
 
     //! Waits until beeing notified
@@ -78,50 +79,54 @@ struct BufferChain : public EmitterTarget {
     //! Waits until beeing notified and closed == true
     void WaitUntilClosed() {
         std::unique_lock<std::mutex> lock(mutex_);
-        condition_variable_.wait(lock, [=]() { return this->closed_; });
+        condition_variable_.wait(lock, [=]() { return this->closed_.load(); });
     }
 
     //! Call buffers' destructors and deconstructs the chain
     void Delete() {
-        std::unique_lock<std::mutex> lock(append_mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         for (auto& elem : elements_)
             elem.buffer.Delete();
     }
 
     //! Returns the number of elements in this BufferChain at the current
     //! state.
-    size_t size() {
-        if (elements_.empty())
-            return 0;
-        return elements_.back().element_count;
+    size_t size() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return _size();
     }
 
     BufferChainIterator Begin() const {
+        std::unique_lock<std::mutex> lock(mutex_);
         return elements_.begin();
     }
 
     BufferChainIterator End() const {
+        std::unique_lock<std::mutex> lock(mutex_);
         return elements_.end();
     }
 
     void Close() {
+        std::unique_lock<std::mutex> lock(mutex_);
         closed_ = true;
-        NotifyWaitingThreads();
+        condition_variable_.notify_all();
     }
 
-    bool IsClosed() { return closed_; }
+    bool IsClosed() { return closed_.load(); }
 
     std::deque<BufferChainElement> elements_;
 
 private:
-    std::mutex                     mutex_;
-    std::mutex                     append_mutex_;
+    mutable std::mutex             mutex_;
     std::condition_variable        condition_variable_;
-    bool                           closed_;
+    std::atomic<bool>              closed_;
 
-    void NotifyWaitingThreads() {
-        std::unique_lock<std::mutex> lock(mutex_);
-        condition_variable_.notify_all();
+    //! Returns the number of elements in this BufferChain at the current
+    //! state.
+    size_t _size() const {
+        if (elements_.empty())
+            return 0;
+        return elements_.back().element_count;
     }
 };
 
