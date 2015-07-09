@@ -105,6 +105,10 @@ void Group::ExecuteLocalMock(
     for (size_t i = 0; i != num_clients; ++i) {
         threads[i].join();
     }
+    
+    for (size_t i = 0; i != num_clients; ++i) {
+        group[i]->Close();
+    }
 }
 
 } // namespace net
