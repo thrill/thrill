@@ -21,6 +21,7 @@
 #include <tuple>
 #include <thread>
 #include <atomic>
+#include <random>
 
 namespace c7a {
 namespace api {
@@ -189,9 +190,13 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
 static inline void
 ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
 
-    static const size_t port_base = 48080;
+    // randomize base port number for test
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(30000, 65000);
+    const size_t port_base = distribution(generator);
 
-    for (size_t workers = 1; workers <= 8; ++workers) {
+    for (size_t workers = 1; workers <= 8; workers *= 2) {
         ExecuteLocalThreads(workers, port_base, job_startpoint);
     }
 }
