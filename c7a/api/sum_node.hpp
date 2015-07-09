@@ -39,9 +39,11 @@ public:
     SumNode(Context& ctx,
             DIANode<ParentInput>* parent,
             ParentStack& parent_stack,
-            SumFunction sum_function)
+            SumFunction sum_function,
+            ValueType neutral_element)
         : ActionNode(ctx, { parent }),
-          sum_function_(sum_function)
+          sum_function_(sum_function),
+          local_sum_(neutral_element)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](ValueType input) {
@@ -64,7 +66,7 @@ public:
      * \return result
      */
     auto result() {
-        return global_sum;
+        return global_sum_;
     }
 
     /*!
@@ -79,13 +81,13 @@ private:
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
     // Local sum to be used in all reduce operation.
-    ValueType local_sum = 0;
+    ValueType local_sum_;
     // Global sum resulting from all reduce.
-    ValueType global_sum = 0;
+    ValueType global_sum_;
 
     void PreOp(ValueType input) {
         LOG << "PreOp: " << input;
-        local_sum = sum_function_(local_sum, input);
+        local_sum_ = sum_function_(local_sum_, input);
     }
 
     void MainOp() {
@@ -93,7 +95,7 @@ private:
         net::FlowControlChannel& channel = context_.get_flow_control_channel();
 
         // process the reduce
-        global_sum = channel.AllReduce(local_sum, sum_function_);
+        global_sum_ = channel.AllReduce(local_sum_, sum_function_);
     }
 
     void PostOp() { }
@@ -101,7 +103,8 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function) {
+auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
+                                   ValueType neutral_element) {
     using SumResultNode
               = SumNode<ValueType, Stack, SumFunction>;
 
@@ -109,7 +112,8 @@ auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function) {
         = std::make_shared<SumResultNode>(node_->get_context(),
                                           node_.get(),
                                           local_stack_,
-                                          sum_function);
+                                          sum_function,
+                                          neutral_element);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
