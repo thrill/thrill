@@ -182,7 +182,7 @@ static void RealGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [i, endpoints, thread_function, &groups]() {
+            [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
                 groups[i].Initialize(i, endpoints);
                 // run thread function
