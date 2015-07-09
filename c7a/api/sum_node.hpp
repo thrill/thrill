@@ -103,8 +103,7 @@ template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function) {
     using SumResultNode
-              = SumNode<ValueType,
-                        decltype(local_stack_), SumFunction>;
+        = SumNode<ValueType, Stack, SumFunction>;
 
     auto shared_node
         = std::make_shared<SumResultNode>(node_->get_context(),

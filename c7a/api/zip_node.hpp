@@ -35,15 +35,33 @@ namespace api {
  * element-by-element. The ZipNode stores the zip_function UDF. The chainable
  * LOps are stored in the Stack.
  *
+ * <pre>
+ *                ParentStack1 ParentStack2
+ *                 +--------+   +--------+
+ *                 |        |   |        |  A ParentStackX is called with
+ *                 |        |   |        |  ParentInputX, and must deliver
+ *                 |        |   |        |  a ZipArgX item.
+ *               +-+--------+---+--------+-+
+ *               | | PreOp1 |   | PreOp2 | |
+ *               | +--------+   +--------+ |
+ * DIARef<T> --> |           Zip           |
+ *               |        +-------+        |
+ *               |        |PostOp |        |
+ *               +--------+-------+--------+
+ *                        |       | New DIARef<T>::stack_ is started
+ *                        |       | with PostOp to chain next nodes.
+ *                        +-------+
+ * </pre>
+ *
  * \tparam ValueType Output type of the Zip operation.
  *
- * \tparam Stack1 Function stack, which contains the chained lambdas between the
- * last and this DIANode for first input DIA.
+ * \tparam ParentStack1 Function stack, which contains the chained lambdas
+ * between the last and this DIANode for first input DIA.
  *
- * \tparam Stack2 Function stack, which contains the chained lambdas between the
- * last and this DIANode for secondt input DIA.
+ * \tparam ParentStack2 Function stack, which contains the chained lambdas
+ * between the last and this DIANode for secondt input DIA.
  *
- * \tparam Zip_Function Type of the ZipFunction.
+ * \tparam ZipFunction Type of the ZipFunction.
  */
 template <typename ValueType,
           typename ParentStack1, typename ParentStack2,
@@ -54,8 +72,11 @@ class TwoZipNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using ZipArg0 = typename FunctionTraits<ZipFunction>::template arg<0>;
-    using ZipArg1 = typename FunctionTraits<ZipFunction>::template arg<1>;
+
+    using ZipArg0 =
+        typename common::FunctionTraits<ZipFunction>::template arg<0>;
+    using ZipArg1 =
+        typename common::FunctionTraits<ZipFunction>::template arg<1>;
 
     using ParentInput1 = typename ParentStack1::Input;
     using ParentInput2 = typename ParentStack2::Input;
@@ -81,11 +102,12 @@ public:
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [=](const ParentInput1& input) {
-                              PreOp(input);
+        auto pre_op1_fn = [=](const ZipArg0& input) {
+                              emit1_(input);
+
                           };
-        auto pre_op2_fn = [=](const ParentInput2& input) {
-                              PreOpSecond(input);
+        auto pre_op2_fn = [=](const ZipArg1& input) {
+                              emit2_(input);
                           };
 
         // close the function stacks with our pre ops and register it at parent
@@ -97,9 +119,8 @@ public:
         parent2->RegisterChild(lop_chain2);
 
         // Setup Emitters
-        num_dias_ = 2;
         for (size_t i = 0; i < num_dias_; ++i) {
-            id_.push_back(context_.get_data_manager().AllocateDIA());
+            id_[i] = context_.get_data_manager().AllocateDIA();
         }
         emit1_ = context_.get_data_manager().
                  template GetLocalEmitter<ZipArg0>(id_[0]);
@@ -137,10 +158,10 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [=](ValueType elem, auto emit_func) {
-                              return this->PostOp(elem, emit_func);
+                              return PostOp(elem, emit_func);
                           };
 
-        return MakeFunctionStack<ValueType>(pre_op_fn);
+        return MakeFunctionStack<ValueType>(post_op_fn);
     }
 
     /*!
@@ -154,23 +175,16 @@ public:
 private:
     //! Zip function
     ZipFunction zip_function_;
+
+    //! Number of storage DIAs backing
+    static const size_t num_dias_ = 2;
+
+    //! Ids of storage DIAs
+    std::array<data::DIAId, num_dias_> id_;
+
     //! Emitter
-    std::vector<data::DIAId> id_;
     data::Emitter<ZipArg0> emit1_;
     data::Emitter<ZipArg1> emit2_;
-    //! Number of DIAs
-    size_t num_dias_;
-
-    //! Zip PreOp does nothing. First part of Zip is a PrefixSum, which needs a
-    //! global barrier.
-    void PreOp(ZipArg0 input) {
-        emit1_(input);
-    }
-
-    // TODO(an): Theoretically we need two PreOps?
-    void PreOpSecond(ZipArg1 input) {
-        emit2_(input);
-    }
 
     //!Receive elements from other workers.
     void MainOp() {
@@ -212,19 +226,15 @@ template <typename CurrentType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIARef<CurrentType, Stack>::Zip(
     const ZipFunction &zip_function, SecondDIA second_dia) {
+
     using ZipResult
-              = typename FunctionTraits<ZipFunction>::result_type;
-    using ZipArgument0
-              = typename FunctionTraits<ZipFunction>::template arg<0>;
-    using ZipArgument1
-              = typename FunctionTraits<ZipFunction>::template arg<1>;
+        = typename common::FunctionTraits<ZipFunction>::result_type;
+
     using ZipResultNode
-              = TwoZipNode<ZipArgument0, ZipArgument1, ZipResult,
-                           Stack,
-                           decltype(second_dia.get_stack()),
+              = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,
                            ZipFunction>;
 
-    auto shared_node
+    auto zip_node
         = std::make_shared<ZipResultNode>(node_->get_context(),
                                           node_.get(),
                                           second_dia.get_node(),
@@ -232,10 +242,10 @@ auto DIARef<CurrentType, Stack>::Zip(
                                           second_dia.get_stack(),
                                           zip_function);
 
-    auto zip_stack = shared_node->ProduceStack();
+    auto zip_stack = zip_node->ProduceStack();
 
-    return DIARef<ZipResult, decltype(zip_stack)>
-               (std::move(shared_node), zip_stack);
+    return DIARef<ZipResultNode, decltype(zip_stack)>(
+        std::move(zip_node), zip_stack);
 }
 
 } // namespace api
