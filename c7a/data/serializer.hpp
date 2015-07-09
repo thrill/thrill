@@ -19,7 +19,7 @@
 
 //TODO DELETE
 #include <iostream>
-#include <c7a/data/serializer_objects.hpp>
+#include <tests/data/serializer_objects.hpp>
 #include <build/c7a/proto/test_serialize_object.pb.h>
 
 //TODO(ts) this copies data. That is bad and makes me sad.
