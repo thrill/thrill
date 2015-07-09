@@ -161,7 +161,7 @@ static void RealGroupConstructAndCall(
     std::uniform_int_distribution<int> distribution(30000, 65000);
     const size_t port_base = distribution(generator);
 
-    static const std::vector<Endpoint> endpoints = {
+    std::vector<Endpoint> endpoints = {
         Endpoint("127.0.0.1:" + std::to_string(port_base + 0)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 1)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 2)),
@@ -172,7 +172,7 @@ static void RealGroupConstructAndCall(
 
     sLOG1 << "Group test uses ports " << port_base << "-" << port_base + 5;
 
-    static const int count = endpoints.size();
+    const int count = endpoints.size();
 
     std::vector<std::thread> threads(count);
 
@@ -182,7 +182,7 @@ static void RealGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [i, &thread_function, &groups]() {
+            [i, endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
                 groups[i].Initialize(i, endpoints);
                 // run thread function
@@ -192,6 +192,9 @@ static void RealGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i].join();
+    }
+    for (int i = 0; i < count; i++) {
+        groups[i].Close();
     }
 }
 

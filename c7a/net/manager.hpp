@@ -573,6 +573,12 @@ public:
     Group & GetDataGroup() {
         return groups_[2];
     }
+
+    void Close() {
+        for(size_t i = 0; i < kGroupCount; i++) {
+            groups_[i].Close();
+        }
+    }
 };
 
 } // namespace net
