@@ -15,10 +15,12 @@
 #include <c7a/common/future.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/data/manager.hpp>
+#include <c7a/api/action_node.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
-#include "action_node.hpp"
-#include "dia_node.hpp"
-#include "function_stack.hpp"
+#include <vector>
 
 namespace c7a {
 namespace api {

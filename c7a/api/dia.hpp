@@ -14,22 +14,22 @@
 #ifndef C7A_API_DIA_HEADER
 #define C7A_API_DIA_HEADER
 
-#include <functional>
-#include <vector>
-#include <stack>
-#include <iostream>
-#include <fstream>
-#include <cassert>
-#include <memory>
-#include <string>
-#include <utility>
-
-#include "dia_node.hpp"
-#include "function_stack.hpp"
+#include <c7a/api/context.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/api/lop_node.hpp>
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/functional.hpp>
-#include "lop_node.hpp"
-#include "context.hpp"
+
+#include <cassert>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {

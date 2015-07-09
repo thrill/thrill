@@ -11,7 +11,7 @@
 #ifndef C7A_API_ACTION_NODE_HEADER
 #define C7A_API_ACTION_NODE_HEADER
 
-#include "dia_node.hpp"
+#include <c7a/api/dia_node.hpp>
 #include <c7a/core/stage_builder.hpp>
 
 namespace c7a {

@@ -19,7 +19,6 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/net/collective_communication.hpp>
 
-#include <unordered_map>
 #include <functional>
 #include <string>
 #include <vector>
