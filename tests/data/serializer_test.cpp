@@ -19,6 +19,8 @@
 
 using namespace c7a::data;
 
+static const bool debug = true;
+
 TEST(Serializer, StringSerializeDeserialize) {
     std::string foo = "foo";
     auto fooserial = Deserialize<std::string>(Serialize<std::string>(foo));
@@ -170,6 +172,21 @@ TEST(Serializer, ProtoBuf_Test) {
     auto result = Deserialize<serializers::TestSerializeObject>(serialized);
     ASSERT_EQ(t.bla_, result.bla_);
     ASSERT_EQ(t.blu_, result.blu_);
+}
+
+TEST(Serializer, Cereal_Test) {
+    serializers::TestCerealObject t;
+    t.x_ = 1;
+    t.y_ = 2;
+    t.z_ = 3;
+    auto serialized = Serialize<serializers::TestCerealObject>(t);
+    auto result = Deserialize<serializers::TestCerealObject>(serialized);
+    ASSERT_EQ(t.x_, result.x_);
+    ASSERT_EQ(t.y_, result.y_);
+    ASSERT_EQ(t.z_, result.z_);
+    LOG << "X: " << result.x_;
+    LOG << "Y: " << result.y_;
+    LOG << "Z: " << result.z_;
 }
 
 /******************************************************************************/
