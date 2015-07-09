@@ -49,7 +49,14 @@ using BufferChainIterator = std::deque<BufferChainElement>::const_iterator;
 //! A Buffer chain holds multiple immuteable buffers.
 //! Append in O(1), Delete in O(num_buffers)
 struct BufferChain : public EmitterTarget {
-    BufferChain() : closed_(false) { }
+    BufferChain() : closed_(false) {
+#if defined(_LIBCPP_VERSION) || defined(__clang__)
+        // ugly workaround: allocate backing memory of deque, otherwise begin()
+        // returns a nullptr if the deque is empty.
+        elements_.push_back(BufferChainElement(BinaryBuffer(nullptr, 0), 0));
+        elements_.pop_front();
+#endif
+    }
 
     //! Appends a BinaryBufferBuffer's content to the chain
     //! This method is thread-safe and runs in O(1)
