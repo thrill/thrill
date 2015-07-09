@@ -22,7 +22,6 @@
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 
-#include <unordered_map>
 #include <functional>
 #include <string>
 #include <vector>

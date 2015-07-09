@@ -11,6 +11,8 @@
 #ifndef C7A_API_FUNCTION_STACK_HEADER
 #define C7A_API_FUNCTION_STACK_HEADER
 
+#include <c7a/common/function_traits.hpp>
+
 #include <cassert>
 #include <string>
 #include <vector>
@@ -18,8 +20,6 @@
 #include <type_traits>
 #include <array>
 #include <utility>
-
-#include <c7a/common/function_traits.hpp>
 
 namespace c7a {
 namespace api {
