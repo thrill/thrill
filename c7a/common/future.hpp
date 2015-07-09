@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -14,6 +15,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <cassert>
+#include <atomic>
 
 namespace c7a {
 namespace common {
@@ -40,10 +42,10 @@ protected:
 
     //! Indicates if emulator was triggered before waitForNext
     //! / WaitForEnd was called
-    bool triggered_ = false;
+    std::atomic<bool> triggered_ { false };
 
     //! state that indicates whether get was already called
-    bool finished_ = false;
+    std::atomic<bool> finished_ { false };
 
     //! Stores the value if callback returned before next was invoked
     T value_;
@@ -61,8 +63,7 @@ public:
     T && Wait() {
         assert(!finished_); // prevent multiple calls to Wait()
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [this]() { return triggered_; });
-        triggered_ = false;
+        cv_.wait(lock, [this]() { return triggered_.load(); });
         finished_ = true;
         return std::move(value_);
     }
@@ -123,6 +124,7 @@ public:
         std::unique_lock<std::mutex> lock(mutex_);
         values_ = Values(std::forward<Ts>(data) ...);
         triggered_ = true;
+        std::atomic_thread_fence(std::memory_order_release);
         cv_.notify_one();
     }
 
