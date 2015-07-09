@@ -189,7 +189,7 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
 static inline void
 ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
 
-    static const size_t port_base = 8080;
+    static const size_t port_base = 48080;
 
     for (size_t workers = 1; workers <= 8; ++workers) {
         ExecuteLocalThreads(workers, port_base, job_startpoint);
