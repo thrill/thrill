@@ -27,6 +27,7 @@
 #include "dia_node.hpp"
 #include "function_stack.hpp"
 #include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
 #include "lop_node.hpp"
 #include "context.hpp"
 
@@ -68,7 +69,6 @@ public:
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
     using DIANodePtr = std::shared_ptr<DIANode<StackInput>>;
-
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -289,18 +289,19 @@ public:
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(const ZipFunction &zip_function, SecondDIA second_dia);
 
-	 /*!
+    /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
-	 * function defines how two elements are combined to a single element.
+     * function defines how two elements are combined to a single element.
      *
      * \tparam SumFunction Type of the sum_function.
      *
-     * \param sum_function Sum function.
-	 *
-	 * \param neutral_element Neutral element of the sum function.
+     * \param sum_function Sum function (any associative function).
+     *
+     * \param neutral_element Neutral element of the sum function.
      */
     template <typename SumFunction>
-    auto PrefixSum(const SumFunction &sum_function, ValueType neutral_element = 0);
+    auto PrefixSum(const SumFunction &sum_function = common::SumOp<ValueType>(),
+                   ValueType neutral_element = ValueType());
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
