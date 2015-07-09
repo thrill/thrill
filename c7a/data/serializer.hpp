@@ -17,10 +17,16 @@
 #include <cassert>
 #include <tuple>
 
+#include <c7a/common/logger.hpp>
+
 //TODO DELETE
 #include <iostream>
 #include <tests/data/serializer_objects.hpp>
 #include <build/c7a/proto/test_serialize_object.pb.h>
+
+//TODO CEREAL
+#include <cereal/archives/binary.hpp>
+#include <sstream>
 
 //TODO(ts) this copies data. That is bad and makes me sad.
 
@@ -319,6 +325,33 @@ struct Impl<struct TestSerializeObject>{
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////          CEREAL          ///////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <>
+struct Impl<struct TestCerealObject>{
+    static std::string Serialize(const struct TestCerealObject& t) {
+        std::stringstream ss; // any stream can be used
+
+        cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
+        oarchive(t); // Write the data to the archive
+
+        return ss.str();
+    }
+
+    static TestCerealObject Deserialize(const std::string& t) {
+        std::stringstream ss;
+        ss.str (t);
+        cereal::BinaryInputArchive iarchive(ss); // Create an input archive
+
+        TestCerealObject res;
+        iarchive(res); // Read the data from the archive
+        return res;
+    }
+
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -326,12 +359,22 @@ struct Impl<struct TestSerializeObject>{
 template <typename Type>
 struct GenericImpl {
     static std::string Serialize(const Type& v) {
-        return std::string(reinterpret_cast<const char*>(&v), sizeof(v));
+        std::stringstream ss; // any stream can be used
+
+        cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
+        oarchive(v); // Write the data to the archive
+
+        return ss.str();
     }
 
     static Type        Deserialize(const std::string& s) {
-        assert(s.size() == sizeof(Type));
-        return Type(*reinterpret_cast<const Type*>(s.data()));
+        std::stringstream ss;
+        ss.str (s);
+        cereal::BinaryInputArchive iarchive(ss); // Create an input archive
+
+        Type res;
+        iarchive(res); // Read the data from the archive
+        return res;
     }
 };
 }       // namespace serializers
