@@ -178,10 +178,7 @@ TEST(Operations, PrefixSumCorrectResults) {
                 },
                 16);
 
-            auto prefixsums = integers.PrefixSum(
-                [](size_t in1, size_t in2) {
-                    return in1 + in2;
-                });
+            auto prefixsums = integers.PrefixSum();
 
             std::vector<size_t> out_vec;
 
