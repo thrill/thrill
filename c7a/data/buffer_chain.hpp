@@ -128,7 +128,8 @@ private:
 //! Collects buffers ina map and moves them to a BufferChain in the order of
 //! the keys. Buffers with the same key are moved in the order they where
 //! appended to the OrderedBufferChain
-class OrderedBufferChain {
+class OrderedBufferChain
+{
 public:
     //! Appends data from the BinaryBufferBuilder and detaches it
     //! \param rank of the sender of the data
@@ -156,10 +157,9 @@ public:
     }
 
 private:
-    std::map<size_t, std::vector<BufferChainElement>> buffers_;
+    std::map<size_t, std::vector<BufferChainElement> > buffers_;
     std::mutex append_mutex_;
 };
-
 
 } // namespace data
 } // namespace c7a

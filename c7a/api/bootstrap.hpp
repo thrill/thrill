@@ -69,8 +69,7 @@ ParseArgs(int argc, char* const* argv) {
     }
     return std::make_tuple(0, my_rank, endpoints);
 }
-
-} // namespace
+}       // namespace
 
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
@@ -145,7 +144,7 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
 
     std::vector<std::thread> threads(workers);
     std::vector<std::vector<std::string> > strargs(workers);
-    std::vector<std::vector<char*>> args(workers);
+    std::vector<std::vector<char*> > args(workers);
 
     for (size_t i = 0; i < workers; i++) {
 
@@ -166,9 +165,9 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
 
         std::function<int(Context&)> intReturningFunction =
             [job_startpoint](Context& ctx) {
-            job_startpoint(ctx);
-            return 1;
-        };
+                job_startpoint(ctx);
+                return 1;
+            };
 
         threads[i] = std::thread(
             [=]() {

@@ -57,10 +57,10 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
 
     using ReduceArg =
-        typename common::FunctionTraits<ReduceFunction>::template arg<0>;
+              typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
     using Key =
-        typename common::FunctionTraits<KeyExtractor>::result_type;
+              typename common::FunctionTraits<KeyExtractor>::result_type;
 
     static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
 
@@ -75,7 +75,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
 public:
     using PreHashTable = typename c7a::core::ReducePreTable<
-      KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >;
+              KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -222,8 +222,8 @@ private:
 template <typename CurrentType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-                                     const ReduceFunction &reduce_function,
-                                     size_t max_index) {
+                                               const ReduceFunction &reduce_function,
+                                               size_t max_index) {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

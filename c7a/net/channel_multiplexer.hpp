@@ -89,7 +89,7 @@ public:
     //! Allocate the next channel
     ChannelId AllocateNext(bool order_preserving = false) {
         auto id = chains_.AllocateNext();
-        if(order_preserving) {
+        if (order_preserving) {
             GetOrCreateChannel(id, true);
         }
         return id;
@@ -156,17 +156,19 @@ public:
             if (worker_id == group_->MyRank()) {
                 auto channel = channels_[target.identifier];
                 sLOG << "sending" << elements_to_send << "elements via channel" << target << "to self";
-                MoveFromItToTarget<T>(source_it, [&channel, worker_id](const void* base, size_t length, size_t elements){
-                    channel->ReceiveLocalData(base, length, elements, worker_id);}, elements_to_send);
-                    channel->CloseLoopback();
-            } else {
+                MoveFromItToTarget<T>(source_it, [&channel, worker_id](const void* base, size_t length, size_t elements) {
+                                          channel->ReceiveLocalData(base, length, elements, worker_id);
+                                      }, elements_to_send);
+                channel->CloseLoopback();
+            }
+            else {
                 data::SocketTarget sink(
                     &dispatcher_,
                     &(group_->connection(worker_id)),
                     target.identifier,
                     group_->MyRank());
                 sLOG << "sending" << elements_to_send << "elements via channel" << target << "to worker" << worker_id;
-                MoveFromItToTarget<T>(source_it, [&sink](const void* base, size_t length, size_t elements){ sink.Pipe(base, length, elements);}, elements_to_send);
+                MoveFromItToTarget<T>(source_it, [&sink](const void* base, size_t length, size_t elements) { sink.Pipe(base, length, elements); }, elements_to_send);
                 sink.Close();
             }
             sent_elements += elements_to_send;
@@ -226,21 +228,20 @@ private:
         return channel;
     }
 
-    template<typename T>
+    template <typename T>
     void MoveFromItToTarget(data::Iterator<T>& source, std::function<void(const void*, size_t, size_t)> target, size_t num_elements) {
-        while(num_elements > 0) {
+        while (num_elements > 0) {
             assert(source.HasNext());
             void* data;
             size_t length;
             size_t seeked_elements = source.Seek(num_elements, &data, &length);
             target(data, length, seeked_elements);
             data::BinaryBufferReader reader(data::BinaryBuffer(data, length));
-            while(!reader.empty())
+            while (!reader.empty())
                 sLOG << "sending" << reader.GetString();
-            num_elements-= seeked_elements;
+            num_elements -= seeked_elements;
         }
     }
-
 
     //! parses the channel id from a header and passes it to an existing
     //! channel or creates a new channel

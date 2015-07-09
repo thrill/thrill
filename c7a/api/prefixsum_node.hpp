@@ -38,21 +38,20 @@ class PrefixSumNode : public DOpNode<ValueType>
     using ParentInput = typename ParentStack::Input;
 
 public:
-
     PrefixSumNode(Context& ctx,
                   DIANode<ParentInput>* parent,
                   ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
         : DOpNode<ValueType>(ctx, { parent }),
-        sum_function_(sum_function),
-        local_sum_(neutral_element),
-        neutral_element_(neutral_element)
+          sum_function_(sum_function),
+          local_sum_(neutral_element),
+          neutral_element_(neutral_element)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
-            PreOp(input);
-        };
+                             PreOp(input);
+                         };
 
         auto lop_chain = parent_stack.push(pre_op_fn).emit();
 
@@ -75,10 +74,9 @@ public:
     auto ProduceStack() {
         // Hook Identity
         auto id_fn = [=](ValueType t, auto emit_func) {
-            return emit_func(t);
-        };
+                         return emit_func(t);
+                     };
 
-		
         return MakeFunctionStack<ValueType>(id_fn);
     }
 
@@ -109,10 +107,10 @@ private:
     void MainOp() {
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.get_flow_control_channel();
-		
+
         ValueType prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
-        if(context_.rank() == 0) {
+        if (context_.rank() == 0) {
             prefix_sum = neutral_element_;
         }
 
@@ -133,7 +131,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, ValueType neutral_element) {
 
     using SumResultNode
-        = PrefixSumNode<ValueType, Stack, SumFunction>;
+              = PrefixSumNode<ValueType, Stack, SumFunction>;
 
     auto shared_node
         = std::make_shared<SumResultNode>(node_->get_context(),

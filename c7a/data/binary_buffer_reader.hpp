@@ -112,7 +112,7 @@ public:
     size_t SeekStringElements(size_t num, size_t* out_num_bytes) {
         size_t num_elements = 0;
         auto old_cursor = cursor_;
-        while(cursor_ < size_ && num > num_elements) {
+        while ((cursor_ < size_) && (num > num_elements)) {
             cursor_ += GetVarint(); //not use Skip. No CheckAvailable required
             num_elements++;
         }

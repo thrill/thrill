@@ -93,10 +93,10 @@ private:
 template <typename ValueType, typename Stack>
 template <typename WriteFunction>
 void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
-                                         const WriteFunction& write_function) {
+                                                 const WriteFunction& write_function) {
 
     using WriteResultNode = WriteNode<
-        ValueType, Stack, WriteFunction>;
+              ValueType, Stack, WriteFunction>;
 
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->get_context(),

@@ -44,7 +44,7 @@ public:
           channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
     {
         emitters_ = context_.get_data_manager().
-            template GetNetworkEmitters<ValueType>(channel_used_);
+                    template GetNetworkEmitters<ValueType>(channel_used_);
 
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);

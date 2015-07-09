@@ -144,8 +144,8 @@ public:
     T PrefixSum(const T& value, BinarySumOp sumOp = common::SumOp<T>(), bool inclusive = true) {
 
         T res = value;
-		//return value when computing non-exclusive prefix sum
-		T exclusiveRes;
+        //return value when computing non-exclusive prefix sum
+        T exclusiveRes;
         std::vector<T> localPrefixBuffer(threadCount);
 
         //Local Reduce
@@ -334,6 +334,7 @@ public:
         i = AllReduce(i);
     }
 };
+
 } // namespace net
 } // namespace c7a
 
