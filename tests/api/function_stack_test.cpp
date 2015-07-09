@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/simple_api_test.cpp
+ * tests/api/function_stack_test.cpp
  *
  * Part of Project c7a.
  *
@@ -102,8 +102,8 @@ TEST(API, SimpleDeductionTest) {
     std::vector<std::string> output;
 
     auto save_output = [&](auto) {
-        output.push_back("123");
-    };
+                           output.push_back("123");
+                       };
 
     auto new_stack3 = new_stack2.push(save_output);
     new_stack3.emit()(42);

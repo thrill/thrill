@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/simple_api_test.cpp
+ * tests/common/function_traits_test.cpp
  *
  * Part of Project c7a.
  *
@@ -18,8 +18,8 @@ TEST(FunctionTraits, LambdaParametersTest) {
 
     auto lambda1 =
         [=](int x, char c) -> std::string {
-        return std::to_string(x) + " " + c;
-    };
+            return std::to_string(x) + " " + c;
+        };
 
     using Lambda1Type = decltype(lambda1);
 
@@ -27,15 +27,15 @@ TEST(FunctionTraits, LambdaParametersTest) {
                   "Arity of lambda1 is 2");
 
     static_assert(std::is_same<
-                  FunctionTraits<Lambda1Type>::result_type, std::string>::value,
+                      FunctionTraits<Lambda1Type>::result_type, std::string>::value,
                   "Result type is std::string");
 
     static_assert(std::is_same<
-                  FunctionTraits<Lambda1Type>::arg<0>, int>::value,
+                      FunctionTraits<Lambda1Type>::arg<0>, int>::value,
                   "Argument 0 is int");
 
     static_assert(std::is_same<
-                  FunctionTraits<Lambda1Type>::arg<1>, char>::value,
+                      FunctionTraits<Lambda1Type>::arg<1>, char>::value,
                   "Argument 1 is char");
 }
 

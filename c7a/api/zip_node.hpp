@@ -74,9 +74,9 @@ class TwoZipNode : public DOpNode<ValueType>
     using Super::context_;
 
     using ZipArg0 =
-        typename common::FunctionTraits<ZipFunction>::template arg<0>;
+              typename common::FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 =
-        typename common::FunctionTraits<ZipFunction>::template arg<1>;
+              typename common::FunctionTraits<ZipFunction>::template arg<1>;
 
     using ParentInput1 = typename ParentStack1::Input;
     using ParentInput2 = typename ParentStack2::Input;
@@ -104,7 +104,6 @@ public:
         // Hook PreOp(s)
         auto pre_op1_fn = [=](const ZipArg0& input) {
                               emit1_(input);
-
                           };
         auto pre_op2_fn = [=](const ZipArg1& input) {
                               emit2_(input);
@@ -228,7 +227,7 @@ auto DIARef<CurrentType, Stack>::Zip(
     const ZipFunction &zip_function, SecondDIA second_dia) {
 
     using ZipResult
-        = typename common::FunctionTraits<ZipFunction>::result_type;
+              = typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipResultNode
               = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,

@@ -84,7 +84,7 @@ public:
     }
 
     //! Docu see net::ChannelMultiplexer::Scatter()
-    template<class T>
+    template <class T>
     void Scatter(const ChainId& source, const ChainId& target, std::vector<size_t> offsets) {
         assert(source.type == LOCAL);
         assert(target.type == NETWORK);

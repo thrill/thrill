@@ -198,7 +198,7 @@ private:
 template <typename CurrentType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
-                                const ReduceFunction &reduce_function) {
+                                          const ReduceFunction &reduce_function) {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

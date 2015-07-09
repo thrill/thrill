@@ -50,7 +50,8 @@ TEST(ThreadPool1, LoopUntilEmpty) {
 }
 
 // obfuscated gtest magic to run test with two parameters
-class ThreadPool2 : public::testing::TestWithParam<int> { };
+class ThreadPool2 : public::testing::TestWithParam<int>
+{ };
 
 TEST_P(ThreadPool2, LoopUntilTerminate) {
     static const bool debug = false;

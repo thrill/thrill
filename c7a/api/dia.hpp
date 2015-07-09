@@ -68,7 +68,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = std::shared_ptr<DIANode<StackInput>>;
+    using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -153,9 +153,9 @@ public:
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) {
         using MapArgument
-            = typename common::FunctionTraits<MapFunction>::template arg<0>;
+                  = typename common::FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
-            = typename common::FunctionTraits<MapFunction>::result_type;
+                  = typename common::FunctionTraits<MapFunction>::result_type;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
@@ -180,7 +180,7 @@ public:
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) {
         using FilterArgument
-            = typename common::FunctionTraits<FilterFunction>::template arg<0>;
+                  = typename common::FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
                                         if (filter_function(input)) emit_func(input);
                                     };
@@ -236,15 +236,15 @@ public:
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
 
-         /*!
+    /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
-         * to a single element using the associative reduce_function.
-         * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
-         * which has the reduced element with key i in position i.
-         * The reduce_function defines how two elements can be reduced to a single
-         * element of equal type. Since ReduceToIndex is a DOp, it creates a new
-         * DIANode. The DIARef returned by ReduceToIndex links to this
+     * to a single element using the associative reduce_function.
+     * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
+     * which has the reduced element with key i in position i.
+     * The reduce_function defines how two elements can be reduced to a single
+     * element of equal type. Since ReduceToIndex is a DOp, it creates a new
+     * DIANode. The DIARef returned by ReduceToIndex links to this
      * newly created DIANode. The local_stack_ of the returned DIARef consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
@@ -300,7 +300,7 @@ public:
      * \param neutral_element Neutral element of the sum function.
      */
     template <typename SumFunction>
-    auto PrefixSum(const SumFunction &sum_function = common::SumOp<ValueType>(),
+    auto PrefixSum(const SumFunction& sum_function = common::SumOp<ValueType>(),
                    ValueType neutral_element = ValueType());
 
     /*!

@@ -44,9 +44,9 @@ struct FlushImpl<true, T, Value, Table>{
                 size_t min_index_bucket = ((double)max_index_ / (double)num_buckets_) * i;
                 do {
                     elements_to_emit[curr_node->key - min_index_bucket] = curr_node->value;
-					auto del = curr_node;
+                    auto del = curr_node;
                     curr_node = curr_node->next;
-					delete del;
+                    delete del;
                 } while (curr_node != nullptr);
                 for (auto element_to_emit : elements_to_emit) {
                     table->EmitAll(element_to_emit.second);
@@ -66,9 +66,9 @@ struct FlushImpl<false, T, Value, Table>{
                 T curr_node = (*vector_)[i];
                 do {
                     table->EmitAll(curr_node->value);
-					auto del = curr_node;
-					curr_node = curr_node->next;
-					delete del;
+                    auto del = curr_node;
+                    curr_node = curr_node->next;
+                    delete del;
                 } while (curr_node != nullptr);
 
                 (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
