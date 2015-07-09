@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -14,6 +15,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <cassert>
+#include <atomic>
 
 namespace c7a {
 namespace common {
