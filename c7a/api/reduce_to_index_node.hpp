@@ -88,6 +88,7 @@ public:
      * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
+     * \param max_index maximum index returned by reduce_function.
      */
     ReduceToIndexNode(Context& ctx,
                       DIANode<ParentInput>* parent,
