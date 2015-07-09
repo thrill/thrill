@@ -300,8 +300,8 @@ public:
      *
      * \param neutral_element Neutral element of the sum function.
      */
-    template <typename SumFunction>
-    auto PrefixSum(const SumFunction& sum_function = common::SumOp<ValueType>(),
+    template <typename SumFunction = common::SumOp<ValueType> >
+    auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    ValueType neutral_element = ValueType());
 
     /*!
