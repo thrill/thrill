@@ -40,7 +40,7 @@ protected:
 
     //! Indicates if emulator was triggered before waitForNext
     //! / WaitForEnd was called
-    bool triggered_ = false;
+    std::atomic<bool> triggered_ { false };
 
     //! state that indicates whether get was already called
     std::atomic<bool> finished_ { false };
@@ -54,7 +54,6 @@ public:
         std::unique_lock<std::mutex> lock(mutex_);
         value_ = std::move(data);
         triggered_ = true;
-        std::atomic_thread_fence(std::memory_order_release);
         cv_.notify_one();
     }
 
@@ -62,11 +61,7 @@ public:
     T && Wait() {
         assert(!finished_); // prevent multiple calls to Wait()
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [this]() {
-                     std::atomic_thread_fence(std::memory_order_acquire);
-                     return triggered_;
-                 });
-        triggered_ = false;
+        cv_.wait(lock, [this]() { return triggered_.load(); });
         finished_ = true;
         return std::move(value_);
     }
@@ -81,7 +76,7 @@ public:
     //! Can be used at the end of a job to see if outstanding
     //! futures were not called.
     bool is_finished() {
-        return finished_.load(std::memory_order_acquire);
+        return finished_;
     }
 };
 
