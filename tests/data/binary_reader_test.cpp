@@ -70,7 +70,7 @@ TEST_F(TestBinaryReader, SeekStringElementsFromMiddleReturnsCorrectBytes) {
     size_t out;
 
     (void)reader2.GetString();
-    ASSERT_EQ(2, reader2.SeekStringElements(2, &out));
+    ASSERT_EQ(2u, reader2.SeekStringElements(2, &out));
     ASSERT_EQ(str2.size() + str3.size() + sizeof(uint8_t) * 2, out);
 }
 
