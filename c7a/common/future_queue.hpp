@@ -84,7 +84,7 @@ public:
     //! If queue is closed this call is garantueed to be non-blocking.
     bool WaitForAll() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [=]() { return closed(); });
+        cv_.wait(lock, [=]() { return closed_; });
         return !elements_.empty();
     }
 
@@ -92,6 +92,7 @@ public:
     //! Closed queues do not accept any elements.
     //! Closed queues are non-blocking for Wait calls.
     bool closed() {
+        std::unique_lock<std::mutex> lock(mutex_);
         return closed_;
     }
 
