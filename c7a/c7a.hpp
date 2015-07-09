@@ -23,6 +23,7 @@
 #include <c7a/api/reduce_to_index_node.hpp>
 #include <c7a/api/sum_node.hpp>
 #include <c7a/api/write_node.hpp>
+#include <c7a/api/zip_node.hpp>
 
 namespace c7a {
 
