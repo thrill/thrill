@@ -126,10 +126,10 @@ private:
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
                const ReadFunction &read_function) {
-    
+
     using ReadResult =
-        typename common::FunctionTraits<ReadFunction>::result_type;
-    
+              typename common::FunctionTraits<ReadFunction>::result_type;
+
     using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
 
     auto shared_node =

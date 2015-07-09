@@ -88,8 +88,7 @@ struct make_index_sequence_helper {
 template <size_t Length>
 struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
-
-} // namespace
+}       // namespace
 
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single
@@ -107,7 +106,7 @@ class FunctionStack
 public:
     using Input = _Input;
 
-    template <typename Lambda> 
+    template <typename Lambda>
     explicit FunctionStack(Lambda lambda)
         : stack_(std::make_tuple(lambda)) { }
 
@@ -174,7 +173,7 @@ private:
     }
 };
 
-template <typename Input, typename Lambda> 
+template <typename Input, typename Lambda>
 static inline auto MakeFunctionStack(Lambda lambda) {
     return FunctionStack<Input, Lambda>(lambda);
 }

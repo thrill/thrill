@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_NODE_INCLUDE_HEADER
-#define C7A_API_NODE_INCLUDE_HEADER
+#ifndef C7A_C7A_HEADER
+#define C7A_C7A_HEADER
 
 #include <c7a/api/dia.hpp>
 
@@ -36,6 +36,6 @@ using api::Context;
 
 } // namespace c7a
 
-#endif // !C7A_API_NODE_INCLUDE_HEADER
+#endif // !C7A_C7A_HEADER
 
 /******************************************************************************/

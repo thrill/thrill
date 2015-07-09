@@ -21,11 +21,11 @@ struct TestIterator : public::testing::Test {
     TestIterator() :
         threeStrings({ "foo", "bar", "blub" }),
         oneString({ "." }),
-        fourStrings({"a", "bc", "def", "ghij"}),
+        fourStrings({ "a", "bc", "def", "ghij" }),
         emptyBuffer(nullptr, 0),
         threeStringsBuffer(StringsToBufferBuilder(threeStrings)),
         oneStringBuffer(StringsToBufferBuilder(oneString)),
-        fourStringsBuffer(StringsToBufferBuilder(fourStrings)){ }
+        fourStringsBuffer(StringsToBufferBuilder(fourStrings)) { }
 
     BinaryBufferBuilder StringsToBufferBuilder(std::vector<std::string> strings) const {
         BinaryBufferBuilder builder;
@@ -38,7 +38,7 @@ struct TestIterator : public::testing::Test {
     std::vector<std::string> DataToStringVector(void* data, size_t len) {
         std::vector<std::string> result;
         BinaryBufferReader reader(BinaryBuffer(data, len));
-        while(!reader.empty())
+        while (!reader.empty())
             result.push_back(reader.GetString());
         return result;
     }

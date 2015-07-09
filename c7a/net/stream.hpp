@@ -43,7 +43,7 @@ struct StreamBlockHeader {
         size_t offset2 = offset1 + sizeof(expected_bytes);
         size_t offset3 = offset2 + sizeof(expected_elements);
         memcpy(&channel_id, buffer.c_str() + 0, sizeof(channel_id));
-        memcpy(&expected_bytes, buffer.c_str() + offset1,  sizeof(expected_bytes));
+        memcpy(&expected_bytes, buffer.c_str() + offset1, sizeof(expected_bytes));
         memcpy(&expected_elements, buffer.c_str() + offset2, sizeof(expected_elements));
         memcpy(&sender_rank, buffer.c_str() + offset3, sizeof(sender_rank));
     }
