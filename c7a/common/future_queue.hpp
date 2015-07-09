@@ -92,6 +92,7 @@ public:
     //! Closed queues do not accept any elements.
     //! Closed queues are non-blocking for Wait calls.
     bool closed() {
+        std::unique_lock<std::mutex> lock(mutex_);
         return closed_;
     }
 
