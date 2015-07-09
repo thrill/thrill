@@ -43,7 +43,7 @@ protected:
     bool triggered_ = false;
 
     //! state that indicates whether get was already called
-    bool finished_ = false;
+    std::atomic<bool> finished_ { false };
 
     //! Stores the value if callback returned before next was invoked
     T value_;
@@ -54,6 +54,7 @@ public:
         std::unique_lock<std::mutex> lock(mutex_);
         value_ = std::move(data);
         triggered_ = true;
+        std::atomic_thread_fence(std::memory_order_release);
         cv_.notify_one();
     }
 
@@ -61,7 +62,10 @@ public:
     T && Wait() {
         assert(!finished_); // prevent multiple calls to Wait()
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [this]() { return triggered_; });
+        cv_.wait(lock, [this]() {
+                     std::atomic_thread_fence(std::memory_order_acquire);
+                     return triggered_;
+                 });
         triggered_ = false;
         finished_ = true;
         return std::move(value_);
@@ -77,7 +81,7 @@ public:
     //! Can be used at the end of a job to see if outstanding
     //! futures were not called.
     bool is_finished() {
-        return finished_;
+        return finished_.load(std::memory_order_acquire);
     }
 };
 
@@ -123,6 +127,7 @@ public:
         std::unique_lock<std::mutex> lock(mutex_);
         values_ = Values(std::forward<Ts>(data) ...);
         triggered_ = true;
+        std::atomic_thread_fence(std::memory_order_release);
         cv_.notify_one();
     }
 
