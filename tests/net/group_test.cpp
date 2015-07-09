@@ -155,13 +155,10 @@ static void ThreadInitializeSendReceiveAsyncALot(Group* net) {
 
 static void RealGroupConstructAndCall(
     std::function<void(Group*)> thread_function) {
-    // randomize base port number for test
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
-    const size_t port_base = distribution(generator);
 
-    std::vector<Endpoint> endpoints = {
+    static const size_t port_base = 48080;
+
+    static const std::vector<Endpoint> endpoints = {
         Endpoint("127.0.0.1:" + std::to_string(port_base + 0)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 1)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 2)),
@@ -182,7 +179,7 @@ static void RealGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [i, endpoints, thread_function, &groups]() {
+            [i, thread_function, &groups]() {
                 // construct Group i with endpoints
                 groups[i].Initialize(i, endpoints);
                 // run thread function
