@@ -80,8 +80,10 @@ private:
 };
 
 using TimedCounterPtr = std::shared_ptr<TimedCounter>;
-} //namespace common
-} //namespace c7a
+
+} // namespace common
+} // namespace c7a
+
 #endif // !C7A_COMMON_TIMED_COUNTER_HEADER
 
 /******************************************************************************/
