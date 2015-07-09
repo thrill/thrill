@@ -58,6 +58,7 @@ struct MyStruct
 namespace c7a {
 namespace data {
 namespace serializers {
+
 template <>
 struct Impl<MyStruct>{
     static std::string Serialize(const MyStruct& s) {
@@ -75,9 +76,10 @@ struct Impl<MyStruct>{
         return MyStruct(i, j);
     }
 };
-}
-}
-}
+
+} // namespace serializers
+} // namespace data
+} // namespace c7a
 
 TEST_F(PreTable, CustomHashFunction) {
 
