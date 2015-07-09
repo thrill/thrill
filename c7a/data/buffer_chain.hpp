@@ -14,6 +14,7 @@
 #include <deque>
 #include <condition_variable>
 #include <mutex> //mutex, unique_lock
+#include <atomic>
 
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/emitter_target.hpp>
