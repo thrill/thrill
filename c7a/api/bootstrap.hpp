@@ -69,7 +69,8 @@ ParseArgs(int argc, char* const* argv) {
     }
     return std::make_tuple(0, my_rank, endpoints);
 }
-}       // namespace
+
+} // namespace
 
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and

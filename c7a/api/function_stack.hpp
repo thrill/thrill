@@ -88,7 +88,8 @@ struct make_index_sequence_helper {
 template <size_t Length>
 struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
-}       // namespace
+
+} // namespace
 
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single
