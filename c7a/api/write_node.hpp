@@ -12,10 +12,11 @@
 #ifndef C7A_API_WRITE_NODE_HEADER
 #define C7A_API_WRITE_NODE_HEADER
 
+#include <c7a/api/action_node.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
-#include "action_node.hpp"
-#include "dia_node.hpp"
-#include "function_stack.hpp"
 
 namespace c7a {
 namespace api {
