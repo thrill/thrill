@@ -59,19 +59,18 @@ protected:
     std::condition_variable cv_finished_;
 
     //! Counter for number of threads busy.
-    std::atomic<size_t> busy_;
+    std::atomic<size_t> busy_ = { 0 };
     //! Counter for total number of jobs executed
-    std::atomic<size_t> done_;
+    std::atomic<size_t> done_ = { 0 };
 
     //! Flag whether to terminate
-    bool terminate_ = false;
+    std::atomic<bool> terminate_ = { false };
 
 public:
     //! Construct running thread pool of num_threads
     explicit ThreadPool(
         size_t num_threads = std::thread::hardware_concurrency())
-        : threads_(num_threads),
-          busy_(0), done_(0) {
+        : threads_(num_threads) {
         // immediately construct worker threads
         for (size_t i = 0; i < num_threads; ++i)
             threads_[i] = std::thread(&ThreadPool::Worker, this);
@@ -86,7 +85,7 @@ public:
     ~ThreadPool() {
         // set stop-condition
         std::unique_lock<std::mutex> lock(mutex_);
-        terminate_ = true;
+        terminate_.store(true, std::memory_order_release);
         cv_jobs_.notify_all();
         lock.unlock();
 
@@ -99,6 +98,7 @@ public:
     void Enqueue(Job&& job) {
         std::unique_lock<std::mutex> lock(mutex_);
         jobs_.emplace_back(std::move(job));
+        std::atomic_thread_fence(std::memory_order_release);
         cv_jobs_.notify_all();
     }
 
@@ -106,17 +106,21 @@ public:
     //! this occurs, this method exits, however, the threads remain active.
     void LoopUntilEmpty() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_finished_.wait(lock, [this]() {
-                              return jobs_.empty() && (busy_ == 0);
-                          });
+        cv_finished_.wait(
+            lock, [this]() {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                return jobs_.empty() && (busy_ == 0);
+            });
     }
 
     //! Loop until terminate flag was set.
     void LoopUntilTerminate() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_finished_.wait(lock, [this]() {
-                              return terminate_ && (busy_ == 0);
-                          });
+        cv_finished_.wait(
+            lock, [this]() {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                return terminate_ && (busy_ == 0);
+            });
     }
 
     //! Terminate thread pool gracefully, wait until currently running jobs
@@ -124,7 +128,7 @@ public:
     //! enqueue jobs or from an outside thread.
     void Terminate() {
         // flag termination
-        terminate_ = true;
+        terminate_.store(true, std::memory_order_release);
         // wake up all worker threads and let them terminate.
         cv_jobs_.notify_all();
         // notify LoopUntilTerminate in case all threads are idle.
@@ -155,9 +159,11 @@ protected:
             std::unique_lock<std::mutex> lock(mutex_);
 
             // wait on condition variable until job arrives, frees lock
-            cv_jobs_.wait(lock, [this]() {
-                              return terminate_ || !jobs_.empty();
-                          });
+            cv_jobs_.wait(
+                lock, [this]() {
+                    std::atomic_thread_fence(std::memory_order_acquire);
+                    return terminate_ || !jobs_.empty();
+                });
 
             if (terminate_) break;
 
@@ -184,6 +190,7 @@ protected:
 
                 ++done_;
                 --busy_;
+                std::atomic_thread_fence(std::memory_order_release);
 
                 cv_finished_.notify_one();
             }
