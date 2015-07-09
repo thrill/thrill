@@ -314,6 +314,13 @@ public:
     template <typename SumFunction>
     auto Sum(const SumFunction &sum_function);
 
+
+    /*!
+     * Size is an Action, which computes the size of all elements in all workers.
+     */
+    size_t Size();
+
+
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.
      * A provided function is used prepare the elements before written.
