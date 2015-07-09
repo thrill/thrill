@@ -9,7 +9,7 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/data/serializer.hpp>
-#include <c7a/data/serializer_objects.hpp>
+#include <tests/data/serializer_objects.hpp>
 
 #include <utility>
 #include <string>

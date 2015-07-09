@@ -11,6 +11,7 @@ struct TestSerializeObject {
     int bla_;
     int blu_;
 };
+
 }
 }
 }
