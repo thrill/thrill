@@ -312,8 +312,8 @@ public:
      * \param sum_function Sum function.
      */
     template <typename SumFunction>
-    auto Sum(const SumFunction &sum_function);
-
+    auto Sum(const SumFunction& sum_function = common::SumOp<ValueType>(),
+             ValueType neutral_element = ValueType());
 
     /*!
      * Size is an Action, which computes the size of all elements in all workers.
