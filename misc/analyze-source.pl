@@ -243,13 +243,13 @@ sub process_cpp {
         my @namespace;
         for(my $i = 0; $i < @data-1; ++$i)
         {
-            if ($data[$i] =~ m!^namespace\s*(\S+) {!) {
+            if ($data[$i] =~ m!^namespace (\S+) {!) {
                 push(@namespace, $1);
-                if ($data[$i+1] !~ m!^namespace \S+ {!) {
-                    #splice(@data, $i+1, 0, "\n");
-                }
             }
-            elsif ($data[$i] =~ m!^}\s+// namespace (\S+)!) {
+            elsif ($data[$i] =~ m!^namespace {!) {
+                push(@namespace, "");
+            }
+            elsif ($data[$i] =~ m!^}\s+//\s+namespace\s+(\S+)\s*$!) {
                 if (@namespace == 0) {
                     print "$path\n";
                     print "    NAMESPACE UNBALANCED! @ $i\n";
@@ -257,8 +257,25 @@ sub process_cpp {
                 }
                 else {
                     # quiets wrong uncrustify indentation
-                    $data[$i] =~ s!}\s+// namespace!} // namespace!;
+                    $data[$i] =~ s!}\s+//\s+namespace!} // namespace!;
                     expectr($path, $i, @data, "} // namespace ".$namespace[-1]."\n",
+                            qr!^}\s+//\s+namespace!);
+                }
+                if ($data[$i-1] !~ m!^}\s+// namespace!) {
+                    splice(@data, $i, 0, "\n"); ++$i;
+                }
+                pop(@namespace);
+            }
+            elsif ($data[$i] =~ m!^}\s+//\s+namespace\s*$!) {
+                if (@namespace == 0) {
+                    print "$path\n";
+                    print "    NAMESPACE UNBALANCED! @ $i\n";
+                    #system("emacsclient -n $path");
+                }
+                else {
+                    # quiets wrong uncrustify indentation
+                    $data[$i] =~ s!}\s+//\s+namespace!} // namespace!;
+                    expectr($path, $i, @data, "} // namespace\n",
                             qr!^}\s+//\s+namespace!);
                 }
                 if ($data[$i-1] !~ m!^}\s+// namespace!) {
