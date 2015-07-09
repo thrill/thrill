@@ -18,23 +18,20 @@
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/net/endpoint.hpp>
 
+#include <c7a/c7a.hpp>
+
 #include <algorithm>
 #include <random>
 #include <string>
 
 #include "gtest/gtest.h"
 
-using namespace c7a::core;
-using namespace c7a::net;
-using c7a::api::Context;
-using c7a::api::DIARef;
-
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
     std::vector<std::string> self = { "127.0.0.1:1234" };
-    JobManager jobMan;
-    jobMan.Connect(0, Endpoint::ParseEndpointList(self), 1);
-    Context ctx(jobMan, 0);
+	c7a::core::JobManager jobMan;
+    jobMan.Connect(0, c7a::net::Endpoint::ParseEndpointList(self), 1);
+	c7a::Context ctx(jobMan, 0);
 
     std::random_device random_device;
     std::default_random_engine generator(random_device());
@@ -67,8 +64,8 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
 
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
+    std::function<void(c7a::Context&)> start_func =
+        [](c7a::Context& ctx) {
 
         auto integers = ReadLines(
             ctx,
@@ -96,8 +93,8 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
 
 TEST(Operations, MapResultsCorrectChangingType) {
 
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
+    std::function<void(c7a::Context&)> start_func =
+        [](c7a::Context& ctx) {
 
         auto integers = Generate(
             ctx,
@@ -133,8 +130,8 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
 
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
+    std::function<void(c7a::Context&)> start_func =
+        [](c7a::Context& ctx) {
 
         auto integers = Generate(
             ctx,
@@ -169,10 +166,79 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
+TEST(Operations, PrefixSumCorrectResults) {
+
+
+    std::function<void(c7a::Context&)> start_func =
+		[](c7a::Context& ctx) {
+
+		auto integers = Generate(
+			ctx,
+			[](const size_t& input) {
+				return input + 1;
+			},
+			16);
+
+		auto prefixsums = integers.PrefixSum(
+			[](size_t in1, size_t in2) {
+				return in1 + in2;
+			});
+
+		std::vector<size_t> out_vec;
+
+		prefixsums.AllGather(&out_vec);
+
+		std::sort(out_vec.begin(), out_vec.end());
+		size_t ctr = 0;
+		for (size_t i = 0; i < out_vec.size(); i++) {
+			ctr += i + 1;
+			ASSERT_EQ(out_vec[i], ctr);
+		}
+
+		ASSERT_EQ((size_t)16, out_vec.size());
+	};
+
+    c7a::api::ExecuteLocalTests(start_func);
+}
+
+TEST(Operations, PrefixSumFacultyCorrectResults) {
+
+    std::function<void(c7a::Context&)> start_func =
+		[](c7a::Context& ctx) {
+
+		auto integers = Generate(
+			ctx,
+			[](const size_t& input) {
+				return input + 1;
+			},
+			10);
+
+		auto prefixsums = integers.PrefixSum(
+			[](size_t in1, size_t in2) {
+				return in1 * in2;
+			}, 1);
+
+		std::vector<size_t> out_vec;
+
+		prefixsums.AllGather(&out_vec);
+
+		std::sort(out_vec.begin(), out_vec.end());
+		size_t ctr = 1;
+		for (size_t i = 0; i < out_vec.size(); i++) {
+			ctr *= i + 1;
+			ASSERT_EQ(out_vec[i], ctr);
+		}
+
+		ASSERT_EQ((size_t)10, out_vec.size());
+	};
+
+    c7a::api::ExecuteLocalTests(start_func);
+}
+
 TEST(Operations, FilterResultsCorrectly) {
 
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
+    std::function<void(c7a::Context&)> start_func =
+        [](c7a::Context& ctx) {
 
         auto integers = Generate(
             ctx,
