@@ -59,7 +59,7 @@ public:
 
     virtual ~ReadNode() { }
 
-    //!Returns an InputLineIterator with a given input file stream.
+    //! Returns an InputLineIterator with a given input file stream.
     //!
     //! \param file Input file stream
     //! \param my_id Id of this worker
@@ -72,7 +72,7 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void Execute() {
+    void Execute() override {
         static const bool debug = false;
         LOG << "READING data with id " << data_id_;
 
