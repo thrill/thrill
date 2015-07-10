@@ -26,10 +26,10 @@ namespace api {
  * A DOpNode is a typed node representing and distributed operations in c7a.  It
  * is the super class for all distributed operation nodes.
  *
- * \tparam T Type of the corresponding DIANode
+ * \tparam ValueType Type of the items in the DIA.
  */
-template <typename T>
-class DOpNode : public DIANode<T>
+template <typename ValueType>
+class DOpNode : public DIANode<ValueType>
 {
 public:
     /*!
@@ -44,7 +44,7 @@ public:
      */
     DOpNode(Context& ctx,
             const DIABaseVector& parents)
-        : DIANode<T>(ctx, parents) { }
+        : DIANode<ValueType>(ctx, parents) { }
 
     //! Virtual destructor for a DIANode.
     virtual ~DOpNode() { }
