@@ -575,7 +575,7 @@ public:
     }
 
     void Close() {
-        for(size_t i = 0; i < kGroupCount; i++) {
+        for (size_t i = 0; i < kGroupCount; i++) {
             groups_[i].Close();
         }
     }
