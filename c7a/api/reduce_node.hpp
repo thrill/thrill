@@ -39,7 +39,6 @@ namespace api {
  * ReduceNode has the type ValueType, which is the result type of the
  * reduce_function.
  *
- * \tparam ParentType Input type of the Reduce operation
  * \tparam ValueType Output type of the Reduce operation
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
