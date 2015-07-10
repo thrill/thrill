@@ -132,7 +132,7 @@ static inline int Execute(
                 LOG << "Worker " << ctx.rank() << " done!";
 
                 results[i] = job_result;
-                jobMan.flow_manager().GetFlowControlChannel(0).await();
+                jobMan.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
 
@@ -269,7 +269,7 @@ ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
                 overall_timer->Stop();
                 LOG << "Worker " << node_id << " done!";
 
-                jm.flow_manager().GetFlowControlChannel(0).await();
+                jm.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
 }
