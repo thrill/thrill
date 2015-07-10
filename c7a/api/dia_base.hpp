@@ -69,8 +69,8 @@ public:
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
-    DIABase(Context& ctx, 
-            const std::vector<std::shared_ptr<DIABase>>& parents)
+    DIABase(Context& ctx,
+            const std::vector<std::shared_ptr<DIABase> >& parents)
         : context_(ctx), parents_(parents),
           data_id_(ctx.data_manager().AllocateDIA()) {
         for (auto parent : parents_) {
@@ -79,7 +79,7 @@ public:
     }
 
     //! Virtual destructor for a DIABase.
-    virtual ~DIABase() { 
+    virtual ~DIABase() {
         // Remove child pointer from parent
         // If a parent loses all its childs
         // its reference count should be zero and he
@@ -101,7 +101,7 @@ public:
 
     //! Returns the parents of this DIABase.
     //! \return A vector of all parents
-    const std::vector<std::shared_ptr<DIABase>> & parents() {
+    const std::vector<std::shared_ptr<DIABase> > & parents() {
         return parents_;
     }
 
@@ -155,7 +155,7 @@ protected:
     Context& context_;
     //! Children and parents of this DIABase.
     std::vector<DIABase*> children_;
-    std::vector<std::shared_ptr<DIABase>> parents_;
+    std::vector<std::shared_ptr<DIABase> > parents_;
     //! Unique ID of this DIABase. Used by the data::Manager.
     data::DIAId data_id_;
 };

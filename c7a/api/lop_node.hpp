@@ -46,15 +46,15 @@ public:
      * \param lop_stack Function chain with all lambdas between the parent and this node
      */
     LOpNode(Context& ctx,
-            std::shared_ptr<DIANode<ParentInput>> parent,
+            std::shared_ptr<DIANode<ParentInput> > parent,
             ParentStack& lop_stack)
         : DIANode<ValueType>(ctx, { parent })
-    { 
+    {
         auto save_fn =
             [=](ValueType input) {
-            for (const std::function<void(ValueType)>& func : this->callbacks_)
-                func(input);
-        };
+                for (const std::function<void(ValueType)>& func : this->callbacks_)
+                    func(input);
+            };
         auto lop_chain = lop_stack.push(save_fn).emit();
         parent->RegisterChild(lop_chain);
     }

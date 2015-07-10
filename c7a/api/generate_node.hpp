@@ -133,12 +133,11 @@ auto Generate(Context & ctx,
     using GenerateResultNode =
               GenerateNode<GeneratorResult, GeneratorFunction>;
 
-	
-	static_assert(
-		std::is_same<
-			typename common::FunctionTraits<GeneratorFunction>::template arg<0>,
-			const size_t&>::value,
-		"GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<GeneratorFunction>::template arg<0>,
+            const size_t&>::value,
+        "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
     auto shared_node =
         std::make_shared<GenerateResultNode>(ctx,

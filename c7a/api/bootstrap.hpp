@@ -153,7 +153,7 @@ static inline int Execute(
  */
 static inline void
 ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
-                    std::function<void(Context&)> job_startpoint) {
+                       std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
     std::vector<std::vector<std::string> > strargs(workers);

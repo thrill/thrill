@@ -110,7 +110,7 @@ public:
     explicit FunctionStack()
         : stack_(std::make_tuple()) { }
 
-    template <typename Lambda> 
+    template <typename Lambda>
     explicit FunctionStack(Lambda lambda)
         : stack_(std::make_tuple(lambda)) { }
 
@@ -182,7 +182,7 @@ static inline auto MakeFunctionStack(Lambda lambda) {
     return FunctionStack<Input, Lambda>(lambda);
 }
 
-template <typename Input> 
+template <typename Input>
 static inline auto MakeEmptyStack() {
     return FunctionStack<Input>();
 }

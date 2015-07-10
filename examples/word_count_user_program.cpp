@@ -28,7 +28,7 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
             /* map lambda */
             for (const std::string& word : c7a::common::split(line, ' ')) {
                 if (word.size() != 0)
-                    emit(WordCount(word,1));
+                    emit(WordCount(word, 1));
             }
         });
 
