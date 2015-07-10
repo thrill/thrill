@@ -130,7 +130,7 @@ public:
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum
      * operation.
-     * @details This method blocks until the sum is calculated. Values
+     * @details This method blocks until the sum is caluclated. Values
      * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
      * are the values of workers 0, 2, 3.
      *

@@ -58,7 +58,7 @@ namespace api {
  * between the last and this DIANode for first input DIA.
  *
  * \tparam ParentStack2 Function stack, which contains the chained lambdas
- * between the last and this DIANode for second input DIA.
+ * between the last and this DIANode for secondt input DIA.
  *
  * \tparam ZipFunction Type of the ZipFunction.
  */
@@ -186,77 +186,30 @@ private:
 
     //!Receive elements from other workers.
     void MainOp() {
-        //net::Group flow_group = context_.get_flow_net_group();
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
-
-        data::Manager &data_manager = context_.get_data_manager();
+        net::Group flow_group = context_.get_flow_net_group();
+        data::Manager data_manager = context_.get_data_manager();
         size_t workers = context_.number_worker();
 
         // Offsets to declare which target gets which block
         std::vector<size_t> blocks(num_dias_, 0);
 
         for (size_t i = 0; i < num_dias_; ++i) {
-            size_t numElems = data_manager.GetNumElements(id_[i]);
-            //net::PrefixSum(flow_group, prefix);
-            size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
-            //flow_group.TotalSum(prefix);
-            size_t totalNumElems = channel.AllReduce(numElems);
-            //size_t total = data_manager.GetNumElements(id_[i]);
-            size_t per_pe = totalNumElems / workers;
-            // offsets for scattering
-            std::vector<size_t> offsets;
+            size_t prefix = data_manager.GetNumElements(id_[i]);
+            net::PrefixSum(flow_group, prefix);
+            size_t total = data_manager.GetNumElements(id_[i]);
+            // TODO: flow_group.TotalSum(prefix);
+            size_t size = data_manager.GetNumElements(id_[i]);
+            size_t per_pe = total / workers;
+            size_t target = prefix / per_pe;
+            size_t block = std::min(per_pe - prefix % per_pe, size);
 
-            // first idx allocated to this pe
-            size_t offset_idx = context_.rank() * per_pe;
-
-            // move element to left neighbor workers
-            size_t move_to_left = std::min(offset_idx-prefixNumElems, numElems);
-            if (move_to_left > 0) {
-                size_t target_rank = context_.rank()-1;
-                while (target_rank >= 0) {
-                    size_t current_move = std::min(move_to_left, per_pe);
-                    move_to_left -= current_move;
-                    if (current_move == 0)
-                        LOG << "send nothing to target: "
-                            << target_rank;
-                    else
-                        LOG << "["
-                            << ((target_rank * per_pe + per_pe - 1) - current_move + 1)
-                            << ", "
-                            << (target_rank * per_pe + per_pe - 1)
-                            << "] "
-                            << "to target: "
-                            << target_rank;
-                    --target_rank;
-                }
+            while (block <= size) {
+                blocks[target] = block;
+                target++;
+                size -= block;
             }
 
-            // move element to right neighbor workers
-            size_t move_to_right = std::min((prefixNumElems+numElems) - (offset_idx+per_pe-1), numElems);
-            if (move_to_right > 0) {
-                size_t target_rank = context_.rank()+1;
-                while (target_rank < workers) {
-                    size_t current_move = std::min(move_to_right, per_pe);
-                    move_to_right -= current_move;
-                    if (current_move == 0)
-                        LOG << "send nothing to target: "
-                            << target_rank;
-                    else
-                        LOG << "["
-                            << (target_rank * per_pe)
-                            << ", "
-                            << ((target_rank * per_pe) + current_move - 1)
-                            << "] "
-                            << "to target: "
-                            << target_rank;
-                    ++target_rank;
-                }
-            }
-
-            // TODO(ms): offsets still unfilled
-            // scatter data
-            // TODO(ms): target chain id must be replaced, currently source chain id used
-            data_manager.Scatter(id_[i], id_[i], offsets);
+            // TODO(ts): Send blocks to other targets
         }
     }
 
