@@ -46,7 +46,7 @@ namespace net {
  */
 class Dispatcher
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 protected:
     //! switch between different low-level dispatchers
