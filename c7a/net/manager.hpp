@@ -32,7 +32,7 @@ namespace net {
  */
 class Manager
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     /**
@@ -253,13 +253,20 @@ private:
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
 
+        if(conn.state() != ConnectionState::Connecting) {
+            LOG << "FAULTY STATE DETECTED";
+            LOG << "Client " << my_rank_ << " expected connection state " << ConnectionState::Connecting <<
+            " but got " << conn.state();
+            assert(false);
+        }
+
         if (err == Socket::Errors::ConnectionRefused ||
             err == Socket::Errors::Timeout) {
 
             //Connection refused. The other workers might not be online yet.
 
             LOG << "Connect to " << address.ToStringHostPort() <<
-                " timed out or refused. Attempting reconnect";
+                " FD=" << conn.GetSocket().fd() << " timed out or refused with error " << err << ". Attempting reconnect";
 
             // Construct a new connection since the
             // socket might not be reusable.
@@ -270,6 +277,9 @@ private:
             nc.set_peer_id(conn.peer_id());
 
             std::swap(conn, nc);
+
+            //Close old connection. 
+            nc.Close();
 
             AsyncConnect(conn, address);
 
@@ -291,6 +301,7 @@ private:
         LOG << "OnConnected() " << my_rank_ << " connected"
             << " fd=" << conn.GetSocket().fd()
             << " to=" << conn.GetSocket().GetPeerAddress()
+            << " err=" << err
             << " group=" << conn.group_id();
 
         // send welcome message
@@ -302,7 +313,7 @@ private:
                                    });
 
         LOG << "Client " << my_rank_ << " sent active hello to "
-            << "client group id " << conn.group_id();
+            << "client " << conn.peer_id() << " group id " << conn.group_id();
 
         dispatcher_.AsyncRead(conn, sizeof(hello),
                               [=](Connection& nc, Buffer&& b) {
@@ -332,13 +343,17 @@ private:
         die_unequal(msg->c7a, c7a_sign);
         // We already know those values since we connected actively. So, check
         // for any errors.
+        if(conn.peer_id() != msg->id) {
+            LOG << "FAULTY ID DETECTED";
+        }
+
+        LOG << "client " << my_rank_ << " expected signature from client " << conn.peer_id() << " and  got signature "
+            << "from client " << msg->id;
+
         die_unequal(conn.peer_id(), msg->id);
         die_unequal(conn.group_id(), msg->group_id);
 
         conn.set_state(ConnectionState::Connected);
-
-        LOG << "client " << my_rank_ << " got signature "
-            << "from client " << msg->id;
 
         return false;
     }
@@ -461,6 +476,8 @@ public:
 
         die_unless(my_rank_ < endpoints.size());
 
+        LOG << "Client " << my_rank_ << " starting: " << endpoints[my_rank_];
+
         this->my_rank_ = my_rank_;
 
         //If we heldy any connections, do not allow a new initialization.
@@ -493,6 +510,8 @@ public:
 
             listener_ = std::move(Connection(listen_socket));
         }
+
+        LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         //Initiate connections to all hosts with higher id.
         for (uint32_t g = 0; g < kGroupCount; g++) {
