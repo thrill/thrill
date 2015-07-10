@@ -38,12 +38,13 @@ namespace api {
 class Context
 {
 public:
-    Context(core::JobManager& job_manager, int thread_id) : job_manager_(job_manager), thread_id_(thread_id) { }
+    Context(core::JobManager& job_manager, int local_worker_id)
+        : job_manager_(job_manager), local_worker_id_(local_worker_id) { }
 
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
     data::Manager & get_data_manager() {
-        if (thread_id_ != 0)
+        if (local_worker_id_ != 0)
         {
             //TODO (ts)
             assert(false && "Data Manager does not support multi-threading at the moment.");
@@ -62,7 +63,7 @@ public:
      * @return The flow control channel associated with the given ID.
      */
     net::FlowControlChannel & get_flow_control_channel() {
-        return job_manager_.get_flow_manager().GetFlowControlChannel(thread_id_);
+        return job_manager_.get_flow_manager().GetFlowControlChannel(local_worker_id_);
     }
 
     //! Returns the total number of workers.
@@ -79,18 +80,20 @@ public:
         return stats_;
     }
 
-    int get_thread_id() {
-        return thread_id_;
+    int get_local_worker_id() {
+        return local_worker_id_;
     }
 
-    int get_thread_count() {
-        return job_manager_.get_thread_count();
+    int get_local_worker_count() {
+        return job_manager_.get_local_worker_count();
     }
 
 private:
     core::JobManager& job_manager_;
     common::Stats stats_;
-    int thread_id_;
+
+    //! number of this worker context, 0..p-1, within this compute node.
+    int local_worker_id_;
 };
 
 } // namespace api
