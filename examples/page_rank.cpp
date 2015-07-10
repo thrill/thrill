@@ -79,7 +79,7 @@ int page_rank(Context& ctx) {
                 return first + second;
             });
 
-        ranks = contribs.ReduceBy(key_page_with_rank).With([](PageWithRank input) {
+        ranks = contribs.ReduceToIndex(key_page_with_rank, [](PageWithRank input) {
                 return std::get<0>(input);
             }, [](std::vector<PageWithRank> ranks) {
                 double sum = 0.0;
