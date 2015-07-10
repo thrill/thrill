@@ -24,7 +24,7 @@
 #include <vector>
 
 namespace c7a {
-namespace api {
+    namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -58,13 +58,13 @@ namespace api {
  * between the last and this DIANode for first input DIA.
  *
  * \tparam ParentStack2 Function stack, which contains the chained lambdas
- * between the last and this DIANode for secondt input DIA.
+ * between the last and this DIANode for second input DIA.
  *
  * \tparam ZipFunction Type of the ZipFunction.
  */
 template <typename ValueType,
-          typename ParentStack1, typename ParentStack2,
-          typename ZipFunction>
+typename ParentStack1, typename ParentStack2,
+typename ZipFunction>
 class TwoZipNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -73,9 +73,9 @@ class TwoZipNode : public DOpNode<ValueType>
     using Super::context_;
 
     using ZipArg0 =
-              typename common::FunctionTraits<ZipFunction>::template arg<0>;
+    typename common::FunctionTraits<ZipFunction>::template arg<0>;
     using ZipArg1 =
-              typename common::FunctionTraits<ZipFunction>::template arg<1>;
+    typename common::FunctionTraits<ZipFunction>::template arg<1>;
 
     using ParentInput1 = typename ParentStack1::Input;
     using ParentInput2 = typename ParentStack2::Input;
@@ -97,16 +97,16 @@ public:
                ParentStack1& parent_stack1,
                ParentStack2& parent_stack2,
                ZipFunction zip_function)
-        : DOpNode<ValueType>(ctx, { parent1, parent2 }),
-          zip_function_(zip_function)
+            : DOpNode<ValueType>(ctx, { parent1, parent2 }),
+              zip_function_(zip_function)
     {
         // Hook PreOp(s)
         auto pre_op1_fn = [=](const ZipArg0& input) {
-                              emit1_(input);
-                          };
+            emit1_(input);
+        };
         auto pre_op2_fn = [=](const ZipArg1& input) {
-                              emit2_(input);
-                          };
+            emit2_(input);
+        };
 
         // close the function stacks with our pre ops and register it at parent
         // nodes for output
@@ -121,9 +121,9 @@ public:
             id_[i] = context_.get_data_manager().AllocateDIA();
         }
         emit1_ = context_.get_data_manager().
-                 template GetLocalEmitter<ZipArg0>(id_[0]);
+                template GetLocalEmitter<ZipArg0>(id_[0]);
         emit2_ = context_.get_data_manager().
-                 template GetLocalEmitter<ZipArg1>(id_[1]);
+                template GetLocalEmitter<ZipArg1>(id_[1]);
     }
 
     /*!
@@ -134,9 +134,9 @@ public:
         MainOp();
         // get data from data manager
         auto it1 = context_.get_data_manager().
-                   template GetIterator<ZipArg0>(id_[0]);
+                template GetIterator<ZipArg0>(id_[0]);
         auto it2 = context_.get_data_manager().
-                   template GetIterator<ZipArg1>(id_[1]);
+                template GetIterator<ZipArg1>(id_[1]);
         do {
             it1.WaitForMore();
             it2.WaitForMore();
@@ -156,8 +156,8 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         auto post_op_fn = [=](ValueType elem, auto emit_func) {
-                              return PostOp(elem, emit_func);
-                          };
+            return PostOp(elem, emit_func);
+        };
 
         return MakeFunctionStack<ValueType>(post_op_fn);
     }
@@ -186,30 +186,43 @@ private:
 
     //!Receive elements from other workers.
     void MainOp() {
-        net::Group flow_group = context_.get_flow_net_group();
-        data::Manager data_manager = context_.get_data_manager();
+        //net::Group flow_group = context_.get_flow_net_group();
+        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+
+        data::Manager &data_manager = context_.get_data_manager();
         size_t workers = context_.number_worker();
 
         // Offsets to declare which target gets which block
         std::vector<size_t> blocks(num_dias_, 0);
 
         for (size_t i = 0; i < num_dias_; ++i) {
-            size_t prefix = data_manager.GetNumElements(id_[i]);
-            net::PrefixSum(flow_group, prefix);
-            size_t total = data_manager.GetNumElements(id_[i]);
-            // TODO: flow_group.TotalSum(prefix);
-            size_t size = data_manager.GetNumElements(id_[i]);
-            size_t per_pe = total / workers;
-            size_t target = prefix / per_pe;
-            size_t block = std::min(per_pe - prefix % per_pe, size);
+            size_t numElems = data_manager.GetNumElements(id_[i]);
+            //net::PrefixSum(flow_group, prefix);
+            size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
+            //flow_group.TotalSum(prefix);
+            size_t totalNumElems = channel.AllReduce(numElems);
+            //size_t total = data_manager.GetNumElements(id_[i]);
+            size_t per_pe = totalNumElems / workers;
+            // offsets for scattering
+            std::vector<size_t> offsets(num_dias_, 0);
 
-            while (block <= size) {
-                blocks[target] = block;
+            size_t offset = 0;
+            size_t count = std::min(per_pe - prefixNumElems % per_pe, numElems);
+            size_t target = prefixNumElems / per_pe;
+
+            while (numElems > 0) {
+                offsets[target] = offset + count - 1;
+                prefixNumElems += count;
+                numElems -= count;
+                offset += count;
+                count = std::min(per_pe - prefixNumElems % per_pe, numElems);
                 target++;
-                size -= block;
             }
 
-            // TODO(ts): Send blocks to other targets
+            for (size_t x = target; x < workers; x++)
+                offsets[x] = offsets[x-1];
+
+            data_manager.Scatter(id_[i], data_manager.AllocateNetworkChannel(), offsets);
         }
     }
 
@@ -223,27 +236,27 @@ private:
 template <typename CurrentType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIARef<CurrentType, Stack>::Zip(
-    const ZipFunction &zip_function, SecondDIA second_dia) {
+        const ZipFunction &zip_function, SecondDIA second_dia) {
 
     using ZipResult
-              = typename common::FunctionTraits<ZipFunction>::result_type;
+    = typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipResultNode
-              = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,
-                           ZipFunction>;
+    = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,
+            ZipFunction>;
 
     auto zip_node
-        = std::make_shared<ZipResultNode>(node_->get_context(),
-                                          node_.get(),
-                                          second_dia.get_node(),
-                                          local_stack_,
-                                          second_dia.get_stack(),
-                                          zip_function);
+            = std::make_shared<ZipResultNode>(node_->get_context(),
+                                              node_.get(),
+                                              second_dia.get_node(),
+                                              local_stack_,
+                                              second_dia.get_stack(),
+                                              zip_function);
 
     auto zip_stack = zip_node->ProduceStack();
 
     return DIARef<ZipResultNode, decltype(zip_stack)>(
-        std::move(zip_node), zip_stack);
+            std::move(zip_node), zip_stack);
 }
 
 } // namespace api
