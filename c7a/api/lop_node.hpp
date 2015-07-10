@@ -50,11 +50,11 @@ public:
             ParentStack& lop_stack)
         : DIANode<ValueType>(ctx, { parent })
     { 
-        auto save_fn = [=](ValueType input) {
-                            for (std::function<void(ValueType)> func : Super::callbacks_) {
-                                func(input);
-                            }
-                        };
+        auto save_fn =
+            [=](ValueType input) {
+            for (const std::function<void(ValueType)>& func : this->callbacks_)
+                func(input);
+        };
         auto lop_chain = lop_stack.push(save_fn).emit();
         parent->RegisterChild(lop_chain);
     }
