@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -421,49 +422,29 @@ private:
     }
 
 public:
-    /**
-     * @brief Executes a local mockup for testing.
-     * @details Spawns theads for each Group and calls the given thread
-     * function for each client to simulate. This function uses the
-     * LocalMock function of the Group class.
-     *
-     * See unit tests for usage examples.
-     *
-     * @param num_clients The number of clients to simulate.
-     * @param systemThreadFunction The function to execute for the system control Group.
-     * @param flowThreadFunction The function to execute for the flow control Group.
-     * @param dataThreadFunction The function to execute for the data manager Group.
-     */
-    static void ExecuteLocalMock(
-        size_t num_clients,
-        const std::function<void(Group*)>& systemThreadFunction,
-        const std::function<void(Group*)>& flowThreadFunction,
-        const std::function<void(Group*)>& dataThreadFunction) {
+    //! Construct a mock network, consisting of node_count compute
+    //! nodes. Delivers this number of net::Manager objects, which are
+    //! internally connected.
+    static std::vector<Manager> ConstructLocalMesh(size_t node_count) {
 
-        // Adjust this method too if groupcount changes.
-        die_unless(kGroupCount == 3);
+        // construct list of uninitialized net::Manager objects.
+        std::vector<Manager> nmlist(node_count);
 
-        std::vector<std::thread*> threads(kGroupCount);
-
-        //Create mock netgroups in new threads.
-        threads[0] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, systemThreadFunction);
-            });
-        threads[1] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, flowThreadFunction);
-            });
-        threads[2] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, dataThreadFunction);
-            });
-
-        //Join threads again.
-        for (size_t i = 0; i != threads.size(); ++i) {
-            threads[i]->join();
-            delete threads[i];
+        for (size_t n = 0; n < node_count; ++n) {
+            nmlist[n].my_rank_ = n;
         }
+
+        // construct three full mesh connection cliques, deliver net::Groups.
+        for (size_t g = 0; g < kGroupCount; ++g) {
+            std::vector<Group> group = Group::ConstructLocalMesh(node_count);
+
+            // distribute net::Group objects to managers
+            for (size_t n = 0; n < node_count; ++n) {
+                nmlist[n].groups_[g] = std::move(group[n]);
+            }
+        }
+
+        return std::move(nmlist);
     }
 
     /**
@@ -572,6 +553,12 @@ public:
      */
     Group & GetDataGroup() {
         return groups_[2];
+    }
+
+    void Close() {
+        for (size_t i = 0; i < kGroupCount; i++) {
+            groups_[i].Close();
+        }
     }
 };
 

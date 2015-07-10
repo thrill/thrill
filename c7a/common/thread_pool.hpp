@@ -59,19 +59,18 @@ protected:
     std::condition_variable cv_finished_;
 
     //! Counter for number of threads busy.
-    std::atomic<size_t> busy_;
+    std::atomic<size_t> busy_ = { 0 };
     //! Counter for total number of jobs executed
-    std::atomic<size_t> done_;
+    std::atomic<size_t> done_ = { 0 };
 
     //! Flag whether to terminate
-    bool terminate_ = false;
+    std::atomic<bool> terminate_ = { false };
 
 public:
     //! Construct running thread pool of num_threads
     explicit ThreadPool(
         size_t num_threads = std::thread::hardware_concurrency())
-        : threads_(num_threads),
-          busy_(0), done_(0) {
+        : threads_(num_threads) {
         // immediately construct worker threads
         for (size_t i = 0; i < num_threads; ++i)
             threads_[i] = std::thread(&ThreadPool::Worker, this);
@@ -84,8 +83,8 @@ public:
 
     //! Stop processing jobs, terminate threads.
     ~ThreadPool() {
-        // set stop-condition
         std::unique_lock<std::mutex> lock(mutex_);
+        // set stop-condition
         terminate_ = true;
         cv_jobs_.notify_all();
         lock.unlock();
@@ -106,29 +105,29 @@ public:
     //! this occurs, this method exits, however, the threads remain active.
     void LoopUntilEmpty() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_finished_.wait(lock, [this]() {
-                              return jobs_.empty() && (busy_ == 0);
-                          });
+        cv_finished_.wait(
+            lock, [this]() { return jobs_.empty() && (busy_ == 0); });
     }
 
     //! Loop until terminate flag was set.
     void LoopUntilTerminate() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_finished_.wait(lock, [this]() {
-                              return terminate_ && (busy_ == 0);
-                          });
+        cv_finished_.wait(
+            lock, [this]() { return terminate_ && (busy_ == 0); });
     }
 
     //! Terminate thread pool gracefully, wait until currently running jobs
     //! finish and then exit. This should be called from within one of the
     //! enqueue jobs or from an outside thread.
     void Terminate() {
+        std::unique_lock<std::mutex> lock(mutex_);
         // flag termination
         terminate_ = true;
         // wake up all worker threads and let them terminate.
         cv_jobs_.notify_all();
         // notify LoopUntilTerminate in case all threads are idle.
         cv_finished_.notify_one();
+        lock.unlock();
     }
 
     //! Return number of jobs currently completed.
@@ -155,9 +154,8 @@ protected:
             std::unique_lock<std::mutex> lock(mutex_);
 
             // wait on condition variable until job arrives, frees lock
-            cv_jobs_.wait(lock, [this]() {
-                              return terminate_ || !jobs_.empty();
-                          });
+            cv_jobs_.wait(
+                lock, [this]() { return terminate_ || !jobs_.empty(); });
 
             if (terminate_) break;
 
@@ -185,6 +183,8 @@ protected:
                 ++done_;
                 --busy_;
 
+                // relock mutex before signaling condition.
+                lock.lock();
                 cv_finished_.notify_one();
             }
         }

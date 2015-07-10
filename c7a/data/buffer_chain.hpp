@@ -14,6 +14,7 @@
 #include <deque>
 #include <condition_variable>
 #include <mutex> //mutex, unique_lock
+#include <atomic>
 
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/emitter_target.hpp>
@@ -48,25 +49,33 @@ using BufferChainIterator = std::deque<BufferChainElement>::const_iterator;
 //! A Buffer chain holds multiple immuteable buffers.
 //! Append in O(1), Delete in O(num_buffers)
 struct BufferChain : public EmitterTarget {
-    BufferChain() : closed_(false) { }
+    BufferChain() : closed_(false) {
+#if defined(_LIBCPP_VERSION) || defined(__clang__)
+        // ugly workaround: allocate backing memory of deque, otherwise begin()
+        // returns a nullptr if the deque is empty.
+        elements_.push_back(BufferChainElement(BinaryBuffer(nullptr, 0), 0));
+        elements_.pop_front();
+#endif
+    }
 
     //! Appends a BinaryBufferBuffer's content to the chain
     //! This method is thread-safe and runs in O(1)
     //! \param b buffer to append
     void Append(BinaryBufferBuilder& b) {
-        std::unique_lock<std::mutex> lock(append_mutex_);
-        elements_.emplace_back(BufferChainElement(BinaryBuffer(b), size() + b.elements()));
+        std::unique_lock<std::mutex> lock(mutex_);
+        elements_.emplace_back(
+            BufferChainElement(BinaryBuffer(b), _size() + b.elements()));
         b.Detach();
-        lock.unlock();
-        NotifyWaitingThreads();
+        condition_variable_.notify_all();
     }
 
     //! Appends an existing element to the chain.
     //! This method is not thread-safe since it is called only when channels
     //! are closed once.
     void Append(BufferChainElement&& element) {
+        std::unique_lock<std::mutex> lock(mutex_);
         elements_.emplace_back(std::move(element));
-        NotifyWaitingThreads();
+        condition_variable_.notify_all();
     }
 
     //! Waits until beeing notified
@@ -78,57 +87,62 @@ struct BufferChain : public EmitterTarget {
     //! Waits until beeing notified and closed == true
     void WaitUntilClosed() {
         std::unique_lock<std::mutex> lock(mutex_);
-        condition_variable_.wait(lock, [=]() { return this->closed_; });
+        condition_variable_.wait(lock, [=]() { return this->closed_.load(); });
     }
 
     //! Call buffers' destructors and deconstructs the chain
     void Delete() {
-        std::unique_lock<std::mutex> lock(append_mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         for (auto& elem : elements_)
             elem.buffer.Delete();
     }
 
     //! Returns the number of elements in this BufferChain at the current
     //! state.
-    size_t size() {
-        if (elements_.empty())
-            return 0;
-        return elements_.back().element_count;
+    size_t size() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return _size();
     }
 
     BufferChainIterator Begin() const {
+        std::unique_lock<std::mutex> lock(mutex_);
         return elements_.begin();
     }
 
     BufferChainIterator End() const {
+        std::unique_lock<std::mutex> lock(mutex_);
         return elements_.end();
     }
 
     void Close() {
+        std::unique_lock<std::mutex> lock(mutex_);
         closed_ = true;
-        NotifyWaitingThreads();
+        condition_variable_.notify_all();
     }
 
-    bool IsClosed() { return closed_; }
+    bool IsClosed() { return closed_.load(); }
 
     std::deque<BufferChainElement> elements_;
 
 private:
-    std::mutex                     mutex_;
-    std::mutex                     append_mutex_;
+    mutable std::mutex             mutex_;
     std::condition_variable        condition_variable_;
-    bool                           closed_;
+    std::atomic<bool>              closed_;
 
-    void NotifyWaitingThreads() {
-        std::unique_lock<std::mutex> lock(mutex_);
-        condition_variable_.notify_all();
+    //! Returns the number of elements in this BufferChain at the current
+    //! state.
+    size_t _size() const {
+        if (elements_.empty())
+            return 0;
+        return elements_.back().element_count;
     }
 };
 
 //! Collects buffers ina map and moves them to a BufferChain in the order of
 //! the keys. Buffers with the same key are moved in the order they where
 //! appended to the OrderedBufferChain
-class OrderedBufferChain {
+class OrderedBufferChain
+{
 public:
     //! Appends data from the BinaryBufferBuilder and detaches it
     //! \param rank of the sender of the data
@@ -156,10 +170,9 @@ public:
     }
 
 private:
-    std::map<size_t, std::vector<BufferChainElement>> buffers_;
+    std::map<size_t, std::vector<BufferChainElement> > buffers_;
     std::mutex append_mutex_;
 };
-
 
 } // namespace data
 } // namespace c7a

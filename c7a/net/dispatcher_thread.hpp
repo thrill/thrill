@@ -225,10 +225,10 @@ private:
     std::thread thread_;
 
     //! check whether the signal handler was set before issuing signals.
-    bool running_ = false;
+    std::atomic<bool> running_ { false };
 
     //! termination flag of dispatcher thread.
-    bool terminate_ = false;
+    std::atomic<bool> terminate_ { false };
 
     //! enclosed dispatcher.
     Dispatcher dispatcher_;

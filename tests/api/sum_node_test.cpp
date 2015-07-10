@@ -33,24 +33,24 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
     std::function<void(Context&)> start_func =
         [generate_size](Context& ctx) {
 
-        auto input = GenerateFromFile(
-            ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            },
-            generate_size);
+            auto input = GenerateFromFile(
+                ctx,
+                "test1",
+                [](const std::string& line) {
+                    return std::stoi(line);
+                },
+                generate_size);
 
-        auto ones = input.Map([](int) {
-                return 1;
-            });
+            auto ones = input.Map([](int) {
+                                      return 1;
+                                  });
 
-        auto add_function = [](int in1, int in2) {
-            return in1 + in2;
+            auto add_function = [](int in1, int in2) {
+                                    return in1 + in2;
+                                };
+
+            ASSERT_EQ((int)generate_size, ones.Sum(add_function));
         };
-
-        ASSERT_EQ((int)generate_size, ones.Sum(add_function));
-    };
 
     c7a::api::ExecuteLocalTests(start_func);
 }
@@ -60,23 +60,23 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
-            ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            });
+            auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
+                ctx,
+                "test1",
+                [](const std::string& line) {
+                    return std::stoi(line);
+                });
 
-        auto ones = input.Map([](int in) {
-                return in;
-            });
+            auto ones = input.Map([](int in) {
+                                      return in;
+                                  });
 
-        auto add_function = [](int in1, int in2) {
-            return in1 + in2;
+            auto add_function = [](int in1, int in2) {
+                                    return in1 + in2;
+                                };
+
+            ASSERT_EQ(136, ones.Sum(add_function));
         };
-
-        ASSERT_EQ(136, ones.Sum(add_function));
-    };
 
     c7a::api::ExecuteLocalTests(start_func);
 }

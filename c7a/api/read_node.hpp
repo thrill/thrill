@@ -59,7 +59,7 @@ public:
 
     virtual ~ReadNode() { }
 
-    //!Returns an InputLineIterator with a given input file stream.
+    //! Returns an InputLineIterator with a given input file stream.
     //!
     //! \param file Input file stream
     //! \param my_id Id of this worker
@@ -72,7 +72,7 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void Execute() {
+    void Execute() override {
         static const bool debug = false;
         LOG << "READING data with id " << data_id_;
 
@@ -82,8 +82,8 @@ public:
         InputLineIterator it = GetInputLineIterator(
             file, context_.rank(), context_.number_worker());
 
-        auto emit = context_.get_data_manager().
-                    template GetLocalEmitter<ValueType>(this->data_id_);
+        auto emit = context_.data_manager().
+                    template GetLocalEmitter<ValueType>(data_id_);
 
         // Hook Read
         while (it.HasNext()) {
@@ -121,10 +121,10 @@ private:
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
                const ReadFunction &read_function) {
-    
+
     using ReadResult =
-        typename common::FunctionTraits<ReadFunction>::result_type;
-    
+              typename common::FunctionTraits<ReadFunction>::result_type;
+
     using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
 
     auto shared_node =

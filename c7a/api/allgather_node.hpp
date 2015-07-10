@@ -15,10 +15,12 @@
 #include <c7a/common/future.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/data/manager.hpp>
+#include <c7a/api/action_node.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
-#include "action_node.hpp"
-#include "dia_node.hpp"
-#include "function_stack.hpp"
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -41,10 +43,10 @@ public:
                   )
         : ActionNode(ctx, { parent }),
           out_vector_(out_vector),
-          channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
+          channel_used_(ctx.data_manager().AllocateNetworkChannel())
     {
-        emitters_ = context_.get_data_manager().
-            template GetNetworkEmitters<ValueType>(channel_used_);
+        emitters_ = context_.data_manager().
+                    template GetNetworkEmitters<ValueType>(channel_used_);
 
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
@@ -71,7 +73,7 @@ public:
             emitters_[i].Close();
         }
 
-        auto it = context_.get_data_manager().template GetIterator<ValueType>(channel_used_);
+        auto it = context_.data_manager().template GetIterator<ValueType>(channel_used_);
 
         do {
             it.WaitForMore();
@@ -105,7 +107,7 @@ void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
     using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(node_->get_context(),
+        std::make_shared<AllGatherResultNode>(node_->context(),
                                               node_.get(),
                                               local_stack_,
                                               out_vector);

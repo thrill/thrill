@@ -14,21 +14,22 @@
 #ifndef C7A_API_DIA_HEADER
 #define C7A_API_DIA_HEADER
 
-#include <functional>
-#include <vector>
-#include <stack>
-#include <iostream>
-#include <fstream>
+#include <c7a/api/context.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/api/lop_node.hpp>
+#include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
+
 #include <cassert>
+#include <fstream>
+#include <functional>
+#include <iostream>
 #include <memory>
+#include <stack>
 #include <string>
 #include <utility>
-
-#include "dia_node.hpp"
-#include "function_stack.hpp"
-#include <c7a/common/function_traits.hpp>
-#include "lop_node.hpp"
-#include "context.hpp"
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -67,8 +68,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = std::shared_ptr<DIANode<StackInput>>;
-
+    using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -111,11 +111,12 @@ public:
     template <typename AnyStack>
     DIARef(const DIARef<ValueType, AnyStack>& rhs)
     __attribute__ ((deprecated))
-#if __GNUC__
+#if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
     __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                            "Consider whether you can use auto instead of DIARef.")));
+                            "Consider whether you can use auto instead of DIARef.")))
 #endif
+    ;
 
     /*!
      * Returns a pointer to the according DIANode.
@@ -153,9 +154,9 @@ public:
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) {
         using MapArgument
-            = typename common::FunctionTraits<MapFunction>::template arg<0>;
+                  = typename common::FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
-            = typename common::FunctionTraits<MapFunction>::result_type;
+                  = typename common::FunctionTraits<MapFunction>::result_type;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
@@ -180,7 +181,7 @@ public:
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) {
         using FilterArgument
-            = typename common::FunctionTraits<FilterFunction>::template arg<0>;
+                  = typename common::FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
                                         if (filter_function(input)) emit_func(input);
                                     };
@@ -236,15 +237,15 @@ public:
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function);
 
-         /*!
+    /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
-         * to a single element using the associative reduce_function.
-         * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
-         * which has the reduced element with key i in position i.
-         * The reduce_function defines how two elements can be reduced to a single
-         * element of equal type. Since ReduceToIndex is a DOp, it creates a new
-         * DIANode. The DIARef returned by ReduceToIndex links to this
+     * to a single element using the associative reduce_function.
+     * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
+     * which has the reduced element with key i in position i.
+     * The reduce_function defines how two elements can be reduced to a single
+     * element of equal type. Since ReduceToIndex is a DOp, it creates a new
+     * DIANode. The DIARef returned by ReduceToIndex links to this
      * newly created DIANode. The local_stack_ of the returned DIARef consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
@@ -290,14 +291,34 @@ public:
     auto Zip(const ZipFunction &zip_function, SecondDIA second_dia);
 
     /*!
-     * Sum is an Action, which computes the sum of elements of all workers.
+     * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
+     * function defines how two elements are combined to a single element.
+     *
+     * \tparam SumFunction Type of the sum_function.
+     *
+     * \param sum_function Sum function (any associative function).
+     *
+     * \param neutral_element Neutral element of the sum function.
+     */
+    template <typename SumFunction = common::SumOp<ValueType> >
+    auto PrefixSum(const SumFunction& sum_function = SumFunction(),
+                   ValueType neutral_element = ValueType());
+
+    /*!
+     * Sum is an Action, which computes the sum of all elements globally.
      *
      * \tparam SumFunction Type of the sum_function.
      *
      * \param sum_function Sum function.
      */
     template <typename SumFunction>
-    auto Sum(const SumFunction &sum_function);
+    auto Sum(const SumFunction& sum_function = common::SumOp<ValueType>(),
+             ValueType neutral_element = ValueType());
+
+    /*!
+     * Size is an Action, which computes the size of all elements in all workers.
+     */
+    size_t Size();
 
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.
@@ -354,7 +375,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     LOG0 << "Consider whether you can use auto instead of DIARef.";
 
     auto shared_node
-        = std::make_shared<LOpChainNode>(rhs_node->get_context(),
+        = std::make_shared<LOpChainNode>(rhs_node->context(),
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);

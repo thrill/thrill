@@ -83,7 +83,7 @@ public:
                           std::vector<EmitterFunction>& emit,
                           std::pair<Key, Value> sentinel,
                           HashFunction hash_function
-                          = [](Key v, ReducePreProbingTable* ht) {
+                              = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
 
                                     size_t partition_offset = hashed %
@@ -94,13 +94,13 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                          },
+                                },
                           ProbingFunction probing_function
-                          = [](int pos, ReducePreProbingTable*) {
+                              = [](int pos, ReducePreProbingTable*) {
                                     int probing_offset = pos + 1;
                                     probing_result pr(probing_offset);
                                     return pr;
-                          })
+                                })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),

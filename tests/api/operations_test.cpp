@@ -18,22 +18,21 @@
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/net/endpoint.hpp>
 
+#include <c7a/c7a.hpp>
+
 #include <algorithm>
 #include <random>
 #include <string>
 
 #include "gtest/gtest.h"
 
-using namespace c7a::core;
-using namespace c7a::net;
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace c7a;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
     std::vector<std::string> self = { "127.0.0.1:1234" };
-    JobManager jobMan;
-    jobMan.Connect(0, Endpoint::ParseEndpointList(self), 1);
+    core::JobManager jobMan;
+    jobMan.Connect(0, net::Endpoint::ParseEndpointList(self), 1);
     Context ctx(jobMan, 0);
 
     std::random_device random_device;
@@ -70,28 +69,28 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto integers = ReadLines(
-            ctx,
-            "test1",
-            [](const std::string& line) {
-                return std::stoi(line);
-            });
+            auto integers = ReadLines(
+                ctx,
+                "test1",
+                [](const std::string& line) {
+                    return std::stoi(line);
+                });
 
-        std::vector<int> out_vec;
+            std::vector<int> out_vec;
 
-        integers.AllGather(&out_vec);
+            integers.AllGather(&out_vec);
 
-        std::sort(out_vec.begin(), out_vec.end());
+            std::sort(out_vec.begin(), out_vec.end());
 
-        int i = 1;
-        for (int element : out_vec) {
-            ASSERT_EQ(element, i++);
-        }
+            int i = 1;
+            for (int element : out_vec) {
+                ASSERT_EQ(element, i++);
+            }
 
-        ASSERT_EQ((size_t)16, out_vec.size());
-    };
+            ASSERT_EQ((size_t)16, out_vec.size());
+        };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, MapResultsCorrectChangingType) {
@@ -99,36 +98,36 @@ TEST(Operations, MapResultsCorrectChangingType) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto integers = Generate(
-            ctx,
-            [](const size_t& index) {
-                return (int)index + 1;
-            },
-            16);
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return (int)index + 1;
+                },
+                16);
 
-        std::function<double(int)> double_elements = [](int in) {
-            return (double)2 * in;
+            std::function<double(int)> double_elements = [](int in) {
+                                                             return (double)2 * in;
+                                                         };
+
+            auto doubled = integers.Map(double_elements);
+
+            std::vector<double> out_vec;
+
+            doubled.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            int i = 1;
+            for (int element : out_vec) {
+                ASSERT_DOUBLE_EQ(element, (i++ *2));
+            }
+
+            ASSERT_EQ(16u, out_vec.size());
+            static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
+            static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
         };
 
-        auto doubled = integers.Map(double_elements);
-
-        std::vector<double> out_vec;
-
-        doubled.AllGather(&out_vec);
-
-        std::sort(out_vec.begin(), out_vec.end());
-
-        int i = 1;
-        for (int element : out_vec) {
-            ASSERT_DOUBLE_EQ(element, (i++ *2));
-        }
-
-        ASSERT_EQ((size_t)16, out_vec.size());
-        static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
-        static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
-    };
-
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
@@ -136,37 +135,102 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto integers = Generate(
-            ctx,
-            [](const size_t& index) {
-                return (int)index + 1;
-            },
-            16);
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return (int)index + 1;
+                },
+                16);
 
-        auto flatmap_double = [](int in, auto emit) {
-            emit((double)2 * in);
-            emit((double)2 * (in + 16));
+            auto flatmap_double = [](int in, auto emit) {
+                                      emit((double)2 * in);
+                                      emit((double)2 * (in + 16));
+                                  };
+
+            auto doubled = integers.FlatMap<double>(flatmap_double);
+
+            std::vector<double> out_vec;
+
+            doubled.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            int i = 1;
+            for (int element : out_vec) {
+                ASSERT_DOUBLE_EQ(element, (i++ *2));
+            }
+
+            ASSERT_EQ(32u, out_vec.size());
+            static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
+            static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
         };
 
-        auto doubled = integers.FlatMap<double>(flatmap_double);
+    api::ExecuteLocalTests(start_func);
+}
 
-        std::vector<double> out_vec;
+TEST(Operations, PrefixSumCorrectResults) {
 
-        doubled.AllGather(&out_vec);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-        std::sort(out_vec.begin(), out_vec.end());
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) {
+                    return input + 1;
+                },
+                16);
 
-        int i = 1;
-        for (int element : out_vec) {
-            ASSERT_DOUBLE_EQ(element, (i++ *2));
-        }
+            auto prefixsums = integers.PrefixSum();
 
-        ASSERT_EQ((size_t)32, out_vec.size());
-        static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
-        static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
-    };
+            std::vector<size_t> out_vec;
 
-    c7a::api::ExecuteLocalTests(start_func);
+            prefixsums.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+            size_t ctr = 0;
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ctr += i + 1;
+                ASSERT_EQ(out_vec[i], ctr);
+            }
+
+            ASSERT_EQ((size_t)16, out_vec.size());
+        };
+
+    api::ExecuteLocalTests(start_func);
+}
+
+TEST(Operations, PrefixSumFacultyCorrectResults) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) {
+                    return input + 1;
+                },
+                10);
+
+            auto prefixsums = integers.PrefixSum(
+                [](size_t in1, size_t in2) {
+                    return in1 * in2;
+                }, 1);
+
+            std::vector<size_t> out_vec;
+
+            prefixsums.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+            size_t ctr = 1;
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                ctr *= i + 1;
+                ASSERT_EQ(out_vec[i], ctr);
+            }
+
+            ASSERT_EQ(10u, out_vec.size());
+        };
+
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, FilterResultsCorrectly) {
@@ -174,35 +238,35 @@ TEST(Operations, FilterResultsCorrectly) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto integers = Generate(
-            ctx,
-            [](const size_t& index) {
-                return (int)index + 1;
-            },
-            16);
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return (int)index + 1;
+                },
+                16);
 
-        std::function<bool(int)> even = [](int in) {
-            return (in % 2 == 0);
+            std::function<bool(int)> even = [](int in) {
+                                                return (in % 2 == 0);
+                                            };
+
+            auto doubled = integers.Filter(even);
+
+            std::vector<int> out_vec;
+
+            doubled.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            int i = 1;
+
+            for (int element : out_vec) {
+                ASSERT_DOUBLE_EQ(element, (i++ *2));
+            }
+
+            ASSERT_EQ(8u, out_vec.size());
         };
 
-        auto doubled = integers.Filter(even);
-
-        std::vector<int> out_vec;
-
-        doubled.AllGather(&out_vec);
-
-        std::sort(out_vec.begin(), out_vec.end());
-
-        int i = 1;
-
-        for (int element : out_vec) {
-            ASSERT_DOUBLE_EQ(element, (i++ *2));
-        }
-
-        ASSERT_EQ((size_t)8, out_vec.size());
-    };
-
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, DIARefCasting) {
@@ -237,10 +301,10 @@ TEST(Operations, DIARefCasting) {
         }
         std::cout << std::endl;
 
-        ASSERT_EQ((size_t)8, out_vec.size());
+        ASSERT_EQ(8u, out_vec.size());
     };
 
-    c7a::api::ExecuteLocalThreads(1, 8080, start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, WhileLoop) {
@@ -291,10 +355,10 @@ TEST(Operations, WhileLoop) {
         for (int element : out_vec) std::cout << element << " ";
         std::cout << std::endl;
 
-        ASSERT_EQ((size_t)8, out_vec.size());
+        ASSERT_EQ(8u, out_vec.size());
     };
 
-    c7a::api::ExecuteLocalThreads(1, 8080, start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/

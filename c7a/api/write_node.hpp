@@ -12,10 +12,11 @@
 #ifndef C7A_API_WRITE_NODE_HEADER
 #define C7A_API_WRITE_NODE_HEADER
 
+#include <c7a/api/action_node.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+
 #include <string>
-#include "action_node.hpp"
-#include "dia_node.hpp"
-#include "function_stack.hpp"
 
 namespace c7a {
 namespace api {
@@ -40,7 +41,7 @@ public:
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(context_.get_data_manager().
+          emit_(context_.data_manager().
                 template GetOutputLineEmitter<std::string>(file_))
     {
         sLOG << "Creating write node.";
@@ -93,13 +94,13 @@ private:
 template <typename ValueType, typename Stack>
 template <typename WriteFunction>
 void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
-                                         const WriteFunction& write_function) {
+                                                 const WriteFunction& write_function) {
 
     using WriteResultNode = WriteNode<
-        ValueType, Stack, WriteFunction>;
+              ValueType, Stack, WriteFunction>;
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(node_->get_context(),
+        std::make_shared<WriteResultNode>(node_->context(),
                                           node_.get(),
                                           local_stack_,
                                           write_function,

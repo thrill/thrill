@@ -70,16 +70,14 @@ private:
     std::string buffer_;
 };
 
-void Group::ExecuteLocalMock(
-    size_t num_clients,
-    const std::function<void(Group*)>& thread_function) {
+std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
     using lowlevel::Socket;
 
     // construct a group of num_clients
-    std::vector<std::unique_ptr<Group> > group(num_clients);
+    std::vector<Group> group(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {
-        group[i] = std::unique_ptr<Group>(new Group(i, num_clients));
+        group[i].Initialize(i, num_clients);
     }
 
     // construct a stream socket pair for (i,j) with i < j
@@ -89,21 +87,37 @@ void Group::ExecuteLocalMock(
 
             std::pair<Socket, Socket> sp = Socket::CreatePair();
 
-            group[i]->connections_[j] = std::move(Connection(sp.first));
-            group[j]->connections_[i] = std::move(Connection(sp.second));
+            group[i].connections_[j] = std::move(Connection(sp.first));
+            group[j].connections_[i] = std::move(Connection(sp.second));
         }
     }
+
+    return std::move(group);
+}
+
+void Group::ExecuteLocalMock(
+    size_t num_clients,
+    const std::function<void(Group*)>& thread_function) {
+    using lowlevel::Socket;
+
+    // construct a group of num_clients
+    std::vector<Group> group = ConstructLocalMesh(num_clients);
 
     // create a thread for each Group object and run user program.
     std::vector<std::thread> threads(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {
         threads[i] = std::thread(
-            std::bind(thread_function, group[i].get()));
+            std::bind(thread_function, &group[i]));
     }
 
     for (size_t i = 0; i != num_clients; ++i) {
         threads[i].join();
+    }
+
+    // tear down mesh by closing all group objects
+    for (size_t i = 0; i != num_clients; ++i) {
+        group[i].Close();
     }
 }
 
