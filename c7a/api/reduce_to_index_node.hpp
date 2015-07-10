@@ -90,7 +90,7 @@ public:
      * \param max_index maximum index returned by reduce_function.
      */
     ReduceToIndexNode(Context& ctx,
-                      DIANode<ParentInput>* parent,
+                      std::shared_ptr<DIANode<ParentInput>> parent,
                       ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
@@ -233,7 +233,7 @@ auto DIARef<CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->context(),
-                                             node_.get(),
+                                             node_,
                                              local_stack_,
                                              key_extractor,
                                              reduce_function,

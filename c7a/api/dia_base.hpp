@@ -69,7 +69,8 @@ public:
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
-    DIABase(Context& ctx, const DIABaseVector& parents)
+    DIABase(Context& ctx, 
+            const std::vector<std::shared_ptr<DIABase>>& parents)
         : context_(ctx), parents_(parents),
           data_id_(ctx.data_manager().AllocateDIA()) {
         for (auto parent : parents_) {
@@ -78,7 +79,13 @@ public:
     }
 
     //! Virtual destructor for a DIABase.
-    virtual ~DIABase() { }
+    virtual ~DIABase() { 
+        // Remove child pointer from parent
+        // If a parent loses all its childs
+        // its reference count should be zero and he
+        // should be removed
+        // parent->remove_child(this);
+    }
 
     //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void Execute() = 0;
@@ -88,13 +95,13 @@ public:
 
     //! Returns the children of this DIABase.
     //! \return A vector of all children
-    const DIABaseVector & children() {
+    const std::vector<DIABase*> & children() {
         return children_;
     }
 
     //! Returns the parents of this DIABase.
     //! \return A vector of all parents
-    const DIABaseVector & parents() {
+    const std::vector<std::shared_ptr<DIABase>> & parents() {
         return parents_;
     }
 
@@ -106,7 +113,7 @@ public:
 
     //! Adds a child to the vector of children. This method is called in the constructor.
     //! \param child The child to add.
-    void add_child(DIABasePtr child) {
+    void add_child(DIABase* child) {
         children_.push_back(child);
     }
 
@@ -147,7 +154,8 @@ protected:
     //! Context, which can give iterators to data.
     Context& context_;
     //! Children and parents of this DIABase.
-    DIABaseVector children_, parents_;
+    std::vector<DIABase*> children_;
+    std::vector<std::shared_ptr<DIABase>> parents_;
     //! Unique ID of this DIABase. Used by the data::Manager.
     data::DIAId data_id_;
 };

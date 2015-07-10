@@ -32,8 +32,7 @@ public:
     using ParentInput = typename ParentStack::Input;
 
     WriteNode(Context& ctx,
-              //TODO(??) don't we need to pass shared ptrs for the ref counting?
-              DIANode<ParentInput>* parent,
+              std::shared_ptr<DIANode<ParentInput>> parent,
               ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
@@ -101,7 +100,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
 
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->context(),
-                                          node_.get(),
+                                          node_,
                                           local_stack_,
                                           write_function,
                                           filepath);

@@ -92,8 +92,8 @@ public:
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
-               DIANode<ParentInput1>* parent1,
-               DIANode<ParentInput2>* parent2,
+               std::shared_ptr<DIANode<ParentInput1>> parent1,
+               std::shared_ptr<DIANode<ParentInput2>> parent2,
                ParentStack1& parent_stack1,
                ParentStack2& parent_stack2,
                ZipFunction zip_function)
@@ -234,7 +234,7 @@ auto DIARef<CurrentType, Stack>::Zip(
 
     auto zip_node
         = std::make_shared<ZipResultNode>(node_->get_context(),
-                                          node_.get(),
+                                          node_,
                                           second_dia.get_node(),
                                           local_stack_,
                                           second_dia.get_stack(),

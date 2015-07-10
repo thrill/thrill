@@ -37,7 +37,7 @@ public:
 
     AllGatherNode(Context& ctx,
                   //TODO(??) don't we need to pass shared ptrs for the ref counting?
-                  DIANode<ParentInput>* parent,
+                  std::shared_ptr<DIANode<ParentInput>> parent,
                   ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )
@@ -108,7 +108,7 @@ void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
 
     auto shared_node =
         std::make_shared<AllGatherResultNode>(node_->context(),
-                                              node_.get(),
+                                              node_,
                                               local_stack_,
                                               out_vector);
 

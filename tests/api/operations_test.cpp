@@ -307,7 +307,7 @@ TEST(Operations, DIARefCasting) {
     api::ExecuteLocalTests(start_func);
 }
 
-TEST(Operations, DISABLED_WhileLoop) {
+TEST(Operations, WhileLoop) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -355,7 +355,7 @@ TEST(Operations, DISABLED_WhileLoop) {
         for (int element : out_vec) std::cout << element << " ";
         std::cout << std::endl;
 
-        ASSERT_EQ(8u, out_vec.size());
+        ASSERT_EQ(1u, out_vec.size());
     };
 
     api::ExecuteLocalTests(start_func);
