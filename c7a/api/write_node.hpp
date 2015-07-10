@@ -41,7 +41,7 @@ public:
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(context_.get_data_manager().
+          emit_(context_.data_manager().
                 template GetOutputLineEmitter<std::string>(file_))
     {
         sLOG << "Creating write node.";
@@ -100,7 +100,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
               ValueType, Stack, WriteFunction>;
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(node_->get_context(),
+        std::make_shared<WriteResultNode>(node_->context(),
                                           node_.get(),
                                           local_stack_,
                                           write_function,
