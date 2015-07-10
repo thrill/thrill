@@ -46,12 +46,12 @@ public:
      * \param lop_stack Function chain with all lambdas between the parent and this node
      */
     LOpNode(Context& ctx,
-            DIANode<ParentInput>* parent,
+            std::shared_ptr<DIANode<ParentInput>> parent,
             ParentStack& lop_stack)
         : DIANode<ValueType>(ctx, { parent })
     { 
         auto save_fn = [=](ValueType input) {
-                            for (auto func : Super::callbacks_) {
+                            for (std::function<void(ValueType)> func : Super::callbacks_) {
                                 func(input);
                             }
                         };
@@ -64,6 +64,7 @@ public:
 
     /*!
      * Pushes elements to next node.
+     * Can be skipped for LOps.
      */
     void Execute() override { }
 

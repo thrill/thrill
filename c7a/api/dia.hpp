@@ -68,7 +68,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
+    using DIANodePtr = std::shared_ptr<DIANode<StackInput>>;
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -122,8 +122,8 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<ValueType> * get_node() const {
-        return node_.get();
+    std::shared_ptr<DIANode<ValueType>> get_node() const {
+        return node_;
     }
 
     /*!

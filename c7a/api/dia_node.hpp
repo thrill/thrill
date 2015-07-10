@@ -51,7 +51,8 @@ public:
      * \param parents Reference to parents of this node, which have to be
      * computed previously
      */
-    DIANode(Context& ctx, const DIABaseVector& parents)
+    DIANode(Context& ctx, 
+            const std::vector<std::shared_ptr<DIABase>>& parents)
         : DIABase(ctx, parents)
     { }
 
