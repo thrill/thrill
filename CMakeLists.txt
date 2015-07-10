@@ -28,6 +28,8 @@ option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 
+option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
@@ -140,9 +142,12 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
 # try to find Intel TBB (optional)
 
-find_package(TBB)
+if(USE_TBB)
+  find_package(TBB)
+endif()
+
 if(NOT TBB_FOUND)
-  message(STATUS "Intel TBB not found. No proble, using slower replacements.")
+  message(STATUS "Intel TBB not found. No problem, using slower replacements.")
   add_definitions(-DHAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
   include_directories(${TBB_INCLUDE_DIRS})

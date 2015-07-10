@@ -26,21 +26,24 @@ TEST(ThreadPool1, LoopUntilEmpty) {
 
     ThreadPool pool(8);
 
-    for (size_t i = 0; i != job_num; ++i) {
-        pool.Enqueue(
-            [i, &result1, &result2, &pool]() {
-                // set flag
-                result1[i] = 1 + i;
+    for (size_t r = 0; r != 16; ++r) {
 
-                // enqueue more work: how to call this lambda again?
-                pool.Enqueue(
-                    [i, &result2]() {
-                        result2[i] = 2 + i;
-                    });
-            });
+        for (size_t i = 0; i != job_num; ++i) {
+            pool.Enqueue(
+                [i, &result1, &result2, &pool]() {
+                    // set flag
+                    result1[i] = 1 + i;
+
+                    // enqueue more work: how to call this lambda again?
+                    pool.Enqueue(
+                        [i, &result2]() {
+                            result2[i] = 2 + i;
+                        });
+                });
+        }
+
+        pool.LoopUntilEmpty();
     }
-
-    pool.LoopUntilEmpty();
 
     // check that the threads have run
     for (size_t i = 0; i != job_num; ++i) {
@@ -50,7 +53,8 @@ TEST(ThreadPool1, LoopUntilEmpty) {
 }
 
 // obfuscated gtest magic to run test with two parameters
-class ThreadPool2 : public::testing::TestWithParam<int> { };
+class ThreadPool2 : public::testing::TestWithParam<int>
+{ };
 
 TEST_P(ThreadPool2, LoopUntilTerminate) {
     static const bool debug = false;

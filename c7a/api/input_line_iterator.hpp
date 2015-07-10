@@ -12,12 +12,12 @@
 #ifndef C7A_API_INPUT_LINE_ITERATOR_HEADER
 #define C7A_API_INPUT_LINE_ITERATOR_HEADER
 
+#include <c7a/data/serializer.hpp>
+
 #include <stdio.h>
 #include <string>
 #include <fstream>
 #include <iostream>
-
-#include <c7a/data/serializer.hpp>
 
 namespace c7a {
 

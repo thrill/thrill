@@ -66,12 +66,12 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void Execute() {
+    void Execute() override {
 
         LOG << "GENERATING data with id " << this->data_id_;
 
         using InputArgument
-            = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
+                  = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
 
         static_assert(std::is_same<InputArgument, const size_t&>::value, "The GeneratorFunction needs an unsigned integer as input parameter");
 
@@ -126,10 +126,10 @@ template <typename GeneratorFunction>
 auto Generate(Context & ctx,
               const GeneratorFunction &generator_function,
               size_t size) {
-    
+
     using GeneratorResult =
               typename common::FunctionTraits<GeneratorFunction>::result_type;
-    
+
     using GenerateResultNode =
               GenerateNode<GeneratorResult, GeneratorFunction>;
 

@@ -13,8 +13,11 @@
 #include <c7a/net/flow_control_channel.hpp>
 
 namespace c7a {
-namespace net { } // namespace net
+namespace net {
+
+// TODO
 
 } // namespace net
+} // namespace c7a
 
 /******************************************************************************/

@@ -69,7 +69,7 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void Execute() {
+    void Execute() override {
 
         LOG << "GENERATING data with id " << this->data_id_;
 
@@ -145,10 +145,10 @@ template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
                       size_t size) {
-    
+
     using GeneratorResult =
               typename common::FunctionTraits<GeneratorFunction>::result_type;
-    
+
     using GenerateResultNode =
               GenerateFileNode<GeneratorResult, GeneratorFunction>;
 

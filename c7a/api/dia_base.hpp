@@ -14,11 +14,12 @@
 #ifndef C7A_API_DIA_BASE_HEADER
 #define C7A_API_DIA_BASE_HEADER
 
+#include <c7a/api/context.hpp>
+#include <c7a/api/types.hpp>
+#include <c7a/data/manager.hpp>
+
 #include <vector>
 #include <string>
-#include "context.hpp"
-#include "types.hpp"
-#include <c7a/data/manager.hpp>
 
 namespace c7a {
 namespace api {
@@ -70,7 +71,7 @@ public:
      */
     DIABase(Context& ctx, const DIABaseVector& parents)
         : context_(ctx), parents_(parents),
-          data_id_(ctx.get_data_manager().AllocateDIA()) {
+          data_id_(ctx.data_manager().AllocateDIA()) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -85,33 +86,33 @@ public:
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
-    //! Returns the childs of this DIABase.
-    //! \return A vector of all childs
-    const DIABaseVector & get_childs() {
-        return childs_;
+    //! Returns the children of this DIABase.
+    //! \return A vector of all children
+    const DIABaseVector & children() {
+        return children_;
     }
 
     //! Returns the parents of this DIABase.
     //! \return A vector of all parents
-    const DIABaseVector & get_parents() {
+    const DIABaseVector & parents() {
         return parents_;
     }
 
     //! Returns the data::Manager of this DIABase.
     //! \return The data::Manager of this DIABase.
-    Context & get_context() {
+    Context & context() {
         return context_;
     }
 
-    //! Adds a child to the vector of childs. This method is called in the constructor.
+    //! Adds a child to the vector of children. This method is called in the constructor.
     //! \param child The child to add.
     void add_child(DIABasePtr child) {
-        childs_.push_back(child);
+        children_.push_back(child);
     }
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId get_data_id() {
+    data::DIAId data_id() {
         return data_id_;
     }
 
@@ -145,8 +146,8 @@ protected:
 
     //! Context, which can give iterators to data.
     Context& context_;
-    //! Childs and parents of this DIABase.
-    DIABaseVector childs_, parents_;
+    //! Children and parents of this DIABase.
+    DIABaseVector children_, parents_;
     //! Unique ID of this DIABase. Used by the data::Manager.
     data::DIAId data_id_;
 };

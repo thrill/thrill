@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_FUNCTION_TRAITS_HEADER
-#define C7A_API_FUNCTION_TRAITS_HEADER
+#ifndef C7A_COMMON_FUNCTION_TRAITS_HEADER
+#define C7A_COMMON_FUNCTION_TRAITS_HEADER
 
 #include <tuple>
 
@@ -42,6 +42,6 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_API_FUNCTION_TRAITS_HEADER
+#endif // !C7A_COMMON_FUNCTION_TRAITS_HEADER
 
 /******************************************************************************/

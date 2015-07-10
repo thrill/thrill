@@ -481,9 +481,9 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ((size_t) 0, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionSize(i));
     }
-    ASSERT_EQ((size_t) 0, table.Size());
+    ASSERT_EQ(0u, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = manager.GetIterator<IntIntPair>(ids[i]);
@@ -517,7 +517,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
                                      Emitter<IntIntPair> >
-    table(1, 2, 2, 1, nitems, 2.0f, nitems, key_ex, red_fn, {emitters},
+    table(1, 2, 2, 1, nitems, 2.0f, nitems, key_ex, red_fn, { emitters },
           std::pair<int, IntIntPair>(-1, std::pair<int, int>(-1, -1)));
 
     // insert lots of items
