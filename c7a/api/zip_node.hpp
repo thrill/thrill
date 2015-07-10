@@ -118,11 +118,11 @@ public:
 
         // Setup Emitters
         for (size_t i = 0; i < num_dias_; ++i) {
-            id_[i] = context_.get_data_manager().AllocateDIA();
+            id_[i] = context_.data_manager().AllocateDIA();
         }
-        emit1_ = context_.get_data_manager().
+        emit1_ = context_.data_manager().
                 template GetLocalEmitter<ZipArg0>(id_[0]);
-        emit2_ = context_.get_data_manager().
+        emit2_ = context_.data_manager().
                 template GetLocalEmitter<ZipArg1>(id_[1]);
     }
 
@@ -133,9 +133,9 @@ public:
     void Execute() override {
         MainOp();
         // get data from data manager
-        auto it1 = context_.get_data_manager().
+        auto it1 = context_.data_manager().
                 template GetIterator<ZipArg0>(id_[0]);
-        auto it2 = context_.get_data_manager().
+        auto it2 = context_.data_manager().
                 template GetIterator<ZipArg1>(id_[1]);
         do {
             it1.WaitForMore();
@@ -187,9 +187,9 @@ private:
     //!Receive elements from other workers.
     void MainOp() {
         //net::Group flow_group = context_.get_flow_net_group();
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+        net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        data::Manager &data_manager = context_.get_data_manager();
+        data::Manager &data_manager = context_.data_manager();
         size_t workers = context_.number_worker();
 
         // Offsets to declare which target gets which block
@@ -246,7 +246,7 @@ auto DIARef<CurrentType, Stack>::Zip(
             ZipFunction>;
 
     auto zip_node
-        = std::make_shared<ZipResultNode>(node_->get_context(),
+        = std::make_shared<ZipResultNode>(node_->context(),
                                           node_,
                                           second_dia.get_node(),
                                           local_stack_,
