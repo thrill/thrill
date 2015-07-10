@@ -56,8 +56,9 @@ public:
             DIABase* curr = dia_stack.top();
             dia_stack.pop();
             stages_result.emplace_back(Stage(curr));
-            const std::vector<DIABase*> parents = curr->parents();
-            for (DIABase* p : parents) {
+            const auto parents = curr->parents();
+            for (size_t i = 0; i < parents.size(); ++i) {
+                auto p = parents[i].get();
                 // if p is not a nullpointer and p is not cached mark it and save stage
                 if (p && (stages_found.find(p) == stages_found.end()) && p->state() != c7a::api::CACHED) {
                     dia_stack.push(p);

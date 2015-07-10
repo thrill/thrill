@@ -43,7 +43,7 @@ public:
      * computed previously
      */
     DOpNode(Context& ctx,
-            const DIABaseVector& parents)
+            const std::vector<std::shared_ptr<DIABase>>& parents)
         : DIANode<ValueType>(ctx, parents) { }
 
     //! Virtual destructor for a DIANode.
