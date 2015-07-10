@@ -116,7 +116,7 @@ public:
     __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
                             "Consider whether you can use auto instead of DIARef.")))
 #endif
-        ;
+    ;
 
     /*!
      * Returns a pointer to the according DIANode.
@@ -319,7 +319,6 @@ public:
      * Size is an Action, which computes the size of all elements in all workers.
      */
     size_t Size();
-
 
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.
