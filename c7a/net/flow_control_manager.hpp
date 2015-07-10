@@ -44,13 +44,14 @@ public:
      * @brief Initializes a certain count of flow control channels.
      *
      * @param group The net group to use for initialization.
-     * @param threadCount The count of threads to spawn flow channels for.
+     * @param local_worker_count The count of threads to spawn flow channels for.
      *
      */
-    explicit FlowControlChannelManager(net::Group& group, int threadCount) : barrier(threadCount), shmem(NULL) {
+    explicit FlowControlChannelManager(net::Group& group, int local_worker_count)
+        : barrier(local_worker_count), shmem(NULL) {
 
-        for (int i = 0; i < threadCount; i++) {
-            channels.emplace_back(group, i, threadCount, barrier, &shmem);
+        for (int i = 0; i < local_worker_count; i++) {
+            channels.emplace_back(group, i, local_worker_count, barrier, &shmem);
         }
     }
 

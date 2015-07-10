@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -12,15 +13,16 @@
 #ifndef C7A_API_BOOTSTRAP_HEADER
 #define C7A_API_BOOTSTRAP_HEADER
 
-#include <tuple>
-#include <thread>
-#include <atomic>
-
 #include <c7a/api/context.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
+
+#include <tuple>
+#include <thread>
+#include <atomic>
+#include <random>
 
 namespace c7a {
 namespace api {
@@ -80,59 +82,69 @@ ParseArgs(int argc, char* const* argv) {
 static inline int Execute(
     int argc, char* const* argv,
     std::function<int(Context&)> job_startpoint,
-    int thread_count = 1, const std::string& log_prefix = "") {
+    size_t local_worker_count = 1, const std::string& log_prefix = "") {
 
-    //!True if program time should be taken and printed
-
+    // true if program time should be taken and printed
     static const bool debug = false;
 
     size_t my_rank;
     std::vector<std::string> endpoints;
-    int result = 0;
-    std::tie(result, my_rank, endpoints) = ParseArgs(argc, argv);
-    if (result != 0)
+    int global_result = 0;
+    std::tie(global_result, my_rank, endpoints) = ParseArgs(argc, argv);
+    if (global_result != 0)
         return -1;
 
     if (my_rank >= endpoints.size()) {
-        std::cerr << "endpoint list (" <<
-            endpoints.size() <<
-            " entries) does not include my rank (" <<
-            my_rank << ")" << std::endl;
+        std::cerr << "endpoint list (" << endpoints.size() << " entries) "
+                  << "does not include my rank (" << my_rank << ")"
+                  << std::endl;
         return -1;
     }
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
-    for (const auto& ep : endpoints)
+    for (const std::string& ep : endpoints)
         LOG << ep << " ";
 
+    // construct node global objects: net::Manager, data::Manager, etc.
+
     core::JobManager jobMan(log_prefix);
-    jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints), thread_count);
+    jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints),
+                   local_worker_count);
 
-    std::vector<std::thread*> threads(thread_count);
-    std::vector<std::atomic<int> > atomic_results(thread_count);
+    // launch initial thread for each of the workers on this node.
 
-    for (int i = 0; i < thread_count; i++) {
-        threads[i] = new std::thread(
-            [&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
+    std::vector<std::thread> threads(local_worker_count);
+    std::vector<std::atomic<int> > results(local_worker_count);
+
+    for (size_t i = 0; i < local_worker_count; i++) {
+        threads[i] = std::thread(
+            [&jobMan, &results, &job_startpoint, i, log_prefix] {
                 Context ctx(jobMan, i);
-                common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
-                LOG << "connecting to peers";
-                LOG << "Starting job on Worker " << ctx.rank();
-                auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+                common::ThreadDirectory.NameThisThread(
+                    log_prefix + " worker " + std::to_string(i));
+
+                LOG << "Starting job on worker " << ctx.rank();
+                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+                // TODO: this cannot be correct, the job needs to know which
+                // worker number it is on the node.
                 int job_result = job_startpoint(ctx);
                 overall_timer->Stop();
                 LOG << "Worker " << ctx.rank() << " done!";
-                atomic_results[i] = job_result;
-                jobMan.get_flow_manager().GetFlowControlChannel(0).await();
+
+                results[i] = job_result;
+                jobMan.flow_manager().GetFlowControlChannel(0).await();
             });
     }
-    for (int i = 0; i < thread_count; i++) {
-        threads[i]->join();
-        delete threads[i];
-        if (atomic_results[i] != 0 && result == 0)
-            result = atomic_results[i];
+
+    // join worker threads
+
+    for (size_t i = 0; i < local_worker_count; i++) {
+        threads[i].join();
+        if (results[i] != 0 && global_result == 0)
+            global_result = results[i];
     }
-    return result;
+
+    return global_result;
 }
 
 /*!
@@ -140,12 +152,12 @@ static inline int Execute(
  * still communicate via TCP sockets.
  */
 static inline void
-ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
+ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
                     std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
     std::vector<std::vector<std::string> > strargs(workers);
-    std::vector<std::vector<char*>> args(workers);
+    std::vector<std::vector<char*> > args(workers);
 
     for (size_t i = 0; i < workers; i++) {
 
@@ -166,9 +178,9 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
 
         std::function<int(Context&)> intReturningFunction =
             [job_startpoint](Context& ctx) {
-            job_startpoint(ctx);
-            return 1;
-        };
+                job_startpoint(ctx);
+                return 1;
+            };
 
         threads[i] = std::thread(
             [=]() {
@@ -187,12 +199,78 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
  * numbers of local workers as independent threads.
  */
 static inline void
-ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
+ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint) {
 
-    static const size_t port_base = 8080;
+    // randomize base port number for test
+    std::random_device random_device;
+    std::default_random_engine generator(random_device());
+    std::uniform_int_distribution<int> distribution(10000, 30000);
+    const size_t port_base = distribution(generator);
 
-    for (size_t workers = 1; workers <= 8; ++workers) {
-        ExecuteLocalThreads(workers, port_base, job_startpoint);
+    for (size_t workers = 1; workers <= 8; workers *= 2) {
+        ExecuteLocalThreadsTCP(workers, port_base, job_startpoint);
+    }
+}
+
+/*!
+ * Function to run a number of mock compute nodes as locally independent
+ * threads, which communicate via internal stream sockets.
+ */
+static inline void
+ExecuteLocalMock(size_t node_count, size_t local_worker_count,
+                 std::function<void(core::JobManager&, size_t)> job_startpoint) {
+
+    // construct a mock mesh network of JobManagers
+    std::vector<core::JobManager> jm_mesh
+        = core::JobManager::ConstructLocalMesh(node_count, local_worker_count);
+
+    // launch initial thread for each compute node.
+
+    std::vector<std::thread> threads(node_count);
+    for (size_t n = 0; n < node_count; n++) {
+        threads[n] = std::thread(
+            [&jm_mesh, n, job_startpoint] {
+                job_startpoint(jm_mesh[n], n);
+            });
+    }
+
+    // join compute node threads
+    for (size_t i = 0; i < node_count; i++) {
+        threads[i].join();
+    }
+
+    // tear down mock mesh of JobManagers
+    // TODO(tb): ???
+}
+
+/*!
+ * Helper Function to execute tests using mock networks in test suite for many
+ * different numbers of node and workers as independent threads in one program.
+ */
+static inline void
+ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
+                  const std::string& log_prefix = "") {
+
+    static const bool debug = false;
+
+    for (size_t nodes = 1; nodes <= 8; ++nodes) {
+
+        ExecuteLocalMock(
+            nodes, 1,
+            [job_startpoint, log_prefix](core::JobManager& jm, size_t node_id) {
+
+                Context ctx(jm, 0);
+                common::ThreadDirectory.NameThisThread(
+                    log_prefix + " node " + std::to_string(node_id));
+
+                LOG << "Starting node " << node_id;
+                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+                job_startpoint(ctx);
+                overall_timer->Stop();
+                LOG << "Worker " << node_id << " done!";
+
+                jm.flow_manager().GetFlowControlChannel(0).await();
+            });
     }
 }
 

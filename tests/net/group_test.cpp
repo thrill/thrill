@@ -158,10 +158,10 @@ static void RealGroupConstructAndCall(
     // randomize base port number for test
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
+    std::uniform_int_distribution<int> distribution(10000, 30000);
     const size_t port_base = distribution(generator);
 
-    static const std::vector<Endpoint> endpoints = {
+    std::vector<Endpoint> endpoints = {
         Endpoint("127.0.0.1:" + std::to_string(port_base + 0)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 1)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 2)),
@@ -172,7 +172,7 @@ static void RealGroupConstructAndCall(
 
     sLOG1 << "Group test uses ports " << port_base << "-" << port_base + 5;
 
-    static const int count = endpoints.size();
+    const int count = endpoints.size();
 
     std::vector<std::thread> threads(count);
 
@@ -182,7 +182,7 @@ static void RealGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [i, &thread_function, &groups]() {
+            [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
                 groups[i].Initialize(i, endpoints);
                 // run thread function
@@ -192,6 +192,9 @@ static void RealGroupConstructAndCall(
 
     for (int i = 0; i < count; i++) {
         threads[i].join();
+    }
+    for (int i = 0; i < count; i++) {
+        groups[i].Close();
     }
 }
 
@@ -236,11 +239,6 @@ TEST(Group, RealSendCyclic) {
 TEST(Group, InitializeAndClose) {
     // Construct a Group of 6 workers which do nothing but terminate.
     Group::ExecuteLocalMock(6, [](Group*) { });
-}
-
-TEST(Manager, InitializeAndClose) {
-    // Construct a Group of 6 workers which do nothing but terminate.
-    Manager::ExecuteLocalMock(6, [](Group*) { }, [](Group*) { }, [](Group*) { });
 }
 
 TEST(Group, InitializeSendReceive) {
