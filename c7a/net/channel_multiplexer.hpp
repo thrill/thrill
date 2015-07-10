@@ -138,7 +138,7 @@ public:
     //!/param target id of the channel that will hold the resulting data. This
     //               channel must be created with CreateOrderPreservingChannel.
     //               Make sure *all* workers allocated this channel *before* any
-    //               worker sends dataa
+    //               worker sends data
     //!/param offsets - as described above. offsets.size must be equal to group.size
     template <class T>
     void Scatter(const std::shared_ptr<data::BufferChain>& source, const ChannelId target, std::vector<size_t> offsets) {
