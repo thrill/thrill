@@ -81,7 +81,7 @@ ParseArgs(int argc, char* const* argv) {
 static inline int Execute(
     int argc, char* const* argv,
     std::function<int(Context&)> job_startpoint,
-    int thread_count = 1, const std::string& log_prefix = "") {
+    size_t thread_count = 1, const std::string& log_prefix = "") {
 
     //!True if program time should be taken and printed
 
@@ -109,11 +109,11 @@ static inline int Execute(
     core::JobManager jobMan(log_prefix);
     jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints), thread_count);
 
-    std::vector<std::thread*> threads(thread_count);
+    std::vector<std::thread> threads(thread_count);
     std::vector<std::atomic<int> > atomic_results(thread_count);
 
-    for (int i = 0; i < thread_count; i++) {
-        threads[i] = new std::thread(
+    for (size_t i = 0; i < thread_count; i++) {
+        threads[i] = std::thread(
             [&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
                 Context ctx(jobMan, i);
                 common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
@@ -127,9 +127,8 @@ static inline int Execute(
                 jobMan.get_flow_manager().GetFlowControlChannel(0).await();
             });
     }
-    for (int i = 0; i < thread_count; i++) {
-        threads[i]->join();
-        delete threads[i];
+    for (size_t i = 0; i < thread_count; i++) {
+        threads[i].join();
         if (atomic_results[i] != 0 && result == 0)
             result = atomic_results[i];
     }

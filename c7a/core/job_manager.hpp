@@ -28,11 +28,13 @@ public:
           net_dispatcher_(log_prefix + " dm-disp"),
           data_manager_(net_dispatcher_) { }
 
-    bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints, int thread_count = 1) {
+    bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints,
+                 size_t thread_count = 1) {
         thread_count_ = thread_count;
         net_manager_.Initialize(my_rank, endpoints);
         data_manager_.Connect(&net_manager_.GetDataGroup());
-        flow_manager_ = new net::FlowControlChannelManager(net_manager_.GetFlowGroup(), thread_count);
+        flow_manager_ = new net::FlowControlChannelManager(
+            net_manager_.GetFlowGroup(), thread_count);
         //TODO(??) connect control flow and system control channels here
         return true;
     }
@@ -49,7 +51,7 @@ public:
         return *flow_manager_;
     }
 
-    int get_thread_count() {
+    size_t get_thread_count() {
         return thread_count_;
     }
 
@@ -65,7 +67,8 @@ private:
     net::DispatcherThread net_dispatcher_;
     data::Manager data_manager_;
     const static bool debug = false;
-    int thread_count_;
+    //! number of processing threads in this worker
+    size_t thread_count_;
 };
 
 } // namespace core
