@@ -42,9 +42,7 @@ public:
         : ActionNode(ctx, { parent })
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](ValueType input) {
-                             PreOp(input);
-                         };
+        auto pre_op_fn = [=]() {};
 
         auto lop_chain = parent_stack.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
@@ -79,15 +77,15 @@ private:
     // Global size resulting from all reduce.
     size_t global_size = 0;
 
-    void PreOp(ValueType input) { }
+    void PreOp() { }
 
     void MainOp() {
         // get the number of elements that are stored on this worker
-        data::Manager& manager = context_.get_data_manager();
+        data::Manager& manager = context_.data_manager();
         local_size = manager.GetNumElements(manager.AllocateDIA());
 
         LOG << "MainOp processing";
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         // process the reduce
         global_size = channel.AllReduce(local_size, [](size_t in1, size_t in2) {
@@ -99,12 +97,12 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Size() {
+size_t DIARef<ValueType, Stack>::Size() {
     using SizeResultNode
               = SizeNode<ValueType, Stack>;
 
     auto shared_node
-        = std::make_shared<SizeResultNode>(node_->get_context(),
+        = std::make_shared<SizeResultNode>(node_->context(),
                                            node_,
                                            local_stack_);
 
