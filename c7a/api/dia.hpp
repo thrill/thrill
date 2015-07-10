@@ -49,7 +49,7 @@ namespace api {
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType, typename Stack>
+template <typename ValueType, typename Stack = FunctionStack<ValueType>>
 class DIARef
 {
     friend class Context;
@@ -110,18 +110,19 @@ public:
      */
     template <typename AnyStack>
     DIARef(const DIARef<ValueType, AnyStack>& rhs)
-    __attribute__ ((deprecated))
 #if __GNUC__ && !__clang__
-    // the attribute warning does not work with gcc?
-    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                            "Consider whether you can use auto instead of DIARef.")))
+        // the attribute warning does not work with gcc?
+        __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                                "Consider whether you can use auto instead of DIARef.")))
+#else
+        __attribute__ ((deprecated))
 #endif
     ;
 
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIABase * get_node() const {
+    DIANode<ValueType> * get_node() const {
         return node_.get();
     }
 
@@ -352,33 +353,6 @@ public:
         return node_->ToString();
     }
 
-    /*!
-     * Prints the DIANode and all it's children recursively. The printing is
-     * performed tree-style.
-     */
-    void PrintNodes() {
-        using BasePair = std::pair<DIABase*, int>;
-        std::stack<BasePair> dia_stack;
-        dia_stack.push(std::make_pair(node_, 0));
-        while (!dia_stack.empty()) {
-            auto curr = dia_stack.top();
-            auto node = curr.first;
-            int depth = curr.second;
-            dia_stack.pop();
-            auto is_end = true;
-            if (!dia_stack.empty()) is_end = dia_stack.top().second < depth;
-            for (int i = 0; i < depth - 1; ++i) {
-                std::cout << "│   ";
-            }
-            if (is_end && depth > 0) std::cout << "└── ";
-            else if (depth > 0) std::cout << "├── ";
-            std::cout << node->ToString() << std::endl;
-            for (auto c : node->children()) {
-                dia_stack.push(std::make_pair(c, depth + 1));
-            }
-        }
-    }
-
 private:
     //! The DIANode which DIARef points to. The node represents the latest DOp
     //! or Action performed previously.
@@ -392,12 +366,11 @@ private:
 template <typename ValueType, typename Stack>
 template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
-    // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
+    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    auto rhs_node = std::move(rhs.node());
-    auto rhs_stack = rhs.stack();
-    using AnyStackInput = typename AnyStack::Input;
-    using LOpChainNode = LOpNode<AnyStackInput, AnyStack>;
+    auto rhs_node = std::move(rhs.get_node());
+    auto rhs_stack = rhs.get_stack();
+    using LOpChainNode = LOpNode<ValueType, AnyStack>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -407,7 +380,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);
-    local_stack_ = FunctionStack<AnyStackInput>();
+    local_stack_ = MakeEmptyStack<ValueType>();
 }
 
 /*!

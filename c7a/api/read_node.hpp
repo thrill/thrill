@@ -99,12 +99,7 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
-                         return emit_func(t);
-                     };
-
-        return MakeFunctionStack<ValueType>(id_fn);
+        return MakeEmptyStack<ValueType>();
     }
 
     /*!

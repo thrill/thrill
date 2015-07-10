@@ -153,9 +153,9 @@ public:
             //Master allocate memory.
             localPrefixBuffer[threadId] = value;
             SetLocalShared(&localPrefixBuffer);
-            barrier.await();
+            barrier.Await();
             //Slave store values.
-            barrier.await();
+            barrier.Await();
 
             //Global Prefix
 
@@ -176,21 +176,21 @@ public:
                 SendTo(id + 1, res);
             }
 
-            barrier.await();
+            barrier.Await();
             //Slave get result
-            barrier.await();
+            barrier.Await();
             ClearLocalShared();
 
             res = localPrefixBuffer[threadId];
         }
         else {
             //Master allocate memory.
-            barrier.await();
+            barrier.Await();
             //Slave store values.
             (*GetLocalShared<std::vector<T> >())[threadId] = value;
-            barrier.await();
+            barrier.Await();
             //Global Prefix
-            barrier.await();
+            barrier.Await();
             //Slave get result
             if (inclusive) {
                 res = (*GetLocalShared<std::vector<T> >())[threadId];
@@ -198,7 +198,7 @@ public:
             else {
                 res = (*GetLocalShared<std::vector<T> >())[threadId - 1];
             }
-            barrier.await();
+            barrier.Await();
         }
         if (inclusive) {
             return res;
@@ -240,11 +240,11 @@ public:
             }
         }
 
-        barrier.await();
+        barrier.Await();
 
         res = *GetLocalShared<T>();
 
-        barrier.await();
+        barrier.Await();
 
         if (threadId == 0) {
             ClearLocalShared();
@@ -274,9 +274,9 @@ public:
             //Master allocate memory.
             localReduceBuffer[threadId] = value;
             SetLocalShared(&localReduceBuffer);
-            barrier.await();
+            barrier.Await();
             //Slave store values.
-            barrier.await();
+            barrier.Await();
 
             //Master reduce
             for (int i = 1; i < threadCount; i++) {
@@ -304,23 +304,23 @@ public:
 
             ClearLocalShared();
             SetLocalShared(&res);
-            barrier.await();
+            barrier.Await();
             //Slave get result
-            barrier.await();
+            barrier.Await();
             ClearLocalShared();
         }
         else {
             //Master allocate memory.
-            barrier.await();
+            barrier.Await();
             //Slave store values.
             (*GetLocalShared<std::vector<T> >())[threadId] = value;
-            barrier.await();
+            barrier.Await();
             //Master Reduce
             //Global Reduce
-            barrier.await();
+            barrier.Await();
             //Slave get result
             res = *GetLocalShared<T>();
-            barrier.await();
+            barrier.Await();
         }
 
         return res;
@@ -329,7 +329,7 @@ public:
     /**
      * @brief A trivial global barrier.
      */
-    void await() {
+    void Await() {
         int i = 0;
         i = AllReduce(i);
     }
