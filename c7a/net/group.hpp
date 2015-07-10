@@ -53,6 +53,16 @@ public:
     //! \name Construction and Initialization
     //! \{
 
+    /*!
+     * Construct a mock Group vector with an underlying full mesh of local
+     * stream sockets for testing. Returns vector of net::Group interfaces for
+     * each virtual client. This is ideal for testing network communication
+     * protocols. See tests/net/test-net-group.cpp for examples.
+     *
+     * @param num_clients The number of clients in the mesh.
+     */
+    static std::vector<Group> ConstructLocalMesh(size_t num_clients);
+
     //! Construct a mock Group using a complete graph of local stream sockets
     //! for testing, and starts a thread for each client, which gets passed the
     //! Group object. This is ideal for testing network communication
