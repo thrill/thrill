@@ -53,7 +53,7 @@ enum ConnectionState {
  */
 class Connection : protected lowlevel::Socket
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     static const bool self_verify_ = true;
 
