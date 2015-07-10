@@ -32,7 +32,7 @@ namespace net {
  */
 class Manager
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     /**
