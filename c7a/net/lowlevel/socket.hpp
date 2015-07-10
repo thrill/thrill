@@ -46,7 +46,7 @@ namespace lowlevel {
  */
 class Socket
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     //! \name Creation
@@ -112,7 +112,7 @@ public:
 
     //! Query socket for its current error state.
     int GetError() const {
-        int socket_error;
+        int socket_error = -1;
         socklen_t len = sizeof(socket_error);
         getsockopt(SOL_SOCKET, SO_ERROR, &socket_error, &len);
         return socket_error;

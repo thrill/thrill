@@ -43,18 +43,18 @@ public:
 
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
-    data::Manager & get_data_manager() {
+    data::Manager & data_manager() {
         if (local_worker_id_ != 0)
         {
             //TODO (ts)
             assert(false && "Data Manager does not support multi-threading at the moment.");
         }
-        return job_manager_.get_data_manager();
+        return job_manager_.data_manager();
     }
 
     // This is forbidden now. Muha. >) (ej)
-    //net::Group & get_flow_net_group() {
-    //   return job_manager_.get_net_manager().GetFlowGroup();
+    //net::Group & flow_net_group() {
+    //   return job_manager_.net_manager().GetFlowGroup();
     //}
 
     /**
@@ -62,30 +62,30 @@ public:
      *
      * @return The flow control channel associated with the given ID.
      */
-    net::FlowControlChannel & get_flow_control_channel() {
-        return job_manager_.get_flow_manager().GetFlowControlChannel(local_worker_id_);
+    net::FlowControlChannel & flow_control_channel() {
+        return job_manager_.flow_manager().GetFlowControlChannel(local_worker_id_);
     }
 
     //! Returns the total number of workers.
     size_t number_worker() {
-        return job_manager_.get_net_manager().Size();
+        return job_manager_.net_manager().Size();
     }
 
-    //!Returns the rank of this worker. Between 0 and number_worker() - 1
+    //! Returns the rank of this worker. Between 0 and number_worker() - 1
     size_t rank() {
-        return job_manager_.get_net_manager().MyRank();
+        return job_manager_.net_manager().MyRank();
     }
 
-    common::Stats & get_stats() {
+    common::Stats & stats() {
         return stats_;
     }
 
-    int get_local_worker_id() {
+    int local_worker_id() {
         return local_worker_id_;
     }
 
-    int get_local_worker_count() {
-        return job_manager_.get_local_worker_count();
+    int local_worker_count() {
+        return job_manager_.local_worker_count();
     }
 
 private:

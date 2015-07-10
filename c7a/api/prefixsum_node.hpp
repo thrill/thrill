@@ -38,7 +38,7 @@ class PrefixSumNode : public DOpNode<ValueType>
 
 public:
     PrefixSumNode(Context& ctx,
-                  DIANode<ParentInput>* parent,
+                  std::shared_ptr<DIANode<ParentInput>> parent,
                   ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
@@ -105,7 +105,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         ValueType prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
@@ -133,8 +133,8 @@ auto DIARef<ValueType, Stack>::PrefixSum(
               = PrefixSumNode<ValueType, Stack, SumFunction>;
 
     auto shared_node
-        = std::make_shared<SumResultNode>(node_->get_context(),
-                                          node_.get(),
+        = std::make_shared<SumResultNode>(node_->context(),
+                                          node_,
                                           local_stack_,
                                           sum_function,
                                           neutral_element);
