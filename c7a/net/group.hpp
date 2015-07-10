@@ -96,6 +96,23 @@ public:
     //! non-copyable: delete assignment operator
     Group& operator = (const Group&) = delete;
 
+    //! move-constructor
+    Group(Group&& other)
+        : my_rank_(std::move(other.my_rank_)),
+          connections_(std::move(other.connections_)),
+          listener_(std::move(other.listener_))
+    { }
+
+    //! move-assignment, only allowed if this Group is uninitialized.
+    Group& operator = (Group&& other) {
+        assert(this != &other);
+        assert(my_rank_ == ClientId(-1));
+
+        my_rank_ = std::move(other.my_rank_);
+        connections_ = std::move(other.connections_);
+        listener_ = std::move(other.listener_);
+    }
+
     //! \name Status and Access to NetConnections
     //! \{
 
@@ -109,8 +126,9 @@ public:
             throw Exception("Group::Connection() requested "
                             "connection to self.");
 
+        // return Connection to client id.
         return connections_[id];
-    }       //! Return Connection to client id.
+    }
 
     /**
      * @brief Assigns a connection to this net group.
@@ -297,7 +315,7 @@ public:
      * @param data The string to send.
      */
     void SendStringTo(ClientId dest, const std::string& data) {
-        this->connection(dest).SendString(data);
+        connection(dest).SendString(data);
     }
 
     /**
@@ -308,7 +326,7 @@ public:
      * @param data A pointer to the string where the received string should be stored.
      */
     void ReceiveStringFrom(ClientId src, std::string* data) {
-        this->connection(src).ReceiveString(data);
+        connection(src).ReceiveString(data);
     }
 
     /**
@@ -320,7 +338,7 @@ public:
      */
     template <typename T>
     void SendTo(ClientId dest, const T& data) {
-        this->connection(dest).Send(data);
+        connection(dest).Send(data);
     }
 
     /**
@@ -332,7 +350,7 @@ public:
      */
     template <typename T>
     void ReceiveFrom(ClientId src, T* data) {
-        this->connection(src).Receive(data);
+        connection(src).Receive(data);
     }
 
     /**
