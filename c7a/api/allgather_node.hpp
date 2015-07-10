@@ -37,15 +37,15 @@ public:
 
     AllGatherNode(Context& ctx,
                   //TODO(??) don't we need to pass shared ptrs for the ref counting?
-                  DIANode<ParentInput>* parent,
+                  std::shared_ptr<DIANode<ParentInput>> parent,
                   ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )
         : ActionNode(ctx, { parent }),
           out_vector_(out_vector),
-          channel_used_(ctx.get_data_manager().AllocateNetworkChannel())
+          channel_used_(ctx.data_manager().AllocateNetworkChannel())
     {
-        emitters_ = context_.get_data_manager().
+        emitters_ = context_.data_manager().
                     template GetNetworkEmitters<ValueType>(channel_used_);
 
         auto pre_op_function = [=](ValueType input) {
@@ -73,7 +73,7 @@ public:
             emitters_[i].Close();
         }
 
-        auto it = context_.get_data_manager().template GetIterator<ValueType>(channel_used_);
+        auto it = context_.data_manager().template GetIterator<ValueType>(channel_used_);
 
         do {
             it.WaitForMore();
@@ -107,8 +107,8 @@ void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
     using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(node_->get_context(),
-                                              node_.get(),
+        std::make_shared<AllGatherResultNode>(node_->context(),
+                                              node_,
                                               local_stack_,
                                               out_vector);
 

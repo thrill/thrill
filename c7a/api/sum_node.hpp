@@ -37,7 +37,7 @@ class SumNode : public ActionNode
 
 public:
     SumNode(Context& ctx,
-            DIANode<ParentInput>* parent,
+            std::shared_ptr<DIANode<ParentInput>> parent,
             ParentStack& parent_stack,
             SumFunction sum_function,
             ValueType neutral_element)
@@ -92,7 +92,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         // process the reduce
         global_sum_ = channel.AllReduce(local_sum_, sum_function_);
@@ -109,8 +109,8 @@ auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
               = SumNode<ValueType, Stack, SumFunction>;
 
     auto shared_node
-        = std::make_shared<SumResultNode>(node_->get_context(),
-                                          node_.get(),
+        = std::make_shared<SumResultNode>(node_->context(),
+                                          node_,
                                           local_stack_,
                                           sum_function,
                                           neutral_element);
