@@ -49,7 +49,7 @@ namespace api {
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType, typename Stack = FunctionStack<ValueType>>
+template <typename ValueType, typename Stack = FunctionStack<ValueType> >
 class DIARef
 {
     friend class Context;
@@ -68,7 +68,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = std::shared_ptr<DIANode<StackInput>>;
+    using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
@@ -111,18 +111,18 @@ public:
     template <typename AnyStack>
     DIARef(const DIARef<ValueType, AnyStack>& rhs)
 #if __GNUC__ && !__clang__
-        // the attribute warning does not work with gcc?
-        __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                                "Consider whether you can use auto instead of DIARef.")))
+    // the attribute warning does not work with gcc?
+    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                            "Consider whether you can use auto instead of DIARef.")))
 #else
-        __attribute__ ((deprecated))
+    __attribute__ ((deprecated))
 #endif
     ;
 
     /*!
      * Returns a pointer to the according DIANode.
      */
-    std::shared_ptr<DIANode<ValueType>> get_node() const {
+    std::shared_ptr<DIANode<ValueType> > get_node() const {
         return node_;
     }
 

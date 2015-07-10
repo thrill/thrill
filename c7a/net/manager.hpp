@@ -253,10 +253,10 @@ private:
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
 
-        if(conn.state() != ConnectionState::Connecting) {
+        if (conn.state() != ConnectionState::Connecting) {
             LOG << "FAULTY STATE DETECTED";
             LOG << "Client " << my_rank_ << " expected connection state " << ConnectionState::Connecting <<
-            " but got " << conn.state();
+                " but got " << conn.state();
             assert(false);
         }
 
@@ -278,7 +278,7 @@ private:
 
             std::swap(conn, nc);
 
-            //Close old connection. 
+            //Close old connection.
             nc.Close();
 
             AsyncConnect(conn, address);
@@ -343,7 +343,7 @@ private:
         die_unequal(msg->c7a, c7a_sign);
         // We already know those values since we connected actively. So, check
         // for any errors.
-        if(conn.peer_id() != msg->id) {
+        if (conn.peer_id() != msg->id) {
             LOG << "FAULTY ID DETECTED";
         }
 

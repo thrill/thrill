@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/group_test.cpp
+ * tests/core/job_manager_test.cpp
  *
  * Part of Project c7a.
  *
