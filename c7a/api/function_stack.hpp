@@ -107,6 +107,9 @@ class FunctionStack
 public:
     using Input = _Input;
 
+    explicit FunctionStack()
+        : stack_(std::make_tuple()) { }
+
     template <typename Lambda> 
     explicit FunctionStack(Lambda lambda)
         : stack_(std::make_tuple(lambda)) { }
@@ -177,6 +180,11 @@ private:
 template <typename Input, typename Lambda> 
 static inline auto MakeFunctionStack(Lambda lambda) {
     return FunctionStack<Input, Lambda>(lambda);
+}
+
+template <typename Input> 
+static inline auto MakeEmptyStack() {
+    return FunctionStack<Input>();
 }
 
 } // namespace api

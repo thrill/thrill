@@ -205,4 +205,96 @@ TEST(Operations, FilterResultsCorrectly) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
+TEST(Operations, DIARefCasting) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+        auto even = [](int in) {
+            return (in % 2 == 0);
+        };
+
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return (int)index + 1;
+            },
+            16);
+
+        DIARef<int> doubled = integers.Filter(even);
+
+        std::vector<int> out_vec;
+
+        doubled.AllGather(&out_vec);
+
+        std::sort(out_vec.begin(), out_vec.end());
+
+        int i = 1;
+
+        for (int element : out_vec) {
+            std::cout << element << " ";
+            ASSERT_DOUBLE_EQ(element, (i++ *2));
+        }
+        std::cout << std::endl;
+
+        ASSERT_EQ((size_t)8, out_vec.size());
+    };
+
+    c7a::api::ExecuteLocalThreads(1, 8080, start_func);
+}
+
+TEST(Operations, WhileLoop) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+        auto even = [](int in) {
+            return (in % 2 == 0);
+        };
+
+        auto integers = Generate(
+            ctx,
+            [](const size_t& index) {
+                return (int)index + 1;
+            },
+            16);
+
+        auto flatmap_duplicate = [](int in, auto emit) {
+            emit(in);
+            emit(in);
+        };
+
+        auto modulo_two = [](int in) {
+            return (in % 2);
+        };
+
+        auto add_function = [](int in1, int in2) {
+            return in1 + in2;
+        };
+
+        DIARef<int> doubled = integers.FlatMap(flatmap_duplicate);
+
+        for (size_t i = 0; i < 10; ++i) {
+            auto evens = doubled.Filter(even);
+            auto reduced = evens.ReduceBy(modulo_two, add_function);
+            // doubled = evens.FlatMap(flatmap_duplicate);
+        }
+
+        // auto evens = doubled.Filter(even);
+
+        std::vector<int> out_vec;
+
+        doubled.AllGather(&out_vec);
+
+        std::sort(out_vec.begin(), out_vec.end());
+
+        for (int element : out_vec) std::cout << element << " ";
+        std::cout << std::endl;
+
+        ASSERT_EQ((size_t)8, out_vec.size());
+    };
+
+    c7a::api::ExecuteLocalThreads(1, 8080, start_func);
+}
+
 /******************************************************************************/
