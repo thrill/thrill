@@ -105,7 +105,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         ValueType prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
@@ -133,7 +133,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
               = PrefixSumNode<ValueType, Stack, SumFunction>;
 
     auto shared_node
-        = std::make_shared<SumResultNode>(node_->get_context(),
+        = std::make_shared<SumResultNode>(node_->context(),
                                           node_.get(),
                                           local_stack_,
                                           sum_function,

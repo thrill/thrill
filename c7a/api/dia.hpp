@@ -373,8 +373,7 @@ public:
             if (is_end && depth > 0) std::cout << "└── ";
             else if (depth > 0) std::cout << "├── ";
             std::cout << node->ToString() << std::endl;
-            auto children = node->get_childs();
-            for (auto c : children) {
+            for (auto c : node->children()) {
                 dia_stack.push(std::make_pair(c, depth + 1));
             }
         }
@@ -395,8 +394,8 @@ template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
     // DIARef with empty stack and LOpNode
-    auto rhs_node = std::move(rhs.get_node());
-    auto rhs_stack = rhs.get_stack();
+    auto rhs_node = std::move(rhs.node());
+    auto rhs_stack = rhs.stack();
     using AnyStackInput = typename AnyStack::Input;
     using LOpChainNode = LOpNode<AnyStackInput, AnyStack>;
 
@@ -404,7 +403,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     LOG0 << "Consider whether you can use auto instead of DIARef.";
 
     auto shared_node
-        = std::make_shared<LOpChainNode>(rhs_node->get_context(),
+        = std::make_shared<LOpChainNode>(rhs_node->context(),
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);

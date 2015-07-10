@@ -87,8 +87,8 @@ public:
         : DOpNode<ValueType>(ctx, { parent }),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_id_(ctx.get_data_manager().AllocateNetworkChannel()),
-          emitters_(ctx.get_data_manager().
+          channel_id_(ctx.data_manager().AllocateNetworkChannel()),
+          emitters_(ctx.data_manager().
                     template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_)
@@ -171,7 +171,7 @@ private:
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
 
-        auto it = context_.get_data_manager().
+        auto it = context_.data_manager().
                   template GetIterator<KeyValuePair>(channel_id_);
 
         sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
@@ -206,7 +206,7 @@ auto DIARef<CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
               = ReduceNode<DOpResult, Stack, KeyExtractor, ReduceFunction>;
 
     auto shared_node
-        = std::make_shared<ReduceResultNode>(node_->get_context(),
+        = std::make_shared<ReduceResultNode>(node_->context(),
                                              node_.get(),
                                              local_stack_,
                                              key_extractor,
