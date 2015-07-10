@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -123,13 +124,15 @@ static inline int Execute(
                     log_prefix + " worker " + std::to_string(i));
 
                 LOG << "Starting job on worker " << ctx.rank();
-                auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+                // TODO: this cannot be correct, the job needs to know which
+                // worker number it is on the node.
                 int job_result = job_startpoint(ctx);
                 overall_timer->Stop();
                 LOG << "Worker " << ctx.rank() << " done!";
 
                 results[i] = job_result;
-                jobMan.get_flow_manager().GetFlowControlChannel(0).await();
+                jobMan.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
 
@@ -149,7 +152,7 @@ static inline int Execute(
  * still communicate via TCP sockets.
  */
 static inline void
-ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
+ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
                     std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
@@ -196,16 +199,78 @@ ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
  * numbers of local workers as independent threads.
  */
 static inline void
-ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
+ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint) {
 
     // randomize base port number for test
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
+    std::uniform_int_distribution<int> distribution(10000, 30000);
     const size_t port_base = distribution(generator);
 
     for (size_t workers = 1; workers <= 8; workers *= 2) {
-        ExecuteLocalThreads(workers, port_base, job_startpoint);
+        ExecuteLocalThreadsTCP(workers, port_base, job_startpoint);
+    }
+}
+
+/*!
+ * Function to run a number of mock compute nodes as locally independent
+ * threads, which communicate via internal stream sockets.
+ */
+static inline void
+ExecuteLocalMock(size_t node_count, size_t local_worker_count,
+                 std::function<void(core::JobManager&, size_t)> job_startpoint) {
+
+    // construct a mock mesh network of JobManagers
+    std::vector<core::JobManager> jm_mesh
+        = core::JobManager::ConstructLocalMesh(node_count, local_worker_count);
+
+    // launch initial thread for each compute node.
+
+    std::vector<std::thread> threads(node_count);
+    for (size_t n = 0; n < node_count; n++) {
+        threads[n] = std::thread(
+            [&jm_mesh, n, job_startpoint] {
+                job_startpoint(jm_mesh[n], n);
+            });
+    }
+
+    // join compute node threads
+    for (size_t i = 0; i < node_count; i++) {
+        threads[i].join();
+    }
+
+    // tear down mock mesh of JobManagers
+    // TODO(tb): ???
+}
+
+/*!
+ * Helper Function to execute tests using mock networks in test suite for many
+ * different numbers of node and workers as independent threads in one program.
+ */
+static inline void
+ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
+                  const std::string& log_prefix = "") {
+
+    static const bool debug = false;
+
+    for (size_t nodes = 1; nodes <= 8; ++nodes) {
+
+        ExecuteLocalMock(
+            nodes, 1,
+            [job_startpoint, log_prefix](core::JobManager& jm, size_t node_id) {
+
+                Context ctx(jm, 0);
+                common::ThreadDirectory.NameThisThread(
+                    log_prefix + " node " + std::to_string(node_id));
+
+                LOG << "Starting node " << node_id;
+                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+                job_startpoint(ctx);
+                overall_timer->Stop();
+                LOG << "Worker " << node_id << " done!";
+
+                jm.flow_manager().GetFlowControlChannel(0).Await();
+            });
     }
 }
 

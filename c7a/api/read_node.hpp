@@ -82,8 +82,8 @@ public:
         InputLineIterator it = GetInputLineIterator(
             file, context_.rank(), context_.number_worker());
 
-        auto emit = context_.get_data_manager().
-                    template GetLocalEmitter<ValueType>(this->data_id_);
+        auto emit = context_.data_manager().
+                    template GetLocalEmitter<ValueType>(data_id_);
 
         // Hook Read
         while (it.HasNext()) {
@@ -99,12 +99,7 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
-                         return emit_func(t);
-                     };
-
-        return MakeFunctionStack<ValueType>(id_fn);
+        return MakeEmptyStack<ValueType>();
     }
 
     /*!

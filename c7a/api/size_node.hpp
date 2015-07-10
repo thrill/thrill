@@ -37,7 +37,7 @@ class SizeNode : public ActionNode
 
 public:
     SizeNode(Context& ctx,
-             DIANode<ParentInput>* parent,
+             std::shared_ptr<DIANode<ParentInput>> parent,
              ParentStack& parent_stack)
         : ActionNode(ctx, { parent })
     {
@@ -105,7 +105,7 @@ auto DIARef<ValueType, Stack>::Size() {
 
     auto shared_node
         = std::make_shared<SizeResultNode>(node_->get_context(),
-                                           node_.get(),
+                                           node_,
                                            local_stack_);
 
     core::StageBuilder().RunScope(shared_node.get());
