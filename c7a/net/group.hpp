@@ -111,6 +111,7 @@ public:
         my_rank_ = std::move(other.my_rank_);
         connections_ = std::move(other.connections_);
         listener_ = std::move(other.listener_);
+        return *this;
     }
 
     //! \name Status and Access to NetConnections
