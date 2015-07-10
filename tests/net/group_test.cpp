@@ -241,11 +241,6 @@ TEST(Group, InitializeAndClose) {
     Group::ExecuteLocalMock(6, [](Group*) { });
 }
 
-TEST(Manager, InitializeAndClose) {
-    // Construct a Group of 6 workers which do nothing but terminate.
-    Manager::ExecuteLocalMock(6, [](Group*) { }, [](Group*) { }, [](Group*) { });
-}
-
 TEST(Group, InitializeSendReceive) {
     // Construct a Group of 6 workers which execute the thread function
     // which sends and receives asynchronous messages between all workers.

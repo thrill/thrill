@@ -422,51 +422,6 @@ private:
 
 public:
     /**
-     * @brief Executes a local mockup for testing.
-     * @details Spawns theads for each Group and calls the given thread
-     * function for each client to simulate. This function uses the
-     * LocalMock function of the Group class.
-     *
-     * See unit tests for usage examples.
-     *
-     * @param num_clients The number of clients to simulate.
-     * @param systemThreadFunction The function to execute for the system control Group.
-     * @param flowThreadFunction The function to execute for the flow control Group.
-     * @param dataThreadFunction The function to execute for the data manager Group.
-     */
-    static void ExecuteLocalMock(
-        size_t num_clients,
-        const std::function<void(Group*)>& systemThreadFunction,
-        const std::function<void(Group*)>& flowThreadFunction,
-        const std::function<void(Group*)>& dataThreadFunction) {
-
-        // Adjust this method too if groupcount changes.
-        die_unless(kGroupCount == 3);
-
-        std::vector<std::thread*> threads(kGroupCount);
-
-        //Create mock netgroups in new threads.
-        threads[0] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, systemThreadFunction);
-            });
-        threads[1] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, flowThreadFunction);
-            });
-        threads[2] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, dataThreadFunction);
-            });
-
-        //Join threads again.
-        for (size_t i = 0; i != threads.size(); ++i) {
-            threads[i]->join();
-            delete threads[i];
-        }
-    }
-
-    /**
      * @brief Initializes this Manager and initializes all Groups.
      * @details Initializes this Manager and initializes all Groups.
      * When this method returns, the network system is ready to use.
