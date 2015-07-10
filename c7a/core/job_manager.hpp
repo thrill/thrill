@@ -40,19 +40,19 @@ public:
         return true;
     }
 
-    data::Manager & get_data_manager() {
+    data::Manager & data_manager() {
         return data_manager_;
     }
 
-    net::Manager & get_net_manager() {
+    net::Manager & net_manager() {
         return net_manager_;
     }
 
-    net::FlowControlChannelManager & get_flow_manager() {
+    net::FlowControlChannelManager & flow_manager() {
         return *flow_manager_;
     }
 
-    size_t get_local_worker_count() {
+    size_t local_worker_count() {
         return local_worker_count_;
     }
 

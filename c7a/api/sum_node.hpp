@@ -92,7 +92,7 @@ private:
 
     void MainOp() {
         LOG << "MainOp processing";
-        net::FlowControlChannel& channel = context_.get_flow_control_channel();
+        net::FlowControlChannel& channel = context_.flow_control_channel();
 
         // process the reduce
         global_sum_ = channel.AllReduce(local_sum_, sum_function_);
@@ -109,7 +109,7 @@ auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
               = SumNode<ValueType, Stack, SumFunction>;
 
     auto shared_node
-        = std::make_shared<SumResultNode>(node_->get_context(),
+        = std::make_shared<SumResultNode>(node_->context(),
                                           node_.get(),
                                           local_stack_,
                                           sum_function,

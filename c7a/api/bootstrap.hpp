@@ -123,13 +123,13 @@ static inline int Execute(
                     log_prefix + " worker " + std::to_string(i));
 
                 LOG << "Starting job on worker " << ctx.rank();
-                auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
+                auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 int job_result = job_startpoint(ctx);
                 overall_timer->Stop();
                 LOG << "Worker " << ctx.rank() << " done!";
 
                 results[i] = job_result;
-                jobMan.get_flow_manager().GetFlowControlChannel(0).await();
+                jobMan.flow_manager().GetFlowControlChannel(0).await();
             });
     }
 
