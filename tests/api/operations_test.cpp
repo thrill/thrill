@@ -296,10 +296,8 @@ TEST(Operations, DIARefCasting) {
         int i = 1;
 
         for (int element : out_vec) {
-            std::cout << element << " ";
             ASSERT_DOUBLE_EQ(element, (i++ *2));
         }
-        std::cout << std::endl;
 
         ASSERT_EQ(8u, out_vec.size());
     };
@@ -352,10 +350,8 @@ TEST(Operations, WhileLoop) {
 
         std::sort(out_vec.begin(), out_vec.end());
 
-        for (int element : out_vec) std::cout << element << " ";
-        std::cout << std::endl;
-
-        ASSERT_EQ(1u, out_vec.size());
+		ASSERT_EQ(144, out_vec[0]);
+		ASSERT_EQ(1u, out_vec.size());
     };
 
     api::ExecuteLocalTests(start_func);
