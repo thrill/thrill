@@ -153,12 +153,11 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     using GenerateResultNode =
               GenerateFileNode<GeneratorResult, GeneratorFunction>;
 
-	static_assert(
-		std::is_same<
-			typename common::FunctionTraits<GeneratorFunction>::template arg<0>,
-			const std::string&>::value,
-		"GeneratorFunction needs a const std::string& as input");
-
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<GeneratorFunction>::template arg<0>,
+            const std::string&>::value,
+        "GeneratorFunction needs a const std::string& as input");
 
     auto shared_node =
         std::make_shared<GenerateResultNode>(ctx,

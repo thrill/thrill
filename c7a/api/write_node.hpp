@@ -32,7 +32,7 @@ public:
     using ParentInput = typename ParentStack::Input;
 
     WriteNode(Context& ctx,
-              std::shared_ptr<DIANode<ParentInput>> parent,
+              std::shared_ptr<DIANode<ParentInput> > parent,
               ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
@@ -98,19 +98,17 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
     using WriteResultNode = WriteNode<
               ValueType, Stack, WriteFunction>;
 
-	
-	
-	static_assert(
-		std::is_same<
-			typename std::decay<typename common::FunctionTraits<WriteFunction>::template arg<0>>::type,
-			ValueType>::value,
-		"WriteFunction has the wrong input type");
+    static_assert(
+        std::is_same<
+            typename std::decay<typename common::FunctionTraits<WriteFunction>::template arg<0> >::type,
+            ValueType>::value,
+        "WriteFunction has the wrong input type");
 
-	static_assert(
-		std::is_same<
-			typename common::FunctionTraits<WriteFunction>::result_type,
-			std::string>::value,
-		"WriteFunction should have std::string as output type.");
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<WriteFunction>::result_type,
+            std::string>::value,
+        "WriteFunction should have std::string as output type.");
 
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->context(),

@@ -39,7 +39,7 @@ class SumNode : public ActionNode
 
 public:
     SumNode(Context& ctx,
-            std::shared_ptr<DIANode<ParentInput>> parent,
+            std::shared_ptr<DIANode<ParentInput> > parent,
             ParentStack& parent_stack,
             SumFunction sum_function,
             ValueType neutral_element)
@@ -109,27 +109,27 @@ auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
                                    ValueType neutral_element) {
     using SumResultNode
               = SumNode<ValueType, Stack, SumFunction>;
-	
-	static_assert(
-		std::is_same<
-			typename common::FunctionTraits<SumFunction>::template arg<0>,
-			ValueType>::value ||
-		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
-		"SumFunction has the wrong input type");
 
-	static_assert(
-		std::is_same<
-			typename common::FunctionTraits<SumFunction>::template arg<1>,
-			ValueType>::value ||
-		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
-		"SumFunction has the wrong input type");
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<SumFunction>::template arg<0>,
+            ValueType>::value ||
+        std::is_same<SumFunction, common::SumOp<ValueType> >::value,
+        "SumFunction has the wrong input type");
 
-	static_assert(
-		std::is_same<
-			typename common::FunctionTraits<SumFunction>::result_type,
-			ValueType>::value ||
-		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
-		"SumFunction has the wrong input type");
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<SumFunction>::template arg<1>,
+            ValueType>::value ||
+        std::is_same<SumFunction, common::SumOp<ValueType> >::value,
+        "SumFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<SumFunction>::result_type,
+            ValueType>::value ||
+        std::is_same<SumFunction, common::SumOp<ValueType> >::value,
+        "SumFunction has the wrong input type");
 
     auto shared_node
         = std::make_shared<SumResultNode>(node_->context(),

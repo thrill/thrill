@@ -274,33 +274,33 @@ TEST(Operations, DIARefCasting) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto even = [](int in) {
-            return (in % 2 == 0);
+            auto even = [](int in) {
+                            return (in % 2 == 0);
+                        };
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return (int)index + 1;
+                },
+                16);
+
+            DIARef<int> doubled = integers.Filter(even);
+
+            std::vector<int> out_vec;
+
+            doubled.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            int i = 1;
+
+            for (int element : out_vec) {
+                ASSERT_DOUBLE_EQ(element, (i++ *2));
+            }
+
+            ASSERT_EQ(8u, out_vec.size());
         };
-
-        auto integers = Generate(
-            ctx,
-            [](const size_t& index) {
-                return (int)index + 1;
-            },
-            16);
-
-        DIARef<int> doubled = integers.Filter(even);
-
-        std::vector<int> out_vec;
-
-        doubled.AllGather(&out_vec);
-
-        std::sort(out_vec.begin(), out_vec.end());
-
-        int i = 1;
-
-        for (int element : out_vec) {
-            ASSERT_DOUBLE_EQ(element, (i++ *2));
-        }
-
-        ASSERT_EQ(8u, out_vec.size());
-    };
 
     api::ExecuteLocalTests(start_func);
 }
@@ -310,49 +310,49 @@ TEST(Operations, WhileLoop) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-        auto even = [](int in) {
-            return (in % 2 == 0);
+            auto even = [](int in) {
+                            return (in % 2 == 0);
+                        };
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return (int)index + 1;
+                },
+                16);
+
+            auto flatmap_duplicate = [](int in, auto emit) {
+                                         emit(in);
+                                         emit(in);
+                                     };
+
+            auto modulo_two = [](int in) {
+                                  return (in % 2);
+                              };
+
+            auto add_function = [](int in1, int in2) {
+                                    return in1 + in2;
+                                };
+
+            DIARef<int> doubled = integers.FlatMap(flatmap_duplicate);
+
+            for (size_t i = 0; i < 10; ++i) {
+                auto evens = doubled.Filter(even);
+                auto reduced = evens.ReduceBy(modulo_two, add_function);
+                doubled = reduced;
+            }
+
+            // auto evens = doubled.Filter(even);
+
+            std::vector<int> out_vec;
+
+            doubled.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(144, out_vec[0]);
+            ASSERT_EQ(1u, out_vec.size());
         };
-
-        auto integers = Generate(
-            ctx,
-            [](const size_t& index) {
-                return (int)index + 1;
-            },
-            16);
-
-        auto flatmap_duplicate = [](int in, auto emit) {
-            emit(in);
-            emit(in);
-        };
-
-        auto modulo_two = [](int in) {
-            return (in % 2);
-        };
-
-        auto add_function = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        DIARef<int> doubled = integers.FlatMap(flatmap_duplicate);
-
-        for (size_t i = 0; i < 10; ++i) {
-            auto evens = doubled.Filter(even);
-            auto reduced = evens.ReduceBy(modulo_two, add_function);
-            doubled = reduced;
-        }
-
-        // auto evens = doubled.Filter(even);
-
-        std::vector<int> out_vec;
-
-        doubled.AllGather(&out_vec);
-
-        std::sort(out_vec.begin(), out_vec.end());
-
-		ASSERT_EQ(144, out_vec[0]);
-		ASSERT_EQ(1u, out_vec.size());
-    };
 
     api::ExecuteLocalTests(start_func);
 }
