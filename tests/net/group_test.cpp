@@ -170,9 +170,9 @@ static void RealGroupConstructAndCall(
         Endpoint("127.0.0.1:" + std::to_string(port_base + 5))
     };
 
-    sLOG1 << "Group test uses ports " << port_base << "-" << port_base + 5;
+    sLOG1 << "Group test uses ports" << port_base << "-" << port_base + 5;
 
-    const int count = endpoints.size();
+    const size_t count = endpoints.size();
 
     std::vector<std::thread> threads(count);
 
@@ -180,7 +180,7 @@ static void RealGroupConstructAndCall(
 
     std::vector<Manager> groups(count);
 
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
             [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
@@ -190,10 +190,10 @@ static void RealGroupConstructAndCall(
             });
     }
 
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         threads[i].join();
     }
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         groups[i].Close();
     }
 }
