@@ -307,7 +307,7 @@ TEST(Operations, DIARefCasting) {
     api::ExecuteLocalTests(start_func);
 }
 
-TEST(Operations, WhileLoop) {
+TEST(Operations, DISABLED_WhileLoop) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -341,7 +341,7 @@ TEST(Operations, WhileLoop) {
         for (size_t i = 0; i < 10; ++i) {
             auto evens = doubled.Filter(even);
             auto reduced = evens.ReduceBy(modulo_two, add_function);
-            // doubled = evens.FlatMap(flatmap_duplicate);
+            doubled = reduced;
         }
 
         // auto evens = doubled.Filter(even);
