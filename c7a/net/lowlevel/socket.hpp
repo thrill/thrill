@@ -46,7 +46,7 @@ namespace lowlevel {
  */
 class Socket
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     //! \name Creation
