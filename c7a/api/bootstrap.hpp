@@ -152,7 +152,7 @@ static inline int Execute(
  * still communicate via TCP sockets.
  */
 static inline void
-ExecuteLocalThreads(const size_t& workers, const size_t& port_base,
+ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
                     std::function<void(Context&)> job_startpoint) {
 
     std::vector<std::thread> threads(workers);
@@ -208,7 +208,7 @@ ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint) {
     const size_t port_base = distribution(generator);
 
     for (size_t workers = 1; workers <= 8; workers *= 2) {
-        ExecuteLocalThreads(workers, port_base, job_startpoint);
+        ExecuteLocalThreadsTCP(workers, port_base, job_startpoint);
     }
 }
 

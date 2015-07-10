@@ -18,7 +18,7 @@ static const bool debug = true;
 
 TEST(JobManager, ConstructMockAndTearDown) {
     api::ExecuteLocalMock(
-        4, 1, [](core::JobManager& jm, size_t node_id) {
+        4, 1, [](core::JobManager&, size_t node_id) {
             sLOG << "node_id" << node_id;
         });
 }

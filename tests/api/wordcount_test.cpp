@@ -69,16 +69,10 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 
 TEST(WordCount, Generate1024DoesNotCrash) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(2, 4);
-    size_t workers = distribution(generator);
-    size_t port_base = 8080;
-
     std::function<void(Context&)> start_func =
         [](Context& ctx) { word_count_generated(ctx, 1024); };
 
-    c7a::api::ExecuteLocalThreads(workers, port_base, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
