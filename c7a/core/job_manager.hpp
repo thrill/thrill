@@ -29,12 +29,13 @@ public:
           data_manager_(net_dispatcher_) { }
 
     bool Connect(size_t my_rank, const std::vector<net::Endpoint>& endpoints,
-                 size_t thread_count = 1) {
-        thread_count_ = thread_count;
+                 size_t local_worker_count) {
+        local_worker_count_ = local_worker_count;
+
         net_manager_.Initialize(my_rank, endpoints);
         data_manager_.Connect(&net_manager_.GetDataGroup());
         flow_manager_ = new net::FlowControlChannelManager(
-            net_manager_.GetFlowGroup(), thread_count);
+            net_manager_.GetFlowGroup(), local_worker_count_);
         //TODO(??) connect control flow and system control channels here
         return true;
     }
@@ -51,8 +52,8 @@ public:
         return *flow_manager_;
     }
 
-    size_t get_thread_count() {
-        return thread_count_;
+    size_t get_local_worker_count() {
+        return local_worker_count_;
     }
 
     ~JobManager() {
@@ -67,8 +68,8 @@ private:
     net::DispatcherThread net_dispatcher_;
     data::Manager data_manager_;
     const static bool debug = false;
-    //! number of processing threads in this worker
-    size_t thread_count_;
+    //! number of processing workers on this compute node.
+    size_t local_worker_count_;
 };
 
 } // namespace core
