@@ -329,7 +329,7 @@ public:
     /**
      * @brief A trivial global barrier.
      */
-    void await() {
+    void Await() {
         int i = 0;
         i = AllReduce(i);
     }
