@@ -47,7 +47,7 @@ public:
      * @brief Waits for n threads to arrive.
      * @details This method blocks and returns as soon as n threads are waiting inside the method.
      */
-    void await() {
+    void Await() {
         std::atomic_thread_fence(std::memory_order_release);
         m.lock();
         int localCurrent = current;
