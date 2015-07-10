@@ -246,21 +246,12 @@ auto DIARef<CurrentType, Stack>::Zip(
             ZipFunction>;
 
     auto zip_node
-<<<<<<< HEAD
-            = std::make_shared<ZipResultNode>(node_->get_context(),
-                                              node_.get(),
-                                              second_dia.get_node(),
-                                              local_stack_,
-                                              second_dia.get_stack(),
-                                              zip_function);
-=======
         = std::make_shared<ZipResultNode>(node_->get_context(),
                                           node_,
                                           second_dia.get_node(),
                                           local_stack_,
                                           second_dia.get_stack(),
                                           zip_function);
->>>>>>> origin/master
 
     auto zip_stack = zip_node->ProduceStack();
 
