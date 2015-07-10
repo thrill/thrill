@@ -132,6 +132,28 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     using SumResultNode
               = PrefixSumNode<ValueType, Stack, SumFunction>;
 
+	
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<SumFunction>::template arg<0>,
+			ValueType>::value ||
+		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
+		"SumFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<SumFunction>::template arg<1>,
+			ValueType>::value ||
+		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
+		"SumFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<SumFunction>::result_type,
+			ValueType>::value ||
+		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
+		"SumFunction has the wrong input type");
+
     auto shared_node
         = std::make_shared<SumResultNode>(node_->context(),
                                           node_,

@@ -233,9 +233,9 @@ private:
     }
 };
 
-template <typename CurrentType, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
-auto DIARef<CurrentType, Stack>::Zip(
+auto DIARef<ValueType, Stack>::Zip(
         const ZipFunction &zip_function, SecondDIA second_dia) {
 
     using ZipResult
@@ -244,6 +244,25 @@ auto DIARef<CurrentType, Stack>::Zip(
     using ZipResultNode
     = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,
             ZipFunction>;
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ZipFunction>::template arg<0>,
+			ValueType>::value,
+		"ZipFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ZipFunction>::template arg<0>,
+			typename SecondDIA::ItemType>::value,
+		"ZipFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ZipFunction>::result_type,
+			ZipResult>::value,
+		"ZipFunction has the wrong output type.");
+
 
     auto zip_node
         = std::make_shared<ZipResultNode>(node_->context(),

@@ -20,6 +20,8 @@
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 
+#include <type_traits>
+
 namespace c7a {
 namespace api {
 
@@ -107,6 +109,27 @@ auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
                                    ValueType neutral_element) {
     using SumResultNode
               = SumNode<ValueType, Stack, SumFunction>;
+	
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<SumFunction>::template arg<0>,
+			ValueType>::value ||
+		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
+		"SumFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<SumFunction>::template arg<1>,
+			ValueType>::value ||
+		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
+		"SumFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<SumFunction>::result_type,
+			ValueType>::value ||
+		std::is_same<SumFunction, common::SumOp<ValueType>>::value,
+		"SumFunction has the wrong input type");
 
     auto shared_node
         = std::make_shared<SumResultNode>(node_->context(),

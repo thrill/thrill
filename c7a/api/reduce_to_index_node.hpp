@@ -218,14 +218,44 @@ private:
 
 //! \}
 
-template <typename CurrentType, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<CurrentType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
+auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                                const ReduceFunction &reduce_function,
                                                size_t max_index) {
 
-    using DOpResult
+	using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ReduceFunction>::template arg<0>,
+			ValueType>::value,
+			"ReduceFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ReduceFunction>::template arg<1>,
+			ValueType>::value,
+			"ReduceFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			DOpResult,
+			ValueType>::value,
+		"ReduceFunction has the wrong output type");
+
+	static_assert(
+		std::is_same<
+			typename std::decay<typename common::FunctionTraits<KeyExtractor>::template arg<0>>::type,
+				ValueType>::value,
+		"KeyExtractor has the wrong input type");
+
+    static_assert(
+		std::is_same<
+			typename common::FunctionTraits<KeyExtractor>::result_type,
+			size_t>::value,
+		"The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceResultNode
               = ReduceToIndexNode<DOpResult, Stack,

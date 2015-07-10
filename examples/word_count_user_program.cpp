@@ -11,6 +11,10 @@
 #include <c7a/common/string.hpp>
 #include <c7a/c7a.hpp>
 
+#include <algorithm>
+#include <random>
+#include <string>
+
 using c7a::Context;
 using c7a::DIARef;
 
@@ -19,12 +23,12 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
 
     using WordCount = std::pair<std::string, int>;
 
-    auto word_pairs = input.FlatMap(
+    auto word_pairs = input.template FlatMap<WordCount>(
         [](std::string line, auto emit) {
             /* map lambda */
             for (const std::string& word : c7a::common::split(line, ' ')) {
                 if (word.size() != 0)
-                    emit(WordCount(word, 1));
+                    emit(WordCount(word,1));
             }
         });
 

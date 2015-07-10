@@ -117,7 +117,6 @@ private:
     std::string path_in_;
 };
 
-//template <typename T, typename Stack>
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
                const ReadFunction &read_function) {
@@ -126,6 +125,12 @@ auto ReadLines(Context & ctx, std::string filepath,
               typename common::FunctionTraits<ReadFunction>::result_type;
 
     using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ReadFunction>::template arg<0>,
+			const std::string&>::value,
+		"Read function needs const std::string& as input parameter.");
 
     auto shared_node =
         std::make_shared<ReadResultNode>(ctx,
