@@ -81,58 +81,67 @@ ParseArgs(int argc, char* const* argv) {
 static inline int Execute(
     int argc, char* const* argv,
     std::function<int(Context&)> job_startpoint,
-    size_t thread_count = 1, const std::string& log_prefix = "") {
+    size_t local_worker_count = 1, const std::string& log_prefix = "") {
 
-    //!True if program time should be taken and printed
-
+    // true if program time should be taken and printed
     static const bool debug = false;
 
     size_t my_rank;
     std::vector<std::string> endpoints;
-    int result = 0;
-    std::tie(result, my_rank, endpoints) = ParseArgs(argc, argv);
-    if (result != 0)
+    int global_result = 0;
+    std::tie(global_result, my_rank, endpoints) = ParseArgs(argc, argv);
+    if (global_result != 0)
         return -1;
 
     if (my_rank >= endpoints.size()) {
-        std::cerr << "endpoint list (" <<
-            endpoints.size() <<
-            " entries) does not include my rank (" <<
-            my_rank << ")" << std::endl;
+        std::cerr << "endpoint list (" << endpoints.size() << " entries) "
+                  << "does not include my rank (" << my_rank << ")"
+                  << std::endl;
         return -1;
     }
 
     LOG << "executing " << argv[0] << " with rank " << my_rank << " and endpoints";
-    for (const auto& ep : endpoints)
+    for (const std::string& ep : endpoints)
         LOG << ep << " ";
 
+    // construct node global objects: net::Manager, data::Manager, etc.
+
     core::JobManager jobMan(log_prefix);
-    jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints), thread_count);
+    jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints),
+                   local_worker_count);
 
-    std::vector<std::thread> threads(thread_count);
-    std::vector<std::atomic<int> > atomic_results(thread_count);
+    // launch initial thread for each of the workers on this node.
 
-    for (size_t i = 0; i < thread_count; i++) {
+    std::vector<std::thread> threads(local_worker_count);
+    std::vector<std::atomic<int> > results(local_worker_count);
+
+    for (size_t i = 0; i < local_worker_count; i++) {
         threads[i] = std::thread(
-            [&jobMan, &atomic_results, &job_startpoint, i, log_prefix] {
+            [&jobMan, &results, &job_startpoint, i, log_prefix] {
                 Context ctx(jobMan, i);
-                common::ThreadDirectory.NameThisThread(log_prefix + " thread " + std::to_string(i));
-                LOG << "connecting to peers";
-                LOG << "Starting job on Worker " << ctx.rank();
+                common::ThreadDirectory.NameThisThread(
+                    log_prefix + " worker " + std::to_string(i));
+
+                LOG << "Starting job on worker " << ctx.rank();
                 auto overall_timer = ctx.get_stats().CreateTimer("job::overall", "", true);
                 int job_result = job_startpoint(ctx);
                 overall_timer->Stop();
                 LOG << "Worker " << ctx.rank() << " done!";
-                atomic_results[i] = job_result;
+
+                results[i] = job_result;
                 jobMan.get_flow_manager().GetFlowControlChannel(0).await();
             });
     }
-    for (size_t i = 0; i < thread_count; i++) {
+
+    // join worker threads
+
+    for (size_t i = 0; i < local_worker_count; i++) {
         threads[i].join();
-        if (atomic_results[i] != 0 && result == 0)
-            result = atomic_results[i];
+        if (results[i] != 0 && global_result == 0)
+            global_result = results[i];
     }
-    return result;
+
+    return global_result;
 }
 
 /*!
