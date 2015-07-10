@@ -197,11 +197,9 @@ private:
 
         for (size_t i = 0; i < num_dias_; ++i) {
             size_t numElems = data_manager.GetNumElements(id_[i]);
-            //net::PrefixSum(flow_group, prefix);
+            net::ChannelId channelId = data_manager.AllocateNetworkChannel();
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
-            //flow_group.TotalSum(prefix);
             size_t totalNumElems = channel.AllReduce(numElems);
-            //size_t total = data_manager.GetNumElements(id_[i]);
             size_t per_pe = totalNumElems / workers;
             // offsets for scattering
             std::vector<size_t> offsets(num_dias_, 0);
@@ -222,7 +220,7 @@ private:
             for (size_t x = target; x < workers; x++)
                 offsets[x] = offsets[x - 1];
 
-            data_manager.Scatter<ValueType>(id_[i], data_manager.AllocateNetworkChannel(), offsets);
+            data_manager.Scatter<ValueType>(id_[i], channelId, offsets);
         }
     }
 
