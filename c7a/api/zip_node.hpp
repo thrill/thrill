@@ -222,7 +222,7 @@ private:
             for (size_t x = target; x < workers; x++)
                 offsets[x] = offsets[x-1];
 
-            data_manager.Scatter(id_[i], data_manager.AllocateNetworkChannel(), offsets);
+            data_manager.Scatter<ValueType>(id_[i], data_manager.AllocateNetworkChannel(), offsets);
         }
     }
 
