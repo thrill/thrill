@@ -38,17 +38,17 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                 },
                 16);
 
-            auto modulo_two = [](int in) {
+            auto modulo_two = [](size_t in) {
                                   return (in % 2);
                               };
 
-            auto add_function = [](int in1, int in2) {
+            auto add_function = [](size_t in1, size_t in2) {
                                     return in1 + in2;
                                 };
 
             auto reduced = integers.ReduceBy(modulo_two, add_function);
 
-            std::vector<int> out_vec;
+            std::vector<size_t> out_vec;
 
             reduced.AllGather(&out_vec);
 
@@ -82,7 +82,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
                            return in / 2;
                        };
 
-            auto add_function = [](int in1, int in2) {
+            auto add_function = [](size_t in1, size_t in2) {
                                     return in1 + in2;
                                 };
 
@@ -90,7 +90,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
             auto reduced = integers.ReduceToIndex(key, add_function, max_index);
 
-            std::vector<int> out_vec;
+            std::vector<size_t> out_vec;
 
             reduced.AllGather(&out_vec);
 

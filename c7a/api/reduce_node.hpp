@@ -25,6 +25,8 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <type_traits>
+#include <typeinfo>
 
 namespace c7a {
 namespace api {
@@ -193,9 +195,9 @@ private:
 
 //! \}
 
-template <typename CurrentType, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
+auto DIARef<ValueType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
                                           const ReduceFunction &reduce_function) {
 
     using DOpResult
@@ -203,6 +205,31 @@ auto DIARef<CurrentType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
 
     using ReduceResultNode
               = ReduceNode<DOpResult, Stack, KeyExtractor, ReduceFunction>;
+
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ReduceFunction>::template arg<0>,
+			ValueType>::value,
+		"ReduceFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			typename common::FunctionTraits<ReduceFunction>::template arg<1>,
+			ValueType>::value,
+		"ReduceFunction has the wrong input type");
+
+	static_assert(
+		std::is_same<
+			DOpResult,
+			ValueType>::value,
+			"ReduceFunction has the wrong output type");
+
+	static_assert(
+		std::is_same<
+			typename std::decay<typename common::FunctionTraits<KeyExtractor>::template arg<0>>::type,
+			ValueType>::value,
+		"KeyExtractor has the wrong input type");
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->context(),
