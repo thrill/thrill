@@ -184,30 +184,32 @@ private:
     data::Emitter<ZipArg0> emit1_;
     data::Emitter<ZipArg1> emit2_;
 
-    //!Receive elements from other workers.
+    //! Receive elements from other workers.
     void MainOp() {
-        //net::Group flow_group = context_.get_flow_net_group();
         net::FlowControlChannel& channel = context_.flow_control_channel();
-
         data::Manager& data_manager = context_.data_manager();
         size_t workers = context_.number_worker();
 
-        // Offsets to declare which target gets which block
-        std::vector<size_t> blocks(num_dias_, 0);
-
         for (size_t i = 0; i < num_dias_; ++i) {
+            //! number of elements of this worker
             size_t numElems = data_manager.GetNumElements(id_[i]);
+            //! target channel id
             net::ChannelId channelId = data_manager.AllocateNetworkChannel();
+            //! exclusive prefixsum of number of elements
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
+            //! total number of elements, over all worker
             size_t totalNumElems = channel.AllReduce(numElems);
+            //! number of elements per worker
             size_t per_pe = totalNumElems / workers;
-            // offsets for scattering
+            //! offsets for scattering
             std::vector<size_t> offsets(num_dias_, 0);
 
             size_t offset = 0;
             size_t count = std::min(per_pe - prefixNumElems % per_pe, numElems);
             size_t target = prefixNumElems / per_pe;
 
+            //! do as long as there are elements to be scattered, includes elements
+            //! kept on this worker
             while (numElems > 0) {
                 offsets[target] = offset + count - 1;
                 prefixNumElems += count;
@@ -217,9 +219,11 @@ private:
                 target++;
             }
 
+            //! fill offset vector, no more scattering here
             for (size_t x = target; x < workers; x++)
                 offsets[x] = offsets[x - 1];
 
+            //! scatter elements to other workers, if necessary
             data_manager.Scatter<ValueType>(id_[i], channelId, offsets);
         }
     }
