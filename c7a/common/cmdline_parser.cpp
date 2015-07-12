@@ -10,10 +10,12 @@
 
 #include <c7a/common/cmdline_parser.hpp>
 
-#include <iomanip>
-#include <cstring>
-#include <string>
 #include <algorithm>
+#include <cstring>
+#include <iomanip>
+#include <string>
+#include <vector>
+#include <sstream>
 
 namespace c7a {
 namespace common {
