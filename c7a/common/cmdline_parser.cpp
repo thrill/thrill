@@ -100,16 +100,16 @@ struct CmdlineParser::ArgumentFlag : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "flag"; }
 
     //! "process" argument: just set to true, no argument is used.
-    virtual bool Process(int&, const char* const*&) {
+    bool Process(int&, const char* const*&) override {
         dest_ = true;
         return true;
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << (dest_ ? "true" : "false"); }
 };
 
@@ -126,11 +126,11 @@ struct CmdlineParser::ArgumentInt : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "integer"; }
 
     //! parse signed integer using sscanf.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         if (sscanf(argv[0], "%d", &dest_) == 1) {
             --argc, ++argv;
@@ -141,7 +141,7 @@ struct CmdlineParser::ArgumentInt : public Argument
         }
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << dest_; }
 };
 
@@ -159,11 +159,11 @@ struct CmdlineParser::ArgumentUInt : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "unsigned integer"; }
 
     //! parse unsigned integer using sscanf.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         if (sscanf(argv[0], "%u", &dest_) == 1) {
             --argc, ++argv;
@@ -174,7 +174,7 @@ struct CmdlineParser::ArgumentUInt : public Argument
         }
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << dest_; }
 };
 
@@ -192,11 +192,11 @@ struct CmdlineParser::ArgumentDouble : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "double"; }
 
     //! parse unsigned integer using sscanf.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         if (sscanf(argv[0], "%lf", &dest_) == 1) {
             --argc, ++argv;
@@ -207,7 +207,7 @@ struct CmdlineParser::ArgumentDouble : public Argument
         }
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << dest_; }
 };
 
@@ -225,11 +225,11 @@ struct CmdlineParser::ArgumentBytes32 : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "bytes"; }
 
     //! parse byte size using SI/IEC parser from stxxl.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         uint64_t dest;
         if (ParseSiIecUnits(argv[0], dest) &&
@@ -242,7 +242,7 @@ struct CmdlineParser::ArgumentBytes32 : public Argument
         }
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << dest_; }
 };
 
@@ -260,11 +260,11 @@ struct CmdlineParser::ArgumentBytes64 : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "bytes"; }
 
     //! parse byte size using SI/IEC parser from stxxl.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         if (ParseSiIecUnits(argv[0], dest_)) {
             --argc, ++argv;
@@ -275,7 +275,7 @@ struct CmdlineParser::ArgumentBytes64 : public Argument
         }
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << dest_; }
 };
 
@@ -293,18 +293,18 @@ struct CmdlineParser::ArgumentString : public Argument
           dest_(dest)
     { }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "string"; }
 
     //! "process" string argument just by storing it.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         dest_ = argv[0];
         --argc, ++argv;
         return true;
     }
 
-    virtual void PrintValue(std::ostream& os) const
+    void PrintValue(std::ostream& os) const override
     { os << '"' << dest_ << '"'; }
 };
 
@@ -323,18 +323,18 @@ struct CmdlineParser::ArgumentStringlist : public Argument
         repeated_ = true;
     }
 
-    virtual const char * TypeName() const
+    const char * TypeName() const override
     { return "string list"; }
 
     //! "process" string argument just by storing it in vector.
-    virtual bool Process(int& argc, const char* const*& argv) {
+    bool Process(int& argc, const char* const*& argv) override {
         if (argc == 0) return false;
         dest_.push_back(argv[0]);
         --argc, ++argv;
         return true;
     }
 
-    virtual void PrintValue(std::ostream& os) const {
+    void PrintValue(std::ostream& os) const override {
         os << '[';
         for (size_t i = 0; i < dest_.size(); ++i)
         {
