@@ -103,8 +103,9 @@ TEST(File, PutSomeItemsGetItems) {
 }
 
 // forced instantiation
+using MyBlock = data::Block<16>;
 template class data::File<16>;
-template class data::BlockWriter<16>;
+template class data::BlockWriter<MyBlock, data::File<16> >;
 template class data::BlockReader<16>;
 
 /******************************************************************************/
