@@ -33,7 +33,7 @@ public:
 
     WriteNode(Context& ctx,
               std::shared_ptr<DIANode<ParentInput> > parent,
-              ParentStack& parent_stack,
+              const ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
         : ActionNode(ctx, { parent }),
@@ -92,8 +92,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename WriteFunction>
-void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
-                                                 const WriteFunction& write_function) {
+void DIARef<ValueType, Stack>::WriteToFileSystem(
+    const std::string& filepath,
+    const WriteFunction& write_function) const {
 
     using WriteResultNode = WriteNode<
               ValueType, Stack, WriteFunction>;
@@ -113,7 +114,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->context(),
                                           node_,
-                                          local_stack_,
+                                          stack_,
                                           write_function,
                                           filepath);
 

@@ -40,7 +40,7 @@ class SumNode : public ActionNode
 public:
     SumNode(Context& ctx,
             std::shared_ptr<DIANode<ParentInput> > parent,
-            ParentStack& parent_stack,
+            const ParentStack& parent_stack,
             SumFunction sum_function,
             ValueType neutral_element)
         : ActionNode(ctx, { parent }),
@@ -105,8 +105,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
-                                   ValueType neutral_element) {
+auto DIARef<ValueType, Stack>::Sum(
+    const SumFunction &sum_function, ValueType neutral_element) const {
+
     using SumResultNode
               = SumNode<ValueType, Stack, SumFunction>;
 
@@ -134,7 +135,7 @@ auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
     auto shared_node
         = std::make_shared<SumResultNode>(node_->context(),
                                           node_,
-                                          local_stack_,
+                                          stack_,
                                           sum_function,
                                           neutral_element);
 
