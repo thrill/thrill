@@ -287,7 +287,9 @@ public:
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
-                       size_t max_index) const;
+                       size_t max_index,
+                       ValueType neutral_element = ValueType()
+        ) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
