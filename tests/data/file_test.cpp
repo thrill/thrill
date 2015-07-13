@@ -90,7 +90,7 @@ TEST(File, PutSomeItemsGetItems) {
             file.BlockAsString(i));
     }
 
-    // read File contents using FileReader
+    // read File contents using BlockReader
     {
         File::Reader fr = file.ReaderAtStart();
         ASSERT_EQ(fr.Read(8), "testtest");
@@ -104,7 +104,7 @@ TEST(File, PutSomeItemsGetItems) {
 
 // forced instantiation
 template class data::File<16>;
-template class data::FileWriter<16>;
-template class data::FileReader<16>;
+template class data::BlockWriter<16>;
+template class data::BlockReader<16>;
 
 /******************************************************************************/
