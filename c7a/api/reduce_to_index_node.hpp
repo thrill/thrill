@@ -91,7 +91,7 @@ public:
      */
     ReduceToIndexNode(Context& ctx,
                       std::shared_ptr<DIANode<ParentInput> > parent,
-                      ParentStack& parent_stack,
+                      const ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index)

@@ -38,7 +38,7 @@ class SizeNode : public ActionNode
 public:
     SizeNode(Context& ctx,
              std::shared_ptr<DIANode<ParentInput> > parent,
-             ParentStack& parent_stack)
+             const ParentStack& parent_stack)
         : ActionNode(ctx, { parent })
     {
         // Hook PreOp(s)
