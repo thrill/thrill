@@ -104,7 +104,7 @@ size_t DIARef<ValueType, Stack>::Size() {
     auto shared_node
         = std::make_shared<SizeResultNode>(node_->context(),
                                            node_,
-                                           local_stack_);
+                                           stack_);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();

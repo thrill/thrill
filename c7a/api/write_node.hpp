@@ -113,7 +113,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->context(),
                                           node_,
-                                          local_stack_,
+                                          stack_,
                                           write_function,
                                           filepath);
 
