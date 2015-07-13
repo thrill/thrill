@@ -57,7 +57,7 @@ public:
     size_t size() const { return size_; }
 };
 
-template <size_t BlockSize>
+template <typename Block, typename Target>
 class BlockWriter;
 
 template <size_t BlockSize>
@@ -71,13 +71,13 @@ public:
 
     using BlockType = Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const BlockType>;
-    using Writer = BlockWriter<BlockSize>;
+    using Writer = BlockWriter<BlockType, File>;
     using Reader = BlockReader<BlockSize>;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const BlockCPtr& block, size_t block_used,
-                     size_t nitems, size_t first) {
+    void Append(const BlockCPtr& block, size_t block_used,
+                size_t nitems, size_t first) {
         blocks_.push_back(block);
         nitems_sum_.push_back(NumItems() + nitems);
         used_.push_back(block_used);
@@ -147,22 +147,24 @@ protected:
     friend class BlockReader<BlockSize>;
 };
 
-template <size_t BlockSize>
+template <typename Block, typename Target>
 class BlockWriter
 {
 public:
-    using BaseFile = File<BlockSize>;
-
-    using BlockType = Block<BlockSize>;
-    using BlockPtr = std::shared_ptr<BlockType>;
-
     using Byte = unsigned char;
 
+    using BlockPtr = std::shared_ptr<Block>;
+
     //! Start build (appending blocks) to a File
-    BlockWriter(BaseFile& file)
-        : file_(file) {
+    BlockWriter(Target& target)
+        : target_(target) {
         AllocateBlock();
     }
+
+    //! non-copyable: delete copy-constructor
+    BlockWriter(const BlockWriter &) = delete;
+    //! non-copyable: delete assignment operator
+    BlockWriter & operator = (const BlockWriter &) = delete;
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
@@ -376,7 +378,7 @@ public:
 protected:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        block_ = std::make_shared<BlockType>();
+        block_ = std::make_shared<Block>();
         current_ = block_->begin();
         end_ = block_->end();
         nitems_ = 0;
@@ -385,8 +387,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        file_.AppendBlock(block_, current_ - block_->begin(),
-                          nitems_, first_offset_);
+        target_.Append(block_, current_ - block_->begin(),
+                       nitems_, first_offset_);
     }
 
 protected:
@@ -407,8 +409,8 @@ protected:
     //! offset of first item
     size_t first_offset_;
 
-    //! file to output blocks to
-    BaseFile& file_;
+    //! file or stream target to output blocks to
+    Target& target_;
 };
 
 template <size_t BlockSize>
