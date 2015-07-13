@@ -99,7 +99,7 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        return MakeEmptyStack<ValueType>();
+        return FunctionStack<ValueType>();
     }
 
     /*!
