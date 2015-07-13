@@ -394,7 +394,6 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
                                          rhs.node(),
                                          rhs.stack());
     node_ = std::move(shared_node);
-    stack_ = MakeEmptyStack<ValueType>();
 }
 
 /*!
