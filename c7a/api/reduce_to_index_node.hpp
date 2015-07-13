@@ -91,7 +91,7 @@ public:
      */
     ReduceToIndexNode(Context& ctx,
                       std::shared_ptr<DIANode<ParentInput> > parent,
-                      ParentStack& parent_stack,
+                      const ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index)
@@ -220,9 +220,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-                                             const ReduceFunction &reduce_function,
-                                             size_t max_index) {
+auto DIARef<ValueType, Stack>::ReduceToIndex(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function, size_t max_index) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -264,7 +264,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->context(),
                                              node_,
-                                             local_stack_,
+                                             stack_,
                                              key_extractor,
                                              reduce_function,
                                              max_index);

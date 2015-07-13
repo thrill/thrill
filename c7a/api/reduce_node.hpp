@@ -82,7 +82,7 @@ public:
      */
     ReduceNode(Context& ctx,
                std::shared_ptr<DIANode<ParentInput> > parent,
-               ParentStack& parent_stack,
+               const ParentStack& parent_stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
         : DOpNode<ValueType>(ctx, { parent }),
@@ -197,8 +197,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
-                                        const ReduceFunction &reduce_function) {
+auto DIARef<ValueType, Stack>::ReduceBy(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -233,7 +234,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(const KeyExtractor &key_extractor,
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->context(),
                                              node_,
-                                             local_stack_,
+                                             stack_,
                                              key_extractor,
                                              reduce_function);
 

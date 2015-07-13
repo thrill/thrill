@@ -94,8 +94,8 @@ public:
     TwoZipNode(Context& ctx,
                std::shared_ptr<DIANode<ParentInput1> > parent1,
                std::shared_ptr<DIANode<ParentInput2> > parent2,
-               ParentStack1& parent_stack1,
-               ParentStack2& parent_stack2,
+               const ParentStack1& parent_stack1,
+               const ParentStack2& parent_stack2,
                ZipFunction zip_function)
         : DOpNode<ValueType>(ctx, { parent1, parent2 }),
           zip_function_(zip_function)
@@ -184,32 +184,32 @@ private:
     data::Emitter<ZipArg0> emit1_;
     data::Emitter<ZipArg1> emit2_;
 
-    //!Receive elements from other workers.
+    //! Receive elements from other workers.
     void MainOp() {
-        //net::Group flow_group = context_.get_flow_net_group();
         net::FlowControlChannel& channel = context_.flow_control_channel();
-
         data::Manager& data_manager = context_.data_manager();
         size_t workers = context_.number_worker();
 
-        // Offsets to declare which target gets which block
-        std::vector<size_t> blocks(num_dias_, 0);
-
         for (size_t i = 0; i < num_dias_; ++i) {
+            //! number of elements of this worker
             size_t numElems = data_manager.GetNumElements(id_[i]);
-            //net::PrefixSum(flow_group, prefix);
+            //! target channel id
+            net::ChannelId channelId = data_manager.AllocateNetworkChannel();
+            //! exclusive prefixsum of number of elements
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
-            //flow_group.TotalSum(prefix);
+            //! total number of elements, over all worker
             size_t totalNumElems = channel.AllReduce(numElems);
-            //size_t total = data_manager.GetNumElements(id_[i]);
+            //! number of elements per worker
             size_t per_pe = totalNumElems / workers;
-            // offsets for scattering
+            //! offsets for scattering
             std::vector<size_t> offsets(num_dias_, 0);
 
             size_t offset = 0;
             size_t count = std::min(per_pe - prefixNumElems % per_pe, numElems);
             size_t target = prefixNumElems / per_pe;
 
+            //! do as long as there are elements to be scattered, includes elements
+            //! kept on this worker
             while (numElems > 0) {
                 offsets[target] = offset + count - 1;
                 prefixNumElems += count;
@@ -219,10 +219,12 @@ private:
                 target++;
             }
 
+            //! fill offset vector, no more scattering here
             for (size_t x = target; x < workers; x++)
                 offsets[x] = offsets[x - 1];
 
-            data_manager.Scatter<ValueType>(id_[i], data_manager.AllocateNetworkChannel(), offsets);
+            //! scatter elements to other workers, if necessary
+            data_manager.Scatter<ValueType>(id_[i], channelId, offsets);
         }
     }
 
@@ -236,7 +238,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Zip(
-    const ZipFunction &zip_function, SecondDIA second_dia) {
+    const ZipFunction &zip_function, SecondDIA second_dia) const {
 
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
@@ -267,7 +269,7 @@ auto DIARef<ValueType, Stack>::Zip(
         = std::make_shared<ZipResultNode>(node_->context(),
                                           node_,
                                           second_dia.get_node(),
-                                          local_stack_,
+                                          stack_,
                                           second_dia.get_stack(),
                                           zip_function);
 
