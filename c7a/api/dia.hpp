@@ -122,7 +122,7 @@ public:
     /*!
      * Returns a pointer to the according DIANode.
      */
-    std::shared_ptr<DIANode<ValueType> > get_node() const {
+    DIANodePtr node() const {
         return node_;
     }
 
@@ -379,8 +379,7 @@ template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    auto rhs_node = std::move(rhs.get_node());
-    auto rhs_stack = rhs.stack();
+    auto rhs_node = std::move(rhs.node());
     using LOpChainNode = LOpNode<ValueType, AnyStack>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
@@ -389,7 +388,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     auto shared_node
         = std::make_shared<LOpChainNode>(rhs_node->context(),
                                          rhs_node,
-                                         rhs_stack);
+                                         rhs.stack());
     node_ = std::move(shared_node);
     stack_ = MakeEmptyStack<ValueType>();
 }

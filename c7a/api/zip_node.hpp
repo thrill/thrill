@@ -94,8 +94,8 @@ public:
     TwoZipNode(Context& ctx,
                std::shared_ptr<DIANode<ParentInput1> > parent1,
                std::shared_ptr<DIANode<ParentInput2> > parent2,
-               ParentStack1& parent_stack1,
-               ParentStack2& parent_stack2,
+               const ParentStack1& parent_stack1,
+               const ParentStack2& parent_stack2,
                ZipFunction zip_function)
         : DOpNode<ValueType>(ctx, { parent1, parent2 }),
           zip_function_(zip_function)

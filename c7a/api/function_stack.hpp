@@ -134,7 +134,7 @@ public:
      * \return New chain containing the previous and new lambda function(s).
      */
     template <typename Function>
-    auto push(Function append_func)
+    auto push(Function append_func) const
     {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
@@ -151,7 +151,7 @@ public:
      *
      * \return Single "folded" lambda function representing the chain.
      */
-    auto emit() {
+    auto emit() const {
         typedef std::tuple<Lambdas ...> StackType;
 
         const size_t Size = std::tuple_size<StackType>::value;
@@ -171,7 +171,7 @@ private:
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
-    auto emit_sequence(index_sequence<Is ...>)
+    auto emit_sequence(index_sequence<Is ...>) const
     {
         return run_emitter(std::get<Is>(stack_) ...);
     }

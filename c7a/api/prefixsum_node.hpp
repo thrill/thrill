@@ -39,7 +39,7 @@ class PrefixSumNode : public DOpNode<ValueType>
 public:
     PrefixSumNode(Context& ctx,
                   std::shared_ptr<DIANode<ParentInput> > parent,
-                  ParentStack& parent_stack,
+                  const ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
         : DOpNode<ValueType>(ctx, { parent }),

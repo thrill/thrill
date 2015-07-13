@@ -38,7 +38,7 @@ public:
     AllGatherNode(Context& ctx,
                   //TODO(??) don't we need to pass shared ptrs for the ref counting?
                   std::shared_ptr<DIANode<ParentInput> > parent,
-                  ParentStack& parent_stack,
+                  const ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )
         : ActionNode(ctx, { parent }),
