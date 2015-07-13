@@ -122,6 +122,7 @@ TEST(File, SerializeSomeItems) {
         fw(unsigned(5));
         fw(MyPair(5, 10));
         fw(double(42.0));
+        fw(std::string("test"));
     }
 
     //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
@@ -135,6 +136,8 @@ TEST(File, SerializeSomeItems) {
         ASSERT_EQ(i2, MyPair(5, 10));
         double i3 = fr.Next<double>();
         ASSERT_DOUBLE_EQ(i3, 42.0);
+        std::string i4 = fr.Next<std::string>();
+        ASSERT_EQ(i4, "test");
     }
 }
 
