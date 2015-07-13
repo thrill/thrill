@@ -17,7 +17,7 @@ using namespace c7a;
 TEST(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    using File = data::File<16>;
+    using File = data::FileBase<16>;
     File file;
 
     {
@@ -111,7 +111,7 @@ TEST(File, PutSomeItemsGetItems) {
 TEST(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    using File = data::File<1024>;
+    using File = data::FileBase<1024>;
     File file;
 
     using MyPair = std::pair<int, short>;
@@ -143,8 +143,8 @@ TEST(File, SerializeSomeItems) {
 
 // forced instantiation
 using MyBlock = data::Block<16>;
-template class data::File<16>;
-template class data::BlockWriter<MyBlock, data::File<16> >;
+template class data::FileBase<16>;
+template class data::BlockWriter<MyBlock, data::FileBase<16> >;
 template class data::BlockReader<16>;
 
 /******************************************************************************/
