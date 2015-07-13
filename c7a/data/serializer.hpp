@@ -355,6 +355,17 @@ struct Serializer<Archive, std::pair<U, V> >
     }
 };
 
+template <typename Archive>
+struct Serializer<Archive, std::string>
+{
+    static void serialize(const std::string& x, Archive& a) {
+        a.PutString(x);
+    }
+    static std::string deserialize(Archive& a) {
+        return a.GetString();
+    }
+};
+
 } // namespace data
 } // namespace c7a
 
