@@ -33,7 +33,7 @@ public:
 
     WriteNode(Context& ctx,
               std::shared_ptr<DIANode<ParentInput> > parent,
-              ParentStack& parent_stack,
+              const ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
         : ActionNode(ctx, { parent }),
