@@ -21,7 +21,7 @@ TEST(File, PutSomeItemsGetItems) {
     File file;
 
     {
-        File::Writer fw(file);
+        File::Writer fw = file.GetWriter();
         fw.MarkItem();
         fw.Append("testtest");
         fw.MarkItem();

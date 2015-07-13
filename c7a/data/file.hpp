@@ -124,6 +124,9 @@ public:
                            used_[i]);
     }
 
+    //! Get BlockWriter for file
+    Writer GetWriter();
+
     //! Get BlockReader for beginning of File
     Reader ReaderAtStart() const;
 
@@ -165,6 +168,8 @@ public:
     BlockWriter(const BlockWriter &) = delete;
     //! non-copyable: delete assignment operator
     BlockWriter & operator = (const BlockWriter &) = delete;
+    //! default move-constructor
+    BlockWriter(BlockWriter&&) = default;
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
@@ -413,6 +418,12 @@ protected:
     Target& target_;
 };
 
+//! Get BlockReader for beginning of File
+template <size_t BlockSize>
+typename File<BlockSize>::Writer File<BlockSize>::GetWriter() {
+    return std::move(Writer(*this));
+}
+
 template <size_t BlockSize>
 class BlockReader
 {
@@ -587,7 +598,7 @@ protected:
 
 //! Get BlockReader for beginning of File
 template <size_t BlockSize>
-BlockReader<BlockSize> File<BlockSize>::ReaderAtStart() const {
+typename File<BlockSize>::Reader File<BlockSize>::ReaderAtStart() const {
     return Reader(*this, 0, 0);
 }
 
