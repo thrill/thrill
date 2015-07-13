@@ -16,6 +16,7 @@
 #include <vector>
 #include <string>
 #include <cassert>
+#include <c7a/data/serializer.hpp>
 
 namespace c7a {
 namespace data {
@@ -124,11 +125,8 @@ public:
                            used_[i]);
     }
 
-    //! Get BlockWriter for file
-    Writer GetWriter();
-
     //! Get BlockReader for beginning of File
-    Reader ReaderAtStart() const;
+    Reader GetReader() const;
 
 protected:
     //! the container holding shared pointers to all blocks.
@@ -165,17 +163,18 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    BlockWriter(const BlockWriter &) = delete;
+    BlockWriter(const BlockWriter&) = delete;
     //! non-copyable: delete assignment operator
-    BlockWriter & operator = (const BlockWriter &) = delete;
-    //! default move-constructor
-    BlockWriter(BlockWriter&&) = default;
+    BlockWriter& operator = (const BlockWriter&) = delete;
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
         if (current_ != block_->begin() || nitems_)
             FlushBlock();
     }
+
+    //! \name Appending (Generic) Items
+    //! \{
 
     //! Mark beginning of an item.
     BlockWriter & MarkItem() {
@@ -186,6 +185,16 @@ public:
 
         return *this;
     }
+
+    //! operator() appends a complete item
+    template <typename T>
+    BlockWriter& operator () (const T& x) {
+        MarkItem();
+        Serializer<BlockWriter, T>::serialize(x, *this);
+        return *this;
+    }
+
+    //! \}
 
     //! \name Appending Write Functions
     //! \{
@@ -418,12 +427,6 @@ protected:
     Target& target_;
 };
 
-//! Get BlockReader for beginning of File
-template <size_t BlockSize>
-typename File<BlockSize>::Writer File<BlockSize>::GetWriter() {
-    return std::move(Writer(*this));
-}
-
 template <size_t BlockSize>
 class BlockReader
 {
@@ -449,6 +452,17 @@ public:
             assert(current_ < end_);
         }
     }
+
+    //! \name Reading (Generic) Items
+    //! \{
+
+    //! Next() reads a complete item T
+    template <typename T>
+    T Next() {
+        return Serializer<BlockReader, T>::deserialize(*this);
+    }
+
+    //! \}
 
     //! \name Cursor Reading Methods
     //! \{
@@ -598,7 +612,7 @@ protected:
 
 //! Get BlockReader for beginning of File
 template <size_t BlockSize>
-typename File<BlockSize>::Reader File<BlockSize>::ReaderAtStart() const {
+typename File<BlockSize>::Reader File<BlockSize>::GetReader() const {
     return Reader(*this, 0, 0);
 }
 

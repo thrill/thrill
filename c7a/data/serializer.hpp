@@ -16,6 +16,7 @@
 #include <utility>
 #include <cassert>
 #include <tuple>
+#include <type_traits>
 
 //TODO DELETE
 #include <iostream>
@@ -320,6 +321,39 @@ template <class T>
 inline T Deserialize(const std::string& x) {
     return serializers::Impl<T>::Deserialize(x);
 }
+
+/******************************************************************************/
+
+//! New Serializer directly into BlockWriter and deserialize from BlockReader
+template <typename Archive, typename T, class Enable = void>
+struct Serializer
+{ };
+
+template <typename Archive, typename T>
+struct Serializer<Archive, T,
+                  typename std::enable_if<std::is_pod<T>::value>::type>
+{
+    static void serialize(const T& x, Archive& a) {
+        a.template Put<T>(x);
+    }
+    static T deserialize(Archive& a) {
+        return a.template Get<T>();
+    }
+};
+
+template <typename Archive, typename U, typename V>
+struct Serializer<Archive, std::pair<U, V> >
+{
+    static void serialize(const std::pair<U, V>& x, Archive& a) {
+        a.Put(x.first);
+        a.Put(x.second);
+    }
+    static std::pair<U, V> deserialize(Archive& a) {
+        U u = a.template Get<U>();
+        V v = a.template Get<V>();
+        return std::pair<U, V>(std::move(u), std::move(v));
+    }
+};
 
 } // namespace data
 } // namespace c7a
