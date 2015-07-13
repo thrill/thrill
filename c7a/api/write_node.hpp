@@ -92,8 +92,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename WriteFunction>
-void DIARef<ValueType, Stack>::WriteToFileSystem(const std::string& filepath,
-                                                 const WriteFunction& write_function) {
+void DIARef<ValueType, Stack>::WriteToFileSystem(
+    const std::string& filepath,
+    const WriteFunction& write_function) const {
 
     using WriteResultNode = WriteNode<
               ValueType, Stack, WriteFunction>;

@@ -220,9 +220,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-                                             const ReduceFunction &reduce_function,
-                                             size_t max_index) {
+auto DIARef<ValueType, Stack>::ReduceToIndex(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function, size_t max_index) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

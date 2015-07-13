@@ -105,8 +105,9 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIARef<ValueType, Stack>::Sum(const SumFunction &sum_function,
-                                   ValueType neutral_element) {
+auto DIARef<ValueType, Stack>::Sum(
+    const SumFunction &sum_function, ValueType neutral_element) const {
+
     using SumResultNode
               = SumNode<ValueType, Stack, SumFunction>;
 

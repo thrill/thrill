@@ -97,7 +97,7 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-size_t DIARef<ValueType, Stack>::Size() {
+size_t DIARef<ValueType, Stack>::Size() const {
     using SizeResultNode
               = SizeNode<ValueType, Stack>;
 
