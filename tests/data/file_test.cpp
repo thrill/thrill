@@ -21,7 +21,7 @@ TEST(File, PutSomeItemsGetItems) {
     File file;
 
     {
-        File::Writer fw = file.GetWriter();
+        File::Writer fw(file);
         fw.MarkItem();
         fw.Append("testtest");
         fw.MarkItem();
@@ -90,15 +90,51 @@ TEST(File, PutSomeItemsGetItems) {
             file.BlockAsString(i));
     }
 
+    // check size of Block.
+    {
+        File::BlockCPtr block = file.block(0);
+        static_assert(sizeof(*block) == 16, "Block size does not match");
+    }
+
     // read File contents using BlockReader
     {
-        File::Reader fr = file.ReaderAtStart();
+        File::Reader fr = file.GetReader();
         ASSERT_EQ(fr.Read(8), "testtest");
         ASSERT_EQ(fr.GetVarint(), 123456u);
         ASSERT_EQ(fr.GetString(), "test1test2test3");
         ASSERT_EQ(fr.GetString(), std::string(64, '1'));
         ASSERT_EQ(fr.Get<uint16_t>(), 42);
         ASSERT_THROW(fr.Get<uint16_t>(), std::runtime_error);
+    }
+}
+
+TEST(File, SerializeSomeItems) {
+
+    // construct File with very small blocks for testing
+    using File = data::File<1024>;
+    File file;
+
+    using MyPair = std::pair<int, short>;
+
+    // put into File some items (all of different serialization bytes)
+    {
+        File::Writer fw(file);
+        fw(unsigned(5));
+        fw(MyPair(5, 10));
+        fw(double(42.0));
+    }
+
+    //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
+
+    // get items back from file.
+    {
+        File::Reader fr = file.GetReader();
+        unsigned i1 = fr.Next<unsigned>();
+        ASSERT_EQ(i1, 5u);
+        MyPair i2 = fr.Next<MyPair>();
+        ASSERT_EQ(i2, MyPair(5, 10));
+        double i3 = fr.Next<double>();
+        ASSERT_DOUBLE_EQ(i3, 42.0);
     }
 }
 
