@@ -24,7 +24,7 @@ namespace data {
 static const size_t default_block_size = 2 * 1024 * 1024;
 
 template <size_t BlockSize>
-class FileBlock
+class Block
 {
 public:
     //! type of underlying memory area
@@ -58,10 +58,10 @@ public:
 };
 
 template <size_t BlockSize>
-class FileWriter;
+class BlockWriter;
 
 template <size_t BlockSize>
-class FileReader;
+class BlockReader;
 
 template <size_t BlockSize = default_block_size>
 class File
@@ -69,10 +69,10 @@ class File
 public:
     enum { block_size = BlockSize };
 
-    using Block = FileBlock<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using Writer = FileWriter<BlockSize>;
-    using Reader = FileReader<BlockSize>;
+    using BlockType = Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const BlockType>;
+    using Writer = BlockWriter<BlockSize>;
+    using Reader = BlockReader<BlockSize>;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -124,7 +124,7 @@ public:
                            used_[i]);
     }
 
-    //! Get FileReader for beginning of File
+    //! Get BlockReader for beginning of File
     Reader ReaderAtStart() const;
 
 protected:
@@ -144,34 +144,34 @@ protected:
     std::vector<size_t> offset_of_first_;
 
     //! for access to blocks_ and used_
-    friend class FileReader<BlockSize>;
+    friend class BlockReader<BlockSize>;
 };
 
 template <size_t BlockSize>
-class FileWriter
+class BlockWriter
 {
 public:
     using BaseFile = File<BlockSize>;
 
-    using Block = FileBlock<BlockSize>;
-    using BlockPtr = std::shared_ptr<Block>;
+    using BlockType = Block<BlockSize>;
+    using BlockPtr = std::shared_ptr<BlockType>;
 
     using Byte = unsigned char;
 
     //! Start build (appending blocks) to a File
-    FileWriter(BaseFile& file)
+    BlockWriter(BaseFile& file)
         : file_(file) {
         AllocateBlock();
     }
 
     //! On destruction, the last partial block is flushed.
-    ~FileWriter() {
+    ~BlockWriter() {
         if (current_ != block_->begin() || nitems_)
             FlushBlock();
     }
 
     //! Mark beginning of an item.
-    FileWriter & MarkItem() {
+    BlockWriter & MarkItem() {
         if (nitems_ == 0)
             first_offset_ = current_ - block_->begin();
 
@@ -184,7 +184,7 @@ public:
     //! \{
 
     //! Append a memory range to the block
-    FileWriter & Append(const void* data, size_t size) {
+    BlockWriter & Append(const void* data, size_t size) {
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
@@ -209,7 +209,7 @@ public:
     }
 
     //! Append a single byte to the block
-    FileWriter & AppendByte(Byte data) {
+    BlockWriter & AppendByte(Byte data) {
         if (current_ < end_) {
             *current_++ = data;
         }
@@ -223,14 +223,14 @@ public:
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    FileWriter & Append(const std::string& str) {
+    BlockWriter & Append(const std::string& str) {
         return Append(str.data(), str.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    FileWriter & Put(const Type& item) {
+    BlockWriter & Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -238,7 +238,7 @@ public:
     }
 
     //! Append a varint to the buffer.
-    FileWriter & PutVarint(uint32_t v) {
+    BlockWriter & PutVarint(uint32_t v) {
         if (v < 128) {
             AppendByte(uint8_t(v));
         }
@@ -269,12 +269,12 @@ public:
     }
 
     //! Append a varint to the buffer.
-    FileWriter & PutVarint(int v) {
+    BlockWriter & PutVarint(int v) {
         return PutVarint((uint32_t)v);
     }
 
     //! Append a varint to the buffer.
-    FileWriter & PutVarint(uint64_t v) {
+    BlockWriter & PutVarint(uint64_t v) {
         if (v < 128) {
             AppendByte(uint8_t(v));
         }
@@ -357,17 +357,17 @@ public:
     }
 
     //! Put a string by saving its length followed by the data itself.
-    FileWriter & PutString(const char* data, size_t len) {
+    BlockWriter & PutString(const char* data, size_t len) {
         return PutVarint((uint32_t)len).Append(data, len);
     }
 
     //! Put a string by saving its length followed by the data itself.
-    FileWriter & PutString(const Byte* data, size_t len) {
+    BlockWriter & PutString(const Byte* data, size_t len) {
         return PutVarint((uint32_t)len).Append(data, len);
     }
 
     //! Put a string by saving its length followed by the data itself.
-    FileWriter & PutString(const std::string& str) {
+    BlockWriter & PutString(const std::string& str) {
         return PutString(str.data(), str.size());
     }
 
@@ -376,7 +376,7 @@ public:
 protected:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        block_ = std::make_shared<Block>();
+        block_ = std::make_shared<BlockType>();
         current_ = block_->begin();
         end_ = block_->end();
         nitems_ = 0;
@@ -412,18 +412,18 @@ protected:
 };
 
 template <size_t BlockSize>
-class FileReader
+class BlockReader
 {
 public:
     using BaseFile = File<BlockSize>;
 
-    using Block = FileBlock<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
+    using BlockType = Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const BlockType>;
 
     using Byte = unsigned char;
 
     //! Start reading a File
-    FileReader(const BaseFile& file, size_t current_block, size_t offset)
+    BlockReader(const BaseFile& file, size_t current_block, size_t offset)
         : file_(file), current_block_(current_block) {
         // set up reader for the block+offset pair
         if (current_block_ >= file_.NumBlocks()) {
@@ -442,7 +442,7 @@ public:
 
     //! Fetch a number of unstructured bytes from the current block, advancing
     //! the cursor.
-    FileReader & Read(void* outdata, size_t size) {
+    BlockReader & Read(void* outdata, size_t size) {
 
         Byte* cdata = reinterpret_cast<Byte*>(outdata);
 
@@ -455,7 +455,7 @@ public:
             size -= partial_size;
 
             if (!NextBlock())
-                throw std::runtime_error("Data underflow in FileReader.");
+                throw std::runtime_error("Data underflow in BlockReader.");
         }
 
         // copy rest from current block
@@ -482,7 +482,7 @@ public:
             // loop, since blocks can actually be empty.
             while (current_ < end_) {
                 if (!NextBlock())
-                    throw std::runtime_error("Data underflow in FileReader.");
+                    throw std::runtime_error("Data underflow in BlockReader.");
             }
             return *current_++;
         }
@@ -583,9 +583,9 @@ protected:
     const Byte* end_;
 };
 
-//! Get FileReader for beginning of File
+//! Get BlockReader for beginning of File
 template <size_t BlockSize>
-FileReader<BlockSize> File<BlockSize>::ReaderAtStart() const {
+BlockReader<BlockSize> File<BlockSize>::ReaderAtStart() const {
     return Reader(*this, 0, 0);
 }
 
