@@ -86,7 +86,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
                                     return in1 + in2;
                                 };
 
-            size_t max_index = 9;
+            size_t max_index = 8;
 
             auto reduced = integers.ReduceToIndex(key, add_function, max_index);
 
