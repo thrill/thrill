@@ -102,7 +102,8 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
+void DIARef<ValueType, Stack>::AllGather(
+    std::vector<ValueType>* out_vector)  const {
 
     using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 

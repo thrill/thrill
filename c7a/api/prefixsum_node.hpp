@@ -127,7 +127,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, ValueType neutral_element) {
+    const SumFunction &sum_function, ValueType neutral_element) const {
 
     using SumResultNode
               = PrefixSumNode<ValueType, Stack, SumFunction>;
