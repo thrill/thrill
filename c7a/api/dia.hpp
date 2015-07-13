@@ -162,6 +162,10 @@ public:
                                      emit_func(map_function(input));
                                  };
 
+        static_assert(
+            std::is_same<MapArgument, ValueType>::value,
+            "MapFunction has the wrong input type");
+
         auto new_stack = local_stack_.push(conv_map_function);
         return DIARef<MapResult, decltype(new_stack)>(node_, new_stack);
     }
@@ -187,6 +191,10 @@ public:
                                         if (filter_function(input)) emit_func(input);
                                     };
 
+        static_assert(
+            std::is_same<FilterArgument, ValueType>::value,
+            "FilterFunction has the wrong input type");
+
         auto new_stack = local_stack_.push(conv_filter_function);
         return DIARef<ValueType, decltype(new_stack)>(node_, new_stack);
     }
@@ -198,6 +206,9 @@ public:
      * has an emitter function as it's second parameter. This emitter is called
      * once for each element to be emitted. The function chain of the returned
      * DIARef is this DIARef's local_stack_ chained with flatmap_function.
+     *
+     * \tparam ResultType ResultType of the FlatmapFunction, if different from
+     * item type of DIA.
      *
      * \tparam FlatmapFunction Type of the map function.
      *
