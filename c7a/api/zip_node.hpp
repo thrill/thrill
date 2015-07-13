@@ -269,7 +269,7 @@ auto DIARef<ValueType, Stack>::Zip(
         = std::make_shared<ZipResultNode>(node_->context(),
                                           node_,
                                           second_dia.get_node(),
-                                          local_stack_,
+                                          stack_,
                                           second_dia.get_stack(),
                                           zip_function);
 

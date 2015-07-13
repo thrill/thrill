@@ -82,7 +82,7 @@ public:
      */
     DIARef(DIANodePtr& node, Stack& stack)
         : node_(node),
-          local_stack_(stack)
+          stack_(stack)
     { }
 
     /*!
@@ -96,7 +96,7 @@ public:
      */
     DIARef(DIANodePtr&& node, Stack& stack)
         : node_(std::move(node)),
-          local_stack_(stack)
+          stack_(stack)
     { }
 
     /*!
@@ -136,15 +136,15 @@ public:
     /*!
      * Returns the stored function chain.
      */
-    const Stack & get_stack() const {
-        return local_stack_;
+    const Stack & stack() const {
+        return stack_;
     }
 
     /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
      * element of a possibly different type. The function chain of the returned
-     * DIARef is this DIARef's local_stack_ chained with map_fn.
+     * DIARef is this DIARef's stack_ chained with map_fn.
      *
      * \tparam MapFunction Type of the map function.
      *
@@ -166,7 +166,7 @@ public:
             std::is_same<MapArgument, ValueType>::value,
             "MapFunction has the wrong input type");
 
-        auto new_stack = local_stack_.push(conv_map_function);
+        auto new_stack = stack_.push(conv_map_function);
         return DIARef<MapResult, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -175,7 +175,7 @@ public:
      * according to the filter_function given by the
      * user. The filter_function maps each element to a boolean.
      * The function chain of the returned DIARef is this DIARef's
-     * local_stack_ chained with filter_function.
+     * stack_ chained with filter_function.
      *
      * \tparam FilterFunction Type of the map function.
      *
@@ -195,7 +195,7 @@ public:
             std::is_same<FilterArgument, ValueType>::value,
             "FilterFunction has the wrong input type");
 
-        auto new_stack = local_stack_.push(conv_filter_function);
+        auto new_stack = stack_.push(conv_filter_function);
         return DIARef<ValueType, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -205,7 +205,7 @@ public:
      * element to elements of a possibly different type. The flatmap_function
      * has an emitter function as it's second parameter. This emitter is called
      * once for each element to be emitted. The function chain of the returned
-     * DIARef is this DIARef's local_stack_ chained with flatmap_function.
+     * DIARef is this DIARef's stack_ chained with flatmap_function.
      *
      * \tparam ResultType ResultType of the FlatmapFunction, if different from
      * item type of DIA.
@@ -217,7 +217,7 @@ public:
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) {
-        auto new_stack = local_stack_.push(flatmap_function);
+        auto new_stack = stack_.push(flatmap_function);
         return DIARef<ResultType, decltype(new_stack)>(node_, new_stack);
     }
 
@@ -227,7 +227,7 @@ public:
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type. Since Reduce is a DOp,
      * it creates a new DIANode. The DIARef returned by Reduce links to this
-     * newly created DIANode. The local_stack_ of the returned DIARef consists
+     * newly created DIANode. The stack_ of the returned DIARef consists
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -258,7 +258,7 @@ public:
      * The reduce_function defines how two elements can be reduced to a single
      * element of equal type. Since ReduceToIndex is a DOp, it creates a new
      * DIANode. The DIARef returned by ReduceToIndex links to this
-     * newly created DIANode. The local_stack_ of the returned DIARef consists
+     * newly created DIANode. The stack_ of the returned DIARef consists
      * of the PostOp of ReduceToIndex, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -371,7 +371,7 @@ private:
 
     //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
-    Stack local_stack_;
+    Stack stack_;
 };
 
 template <typename ValueType, typename Stack>
@@ -380,7 +380,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
     auto rhs_node = std::move(rhs.get_node());
-    auto rhs_stack = rhs.get_stack();
+    auto rhs_stack = rhs.stack();
     using LOpChainNode = LOpNode<ValueType, AnyStack>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
@@ -391,7 +391,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
                                          rhs_node,
                                          rhs_stack);
     node_ = std::move(shared_node);
-    local_stack_ = MakeEmptyStack<ValueType>();
+    stack_ = MakeEmptyStack<ValueType>();
 }
 
 /*!
