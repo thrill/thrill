@@ -109,7 +109,7 @@ void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
     auto shared_node =
         std::make_shared<AllGatherResultNode>(node_->context(),
                                               node_,
-                                              local_stack_,
+                                              stack_,
                                               out_vector);
 
     core::StageBuilder().RunScope(shared_node.get());

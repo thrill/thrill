@@ -264,7 +264,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     auto shared_node
         = std::make_shared<ReduceResultNode>(node_->context(),
                                              node_,
-                                             local_stack_,
+                                             stack_,
                                              key_extractor,
                                              reduce_function,
                                              max_index);

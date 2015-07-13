@@ -156,7 +156,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     auto shared_node
         = std::make_shared<SumResultNode>(node_->context(),
                                           node_,
-                                          local_stack_,
+                                          stack_,
                                           sum_function,
                                           neutral_element);
 
