@@ -159,8 +159,8 @@ public:
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
-                  = typename FunctionTraits<MapFunction>::result_type;
-        auto conv_map_function = [=](MapArgument input, auto emit_func) {
+                  = typename common::FunctionTraits<MapFunction>::result_type;
+        auto conv_map_function = [ = ](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
 
@@ -188,12 +188,10 @@ public:
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
-
-        auto conv_filter_function =
-            [=](FilterArgument input, auto emit_func) {
-                if (filter_function(input)) emit_func(input);
-            };
+                  = typename common::FunctionTraits<FilterFunction>::template arg<0>;
+        auto conv_filter_function = [ = ](FilterArgument input, auto emit_func) {
+                                        if (filter_function(input)) emit_func(input);
+                                    };
 
         static_assert(
             std::is_same<FilterArgument, ValueType>::value,
@@ -451,7 +449,6 @@ auto Generate(Context & ctx,
               size_t size);
 
 //! \}
-
 } // namespace api
 } // namespace c7a
 

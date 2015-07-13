@@ -39,14 +39,14 @@ struct FlushImpl<true, T, Value, Table>{
                     size_t min_local_index_, size_t max_local_index_,
                     Table* table, Value neutral_element_) {
         // retrieve items
-        
+
         std::vector<Value> elements_to_emit
             (max_local_index_ - min_local_index_ + 1, neutral_element_);
-                
+
         for (size_t i = 0; i < num_buckets_; i++) {
             if ((*vector_)[i] != nullptr) {
                 T curr_node = (*vector_)[i];
-                do {                  
+                do {
                     elements_to_emit[curr_node->key - min_local_index_] =
                         curr_node->value;
                     auto del = curr_node;
@@ -388,12 +388,11 @@ private:
     HashFunction hash_function_;
 
     size_t min_local_index_;
-    
+
     size_t max_local_index_;
 
     Value neutral_element_;
 };
-
 } // namespace core
 } // namespace c7a
 
