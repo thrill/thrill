@@ -38,7 +38,7 @@ class SizeNode : public ActionNode
 public:
     SizeNode(Context& ctx,
              std::shared_ptr<DIANode<ParentInput> > parent,
-             ParentStack& parent_stack)
+             const ParentStack& parent_stack)
         : ActionNode(ctx, { parent })
     {
         // Hook PreOp(s)
@@ -97,14 +97,14 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-size_t DIARef<ValueType, Stack>::Size() {
+size_t DIARef<ValueType, Stack>::Size() const {
     using SizeResultNode
               = SizeNode<ValueType, Stack>;
 
     auto shared_node
         = std::make_shared<SizeResultNode>(node_->context(),
                                            node_,
-                                           local_stack_);
+                                           stack_);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();

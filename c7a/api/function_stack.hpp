@@ -107,12 +107,8 @@ class FunctionStack
 public:
     using Input = _Input;
 
-    explicit FunctionStack()
+    FunctionStack()
         : stack_(std::make_tuple()) { }
-
-    template <typename Lambda>
-    explicit FunctionStack(Lambda lambda)
-        : stack_(std::make_tuple(lambda)) { }
 
     /*!
      * Initialize the function chain with a given tuple of functions.
@@ -134,7 +130,7 @@ public:
      * \return New chain containing the previous and new lambda function(s).
      */
     template <typename Function>
-    auto push(Function append_func)
+    auto push(Function append_func) const
     {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
@@ -151,7 +147,7 @@ public:
      *
      * \return Single "folded" lambda function representing the chain.
      */
-    auto emit() {
+    auto emit() const {
         typedef std::tuple<Lambdas ...> StackType;
 
         const size_t Size = std::tuple_size<StackType>::value;
@@ -171,7 +167,7 @@ private:
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
-    auto emit_sequence(index_sequence<Is ...>)
+    auto emit_sequence(index_sequence<Is ...>) const
     {
         return run_emitter(std::get<Is>(stack_) ...);
     }
@@ -179,12 +175,7 @@ private:
 
 template <typename Input, typename Lambda>
 static inline auto MakeFunctionStack(Lambda lambda) {
-    return FunctionStack<Input, Lambda>(lambda);
-}
-
-template <typename Input>
-static inline auto MakeEmptyStack() {
-    return FunctionStack<Input>();
+    return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
 
 } // namespace api

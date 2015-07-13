@@ -46,8 +46,8 @@ public:
      * \param lop_stack Function chain with all lambdas between the parent and this node
      */
     LOpNode(Context& ctx,
-            std::shared_ptr<DIANode<ParentInput> > parent,
-            ParentStack& lop_stack)
+            const std::shared_ptr<DIANode<ParentInput> >& parent,
+            const ParentStack& lop_stack)
         : DIANode<ValueType>(ctx, { parent })
     {
         auto save_fn =

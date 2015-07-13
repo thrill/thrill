@@ -38,7 +38,7 @@ public:
     AllGatherNode(Context& ctx,
                   //TODO(??) don't we need to pass shared ptrs for the ref counting?
                   std::shared_ptr<DIANode<ParentInput> > parent,
-                  ParentStack& parent_stack,
+                  const ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )
         : ActionNode(ctx, { parent }),
@@ -102,14 +102,15 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) {
+void DIARef<ValueType, Stack>::AllGather(
+    std::vector<ValueType>* out_vector)  const {
 
     using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 
     auto shared_node =
         std::make_shared<AllGatherResultNode>(node_->context(),
                                               node_,
-                                              local_stack_,
+                                              stack_,
                                               out_vector);
 
     core::StageBuilder().RunScope(shared_node.get());

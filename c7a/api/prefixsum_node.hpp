@@ -39,7 +39,7 @@ class PrefixSumNode : public DOpNode<ValueType>
 public:
     PrefixSumNode(Context& ctx,
                   std::shared_ptr<DIANode<ParentInput> > parent,
-                  ParentStack& parent_stack,
+                  const ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
         : DOpNode<ValueType>(ctx, { parent }),
@@ -127,7 +127,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, ValueType neutral_element) {
+    const SumFunction &sum_function, ValueType neutral_element) const {
 
     using SumResultNode
               = PrefixSumNode<ValueType, Stack, SumFunction>;
@@ -156,7 +156,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     auto shared_node
         = std::make_shared<SumResultNode>(node_->context(),
                                           node_,
-                                          local_stack_,
+                                          stack_,
                                           sum_function,
                                           neutral_element);
 
