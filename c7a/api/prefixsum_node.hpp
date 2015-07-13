@@ -20,6 +20,7 @@
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
@@ -94,29 +95,37 @@ private:
     ValueType local_sum_;
     //! Neutral element.
     ValueType neutral_element_;
-    //! Local data
-    std::vector<ValueType> data_;
 
-    void PreOp(ValueType input) {
+    //! Local data file
+    data::File file_;
+    //! Data writer to local file (only active in PreOp).
+    data::File::Writer writer_ { file_ };
+
+    //! PreOp: compute local prefixsum and store items.
+    void PreOp(const ValueType& input) {
         LOG << "Input: " << input;
         local_sum_ = sum_function_(local_sum_, input);
-        data_.push_back(input);
+        writer_(input);
     }
 
     void MainOp() {
+        writer_.Close();
+
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        ValueType prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
+        ValueType sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
         if (context_.rank() == 0) {
-            prefix_sum = neutral_element_;
+            sum = neutral_element_;
         }
 
-        for (size_t i = 0; i < data_.size(); i++) {
-            prefix_sum = sum_function_(prefix_sum, data_[i]);
+        data::File::Reader reader(file_);
+
+        for (size_t i = 0; i < file_.NumItems(); ++i) {
+            sum = sum_function_(sum, reader.Next<ValueType>());
             for (auto func : DIANode<ValueType>::callbacks_) {
-                func(prefix_sum);
+                func(sum);
             }
         }
     }

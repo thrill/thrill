@@ -64,15 +64,15 @@ class BlockWriter;
 template <size_t BlockSize>
 class BlockReader;
 
-template <size_t BlockSize = default_block_size>
-class File
+template <size_t BlockSize>
+class FileBase
 {
 public:
     enum { block_size = BlockSize };
 
     using BlockType = Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const BlockType>;
-    using Writer = BlockWriter<BlockType, File>;
+    using Writer = BlockWriter<BlockType, FileBase>;
     using Reader = BlockReader<BlockSize>;
 
     //! Append a block to this file, the block must contain given number of
@@ -148,6 +148,8 @@ protected:
     friend class BlockReader<BlockSize>;
 };
 
+using File = FileBase<default_block_size>;
+
 template <typename Block, typename Target>
 class BlockWriter
 {
@@ -169,8 +171,17 @@ public:
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        if (current_ != block_->begin() || nitems_)
+        Close();
+    }
+
+    //! Explicitly close the writer
+    void Close() {
+        if (current_ != block_->begin() || nitems_) {
             FlushBlock();
+            nitems_ = 0;
+            block_ = BlockPtr();
+            current_ = nullptr;
+        }
     }
 
     //! \name Appending (Generic) Items
@@ -431,7 +442,7 @@ template <size_t BlockSize>
 class BlockReader
 {
 public:
-    using BaseFile = File<BlockSize>;
+    using BaseFile = FileBase<BlockSize>;
 
     using BlockType = Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const BlockType>;
@@ -439,7 +450,8 @@ public:
     using Byte = unsigned char;
 
     //! Start reading a File
-    BlockReader(const BaseFile& file, size_t current_block, size_t offset)
+    BlockReader(const BaseFile& file,
+                size_t current_block = 0, size_t offset = 0)
         : file_(file), current_block_(current_block) {
         // set up reader for the block+offset pair
         if (current_block_ >= file_.NumBlocks()) {
@@ -612,7 +624,7 @@ protected:
 
 //! Get BlockReader for beginning of File
 template <size_t BlockSize>
-typename File<BlockSize>::Reader File<BlockSize>::GetReader() const {
+typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(*this, 0, 0);
 }
 
