@@ -94,28 +94,34 @@ public:
                       ReduceFunction reduce_function,
                       size_t max_index,
                       Value neutral_element
-        )
+                      )
         :
-        DOpNode<ValueType>(ctx, { parent }),
-        key_extractor_(key_extractor),
-        reduce_function_(reduce_function),
-        channel_id_(ctx.data_manager().AllocateNetworkChannel()),
-        emitters_(ctx.data_manager().
-                  template GetNetworkEmitters<KeyValuePair>(channel_id_)),
-        reduce_pre_table_(ctx.number_worker(), key_extractor,
-                          reduce_function_, emitters_,
-                          [=](size_t key, PreHashTable* ht) {
-                              size_t global_index = key * ht->NumBuckets() / (max_index + 1);
-                              size_t partition_id = key * ht->NumPartitions() / (max_index + 1);
-                              size_t partition_offset = global_index - (partition_id * ht->NumBucketsPerPartition());
-                              return typename PreHashTable::hash_result(partition_id, partition_offset, global_index);
-                          }),
-        max_index_(max_index),
-        neutral_element_(neutral_element)
-        
+          DOpNode<ValueType>(ctx, { parent }),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          channel_id_(ctx.data_manager().AllocateNetworkChannel()),
+          emitters_(ctx.data_manager().
+                    template GetNetworkEmitters<KeyValuePair>(channel_id_)),
+          reduce_pre_table_(ctx.number_worker(), key_extractor,
+                            reduce_function_, emitters_,
+                            [ = ](size_t key, PreHashTable* ht) {
+                                size_t global_index = key * ht->NumBuckets() /
+                                    (max_index + 1);
+                                size_t partition_id = key *
+                                    ht->NumPartitions() / (max_index + 1);
+                                size_t partition_offset = global_index -
+                                    partition_id * ht->NumBucketsPerPartition();
+                                return typename PreHashTable::
+                                    hash_result(partition_id,
+                                                partition_offset,
+                                                global_index);
+                            }),
+          max_index_(max_index),
+          neutral_element_(neutral_element)
+
     {
         // Hook PreOp
-        auto pre_op_fn = [=](Value input) {
+        auto pre_op_fn = [ = ](Value input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -141,7 +147,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
+        auto post_op_fn = [ = ](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
@@ -192,8 +198,7 @@ private:
                                           ReduceFunction,
                                           std::function<void(ValueType)>,
                                           true>;
-        
-        
+
         size_t min_local_index =
             std::ceil((double) (max_index_ + 1) * (double) context_.rank() /
                       (double) context_.number_worker());
@@ -208,7 +213,7 @@ private:
         if (context_.rank() == 0) {
             min_local_index = 0;
         }
-        
+
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks(),
                           [=](Key key, ReduceTable* ht) {
@@ -295,14 +300,13 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                              reduce_function,
                                              max_index,
                                              neutral_element
-            );
+                                             );
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
 }
-
 } // namespace api
 } // namespace c7a
 
