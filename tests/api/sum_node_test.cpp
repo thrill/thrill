@@ -9,9 +9,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/sum_node.hpp>
-#include <c7a/api/generate_file_node.hpp>
-#include <c7a/api/read_node.hpp>
+#include <c7a/api/sum.hpp>
+#include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/read.hpp>
 #include <c7a/api/bootstrap.hpp>
 
 #include "gtest/gtest.h"

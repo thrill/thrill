@@ -9,13 +9,6 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/generate_node.hpp>
-#include <c7a/api/generate_file_node.hpp>
-#include <c7a/api/write_node.hpp>
-#include <c7a/api/allgather_node.hpp>
-#include <c7a/api/read_node.hpp>
-#include <c7a/api/bootstrap.hpp>
 #include <c7a/net/endpoint.hpp>
 
 #include <c7a/c7a.hpp>
