@@ -145,12 +145,6 @@ public:
         return cmp_.OpenChannel<T>(id);
     }
 
-    //! Returns an OutputLineIterator with a given output file stream.
-    template <typename T>
-    OutputLineEmitter<T> GetOutputLineEmitter(std::ofstream& file) {
-        return OutputLineEmitter<T>(file);
-    }
-
 private:
     static const bool debug = false;
     net::ChannelMultiplexer cmp_;
