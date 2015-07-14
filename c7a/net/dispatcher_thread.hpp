@@ -219,7 +219,7 @@ protected:
 
 private:
     //! Queue of jobs to be run by dispatching thread at its discretion.
-    common::concurrent_queue<Job> jobqueue_;
+    common::ConcurrentQueue<Job> jobqueue_;
 
     //! thread of dispatcher
     std::thread thread_;
