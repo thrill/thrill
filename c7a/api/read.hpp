@@ -140,7 +140,7 @@ auto ReadLines(Context & ctx, std::string filepath,
     auto read_stack = shared_node->ProduceStack();
 
     return DIARef<ReadResult, decltype(read_stack)>
-               (std::move(shared_node), read_stack);
+               (shared_node, read_stack);
 }
 
 } // namespace api
