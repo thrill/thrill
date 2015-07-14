@@ -262,15 +262,17 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReduceFunction>::template arg<0>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReduceFunction>::template arg<1>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
@@ -310,6 +312,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     return DIARef<DOpResult, decltype(reduce_stack)>
                (std::move(shared_node), reduce_stack);
 }
+
 } // namespace api
 } // namespace c7a
 

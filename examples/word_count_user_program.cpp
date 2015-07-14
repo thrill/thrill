@@ -37,7 +37,7 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
             /* reduction key: the word string */
             return in.first;
         },
-        [](WordCount a, WordCount b) {
+        [](const WordCount& a, const WordCount& b) {
             /* associative reduction operator: add counters */
             return WordCount(a.first, a.second + b.second);
         });
