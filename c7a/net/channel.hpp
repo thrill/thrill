@@ -48,10 +48,9 @@ public:
 
     //! Creates a new channel instance
     Channel(const ChannelId& id, int expected_streams,
-            std::shared_ptr<data::BufferChain> target)
+            const std::shared_ptr<data::BufferChain>& target)
         : id_(id),
           expected_streams_(expected_streams),
-          finished_streams_(0),
           target_(target)
     { }
 
@@ -68,14 +67,15 @@ public:
         return id_;
     }
 
+
+
 protected:
     static const bool debug = false;
 
     ChannelId id_;
     int expected_streams_;
-    int finished_streams_;
+    int finished_streams_ = 0;
 
-    data::OrderedBufferChain buffer_sorter_;
     std::shared_ptr<data::BufferChain> target_;
 
     //! for calling protected methods to deliver blocks.
