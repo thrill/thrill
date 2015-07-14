@@ -51,7 +51,7 @@ public:
     */
     ReadNode(Context& ctx,
              ReadFunction read_function,
-             std::string path_in)
+             const std::string& path_in)
         : DOpNode<ValueType>(ctx, { }),
           read_function_(read_function),
           path_in_(path_in)
@@ -66,7 +66,8 @@ public:
     //! \param num_work Number of workers
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(std::ifstream& file, size_t my_id, size_t num_work) {
+    InputLineIterator GetInputLineIterator(
+        std::ifstream& file, size_t my_id, size_t num_work) {
         return InputLineIterator(file, my_id, num_work);
     }
 
@@ -82,9 +83,6 @@ public:
         InputLineIterator it = GetInputLineIterator(
             file, context_.rank(), context_.number_worker());
 
-        auto emit = context_.data_manager().
-                    template GetLocalEmitter<ValueType>(data_id_);
-
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
@@ -95,7 +93,9 @@ public:
     }
 
     /*!
-     * Produces an 'empty' function stack, which only contains the identity emitter function.
+     * Produces an 'empty' function stack, which only contains the identity
+     * emitter function.
+     *
      * \return Empty function stack
      */
     auto ProduceStack() {
