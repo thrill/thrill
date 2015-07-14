@@ -14,18 +14,19 @@
 #define C7A_C7A_HEADER
 
 #include <c7a/api/dia.hpp>
+#include <c7a/api/bootstrap.hpp>
 
-#include <c7a/api/allgather_node.hpp>
-#include <c7a/api/generate_file_node.hpp>
-#include <c7a/api/generate_node.hpp>
-#include <c7a/api/prefixsum_node.hpp>
-#include <c7a/api/read_node.hpp>
-#include <c7a/api/reduce_node.hpp>
-#include <c7a/api/reduce_to_index_node.hpp>
-#include <c7a/api/sum_node.hpp>
-#include <c7a/api/write_node.hpp>
-#include <c7a/api/zip_node.hpp>
-#include <c7a/api/size_node.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/generate.hpp>
+#include <c7a/api/prefixsum.hpp>
+#include <c7a/api/read.hpp>
+#include <c7a/api/reduce.hpp>
+#include <c7a/api/reduce_to_index.hpp>
+#include <c7a/api/sum.hpp>
+#include <c7a/api/write.hpp>
+#include <c7a/api/zip.hpp>
+#include <c7a/api/size.hpp>
 
 namespace c7a {
 
