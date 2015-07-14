@@ -100,13 +100,13 @@ protected:
         }
     }
 
-    void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
-        assert(finished_streams_ < expected_streams_);
-        LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
-        //TODO(ts) this is a copy
-        data::BinaryBufferBuilder bb(base, len, elements);
-        buffer_sorter_.Append(own_rank, bb);
-    }
+    // void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
+    //     assert(finished_streams_ < expected_streams_);
+    //     LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
+    //     //TODO(ts) this is a copy
+    //     data::BinaryBufferBuilder bb(base, len, elements);
+    //     buffer_sorter_.Append(own_rank, bb);
+    // }
 };
 
 } // namespace net
