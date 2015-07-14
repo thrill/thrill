@@ -174,9 +174,12 @@ public:
             if (worker_id == group_->MyRank()) {
                 auto channel = channels_[target.identifier];
                 sLOG << "sending" << elements_to_send << "elements via channel" << target << "to self";
-                MoveFromItToTarget<T>(source_it, [&channel, worker_id](const void* base, size_t length, size_t elements) {
-                                          channel->ReceiveLocalData(base, length, elements, worker_id);
-                                      }, elements_to_send);
+                MoveFromItToTarget<T>(
+                    source_it,
+                    [&channel, worker_id](const void* base, size_t length, size_t elements) {
+                        // -tb removed for now.
+                        //channel->ReceiveLocalData(base, length, elements, worker_id);
+                    }, elements_to_send);
                 channel->CloseLoopback();
             }
             else {
