@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/manager_test.cpp
+ * tests/data/block_queue_test.cpp
  *
  * Part of Project c7a.
  *
