@@ -194,7 +194,7 @@ private:
             //! number of elements of this worker
             size_t numElems = data_manager.GetNumElements(id_[i]);
             //! target channel id
-            net::ChannelId channelId = data_manager.AllocateNetworkChannel();
+            data::ChannelId channelId = data_manager.AllocateNetworkChannel();
             //! exclusive prefixsum of number of elements
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
             //! total number of elements, over all worker
