@@ -48,19 +48,19 @@ public:
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
     }
 
-    //! Sends bare data via the socket
-    //! \param data base address of the data
-    //! \param len of data to be sent in bytes
-    //! \param num_elements number of elements in the send-range
-    void Pipe(const void* data, size_t len, size_t num_elements) {
-        if (len == 0) {
-            return;
-        }
-        SendHeader(len, num_elements);
-        //TODO(ts) this copies the data.
-        net::Buffer payload_buf = net::Buffer(data, len);
-        dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
-    }
+    // //! Sends bare data via the socket
+    // //! \param data base address of the data
+    // //! \param len of data to be sent in bytes
+    // //! \param num_elements number of elements in the send-range
+    // void Pipe(const void* data, size_t len, size_t num_elements) {
+    //     if (len == 0) {
+    //         return;
+    //     }
+    //     SendHeader(len, num_elements);
+    //     //TODO(ts) this copies the data.
+    //     net::Buffer payload_buf = net::Buffer(data, len);
+    //     dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
+    // }
 
     //! Closes the connection
     void Close() override {
