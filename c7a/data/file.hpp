@@ -197,7 +197,7 @@ protected:
     friend class BlockReader<BlockSize>;
 
     //! Closed files can not be altered
-    bool closed_ = { false };
+    bool closed_ = false;
 };
 
 using File = FileBase<default_block_size>;
@@ -221,9 +221,15 @@ public:
     //! non-copyable: delete assignment operator
     BlockWriter& operator = (const BlockWriter&) = delete;
 
+    //! move-constructor
+    BlockWriter(BlockWriter&&) = default;
+    //! move-assignment
+    BlockWriter& operator = (BlockWriter&&) = delete;
+
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        Close();
+        if (block_)
+            Close();
     }
 
     //! Explicitly close the writer
@@ -238,6 +244,12 @@ public:
             }
             target_.Close();
         }
+    }
+
+    //! Flush the current block (only really meaningful for a network sink).
+    void Flush() {
+        FlushBlock();
+        AllocateBlock();
     }
 
     //! \name Appending (Generic) Items
@@ -493,7 +505,7 @@ protected:
     Target& target_;
 
     //! Flag if Close was called explicilty
-    bool closed_ = { false };
+    bool closed_ = false;
 };
 
 template <size_t BlockSize>
@@ -530,6 +542,15 @@ public:
     template <typename T>
     T Next() {
         return Serializer<BlockReader, T>::deserialize(*this);
+    }
+
+    //! HasNext() returns true if at least one more byte is available.
+    bool HasNext() {
+        while (current_ == end_) {
+            if (!NextBlock())
+                return false;
+        }
+        return true;
     }
 
     //! \}
