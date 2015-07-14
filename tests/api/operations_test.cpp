@@ -12,6 +12,7 @@
 #include <c7a/net/endpoint.hpp>
 
 #include <c7a/c7a.hpp>
+#include <c7a/common/functional.hpp>
 
 #include <algorithm>
 #include <random>
@@ -261,6 +262,38 @@ TEST(Operations, FilterResultsCorrectly) {
 
     api::ExecuteLocalTests(start_func);
 }
+
+TEST(Operations, SortTest) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return (int)index + 1;
+                },
+                16);
+
+            auto sorted = integers.Sort();
+
+            std::vector<int> out_vec;
+
+            sorted.AllGather(&out_vec);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+
+            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+		ASSERT_FALSE(out_vec[i+1] < out_vec[i]);
+            }
+
+            ASSERT_EQ(16u, out_vec.size());
+        };
+
+    api::ExecuteLocalTests(start_func);
+}
+
 
 TEST(Operations, DIARefCasting) {
 
