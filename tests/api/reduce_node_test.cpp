@@ -42,7 +42,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                                   return (in % 2);
                               };
 
-            auto add_function = [](size_t in1, size_t in2) {
+            auto add_function = [](const size_t& in1, const size_t& in2) {
                                     return in1 + in2;
                                 };
 
@@ -82,11 +82,11 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
                            return in / 2;
                        };
 
-            auto add_function = [](size_t in1, size_t in2) {
+            auto add_function = [](const size_t& in1, const size_t& in2) {
                                     return in1 + in2;
                                 };
 
-            size_t max_index = 9;
+            size_t max_index = 8;
 
             auto reduced = integers.ReduceToIndex(key, add_function, max_index);
 

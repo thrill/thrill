@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <type_traits>
+#include <cmath>
 
 namespace c7a {
 namespace api {
@@ -55,13 +56,10 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
 
-    using ReduceArg =
-              typename common::FunctionTraits<ReduceFunction>::template arg<0>;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using Key =
-              typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    static_assert(std::is_same<Key, size_t>::value, "Key must be an unsigned integer");
+    static_assert(std::is_same<Key, size_t>::value,
+                  "Key must be an unsigned integer");
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
@@ -88,14 +86,20 @@ public:
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      * \param max_index maximum index returned by reduce_function.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
      */
     ReduceToIndexNode(Context& ctx,
                       std::shared_ptr<DIANode<ParentInput> > parent,
                       const ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
-                      size_t max_index)
-        : DOpNode<ValueType>(ctx, { parent }),
+                      size_t max_index,
+                      Value neutral_element
+                      )
+        :
+          DOpNode<ValueType>(ctx, { parent }),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_id_(ctx.data_manager().AllocateNetworkChannel()),
@@ -103,16 +107,24 @@ public:
                     template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
-                            [=](int key, PreHashTable* ht) {
-                                size_t global_index = key * ht->NumBuckets() / max_index;
-                                size_t partition_id = key * ht->NumPartitions() / max_index;
-                                size_t partition_offset = global_index - (partition_id * ht->NumBucketsPerPartition());
-                                return typename PreHashTable::hash_result(partition_id, partition_offset, global_index);
+                            [=](size_t key, PreHashTable* ht) {
+                                size_t global_index = key * ht->NumBuckets() /
+                                                      (max_index + 1);
+                                size_t partition_id = key *
+                                                      ht->NumPartitions() / (max_index + 1);
+                                size_t partition_offset = global_index -
+                                                          partition_id * ht->NumBucketsPerPartition();
+                                return typename PreHashTable::
+                                hash_result(partition_id,
+                                            partition_offset,
+                                            global_index);
                             }),
-          max_index_(max_index)
+          max_index_(max_index),
+          neutral_element_(neutral_element)
+
     {
         // Hook PreOp
-        auto pre_op_fn = [=](ReduceArg input) {
+        auto pre_op_fn = [=](Value input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -168,10 +180,12 @@ private:
 
     size_t max_index_;
 
+    Value neutral_element_;
+
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(ReduceArg input) {
+    void PreOp(Value input) {
         reduce_pre_table_.Insert(std::move(input));
     }
 
@@ -188,12 +202,31 @@ private:
                                           std::function<void(ValueType)>,
                                           true>;
 
+        size_t min_local_index =
+            std::ceil((double)(max_index_ + 1) * (double)context_.rank() /
+                      (double)context_.number_worker());
+        size_t max_local_index =
+            std::ceil((double)(max_index_ + 1) *
+                      (double)(context_.rank() + 1) /
+                      (double)context_.number_worker()) - 1;
+
+        if (context_.rank() == context_.number_worker() - 1) {
+            max_local_index = max_index_;
+        }
+        if (context_.rank() == 0) {
+            min_local_index = 0;
+        }
+
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks(),
                           [=](Key key, ReduceTable* ht) {
-                              return key * ht->NumBuckets() / max_index_;
+                              return (key - min_local_index) *
+                              (ht->NumBuckets() - 1) /
+                              (max_local_index - min_local_index + 1);
                           },
-                          max_index_);
+                          min_local_index,
+                          max_local_index,
+                          neutral_element_);
 
         auto it = context_.data_manager().
                   template GetIterator<KeyValuePair>(channel_id_);
@@ -220,23 +253,26 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function, size_t max_index) const {
+auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
+                                             const ReduceFunction &reduce_function,
+                                             size_t max_index,
+                                             ValueType neutral_element) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReduceFunction>::template arg<0>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReduceFunction>::template arg<1>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
@@ -267,7 +303,9 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                              stack_,
                                              key_extractor,
                                              reduce_function,
-                                             max_index);
+                                             max_index,
+                                             neutral_element
+                                             );
 
     auto reduce_stack = shared_node->ProduceStack();
 

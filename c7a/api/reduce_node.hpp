@@ -95,7 +95,7 @@ public:
                             reduce_function_, emitters_)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](ReduceArg input) {
+        auto pre_op_fn = [=](const ReduceArg& input) {
                              PreOp(input);
                          };
 
@@ -122,7 +122,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
+        auto post_op_fn = [=](const ValueType& elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
@@ -153,8 +153,8 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(ReduceArg input) {
-        reduce_pre_table_.Insert(std::move(input));
+    void PreOp(const ReduceArg& input) {
+        reduce_pre_table_.Insert(input);
     }
 
     //!Receive elements from other workers.
@@ -208,15 +208,17 @@ auto DIARef<ValueType, Stack>::ReduceBy(
               = ReduceNode<DOpResult, Stack, KeyExtractor, ReduceFunction>;
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReduceFunction>::template arg<0>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReduceFunction>::template arg<1>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
