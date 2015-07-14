@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -53,6 +54,8 @@ typedef c7a::data::ChainId ChannelId;
 class ChannelMultiplexer
 {
 public:
+    using ChannelPtr = std::shared_ptr<Channel>;
+
     ChannelMultiplexer(DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), chains_(data::NETWORK) { }
 
@@ -60,7 +63,7 @@ public:
         group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
-            ExpectStreamBlockHeader(group_->connection(id));
+            AsyncReadStreamBlockHeader(group_->connection(id));
         }
     }
 
@@ -88,6 +91,26 @@ public:
     //! Allocate the next channel
     ChannelId AllocateNext() {
         return chains_.AllocateNext();
+    }
+
+    //! Get channel with given id, if it does not exist, create it.
+    ChannelPtr GetOrCreateChannel(ChannelId id) {
+        assert(id.type == data::NETWORK);
+
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = channels_.find(id.identifier);
+
+        if (it != channels_.end())
+            return it->second;
+
+        // create buffer chain target if it does not exist
+        auto targetChain = chains_.GetOrAllocate(id);
+
+        // build params for Channel ctor
+        ChannelPtr channel = std::make_shared<Channel>(
+            id.identifier, group_->Size(), targetChain);
+        channels_.insert(std::make_pair(id.identifier, channel));
+        return channel;
     }
 
     //! Creates emitters for each worker. Uses the given ChannelId
@@ -178,7 +201,6 @@ public:
 
 private:
     static const bool debug = false;
-    typedef std::shared_ptr<Channel> ChannelPtr;
 
     DispatcherThread& dispatcher_;
 
@@ -186,31 +208,11 @@ private:
     std::map<size_t, ChannelPtr> channels_;
     data::BufferChainManager chains_;
 
-    //Hols NetConnections for outgoing Channels
+    // Holds NetConnections for outgoing Channels
     Group* group_;
 
     //protects critical sections
     std::mutex mutex_;
-
-    ChannelPtr GetOrCreateChannel(ChannelId id) {
-        assert(id.type == data::NETWORK);
-        ChannelPtr channel;
-
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (!HasChannel(id)) {
-            //create buffer chain target if it does not exist
-            auto targetChain = chains_.GetOrAllocate(id);
-
-            //build params for Channel ctor
-            auto expected_peers = group_->Size();
-            channel = std::make_shared<Channel>(id.identifier, expected_peers, targetChain);
-            channels_.insert(std::make_pair(id.identifier, channel));
-        }
-        else {
-            channel = channels_[id.identifier];
-        }
-        return channel;
-    }
 
     template <typename T>
     void MoveFromItToTarget(data::Iterator<T>& source, std::function<void(const void*, size_t, size_t)> target, size_t num_elements) {
@@ -227,17 +229,19 @@ private:
         }
     }
 
+    /**************************************************************************/
+
     //! expects the next StreamBlockHeader from a socket and passes to
     //! OnStreamBlockHeader
-    void ExpectStreamBlockHeader(Connection& s) {
+    void AsyncReadStreamBlockHeader(Connection& s) {
         dispatcher_.AsyncRead(
             s, sizeof(StreamBlockHeader),
-            [this](Connection& s, const Buffer& buffer) {
-                return OnStreamBlockHeader(s, buffer);
+            [this](Connection& s, Buffer&& buffer) {
+                OnStreamBlockHeader(s, std::move(buffer));
             });
     }
 
-    bool OnStreamBlockHeader(Connection& s, const Buffer& buffer) {
+    void OnStreamBlockHeader(Connection& s, Buffer&& buffer) {
 
         StreamBlockHeader header;
         header.ParseHeader(buffer.ToString());
@@ -250,7 +254,7 @@ private:
             sLOG << "end of stream on" << s << "in channel" << id;
             channel->OnCloseStream();
 
-            ExpectStreamBlockHeader(s);
+            AsyncReadStreamBlockHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on channel" << id
@@ -258,23 +262,21 @@ private:
 
             dispatcher_.AsyncRead(
                 s, header.expected_bytes,
-                [this, header, channel](Connection& s, const Buffer& buffer) {
-                    return OnStreamData(s, header, channel, buffer);
+                [this, header, channel](Connection& s, Buffer&& buffer) {
+                    OnStreamData(s, header, channel, std::move(buffer));
                 });
         }
-
-        return false;
     }
 
     void OnStreamData(
         Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
-        const Buffer& buffer) {
+        Buffer&& buffer) {
         sLOG << "got data on" << s << "in channel" << header.channel_id;
 
         data::BinaryBufferBuilder bb(buffer.data(), buffer.size());
         channel->OnStreamData(bb);
 
-        ExpectStreamBlockHeader(s);
+        AsyncReadStreamBlockHeader(s);
     }
 };
 
