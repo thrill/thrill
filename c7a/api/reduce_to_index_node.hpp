@@ -86,6 +86,9 @@ public:
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      * \param max_index maximum index returned by reduce_function.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
      */
     ReduceToIndexNode(Context& ctx,
                       std::shared_ptr<DIANode<ParentInput> > parent,
