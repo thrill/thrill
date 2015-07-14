@@ -145,6 +145,8 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
     Execute(w0, w1);
 }
 
+#if DISABLED_FIXUP_SCATTER_LATER
+
 TEST_F(DataManagerChannelFixture, DISABLED_Scatter_OneWorker) {
     auto w0 = [](Manager& manager) {
                   auto channel_id = manager.AllocateChannelId();
@@ -282,6 +284,8 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_ThreeWorkers_PartialExchange)
 
     Execute(w0, w1, w2);
 }
+
+#endif // DISABLED_FIXUP_SCATTER_LATER
 
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAreClosed) {
     Barrier sync(2);

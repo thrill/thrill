@@ -122,14 +122,14 @@ public:
     //! Returns an emitter that can be used to fill a DIA
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
-    template <class T>
-    Emitter<T> GetLocalEmitter(DIAId id) {
-        assert(id.type == LOCAL);
-        if (!dias_.Contains(id)) {
-            throw std::runtime_error("target dia id unknown.");
-        }
-        return Emitter<T>(dias_.Chain(id));
-    }
+    // template <class T>
+    // Emitter<T> GetLocalEmitter(DIAId id) {
+    //     assert(id.type == LOCAL);
+    //     if (!dias_.Contains(id)) {
+    //         throw std::runtime_error("target dia id unknown.");
+    //     }
+    //     return Emitter<T>(dias_.Chain(id));
+    // }
 
     //! Returns a new File object containing a sequence of local Blocks.
     File GetFile() {
