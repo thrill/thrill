@@ -107,24 +107,24 @@ public:
                     template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
-                            [ = ](size_t key, PreHashTable* ht) {
+                            [=](size_t key, PreHashTable* ht) {
                                 size_t global_index = key * ht->NumBuckets() /
-                                    (max_index + 1);
+                                                      (max_index + 1);
                                 size_t partition_id = key *
-                                    ht->NumPartitions() / (max_index + 1);
+                                                      ht->NumPartitions() / (max_index + 1);
                                 size_t partition_offset = global_index -
-                                    partition_id * ht->NumBucketsPerPartition();
+                                                          partition_id * ht->NumBucketsPerPartition();
                                 return typename PreHashTable::
-                                    hash_result(partition_id,
-                                                partition_offset,
-                                                global_index);
+                                hash_result(partition_id,
+                                            partition_offset,
+                                            global_index);
                             }),
           max_index_(max_index),
           neutral_element_(neutral_element)
 
     {
         // Hook PreOp
-        auto pre_op_fn = [ = ](Value input) {
+        auto pre_op_fn = [=](Value input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -150,7 +150,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [ = ](ValueType elem, auto emit_func) {
+        auto post_op_fn = [=](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
@@ -203,12 +203,12 @@ private:
                                           true>;
 
         size_t min_local_index =
-            std::ceil((double) (max_index_ + 1) * (double) context_.rank() /
-                      (double) context_.number_worker());
+            std::ceil((double)(max_index_ + 1) * (double)context_.rank() /
+                      (double)context_.number_worker());
         size_t max_local_index =
-            std::ceil((double) (max_index_ + 1) *
-                      (double) (context_.rank() + 1) /
-                      (double) context_.number_worker()) - 1;
+            std::ceil((double)(max_index_ + 1) *
+                      (double)(context_.rank() + 1) /
+                      (double)context_.number_worker()) - 1;
 
         if (context_.rank() == context_.number_worker() - 1) {
             max_local_index = max_index_;
@@ -221,8 +221,8 @@ private:
                           DIANode<ValueType>::callbacks(),
                           [=](Key key, ReduceTable* ht) {
                               return (key - min_local_index) *
-                                  (ht->NumBuckets() - 1) /
-                                  (max_local_index - min_local_index + 1);
+                              (ht->NumBuckets() - 1) /
+                              (max_local_index - min_local_index + 1);
                           },
                           min_local_index,
                           max_local_index,
