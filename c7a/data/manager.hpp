@@ -103,8 +103,8 @@ public:
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
     //! \param order_preserving indicates if the channel should preserve the order of the receiving packages
-    ChannelId AllocateNetworkChannel(bool order_preserving = false) {
-        return cmp_.AllocateNext(order_preserving);
+    ChannelId AllocateNetworkChannel() {
+        return cmp_.AllocateNext();
     }
 
     //! Returns an emitter that can be used to fill a DIA

@@ -53,11 +53,9 @@ public:
             ReleaseSocketCallback release_callback,
             size_t id, int expected_streams,
             std::shared_ptr<data::BufferChain> target,
-            std::shared_ptr<common::Stats> stats,
-            bool preserve_order = false)
+            std::shared_ptr<common::Stats> stats)
         : dispatcher_(dispatcher),
           release_(release_callback),
-          preserve_order_(preserve_order),
           id_(id),
           expected_streams_(expected_streams),
           finished_streams_(0),
@@ -109,16 +107,11 @@ public:
         return id_;
     }
 
-    bool preserve_order() {
-        return preserve_order_;
-    }
-
 private:
     static const bool debug = false;
     DispatcherThread& dispatcher_;
     ReleaseSocketCallback release_;
-    bool preserve_order_;
-
+ 
     size_t id_;
     int active_streams_;
     int expected_streams_;
@@ -146,10 +139,7 @@ private:
             sLOG << "reached end of block on" << stream->socket << "in channel" << id_;
             data_.set_elements(stream->header.expected_elements);
             if (data_.size() > 0) { //do not append empty end-of-stream buffer
-                if (preserve_order_)
-                    buffer_sorter_.Append(stream->header.sender_rank, data_);
-                else
-                    target_->Append(data_);
+                target_->Append(data_);
                 data_.Detach();
                 data_ = data::BinaryBufferBuilder(data::BinaryBuffer::DEFAULT_SIZE);
             }
@@ -169,8 +159,6 @@ private:
         if (finished_streams_ == expected_streams_) {
             sLOG << "channel" << id_ << " is closed";
             stats_->AddReport("channel::bytes_read", std::to_string(id_), std::to_string(bytes_received_));
-            if (preserve_order_)
-                buffer_sorter_.MoveTo(target_);
             target_->Close();
         }
         else {
@@ -179,9 +167,6 @@ private:
     }
 
     void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
-        if (!preserve_order_) {
-            throw Exception("can only receive local data when perserve_order_ is true");
-        }
         assert(finished_streams_ < expected_streams_);
         LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
         //TODO(ts) this is a copy
