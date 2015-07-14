@@ -68,7 +68,12 @@ public:
 template <size_t BlockSize = default_block_size>
 struct VirtualBlock
 {
-    VirtualBlock(std::shared_ptr<const Block<BlockSize> > block, size_t block_used, size_t nitems, size_t first)
+    VirtualBlock()
+        : block_used(0), nitems(0), first(0)
+    { }
+
+    VirtualBlock(const std::shared_ptr<const Block<BlockSize> >& block,
+                 size_t block_used, size_t nitems, size_t first)
         : block(block),
           block_used(block_used),
           nitems(nitems),
