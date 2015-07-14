@@ -9,13 +9,14 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_DATA_REPOSITORY_HEADER
-#define C7A_DATA_DATA_REPOSITORY_HEADER
+#ifndef C7A_DATA_REPOSITORY_HEADER
+#define C7A_DATA_REPOSITORY_HEADER
 
 #include <cassert>
 #include <map>
 #include <memory>
 #include <mutex>
+
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
@@ -79,9 +80,6 @@ std::ostream& operator << (std::ostream& stream, const DataId& id) {
     stream << id.ToString();
     return stream;
 }
-
-//! default block size of files.
-static const size_t default_block_size = 2 * 1024 * 1024;
 
 template <class Target>
 class Repository
@@ -150,6 +148,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_DATA_REPOSITORY_HEADER
+#endif // !C7A_DATA_REPOSITORY_HEADER
 
 /******************************************************************************/

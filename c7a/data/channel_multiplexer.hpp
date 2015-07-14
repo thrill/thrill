@@ -24,11 +24,6 @@
 #include <functional>
 
 namespace c7a {
-namespace data {
-
-struct BufferChain;
-
-} // namespace data
 
 namespace net {
 
@@ -129,7 +124,7 @@ public:
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
                 auto target = std::make_shared<data::LoopbackTarget>(
-                    chains_.Chain(id), [=]() {
+                    chains_.Chain(id), [ = ]() {
                         sLOG << "loopback closes" << id;
                         GetOrCreateChannel(id)->CloseLoopback();
                     });
@@ -289,7 +284,6 @@ private:
         AsyncReadStreamBlockHeader(s);
     }
 };
-
 } // namespace net
 } // namespace c7a
 
