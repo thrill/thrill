@@ -39,7 +39,7 @@ class PrefixSumNode : public DOpNode<ValueType>
 
 public:
     PrefixSumNode(Context& ctx,
-                  std::shared_ptr<DIANode<ParentInput> > parent,
+                  const std::shared_ptr<DIANode<ParentInput> >& parent,
                   const ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
@@ -97,7 +97,7 @@ private:
     ValueType neutral_element_;
 
     //! Local data file
-    data::File file_;
+    data::File file_ { context_.data_manager().GetFile() };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ { file_ };
 

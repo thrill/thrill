@@ -13,6 +13,7 @@
 
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/stream.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/emitter_target.hpp>
 

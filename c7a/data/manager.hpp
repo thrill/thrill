@@ -11,22 +11,22 @@
 #ifndef C7A_DATA_MANAGER_HEADER
 #define C7A_DATA_MANAGER_HEADER
 
-#include <c7a/data/iterator.hpp>
 #include <c7a/api/input_line_iterator.hpp>
-#include <c7a/data/emitter.hpp>
-#include <c7a/data/buffer_chain.hpp>
-#include <c7a/data/output_line_emitter.hpp>
-
-#include <map>
-#include <functional>
-#include <string>
-#include <stdexcept>
-#include <memory> //unique_ptr
-
-#include <c7a/net/channel_multiplexer.hpp>
-#include <c7a/data/socket_target.hpp>
-#include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/buffer_chain.hpp>
+#include <c7a/data/buffer_chain_manager.hpp>
+#include <c7a/data/emitter.hpp>
+#include <c7a/data/file.hpp>
+#include <c7a/data/iterator.hpp>
+#include <c7a/data/output_line_emitter.hpp>
+#include <c7a/data/socket_target.hpp>
+#include <c7a/net/channel_multiplexer.hpp>
+
+#include <functional>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 namespace c7a {
 namespace data {
@@ -117,6 +117,11 @@ public:
             throw std::runtime_error("target dia id unknown.");
         }
         return Emitter<T>(dias_.Chain(id));
+    }
+
+    //! Returns a new File object containing a sequence of local Blocks.
+    File GetFile() {
+        return File();
     }
 
     template <class T>
