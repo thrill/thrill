@@ -55,6 +55,7 @@ class ChannelMultiplexer
 {
 public:
     using ChannelPtr = std::shared_ptr<Channel>;
+    using ChannelId = data::ChannelId;
 
     ChannelMultiplexer(DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), chains_(data::NETWORK) { }
@@ -108,7 +109,7 @@ public:
 
         // build params for Channel ctor
         ChannelPtr channel = std::make_shared<Channel>(
-            id.identifier, group_->Size(), targetChain);
+            id, group_->Size(), targetChain);
         channels_.insert(std::make_pair(id.identifier, channel));
         return channel;
     }

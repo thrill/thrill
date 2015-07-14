@@ -17,6 +17,7 @@
 #include <c7a/data/binary_buffer_builder.hpp>
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
+#include <c7a/data/chain_id.hpp>
 
 #include <vector>
 #include <string>
@@ -43,8 +44,10 @@ namespace net {
 class Channel
 {
 public:
+    using ChannelId = data::ChannelId;
+
     //! Creates a new channel instance
-    Channel(size_t id, int expected_streams,
+    Channel(const ChannelId& id, int expected_streams,
             std::shared_ptr<data::BufferChain> target)
         : id_(id),
           expected_streams_(expected_streams),
@@ -61,15 +64,14 @@ public:
         return finished_streams_ == expected_streams_;
     }
 
-    size_t Id() {
+    const ChannelId& id() const {
         return id_;
     }
 
 protected:
     static const bool debug = false;
 
-    size_t id_;
-    int active_streams_;
+    ChannelId id_;
     int expected_streams_;
     int finished_streams_;
 
