@@ -339,20 +339,7 @@ struct Serializer<Archive, T,
     static T deserialize(Archive& a) {
         return a.template Get<T>();
     }
-};
-
-template <typename Archive, typename U, typename V>
-struct Serializer<Archive, std::pair<U, V> >
-{
-    static void serialize(const std::pair<U, V>& x, Archive& a) {
-        a.Put(x.first);
-        a.Put(x.second);
-    }
-    static std::pair<U, V> deserialize(Archive& a) {
-        U u = a.template Get<U>();
-        V v = a.template Get<V>();
-        return std::pair<U, V>(std::move(u), std::move(v));
-    }
+    static const bool fixed_size = true;
 };
 
 template <typename Archive>
@@ -364,6 +351,23 @@ struct Serializer<Archive, std::string>
     static std::string deserialize(Archive& a) {
         return a.GetString();
     }
+    static const bool fixed_size = false;
+};
+
+template <typename Archive, typename U, typename V>
+struct Serializer<Archive, std::pair<U, V> >
+{
+    static void serialize(const std::pair<U, V>& x, Archive& a) {
+        Serializer<Archive, U>::serialize(x.first, a);
+        Serializer<Archive, V>::serialize(x.second, a);
+    }
+    static std::pair<U, V> deserialize(Archive& a) {
+        U u = Serializer<Archive, U>::deserialize(a);
+        V v = Serializer<Archive, V>::deserialize(a);
+        return std::pair<U, V>(std::move(u), std::move(v));
+    }
+    static const bool fixed_size = (Serializer<Archive, U>::fixed_size &&
+                                    Serializer<Archive, V>::fixed_size);
 };
 
 } // namespace data
