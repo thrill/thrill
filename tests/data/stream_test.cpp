@@ -58,3 +58,5 @@ TEST_F(TestStream, CloseCallsObserver) {
     candidate.Close();
     ASSERT_TRUE(ran);
 }
+
+/******************************************************************************/

@@ -14,7 +14,6 @@
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 #include <c7a/net/channel.hpp>
-#include <c7a/common/stats.hpp>
 #include <c7a/data/emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
@@ -55,13 +54,13 @@ class ChannelMultiplexer
 {
 public:
     ChannelMultiplexer(DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), stats_(std::make_shared<common::Stats>()), chains_(data::NETWORK) { }
+        : dispatcher_(dispatcher), chains_(data::NETWORK) { }
 
     void Connect(Group* group) {
         group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
-            ExpectHeaderFrom(group_->connection(id));
+            ExpectStreamBlockHeader(group_->connection(id));
         }
     }
 
@@ -183,8 +182,6 @@ private:
 
     DispatcherThread& dispatcher_;
 
-    std::shared_ptr<common::Stats> stats_;
-
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
     data::BufferChainManager chains_;
@@ -194,13 +191,6 @@ private:
 
     //protects critical sections
     std::mutex mutex_;
-
-    //! expects the next header from a socket and passes to ReadFirstHeaderPartFrom
-    void ExpectHeaderFrom(Connection& s) {
-        auto expected_size = sizeof(StreamBlockHeader);
-        auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
-        dispatcher_.AsyncRead(s, expected_size, callback);
-    }
 
     ChannelPtr GetOrCreateChannel(ChannelId id) {
         assert(id.type == data::NETWORK);
@@ -212,9 +202,8 @@ private:
             auto targetChain = chains_.GetOrAllocate(id);
 
             //build params for Channel ctor
-            auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
             auto expected_peers = group_->Size();
-            channel = std::make_shared<Channel>(dispatcher_, callback, id.identifier, expected_peers, targetChain, stats_);
+            channel = std::make_shared<Channel>(id.identifier, expected_peers, targetChain);
             channels_.insert(std::make_pair(id.identifier, channel));
         }
         else {
@@ -238,16 +227,54 @@ private:
         }
     }
 
-    //! parses the channel id from a header and passes it to an existing
-    //! channel or creates a new channel
-    void ReadFirstHeaderPartFrom(
-        Connection& s, const Buffer& buffer) {
-        struct StreamBlockHeader header;
+    //! expects the next StreamBlockHeader from a socket and passes to
+    //! OnStreamBlockHeader
+    void ExpectStreamBlockHeader(Connection& s) {
+        dispatcher_.AsyncRead(
+            s, sizeof(StreamBlockHeader),
+            [this](Connection& s, const Buffer& buffer) {
+                return OnStreamBlockHeader(s, buffer);
+            });
+    }
+
+    bool OnStreamBlockHeader(Connection& s, const Buffer& buffer) {
+
+        StreamBlockHeader header;
         header.ParseHeader(buffer.ToString());
 
+        // received channel id
         auto id = ChannelId(data::NETWORK, header.channel_id);
         ChannelPtr channel = GetOrCreateChannel(id);
-        channel->PickupStream(s, header);
+
+        if (header.IsStreamEnd()) {
+            sLOG << "end of stream on" << s << "in channel" << id;
+            channel->OnCloseStream();
+
+            ExpectStreamBlockHeader(s);
+        }
+        else {
+            sLOG << "stream header from" << s << "on channel" << id
+                 << "from" << header.sender_rank;
+
+            dispatcher_.AsyncRead(
+                s, header.expected_bytes,
+                [this, header, channel](Connection& s, const Buffer& buffer) {
+                    return OnStreamData(s, header, channel, buffer);
+                });
+        }
+
+        return false;
+    }
+
+    void OnStreamData(
+        Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
+        const Buffer& buffer) {
+        sLOG << "got data on" << s << "in channel" << header.channel_id;
+
+        data::BinaryBufferBuilder bb(buffer.data(), buffer.size());
+        channel->OnStreamData(bb);
+
+        ExpectStreamBlockHeader(s);
     }
 };
 
