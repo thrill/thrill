@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/reduce_node.hpp
+ * c7a/api/reduce.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_REDUCE_NODE_HEADER
-#define C7A_API_REDUCE_NODE_HEADER
+#ifndef C7A_API_REDUCE_HEADER
+#define C7A_API_REDUCE_HEADER
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/api/context.hpp>
@@ -249,6 +249,6 @@ auto DIARef<ValueType, Stack>::ReduceBy(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_REDUCE_NODE_HEADER
+#endif // !C7A_API_REDUCE_HEADER
 
 /******************************************************************************/
