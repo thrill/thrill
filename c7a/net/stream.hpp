@@ -82,44 +82,6 @@ struct StreamBlockHeader {
     }
 };
 
-//! A stream is one connection from one worker to another and contains of
-//! 0 or more blocks.
-//!
-//! A stream is attached to a socket and has a current block header that can
-//! be the end-of-stream header
-//!
-//! If a client does not want to send any data to the receiver, only a end-of-
-//! stream header must be sent, since TCP connections are re-used for multiple
-//! streams
-class Stream
-{
-public:
-    struct StreamBlockHeader header;
-    Connection& socket;
-    size_t elements_read = 0;
-    size_t bytes_read = 0;
-    c7a::common::StatsTimer<true> wait_timer;
-    c7a::common::TimerPtr lifetime_timer;
-
-    //!attaches a stream to a socket and initializes the current header
-    Stream(Connection& socket, struct StreamBlockHeader& header, c7a::common::TimerPtr lifetime_timer = std::make_shared<c7a::common::StatsTimer<true> >())
-        : header(header),
-          socket(socket),
-          lifetime_timer(lifetime_timer) { }
-
-    //! replaces the current head with the end-of-stream header
-    void ResetHead() {
-        elements_read = 0;
-        bytes_read = 0;
-        header.Reset();
-    }
-
-    //! indicates if all data of this stream has arrived
-    bool IsFinished() const {
-        return header.IsStreamEnd();
-    }
-};
-
 //! \}
 
 } // namespace net
