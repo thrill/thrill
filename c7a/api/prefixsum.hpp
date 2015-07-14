@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/prefixsum_node.hpp
+ * c7a/api/prefixsum.hpp
  *
  * Part of Project c7a.
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_PREFIXSUM_NODE_HEADER
-#define C7A_API_PREFIXSUM_NODE_HEADER
+#ifndef C7A_API_PREFIXSUM_HEADER
+#define C7A_API_PREFIXSUM_HEADER
 
 #include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
@@ -178,6 +178,6 @@ auto DIARef<ValueType, Stack>::PrefixSum(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_PREFIXSUM_NODE_HEADER
+#endif // !C7A_API_PREFIXSUM_HEADER
 
 /******************************************************************************/
