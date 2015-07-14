@@ -185,13 +185,16 @@ public:
 
     //! Explicitly close the writer
     void Close() {
-        if (current_ != block_->begin() || nitems_) {
-            FlushBlock();
-            nitems_ = 0;
-            block_ = BlockPtr();
-            current_ = nullptr;
+        if (!closed_) { //potential race condition
+            closed_ = true;
+            if (current_ != block_->begin() || nitems_) {
+                FlushBlock();
+                nitems_ = 0;
+                block_ = BlockPtr();
+                current_ = nullptr;
+            }
+            target_.Close();
         }
-        target_.Close();
     }
 
     //! \name Appending (Generic) Items
@@ -426,7 +429,6 @@ protected:
                        nitems_, first_offset_);
     }
 
-protected:
     //! current block, already allocated as shared ptr, since we want to use
     //! make_shared.
     BlockPtr block_;
@@ -446,6 +448,9 @@ protected:
 
     //! file or stream target to output blocks to
     Target& target_;
+
+    //! Flag if Close was called explicilty
+    bool closed_ = { false };
 };
 
 template <size_t BlockSize>
