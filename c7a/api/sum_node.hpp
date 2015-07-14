@@ -42,10 +42,10 @@ public:
             std::shared_ptr<DIANode<ParentInput> > parent,
             const ParentStack& parent_stack,
             SumFunction sum_function,
-            ValueType neutral_element)
+            ValueType initial_value)
         : ActionNode(ctx, { parent }),
           sum_function_(sum_function),
-          local_sum_(neutral_element)
+          local_sum_(initial_value)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](ValueType input) {
@@ -80,7 +80,7 @@ public:
     }
 
 private:
-    //! The sum function which is applied to two elements.
+    //! The sum function which is applied to two values.
     SumFunction sum_function_;
     // Local sum to be used in all reduce operation.
     ValueType local_sum_;
@@ -106,7 +106,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::Sum(
-    const SumFunction &sum_function, ValueType neutral_element) const {
+    const SumFunction &sum_function, ValueType initial_value) const {
 
     using SumResultNode
               = SumNode<ValueType, Stack, SumFunction>;
@@ -137,7 +137,7 @@ auto DIARef<ValueType, Stack>::Sum(
                                           node_,
                                           stack_,
                                           sum_function,
-                                          neutral_element);
+                                          initial_value);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();

@@ -281,13 +281,15 @@ public:
      *
      * \param max_index Largest index given by the key_extractor function for
      * any element in the input DIA.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
                        size_t max_index,
-                       ValueType neutral_element = ValueType()
-        ) const;
+                       ValueType neutral_element = ValueType()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
@@ -327,10 +329,12 @@ public:
      * \tparam SumFunction Type of the sum_function.
      *
      * \param sum_function Sum function.
+     *
+     * \param initial_value Initial value of the sum.
      */
     template <typename SumFunction>
     auto Sum(const SumFunction& sum_function = common::SumOp<ValueType>(),
-             ValueType neutral_element = ValueType()) const;
+             ValueType initial_value = ValueType()) const;
 
     /*!
      * Size is an Action, which computes the size of all elements in all workers.
