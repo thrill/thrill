@@ -58,6 +58,44 @@ public:
     size_t size() const { return size_; }
 };
 
+/**
+ * VirtualBlocks combine a reference to a \ref Block and book-keeping
+ * information.
+ *
+ * Multuple virtual blocks can point to the same block but have different
+ * book-keeping information
+ */
+template <size_t BlockSize = default_block_size>
+struct VirtualBlock
+{
+    VirtualBlock(std::shared_ptr<const Block<BlockSize> > block, size_t block_used, size_t nitems, size_t first)
+        : block(block),
+          block_used(block_used),
+          nitems(nitems),
+          first(first) { }
+
+    //! referenced block
+    std::shared_ptr<const Block<BlockSize> > block;
+
+    //! number of valid bytes in the block (can be used to virtually shorten
+    //! a block)
+    size_t                                   block_used;
+
+    //! number of valid items in this block (includes cut-off element at the end)
+    size_t                                   nitems;
+
+    //! offset of first element in the block
+    size_t                                   first;
+
+    //! Releases the reference to the block and resets book-keeping info
+    void                                     Release() {
+        block = std::shared_ptr<const Block<BlockSize> >();
+        block_used = 0;
+        nitems = 0;
+        first = 0;
+    }
+};
+
 template <typename Block, typename Target>
 class BlockWriter;
 
