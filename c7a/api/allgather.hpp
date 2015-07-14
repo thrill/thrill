@@ -43,7 +43,7 @@ public:
                   )
         : ActionNode(ctx, { parent }),
           out_vector_(out_vector),
-          channel_used_(ctx.data_manager().AllocateNetworkChannel())
+          channel_used_(ctx.data_manager().AllocateChannelId())
     {
         emitters_ = context_.data_manager().
                     template GetNetworkEmitters<ValueType>(channel_used_);

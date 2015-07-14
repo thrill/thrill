@@ -20,6 +20,7 @@
 #include <c7a/data/iterator.hpp>
 #include <c7a/data/output_line_emitter.hpp>
 #include <c7a/data/socket_target.hpp>
+#include <c7a/net/channel.hpp>
 #include <c7a/net/channel_multiplexer.hpp>
 
 #include <functional>
@@ -35,7 +36,7 @@ struct BufferChain;
 
 //! Identification for DIAs
 typedef ChainId DIAId;
-using c7a::net::ChannelId;
+
 //! Manages all kind of memory for data elements
 //!
 //!
@@ -103,8 +104,19 @@ public:
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
     //! \param order_preserving indicates if the channel should preserve the order of the receiving packages
-    ChannelId AllocateNetworkChannel() {
+    ChannelId AllocateChannelId() {
         return cmp_.AllocateNext();
+    }
+
+    //! Returns a reference to an existing Channel.
+    std::shared_ptr<net::Channel> GetChannel(const ChannelId id) {
+        assert(cmp_.HasChannel(id));
+        return std::move(cmp_.GetOrCreateChannel(id));
+    }
+
+    //! Returns a reference to a new Channel.
+    std::shared_ptr<net::Channel> GetNewChannel() {
+        return std::move(cmp_.GetOrCreateChannel(AllocateChannelId()));
     }
 
     //! Returns an emitter that can be used to fill a DIA
