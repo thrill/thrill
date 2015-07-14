@@ -102,7 +102,7 @@ public:
           DOpNode<ValueType>(ctx, { parent }),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_id_(ctx.data_manager().AllocateNetworkChannel()),
+          channel_id_(ctx.data_manager().AllocateChannelId()),
           emitters_(ctx.data_manager().
                     template GetNetworkEmitters<KeyValuePair>(channel_id_)),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
