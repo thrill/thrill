@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/zip_node.hpp
+ * c7a/api/zip.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_ZIP_NODE_HEADER
-#define C7A_API_ZIP_NODE_HEADER
+#ifndef C7A_API_ZIP_HEADER
+#define C7A_API_ZIP_HEADER
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/api/context.hpp>
@@ -284,6 +284,6 @@ auto DIARef<ValueType, Stack>::Zip(
 
 //! \}
 
-#endif // !C7A_API_ZIP_NODE_HEADER
+#endif // !C7A_API_ZIP_HEADER
 
 /******************************************************************************/
