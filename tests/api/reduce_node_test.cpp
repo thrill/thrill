@@ -9,12 +9,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/generate_node.hpp>
-#include <c7a/api/reduce_node.hpp>
-#include <c7a/api/reduce_to_index_node.hpp>
-#include <c7a/api/allgather_node.hpp>
-#include <c7a/api/bootstrap.hpp>
+#include <c7a/c7a.hpp>
 #include <c7a/net/endpoint.hpp>
 
 #include <algorithm>
