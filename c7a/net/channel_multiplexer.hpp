@@ -87,12 +87,8 @@ public:
     }
 
     //! Allocate the next channel
-    ChannelId AllocateNext(bool order_preserving = false) {
-        auto id = chains_.AllocateNext();
-        if (order_preserving) {
-            GetOrCreateChannel(id, true);
-        }
-        return id;
+    ChannelId AllocateNext() {
+        return chains_.AllocateNext();
     }
 
     //! Creates emitters for each worker. Uses the given ChannelId
@@ -145,7 +141,6 @@ public:
         //potential problem: channel was created by reception of packets,
         //which would cause the channel to be not order-preserving.
         assert(HasChannel(target));
-        assert(channels_[target.identifier]->preserve_order());
         assert(offsets.size() == group_->Size());
 
         size_t sent_elements = 0;
@@ -207,7 +202,7 @@ private:
         dispatcher_.AsyncRead(s, expected_size, callback);
     }
 
-    ChannelPtr GetOrCreateChannel(ChannelId id, bool preserve_order = false) {
+    ChannelPtr GetOrCreateChannel(ChannelId id) {
         assert(id.type == data::NETWORK);
         ChannelPtr channel;
 
@@ -219,7 +214,7 @@ private:
             //build params for Channel ctor
             auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
             auto expected_peers = group_->Size();
-            channel = std::make_shared<Channel>(dispatcher_, callback, id.identifier, expected_peers, targetChain, stats_, preserve_order);
+            channel = std::make_shared<Channel>(dispatcher_, callback, id.identifier, expected_peers, targetChain, stats_);
             channels_.insert(std::make_pair(id.identifier, channel));
         }
         else {
