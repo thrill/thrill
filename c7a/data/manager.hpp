@@ -27,9 +27,12 @@
 #include <string>
 
 namespace c7a {
+namespace net {
+class Group;
+}
 namespace data {
 
-struct BufferChain;
+using FilePtr = std::shared_ptr<File>;
 
 //! Identification for DIAs
 using FilePtr = std::shared_ptr<File>
