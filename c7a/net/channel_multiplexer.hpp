@@ -150,6 +150,7 @@ public:
         return result;
     }
 
+#if FIXUP_LATER    
     //! Scatters the BufferChain to all workers
     //!
     //! elements from 0..offset[0] are sent to the first worker,
@@ -164,7 +165,8 @@ public:
     //               worker sends data
     //!/param offsets - as described above. offsets.size must be equal to group.size
     template <class T>
-    void Scatter(const std::shared_ptr<data::BufferChain>& source, const ChannelId target, std::vector<size_t> offsets) {
+    void Scatter(const std::shared_ptr<data::BufferChain>& source,
+                 const ChannelId target, std::vector<size_t> offsets) {
         //potential problem: channel was created by reception of packets,
         //which would cause the channel to be not order-preserving.
         assert(HasChannel(target));
@@ -199,6 +201,7 @@ public:
             sent_elements += elements_to_send;
         }
     }
+#endif // FIXUP_LATER
 
     //! Closes all client connections
     //!
