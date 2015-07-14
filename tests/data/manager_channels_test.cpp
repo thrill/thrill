@@ -128,7 +128,7 @@ struct DataManagerChannelFixture : public::testing::Test {
 TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[1].Close();
                   emitters[0].Close();
@@ -139,7 +139,7 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
 
     auto w1 = [&sync](Manager& manager) {
                   sync.Await();
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   ASSERT_NO_THROW(manager.GetIterator<int>(channel_id));
               };
     Execute(w0, w1);
@@ -147,7 +147,7 @@ TEST_F(DataManagerChannelFixture, EmptyChannels_GetIteratorDoesNotThrow) {
 
 TEST_F(DataManagerChannelFixture, DISABLED_Scatter_OneWorker) {
     auto w0 = [](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
                   emitter("foo");
@@ -170,7 +170,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_OneWorker) {
 TEST_F(DataManagerChannelFixture, DISABLED_Scatter_TwoWorkers_OnlyLocalCopy) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -183,7 +183,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_TwoWorkers_OnlyLocalCopy) {
                   ASSERT_TRUE(OrderedVectorCompare({ "foo", "bar" }, vals));
               };
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -203,7 +203,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_TwoWorkers_OnlyLocalCopy) {
 TEST_F(DataManagerChannelFixture, DISABLED_Scatter_TwoWorkers_CompleteExchange) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -217,7 +217,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_TwoWorkers_CompleteExchange) 
                   ASSERT_TRUE(OrderedVectorCompare({ "hello", "world", "." }, vals));
               };
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -238,7 +238,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_TwoWorkers_CompleteExchange) 
 TEST_F(DataManagerChannelFixture, DISABLED_Scatter_ThreeWorkers_PartialExchange) {
     Barrier sync(3);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -252,7 +252,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_ThreeWorkers_PartialExchange)
                   ASSERT_TRUE(OrderedVectorCompare({ "1", "2" }, vals));
               };
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -268,7 +268,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_ThreeWorkers_PartialExchange)
                   ASSERT_TRUE(OrderedVectorCompare({ "3", "4" }, vals));
               };
     auto w2 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto src_id = manager.AllocateDIA();
                   auto emitter = manager.GetLocalEmitter<std::string>(src_id);
@@ -286,7 +286,7 @@ TEST_F(DataManagerChannelFixture, DISABLED_Scatter_ThreeWorkers_PartialExchange)
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAreClosed) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0].Close();
@@ -295,7 +295,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAr
                   ASSERT_TRUE(manager.GetIterator<int>(channel_id).IsFinished());
               };
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   sync.Await();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0].Close();
@@ -310,7 +310,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_IsFinishedOnlyIfAllEmittersAr
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[1](42);
                   std::this_thread::sleep_for(2ms);
@@ -318,7 +318,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
               };
     auto w1 = [&sync](Manager& manager) {
                   sync.Await();
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto it = manager.GetIterator<int>(channel_id);
                   ASSERT_FALSE(it.HasNext());
               };
@@ -328,7 +328,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextFalseWhenNotFlushed) {
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[1](42);
                   emitters[1].Flush();
@@ -336,7 +336,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
               };
     auto w1 = [&sync](Manager& manager) {
                   std::this_thread::sleep_for(10ms);
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto it = manager.GetIterator<int>(channel_id);
                   sync.Await();
                   ASSERT_TRUE(it.HasNext());
@@ -347,7 +347,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_HasNextWhenFlushed) {
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerAndHasNoNextAfterwards) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[1](42);
                   emitters[1].Flush();
@@ -356,7 +356,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerA
               };
     auto w1 = [&sync](Manager& manager) {
                   sync.Await();
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto it = manager.GetIterator<int>(channel_id);
                   ASSERT_TRUE(it.HasNext());
                   ASSERT_EQ(42, it.Next());
@@ -368,7 +368,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerA
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerMultipleFlushes) {
     Barrier sync(2);
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[1](1);
                   emitters[1].Flush();
@@ -387,7 +387,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerM
                   sync.Await();
               };
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto it = manager.GetIterator<int>(channel_id);
                   sync.Await();
                   ASSERT_EQ(1, it.Next());
@@ -408,7 +408,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromOneRemoteWorkerM
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers) {
     Barrier sync(3);
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0](2);
                   emitters[0](3);
@@ -417,7 +417,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
                   sync.Await();
               };
     auto w2 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0](1);
                   emitters[0](4);
@@ -426,7 +426,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
                   sync.Await();
               };
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto it = manager.GetIterator<int>(channel_id);
                   sync.Await();
                   auto vals = ReadIterator(it);
@@ -438,8 +438,8 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromMultipleWorkers)
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
     Barrier sync(3);
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id1 = manager.AllocateNetworkChannel();
-                  auto channel_id2 = manager.AllocateNetworkChannel();
+                  auto channel_id1 = manager.AllocateChannelId();
+                  auto channel_id2 = manager.AllocateChannelId();
                   auto emitters1 = manager.GetNetworkEmitters<int>(channel_id1);
                   auto emitters2 = manager.GetNetworkEmitters<int>(channel_id2);
                   emitters1[0](2);
@@ -454,8 +454,8 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
                   sync.Await();
               };
     auto w2 = [&sync](Manager& manager) {
-                  auto channel_id1 = manager.AllocateNetworkChannel();
-                  auto channel_id2 = manager.AllocateNetworkChannel();
+                  auto channel_id1 = manager.AllocateChannelId();
+                  auto channel_id2 = manager.AllocateChannelId();
                   auto emitters1 = manager.GetNetworkEmitters<int>(channel_id1);
                   auto emitters2 = manager.GetNetworkEmitters<int>(channel_id2);
                   emitters1[0](1);
@@ -470,13 +470,13 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
                   sync.Await();
               };
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id1 = manager.AllocateNetworkChannel();
+                  auto channel_id1 = manager.AllocateChannelId();
                   auto it1 = manager.GetIterator<int>(channel_id1);
                   sync.Await();
                   auto vals1 = ReadIterator(it1);
                   ASSERT_TRUE(VectorCompare({ 1, 2, 3, 4 }, vals1));
 
-                  auto channel_id2 = manager.AllocateNetworkChannel();
+                  auto channel_id2 = manager.AllocateChannelId();
                   auto it2 = manager.GetIterator<int>(channel_id2);
                   sync.Await();
                   auto vals2 = ReadIterator(it2);
@@ -488,7 +488,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_ReadsDataFromTwoChannels) {
 TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
     Barrier sync(3);
     auto w1 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0](10);
                   emitters[1](11);
@@ -503,7 +503,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   ASSERT_TRUE(VectorCompare({ 1, 11, 21 }, vals));
               };
     auto w2 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0](20);
                   emitters[1](21);
@@ -518,7 +518,7 @@ TEST_F(DataManagerChannelFixture, GetNetworkBlocks_SendsDataToMultipleWorkers) {
                   ASSERT_TRUE(VectorCompare({ 2, 12, 22 }, vals));
               };
     auto w0 = [&sync](Manager& manager) {
-                  auto channel_id = manager.AllocateNetworkChannel();
+                  auto channel_id = manager.AllocateChannelId();
                   auto emitters = manager.GetNetworkEmitters<int>(channel_id);
                   emitters[0](0);
                   emitters[1](1);
