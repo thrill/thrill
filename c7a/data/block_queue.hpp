@@ -3,7 +3,7 @@
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Tobias Sturm < tobias.sturm@student.kit.edu>
+ * Copyright (C) 2015 Tobias Sturm <tobias.sturm@student.kit.edu>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -50,6 +50,7 @@ private:
     common::ConcurrentBoundedQueue<VirtualBlock<BlockSize> > queue_;
     std::atomic<bool> closed_ = { false };
 };
+
 } // namespace data
 } // namespace c7a
 

@@ -64,7 +64,7 @@ public:
         return finished_streams_ == expected_streams_;
     }
 
-    const ChannelId& id() const {
+    const ChannelId & id() const {
         return id_;
     }
 

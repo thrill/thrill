@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/channel_multiplexer.hpp
+ * c7a/data/chain_id.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADERX
-#define C7A_NET_CHANNEL_MULTIPLEXER_HEADERX
+#ifndef C7A_DATA_CHAIN_ID_HEADER
+#define C7A_DATA_CHAIN_ID_HEADER
 
 namespace c7a {
 namespace data {
@@ -79,9 +79,9 @@ std::ostream& operator << (std::ostream& stream, const ChainId& id) {
 
 typedef c7a::data::ChainId ChannelId;
 
-} // namespace net
+} // namespace data
 } // namespace c7a
 
-#endif // !C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+#endif // !C7A_DATA_CHAIN_ID_HEADER
 
 /******************************************************************************/
