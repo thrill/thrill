@@ -323,6 +323,9 @@ public:
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    ValueType neutral_element = ValueType()) const;
 
+    template <typename CompareFunction = common::LessThan<ValueType> >
+    auto Sort(const CompareFunction& compare_function = common::LessThan<ValueType>()) const;
+
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
      *
