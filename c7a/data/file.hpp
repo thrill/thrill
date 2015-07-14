@@ -79,10 +79,16 @@ public:
     //! items after the offset first.
     void Append(const BlockCPtr& block, size_t block_used,
                 size_t nitems, size_t first) {
+        assert(!closed_);
         blocks_.push_back(block);
         nitems_sum_.push_back(NumItems() + nitems);
         used_.push_back(block_used);
         offset_of_first_.push_back(first);
+    }
+
+    void Close() {
+        assert(!closed_);
+        closed_ = true;
     }
 
     //! Return the number of blocks
@@ -146,6 +152,9 @@ protected:
 
     //! for access to blocks_ and used_
     friend class BlockReader<BlockSize>;
+
+    //! Closed files can not be altered
+    bool closed_ = { false };
 };
 
 using File = FileBase<default_block_size>;
@@ -182,6 +191,7 @@ public:
             block_ = BlockPtr();
             current_ = nullptr;
         }
+        target_.Close();
     }
 
     //! \name Appending (Generic) Items
@@ -627,7 +637,6 @@ template <size_t BlockSize>
 typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(*this, 0, 0);
 }
-
 } // namespace data
 } // namespace c7a
 
