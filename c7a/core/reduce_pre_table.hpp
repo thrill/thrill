@@ -200,7 +200,7 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(Value&& p) {
+    void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
         hash_result h = hash_function_(key, this);
