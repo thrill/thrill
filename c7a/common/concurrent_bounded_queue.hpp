@@ -30,7 +30,7 @@ namespace common {
 #if HAVE_INTELTBB
 
 template <typename T>
-using concurrent_bounded_queue = tbb::concurrent_bounded_queue<T>;
+using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
 
 #else   // !HAVE_INTELTBB
 
@@ -44,7 +44,7 @@ using concurrent_bounded_queue = tbb::concurrent_bounded_queue<T>;
  * might need.
  */
 template <typename T>
-class concurrent_bounded_queue
+class ConcurrentBoundedQueue
 {
 public:
     typedef T value_type;
