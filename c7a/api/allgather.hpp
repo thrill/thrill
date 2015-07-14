@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/allgather_node.hpp
+ * c7a/api/allgather.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_ALLGATHER_NODE_HEADER
-#define C7A_API_ALLGATHER_NODE_HEADER
+#ifndef C7A_API_ALLGATHER_HEADER
+#define C7A_API_ALLGATHER_HEADER
 
 #include <c7a/common/future.hpp>
 #include <c7a/net/collective_communication.hpp>
@@ -119,6 +119,6 @@ void DIARef<ValueType, Stack>::AllGather(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_ALLGATHER_NODE_HEADER
+#endif // !C7A_API_ALLGATHER_HEADER
 
 /******************************************************************************/
