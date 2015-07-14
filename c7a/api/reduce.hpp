@@ -243,7 +243,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
-               (std::move(shared_node), reduce_stack);
+               (shared_node, reduce_stack);
 }
 
 } // namespace api
