@@ -11,13 +11,14 @@
 #ifndef C7A_DATA_BUFFER_CHAIN_HEADER
 #define C7A_DATA_BUFFER_CHAIN_HEADER
 
-#include <deque>
-#include <condition_variable>
-#include <mutex> //mutex, unique_lock
-#include <atomic>
-
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/emitter_target.hpp>
+
+#include <atomic>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
+#include <vector>
 
 namespace c7a {
 namespace data {
