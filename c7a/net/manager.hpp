@@ -167,7 +167,7 @@ private:
      * @param nc The connection to connect.
      * @param address The address of the endpoint to connect to.
      */
-    void AsyncConnect(Connection& nc, SocketAddress& address) {
+    void AsyncConnect(Connection& nc, const SocketAddress& address) {
         // Start asynchronous connect.
         nc.GetSocket().SetNonBlocking(true);
         int res = nc.GetSocket().connect(address);
@@ -206,7 +206,7 @@ private:
      * @param address The address of the endpoint to connect to.
      */
     void AsyncConnect(
-        uint32_t group, size_t id, SocketAddress& address) {
+        uint32_t group, size_t id, const SocketAddress& address) {
 
         // Construct a new socket (old one is destroyed)
         Connection& nc = groups_[group].connection(id);
@@ -248,7 +248,7 @@ private:
      *
      * @return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(Connection& conn, SocketAddress& address) {
+    bool OnConnected(Connection& conn, const SocketAddress& address) {
 
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
@@ -268,20 +268,9 @@ private:
             LOG << "Connect to " << address.ToStringHostPort() <<
                 " FD=" << conn.GetSocket().fd() << " timed out or refused with error " << err << ". Attempting reconnect";
 
-            // Construct a new connection since the
-            // socket might not be reusable.
-            Connection nc;
-
-            nc = std::move(Connection(Socket::Create()));
-            nc.set_group_id(conn.group_id());
-            nc.set_peer_id(conn.peer_id());
-
-            std::swap(conn, nc);
-
-            //Close old connection.
-            nc.Close();
-
-            AsyncConnect(conn, address);
+            // Construct a new connection since the socket might not be
+            // reusable.
+            AsyncConnect(conn.group_id(), conn.peer_id(), address);
 
             return false;
         }
@@ -289,7 +278,7 @@ private:
             //Other failure. Fail hard.
             conn.set_state(ConnectionState::Invalid);
 
-            throw Exception("Error connecting asyncronously to client "
+            throw Exception("Error connecting asynchronously to client "
                             + std::to_string(conn.peer_id()) + " via "
                             + address.ToStringHostPort(), err);
         }
