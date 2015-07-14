@@ -45,14 +45,6 @@ public:
     DOpNode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents)
         : DIANode<ValueType>(ctx, parents) { }
-
-    //! Virtual destructor for a DIANode.
-    virtual ~DOpNode() { }
-
-    //! ToString-method. Returns DOpNode as a string.
-    std::string ToString() override {
-        return "[DOpNode]";
-    }
 };
 
 } // namespace api

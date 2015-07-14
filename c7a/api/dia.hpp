@@ -159,7 +159,7 @@ public:
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
-                  = typename FunctionTraits<MapFunction>::result_type;
+                  = typename common::FunctionTraits<MapFunction>::result_type;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
@@ -188,12 +188,10 @@ public:
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
-
-        auto conv_filter_function =
-            [=](FilterArgument input, auto emit_func) {
-                if (filter_function(input)) emit_func(input);
-            };
+                  = typename common::FunctionTraits<FilterFunction>::template arg<0>;
+        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
+                                        if (filter_function(input)) emit_func(input);
+                                    };
 
         static_assert(
             std::is_same<FilterArgument, ValueType>::value,
@@ -283,11 +281,15 @@ public:
      *
      * \param max_index Largest index given by the key_extractor function for
      * any element in the input DIA.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
-                       size_t max_index) const;
+                       size_t max_index,
+                       ValueType neutral_element = ValueType()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
@@ -327,10 +329,12 @@ public:
      * \tparam SumFunction Type of the sum_function.
      *
      * \param sum_function Sum function.
+     *
+     * \param initial_value Initial value of the sum.
      */
     template <typename SumFunction>
     auto Sum(const SumFunction& sum_function = common::SumOp<ValueType>(),
-             ValueType neutral_element = ValueType()) const;
+             ValueType initial_value = ValueType()) const;
 
     /*!
      * Size is an Action, which computes the size of all elements in all workers.

@@ -24,8 +24,6 @@ public:
                const std::vector<std::shared_ptr<DIABase> >& parents)
         : DIABase(ctx, parents)
     { }
-
-    virtual ~ActionNode() { }
 };
 
 } // namespace api
