@@ -114,13 +114,13 @@ TEST(File, SerializeSomeItems) {
     using File = data::FileBase<1024>;
     File file;
 
-    using MyPair = std::pair<int, short>;
+    using MyPair = std::pair<int, std::string>;
 
     // put into File some items (all of different serialization bytes)
     {
         File::Writer fw(file);
         fw(unsigned(5));
-        fw(MyPair(5, 10));
+        fw(MyPair(5, "10abc"));
         fw(double(42.0));
         fw(std::string("test"));
     }
@@ -133,7 +133,7 @@ TEST(File, SerializeSomeItems) {
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
         MyPair i2 = fr.Next<MyPair>();
-        ASSERT_EQ(i2, MyPair(5, 10));
+        ASSERT_EQ(i2, MyPair(5, "10abc"));
         double i3 = fr.Next<double>();
         ASSERT_DOUBLE_EQ(i3, 42.0);
         std::string i4 = fr.Next<std::string>();
@@ -146,5 +146,17 @@ using MyBlock = data::Block<16>;
 template class data::FileBase<16>;
 template class data::BlockWriter<MyBlock, data::FileBase<16> >;
 template class data::BlockReader<16>;
+
+// fixed size test
+using MyWriter = data::BlockWriter<MyBlock, data::FileBase<16> >;
+using MyReader = data::BlockReader<16>;
+static_assert(data::Serializer<MyWriter, int>
+              ::fixed_size == true, "");
+static_assert(data::Serializer<MyWriter, std::string>
+              ::fixed_size == false, "");
+static_assert(data::Serializer<MyWriter, std::pair<int, short> >
+              ::fixed_size == true, "");
+static_assert(data::Serializer<MyWriter, std::pair<int, std::string> >
+              ::fixed_size == false, "");
 
 /******************************************************************************/
