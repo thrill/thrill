@@ -730,6 +730,7 @@ public:
         return true;
     }
 
+protected:
     //! file to read blocks from
     const BaseFile& file_;
 
@@ -745,6 +746,7 @@ template <size_t BlockSize>
 typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(FileBlockSource<BlockSize>(*this, 0, 0));
 }
+
 } // namespace data
 } // namespace c7a
 
