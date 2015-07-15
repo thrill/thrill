@@ -12,33 +12,39 @@
 
 using namespace c7a::data;
 
-struct BlockQueueTest : public::testing::Test {
-    std::shared_ptr<Block<1> > block;
-    size_t                     block_used = 0;
-    size_t                     nitems = 0;
-    size_t                     first = 0;
-};
+struct BlockQueueTest : public::testing::Test { };
 
 TEST_F(BlockQueueTest, FreshQueueIsNotClosed) {
-    BlockQueue<1> q;
+    BlockQueue<16> q;
     ASSERT_FALSE(q.closed());
 }
 
 TEST_F(BlockQueueTest, QueueCanBeClosed) {
-    BlockQueue<1> q;
+    BlockQueue<16> q;
     q.Close();
     ASSERT_TRUE(q.closed());
 }
 
 TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
-    BlockQueue<1> q;
+    BlockQueue<16> q;
     ASSERT_TRUE(q.empty());
 }
 
 TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
-    BlockQueue<1> q;
-    q.Append(block, block_used, nitems, first);
+    BlockQueue<16> q;
+    std::shared_ptr<Block<16> > block;
+    q.Append(block, 0, 0, 0);
     ASSERT_FALSE(q.empty());
+}
+
+TEST_F(BlockQueueTest, BlockWriterToQueue) {
+    BlockQueue<16> q;
+    BlockWriter<Block<16>, BlockQueue<16> > bw(q);
+    bw(int(42));
+    bw(std::string("hello there BlockQueue"));
+    bw.Close();
+    ASSERT_FALSE(q.empty());
+    ASSERT_EQ(q.size(), 2u);
 }
 
 /******************************************************************************/
