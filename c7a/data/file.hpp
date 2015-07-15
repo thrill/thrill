@@ -27,16 +27,22 @@ namespace data {
 template <size_t BlockSize>
 class FileBlockSource;
 
+template <typename Block>
+class PolyBlockSink;
+
 template <size_t BlockSize>
 class FileBase
 {
 public:
     enum { block_size = BlockSize };
 
-    using BlockType = Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const BlockType>;
-    using Writer = BlockWriter<BlockType, FileBase>;
+    using Block = data::Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const Block>;
+
+    using Writer = BlockWriter<Block, FileBase&>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
+
+    using PolyWriter = BlockWriter<Block, PolyBlockSink<Block> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -94,8 +100,18 @@ public:
                            used_[i]);
     }
 
+    //! Get BlockWriter.
+    Writer GetWriter() {
+        return Writer(*this);
+    }
+
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
+
+    //! Get polymorphic BlockWriter for beginning of File
+    PolyWriter GetPolyWriter() {
+        return PolyWriter(PolyBlockSink<Block>(this));
+    }
 
 protected:
     //! the container holding shared pointers to all blocks.
@@ -129,17 +145,10 @@ class FileBlockSource
 public:
     using Byte = unsigned char;
 
-    using BaseFile = FileBase<BlockSize>;
+    using FileBase = data::FileBase<BlockSize>;
 
-    using BlockType = Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const BlockType>;
-
-    //! Start reading a File
-    FileBlockSource(const BaseFile& file,
-                    size_t current_block = 0, size_t first_offset = 0)
-        : file_(file), current_block_(current_block),
-          first_offset_(first_offset)
-    { }
+    using Block = data::Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const Block>;
 
     //! Initialize the first block to be read by BlockReader
     void Initialize(const Byte** out_current, const Byte** out_end) {
@@ -171,8 +180,18 @@ public:
     }
 
 protected:
+    //! Start reading a File
+    FileBlockSource(const FileBase& file,
+                    size_t current_block = 0, size_t first_offset = 0)
+        : file_(file), current_block_(current_block),
+          first_offset_(first_offset)
+    { }
+
+    //! for calling the protected constructor
+    friend class data::FileBase<BlockSize>;
+
     //! file to read blocks from
-    const BaseFile& file_;
+    const FileBase& file_;
 
     //! index of current block.
     size_t current_block_;

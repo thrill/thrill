@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/data/file.hpp>
+#include <c7a/data/poly_block_writer.hpp>
 #include <c7a/common/string.hpp>
 #include <gtest/gtest.h>
 
@@ -118,7 +119,40 @@ TEST(File, SerializeSomeItems) {
 
     // put into File some items (all of different serialization bytes)
     {
-        File::Writer fw(file);
+        File::Writer fw = file.GetWriter();
+        fw(unsigned(5));
+        fw(MyPair(5, "10abc"));
+        fw(double(42.0));
+        fw(std::string("test"));
+    }
+
+    //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
+
+    // get items back from file.
+    {
+        File::Reader fr = file.GetReader();
+        unsigned i1 = fr.Next<unsigned>();
+        ASSERT_EQ(i1, 5u);
+        MyPair i2 = fr.Next<MyPair>();
+        ASSERT_EQ(i2, MyPair(5, "10abc"));
+        double i3 = fr.Next<double>();
+        ASSERT_DOUBLE_EQ(i3, 42.0);
+        std::string i4 = fr.Next<std::string>();
+        ASSERT_EQ(i4, "test");
+    }
+}
+
+TEST(File, SerializeSomeItemsPolymorphicReaderWriter) {
+
+    // construct File with very small blocks for testing
+    using File = data::FileBase<1024>;
+    File file;
+
+    using MyPair = std::pair<int, std::string>;
+
+    // put into File some items (all of different serialization bytes)
+    {
+        File::PolyWriter fw = file.GetPolyWriter();
         fw(unsigned(5));
         fw(MyPair(5, "10abc"));
         fw(double(42.0));
