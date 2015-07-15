@@ -19,7 +19,7 @@
 #include <string>
 
 namespace c7a {
-namespace net {
+namespace data {
 
 //! \ingroup net
 //! \{
@@ -84,7 +84,7 @@ struct StreamBlockHeader {
 
 //! \}
 
-} // namespace net
+} // namespace data
 } // namespace c7a
 
 #endif // !C7A_DATA_STREAM_BLOCK_HEADER_HEADER

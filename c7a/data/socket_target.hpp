@@ -83,7 +83,7 @@ protected:
     bool closed_;
 
     void SendHeader(size_t num_bytes, size_t elements) {
-        net::StreamBlockHeader header;
+        StreamBlockHeader header;
         header.channel_id = id_;
         header.expected_bytes = num_bytes;
         header.expected_elements = elements;
