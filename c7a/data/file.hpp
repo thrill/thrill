@@ -107,8 +107,11 @@ struct VirtualBlock
 template <typename Block, typename Target>
 class BlockWriter;
 
-template <size_t BlockSize>
+template <typename BlockSource>
 class BlockReader;
+
+template <size_t BlockSize>
+class FileBlockSource;
 
 template <size_t BlockSize>
 class FileBase
@@ -119,7 +122,7 @@ public:
     using BlockType = Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const BlockType>;
     using Writer = BlockWriter<BlockType, FileBase>;
-    using Reader = BlockReader<BlockSize>;
+    using Reader = BlockReader<FileBlockSource<BlockSize> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -197,7 +200,7 @@ protected:
     std::vector<size_t> offset_of_first_;
 
     //! for access to blocks_ and used_
-    friend class BlockReader<BlockSize>;
+    friend class FileBlockSource<BlockSize>;
 
     //! Closed files can not be altered
     bool closed_ = false;
@@ -210,11 +213,10 @@ class BlockWriter
 {
 public:
     using Byte = unsigned char;
-
     using BlockPtr = std::shared_ptr<Block>;
 
     //! Start build (appending blocks) to a File
-    BlockWriter(Target& target)
+    explicit BlockWriter(Target& target)
         : target_(target) {
         AllocateBlock();
     }
@@ -507,35 +509,23 @@ protected:
     //! file or stream target to output blocks to
     Target& target_;
 
-    //! Flag if Close was called explicilty
+    //! Flag if Close was called explicitly
     bool closed_ = false;
 };
 
-template <size_t BlockSize>
+template <typename BlockSource>
 class BlockReader
 {
 public:
-    using BaseFile = FileBase<BlockSize>;
-
-    using BlockType = Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const BlockType>;
-
     using Byte = unsigned char;
 
+    using BlockType = typename BlockSource::BlockType;
+    using BlockCPtr = std::shared_ptr<const BlockType>;
+
     //! Start reading a File
-    BlockReader(const BaseFile& file,
-                size_t current_block = 0, size_t offset = 0)
-        : file_(file), current_block_(current_block) {
-        // set up reader for the block+offset pair
-        if (current_block_ >= file_.NumBlocks()) {
-            current_ = end_ = nullptr;
-        }
-        else {
-            const BlockCPtr& block = file_.blocks_[current_block_];
-            current_ = block->begin() + offset;
-            end_ = block->begin() + file_.used_[current_block_];
-            assert(current_ < end_);
-        }
+    BlockReader(BlockSource&& source)
+        : source_(std::move(source)) {
+        source_.Initialize(&current_, &end_);
     }
 
     //! \name Reading (Generic) Items
@@ -676,16 +666,66 @@ public:
     //! \}
 
 protected:
-    //! Advance to next block of file.
+    //! Instance of BlockSource. This is NOT a reference, as to enable embedding
+    //! of FileBlockSource to compose classes into File::Reader.
+    BlockSource source_;
+
+    //! current read pointer into current block of file.
+    const Byte* current_;
+
+    //! pointer to end of current block.
+    const Byte* end_;
+
+    //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
+        return source_.NextBlock(&current_, &end_);
+    }
+};
+
+//! A BlockSource to read Blocks from a File.
+template <size_t BlockSize>
+class FileBlockSource
+{
+public:
+    using Byte = unsigned char;
+
+    using BaseFile = FileBase<BlockSize>;
+
+    using BlockType = Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const BlockType>;
+
+    //! Start reading a File
+    FileBlockSource(const BaseFile& file,
+                    size_t current_block = 0, size_t first_offset = 0)
+        : file_(file), current_block_(current_block),
+          first_offset_(first_offset)
+    { }
+
+    //! Initialize the first block to be read by BlockReader
+    void Initialize(const Byte** out_current, const Byte** out_end) {
+        // set up reader for the (block,offset) pair
+        if (current_block_ >= file_.NumBlocks()) {
+            *out_current = *out_end = nullptr;
+        }
+        else {
+            const BlockCPtr& block = file_.blocks_[current_block_];
+            *out_current = block->begin() + first_offset_;
+            *out_end = block->begin() + file_.used_[current_block_];
+            assert(*out_current < *out_end);
+        }
+    }
+
+    //! Advance to next block of file, delivers current_ and end_ for
+    //! BlockReader
+    bool NextBlock(const Byte** out_current, const Byte** out_end) {
         ++current_block_;
 
         if (current_block_ >= file_.NumBlocks())
             return false;
 
         const BlockCPtr& block = file_.blocks_[current_block_];
-        current_ = block->begin();
-        end_ = block->begin() + file_.used_[current_block_];
+        *out_current = block->begin();
+        *out_end = block->begin() + file_.used_[current_block_];
 
         return true;
     }
@@ -696,17 +736,14 @@ protected:
     //! index of current block.
     size_t current_block_;
 
-    //! current read pointer into current block of file.
-    const Byte* current_;
-
-    //! pointer to end of current block.
-    const Byte* end_;
+    //! offset of first item in first block read
+    size_t first_offset_;
 };
 
 //! Get BlockReader for beginning of File
 template <size_t BlockSize>
 typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
-    return Reader(*this, 0, 0);
+    return Reader(FileBlockSource<BlockSize>(*this, 0, 0));
 }
 } // namespace data
 } // namespace c7a
