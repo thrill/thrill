@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/stream.hpp
+ * c7a/data/stream_block_header.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_STREAM_HEADER
-#define C7A_NET_STREAM_HEADER
+#ifndef C7A_DATA_STREAM_BLOCK_HEADER_HEADER
+#define C7A_DATA_STREAM_BLOCK_HEADER_HEADER
 
 #include <c7a/net/connection.hpp>
 #include <c7a/common/stats_timer.hpp>
@@ -87,6 +87,6 @@ struct StreamBlockHeader {
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_STREAM_HEADER
+#endif // !C7A_DATA_STREAM_BLOCK_HEADER_HEADER
 
 /******************************************************************************/

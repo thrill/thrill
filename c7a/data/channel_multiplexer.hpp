@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/channel_multiplexer.hpp
+ * c7a/data/channel_multiplexer.hpp
  *
  * Part of Project c7a.
  *
@@ -9,12 +9,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
-#define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+#ifndef C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
+#define C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
-#include <c7a/net/channel.hpp>
+#include <c7a/data/channel.hpp>
 #include <c7a/data/emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
@@ -150,7 +150,7 @@ public:
         return result;
     }
 
-#if FIXUP_LATER    
+#if FIXUP_LATER
     //! Scatters the BufferChain to all workers
     //!
     //! elements from 0..offset[0] are sent to the first worker,
@@ -201,7 +201,7 @@ public:
             sent_elements += elements_to_send;
         }
     }
-#endif // FIXUP_LATER
+#endif      // FIXUP_LATER
 
     //! Closes all client connections
     //!
@@ -294,6 +294,6 @@ private:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+#endif // !C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 
 /******************************************************************************/
