@@ -45,6 +45,8 @@ public:
 
         net::Buffer payload_buf = buffer.ToBuffer();
         buffer.Detach();
+        // TODO(tb): this does not work as expected: only one AsyncWrite can be
+        // active on a fd at the same item, hence packets get lost!
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
     }
 
