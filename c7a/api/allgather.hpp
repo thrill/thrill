@@ -98,7 +98,7 @@ private:
 
     static const bool debug = false;
 
-    std::vector<data::Emitter<ValueType> > emitters_;
+    std::vector<data::Emitter> emitters_;
 };
 
 template <typename ValueType, typename Stack>

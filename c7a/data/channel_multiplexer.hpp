@@ -118,11 +118,10 @@ public:
     //! Channels can be opened only once.
     //! Behaviour on multiple calls to OpenChannel is undefined.
     //! \param id the channel to use
-    template <class T>
-    std::vector<data::Emitter<T> > OpenChannel(const ChannelId& id) {
+    std::vector<data::Emitter> OpenChannel(const ChannelId& id) {
         assert(group_ != nullptr);
         assert(id.type == data::NETWORK);
-        std::vector<data::Emitter<T> > result;
+        std::vector<data::Emitter> result;
 
         //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
@@ -134,7 +133,7 @@ public:
                         sLOG << "loopback closes" << id;
                         GetOrCreateChannel(id)->CloseLoopback();
                     });
-                result.emplace_back(data::Emitter<T>(target));
+                result.emplace_back(data::Emitter(target));
             }
             else {
                 auto target = std::make_shared<data::SocketTarget>(
@@ -143,7 +142,7 @@ public:
                     id.identifier,
                     group_->MyRank());
 
-                result.emplace_back(data::Emitter<T>(target));
+                result.emplace_back(data::Emitter(target));
             }
         }
         assert(result.size() == group_->Size());

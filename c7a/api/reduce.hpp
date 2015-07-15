@@ -145,9 +145,9 @@ private:
 
     data::ChannelId channel_id_;
 
-    std::vector<data::Emitter<KeyValuePair> > emitters_;
+    std::vector<data::Emitter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter>
     reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each

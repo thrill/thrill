@@ -139,12 +139,12 @@ public:
     }
 
     template <class T>
-    std::vector<Emitter<T> > GetNetworkEmitters(ChannelId id) {
+    std::vector<Emitter> GetNetworkEmitters(ChannelId id) {
         assert(id.type == NETWORK);
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
-        return cmp_.OpenChannel<T>(id);
+        return cmp_.OpenChannel(id);
     }
 
 private:
