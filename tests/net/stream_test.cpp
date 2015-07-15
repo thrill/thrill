@@ -9,7 +9,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include <c7a/net/stream.hpp>
+#include <c7a/data/stream_block_header.hpp>
 
 using::testing::_;
 using::testing::InvokeArgument;
