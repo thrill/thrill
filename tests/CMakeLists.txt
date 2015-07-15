@@ -111,7 +111,7 @@ build_test(net/group_test)
 build_test(net/buffer_test)
 build_test(net/flow_control_test)
 build_test(data/binary_builder_test)
-#build_test(data/test_channel_multiplexer) //broken because buffer is non-#copyable
+build_test(data/channel_multiplexer_test)
 build_test(data/stream_block_header_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/

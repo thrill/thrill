@@ -15,6 +15,7 @@
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/channel_sink.hpp>
 
 namespace c7a {
 namespace data {
@@ -25,33 +26,42 @@ namespace data {
 //! a common super class BlockSink. But this increases overhead for simple
 //! operations, hence we do these switchs and union tricks to bypass type
 //! casts. -tb
-template <typename _Block>
+template <size_t BlockSize>
 class DynBlockSink
 {
 public:
-    using Block = _Block;
+    using Block = data::Block<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
 
-    static const size_t block_size = Block::block_size;
+    using File = FileBase<BlockSize>;
+    using BlockQueue = data::BlockQueue<BlockSize>;
+    using ChannelSink = data::ChannelSink<BlockSize>;
 
-    using FileSink = FileBase<block_size>;
-    using BlockQueueSink = BlockQueue<block_size>;
+    explicit DynBlockSink(bool /* flag */)
+        : type_(DISCARD)
+    { }
 
-    explicit DynBlockSink(FileSink* file)
-        : type_(FILE) {
-        sink_.file_ = file;
-    }
+    explicit DynBlockSink(File* file)
+        : type_(FILE), sink_{ .file_ = file }
+    { }
 
-    explicit DynBlockSink(BlockQueueSink* block_queue)
-        : type_(BLOCK_QUEUE) {
-        sink_.block_queue_ = block_queue;
-    }
+    explicit DynBlockSink(BlockQueue* block_queue)
+        : type_(BLOCK_QUEUE), sink_{ .block_queue_ = block_queue }
+    { }
+
+    explicit DynBlockSink(ChannelSink&& channel_sink)
+        : type_(CHANNEL_SINK), channel_sink_(std::move(channel_sink))
+    { }
+
+    DynBlockSink(DynBlockSink&&) = default;
 
     //! Closes the sink. Must not be called multiple times
     void Close() {
         switch (type_) {
+        case DISCARD: return;
         case FILE: return sink_.file_->Close();
         case BLOCK_QUEUE: return sink_.block_queue_->Close();
+        case CHANNEL_SINK: return channel_sink_.Close();
         default: abort();
         }
     }
@@ -60,30 +70,38 @@ public:
     void Append(const BlockPtr& block, size_t block_used,
                 size_t nitems, size_t first) {
         switch (type_) {
+        case DISCARD:
+            return;
         case FILE:
             return sink_.file_->Append(block, block_used, nitems, first);
         case BLOCK_QUEUE:
             return sink_.block_queue_->Append(block, block_used, nitems, first);
+        case CHANNEL_SINK:
+            return channel_sink_.Append(block, block_used, nitems, first);
         default: abort();
         }
     }
 
 protected:
     //! enumeration switch defining the attached sink type.
-    enum  {
-        FILE, BLOCK_QUEUE
+    enum {
+        DISCARD, FILE, BLOCK_QUEUE, CHANNEL_SINK
     } type_;
 
     //! union containing a pointer to the attached sink type.
     union {
-        FileSink      * file_;
-        BlockQueueSink* block_queue_;
+        File      * file_;
+        BlockQueue* block_queue_;
     } sink_;
+
+    //! full ChannelSink object (due to construct/destruction), and it is the
+    //! most common case for DynBlockSink usage.
+    ChannelSink channel_sink_;
 };
 
 //! Typedef of a dynamic block writer, writing to a DynBlockSink.
-template <typename Block>
-using DynBlockWriter = BlockWriter<Block, DynBlockSink<Block> >;
+template <size_t BlockSize>
+using DynBlockWriter = BlockWriter<Block<BlockSize>, DynBlockSink<BlockSize> >;
 
 } // namespace data
 } // namespace c7a
