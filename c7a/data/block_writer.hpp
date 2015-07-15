@@ -18,16 +18,17 @@
 namespace c7a {
 namespace data {
 
-template <typename Block, typename Target>
+template <typename _Block, typename BlockSink>
 class BlockWriter
 {
 public:
     using Byte = unsigned char;
+    using Block = _Block;
     using BlockPtr = std::shared_ptr<Block>;
 
     //! Start build (appending blocks) to a File
-    explicit BlockWriter(Target& target)
-        : target_(target) {
+    explicit BlockWriter(BlockSink sink)
+        : sink_(sink) {
         AllocateBlock();
     }
 
@@ -57,7 +58,7 @@ public:
                 block_ = BlockPtr();
                 current_ = nullptr;
             }
-            target_.Close();
+            sink_.Close();
         }
     }
 
@@ -295,8 +296,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        target_.Append(block_, current_ - block_->begin(),
-                       nitems_, first_offset_);
+        sink_.Append(block_, current_ - block_->begin(),
+                     nitems_, first_offset_);
     }
 
     //! current block, already allocated as shared ptr, since we want to use
@@ -316,8 +317,8 @@ protected:
     //! offset of first item
     size_t first_offset_;
 
-    //! file or stream target to output blocks to
-    Target& target_;
+    //! file or stream sink to output blocks to.
+    BlockSink sink_;
 
     //! Flag if Close was called explicitly
     bool closed_ = false;

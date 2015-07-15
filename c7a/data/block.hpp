@@ -28,6 +28,9 @@ public:
     //! type of underlying memory area
     using Byte = unsigned char;
 
+    //! constant size of memory block
+    static const size_t block_size = BlockSize;
+
 protected:
     //! constant size of memory block
     static const size_t size_ = BlockSize;
