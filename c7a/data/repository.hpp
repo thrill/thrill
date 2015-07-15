@@ -22,72 +22,12 @@
 namespace c7a {
 namespace data {
 
-enum DataType {
-    LOCAL, NETWORK
-};
-
-struct DataId {
-    DataType type;
-    size_t   identifier;
-
-    DataId(DataType type, size_t id) : type(type), identifier(id) { }
-
-    //! Creates local data id
-    DataId(size_t id) : type(LOCAL), identifier(id) { }
-
-    //! Post Increment
-    DataId operator ++ (int /*dummy*/) {
-        auto result = DataId(type, identifier++);
-        return result;
-    }
-
-    //! Pre Increment
-    DataId operator ++ () {
-        auto result = DataId(type, ++identifier);
-        return result;
-    }
-
-    //! Returns a string representation of this DataId
-    std::string ToString() const {
-        switch (type) {
-        case LOCAL:
-            return "local-" + std::to_string(identifier);
-        case NETWORK:
-            return "network-" + std::to_string(identifier);
-        default:
-            return "unknown-" + std::to_string(identifier);
-        }
-    }
-
-    //! DataId are equal if theu share the same type and identifier
-    bool operator == (const DataId& other) const {
-        return other.type == type && identifier == other.identifier;
-    }
-
-    bool operator < (const DataId& other) const {
-        auto a = other.identifier;
-        auto b = identifier;
-        if (other.type == NETWORK)
-            a = -1 * a;
-        if (type == NETWORK)
-            b = -1 * b;
-        return a < b;
-    }
-};
-//! Stream operator that calls ToString on DataId
-static inline
-std::ostream& operator << (std::ostream& stream, const DataId& id) {
-    stream << id.ToString();
-    return stream;
-}
+using DataId = size_t;
 
 template <class Target>
 class Repository
 {
 public:
-    //!Creates a data repositpry of the given type
-    Repository(DataType type = LOCAL) : next_id_(type, 0) { }
-
     //!Alllocates the next data target.
     //! Calls to this method alter the internal state -> order of calls is
     //! important and must be deterministic
