@@ -26,7 +26,6 @@ namespace data {
 //! Data sinks can chekc whether all emitters to that sink are closed.
 //
 // TODO(ts): make special version for fix-length elements
-template <class T>
 class Emitter
 {
 public:
@@ -44,6 +43,7 @@ public:
     }
 
     //! Emitts an element
+    template <class T>
     void operator () (T x) {
         if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
             Flush();
