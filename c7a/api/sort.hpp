@@ -39,20 +39,20 @@ class SortNode : public DOpNode<ValueType>
 
 public:
     SortNode(Context& ctx,
-	     std::shared_ptr<DIANode<ParentInput> > parent,
-	     const ParentStack& parent_stack,
-	     CompareFunction compare_function)
+             std::shared_ptr<DIANode<ParentInput> > parent,
+             const ParentStack& parent_stack,
+             CompareFunction compare_function)
         : DOpNode<ValueType>(ctx, { parent }),
           compare_function_(compare_function),
-	  channel_id_samples_(ctx.data_manager().AllocateNetworkChannel()),
-	  emitters_samples_(ctx.data_manager().
-			    template GetNetworkEmitters<ValueType>(channel_id_samples_)),
-	  channel_id_data_(ctx.data_manager().AllocateNetworkChannel()),
-	  emitters_data_(ctx.data_manager().
-			 template GetNetworkEmitters<ValueType>(channel_id_data_))
+          channel_id_samples_(ctx.data_manager().AllocateNetworkChannel()),
+          emitters_samples_(ctx.data_manager().
+                            template GetNetworkEmitters<ValueType>(channel_id_samples_)),
+          channel_id_data_(ctx.data_manager().AllocateNetworkChannel()),
+          emitters_data_(ctx.data_manager().
+                         template GetNetworkEmitters<ValueType>(channel_id_data_))
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [ = ](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -76,7 +76,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
+        auto id_fn = [ = ](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -116,66 +116,67 @@ private:
     void MainOp() {
         //LOG << "MainOp processing";
 
-	size_t samplesize = std::ceil(log2((double) data_.size()) *
-				      (1 / (desired_imbalance * desired_imbalance)));
-	
-	std::random_device random_device;
-	std::default_random_engine generator(random_device());
-	std::uniform_int_distribution<int> distribution(0, data_.size() - 1);
+        size_t samplesize = std::ceil(log2((double)data_.size()) *
+                                      (1 / (desired_imbalance * desired_imbalance)));
 
-	//Send samples to worker 0
-	for (size_t i = 0; i < samplesize; i++) {
-	    size_t sample = distribution(generator);
-	    emitters_samples_[0](data_[sample]);
-	}
-	emitters_samples_[0].Close();
-	
-	std::vector<ValueType> splitters;
-	splitters.reserve(context_.number_worker() - 1);
-	
-	if (context_.rank() == 0) {
-	    //Get samples
-	    std::vector<ValueType> samples;
-	    samples.reserve(samplesize * context_.number_worker());
-	    auto it = context_.data_manager().
-		template GetIterator<ValueType>(channel_id_samples_);
-	    do {
-		it.WaitForMore();
-		while (it.HasNext()) {
-		    samples.push_back(it.Next());
-		}
-	    } while (!it.IsFinished());
+        std::random_device random_device;
+        std::default_random_engine generator(random_device());
+        std::uniform_int_distribution<int> distribution(0, data_.size() - 1);
 
-	    //Find splitters
-	    std::sort(samples.begin(), samples.end(), compare_function_);
-	    
-	    size_t splitting_size = samples.size() / context_.number_worker();
-	    
-	    //Send splitters to other workers
-	    for (size_t i = 1; i < context_.number_worker(); i++) {
-		splitters.push_back(samples[i * splitting_size]);
-		for (size_t j = 1; j < context_.number_worker(); j++) {
-		    emitters_samples_[j](samples[i * splitting_size]);
-		}
-	    }
+        //Send samples to worker 0
+        for (size_t i = 0; i < samplesize; i++) {
+            size_t sample = distribution(generator);
+            emitters_samples_[0](data_[sample]);
+        }
+        emitters_samples_[0].Close();
 
-	    for (size_t j = 1; j < context_.number_worker(); j++) {
-		emitters_samples_[j].Close();
-	    }
-	} else {
-	    //Close unused emitters
-	    for (size_t j = 1; j < context_.number_worker(); j++) {
-		emitters_samples_[j].Close();
-	    }
-	    auto it = context_.data_manager().
-		template GetIterator<ValueType>(channel_id_samples_);
-	    do {
-		it.WaitForMore();
-		while (it.HasNext()) {
-		    splitters.push_back(it.Next());
-		}
-	    } while (!it.IsFinished());
-	}
+        std::vector<ValueType> splitters;
+        splitters.reserve(context_.number_worker() - 1);
+
+        if (context_.rank() == 0) {
+            //Get samples
+            std::vector<ValueType> samples;
+            samples.reserve(samplesize * context_.number_worker());
+            auto it = context_.data_manager().
+                      template GetIterator<ValueType>(channel_id_samples_);
+            do {
+                it.WaitForMore();
+                while (it.HasNext()) {
+                    samples.push_back(it.Next());
+                }
+            } while (!it.IsFinished());
+
+            //Find splitters
+            std::sort(samples.begin(), samples.end(), compare_function_);
+
+            size_t splitting_size = samples.size() / context_.number_worker();
+
+            //Send splitters to other workers
+            for (size_t i = 1; i < context_.number_worker(); i++) {
+                splitters.push_back(samples[i * splitting_size]);
+                for (size_t j = 1; j < context_.number_worker(); j++) {
+                    emitters_samples_[j](samples[i * splitting_size]);
+                }
+            }
+
+            for (size_t j = 1; j < context_.number_worker(); j++) {
+                emitters_samples_[j].Close();
+            }
+        }
+        else {
+            //Close unused emitters
+            for (size_t j = 1; j < context_.number_worker(); j++) {
+                emitters_samples_[j].Close();
+            }
+            auto it = context_.data_manager().
+                      template GetIterator<ValueType>(channel_id_samples_);
+            do {
+                it.WaitForMore();
+                while (it.HasNext()) {
+                    splitters.push_back(it.Next());
+                }
+            } while (!it.IsFinished());
+        }
 
         for (ValueType ele : data_) {
             bool sent = false;
@@ -184,7 +185,7 @@ private:
                     emitters_data_[i](ele);
                     sent = true;
                     break;
-                }   
+                }
             }
             if (!sent) {
                 emitters_data_[splitters.size()](ele);
@@ -196,9 +197,9 @@ private:
         }
 
         data_.clear();
-                
+
         auto it = context_.data_manager().
-            template GetIterator<ValueType>(channel_id_data_);
+                  template GetIterator<ValueType>(channel_id_data_);
 
         do {
             it.WaitForMore();
@@ -207,9 +208,7 @@ private:
             }
         } while (!it.IsFinished());
 
-        
         std::sort(data_.begin(), data_.end(), compare_function_);
-        
 
         for (size_t i = 0; i < data_.size(); i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
@@ -224,7 +223,7 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
-auto DIARef<ValueType, Stack>::Sort(const CompareFunction & compare_function) const {
+auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
 
     using SortResultNode
               = SortNode<ValueType, Stack, CompareFunction>;
@@ -252,16 +251,15 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction & compare_function) co
 
     auto shared_node
         = std::make_shared<SortResultNode>(node_->context(),
-                                          node_,
-                                          stack_,
-                                          compare_function);
+                                           node_,
+                                           stack_,
+                                           compare_function);
 
     auto sort_stack = shared_node->ProduceStack();
 
     return DIARef<ValueType, decltype(sort_stack)>(
         std::move(shared_node), sort_stack);
 }
-
 } // namespace api
 } // namespace c7a
 
