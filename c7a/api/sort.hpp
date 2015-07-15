@@ -21,6 +21,8 @@
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <c7a/common/partitioning/tree_builder.hpp>
+
 #include <cmath>
 
 namespace c7a {
@@ -131,7 +133,7 @@ private:
         emitters_samples_[0].Close();
 
         std::vector<ValueType> splitters;
-        splitters.reserve(context_.number_worker() - 1);
+        splitters.reserve(context_.number_worker());
 
         if (context_.rank() == 0) {
             //Get samples
@@ -158,7 +160,7 @@ private:
                     emitters_samples_[j](samples[i * splitting_size]);
                 }
             }
-
+            
             for (size_t j = 1; j < context_.number_worker(); j++) {
                 emitters_samples_[j].Close();
             }
@@ -178,6 +180,29 @@ private:
             } while (!it.IsFinished());
         }
 
+        //code from SS2NPartition, slightly altered
+        double logkdouble = std::log2(context_.number_worker());
+        const bool powof2 = (std::ceil(logkdouble) - logkdouble) < 0.00001;
+        
+        size_t logk_algo = std::ceil(logkdouble);
+        size_t k_algo = 1 << logk_algo;
+        size_t splitter_count_algo = k_algo - 1;
+
+        ValueType* splitter_tree = new ValueType[k_algo];
+
+        if(!powof2) {
+            for (size_t i = context_.number_worker(); i < k_algo; i++) {
+                splitters.push_back(splitters.back());
+            }
+        }
+
+        TreeBuilder<ValueType>(splitter_tree,
+                               splitters.data(),
+                               splitter_count_algo);
+        
+      
+        //end of SS2n
+
         for (ValueType ele : data_) {
             bool sent = false;
             for (size_t i = 0; i < splitters.size() && !sent; i++) {
@@ -188,7 +213,7 @@ private:
                 }
             }
             if (!sent) {
-                emitters_data_[splitters.size()](ele);
+                emitters_data_[context_.number_worker() - 1](ele);
             }
         }
 
@@ -219,7 +244,8 @@ private:
     }
 
     void PostOp() { }
-};
+
+  };
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
