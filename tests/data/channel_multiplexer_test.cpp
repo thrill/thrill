@@ -15,6 +15,8 @@
 
 using namespace c7a;
 
+using namespace std::literals;
+
 TEST(ChannelMultiplexerTest, Test) {
 
     net::Group::ExecuteLocalMock(
@@ -30,6 +32,11 @@ TEST(ChannelMultiplexerTest, Test) {
 
             emit[0]("hello I am " + std::to_string(net->MyRank()) + " calling 0");
             emit[1]("hello I am " + std::to_string(net->MyRank()) + " calling 1");
+
+            emit[0].Flush();
+            emit[1].Flush();
+
+            std::this_thread::sleep_for(100ms);
 
             cmp.Close();
         });

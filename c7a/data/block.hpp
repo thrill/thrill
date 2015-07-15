@@ -68,17 +68,15 @@ public:
 template <size_t BlockSize = default_block_size>
 struct VirtualBlock
 {
-    using BlockType = Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const BlockType>;
+    using Block = data::Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const Block>;
 
-    VirtualBlock()
-        : block_used(0), nitems(0), first(0)
-    { }
+    VirtualBlock() { }
 
     VirtualBlock(const BlockCPtr& block,
-                 size_t block_used, size_t nitems, size_t first)
+                 size_t bytes_used, size_t nitems, size_t first)
         : block(block),
-          block_used(block_used),
+          bytes_used(bytes_used),
           nitems(nitems),
           first(first) { }
 
@@ -87,18 +85,18 @@ struct VirtualBlock
 
     //! number of valid bytes in the block (can be used to virtually shorten
     //! a block)
-    size_t    block_used;
+    size_t    bytes_used = 0;
 
     //! number of valid items in this block (includes cut-off element at the end)
-    size_t    nitems;
+    size_t    nitems = 0;
 
     //! offset of first element in the block
-    size_t    first;
+    size_t    first = 0;
 
     //! Releases the reference to the block and resets book-keeping info
     void      Release() {
         block = BlockCPtr();
-        block_used = 0;
+        bytes_used = 0;
         nitems = 0;
         first = 0;
     }
