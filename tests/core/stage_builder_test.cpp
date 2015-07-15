@@ -59,7 +59,7 @@ TEST(Stage, CountReferencesSimple) {
             reduced.AllGather(&out_vec);
 
             // 3x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 4);
+            ASSERT_EQ(integers.node_refcount(), 4u);
             ASSERT_EQ(doubles.node_refcount(), 4);
             ASSERT_EQ(quadruples.node_refcount(), 4);
             // 1x DIA reference + 0x child reference

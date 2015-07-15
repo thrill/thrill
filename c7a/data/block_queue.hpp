@@ -12,12 +12,13 @@
 #ifndef C7A_DATA_BLOCK_QUEUE_HEADER
 #define C7A_DATA_BLOCK_QUEUE_HEADER
 
-#include <condition_variable>
-#include <mutex>
-#include <atomic>
-#include <memory> //shared_ptr
-#include <c7a/data/file.hpp>
+#include <c7a/data/block.hpp>
+#include <c7a/data/block_reader.hpp>
+#include <c7a/data/block_writer.hpp>
 #include <c7a/common/concurrent_bounded_queue.hpp>
+
+#include <atomic>
+#include <memory>
 
 namespace c7a {
 namespace data {
