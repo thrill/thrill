@@ -42,11 +42,11 @@ public:
     { }
 
     explicit DynBlockSink(File* file)
-        : type_(FILE), sink_{ .file_ = file }
+        : type_(FILE), sink_{.file_ = file}
     { }
 
     explicit DynBlockSink(BlockQueue* block_queue)
-        : type_(BLOCK_QUEUE), sink_{ .block_queue_ = block_queue }
+        : type_(BLOCK_QUEUE), sink_{.block_queue_ = block_queue}
     { }
 
     explicit DynBlockSink(ChannelSink&& channel_sink)
