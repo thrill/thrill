@@ -28,7 +28,7 @@ public:
 
     //! Start build (appending blocks) to a File
     explicit BlockWriter(BlockSink sink)
-        : sink_(sink) {
+        : sink_(std::forward<BlockSink>(sink)) {
         AllocateBlock();
     }
 

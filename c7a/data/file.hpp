@@ -27,7 +27,7 @@ namespace data {
 template <size_t BlockSize>
 class FileBlockSource;
 
-template <typename Block>
+template <size_t BlockSize>
 class DynBlockSink;
 
 template <size_t BlockSize>
@@ -42,7 +42,7 @@ public:
     using Writer = BlockWriter<Block, FileBase&>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
 
-    using DynWriter = BlockWriter<Block, DynBlockSink<Block> >;
+    using DynWriter = BlockWriter<Block, DynBlockSink<BlockSize> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -110,7 +110,7 @@ public:
 
     //! Get polymorphic BlockWriter for beginning of File
     DynWriter GetDynWriter() {
-        return DynWriter(DynBlockSink<Block>(this));
+        return DynWriter(DynBlockSink<BlockSize>(this));
     }
 
 protected:
