@@ -42,7 +42,7 @@ public:
                   )
         : ActionNode(ctx, { parent }),
           out_vector_(out_vector),
-          channel_used_(ctx.data_manager().AllocateNetworkChannel())
+          channel_used_(ctx.data_manager().AllocateChannelId())
     {
         emitters_ = context_.data_manager().
                     template GetNetworkEmitters<ValueType>(channel_used_);
@@ -97,7 +97,7 @@ private:
 
     static const bool debug = false;
 
-    std::vector<data::Emitter<ValueType> > emitters_;
+    std::vector<data::Emitter> emitters_;
 };
 
 template <typename ValueType, typename Stack>

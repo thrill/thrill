@@ -1,20 +1,20 @@
 /*******************************************************************************
- * c7a/net/channel_multiplexer.hpp
+ * c7a/data/channel_multiplexer.hpp
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_CHANNEL_MULTIPLEXER_HEADER
-#define C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+#ifndef C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
+#define C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
-#include <c7a/net/channel.hpp>
-#include <c7a/common/stats.hpp>
+#include <c7a/data/channel.hpp>
 #include <c7a/data/emitter.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
@@ -54,14 +54,17 @@ typedef c7a::data::ChainId ChannelId;
 class ChannelMultiplexer
 {
 public:
+    using ChannelPtr = std::shared_ptr<Channel>;
+    using ChannelId = data::ChannelId;
+
     ChannelMultiplexer(DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), stats_(std::make_shared<common::Stats>()), chains_(data::NETWORK) { }
+        : dispatcher_(dispatcher), chains_(data::NETWORK) { }
 
     void Connect(Group* group) {
         group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
-            ExpectHeaderFrom(group_->connection(id));
+            AsyncReadStreamBlockHeader(group_->connection(id));
         }
     }
 
@@ -87,31 +90,50 @@ public:
     }
 
     //! Allocate the next channel
-    ChannelId AllocateNext(bool order_preserving = false) {
-        auto id = chains_.AllocateNext();
-        if (order_preserving) {
-            GetOrCreateChannel(id, true);
-        }
-        return id;
+    ChannelId AllocateNext() {
+        return chains_.AllocateNext();
+    }
+
+    //! Get channel with given id, if it does not exist, create it.
+    ChannelPtr GetOrCreateChannel(ChannelId id) {
+        assert(id.type == data::NETWORK);
+
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = channels_.find(id.identifier);
+
+        if (it != channels_.end())
+            return it->second;
+
+        // create buffer chain target if it does not exist
+        auto targetChain = chains_.GetOrAllocate(id);
+
+        // build params for Channel ctor
+        ChannelPtr channel = std::make_shared<Channel>(
+            id, group_->Size(), targetChain);
+        channels_.insert(std::make_pair(id.identifier, channel));
+        return channel;
     }
 
     //! Creates emitters for each worker. Uses the given ChannelId
     //! Channels can be opened only once.
     //! Behaviour on multiple calls to OpenChannel is undefined.
     //! \param id the channel to use
-    template <class T>
-    std::vector<data::Emitter<T> > OpenChannel(const ChannelId& id) {
+    std::vector<data::Emitter> OpenChannel(const ChannelId& id) {
         assert(group_ != nullptr);
         assert(id.type == data::NETWORK);
-        std::vector<data::Emitter<T> > result;
+        std::vector<data::Emitter> result;
 
         //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
 
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
-                auto target = std::make_shared<data::LoopbackTarget>(chains_.Chain(id), [=]() { sLOG << "loopback closes" << id; GetOrCreateChannel(id)->CloseLoopback(); });
-                result.emplace_back(data::Emitter<T>(target));
+                auto target = std::make_shared<data::LoopbackTarget>(
+                    chains_.Chain(id), [=]() {
+                        sLOG << "loopback closes" << id;
+                        GetOrCreateChannel(id)->CloseLoopback();
+                    });
+                result.emplace_back(data::Emitter(target));
             }
             else {
                 auto target = std::make_shared<data::SocketTarget>(
@@ -120,13 +142,14 @@ public:
                     id.identifier,
                     group_->MyRank());
 
-                result.emplace_back(data::Emitter<T>(target));
+                result.emplace_back(data::Emitter(target));
             }
         }
         assert(result.size() == group_->Size());
         return result;
     }
 
+#if FIXUP_LATER
     //! Scatters the BufferChain to all workers
     //!
     //! elements from 0..offset[0] are sent to the first worker,
@@ -141,11 +164,11 @@ public:
     //               worker sends data
     //!/param offsets - as described above. offsets.size must be equal to group.size
     template <class T>
-    void Scatter(const std::shared_ptr<data::BufferChain>& source, const ChannelId target, std::vector<size_t> offsets) {
+    void Scatter(const std::shared_ptr<data::BufferChain>& source,
+                 const ChannelId target, std::vector<size_t> offsets) {
         //potential problem: channel was created by reception of packets,
         //which would cause the channel to be not order-preserving.
         assert(HasChannel(target));
-        assert(channels_[target.identifier]->preserve_order());
         assert(offsets.size() == group_->Size());
 
         size_t sent_elements = 0;
@@ -156,9 +179,12 @@ public:
             if (worker_id == group_->MyRank()) {
                 auto channel = channels_[target.identifier];
                 sLOG << "sending" << elements_to_send << "elements via channel" << target << "to self";
-                MoveFromItToTarget<T>(source_it, [&channel, worker_id](const void* base, size_t length, size_t elements) {
-                                          channel->ReceiveLocalData(base, length, elements, worker_id);
-                                      }, elements_to_send);
+                MoveFromItToTarget<T>(
+                    source_it,
+                    [&channel, worker_id](const void* base, size_t length, size_t elements) {
+                        // -tb removed for now.
+                        //channel->ReceiveLocalData(base, length, elements, worker_id);
+                    }, elements_to_send);
                 channel->CloseLoopback();
             }
             else {
@@ -174,6 +200,7 @@ public:
             sent_elements += elements_to_send;
         }
     }
+#endif      // FIXUP_LATER
 
     //! Closes all client connections
     //!
@@ -184,49 +211,18 @@ public:
 
 private:
     static const bool debug = false;
-    typedef std::shared_ptr<Channel> ChannelPtr;
 
     DispatcherThread& dispatcher_;
-
-    std::shared_ptr<common::Stats> stats_;
 
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
     data::BufferChainManager chains_;
 
-    //Hols NetConnections for outgoing Channels
+    // Holds NetConnections for outgoing Channels
     Group* group_;
 
     //protects critical sections
     std::mutex mutex_;
-
-    //! expects the next header from a socket and passes to ReadFirstHeaderPartFrom
-    void ExpectHeaderFrom(Connection& s) {
-        auto expected_size = sizeof(StreamBlockHeader);
-        auto callback = std::bind(&ChannelMultiplexer::ReadFirstHeaderPartFrom, this, std::placeholders::_1, std::placeholders::_2);
-        dispatcher_.AsyncRead(s, expected_size, callback);
-    }
-
-    ChannelPtr GetOrCreateChannel(ChannelId id, bool preserve_order = false) {
-        assert(id.type == data::NETWORK);
-        ChannelPtr channel;
-
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (!HasChannel(id)) {
-            //create buffer chain target if it does not exist
-            auto targetChain = chains_.GetOrAllocate(id);
-
-            //build params for Channel ctor
-            auto callback = std::bind(&ChannelMultiplexer::ExpectHeaderFrom, this, std::placeholders::_1);
-            auto expected_peers = group_->Size();
-            channel = std::make_shared<Channel>(dispatcher_, callback, id.identifier, expected_peers, targetChain, stats_, preserve_order);
-            channels_.insert(std::make_pair(id.identifier, channel));
-        }
-        else {
-            channel = channels_[id.identifier];
-        }
-        return channel;
-    }
 
     template <typename T>
     void MoveFromItToTarget(data::Iterator<T>& source, std::function<void(const void*, size_t, size_t)> target, size_t num_elements) {
@@ -243,22 +239,60 @@ private:
         }
     }
 
-    //! parses the channel id from a header and passes it to an existing
-    //! channel or creates a new channel
-    void ReadFirstHeaderPartFrom(
-        Connection& s, const Buffer& buffer) {
-        struct StreamBlockHeader header;
+    /**************************************************************************/
+
+    //! expects the next StreamBlockHeader from a socket and passes to
+    //! OnStreamBlockHeader
+    void AsyncReadStreamBlockHeader(Connection& s) {
+        dispatcher_.AsyncRead(
+            s, sizeof(StreamBlockHeader),
+            [this](Connection& s, Buffer&& buffer) {
+                OnStreamBlockHeader(s, std::move(buffer));
+            });
+    }
+
+    void OnStreamBlockHeader(Connection& s, Buffer&& buffer) {
+
+        StreamBlockHeader header;
         header.ParseHeader(buffer.ToString());
 
+        // received channel id
         auto id = ChannelId(data::NETWORK, header.channel_id);
         ChannelPtr channel = GetOrCreateChannel(id);
-        channel->PickupStream(s, header);
+
+        if (header.IsStreamEnd()) {
+            sLOG << "end of stream on" << s << "in channel" << id;
+            channel->OnCloseStream();
+
+            AsyncReadStreamBlockHeader(s);
+        }
+        else {
+            sLOG << "stream header from" << s << "on channel" << id
+                 << "from" << header.sender_rank;
+
+            dispatcher_.AsyncRead(
+                s, header.expected_bytes,
+                [this, header, channel](Connection& s, Buffer&& buffer) {
+                    OnStreamData(s, header, channel, std::move(buffer));
+                });
+        }
+    }
+
+    void OnStreamData(
+        Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
+        Buffer&& buffer) {
+        sLOG << "got data on" << s << "in channel" << header.channel_id;
+
+        data::BinaryBufferBuilder bb(buffer.data(), buffer.size());
+        channel->OnStreamData(bb);
+
+        AsyncReadStreamBlockHeader(s);
     }
 };
 
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_CHANNEL_MULTIPLEXER_HEADER
+#endif // !C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 
 /******************************************************************************/

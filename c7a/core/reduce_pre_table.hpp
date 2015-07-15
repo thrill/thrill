@@ -123,7 +123,7 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)),
+          emit_(emit),
           hash_function_(hash_function)
     {
         init();
@@ -150,7 +150,7 @@ public:
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)),
+          emit_(emit),
           hash_function_(hash_function)
     {
         init();
@@ -179,6 +179,8 @@ public:
 
     void init() {
         sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
+        assert(emit_.size() == num_partitions_);
+
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
@@ -585,7 +587,7 @@ private:
     KeyExtractor key_extractor_;
 
     ReduceFunction reduce_function_;
-    std::vector<EmitterFunction> emit_;
+    std::vector<EmitterFunction>& emit_;
     std::vector<int> emit_stats_;
 
     std::vector<BucketBlock*> vector_;

@@ -40,8 +40,7 @@ public:
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(context_.data_manager().
-                template GetOutputLineEmitter<std::string>(file_))
+          emit_(file_)
     {
         sLOG << "Creating write node.";
 

@@ -12,7 +12,7 @@
 #define C7A_DATA_SOCKET_TARGET_HEADER
 
 #include <c7a/net/buffer.hpp>
-#include <c7a/net/stream.hpp>
+#include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/emitter_target.hpp>
@@ -45,22 +45,24 @@ public:
 
         net::Buffer payload_buf = buffer.ToBuffer();
         buffer.Detach();
+        // TODO(tb): this does not work as expected: only one AsyncWrite can be
+        // active on a fd at the same item, hence packets get lost!
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
     }
 
-    //! Sends bare data via the socket
-    //! \param data base address of the data
-    //! \param len of data to be sent in bytes
-    //! \param num_elements number of elements in the send-range
-    void Pipe(const void* data, size_t len, size_t num_elements) {
-        if (len == 0) {
-            return;
-        }
-        SendHeader(len, num_elements);
-        //TODO(ts) this copies the data.
-        net::Buffer payload_buf = net::Buffer(data, len);
-        dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
-    }
+    // //! Sends bare data via the socket
+    // //! \param data base address of the data
+    // //! \param len of data to be sent in bytes
+    // //! \param num_elements number of elements in the send-range
+    // void Pipe(const void* data, size_t len, size_t num_elements) {
+    //     if (len == 0) {
+    //         return;
+    //     }
+    //     SendHeader(len, num_elements);
+    //     //TODO(ts) this copies the data.
+    //     net::Buffer payload_buf = net::Buffer(data, len);
+    //     dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
+    // }
 
     //! Closes the connection
     void Close() override {
