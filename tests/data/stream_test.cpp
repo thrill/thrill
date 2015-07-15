@@ -35,9 +35,9 @@ TEST_F(TestStream, AppendCallsObserver) {
 
     auto fn = [&](const Stream<1>& stream, const BlockPtr& block, size_t block_used, size_t nitems, size_t first) {
                   ASSERT_EQ(exp_block, block);
-                  ASSERT_EQ(1, block_used);
-                  ASSERT_EQ(2, nitems);
-                  ASSERT_EQ(3, first);
+                  ASSERT_EQ(1u, block_used);
+                  ASSERT_EQ(2u, nitems);
+                  ASSERT_EQ(3u, first);
                   ASSERT_EQ(&candidate, &stream);
                   ran = true;
               };
@@ -58,3 +58,5 @@ TEST_F(TestStream, CloseCallsObserver) {
     candidate.Close();
     ASSERT_TRUE(ran);
 }
+
+/******************************************************************************/

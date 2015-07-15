@@ -58,6 +58,52 @@ public:
     size_t size() const { return size_; }
 };
 
+/**
+ * VirtualBlocks combine a reference to a \ref Block and book-keeping
+ * information.
+ *
+ * Multiple virtual blocks can point to the same block but have different
+ * book-keeping information!
+ */
+template <size_t BlockSize = default_block_size>
+struct VirtualBlock
+{
+    using BlockType = Block<BlockSize>;
+    using BlockCPtr = std::shared_ptr<const BlockType>;
+
+    VirtualBlock()
+        : block_used(0), nitems(0), first(0)
+    { }
+
+    VirtualBlock(const BlockCPtr& block,
+                 size_t block_used, size_t nitems, size_t first)
+        : block(block),
+          block_used(block_used),
+          nitems(nitems),
+          first(first) { }
+
+    //! referenced block
+    BlockCPtr block;
+
+    //! number of valid bytes in the block (can be used to virtually shorten
+    //! a block)
+    size_t    block_used;
+
+    //! number of valid items in this block (includes cut-off element at the end)
+    size_t    nitems;
+
+    //! offset of first element in the block
+    size_t    first;
+
+    //! Releases the reference to the block and resets book-keeping info
+    void      Release() {
+        block = BlockCPtr();
+        block_used = 0;
+        nitems = 0;
+        first = 0;
+    }
+};
+
 template <typename Block, typename Target>
 class BlockWriter;
 
@@ -154,7 +200,7 @@ protected:
     friend class BlockReader<BlockSize>;
 
     //! Closed files can not be altered
-    bool closed_ = { false };
+    bool closed_ = false;
 };
 
 using File = FileBase<default_block_size>;
@@ -178,20 +224,35 @@ public:
     //! non-copyable: delete assignment operator
     BlockWriter& operator = (const BlockWriter&) = delete;
 
+    //! move-constructor
+    BlockWriter(BlockWriter&&) = default;
+    //! move-assignment
+    BlockWriter& operator = (BlockWriter&&) = delete;
+
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        Close();
+        if (block_)
+            Close();
     }
 
     //! Explicitly close the writer
     void Close() {
-        if (current_ != block_->begin() || nitems_) {
-            FlushBlock();
-            nitems_ = 0;
-            block_ = BlockPtr();
-            current_ = nullptr;
+        if (!closed_) { //potential race condition
+            closed_ = true;
+            if (current_ != block_->begin() || nitems_) {
+                FlushBlock();
+                nitems_ = 0;
+                block_ = BlockPtr();
+                current_ = nullptr;
+            }
+            target_.Close();
         }
-        target_.Close();
+    }
+
+    //! Flush the current block (only really meaningful for a network sink).
+    void Flush() {
+        FlushBlock();
+        AllocateBlock();
     }
 
     //! \name Appending (Generic) Items
@@ -426,7 +487,6 @@ protected:
                        nitems_, first_offset_);
     }
 
-protected:
     //! current block, already allocated as shared ptr, since we want to use
     //! make_shared.
     BlockPtr block_;
@@ -446,6 +506,9 @@ protected:
 
     //! file or stream target to output blocks to
     Target& target_;
+
+    //! Flag if Close was called explicilty
+    bool closed_ = false;
 };
 
 template <size_t BlockSize>
@@ -482,6 +545,15 @@ public:
     template <typename T>
     T Next() {
         return Serializer<BlockReader, T>::deserialize(*this);
+    }
+
+    //! HasNext() returns true if at least one more byte is available.
+    bool HasNext() {
+        while (current_ == end_) {
+            if (!NextBlock())
+                return false;
+        }
+        return true;
     }
 
     //! \}
@@ -637,6 +709,7 @@ template <size_t BlockSize>
 typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(*this, 0, 0);
 }
+
 } // namespace data
 } // namespace c7a
 

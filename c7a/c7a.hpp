@@ -25,7 +25,7 @@
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/sum.hpp>
 #include <c7a/api/write.hpp>
-#include <c7a/api/zip.hpp>
+//-tb: #include <c7a/api/zip.hpp>
 #include <c7a/api/size.hpp>
 
 namespace c7a {

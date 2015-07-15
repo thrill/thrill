@@ -147,7 +147,7 @@ template class data::FileBase<16>;
 template class data::BlockWriter<MyBlock, data::FileBase<16> >;
 template class data::BlockReader<16>;
 
-// fixed size test
+// fixed size serialization test
 using MyWriter = data::BlockWriter<MyBlock, data::FileBase<16> >;
 using MyReader = data::BlockReader<16>;
 static_assert(data::Serializer<MyWriter, int>
