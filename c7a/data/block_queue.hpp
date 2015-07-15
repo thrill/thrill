@@ -26,17 +26,22 @@ namespace data {
 template <size_t BlockSize>
 class BlockQueueSource;
 
+template <typename Block>
+class PolyBlockSink;
+
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
 //same interface as \ref c7a::data::Stream and \ref c7a::data::File
 template <size_t BlockSize = default_block_size>
 class BlockQueue
 {
 public:
-    using BlockType = Block<BlockSize>;
-    using BlockPtr = std::shared_ptr<BlockType>;
+    using Block = data::Block<BlockSize>;
+    using BlockPtr = std::shared_ptr<Block>;
 
-    using Writer = BlockWriter<BlockType, BlockQueue>;
+    using Writer = BlockWriter<Block, BlockQueue&>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
+
+    using PolyWriter = BlockWriter<Block, PolyBlockSink<Block> >;
 
     void Append(const BlockPtr& block, size_t block_used,
                 size_t nitems, size_t first) {
@@ -70,6 +75,11 @@ public:
     //! Return a BlockReader fetching blocks from this BlockQueue.
     Reader GetReader();
 
+    //! Return a dynamic polymorphic BlockWriter delivering to this BlockQueue.
+    PolyWriter GetPolyWriter() {
+        return PolyWriter(PolyBlockSink<Block>(this));
+    }
+
 private:
     common::ConcurrentBoundedQueue<VirtualBlock<BlockSize> > queue_;
     std::atomic<bool> closed_ = { false };
@@ -82,11 +92,11 @@ class BlockQueueSource
 public:
     using Byte = unsigned char;
 
-    using BlockType = Block<BlockSize>;
+    using Block = data::Block<BlockSize>;
     using BlockQueueType = BlockQueue<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const BlockType>;
+    using BlockCPtr = std::shared_ptr<const Block>;
 
-    using VirtualBlockType = VirtualBlock<BlockSize>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
 
     //! Start reading from a BlockQueue
     BlockQueueSource(BlockQueueType& queue)
@@ -100,9 +110,9 @@ public:
     }
 
     //! Advance to next block of file, delivers current_ and end_ for
-    //! BlockReader
+    //! BlockReader. Returns false if the source is empty.
     bool NextBlock(const Byte** out_current, const Byte** out_end) {
-        VirtualBlockType vb = queue_.Pop();
+        VirtualBlock vb = queue_.Pop();
         block_ = vb.block;
 
         if (block_) {

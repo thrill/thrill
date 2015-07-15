@@ -120,7 +120,7 @@ private:
             sum = neutral_element_;
         }
 
-        data::File::Reader reader(file_);
+        data::File::Reader reader = file_.GetReader();
 
         for (size_t i = 0; i < file_.NumItems(); ++i) {
             sum = sum_function_(sum, reader.Next<ValueType>());

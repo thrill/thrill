@@ -11,12 +11,15 @@
 
 #include "gtest/gtest.h"
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/poly_block_writer.hpp>
 #include <c7a/common/thread_pool.hpp>
 
 using namespace c7a;
 
+using MyQueue = data::BlockQueue<16>;
+
 struct BlockQueueTest : public::testing::Test {
-    data::BlockQueue<16> q;
+    MyQueue q;
 };
 
 TEST_F(BlockQueueTest, FreshQueueIsNotClosed) {
@@ -40,7 +43,7 @@ TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
 }
 
 TEST_F(BlockQueueTest, BlockWriterToQueue) {
-    data::BlockWriter<data::Block<16>, data::BlockQueue<16> > bw(q);
+    MyQueue::Writer bw = q.GetWriter();
     bw(int(42));
     bw(std::string("hello there BlockQueue"));
     bw.Close();
@@ -50,18 +53,47 @@ TEST_F(BlockQueueTest, BlockWriterToQueue) {
 
 TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     common::ThreadPool pool(2);
-    data::BlockQueue<16> q;
+    MyQueue q;
 
     pool.Enqueue(
         [&q]() {
-            data::BlockQueue<16>::Writer bw = q.GetWriter();
+            MyQueue::Writer bw = q.GetWriter();
             bw(int(42));
             bw(std::string("hello there BlockQueue"));
         });
 
     pool.Enqueue(
         [&q]() {
-            data::BlockQueue<16>::Reader br = q.GetReader();
+            MyQueue::Reader br = q.GetReader();
+
+            ASSERT_TRUE(br.HasNext());
+            int i1 = br.Next<int>();
+            ASSERT_EQ(i1, 42);
+
+            ASSERT_TRUE(br.HasNext());
+            std::string i2 = br.Next<std::string>();
+            ASSERT_EQ(i2, "hello there BlockQueue");
+
+            ASSERT_FALSE(br.HasNext());
+        });
+
+    pool.LoopUntilEmpty();
+}
+
+TEST_F(BlockQueueTest, ThreadedParallelPolyBlockWriterAndBlockReader) {
+    common::ThreadPool pool(2);
+    MyQueue q;
+
+    pool.Enqueue(
+        [&q]() {
+            MyQueue::PolyWriter bw = q.GetPolyWriter();
+            bw(int(42));
+            bw(std::string("hello there BlockQueue"));
+        });
+
+    pool.Enqueue(
+        [&q]() {
+            MyQueue::Reader br = q.GetReader();
 
             ASSERT_TRUE(br.HasNext());
             int i1 = br.Next<int>();
