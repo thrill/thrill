@@ -39,7 +39,7 @@ using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
  * except that it uses mutexes for synchronization. This implementation is only
  * here to be used if the Intel TBB is not available.
  *
- * Not all methods of tbb:concurrent_bounded_queue<> are available here, please
+ * Not all methods of tbb::concurrent_bounded_queue<> are available here, please
  * add them if you need them. However, NEVER add any other methods that you
  * might need.
  */
@@ -119,6 +119,13 @@ public:
         cv_.wait(lock, [=]() { return !queue_.empty(); });
         destination = std::move(queue_.front());
         queue_.pop();
+    }
+
+    //! return number of items available in the queue (tbb says "can return
+    //! negative size", due to pending pop()s, but we ignore that here).
+    size_t size() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return queue_.size();
     }
 };
 
