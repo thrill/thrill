@@ -35,9 +35,9 @@ TEST(Stage, CountReferencesSimple) {
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);
@@ -82,9 +82,9 @@ TEST(Stage, CountReferencesLOpNode) {
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);
@@ -133,9 +133,9 @@ TEST(Stage, OverwriteReferenceLOpNode) {
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);
@@ -182,9 +182,9 @@ TEST(Stage, AdditionalChildReferences) {
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);

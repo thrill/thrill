@@ -276,7 +276,7 @@ auto DIARef<ValueType, Stack>::Zip(
     auto zip_stack = zip_node->ProduceStack();
 
     return DIARef<ZipResultNode, decltype(zip_stack)>
-            (zip_node, zip_stack);
+               (zip_node, zip_stack);
 }
 
 } // namespace api
