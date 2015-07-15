@@ -24,9 +24,9 @@
 #include <sstream>
 
 namespace c7a {
-namespace net {
+namespace data {
 
-//! \ingroup net
+//! \ingroup data
 //! \{
 
 //! A Channel is a collection of \ref Stream instances and bundles them to a
@@ -44,11 +44,9 @@ namespace net {
 class Channel
 {
 public:
-    using ChannelId = data::ChannelId;
-
     //! Creates a new channel instance
     Channel(const ChannelId& id, int expected_streams,
-            const std::shared_ptr<data::BufferChain>& target)
+            const std::shared_ptr<BufferChain>& target)
         : id_(id),
           expected_streams_(expected_streams),
           target_(target)
@@ -74,14 +72,14 @@ protected:
     int expected_streams_;
     int finished_streams_ = 0;
 
-    std::shared_ptr<data::BufferChain> target_;
+    std::shared_ptr<BufferChain> target_;
 
     //! for calling protected methods to deliver blocks.
     friend class ChannelMultiplexer;
 
     //! called from ChannelMultiplexer when there is a new Block on a
     //! Stream. TODO(tb): pass sender id when needed.
-    void OnStreamData(data::BinaryBufferBuilder& bb) {
+    void OnStreamData(BinaryBufferBuilder& bb) {
         target_->Append(bb);
     }
 
@@ -102,12 +100,12 @@ protected:
     //     assert(finished_streams_ < expected_streams_);
     //     LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
     //     //TODO(ts) this is a copy
-    //     data::BinaryBufferBuilder bb(base, len, elements);
+    //     BinaryBufferBuilder bb(base, len, elements);
     //     buffer_sorter_.Append(own_rank, bb);
     // }
 };
 
-} // namespace net
+} // namespace data
 } // namespace c7a
 
 #endif // !C7A_DATA_CHANNEL_HEADER

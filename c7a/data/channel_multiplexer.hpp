@@ -24,13 +24,12 @@
 #include <functional>
 
 namespace c7a {
+namespace data {
 
-namespace net {
-
-//! \ingroup net
+//! \ingroup data
 //! \{
 
-typedef c7a::data::ChainId ChannelId;
+typedef ChainId ChannelId;
 
 //! Multiplexes virtual Connections on Dispatcher
 //!
@@ -50,12 +49,11 @@ class ChannelMultiplexer
 {
 public:
     using ChannelPtr = std::shared_ptr<Channel>;
-    using ChannelId = data::ChannelId;
 
-    ChannelMultiplexer(DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), chains_(data::NETWORK) { }
+    ChannelMultiplexer(net::DispatcherThread& dispatcher)
+        : dispatcher_(dispatcher), chains_(NETWORK) { }
 
-    void Connect(Group* group) {
+    void Connect(net::Group* group) {
         group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
             if (id == group_->MyRank()) continue;
@@ -66,7 +64,7 @@ public:
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
     bool HasChannel(ChannelId id) {
-        assert(id.type == data::NETWORK);
+        assert(id.type == NETWORK);
         return channels_.find(id.identifier) != channels_.end();
     }
 
@@ -74,13 +72,13 @@ public:
     //! Data exists as soon as either a channel has been allocated or data arrived
     //! on this worker with the given id
     bool HasDataOn(ChannelId id) {
-        assert(id.type == data::NETWORK);
+        assert(id.type == NETWORK);
         return chains_.Contains(id);
     }
 
     //! Returns the buffer chain that contains the data for the channel with the given id
-    std::shared_ptr<data::BufferChain> AccessData(ChannelId id) {
-        assert(id.type == data::NETWORK);
+    std::shared_ptr<BufferChain> AccessData(ChannelId id) {
+        assert(id.type == NETWORK);
         return chains_.Chain(id);
     }
 
@@ -91,7 +89,7 @@ public:
 
     //! Get channel with given id, if it does not exist, create it.
     ChannelPtr GetOrCreateChannel(ChannelId id) {
-        assert(id.type == data::NETWORK);
+        assert(id.type == NETWORK);
 
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = channels_.find(id.identifier);
@@ -113,31 +111,31 @@ public:
     //! Channels can be opened only once.
     //! Behaviour on multiple calls to OpenChannel is undefined.
     //! \param id the channel to use
-    std::vector<data::Emitter> OpenChannel(const ChannelId& id) {
+    std::vector<Emitter> OpenChannel(const ChannelId& id) {
         assert(group_ != nullptr);
-        assert(id.type == data::NETWORK);
-        std::vector<data::Emitter> result;
+        assert(id.type == NETWORK);
+        std::vector<Emitter> result;
 
         //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
 
         for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
             if (worker_id == group_->MyRank()) {
-                auto target = std::make_shared<data::LoopbackTarget>(
+                auto target = std::make_shared<LoopbackTarget>(
                     chains_.Chain(id), [=]() {
                         sLOG << "loopback closes" << id;
                         GetOrCreateChannel(id)->CloseLoopback();
                     });
-                result.emplace_back(data::Emitter(target));
+                result.emplace_back(Emitter(target));
             }
             else {
-                auto target = std::make_shared<data::SocketTarget>(
+                auto target = std::make_shared<SocketTarget>(
                     &dispatcher_,
                     &(group_->connection(worker_id)),
                     id.identifier,
                     group_->MyRank());
 
-                result.emplace_back(data::Emitter(target));
+                result.emplace_back(Emitter(target));
             }
         }
         assert(result.size() == group_->Size());
@@ -150,7 +148,7 @@ public:
     //! elements from 0..offset[0] are sent to the first worker,
     //! elements from (offset[0] + 1)..offset[1] are sent to the second worker.
     //! elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
-    //! The offset values range from 0..data::Manager::GetNumElements()
+    //! The offset values range from 0..Manager::GetNumElements()
     //! The number of given offsets must be equal to the net::Group::Size()
     //!/param source BufferChain containing the data to be scattered
     //!/param target id of the channel that will hold the resulting data. This
@@ -159,7 +157,7 @@ public:
     //               worker sends data
     //!/param offsets - as described above. offsets.size must be equal to group.size
     template <class T>
-    void Scatter(const std::shared_ptr<data::BufferChain>& source,
+    void Scatter(const std::shared_ptr<BufferChain>& source,
                  const ChannelId target, std::vector<size_t> offsets) {
         //potential problem: channel was created by reception of packets,
         //which would cause the channel to be not order-preserving.
@@ -168,7 +166,7 @@ public:
 
         size_t sent_elements = 0;
         size_t elements_to_send = 0;
-        data::Iterator<T> source_it(*source);
+        Iterator<T> source_it(*source);
         for (size_t worker_id = 0; worker_id < offsets.size(); worker_id++) {
             elements_to_send = offsets[worker_id] - sent_elements;
             if (worker_id == group_->MyRank()) {
@@ -183,7 +181,7 @@ public:
                 channel->CloseLoopback();
             }
             else {
-                data::SocketTarget sink(
+                SocketTarget sink(
                     &dispatcher_,
                     &(group_->connection(worker_id)),
                     target.identifier,
@@ -207,27 +205,27 @@ public:
 private:
     static const bool debug = false;
 
-    DispatcherThread& dispatcher_;
+    net::DispatcherThread& dispatcher_;
 
     //! Channels have an ID in block headers
     std::map<size_t, ChannelPtr> channels_;
-    data::BufferChainManager chains_;
+    BufferChainManager chains_;
 
     // Holds NetConnections for outgoing Channels
-    Group* group_;
+    net::Group* group_;
 
     //protects critical sections
     std::mutex mutex_;
 
     template <typename T>
-    void MoveFromItToTarget(data::Iterator<T>& source, std::function<void(const void*, size_t, size_t)> target, size_t num_elements) {
+    void MoveFromItToTarget(Iterator<T>& source, std::function<void(const void*, size_t, size_t)> target, size_t num_elements) {
         while (num_elements > 0) {
             assert(source.HasNext());
             void* data;
             size_t length;
             size_t seeked_elements = source.Seek(num_elements, &data, &length);
             target(data, length, seeked_elements);
-            data::BinaryBufferReader reader(data::BinaryBuffer(data, length));
+            BinaryBufferReader reader(BinaryBuffer(data, length));
             while (!reader.empty())
                 sLOG << "sending" << reader.GetString();
             num_elements -= seeked_elements;
@@ -236,23 +234,25 @@ private:
 
     /**************************************************************************/
 
+    using Connection = net::Connection;
+
     //! expects the next StreamBlockHeader from a socket and passes to
     //! OnStreamBlockHeader
     void AsyncReadStreamBlockHeader(Connection& s) {
         dispatcher_.AsyncRead(
             s, sizeof(StreamBlockHeader),
-            [this](Connection& s, Buffer&& buffer) {
+            [this](Connection& s, net::Buffer&& buffer) {
                 OnStreamBlockHeader(s, std::move(buffer));
             });
     }
 
-    void OnStreamBlockHeader(Connection& s, Buffer&& buffer) {
+    void OnStreamBlockHeader(Connection& s, net::Buffer&& buffer) {
 
         StreamBlockHeader header;
         header.ParseHeader(buffer.ToString());
 
         // received channel id
-        auto id = ChannelId(data::NETWORK, header.channel_id);
+        auto id = ChannelId(NETWORK, header.channel_id);
         ChannelPtr channel = GetOrCreateChannel(id);
 
         if (header.IsStreamEnd()) {
@@ -267,7 +267,7 @@ private:
 
             dispatcher_.AsyncRead(
                 s, header.expected_bytes,
-                [this, header, channel](Connection& s, Buffer&& buffer) {
+                [this, header, channel](Connection& s, net::Buffer&& buffer) {
                     OnStreamData(s, header, channel, std::move(buffer));
                 });
         }
@@ -275,17 +275,17 @@ private:
 
     void OnStreamData(
         Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
-        Buffer&& buffer) {
+        net::Buffer&& buffer) {
         sLOG << "got data on" << s << "in channel" << header.channel_id;
 
-        data::BinaryBufferBuilder bb(buffer.data(), buffer.size());
+        BinaryBufferBuilder bb(buffer.data(), buffer.size());
         channel->OnStreamData(bb);
 
         AsyncReadStreamBlockHeader(s);
     }
 };
 
-} // namespace net
+} // namespace data
 } // namespace c7a
 
 #endif // !C7A_DATA_CHANNEL_MULTIPLEXER_HEADER

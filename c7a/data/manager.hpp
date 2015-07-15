@@ -111,13 +111,13 @@ public:
     }
 
     //! Returns a reference to an existing Channel.
-    std::shared_ptr<net::Channel> GetChannel(const ChannelId id) {
+    std::shared_ptr<Channel> GetChannel(const ChannelId id) {
         assert(cmp_.HasChannel(id));
         return std::move(cmp_.GetOrCreateChannel(id));
     }
 
     //! Returns a reference to a new Channel.
-    std::shared_ptr<net::Channel> GetNewChannel() {
+    std::shared_ptr<Channel> GetNewChannel() {
         return std::move(cmp_.GetOrCreateChannel(AllocateChannelId()));
     }
 
@@ -149,7 +149,7 @@ public:
 
 private:
     static const bool debug = false;
-    net::ChannelMultiplexer cmp_;
+    ChannelMultiplexer cmp_;
 
     BufferChainManager dias_;
 

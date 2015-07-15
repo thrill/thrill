@@ -17,7 +17,7 @@ using::testing::Return;
 using::testing::ByRef;
 
 using namespace c7a;
-using namespace c7a::net;
+using namespace c7a::data;
 
 struct StreamTest : public::testing::Test {
     StreamTest() {
