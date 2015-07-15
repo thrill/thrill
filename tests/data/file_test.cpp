@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/data/file.hpp>
-#include <c7a/data/poly_block_writer.hpp>
+#include <c7a/data/dyn_block_writer.hpp>
 #include <c7a/common/string.hpp>
 #include <gtest/gtest.h>
 
@@ -142,7 +142,7 @@ TEST(File, SerializeSomeItems) {
     }
 }
 
-TEST(File, SerializeSomeItemsPolymorphicReaderWriter) {
+TEST(File, SerializeSomeItemsDynamicReaderWriter) {
 
     // construct File with very small blocks for testing
     using File = data::FileBase<1024>;
@@ -152,7 +152,7 @@ TEST(File, SerializeSomeItemsPolymorphicReaderWriter) {
 
     // put into File some items (all of different serialization bytes)
     {
-        File::PolyWriter fw = file.GetPolyWriter();
+        File::DynWriter fw = file.GetDynWriter();
         fw(unsigned(5));
         fw(MyPair(5, "10abc"));
         fw(double(42.0));

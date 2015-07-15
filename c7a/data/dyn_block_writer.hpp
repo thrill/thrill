@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/poly_block_writer.hpp
+ * c7a/data/dyn_block_writer.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_POLY_BLOCK_WRITER_HEADER
-#define C7A_DATA_POLY_BLOCK_WRITER_HEADER
+#ifndef C7A_DATA_DYN_BLOCK_WRITER_HEADER
+#define C7A_DATA_DYN_BLOCK_WRITER_HEADER
 
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/file.hpp>
@@ -26,7 +26,7 @@ namespace data {
 //! operations, hence we do these switchs and union tricks to bypass type
 //! casts. -tb
 template <typename _Block>
-class PolyBlockSink
+class DynBlockSink
 {
 public:
     using Block = _Block;
@@ -37,12 +37,12 @@ public:
     using FileSink = FileBase<block_size>;
     using BlockQueueSink = BlockQueue<block_size>;
 
-    explicit PolyBlockSink(FileSink* file)
+    explicit DynBlockSink(FileSink* file)
         : type_(FILE) {
         sink_.file_ = file;
     }
 
-    explicit PolyBlockSink(BlockQueueSink* block_queue)
+    explicit DynBlockSink(BlockQueueSink* block_queue)
         : type_(BLOCK_QUEUE) {
         sink_.block_queue_ = block_queue;
     }
@@ -76,18 +76,18 @@ protected:
 
     //! union containing a pointer to the attached sink type.
     union {
-        FileSink* file_;
+        FileSink      * file_;
         BlockQueueSink* block_queue_;
     } sink_;
 };
 
-//! Typedef of a polymorphic block writer, writing to a PolyBlockSink.
+//! Typedef of a dynamic block writer, writing to a DynBlockSink.
 template <typename Block>
-using PolyBlockWriter = BlockWriter<Block, PolyBlockSink<Block> >;
+using DynBlockWriter = BlockWriter<Block, DynBlockSink<Block> >;
 
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_POLY_BLOCK_WRITER_HEADER
+#endif // !C7A_DATA_DYN_BLOCK_WRITER_HEADER
 
 /******************************************************************************/

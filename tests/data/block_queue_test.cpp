@@ -11,7 +11,7 @@
 
 #include "gtest/gtest.h"
 #include <c7a/data/block_queue.hpp>
-#include <c7a/data/poly_block_writer.hpp>
+#include <c7a/data/dyn_block_writer.hpp>
 #include <c7a/common/thread_pool.hpp>
 
 using namespace c7a;
@@ -80,13 +80,13 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.LoopUntilEmpty();
 }
 
-TEST_F(BlockQueueTest, ThreadedParallelPolyBlockWriterAndBlockReader) {
+TEST_F(BlockQueueTest, ThreadedParallelDynBlockWriterAndBlockReader) {
     common::ThreadPool pool(2);
     MyQueue q;
 
     pool.Enqueue(
         [&q]() {
-            MyQueue::PolyWriter bw = q.GetPolyWriter();
+            MyQueue::DynWriter bw = q.GetDynWriter();
             bw(int(42));
             bw(std::string("hello there BlockQueue"));
         });

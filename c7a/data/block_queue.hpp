@@ -27,7 +27,7 @@ template <size_t BlockSize>
 class BlockQueueSource;
 
 template <typename Block>
-class PolyBlockSink;
+class DynBlockSink;
 
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
 //same interface as \ref c7a::data::Stream and \ref c7a::data::File
@@ -41,7 +41,7 @@ public:
     using Writer = BlockWriter<Block, BlockQueue&>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
 
-    using PolyWriter = BlockWriter<Block, PolyBlockSink<Block> >;
+    using DynWriter = BlockWriter<Block, DynBlockSink<Block> >;
 
     void Append(const BlockPtr& block, size_t block_used,
                 size_t nitems, size_t first) {
@@ -76,8 +76,8 @@ public:
     Reader GetReader();
 
     //! Return a dynamic polymorphic BlockWriter delivering to this BlockQueue.
-    PolyWriter GetPolyWriter() {
-        return PolyWriter(PolyBlockSink<Block>(this));
+    DynWriter GetDynWriter() {
+        return DynWriter(DynBlockSink<Block>(this));
     }
 
 private:

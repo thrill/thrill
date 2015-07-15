@@ -28,7 +28,7 @@ template <size_t BlockSize>
 class FileBlockSource;
 
 template <typename Block>
-class PolyBlockSink;
+class DynBlockSink;
 
 template <size_t BlockSize>
 class FileBase
@@ -42,7 +42,7 @@ public:
     using Writer = BlockWriter<Block, FileBase&>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
 
-    using PolyWriter = BlockWriter<Block, PolyBlockSink<Block> >;
+    using DynWriter = BlockWriter<Block, DynBlockSink<Block> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -109,8 +109,8 @@ public:
     Reader GetReader() const;
 
     //! Get polymorphic BlockWriter for beginning of File
-    PolyWriter GetPolyWriter() {
-        return PolyWriter(PolyBlockSink<Block>(this));
+    DynWriter GetDynWriter() {
+        return DynWriter(DynBlockSink<Block>(this));
     }
 
 protected:
