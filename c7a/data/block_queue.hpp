@@ -44,7 +44,11 @@ public:
     }
 
     bool closed() const { return closed_; }
+
     bool empty() const { return queue_.empty(); }
+
+    //! return number of block in the queue. Use this ONLY for DEBUGGING!
+    size_t size() { return queue_.size(); }
 
 private:
     common::ConcurrentBoundedQueue<VirtualBlock<BlockSize> > queue_;
