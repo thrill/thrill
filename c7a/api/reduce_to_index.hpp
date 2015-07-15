@@ -72,7 +72,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
 public:
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >;
+              KeyExtractor, ReduceFunction, data::Emitter>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -173,9 +173,9 @@ private:
 
     data::ChannelId channel_id_;
 
-    std::vector<data::Emitter<KeyValuePair> > emitters_;
+    std::vector<data::Emitter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
+    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter>
     reduce_pre_table_;
 
     size_t max_index_;
