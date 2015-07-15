@@ -53,6 +53,10 @@ class ChannelMultiplexer
 public:
     using ChannelPtr = std::shared_ptr<Channel>;
 
+    static const size_t block_size = default_block_size;
+
+    using DynBlockWriter = data::DynBlockWriter<block_size>;
+
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), chains_(NETWORK) { }
 
@@ -92,22 +96,8 @@ public:
 
     //! Get channel with given id, if it does not exist, create it.
     ChannelPtr GetOrCreateChannel(ChannelId id) {
-        assert(id.type == NETWORK);
-
         std::lock_guard<std::mutex> lock(mutex_);
-        auto it = channels_.find(id.identifier);
-
-        if (it != channels_.end())
-            return it->second;
-
-        // create buffer chain target if it does not exist
-        auto targetChain = chains_.GetOrAllocate(id);
-
-        // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(
-            id, group_->Size(), targetChain);
-        channels_.insert(std::make_pair(id.identifier, channel));
-        return channel;
+        return _GetOrCreateChannel(id);
     }
 
     //! Creates emitters for each worker. Uses the given ChannelId
@@ -148,34 +138,30 @@ public:
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     template <size_t BlockSize = default_block_size>
-    std::vector<DynBlockWriter<BlockSize> > OpenWriters(const ChannelId& id) {
+    std::vector<DynBlockWriter> OpenWriters(const ChannelId& id) {
         assert(group_ != nullptr);
         assert(id.type == NETWORK);
 
-        using DynBlockWriter = DynBlockWriter<BlockSize>;
         std::vector<DynBlockWriter> result;
 
         //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
 
+        // received channel id
+        ChannelPtr channel = _GetOrCreateChannel(id);
+
         for (size_t worker_id = 0; worker_id < group_->Size(); ++worker_id) {
             if (worker_id == group_->MyRank()) {
-                result.emplace_back(DynBlockSink<BlockSize>(false));
-
-                //     auto target = std::make_shared<data::LoopbackTarget>(
-                //         chains_.Chain(id), [=]() {
-                //             sLOG << "loopback closes" << id;
-                //             GetOrCreateChannel(id)->CloseLoopback();
-                //         });
-                //     result.emplace_back(data::Emitter(target));
+                result.emplace_back(
+                    DynBlockSink<block_size>(&channel->queues_[worker_id]));
             }
             else {
                 result.emplace_back(
-                    DynBlockSink<BlockSize>(
-                        ChannelSink<BlockSize>(&dispatcher_,
-                                               &group_->connection(worker_id),
-                                               id.identifier,
-                                               group_->MyRank())));
+                    DynBlockSink<block_size>(
+                        ChannelSink<block_size>(&dispatcher_,
+                                                &group_->connection(worker_id),
+                                                id.identifier,
+                                                group_->MyRank())));
             }
         }
 
@@ -244,7 +230,7 @@ public:
     }
 
 private:
-    static const bool debug = false;
+    static const bool debug = true;
 
     net::DispatcherThread& dispatcher_;
 
@@ -273,6 +259,24 @@ private:
         }
     }
 
+    //! Get channel with given id, if it does not exist, create it.
+    ChannelPtr _GetOrCreateChannel(ChannelId id) {
+        assert(id.type == NETWORK);
+
+        auto it = channels_.find(id.identifier);
+
+        if (it != channels_.end())
+            return it->second;
+
+        // create buffer chain target if it does not exist
+        auto targetChain = chains_.GetOrAllocate(id);
+
+        // build params for Channel ctor
+        ChannelPtr channel = std::make_shared<Channel>(id, group_->Size());
+        channels_.insert(std::make_pair(id.identifier, channel));
+        return channel;
+    }
+
     /**************************************************************************/
 
     using Connection = net::Connection;
@@ -298,7 +302,7 @@ private:
 
         if (header.IsStreamEnd()) {
             sLOG << "end of stream on" << s << "in channel" << id;
-            channel->OnCloseStream();
+            channel->OnCloseStream(header.sender_rank);
 
             AsyncReadStreamBlockHeader(s);
         }
@@ -319,8 +323,20 @@ private:
         net::Buffer&& buffer) {
         sLOG << "got data on" << s << "in channel" << header.channel_id;
 
-        BinaryBufferBuilder bb(buffer.data(), buffer.size());
-        channel->OnStreamData(bb);
+        using Block = data::Block<block_size>;
+        using BlockPtr = std::shared_ptr<Block>;
+        using VirtualBlock = data::VirtualBlock<block_size>;
+
+        assert(header.expected_bytes == buffer.size());
+
+        // TODO(tb): don't copy data!
+        BlockPtr block = std::make_shared<Block>();
+        std::copy(buffer.data(), buffer.data() + buffer.size(), block->begin());
+
+        channel->OnStreamBlock(
+            header.sender_rank,
+            VirtualBlock(block,
+                         header.expected_bytes, header.expected_elements, 0));
 
         AsyncReadStreamBlockHeader(s);
     }

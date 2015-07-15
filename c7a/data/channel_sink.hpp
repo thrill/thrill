@@ -51,6 +51,9 @@ public:
 
         SendHeader(block_used, nitems);
 
+        sLOG1 << "sending block"
+              << common::hexdump(block->begin(), block_used);
+
         // TODO(tb): this copies data!
         net::Buffer payload_buf(block->begin(), block_used);
         // TODO(tb): this does not work as expected: only one AsyncWrite can be

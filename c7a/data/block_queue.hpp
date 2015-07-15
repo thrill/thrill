@@ -38,6 +38,8 @@ public:
     using Block = data::Block<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
 
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
+
     using Writer = BlockWriter<Block, BlockQueue&>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
 
@@ -48,6 +50,10 @@ public:
         queue_.emplace(block, block_used, nitems, first);
     }
 
+    void Append(VirtualBlock&& vb) {
+        queue_.emplace(std::move(vb));
+    }
+
     void Close() {
         assert(!closed_); //racing condition tolerated
         closed_ = true;
@@ -56,8 +62,8 @@ public:
         queue_.emplace(nullptr, 0, 0, 0);
     }
 
-    VirtualBlock<BlockSize> Pop() {
-        VirtualBlock<BlockSize> vb;
+    VirtualBlock Pop() {
+        VirtualBlock vb;
         queue_.pop(vb);
         return std::move(vb);
     }
@@ -81,7 +87,7 @@ public:
     }
 
 private:
-    common::ConcurrentBoundedQueue<VirtualBlock<BlockSize> > queue_;
+    common::ConcurrentBoundedQueue<VirtualBlock> queue_;
     std::atomic<bool> closed_ = { false };
 };
 
@@ -117,7 +123,7 @@ public:
 
         if (block_) {
             *out_current = block_->begin();
-            *out_end = block_->begin() + vb.block_used;
+            *out_end = block_->begin() + vb.bytes_used;
             return true;
         }
         else {

@@ -17,6 +17,7 @@
 #include <c7a/data/binary_buffer_builder.hpp>
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
+#include <c7a/data/block_queue.hpp>
 #include <c7a/data/chain_id.hpp>
 
 #include <vector>
@@ -45,59 +46,75 @@ class Channel
 {
 public:
     //! Creates a new channel instance
-    Channel(const ChannelId& id, int expected_streams,
-            const std::shared_ptr<BufferChain>& target)
+    Channel(const ChannelId& id, int expected_streams)
         : id_(id),
-          expected_streams_(expected_streams),
-          target_(target)
+          queues_(expected_streams)
     { }
 
     void CloseLoopback() {
-        OnCloseStream();
+        OnCloseStream(0);
     }
+
+    //! non-copyable: delete copy-constructor
+    Channel(const Channel&) = delete;
+    //! non-copyable: delete assignment operator
+    Channel& operator = (const Channel&) = delete;
+
+    //! move-constructor
+    Channel(Channel&&) = default;
 
     //! Indicates whether all streams are finished
     bool Finished() const {
-        return finished_streams_ == expected_streams_;
+        return finished_streams_ == queues_.size();
     }
 
     const ChannelId & id() const {
         return id_;
     }
 
+    using BlockQueue = data::BlockQueue<default_block_size>;
+    using VirtualBlock = data::VirtualBlock<default_block_size>;
+
 protected:
     static const bool debug = false;
 
     ChannelId id_;
-    int expected_streams_;
-    int finished_streams_ = 0;
+    size_t finished_streams_ = 0;
 
-    std::shared_ptr<BufferChain> target_;
+    //! BlockQueues to store incoming Blocks with no attached destination.
+    std::vector<BlockQueue> queues_;
 
     //! for calling protected methods to deliver blocks.
     friend class ChannelMultiplexer;
 
     //! called from ChannelMultiplexer when there is a new Block on a
     //! Stream. TODO(tb): pass sender id when needed.
-    void OnStreamData(BinaryBufferBuilder& bb) {
-        target_->Append(bb);
+    void OnStreamBlock(size_t from, VirtualBlock&& vb) {
+        assert(from < queues_.size());
+
+        sLOG1 << "channel receive " << id_ << "from" << from << ":"
+              << common::hexdump(vb.block->data(), vb.bytes_used);
+
+        queues_[from].Append(std::move(vb));
     }
 
     //! called from ChannelMultiplexer when a Stream closed notification was
     //! received.
-    void OnCloseStream() {
+    void OnCloseStream(size_t from) {
         finished_streams_++;
-        if (finished_streams_ == expected_streams_) {
+        if (finished_streams_ == queues_.size()) {
+            assert(from < queues_.size());
+
             sLOG << "channel" << id_ << " is closed";
-            target_->Close();
+            queues_[from].Close();
         }
         else {
-            sLOG << "channel" << id_ << " is not closed yet (expect:" << expected_streams_ << "actual:" << finished_streams_ << ")";
+            sLOG << "channel" << id_ << " is not closed yet (expect:" << queues_.size() << "actual:" << finished_streams_ << ")";
         }
     }
 
     // void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
-    //     assert(finished_streams_ < expected_streams_);
+    //     assert(finished_streams_ < queues_.size());
     //     LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
     //     //TODO(ts) this is a copy
     //     BinaryBufferBuilder bb(base, len, elements);
