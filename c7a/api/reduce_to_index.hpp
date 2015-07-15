@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/reduce_to_index_node.hpp
+ * c7a/api/reduce_to_index.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_REDUCE_TO_INDEX_NODE_HEADER
-#define C7A_API_REDUCE_TO_INDEX_NODE_HEADER
+#ifndef C7A_API_REDUCE_TO_INDEX_HEADER
+#define C7A_API_REDUCE_TO_INDEX_HEADER
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/api/context.hpp>
@@ -310,12 +310,12 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
-               (std::move(shared_node), reduce_stack);
+               (shared_node, reduce_stack);
 }
 
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_REDUCE_TO_INDEX_NODE_HEADER
+#endif // !C7A_API_REDUCE_TO_INDEX_HEADER
 
 /******************************************************************************/

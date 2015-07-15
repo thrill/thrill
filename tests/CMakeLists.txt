@@ -99,7 +99,7 @@ build_test_group(common/tests
   common/stats_timer_test.cpp
   common/thread_pool_test.cpp
   )
-#build_test(core/stage_builder_test)
+build_test(core/stage_builder_test)
 #build_test(core/post_hash_table_test)
 #build_test(core/pre_hash_table_probing_test)
 build_test(core/pre_hash_table_test)
