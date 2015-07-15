@@ -19,7 +19,7 @@ using namespace c7a::common;
 TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     ThreadPool pool(8);
 
-    concurrent_queue<int> queue;
+    ConcurrentQueue<int> queue;
     std::atomic<size_t> count(0);
     std::atomic<size_t> total_sum(0);
 

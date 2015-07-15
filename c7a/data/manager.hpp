@@ -20,7 +20,8 @@
 #include <c7a/data/iterator.hpp>
 #include <c7a/data/output_line_emitter.hpp>
 #include <c7a/data/socket_target.hpp>
-#include <c7a/net/channel_multiplexer.hpp>
+#include <c7a/data/channel.hpp>
+#include <c7a/data/channel_multiplexer.hpp>
 
 #include <functional>
 #include <map>
@@ -35,7 +36,7 @@ struct BufferChain;
 
 //! Identification for DIAs
 typedef ChainId DIAId;
-using c7a::net::ChannelId;
+
 //! Manages all kind of memory for data elements
 //!
 //!
@@ -83,6 +84,7 @@ public:
         return chain->size();
     }
 
+#if FIXUP_LATER
     //! Docu see net::ChannelMultiplexer::Scatter()
     template <class T>
     void Scatter(const ChainId& source, const ChainId& target, std::vector<size_t> offsets) {
@@ -91,6 +93,7 @@ public:
         assert(dias_.Contains(source));
         cmp_.Scatter<T>(dias_.Chain(source), target, offsets);
     }
+#endif      // FIXUP_LATER
 
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.
@@ -103,21 +106,32 @@ public:
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
     //! \param order_preserving indicates if the channel should preserve the order of the receiving packages
-    ChannelId AllocateNetworkChannel(bool order_preserving = false) {
-        return cmp_.AllocateNext(order_preserving);
+    ChannelId AllocateChannelId() {
+        return cmp_.AllocateNext();
+    }
+
+    //! Returns a reference to an existing Channel.
+    std::shared_ptr<net::Channel> GetChannel(const ChannelId id) {
+        assert(cmp_.HasChannel(id));
+        return std::move(cmp_.GetOrCreateChannel(id));
+    }
+
+    //! Returns a reference to a new Channel.
+    std::shared_ptr<net::Channel> GetNewChannel() {
+        return std::move(cmp_.GetOrCreateChannel(AllocateChannelId()));
     }
 
     //! Returns an emitter that can be used to fill a DIA
     //! Emitters can push data into DIAs even if an intertor was created before.
     //! Data is only visible to the iterator if the emitter was flushed.
-    template <class T>
-    Emitter<T> GetLocalEmitter(DIAId id) {
-        assert(id.type == LOCAL);
-        if (!dias_.Contains(id)) {
-            throw std::runtime_error("target dia id unknown.");
-        }
-        return Emitter<T>(dias_.Chain(id));
-    }
+    // template <class T>
+    // Emitter<T> GetLocalEmitter(DIAId id) {
+    //     assert(id.type == LOCAL);
+    //     if (!dias_.Contains(id)) {
+    //         throw std::runtime_error("target dia id unknown.");
+    //     }
+    //     return Emitter<T>(dias_.Chain(id));
+    // }
 
     //! Returns a new File object containing a sequence of local Blocks.
     File GetFile() {
@@ -125,18 +139,12 @@ public:
     }
 
     template <class T>
-    std::vector<Emitter<T> > GetNetworkEmitters(ChannelId id) {
+    std::vector<Emitter> GetNetworkEmitters(ChannelId id) {
         assert(id.type == NETWORK);
         if (!cmp_.HasDataOn(id)) {
             throw std::runtime_error("target channel id unknown.");
         }
-        return cmp_.OpenChannel<T>(id);
-    }
-
-    //! Returns an OutputLineIterator with a given output file stream.
-    template <typename T>
-    OutputLineEmitter<T> GetOutputLineEmitter(std::ofstream& file) {
-        return OutputLineEmitter<T>(file);
+        return cmp_.OpenChannel(id);
     }
 
 private:
