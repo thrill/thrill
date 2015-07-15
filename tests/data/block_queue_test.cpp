@@ -45,7 +45,7 @@ TEST_F(BlockQueueTest, BlockWriterToQueue) {
     bw(std::string("hello there BlockQueue"));
     bw.Close();
     ASSERT_FALSE(q.empty());
-    ASSERT_EQ(q.size(), 2u);
+    ASSERT_EQ(q.size(), 3u); // two real block and one termination sentinel.
 }
 
 TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
@@ -54,12 +54,25 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
 
     pool.Enqueue(
         [&q]() {
-            data::BlockWriter<data::Block<16>, data::BlockQueue<16> > bw(q);
+            data::BlockQueue<16>::Writer bw = q.GetWriter();
             bw(int(42));
             bw(std::string("hello there BlockQueue"));
         });
 
-    pool.Enqueue([&q]() { });
+    pool.Enqueue(
+        [&q]() {
+            data::BlockQueue<16>::Reader br = q.GetReader();
+
+            ASSERT_TRUE(br.HasNext());
+            int i1 = br.Next<int>();
+            ASSERT_EQ(i1, 42);
+
+            ASSERT_TRUE(br.HasNext());
+            std::string i2 = br.Next<std::string>();
+            ASSERT_EQ(i2, "hello there BlockQueue");
+
+            ASSERT_FALSE(br.HasNext());
+        });
 
     pool.LoopUntilEmpty();
 }
