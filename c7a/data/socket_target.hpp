@@ -20,8 +20,7 @@
 namespace c7a {
 namespace data {
 
-//! SocketTarget is an EmitterTarget that sends data via a network socket to a Channel
-//! The SocketTarget appends data as long as internal queue (4KB) is sufficient or Flush is called.
+//! SocketTarget is an BlockSink that sends data via a network socket to the Channel object on a different worker.
 class SocketTarget : public EmitterTarget
 {
 public:

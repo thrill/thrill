@@ -26,7 +26,7 @@ namespace data {
 template <size_t BlockSize>
 class BlockQueueSource;
 
-template <typename Block>
+template <size_t BlockSize>
 class DynBlockSink;
 
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
@@ -41,7 +41,7 @@ public:
     using Writer = BlockWriter<Block, BlockQueue&>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
 
-    using DynWriter = BlockWriter<Block, DynBlockSink<Block> >;
+    using DynWriter = BlockWriter<Block, DynBlockSink<BlockSize> >;
 
     void Append(const BlockPtr& block, size_t block_used,
                 size_t nitems, size_t first) {
@@ -77,7 +77,7 @@ public:
 
     //! Return a dynamic polymorphic BlockWriter delivering to this BlockQueue.
     DynWriter GetDynWriter() {
-        return DynWriter(DynBlockSink<Block>(this));
+        return DynWriter(DynBlockSink<BlockSize>(this));
     }
 
 private:

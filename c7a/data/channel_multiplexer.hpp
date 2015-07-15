@@ -16,8 +16,11 @@
 #include <c7a/net/group.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/data/emitter.hpp>
+#include <c7a/data/iterator.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
 #include <c7a/data/socket_target.hpp>
+#include <c7a/data/channel_sink.hpp>
+#include <c7a/data/dyn_block_writer.hpp>
 
 #include <memory>
 #include <map>
@@ -37,7 +40,7 @@ typedef ChainId ChannelId;
 //! of data. Since multiple exchanges can occur at the same time on this single
 //! connection we use multiplexing. The slices are called Blocks and are
 //! indicated by a \ref StreamBlockHeader. Multiple Blocks form a Stream on a
-//! single TCP connection. The multi plexer multiplexes all streams on all
+//! single TCP connection. The multiplexer multiplexes all streams on all
 //! sockets.
 //!
 //! All sockets are polled for headers. As soon as the a header arrives it is
@@ -138,6 +141,44 @@ public:
                 result.emplace_back(Emitter(target));
             }
         }
+        assert(result.size() == group_->Size());
+        return result;
+    }
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    template <size_t BlockSize = default_block_size>
+    std::vector<DynBlockWriter<BlockSize> > OpenWriters(const ChannelId& id) {
+        assert(group_ != nullptr);
+        assert(id.type == NETWORK);
+
+        using DynBlockWriter = DynBlockWriter<BlockSize>;
+        std::vector<DynBlockWriter> result;
+
+        //rest of method is critical section
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        for (size_t worker_id = 0; worker_id < group_->Size(); ++worker_id) {
+            if (worker_id == group_->MyRank()) {
+                result.emplace_back(DynBlockSink<BlockSize>(false));
+
+                //     auto target = std::make_shared<data::LoopbackTarget>(
+                //         chains_.Chain(id), [=]() {
+                //             sLOG << "loopback closes" << id;
+                //             GetOrCreateChannel(id)->CloseLoopback();
+                //         });
+                //     result.emplace_back(data::Emitter(target));
+            }
+            else {
+                result.emplace_back(
+                    DynBlockSink<BlockSize>(
+                        ChannelSink<BlockSize>(&dispatcher_,
+                                               &group_->connection(worker_id),
+                                               id.identifier,
+                                               group_->MyRank())));
+            }
+        }
+
         assert(result.size() == group_->Size());
         return result;
     }
