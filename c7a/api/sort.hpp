@@ -177,11 +177,46 @@ private:
 	    } while (!it.IsFinished());
 	}
 
+        for (ValueType ele : data_) {
+            bool sent = false;
+            for (size_t i = 0; i < splitters.size() && !sent; i++) {
+                if (compare_function_(ele, splitters[i])) {
+                    emitters_data_[i](ele);
+                    sent = true;
+                    break;
+                }   
+            }
+            if (!sent) {
+                emitters_data_[splitters.size()](ele);
+            }
+        }
+
+        for (size_t i = 0; i < emitters_data_.size(); i++) {
+            emitters_data_[i].Close();
+        }
+
+        data_.clear();
+                
+        auto it = context_.data_manager().
+            template GetIterator<ValueType>(channel_id_data_);
+
+        do {
+            it.WaitForMore();
+            while (it.HasNext()) {
+                data_.push_back(it.Next());
+            }
+        } while (!it.IsFinished());
+
+        
+        std::sort(data_.begin(), data_.end(), compare_function_);
+        
+
         for (size_t i = 0; i < data_.size(); i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
                 func(data_[i]);
             }
         }
+        std::vector<ValueType>().swap(data_);
     }
 
     void PostOp() { }
