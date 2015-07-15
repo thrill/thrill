@@ -12,10 +12,9 @@
 #include "c7a/common/logger.hpp"
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/channel_multiplexer.hpp>
+#include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/common/cyclic_barrier.hpp>
 #include <thread>
-#include <stdlib.h> //free
 
 using namespace c7a::data;
 using namespace c7a::common;
@@ -56,7 +55,7 @@ struct DataManagerChannelFixture : public::testing::Test {
                                 [=](Group* g) {
                                     FunctionSelect(g, f1, f2, f3);
                                 });
-        free(barrier);
+        delete barrier;
     }
 
     void Execute(WorkerThread f1, WorkerThread f2) {
@@ -65,7 +64,7 @@ struct DataManagerChannelFixture : public::testing::Test {
                                 [=](Group* g) {
                                     FunctionSelect(g, f1, f2);
                                 });
-        free(barrier);
+        delete barrier;
     }
 
     void Execute(WorkerThread f1) {
@@ -74,7 +73,7 @@ struct DataManagerChannelFixture : public::testing::Test {
                                 [=](Group* g) {
                                     FunctionSelect(g, f1, [](Manager&) { });
                                 });
-        free(barrier);
+        delete barrier;
     }
 
     template <class T>

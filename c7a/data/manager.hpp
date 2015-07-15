@@ -20,8 +20,8 @@
 #include <c7a/data/iterator.hpp>
 #include <c7a/data/output_line_emitter.hpp>
 #include <c7a/data/socket_target.hpp>
-#include <c7a/net/channel.hpp>
-#include <c7a/net/channel_multiplexer.hpp>
+#include <c7a/data/channel.hpp>
+#include <c7a/data/channel_multiplexer.hpp>
 
 #include <functional>
 #include <map>
@@ -84,7 +84,7 @@ public:
         return chain->size();
     }
 
-#if FIXUP_LATER    
+#if FIXUP_LATER
     //! Docu see net::ChannelMultiplexer::Scatter()
     template <class T>
     void Scatter(const ChainId& source, const ChainId& target, std::vector<size_t> offsets) {
@@ -93,7 +93,7 @@ public:
         assert(dias_.Contains(source));
         cmp_.Scatter<T>(dias_.Chain(source), target, offsets);
     }
-#endif // FIXUP_LATER
+#endif      // FIXUP_LATER
 
     //! Returns a number that uniquely addresses a DIA
     //! Calls to this method alter the data managers state.

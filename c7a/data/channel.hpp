@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/channel.hpp
+ * c7a/data/channel.hpp
  *
  * Part of Project c7a.
  *
@@ -9,11 +9,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_CHANNEL_HEADER
-#define C7A_NET_CHANNEL_HEADER
+#ifndef C7A_DATA_CHANNEL_HEADER
+#define C7A_DATA_CHANNEL_HEADER
 
 #include <c7a/net/connection.hpp>
-#include <c7a/net/stream.hpp>
+#include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/binary_buffer_builder.hpp>
 #include <c7a/data/binary_buffer.hpp>
 #include <c7a/data/buffer_chain.hpp>
@@ -67,8 +67,6 @@ public:
         return id_;
     }
 
-
-
 protected:
     static const bool debug = false;
 
@@ -112,6 +110,6 @@ protected:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_CHANNEL_HEADER
+#endif // !C7A_DATA_CHANNEL_HEADER
 
 /******************************************************************************/
