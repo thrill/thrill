@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/generate_node.hpp
+ * c7a/api/generate.hpp
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_GENERATE_NODE_HEADER
-#define C7A_API_GENERATE_NODE_HEADER
+#ifndef C7A_API_GENERATE_HEADER
+#define C7A_API_GENERATE_HEADER
 
 #include <c7a/common/logger.hpp>
 #include <c7a/api/dop_node.hpp>
@@ -147,12 +147,12 @@ auto Generate(Context & ctx,
     auto generator_stack = shared_node->ProduceStack();
 
     return DIARef<GeneratorResult, decltype(generator_stack)>
-               (std::move(shared_node), generator_stack);
+               (shared_node, generator_stack);
 }
 
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_GENERATE_NODE_HEADER
+#endif // !C7A_API_GENERATE_HEADER
 
 /******************************************************************************/
