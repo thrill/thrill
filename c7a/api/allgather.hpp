@@ -18,6 +18,7 @@
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia_node.hpp>
 #include <c7a/api/function_stack.hpp>
+#include <c7a/data/dyn_block_writer.hpp>
 
 #include <string>
 #include <vector>
@@ -31,7 +32,7 @@ class AllGatherNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     using ParentInput = typename ParentStack::Input;
 
@@ -42,11 +43,9 @@ public:
                   )
         : ActionNode(ctx, { parent }),
           out_vector_(out_vector),
-          channel_used_(ctx.data_manager().AllocateChannelId())
+          channel_(ctx.data_manager().GetNewChannel()),
+          emitters_(channel_->OpenWriters())
     {
-        emitters_ = context_.data_manager().
-                    template GetNetworkEmitters<ValueType>(channel_used_);
-
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
@@ -72,14 +71,11 @@ public:
             emitters_[i].Close();
         }
 
-        auto it = context_.data_manager().template GetIterator<ValueType>(channel_used_);
+        auto reader = channel_->ReadCompleteChannel().GetReader();
 
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                out_vector_->push_back(it.Next());
-            }
-        } while (!it.IsFinished());
+        while (!reader.AtEnd()) {
+            out_vector_->push_back(reader.template Next<ValueType>());
+        }
     }
 
     /*!
@@ -87,17 +83,16 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() override {
-        return "[AllGatherNode] Id: " + data_id_.ToString();
+        return "[AllGatherNode] Id: " + result_file_.ToString();
     }
 
 private:
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelId channel_used_;
+    std::shared_ptr<data::Channel> channel_;
+    std::vector<data::DynBlockWriter<data::default_block_size>> emitters_;
 
     static const bool debug = false;
-
-    std::vector<data::Emitter> emitters_;
 };
 
 template <typename ValueType, typename Stack>

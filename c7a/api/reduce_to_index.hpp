@@ -20,7 +20,6 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
-#include <c7a/data/emitter.hpp>
 
 #include <functional>
 #include <string>
@@ -71,8 +70,9 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super::data_id_;
 
 public:
+    using Emitter = data::DynBlockWriter<data::default_block_size>;
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction, data::Emitter>;
+              KeyExtractor, ReduceFunction, Emitter>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -102,9 +102,8 @@ public:
           DOpNode<ValueType>(ctx, { parent }),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_id_(ctx.data_manager().AllocateChannelId()),
-          emitters_(ctx.data_manager().
-                    template GetNetworkEmitters<KeyValuePair>(channel_id_)),
+          channel_(ctx.data_manager().GetNewChannel),
+          emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
                             [=](size_t key, PreHashTable* ht) {
@@ -171,11 +170,11 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    data::ChannelId channel_id_;
+    std::shared_ptr<data::Channel> channel_;
 
-    std::vector<data::Emitter> emitters_;
+    std::vector<Emitter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter>
+    core::ReducePreTable<KeyExtractor, ReduceFunction, Emitter>
     reduce_pre_table_;
 
     size_t max_index_;
@@ -228,16 +227,13 @@ private:
                           max_local_index,
                           neutral_element_);
 
-        auto it = context_.data_manager().
-                  template GetIterator<KeyValuePair>(channel_id_);
 
-        sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                table.Insert(std::move(it.Next()));
-            }
-        } while (!it.IsFinished());
+        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
+        auto file = channel_->ReadCompleteChannel().GetReader();
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << data_id_;
+        while (!file.AtEnd()) {
+            table.Insert(std::move(file.template Next<ValueType>()));
+        }
 
         table.Flush();
     }

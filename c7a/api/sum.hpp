@@ -32,7 +32,6 @@ class SumNode : public ActionNode
 
     using Super = ActionNode;
     using Super::context_;
-    using Super::data_id_;
     using SumArg0 = ValueType;
 
     using ParentInput = typename ParentStack::Input;
@@ -76,7 +75,7 @@ public:
      * \return "[SumNode]"
      */
     std::string ToString() override {
-        return "[SumNode] Id:" + data_id_.ToString();
+        return "[SumNode] Id:" + result_file_.ToString();
     }
 
 private:

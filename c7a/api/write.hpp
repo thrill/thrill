@@ -26,8 +26,8 @@ class WriteNode : public ActionNode
 {
 public:
     using Super = ActionNode;
+    using Super::result_file_;
     using Super::context_;
-    using Super::data_id_;
 
     using ParentInput = typename ParentStack::Input;
 
@@ -70,7 +70,7 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() override {
-        return "[WriteNode] Id:" + data_id_.ToString();
+        return "[WriteNode] Id:" + result_file_.ToString();
     }
 
 private:
