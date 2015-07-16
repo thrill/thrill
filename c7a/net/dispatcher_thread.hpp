@@ -100,7 +100,7 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AddRead(c, read_cb);
                 });
         WakeUpThread();
@@ -108,7 +108,7 @@ public:
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AddWrite(c, write_cb);
                 });
         WakeUpThread();
@@ -130,7 +130,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AsyncRead(c, n, done_cb);
                 });
         WakeUpThread();
@@ -141,7 +141,7 @@ public:
     void AsyncWrite(Connection& c, Buffer&& buffer1, Buffer&& buffer2,
                     AsyncWriteCallback done_cb = nullptr) {
         // the following captures the move-only buffer in a lambda.
-        Enqueue([ =, &c,
+        Enqueue([=, &c,
                   b1 = std::move(buffer1), b2 = std::move(buffer2)]() mutable {
                     dispatcher_.AsyncWrite(c, std::move(b1));
                     dispatcher_.AsyncWrite(c, std::move(b2), done_cb);
@@ -156,7 +156,7 @@ public:
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
         // the following captures the move-only buffer in a lambda.
-        Enqueue([ =, &c, b = std::move(buffer)]() mutable {
+        Enqueue([=, &c, b = std::move(buffer)]() mutable {
                     dispatcher_.AsyncWrite(c, std::move(b), done_cb);
                 });
         WakeUpThread();
