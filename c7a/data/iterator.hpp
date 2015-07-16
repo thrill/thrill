@@ -75,7 +75,8 @@ public:
             return 0;
         }
         *out_data = (void*)((char*)(current_->buffer.data()) + current_reader_.cursor());
-        return current_reader_.SeekStringElements(num_elements, out_len);
+        //return current_reader_.SeekStringElements(num_elements, out_len);
+        abort(); // FIXME LATER
     }
 
     //! returns true if currently at least one element is available
