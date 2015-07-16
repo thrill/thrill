@@ -29,6 +29,8 @@ namespace data {
 //! \ingroup data
 //! \{
 
+using ChannelId = size_t;
+
 //! A Channel is a collection of \ref Stream instances and bundles them to a
 //! logical communication channel.
 //!
@@ -41,15 +43,17 @@ namespace data {
 //! Block headers are put into streams that poll more data from the socket.
 //! As soon as the block is exhausted, the socket polling responsibility
 //! is transfered back to the channel multiplexer.
+template <size_t BlockSize = default_block_size>
 class Channel
 {
-    using BlockQueue = data::BlockQueue<default_block_size>;
-    using VirtualBlock = data::VirtualBlock<default_block_size>;
-    using ChannelSink = data::ChannelSink<default_block_size>;
+    using BlockQueue = data::BlockQueue<BlockSize>;
+    using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
+    using BlockWriter = data::BlockWriter<BlockSize>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
+    using ChannelSink = data::ChannelSink<BlockSize>;
+    using File = data::FileBase<BlockSize>;
 
 public:
-    using ChannelId = size_t;
-
     //! Creates a new channel instance
     Channel(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
         : id_(id),
@@ -57,13 +61,13 @@ public:
           group_(group),
           dispatcher_(dispatcher) {
         // construct ChannelSink array
-        for (size_t i = 0; i != net->Size(); ++i) {
-            if (i == net->MyRank()) {
+        for (size_t i = 0; i != group_.Size(); ++i) {
+            if (i == group_.MyRank()) {
                 sinks_.emplace_back();
             }
             else {
                 sinks_.emplace_back(
-                    &dispatcher, &net->connection(i), id, net->MyRank());
+                    &dispatcher, &group_.connection(i), id, group_.MyRank());
             }
         }
     }
@@ -91,16 +95,15 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    template <size_t BlockSize = default_block_size>
-    std::vector<data::BlockWriter<BlockSize>> OpenWriters() {
-        std::vector<data::DynBlockWriter<BlockSize>> result;
+    std::vector<BlockWriter> OpenWriters() {
+        std::vector<BlockWriter> result;
 
         for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
             if (worker_id == group_.MyRank()) {
-                result.emplace_back(queues_[worker_id]);
+                result.emplace_back(&queues_[worker_id]);
             }
             else {
-                result.emplace_back(sinks_[worker_id]);
+                result.emplace_back(&sinks_[worker_id]);
             }
         }
 
@@ -116,7 +119,7 @@ public:
 
         for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
 
-            result.emplace_back(BlockQueueSource<block_size>(queues_[worker_id]));
+            result.emplace_back(BlockQueueSource<BlockSize>(queues_[worker_id]));
         }
 
         assert(result.size() == group_.Size());
@@ -126,21 +129,16 @@ public:
     //! Reads add data from this Channel (blocking)
     //! The resulting blocks in the file will be ordered by their sender ascending.
     //! Blocks from the same sender are ordered the way they were received/sent
-    template <size_t BlockSize = default_block_size>
-    FileBase<BlockSize> ReadCompleteChannel() {
+    File ReadCompleteChannel() {
         FileBase<BlockSize> result;
         for (auto& q : queues_) {
-            while(!q.empty() || !q.closed()) {
+            while (!q.empty() || !q.closed()) {
                 auto vblock = q.Pop(); //this is blocking
                 result.Append(q.Pop());
             }
         }
         return result;
     }
-
-
-    using BlockQueue = data::BlockQueue<default_block_size>;
-    using VirtualBlock = data::VirtualBlock<default_block_size>;
 
 protected:
     static const bool debug = false;
@@ -157,7 +155,7 @@ protected:
     net::Group& group_;
     net::DispatcherThread& dispatcher_;
 
-    //! for calling protected methods to deliver blocks.
+    template <size_t block_size>
     friend class ChannelMultiplexer;
 
     //! called from ChannelMultiplexer when there is a new Block on a
@@ -194,7 +192,6 @@ protected:
     //     buffer_sorter_.Append(own_rank, bb);
     // }
 };
-
 } // namespace data
 } // namespace c7a
 
