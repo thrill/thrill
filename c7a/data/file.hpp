@@ -60,6 +60,11 @@ public:
         closed_ = true;
     }
 
+    //returns a string that identifies this string instance
+    std::string ToString() {
+        return "File@" + std::to_string(this);
+    }
+
     bool closed() const {
         return closed_;
     }
