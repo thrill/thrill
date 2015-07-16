@@ -90,13 +90,14 @@ build_test(net/buffer_test)
 build_test(net/dispatcher_thread_test)
 build_test(net/flow_control_test)
 build_test(net/group_test)
+build_test(net/binary_builder_test)
 
 build_test(data/block_queue_test)
 build_test(data/file_test)
 build_test(data/stream_block_header_test)
 
 # this is the new Channel test.
-build_only(data/channel_multiplexer_test)
+build_test(data/channel_multiplexer_test)
 
 build_test(api/wordcount_test)
 if (OFF)

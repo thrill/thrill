@@ -16,7 +16,7 @@
 #include <c7a/net/connection.hpp>
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/block_queue.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
+#include <c7a/data/channel_sink.hpp>
 #include <c7a/net/group.hpp>
 
 #include <vector>
@@ -43,16 +43,30 @@ namespace data {
 //! is transfered back to the channel multiplexer.
 class Channel
 {
-public:
+    using BlockQueue = data::BlockQueue<default_block_size>;
+    using VirtualBlock = data::VirtualBlock<default_block_size>;
+    using ChannelSink = data::ChannelSink<default_block_size>;
 
+public:
     using ChannelId = size_t;
+
     //! Creates a new channel instance
-    Channel(const ChannelId& id, int expected_streams, net::Group& group, net::DispatcherThread& dispatcher)
+    Channel(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
         : id_(id),
-          queues_(expected_streams),
+          queues_(group.Size()),
           group_(group),
-          dispatcher_(dispatcher)
-    { }
+          dispatcher_(dispatcher) {
+        // construct ChannelSink array
+        for (size_t i = 0; i != net->Size(); ++i) {
+            if (i == net->MyRank()) {
+                sinks_.emplace_back();
+            }
+            else {
+                sinks_.emplace_back(
+                    &dispatcher, &net->connection(i), id, net->MyRank());
+            }
+        }
+    }
 
     void CloseLoopback() {
         OnCloseStream(group_.MyRank());
@@ -86,13 +100,23 @@ public:
                 result.emplace_back(queues_[worker_id]);
             }
             else {
-                result.emplace_back(
-                    DynBlockSink<BlockSize>(
-                        dispatcher_,
-                                    &group_.connection(worker_id),
-                                    id,
-                                    group_.MyRank()));
+                result.emplace_back(sinks_[worker_id]);
             }
+        }
+
+        assert(result.size() == group_.Size());
+        return result;
+    }
+
+    //! Creates a BlockReader for each worker. The BlockReaders are attached to
+    //! the BlockQueues in the Channel and wait for further Blocks to arrive or
+    //! the Channel's remote close.
+    std::vector<BlockQueueReader> OpenReaders() {
+        std::vector<BlockQueueReader> result;
+
+        for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
+
+            result.emplace_back(BlockQueueSource<block_size>(queues_[worker_id]));
         }
 
         assert(result.size() == group_.Size());
@@ -108,7 +132,7 @@ public:
         for (auto& q : queues_) {
             while(!q.empty() || !q.closed()) {
                 auto vblock = q.Pop(); //this is blocking
-                result.Append(vblock.block, vblock.bytes_used, vblock.nitems, vblock.first);
+                result.Append(q.Pop());
             }
         }
         return result;
@@ -123,6 +147,9 @@ protected:
 
     ChannelId id_;
     size_t finished_streams_ = 0;
+
+    //! ChannelSink objects are receivers of Blocks outbound for other workers.
+    std::vector<ChannelSink> sinks_;
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
