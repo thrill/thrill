@@ -59,7 +59,7 @@ class DIABase
 public:
     /*!
      * The constructor for a DIABase. Sets the data::Manager and the
-     * associated DIAId.
+     * associated \ref data::File 'result_file'.
      *
      * Sets the parents for this node and adds this node as a child for
      * each parent.
@@ -71,7 +71,7 @@ public:
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents)
         : context_(ctx), parents_(parents),
-          data_id_(ctx.data_manager().AllocateDIA()) {
+          result_file_(ctx.data_manager().GetFile()) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -118,8 +118,8 @@ public:
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId data_id() {
-        return data_id_;
+    data::File result_file() {
+        return result_file_;
     }
 
     kState state() const {
@@ -156,7 +156,7 @@ protected:
     std::vector<DIABase*> children_;
     std::vector<std::shared_ptr<DIABase> > parents_;
     //! Unique ID of this DIABase. Used by the data::Manager.
-    data::DIAId data_id_;
+    data::File result_file_;
 };
 
 //! \}

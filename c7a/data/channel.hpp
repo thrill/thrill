@@ -47,7 +47,7 @@ public:
 
     using ChannelId = size_t;
     //! Creates a new channel instance
-    Channel(const ChannelId& id, int expected_streams, net::Group& group, net::Dispatcher& dispatcher)
+    Channel(const ChannelId& id, int expected_streams, net::Group& group, net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(expected_streams),
           group_(group),
@@ -78,21 +78,20 @@ public:
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     template <size_t BlockSize = default_block_size>
-    std::vector<data::DynBlockWriter<BlockSize>> OpenWriters() {
+    std::vector<data::BlockWriter<BlockSize>> OpenWriters() {
         std::vector<data::DynBlockWriter<BlockSize>> result;
 
         for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
             if (worker_id == group_.MyRank()) {
-                result.emplace_back(
-                    DynBlockSink<BlockSize>(queues_[worker_id]));
+                result.emplace_back(queues_[worker_id]);
             }
             else {
                 result.emplace_back(
                     DynBlockSink<BlockSize>(
-                        ChannelSink<BlockSize>(dispatcher_,
-                                                &group_.connection(worker_id),
-                                                id,
-                                                group_.MyRank())));
+                        dispatcher_,
+                                    &group_.connection(worker_id),
+                                    id,
+                                    group_.MyRank()));
             }
         }
 
@@ -129,7 +128,7 @@ protected:
     std::vector<BlockQueue> queues_;
 
     net::Group& group_;
-    net::Dispatcher& dispatcher_;
+    net::DispatcherThread& dispatcher_;
 
     //! for calling protected methods to deliver blocks.
     friend class ChannelMultiplexer;
