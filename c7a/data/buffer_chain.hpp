@@ -65,7 +65,7 @@ struct BufferChain : public EmitterTarget {
     void Append(BinaryBufferBuilder& b) {
         std::unique_lock<std::mutex> lock(mutex_);
         elements_.emplace_back(
-            BufferChainElement(BinaryBuffer(b), _size() + b.elements()));
+            BufferChainElement(BinaryBuffer(b), _size()));
         b.Detach();
         condition_variable_.notify_all();
     }
