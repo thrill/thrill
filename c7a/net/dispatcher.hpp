@@ -107,6 +107,11 @@ public:
         return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
     }
 
+    //! Cancel all callbacks on a given connection.
+    void Cancel(int fd) {
+        return dispatcher_.Cancel(fd);
+    }
+
     //! \}
 
     //! \name Asynchronous Data Reader/Writer Callbacks

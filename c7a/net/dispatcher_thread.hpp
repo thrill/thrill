@@ -114,6 +114,15 @@ public:
         WakeUpThread();
     }
 
+    //! Cancel all callbacks on a given connection.
+    void Cancel(Connection& c) {
+        int fd = c.GetSocket().fd();
+        Enqueue([this, fd]() {
+                    dispatcher_.Cancel(fd);
+                });
+        WakeUpThread();
+    }
+
     //! \}
 
     //! \name Asynchronous Data Reader/Writer Callbacks
