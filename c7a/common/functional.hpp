@@ -37,7 +37,7 @@ template <typename T>
 struct LessThan {
     //! returns true if a < b
     bool operator () (const T& a, const T& b) const {
-	return a < b;
+        return a < b;
     }
 };
 
