@@ -208,68 +208,21 @@ private:
             }
         }
 
-        TreeBuilder<ValueType>(splitter_tree,
+        sort::TreeBuilder<ValueType>(splitter_tree,
                                splitters.data(),
                                splitter_count_algo);
       
         //end of SS2n
 
-        const size_t stepsize = 2;
-        size_t i = 0;
-        for(; i < ROUND_DOWN(data_.size(), stepsize); i += stepsize)
-        {
-
-            size_t j0 = 1;
-            ValueType el0 = data_[i];
-            size_t j1 = 1;
-            ValueType el1 = data_[i + 1];
-  
-            for(size_t l = 0; l < ceil_log; l++)
-            {
-
-                j0 = j0 * 2 + (!compare_function_(el0, splitter_tree[j0]));
-                j1 = j1 * 2 + (!compare_function_(el1, splitter_tree[j1]));
-
-            }
-
-            size_t b0 = j0 - workers_algo;
-            size_t b1 = j1 - workers_algo;
-
-            //TODO(an): Remove this ugly workaround as soon as emitters are movable.
-            //Move emitter[actual_k] to emitter[splitter_count] before calling this.
-            if (b0 >= num_workers) {
-                LOG << "SEND " << el0 << " TO WORKER " << num_workers - 1;
-                emitters_data_[num_workers - 1](el0);
-            } else {                
-                LOG << "SEND " << el0 << " TO WORKER " << b0;
-                emitters_data_[b0](el0);
-            }
-            if (b1 >= num_workers) {
-                LOG << "SEND " << el1 << " TO WORKER " << num_workers - 1;
-                emitters_data_[num_workers - 1](el1);
-            } else {
-                LOG << "SEND " << el1 << " TO WORKER " << b0;
-                emitters_data_[b1](el1);
-            }
-        }
-        for(; i < data_.size(); i++)
-        {
-
-            size_t j = 1;
-            for(size_t l = 0; l < ceil_log; l++)
-            {
-                j = j * 2 + (data_[i] >= splitter_tree[j]);
-            }
-            size_t b = j - workers_algo;
-
-            if (b >= num_workers) {
-                LOG << "SEND " << data_[i] << " TO WORKER " << num_workers - 1;
-                emitters_data_[num_workers - 1](data_[i]);
-            } else {
-                LOG << "SEND " << data_[i] << " TO WORKER " << b;
-                emitters_data_[b](data_[i]);
-            }
-        }
+        sort::BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
+            data_.data(),
+            data_.size(),
+            splitter_tree, // Tree. sizeof |splitter|
+            workers_algo, // Number of buckets
+            ceil_log,
+            emitters_data_,
+            num_workers,
+            compare_function_);    
 
         for (size_t i = 0; i < emitters_data_.size(); i++) {
             emitters_data_[i].Close();
