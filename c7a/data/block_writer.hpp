@@ -18,12 +18,12 @@
 namespace c7a {
 namespace data {
 
-template <typename _Block, typename BlockSink>
+template <typename BlockSink>
 class BlockWriter
 {
 public:
     using Byte = unsigned char;
-    using Block = _Block;
+    using Block = typename std::decay<BlockSink>::type::Block;
     using BlockPtr = std::shared_ptr<Block>;
 
     //! Start build (appending blocks) to a File
