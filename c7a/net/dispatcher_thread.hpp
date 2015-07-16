@@ -109,7 +109,7 @@ public:
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
         if (dispatcher_.terminate_) return;
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AddRead(c, read_cb);
                 });
         WakeUpThread();
@@ -118,7 +118,7 @@ public:
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
         if (dispatcher_.terminate_) return;
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AddWrite(c, write_cb);
                 });
         WakeUpThread();
@@ -143,7 +143,7 @@ public:
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
         if (dispatcher_.terminate_) return;
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AsyncRead(c, n, done_cb);
                 });
         WakeUpThread();

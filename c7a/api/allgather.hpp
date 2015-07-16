@@ -45,7 +45,7 @@ public:
           channel_(ctx.data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
-        auto pre_op_function = [ = ](ValueType input) {
+        auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
 
@@ -108,6 +108,7 @@ void DIARef<ValueType, Stack>::AllGather(
 
     core::StageBuilder().RunScope(shared_node.get());
 }
+
 } // namespace api
 } // namespace c7a
 

@@ -242,6 +242,7 @@ private:
         AsyncReadStreamBlockHeader(s);
     }
 };
+
 } // namespace data
 } // namespace c7a
 

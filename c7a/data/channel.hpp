@@ -192,6 +192,7 @@ protected:
     //     buffer_sorter_.Append(own_rank, bb);
     // }
 };
+
 } // namespace data
 } // namespace c7a
 
