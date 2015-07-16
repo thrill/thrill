@@ -114,16 +114,6 @@ public:
         WakeUpThread();
     }
 
-    //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(
-        Connection& c,
-        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        Enqueue([ =, &c]() {
-                    dispatcher_.AddReadWrite(c, read_cb, write_cb);
-                });
-        WakeUpThread();
-    }
-
     //! \}
 
     //! \name Asynchronous Data Reader/Writer Callbacks
