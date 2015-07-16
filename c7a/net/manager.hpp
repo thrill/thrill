@@ -534,11 +534,7 @@ public:
                 LOG << "Group " << j << " link " << my_rank_ << " -> " << i << " = fd "
                     << groups_[j].connection(i).GetSocket().fd();
 
-                // TODO(tb): temporarily turn all fds back to blocking, till the
-                // whole asio schema works.
-                // NOTE(ej): This should be correct? Distpatch is not going to work
-                // correctly with non-blocking sockets and will default to busy waiting?
-                groups_[j].connection(i).GetSocket().SetNonBlocking(false);
+                groups_[j].connection(i).GetSocket().SetNonBlocking(true);
             }
         }
     }
