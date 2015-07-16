@@ -323,6 +323,15 @@ public:
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    ValueType neutral_element = ValueType()) const;
 
+    /*!
+     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function. 
+     *  Should be (ValueType,ValueType)->ValueType
+     * 
+     * \param compare_function Function, which compares two elements. Returns true, if 
+     * first element is smaller than second. False otherwise.
+     */
     template <typename CompareFunction = common::LessThan<ValueType> >
     auto Sort(const CompareFunction& compare_function = common::LessThan<ValueType>()) const;
 
