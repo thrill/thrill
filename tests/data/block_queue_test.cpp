@@ -11,7 +11,6 @@
 
 #include "gtest/gtest.h"
 #include <c7a/data/block_queue.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
 #include <c7a/common/thread_pool.hpp>
 
 using namespace c7a;
@@ -38,7 +37,7 @@ TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
 TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
     std::shared_ptr<data::Block<16> > block
         = std::make_shared<data::Block<16> >();
-    q.Append(block, 0, 0, 0);
+    q.Append(data::VirtualBlock<16>(block, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 
@@ -58,35 +57,6 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.Enqueue(
         [&q]() {
             MyQueue::Writer bw = q.GetWriter();
-            bw(int(42));
-            bw(std::string("hello there BlockQueue"));
-        });
-
-    pool.Enqueue(
-        [&q]() {
-            MyQueue::Reader br = q.GetReader();
-
-            ASSERT_TRUE(br.HasNext());
-            int i1 = br.Next<int>();
-            ASSERT_EQ(i1, 42);
-
-            ASSERT_TRUE(br.HasNext());
-            std::string i2 = br.Next<std::string>();
-            ASSERT_EQ(i2, "hello there BlockQueue");
-
-            ASSERT_FALSE(br.HasNext());
-        });
-
-    pool.LoopUntilEmpty();
-}
-
-TEST_F(BlockQueueTest, ThreadedParallelDynBlockWriterAndBlockReader) {
-    common::ThreadPool pool(2);
-    MyQueue q;
-
-    pool.Enqueue(
-        [&q]() {
-            MyQueue::DynWriter bw = q.GetDynWriter();
             bw(int(42));
             bw(std::string("hello there BlockQueue"));
         });

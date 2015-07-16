@@ -14,9 +14,10 @@
 
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/data/channel_sink.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
+#include <c7a/data/block_writer.hpp>
 #include <c7a/data/repository.hpp>
 
 #include <memory>
@@ -50,8 +51,8 @@ public:
     using ChannelId = Channel::ChannelId;
 
     static const size_t block_size = default_block_size;
-    using DynBlockWriter = data::DynBlockWriter<block_size>;
 
+    using BlockWriter = data::BlockWriter<block_size>;
     using BlockQueueReader = BlockReader<BlockQueueSource<block_size> >;
 
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
@@ -79,8 +80,7 @@ public:
         FileBase<block_size> result;
         for (auto& q : channel->queues_) {
             while (!q.empty() || !q.closed()) {
-                auto vblock = q.Pop(); //this is blocking
-                result.Append(vblock.block, vblock.bytes_used, vblock.nitems, vblock.first);
+                result.Append(q.Pop()); // this is blocking
             }
         }
         return result;
@@ -102,10 +102,10 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    std::vector<DynBlockWriter> OpenWriters(const ChannelId& id) {
+    std::vector<BlockWriter> OpenWriters(const ChannelId& id) {
         assert(group_ != nullptr);
 
-        std::vector<DynBlockWriter> result;
+        std::vector<BlockWriter> result;
 
         //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
@@ -115,16 +115,10 @@ public:
 
         for (size_t worker_id = 0; worker_id < group_->Size(); ++worker_id) {
             if (worker_id == group_->MyRank()) {
-                result.emplace_back(
-                    DynBlockSink<block_size>(&channel->queues_[worker_id]));
+                result.emplace_back(&channel->queues_[worker_id]);
             }
             else {
-                result.emplace_back(
-                    DynBlockSink<block_size>(
-                        ChannelSink<block_size>(&dispatcher_,
-                                                &group_->connection(worker_id),
-                                                id,
-                                                group_->MyRank())));
+                result.emplace_back(&channel->sinks_[worker_id]);
             }
         }
 
@@ -239,7 +233,7 @@ private:
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, group_->Size());
+        ChannelPtr channel = std::make_shared<Channel>(dispatcher_, group_, id);
         channels_.insert(std::make_pair(id, channel));
         return channel;
     }
