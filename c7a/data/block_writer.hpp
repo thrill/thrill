@@ -13,23 +13,26 @@
 #define C7A_DATA_BLOCK_WRITER_HEADER
 
 #include <c7a/data/block.hpp>
+#include <c7a/data/block_sink.hpp>
 #include <c7a/data/serializer.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
 namespace data {
 
-template <typename BlockSink>
-class BlockWriter : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >
+template <size_t BlockSize>
+class BlockWriter : public common::ItemWriterToolsBase<BlockWriter<BlockSize> >
 {
 public:
     using Byte = unsigned char;
-    using Block = typename std::decay<BlockSink>::type::Block;
+    using Block = data::Block<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
 
+    using BlockSink = data::BlockSink<BlockSize>;
+
     //! Start build (appending blocks) to a File
-    explicit BlockWriter(BlockSink sink)
-        : sink_(std::forward<BlockSink>(sink)) {
+    explicit BlockWriter(BlockSink* sink)
+        : sink_(sink) {
         AllocateBlock();
     }
 
@@ -59,7 +62,7 @@ public:
                 block_ = BlockPtr();
                 current_ = nullptr;
             }
-            sink_.Close();
+            sink_->Close();
         }
     }
 
@@ -163,8 +166,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_.Append(block_, current_ - block_->begin(),
-                     nitems_, first_offset_);
+        sink_->Append(block_, current_ - block_->begin(),
+                      nitems_, first_offset_);
     }
 
     //! current block, already allocated as shared ptr, since we want to use
@@ -185,7 +188,7 @@ protected:
     size_t first_offset_;
 
     //! file or stream sink to output blocks to.
-    BlockSink sink_;
+    BlockSink* sink_;
 
     //! Flag if Close was called explicitly
     bool closed_ = false;
