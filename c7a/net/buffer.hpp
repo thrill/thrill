@@ -118,6 +118,9 @@ public:
         swap(a.size_, b.size_);
     }
 
+    //! Check for Buffer contents is valid.
+    bool IsValid() const { return (data_ != nullptr); }
+
     //! \}
 
     //! \name Data Access
