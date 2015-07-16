@@ -40,7 +40,7 @@ public:
         if (buffer.size() == 0) {
             return;
         }
-        SendHeader(buffer.size(), buffer.elements());
+        SendHeader(buffer.size(), 0 /* buffer.elements() */);
 
         net::Buffer payload_buf = buffer.ToBuffer();
         buffer.Detach();
