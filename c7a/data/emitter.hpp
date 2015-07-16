@@ -11,9 +11,7 @@
 #ifndef C7A_DATA_EMITTER_HEADER
 #define C7A_DATA_EMITTER_HEADER
 
-#include "binary_buffer_builder.hpp"
-#include "buffer_chain.hpp"
-#include "serializer.hpp"
+#include "dyn_block_writer.hpp"
 
 namespace c7a {
 namespace data {
@@ -26,49 +24,7 @@ namespace data {
 //! Data sinks can chekc whether all emitters to that sink are closed.
 //
 // TODO(ts): make special version for fix-length elements
-class Emitter
-{
-public:
-    Emitter(std::shared_ptr<EmitterTarget> target)
-        : builder_(1024),
-          target_(target) { }
-
-    Emitter(const Emitter&) = delete;
-    Emitter(Emitter&&) = default;
-
-    Emitter& operator = (Emitter&& other) = default;
-
-    //! Emitts an element
-    template <class T>
-    void operator () (T x) {
-        if (builder_.size() + sizeof(T) > builder_.capacity()) { //prevent reallocation
-            Flush();
-        }
-        // TODO(ts): the String content may be a lot bigger than
-        // sizeof(T). hence the block may overflow/reallocate.
-        builder_.PutString(Serialize<T>(x));
-    }
-
-    //! Flushes and closes the block (cannot be undone)
-    //! No further emitt operations can be done afterwards.
-    void Close() {
-        Flush();
-        target_->Close();
-    }
-
-    //! Writes the data to the target without closing the emitter
-    void Flush() {
-        if (builder_.size() > 0) {
-            target_->Append(builder_);
-            builder_ = BinaryBufferBuilder(1024);
-        }
-    }
-
-private:
-    BinaryBufferBuilder builder_;
-    std::shared_ptr<EmitterTarget> target_;
-};
-
+using Emitter = DynBlockWriter<default_block_size>;
 } // namespace data
 } // namespace c7a
 

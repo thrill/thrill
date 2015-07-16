@@ -17,10 +17,9 @@
 #include <c7a/data/channel.hpp>
 #include <c7a/data/emitter.hpp>
 #include <c7a/data/iterator.hpp>
-#include <c7a/data/buffer_chain_manager.hpp>
-#include <c7a/data/socket_target.hpp>
 #include <c7a/data/channel_sink.hpp>
 #include <c7a/data/dyn_block_writer.hpp>
+#include <c7a/data/repository.hpp>
 
 #include <memory>
 #include <map>
@@ -31,8 +30,6 @@ namespace data {
 
 //! \ingroup data
 //! \{
-
-typedef ChainId ChannelId;
 
 //! Multiplexes virtual Connections on Dispatcher
 //!
@@ -52,13 +49,13 @@ class ChannelMultiplexer
 {
 public:
     using ChannelPtr = std::shared_ptr<Channel>;
+    using ChannelId = Channel::ChannelId;
 
     static const size_t block_size = default_block_size;
-
     using DynBlockWriter = data::DynBlockWriter<block_size>;
 
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), chains_(NETWORK) { }
+        : dispatcher_(dispatcher), next_id_(0) { }
 
     void Connect(net::Group* group) {
         group_ = group;
@@ -71,27 +68,31 @@ public:
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
     bool HasChannel(ChannelId id) {
-        assert(id.type == NETWORK);
-        return channels_.find(id.identifier) != channels_.end();
+        return channels_.find(id) != channels_.end();
     }
 
-    //! Indicates if there is data for a certain channel
-    //! Data exists as soon as either a channel has been allocated or data arrived
-    //! on this worker with the given id
-    bool HasDataOn(ChannelId id) {
-        assert(id.type == NETWORK);
-        return chains_.Contains(id);
+    //! Reads add data from a Channel (blocking)
+    //! The resulting blocks in the file will be ordered by their sender ascending.
+    //! Blocks from the same sender are ordered the way they were received/sent
+    FileBase<block_size> ReadCompleteChannel(const ChannelId& id) {
+        auto channel = GetOrCreateChannel(id);
+        FileBase<block_size> result;
+        for (auto& q : channel->queues_) {
+            while(!q.empty() || !q.closed()) {
+                auto vblock = q.Pop(); //this is blocking
+                result.Append(vblock.block, vblock.bytes_used, vblock.nitems, vblock.first);
+            }
+        }
+        return result;
     }
 
-    //! Returns the buffer chain that contains the data for the channel with the given id
-    std::shared_ptr<BufferChain> AccessData(ChannelId id) {
-        assert(id.type == NETWORK);
-        return chains_.Chain(id);
-    }
+
+    //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
+    //TODO Method to access channel via callbacks
 
     //! Allocate the next channel
     ChannelId AllocateNext() {
-        return chains_.AllocateNext();
+        return next_id_++;
     }
 
     //! Get channel with given id, if it does not exist, create it.
@@ -100,47 +101,11 @@ public:
         return _GetOrCreateChannel(id);
     }
 
-    //! Creates emitters for each worker. Uses the given ChannelId
-    //! Channels can be opened only once.
-    //! Behaviour on multiple calls to OpenChannel is undefined.
-    //! \param id the channel to use
-    std::vector<Emitter> OpenChannel(const ChannelId& id) {
-        assert(group_ != nullptr);
-        assert(id.type == NETWORK);
-        std::vector<Emitter> result;
-
-        //rest of method is critical section
-        std::lock_guard<std::mutex> lock(mutex_);
-
-        for (size_t worker_id = 0; worker_id < group_->Size(); worker_id++) {
-            if (worker_id == group_->MyRank()) {
-                auto target = std::make_shared<LoopbackTarget>(
-                    chains_.Chain(id), [=]() {
-                        sLOG << "loopback closes" << id;
-                        GetOrCreateChannel(id)->CloseLoopback();
-                    });
-                result.emplace_back(Emitter(target));
-            }
-            else {
-                auto target = std::make_shared<SocketTarget>(
-                    &dispatcher_,
-                    &(group_->connection(worker_id)),
-                    id.identifier,
-                    group_->MyRank());
-
-                result.emplace_back(Emitter(target));
-            }
-        }
-        assert(result.size() == group_->Size());
-        return result;
-    }
-
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    template <size_t BlockSize = default_block_size>
+    template <size_t BlockSize = block_size>
     std::vector<DynBlockWriter> OpenWriters(const ChannelId& id) {
         assert(group_ != nullptr);
-        assert(id.type == NETWORK);
 
         std::vector<DynBlockWriter> result;
 
@@ -160,7 +125,7 @@ public:
                     DynBlockSink<block_size>(
                         ChannelSink<block_size>(&dispatcher_,
                                                 &group_->connection(worker_id),
-                                                id.identifier,
+                                                id,
                                                 group_->MyRank())));
             }
         }
@@ -197,7 +162,7 @@ public:
         for (size_t worker_id = 0; worker_id < offsets.size(); worker_id++) {
             elements_to_send = offsets[worker_id] - sent_elements;
             if (worker_id == group_->MyRank()) {
-                auto channel = channels_[target.identifier];
+                auto channel = channels_[target];
                 sLOG << "sending" << elements_to_send << "elements via channel" << target << "to self";
                 MoveFromItToTarget<T>(
                     source_it,
@@ -211,7 +176,7 @@ public:
                 SocketTarget sink(
                     &dispatcher_,
                     &(group_->connection(worker_id)),
-                    target.identifier,
+                    target,
                     group_->MyRank());
                 sLOG << "sending" << elements_to_send << "elements via channel" << target << "to worker" << worker_id;
                 MoveFromItToTarget<T>(source_it, [&sink](const void* base, size_t length, size_t elements) { sink.Pipe(base, length, elements); }, elements_to_send);
@@ -235,8 +200,7 @@ private:
     net::DispatcherThread& dispatcher_;
 
     //! Channels have an ID in block headers
-    std::map<size_t, ChannelPtr> channels_;
-    BufferChainManager chains_;
+    std::map<ChannelId, ChannelPtr> channels_;
 
     // Holds NetConnections for outgoing Channels
     net::Group* group_;
@@ -244,36 +208,19 @@ private:
     //protects critical sections
     std::mutex mutex_;
 
-    template <typename T>
-    void MoveFromItToTarget(Iterator<T>& source, std::function<void(const void*, size_t, size_t)> target, size_t num_elements) {
-        while (num_elements > 0) {
-            assert(source.HasNext());
-            void* data;
-            size_t length;
-            size_t seeked_elements = source.Seek(num_elements, &data, &length);
-            target(data, length, seeked_elements);
-            BinaryBufferReader reader(BinaryBuffer(data, length));
-            while (!reader.empty())
-                sLOG << "sending" << reader.GetString();
-            num_elements -= seeked_elements;
-        }
-    }
+    //! Next ID to generate
+    ChannelId next_id_;
 
     //! Get channel with given id, if it does not exist, create it.
     ChannelPtr _GetOrCreateChannel(ChannelId id) {
-        assert(id.type == NETWORK);
-
-        auto it = channels_.find(id.identifier);
+        auto it = channels_.find(id);
 
         if (it != channels_.end())
             return it->second;
 
-        // create buffer chain target if it does not exist
-        auto targetChain = chains_.GetOrAllocate(id);
-
         // build params for Channel ctor
         ChannelPtr channel = std::make_shared<Channel>(id, group_->Size());
-        channels_.insert(std::make_pair(id.identifier, channel));
+        channels_.insert(std::make_pair(id, channel));
         return channel;
     }
 
@@ -297,7 +244,7 @@ private:
         header.ParseHeader(buffer.ToString());
 
         // received channel id
-        auto id = ChannelId(NETWORK, header.channel_id);
+        auto id = header.channel_id;
         ChannelPtr channel = GetOrCreateChannel(id);
 
         if (header.IsStreamEnd()) {

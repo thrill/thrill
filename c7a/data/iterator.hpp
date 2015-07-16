@@ -13,45 +13,26 @@
 
 #include <vector>
 #include "serializer.hpp"
-#include "buffer_chain.hpp"
-#include "binary_buffer_reader.hpp"
 
 namespace c7a {
 namespace data {
 
 //! Iterator gives you access to data of a block
-template <class T>
+template <class T, class BlockSource = FileBlockSource<default_block_size>>
 class Iterator
 {
 public:
     static const bool debug = false;
     //! Creates an instance of iterator that deserializes blobs to T
-    explicit Iterator(BufferChain& buffers)
-        : buffer_chain_(buffers),
-          current_(buffer_chain_.Begin()),
-          current_reader_(nullptr, 0) {
-        if (current_ != buffer_chain_.End()) {
-            current_reader_ = BinaryBufferReader(current_->buffer);
-            sLOG << "initialized non-empty iterator";
-        }
-        else {
-            sLOG << "initialized empty iterator";
-        }
+    explicit Iterator(BlockSource& source)
+        : reader_(source) {
     }
 
     //! returns the next element if one exists
     //!
     //! does no checks whether a next element exists!
     inline const T Next() {
-        if (current_reader_.empty()) {
-            if (current_ != buffer_chain_.End()) {
-                MoveToNextBuffer();
-            }
-            else {
-                die("buffer chain element has no follow-up element.");
-            }
-        }
-        return Deserialize<T>(current_reader_.GetString());
+        return reader_.Next();
     }
 
     //! Seeks the next num_elements elements in the BufferChain
@@ -65,7 +46,7 @@ public:
     //! \returns the number of elements in the seeked block.
     size_t Seek(size_t num_elements, void** out_data, size_t* out_len) {
         //TODO(ts) case for fixed-size elements
-
+        /* TODO(ts) re-implement with new block concept
         if (current_reader_.empty() && current_ != buffer_chain_.End()) {
             MoveToNextBuffer();
         }
@@ -75,6 +56,7 @@ public:
             return 0;
         }
         *out_data = (void*)((char*)(current_->buffer.data()) + current_reader_.cursor());
+        */
         //return current_reader_.SeekStringElements(num_elements, out_len);
         abort(); // FIXME LATER
     }
@@ -83,24 +65,7 @@ public:
     //! If concurrent read and writes operate on this block, this method might
     //! once return false and then true, if new data arrived.
     inline bool HasNext() {
-        // current reader not empty --> read along
-        // current reader empty     --> do we have follow-up buffer-chain element?
-        //                          and when we move to this buffer, is it empty?
-        return !current_reader_.empty() || (current_ != buffer_chain_.End() && LookAhead());
-    }
-
-    //! Waits until either an element is accessible (HasNext() == true) or the
-    //! buffer chain was closed
-    //! Does not enter idle state if HasNext() == true || buffer_chain_.Closed() == true
-    void WaitForMore() {
-        while (!HasNext() && !buffer_chain_.IsClosed())
-            buffer_chain_.Wait();
-    }
-
-    //! Waits until all elements are available at the iterator and the BufferChain
-    //! is closed
-    void WaitForAll() {
-        buffer_chain_.WaitUntilClosed();
+        return reader_.HasNext();
     }
 
     //! Indicates whether elements can be appended (not closed) or not (closed).
@@ -108,38 +73,11 @@ public:
     //! the according BufferChain
     //! Blocks that are finished once cannot be opened again
     inline bool IsFinished() {
-        return !HasNext()
-               && (buffer_chain_.size() == 0 || current_ == buffer_chain_.End())
-               && buffer_chain_.IsClosed();
+        return reader_.closed();
     }
 
 private:
-    struct BufferChain& buffer_chain_;
-    BufferChainIterator current_;
-    BinaryBufferReader current_reader_;
-
-    void MoveToNextBuffer() {
-        assert(current_ != buffer_chain_.End());
-
-        //reader is initialized with size 0 if BufferChain was empty on creation
-        //do not traverse, but instead re-load current buffer into reader.
-
-        if (!current_reader_.IsNull())
-            current_++;
-
-        if (current_ == buffer_chain_.End())
-            current_reader_ = BinaryBufferReader(nullptr, 0);
-        else
-            current_reader_ = BinaryBufferReader(current_->buffer);
-    }
-
-    //! Edge case: iterator has read until end of buffer,
-    //! Follow-up buffer exists --> HasNext has to see if that follow-up buffer
-    //! is not empty. We do this here.
-    bool LookAhead() {
-        MoveToNextBuffer();
-        return !current_reader_.empty();
-    }
+    BlockReader<BlockSource> reader_;
 };
 
 } // namespace data
