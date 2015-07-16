@@ -283,9 +283,8 @@ TEST(Operations, SortTest) {
 
             std::sort(out_vec.begin(), out_vec.end());
 
-
             for (size_t i = 0; i < out_vec.size() - 1; i++) {
-		ASSERT_FALSE(out_vec[i+1] < out_vec[i]);
+                ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
             }
 
             ASSERT_EQ(16u, out_vec.size());
@@ -293,7 +292,6 @@ TEST(Operations, SortTest) {
 
     api::ExecuteLocalTests(start_func);
 }
-
 
 TEST(Operations, DIARefCasting) {
 

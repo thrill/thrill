@@ -12,7 +12,7 @@
 #ifndef C7A_API_SORT_HEADER
 #define C7A_API_SORT_HEADER
 
-#define ROUND_DOWN(x, s) ((x) & ~((s)-1))
+#define ROUND_DOWN(x, s) ((x) & ~((s) - 1))
 
 #include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
@@ -57,7 +57,7 @@ public:
                          template GetNetworkEmitters<ValueType>(channel_id_data_))
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [ = ](const ValueType& input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -81,7 +81,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](ValueType t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -119,15 +119,15 @@ private:
     }
 
     void FindAndSendSplitters(std::vector<ValueType>& splitters) {
-        //Get samples from other workers        
+        //Get samples from other workers
         size_t num_workers = context_.number_worker();
         size_t samplesize = std::ceil(log2((double)data_.size()) *
                                       (1 / (desired_imbalance * desired_imbalance)));
-        
+
         std::vector<ValueType> samples;
         samples.reserve(samplesize * num_workers);
         auto it = context_.data_manager().
-            template GetIterator<ValueType>(channel_id_samples_);
+                  template GetIterator<ValueType>(channel_id_samples_);
         do {
             it.WaitForMore();
             while (it.HasNext()) {
@@ -147,7 +147,7 @@ private:
                 emitters_samples_[j](samples[i * splitting_size]);
             }
         }
-            
+
         for (size_t j = 1; j < num_workers; j++) {
             emitters_samples_[j].Close();
         }
@@ -171,11 +171,10 @@ private:
 
         //Get the ceiling of log(num_workers), as SSSS needs 2^n buckets.
         double log_workers = std::log2(num_workers);
-        const bool powof2 = (std::ceil(log_workers) - log_workers) < 0.0000001;        
+        const bool powof2 = (std::ceil(log_workers) - log_workers) < 0.0000001;
         size_t ceil_log = std::ceil(log_workers);
         size_t workers_algo = 1 << ceil_log;
         size_t splitter_count_algo = workers_algo - 1;
-
 
         std::vector<ValueType> splitters;
         splitters.reserve(workers_algo);
@@ -199,30 +198,30 @@ private:
         }
 
         //code from SS2NPartition, slightly altered
-        
+
         ValueType* splitter_tree = new ValueType[workers_algo];
 
-        if(!powof2) {
+        if (!powof2) {
             for (size_t i = num_workers; i < workers_algo; i++) {
                 splitters.push_back(splitters.back());
             }
         }
 
         sort::TreeBuilder<ValueType>(splitter_tree,
-                               splitters.data(),
-                               splitter_count_algo);
-      
-        //end of SS2n
+                                     splitters.data(),
+                                     splitter_count_algo);
 
         sort::BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
             data_.data(),
             data_.size(),
             splitter_tree, // Tree. sizeof |splitter|
-            workers_algo, // Number of buckets
+            workers_algo,  // Number of buckets
             ceil_log,
             emitters_data_,
             num_workers,
-            compare_function_);    
+            compare_function_);
+
+        //end of SS2N
 
         for (size_t i = 0; i < emitters_data_.size(); i++) {
             emitters_data_[i].Close();
@@ -251,8 +250,7 @@ private:
     }
 
     void PostOp() { }
-
-  };
+};
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
@@ -293,9 +291,10 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     return DIARef<ValueType, decltype(sort_stack)>(
         std::move(shared_node), sort_stack);
 }
+
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_SORT_NODE_HEADER
+#endif // !C7A_API_SORT_HEADER
 
 /******************************************************************************/
