@@ -30,7 +30,7 @@ class Emitter
 {
 public:
     Emitter(std::shared_ptr<EmitterTarget> target)
-        : builder_(BinaryBuffer::DEFAULT_SIZE),
+        : builder_(1024),
           target_(target) { }
 
     Emitter(const Emitter&) = delete;
@@ -60,7 +60,7 @@ public:
     void Flush() {
         if (builder_.size() > 0) {
             target_->Append(builder_);
-            builder_ = BinaryBufferBuilder(BinaryBuffer::DEFAULT_SIZE);
+            builder_ = BinaryBufferBuilder(1024);
         }
     }
 

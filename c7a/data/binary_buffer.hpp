@@ -38,8 +38,6 @@ protected:
     size_t size_;
 
 public:
-    static const size_t DEFAULT_SIZE = 4 * 1024;
-
     //! Constructor, assign memory area from BinaryBufferBuilder.
     explicit BinaryBuffer(const BinaryBufferBuilder& bb)
         : data_(bb.data()), size_(bb.size())

@@ -18,6 +18,7 @@
 #define C7A_DATA_BINARY_BUFFER_BUILDER_HEADER
 
 #include <c7a/net/buffer.hpp>
+#include <c7a/common/item_serializer_tools.hpp>
 
 #include <cassert>
 #include <cstdlib>
@@ -29,11 +30,12 @@ namespace c7a {
 namespace data {
 
 /*!
- * BinaryBufferBuilder represents a dynamically growable area of memory, which can be
- * modified by appending integral data types via Put() and other basic
+ * BinaryBufferBuilder represents a dynamically growable area of memory, which
+ * can be modified by appending integral data types via Put() and other basic
  * operations.
  */
 class BinaryBufferBuilder
+    : public common::ItemWriterToolsBase<BinaryBufferBuilder>
 {
 protected:
     //! type used to store the bytes
@@ -307,138 +309,9 @@ public:
         return *this;
     }
 
-    //! Append a varint to the buffer.
-    BinaryBufferBuilder & PutVarint(uint32_t v) {
-        if (v < 128) {
-            Put<uint8_t>(uint8_t(v));
-        }
-        else if (v < 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 7) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 14) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 21) & 0x7F));
-        }
-        else {
-            Put<uint8_t>((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 28) & 0x7F));
-        }
-
-        return *this;
-    }
-
-    //! Append a varint to the buffer.
-    BinaryBufferBuilder & PutVarint(int v) {
-        return PutVarint((uint32_t)v);
-    }
-
-    //! Append a varint to the buffer.
-    BinaryBufferBuilder & PutVarint(uint64_t v) {
-        if (v < 128) {
-            Put<uint8_t>(uint8_t(v));
-        }
-        else if (v < 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 07) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 14) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 21) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 28) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 35) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 42) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128
-                 * 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 49) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128
-                 * 128 * 128 * 128 * 128 * 128) {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 49) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 56) & 0x7F));
-        }
-        else {
-            Put<uint8_t>((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 49) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)(((v >> 56) & 0x7F) | 0x80));
-            Put<uint8_t>((uint8_t)((v >> 63) & 0x7F));
-        }
-
-        return *this;
-    }
-
-    //! Put a string by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const char* data, size_t len) {
-        return PutVarint((uint32_t)len).Append(data, len);
-    }
-
-    //! Put a string by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const Byte* data, size_t len) {
-        return PutVarint((uint32_t)len).Append(data, len);
-    }
-
-    //! Put a string by saving it's length followed by the data itself.
-    BinaryBufferBuilder & PutString(const std::string& str) {
-        return PutString(str.data(), str.size());
+    //! Put a single byte to the buffer (used via CRTP from ItemWriterToolsBase)
+    BinaryBufferBuilder & PutByte(Byte data) {
+        return Put<uint8_t>(data);
     }
 
     //! \}
