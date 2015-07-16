@@ -94,7 +94,7 @@ public:
                             reduce_function_, emitters_)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](const ReduceArg& input) {
+        auto pre_op_fn = [ = ](const ReduceArg& input) {
                              PreOp(input);
                          };
 
@@ -121,7 +121,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](const ValueType& elem, auto emit_func) {
+        auto post_op_fn = [ = ](const ValueType& elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
@@ -142,9 +142,9 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    std::shared_ptr<data::Channel> channel_;
+    std::shared_ptr<data::Channel<data::default_block_size> > channel_;
 
-    using emitter = data::DynBlockWriter<data::default_block_size>;
+    using emitter = data::BlockWriter<data::default_block_size>;
     std::vector<emitter> emitters_;
 
     core::ReducePreTable<KeyExtractor, ReduceFunction, emitter>
@@ -176,7 +176,7 @@ private:
         auto reader = channel_->ReadCompleteChannel().GetReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
         while (!reader.AtEnd()) {
-            table.Insert(reader.template Next<ValueType>());
+            table.Insert(reader.template Next<KeyValuePair>());
         }
 
         table.Flush();
@@ -241,7 +241,6 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
-
 } // namespace api
 } // namespace c7a
 

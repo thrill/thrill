@@ -16,7 +16,7 @@
 using namespace c7a;
 
 using namespace std::literals;
-using ChannelId = data::Channel::ChannelId;
+using ChannelId = data::ChannelId;
 
 TEST(ChannelMultiplexerTest, Test) {
 
@@ -24,14 +24,14 @@ TEST(ChannelMultiplexerTest, Test) {
         2, [](net::Group* net) {
             net::DispatcherThread dispatcher("cmp" + std::to_string(net->MyRank()));
 
-            data::ChannelMultiplexer cmp(dispatcher);
+            data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
             cmp.Connect(net);
 
             ChannelId id = cmp.AllocateNext();
 
             // open Writers and send a message to all workers
 
-            auto writer = cmp.OpenWriters(id);
+            auto writer = cmp.GetOrCreateChannel(id)->OpenWriters();
 
             for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
                 writer[tgt]("hello I am " + std::to_string(net->MyRank())
@@ -42,7 +42,7 @@ TEST(ChannelMultiplexerTest, Test) {
 
             // open Readers and receive message from all workers
 
-            auto reader = cmp.OpenReaders(id);
+            auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
 
             for (size_t src = 0; src != net->Size(); ++src) {
                 std::string msg = reader[src].Next<std::string>();

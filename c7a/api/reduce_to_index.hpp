@@ -70,7 +70,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super::data_id_;
 
 public:
-    using Emitter = data::DynBlockWriter<data::default_block_size>;
+    using Emitter = data::BlockWriter<data::default_block_size>;
     using PreHashTable = typename c7a::core::ReducePreTable<
               KeyExtractor, ReduceFunction, Emitter>;
 
@@ -106,7 +106,7 @@ public:
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
-                            [=](size_t key, PreHashTable* ht) {
+                            [ = ](size_t key, PreHashTable* ht) {
                                 size_t global_index = key * ht->NumBuckets() /
                                                       (max_index + 1);
                                 size_t partition_id = key *
@@ -123,7 +123,7 @@ public:
 
     {
         // Hook PreOp
-        auto pre_op_fn = [=](Value input) {
+        auto pre_op_fn = [ = ](Value input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -149,7 +149,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
+        auto post_op_fn = [ = ](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
@@ -170,7 +170,7 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    std::shared_ptr<data::Channel> channel_;
+    std::shared_ptr<data::Channel<data::default_block_size> > channel_;
 
     std::vector<Emitter> emitters_;
 
@@ -218,7 +218,7 @@ private:
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks(),
-                          [=](Key key, ReduceTable* ht) {
+                          [ = ](Key key, ReduceTable* ht) {
                               return (key - min_local_index) *
                               (ht->NumBuckets() - 1) /
                               (max_local_index - min_local_index + 1);
@@ -226,7 +226,6 @@ private:
                           min_local_index,
                           max_local_index,
                           neutral_element_);
-
 
         //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
         auto file = channel_->ReadCompleteChannel().GetReader();
@@ -308,7 +307,6 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
-
 } // namespace api
 } // namespace c7a
 
