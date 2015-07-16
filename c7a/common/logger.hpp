@@ -32,13 +32,7 @@ public:
     //! previously
     void NameThisThread(const std::string& name) {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!HasNameForThisThread())
-            thread_names_[std::this_thread::get_id()] = name;
-    }
-
-    //! True if name was defined for the current thread
-    bool HasNameForThisThread() {
-        return thread_names_.find(std::this_thread::get_id()) != thread_names_.end();
+        thread_names_[std::this_thread::get_id()] = name;
     }
 
     //! Returns the name of the current thread or 'unknown [id]'
