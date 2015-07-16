@@ -100,8 +100,7 @@ protected:
         header.expected_bytes = num_bytes;
         header.expected_elements = elements;
         header.sender_rank = own_rank_;
-        net::Buffer header_buffer(&header, sizeof(header));
-        dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
+        dispatcher_->AsyncWrite(*connection_, header.Serialize());
     }
 };
 
