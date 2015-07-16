@@ -27,7 +27,7 @@
 #include <algorithm>
 
 namespace c7a {
-namespace data {
+namespace net {
 
 /*!
  * BinaryBufferBuilder represents a dynamically growable area of memory, which
@@ -317,7 +317,7 @@ public:
     //! \}
 };
 
-} // namespace data
+} // namespace net
 } // namespace c7a
 
 #endif // !C7A_DATA_BINARY_BUFFER_BUILDER_HEADER

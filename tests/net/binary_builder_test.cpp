@@ -8,14 +8,14 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/binary_buffer_builder.hpp>
-#include <c7a/data/binary_buffer.hpp>
-#include <c7a/data/binary_buffer_reader.hpp>
+#include <c7a/net/binary_buffer_builder.hpp>
+#include <c7a/net/binary_buffer.hpp>
+#include <c7a/net/binary_buffer_reader.hpp>
 #include <gtest/gtest.h>
 
-using c7a::data::BinaryBufferBuilder;
-using c7a::data::BinaryBuffer;
-using c7a::data::BinaryBufferReader;
+using c7a::net::BinaryBufferBuilder;
+using c7a::net::BinaryBuffer;
+using c7a::net::BinaryBufferReader;
 using c7a::net::Buffer;
 
 TEST(BinaryBufferBuilder, Test1) {
