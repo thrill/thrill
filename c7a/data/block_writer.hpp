@@ -14,12 +14,13 @@
 
 #include <c7a/data/block.hpp>
 #include <c7a/data/serializer.hpp>
+#include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
 namespace data {
 
 template <typename BlockSink>
-class BlockWriter
+class BlockWriter : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >
 {
 public:
     using Byte = unsigned char;
@@ -120,7 +121,7 @@ public:
     }
 
     //! Append a single byte to the block
-    BlockWriter & AppendByte(Byte data) {
+    BlockWriter & PutByte(Byte data) {
         if (current_ < end_) {
             *current_++ = data;
         }
@@ -146,140 +147,6 @@ public:
                       "You only want to Put() POD types as raw values.");
 
         return Append(&item, sizeof(item));
-    }
-
-    //! Append a varint to the buffer.
-    BlockWriter & PutVarint(uint32_t v) {
-        if (v < 128) {
-            AppendByte(uint8_t(v));
-        }
-        else if (v < 128 * 128) {
-            AppendByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 7) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 14) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 21) & 0x7F));
-        }
-        else {
-            AppendByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 28) & 0x7F));
-        }
-
-        return *this;
-    }
-
-    //! Append a varint to the buffer.
-    BlockWriter & PutVarint(int v) {
-        return PutVarint((uint32_t)v);
-    }
-
-    //! Append a varint to the buffer.
-    BlockWriter & PutVarint(uint64_t v) {
-        if (v < 128) {
-            AppendByte(uint8_t(v));
-        }
-        else if (v < 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 07) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 14) & 0x7F));
-        }
-        else if (v < 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 21) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 28) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 35) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 42) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128
-                 * 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 49) & 0x7F));
-        }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128
-                 * 128 * 128 * 128 * 128 * 128) {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 49) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 56) & 0x7F));
-        }
-        else {
-            AppendByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 49) & 0x7F) | 0x80));
-            AppendByte((uint8_t)(((v >> 56) & 0x7F) | 0x80));
-            AppendByte((uint8_t)((v >> 63) & 0x7F));
-        }
-
-        return *this;
-    }
-
-    //! Put a string by saving its length followed by the data itself.
-    BlockWriter & PutString(const char* data, size_t len) {
-        return PutVarint((uint32_t)len).Append(data, len);
-    }
-
-    //! Put a string by saving its length followed by the data itself.
-    BlockWriter & PutString(const Byte* data, size_t len) {
-        return PutVarint((uint32_t)len).Append(data, len);
-    }
-
-    //! Put a string by saving its length followed by the data itself.
-    BlockWriter & PutString(const std::string& str) {
-        return PutString(str.data(), str.size());
     }
 
     //! \}
