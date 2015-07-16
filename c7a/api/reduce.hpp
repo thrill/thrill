@@ -94,7 +94,7 @@ public:
                             reduce_function_, emitters_)
     {
         // Hook PreOp
-        auto pre_op_fn = [ = ](const ReduceArg& input) {
+        auto pre_op_fn = [=](const ReduceArg& input) {
                              PreOp(input);
                          };
 
@@ -121,7 +121,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [ = ](const ValueType& elem, auto emit_func) {
+        auto post_op_fn = [=](const ValueType& elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
@@ -241,6 +241,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
+
 } // namespace api
 } // namespace c7a
 
