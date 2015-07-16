@@ -19,6 +19,7 @@
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/block_sink.hpp>
 #include <c7a/data/serializer.hpp>
 
 namespace c7a {
@@ -31,28 +32,26 @@ template <size_t BlockSize>
 class DynBlockSink;
 
 template <size_t BlockSize>
-class FileBase
+class FileBase : public BlockSink<BlockSize>
 {
 public:
     enum { block_size = BlockSize };
 
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Writer = BlockWriter<FileBase&>;
+    using Writer = BlockWriter<BlockSize>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
-
-    using DynWriter = BlockWriter<DynBlockSink<BlockSize> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void Append(const BlockCPtr& block, size_t block_used,
-                size_t nitems, size_t first) {
+    void Append(VirtualBlock&& vb) {
         assert(!closed_);
-        blocks_.push_back(block);
-        nitems_sum_.push_back(NumItems() + nitems);
-        used_.push_back(block_used);
-        offset_of_first_.push_back(first);
+        blocks_.push_back(vb.block);
+        nitems_sum_.push_back(NumItems() + vb.nitems);
+        used_.push_back(vb.bytes_used);
+        offset_of_first_.push_back(vb.first);
     }
 
     void Close() {
@@ -111,16 +110,11 @@ public:
 
     //! Get BlockWriter.
     Writer GetWriter() {
-        return Writer(*this);
+        return Writer(this);
     }
 
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
-
-    //! Get polymorphic BlockWriter for beginning of File
-    DynWriter GetDynWriter() {
-        return DynWriter(DynBlockSink<BlockSize>(this));
-    }
 
 protected:
     //! the container holding shared pointers to all blocks.

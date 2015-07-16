@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include <c7a/data/file.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
 #include <c7a/common/string.hpp>
 #include <gtest/gtest.h>
 
@@ -22,7 +21,7 @@ TEST(File, PutSomeItemsGetItems) {
     File file;
 
     {
-        File::Writer fw(file);
+        File::Writer fw = file.GetWriter();
         fw.MarkItem();
         fw.Append("testtest");
         fw.MarkItem();
@@ -142,47 +141,14 @@ TEST(File, SerializeSomeItems) {
     }
 }
 
-TEST(File, SerializeSomeItemsDynamicReaderWriter) {
-
-    // construct File with very small blocks for testing
-    using File = data::FileBase<1024>;
-    File file;
-
-    using MyPair = std::pair<int, std::string>;
-
-    // put into File some items (all of different serialization bytes)
-    {
-        File::DynWriter fw = file.GetDynWriter();
-        fw(unsigned(5));
-        fw(MyPair(5, "10abc"));
-        fw(double(42.0));
-        fw(std::string("test"));
-    }
-
-    //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
-
-    // get items back from file.
-    {
-        File::Reader fr = file.GetReader();
-        unsigned i1 = fr.Next<unsigned>();
-        ASSERT_EQ(i1, 5u);
-        MyPair i2 = fr.Next<MyPair>();
-        ASSERT_EQ(i2, MyPair(5, "10abc"));
-        double i3 = fr.Next<double>();
-        ASSERT_DOUBLE_EQ(i3, 42.0);
-        std::string i4 = fr.Next<std::string>();
-        ASSERT_EQ(i4, "test");
-    }
-}
-
 // forced instantiation
 using MyBlock = data::Block<16>;
 template class data::FileBase<16>;
-template class data::BlockWriter<data::FileBase<16> >;
+template class data::BlockWriter<16>;
 template class data::BlockReader<data::FileBlockSource<16> >;
 
 // fixed size serialization test
-using MyWriter = data::BlockWriter<data::FileBase<16> >;
+using MyWriter = data::BlockWriter<16>;
 using MyReader = data::BlockReader<data::FileBlockSource<16> >;
 static_assert(data::Serializer<MyWriter, int>
               ::fixed_size == true, "");

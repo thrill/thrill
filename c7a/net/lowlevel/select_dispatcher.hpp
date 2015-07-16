@@ -32,44 +32,40 @@ namespace lowlevel {
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
  */
-template <typename _Cookie>
 class SelectDispatcher : protected Select
 {
     static const bool debug = false;
 
 public:
-    //! cookie data structure for callback
-    typedef _Cookie Cookie;
-
-    //! cookie type for file descriptor readiness callbacks
-    typedef std::function<bool (Cookie&)> Callback;
+    //! type for file descriptor readiness callbacks
+    typedef std::function<bool ()> Callback;
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(int fd, const Cookie& c,
+    void AddRead(int fd,
                  const Callback& read_cb,
                  const Callback& except_cb = DefaultExceptionCallback) {
         Select::SetRead(fd);
         Select::SetException(fd);
-        watch_.emplace_back(fd, c, read_cb, nullptr, except_cb);
+        watch_.emplace_back(fd, read_cb, nullptr, except_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(int fd, const Cookie& c,
+    void AddWrite(int fd,
                   const Callback& write_cb,
                   const Callback& except_cb = DefaultExceptionCallback) {
         Select::SetWrite(fd);
         Select::SetException(fd);
-        watch_.emplace_back(fd, c, nullptr, write_cb, except_cb);
+        watch_.emplace_back(fd, nullptr, write_cb, except_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(int fd, const Cookie& c,
+    void AddReadWrite(int fd,
                       const Callback& read_cb, const Callback& write_cb,
                       const Callback& except_cb = DefaultExceptionCallback) {
         Select::SetRead(fd);
         Select::SetWrite(fd);
         Select::SetException(fd);
-        watch_.emplace_back(fd, c, read_cb, write_cb, except_cb);
+        watch_.emplace_back(fd, read_cb, write_cb, except_cb);
     }
 
     void Dispatch(const std::chrono::milliseconds& timeout) {
@@ -125,7 +121,7 @@ public:
                     Select::ClearRead(w.fd);
                     Select::ClearException(w.fd);
 
-                    if (!w.read_cb(w.cookie)) {
+                    if (!w.read_cb()) {
                         // callback returned false: remove fd from set
                         w.fd = -1;
                     }
@@ -152,7 +148,7 @@ public:
                     Select::ClearWrite(w.fd);
                     Select::ClearException(w.fd);
 
-                    if (!w.write_cb(w.cookie)) {
+                    if (!w.write_cb()) {
                         // callback returned false: remove fd from set
                         w.fd = -1;
                     }
@@ -176,7 +172,7 @@ public:
                 if (w.except_cb) {
                     Select::ClearException(w.fd);
 
-                    if (!w.except_cb(w.cookie)) {
+                    if (!w.except_cb()) {
                         // callback returned false: remove fd from set
                         w.fd = -1;
                     }
@@ -203,14 +199,13 @@ private:
     struct Watch
     {
         int      fd;
-        Cookie&  cookie;
         Callback read_cb, write_cb, except_cb;
 
-        Watch(int _fd, const Cookie& _cookie,
+        Watch(int _fd,
               const Callback& _read_cb, const Callback& _write_cb,
               const Callback& _except_cb)
             : fd(_fd),
-              cookie(_cookie),
+
               read_cb(_read_cb),
               write_cb(_write_cb),
               except_cb(_except_cb)
@@ -222,7 +217,7 @@ private:
     std::deque<Watch> watch_;
 
     //! Default exception handler
-    static bool DefaultExceptionCallback(const Cookie& /* c */) {
+    static bool DefaultExceptionCallback() {
         // exception on listen socket ?
         throw Exception("SelectDispatcher() exception on socket!",
                         errno);
