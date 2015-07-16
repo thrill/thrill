@@ -70,21 +70,6 @@ public:
         return channels_.find(id) != channels_.end();
     }
 
-    //! Reads add data from a Channel (blocking)
-    //! The resulting blocks in the file will be ordered by their sender ascending.
-    //! Blocks from the same sender are ordered the way they were received/sent
-    FileBase<block_size> ReadCompleteChannel(const ChannelId& id) {
-        auto channel = GetOrCreateChannel(id);
-        FileBase<block_size> result;
-        for (auto& q : channel->queues_) {
-            while(!q.empty() || !q.closed()) {
-                auto vblock = q.Pop(); //this is blocking
-                result.Append(vblock.block, vblock.bytes_used, vblock.nitems, vblock.first);
-            }
-        }
-        return result;
-    }
-
 
     //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
     //TODO Method to access channel via callbacks
@@ -98,15 +83,6 @@ public:
     ChannelPtr GetOrCreateChannel(ChannelId id) {
         std::lock_guard<std::mutex> lock(mutex_);
         return _GetOrCreateChannel(id);
-    }
-
-    //! Creates BlockWriters for each worker. BlockWriter can only be opened
-    //! once, otherwise the block sequence is incorrectly interleaved!
-    template <size_t BlockSize = block_size>
-    std::vector<DynBlockWriter> OpenWriters(const ChannelId& id) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto channel = _GetOrCreateChannel(id);
-        return channel->OpenWriters<BlockSize>(channel, dispatcher_, group_);
     }
 
 #if FIXUP_LATER
