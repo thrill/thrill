@@ -11,9 +11,10 @@
 #ifndef C7A_COMMON_TIMED_COUNTER_HEADER
 #define C7A_COMMON_TIMED_COUNTER_HEADER
 
+#include <algorithm>
 #include <chrono>
+#include <memory>
 #include <vector>
-#include <algorithm> //sort
 
 namespace c7a {
 namespace common {
