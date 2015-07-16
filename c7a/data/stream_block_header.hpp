@@ -50,9 +50,8 @@ struct StreamBlockHeader {
 
     //! Serializes the whole block struct into a buffer
     std::string Serialize() {
-        size_t size = sizeof(StreamBlockHeader);
-        char* result = new char[size];
-        char* offset0 = result;
+        std::string result(sizeof(StreamBlockHeader), '0');
+        char* offset0 = (char*)result.data();
         char* offset1 = offset0 + sizeof(channel_id);
         char* offset2 = offset1 + sizeof(expected_elements);
         char* offset3 = offset2 + sizeof(expected_bytes);
@@ -61,7 +60,7 @@ struct StreamBlockHeader {
         memcpy(offset1, &expected_bytes, sizeof(expected_bytes));
         memcpy(offset2, &expected_elements, sizeof(expected_elements));
         memcpy(offset3, &sender_rank, sizeof(sender_rank));
-        return std::string(result, size);
+        return result;
     }
 
     //! resets to a End-of-Stream block header
@@ -83,7 +82,6 @@ struct StreamBlockHeader {
 };
 
 //! \}
-
 } // namespace data
 } // namespace c7a
 
