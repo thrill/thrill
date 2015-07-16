@@ -181,7 +181,7 @@ private:
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            dispatcher_.AddWrite(nc, [this, &address](Connection& nc) {
+            dispatcher_.AddWrite(nc, [this, &address, &nc]() {
                                      return OnConnected(nc, address);
                                  });
         }
@@ -511,8 +511,8 @@ public:
 
         //Add reads to the dispatcher to accept new connections.
         dispatcher_.AddRead(listener_,
-                            [=](Connection& nc) {
-                                return OnIncomingConnection(nc);
+                            [=]() {
+                                return OnIncomingConnection(listener_);
                             });
 
         //Dispatch until everything is connected.

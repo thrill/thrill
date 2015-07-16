@@ -50,7 +50,7 @@ class Dispatcher
 
 protected:
     //! switch between different low-level dispatchers
-    typedef lowlevel::SelectDispatcher<Connection&> SubDispatcher;
+    typedef lowlevel::SelectDispatcher SubDispatcher;
     //typedef lowlevel::EPollDispatcher SubDispatcher;
 
     //! import into class namespace
@@ -95,16 +95,16 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef function<bool (Connection&)> ConnectionCallback;
+    typedef function<bool ()> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        return dispatcher_.AddRead(c.GetSocket().fd(), c, read_cb);
+        return dispatcher_.AddRead(c.GetSocket().fd(), read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        return dispatcher_.AddWrite(c.GetSocket().fd(), c, write_cb);
+        return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
@@ -112,7 +112,7 @@ public:
         Connection& c,
         const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
         return dispatcher_.AddReadWrite(
-            c.GetSocket().fd(), c, read_cb, write_cb);
+            c.GetSocket().fd(), read_cb, write_cb);
     }
 
     //! \}
@@ -139,7 +139,7 @@ public:
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, [&arb](Connection& c) { return arb(c); });
+        AddRead(c, [&arb, &c]() { return arb(c); });
     }
 
     //! callback signature for async write callbacks
@@ -161,7 +161,7 @@ public:
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, [&awb](Connection& c) { return awb(c); });
+        AddWrite(c, [&awb, &c]() { return awb(c); });
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
