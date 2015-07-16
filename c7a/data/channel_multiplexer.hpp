@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Tobias Sturm  <Tobias.Sturm@student.kit.edu>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -103,33 +104,9 @@ public:
     //! once, otherwise the block sequence is incorrectly interleaved!
     template <size_t BlockSize = block_size>
     std::vector<DynBlockWriter> OpenWriters(const ChannelId& id) {
-        assert(group_ != nullptr);
-
-        std::vector<DynBlockWriter> result;
-
-        //rest of method is critical section
         std::lock_guard<std::mutex> lock(mutex_);
-
-        // received channel id
-        ChannelPtr channel = _GetOrCreateChannel(id);
-
-        for (size_t worker_id = 0; worker_id < group_->Size(); ++worker_id) {
-            if (worker_id == group_->MyRank()) {
-                result.emplace_back(
-                    DynBlockSink<block_size>(&channel->queues_[worker_id]));
-            }
-            else {
-                result.emplace_back(
-                    DynBlockSink<block_size>(
-                        ChannelSink<block_size>(&dispatcher_,
-                                                &group_->connection(worker_id),
-                                                id,
-                                                group_->MyRank())));
-            }
-        }
-
-        assert(result.size() == group_->Size());
-        return result;
+        auto channel = _GetOrCreateChannel(id);
+        return channel->OpenWriters<BlockSize>(channel, dispatcher_, group_);
     }
 
 #if FIXUP_LATER

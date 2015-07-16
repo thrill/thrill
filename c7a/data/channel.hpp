@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Tobias Sturm  <Tobias.Sturm@student.kit.edu>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -15,6 +16,8 @@
 #include <c7a/net/connection.hpp>
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/dyn_block_writer.hpp>
+#include <c7a/net/group.hpp>
 
 #include <vector>
 #include <string>
@@ -44,13 +47,14 @@ public:
 
     using ChannelId = size_t;
     //! Creates a new channel instance
-    Channel(const ChannelId& id, int expected_streams)
+    Channel(const ChannelId& id, int expected_streams, size_t own_rank)
         : id_(id),
-          queues_(expected_streams)
+          queues_(expected_streams),
+          own_rank_(own_rank)
     { }
 
     void CloseLoopback() {
-        OnCloseStream(0);
+        OnCloseStream(own_rank_);
     }
 
     //! non-copyable: delete copy-constructor
@@ -82,6 +86,9 @@ protected:
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
 
+    //! Own rank (sender id)
+    size_t own_rank_;
+
     //! for calling protected methods to deliver blocks.
     friend class ChannelMultiplexer;
 
@@ -109,6 +116,33 @@ protected:
         else {
             sLOG << "channel" << id_ << " is not closed yet (expect:" << queues_.size() << "actual:" << finished_streams_ << ")";
         }
+    }
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    template <size_t BlockSize>
+    std::vector<data::DynBlockWriter<BlockSize>> OpenWriters(std::shared_ptr<Channel> channel, net::Dispatcher& dispatcher, net::Group* group) {
+        assert(group != nullptr);
+
+        std::vector<data::DynBlockWriter<BlockSize>> result;
+
+        for (size_t worker_id = 0; worker_id < group->Size(); ++worker_id) {
+            if (worker_id == group->MyRank()) {
+                result.emplace_back(
+                    DynBlockSink<BlockSize>(&channel->queues_[worker_id]));
+            }
+            else {
+                result.emplace_back(
+                    DynBlockSink<BlockSize>(
+                        ChannelSink<BlockSize>(dispatcher,
+                                                &group->connection(worker_id),
+                                                id,
+                                                group->MyRank())));
+            }
+        }
+
+        assert(result.size() == group->Size());
+        return result;
     }
 
     // void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
