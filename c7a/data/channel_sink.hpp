@@ -35,8 +35,7 @@ public:
 
     //! invalid ChannelSink, needed for placeholders in sinks arrays where
     //! Blocks are directly sent to local workers.
-    ChannelSink()
-    { }
+    ChannelSink() : closed_(true) { }
 
     //! ChannelSink sending out to network.
     ChannelSink(net::DispatcherThread* dispatcher,
@@ -92,8 +91,17 @@ public:
         closed_ = true;
 
         sLOG << "sending 'close channel' from worker" << own_rank_ << "on" << id_;
-        SendHeader(0, 0);
+
+        StreamBlockHeader header;
+        header.channel_id = id_;
+        header.expected_bytes = 0;
+        header.expected_elements = 0;
+        header.sender_rank = own_rank_;
+        dispatcher_->AsyncWrite(*connection_, header.Serialize());
     }
+
+    //! return close flag
+    bool closed() const { return closed_; }
 
 protected:
     static const bool debug = false;
