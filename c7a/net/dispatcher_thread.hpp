@@ -64,12 +64,7 @@ public:
     }
 
     ~DispatcherThread() {
-        // set termination flag.
-        terminate_ = true;
-        // interrupt select().
-        WakeUpThread();
-        // wait for last round to finish.
-        thread_.join();
+        Terminate();
     }
 
     //! non-copyable: delete copy-constructor
@@ -80,6 +75,18 @@ public:
     //! Return internal Dispatcher object
     //Dispatcher & dispatcher() { return dispatcher_; }
 
+    //! Terminate the dispatcher thread (if now already done).
+    void Terminate() {
+        if (terminate_) return;
+
+        // set termination flag.
+        terminate_ = true;
+        // interrupt select().
+        WakeUpThread();
+        // wait for last round to finish.
+        thread_.join();
+    }
+
     //! \name Timeout Callbacks
     //! \{
 
@@ -87,6 +94,7 @@ public:
     template <class Rep, class Period>
     void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
                             const TimerCallback& cb) {
+        if (dispatcher_.terminate_) return;
         Enqueue([=]() {
                     dispatcher_.AddRelativeTimeout(timeout, cb);
                 });
@@ -100,7 +108,8 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        Enqueue([=, &c]() {
+        if (dispatcher_.terminate_) return;
+        Enqueue([ =, &c]() {
                     dispatcher_.AddRead(c, read_cb);
                 });
         WakeUpThread();
@@ -108,7 +117,8 @@ public:
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        Enqueue([=, &c]() {
+        if (dispatcher_.terminate_) return;
+        Enqueue([ =, &c]() {
                     dispatcher_.AddWrite(c, write_cb);
                 });
         WakeUpThread();
@@ -116,6 +126,8 @@ public:
 
     //! Cancel all callbacks on a given connection.
     void Cancel(Connection& c) {
+        if (dispatcher_.terminate_) return;
+
         int fd = c.GetSocket().fd();
         Enqueue([this, fd]() {
                     dispatcher_.Cancel(fd);
@@ -130,7 +142,8 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        Enqueue([=, &c]() {
+        if (dispatcher_.terminate_) return;
+        Enqueue([ =, &c]() {
                     dispatcher_.AsyncRead(c, n, done_cb);
                 });
         WakeUpThread();
@@ -140,6 +153,7 @@ public:
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer1, Buffer&& buffer2,
                     AsyncWriteCallback done_cb = nullptr) {
+        if (dispatcher_.terminate_) return;
         // the following captures the move-only buffer in a lambda.
         Enqueue([=, &c,
                   b1 = std::move(buffer1), b2 = std::move(buffer2)]() mutable {
@@ -155,6 +169,7 @@ public:
     //! order.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
+        if (dispatcher_.terminate_) return;
         // the following captures the move-only buffer in a lambda.
         Enqueue([=, &c, b = std::move(buffer)]() mutable {
                     dispatcher_.AsyncWrite(c, std::move(b), done_cb);
@@ -166,6 +181,7 @@ public:
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
                         AsyncWriteCallback done_cb = nullptr) {
+        if (dispatcher_.terminate_) return;
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
@@ -173,6 +189,7 @@ public:
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
                         AsyncWriteCallback done_cb = nullptr) {
+        if (dispatcher_.terminate_) return;
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 
