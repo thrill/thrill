@@ -91,7 +91,6 @@ build_test(net/dispatcher_thread_test)
 build_test(net/flow_control_test)
 build_test(net/group_test)
 
-build_test(data/binary_builder_test)
 build_test(data/block_queue_test)
 build_test(data/file_test)
 build_test(data/stream_block_header_test)

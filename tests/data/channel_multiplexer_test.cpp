@@ -16,6 +16,7 @@
 using namespace c7a;
 
 using namespace std::literals;
+using ChannelId = data::Channel::ChannelId;
 
 TEST(ChannelMultiplexerTest, Test) {
 
@@ -26,7 +27,7 @@ TEST(ChannelMultiplexerTest, Test) {
             data::ChannelMultiplexer cmp(dispatcher);
             cmp.Connect(net);
 
-            data::ChannelId id = cmp.AllocateNext();
+            ChannelId id = cmp.AllocateNext();
 
             auto emit = cmp.OpenWriters(id);
 
