@@ -14,12 +14,14 @@
 
 #include <c7a/data/block.hpp>
 #include <c7a/data/serializer.hpp>
+#include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
 namespace data {
 
 template <typename BlockSource>
 class BlockReader
+    : public common::ItemReaderToolsBase<BlockReader<BlockSource> >
 {
 public:
     using Byte = unsigned char;
@@ -90,7 +92,7 @@ public:
     }
 
     //! Fetch a single byte from the current block, advancing the cursor.
-    Byte ReadByte() {
+    Byte GetByte() {
         if (current_ < end_) {
             return *current_++;
         }
@@ -114,58 +116,6 @@ public:
         Type ret;
         Read(&ret, sizeof(ret));
         return ret;
-    }
-
-    //! Fetch a varint with up to 32-bit from the buffer at the cursor.
-    uint32_t GetVarint() {
-        uint32_t u, v = ReadByte();
-        if (!(v & 0x80)) return v;
-        v &= 0x7F;
-        u = ReadByte(), v |= (u & 0x7F) << 7;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 14;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 21;
-        if (!(u & 0x80)) return v;
-        u = ReadByte();
-        if (u & 0xF0)
-            throw std::overflow_error("Overflow during varint decoding.");
-        v |= (u & 0x7F) << 28;
-        return v;
-    }
-
-    //! Fetch a 64-bit varint from the buffer at the cursor.
-    uint64_t GetVarint64() {
-        uint64_t u, v = ReadByte();
-        if (!(v & 0x80)) return v;
-        v &= 0x7F;
-        u = ReadByte(), v |= (u & 0x7F) << 7;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 14;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 21;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 28;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 35;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 42;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 49;
-        if (!(u & 0x80)) return v;
-        u = ReadByte(), v |= (u & 0x7F) << 56;
-        if (!(u & 0x80)) return v;
-        u = ReadByte();
-        if (u & 0xFE)
-            throw std::overflow_error("Overflow during varint64 decoding.");
-        v |= (u & 0x7F) << 63;
-        return v;
-    }
-
-    //! Fetch a string which was Put via Put_string().
-    std::string GetString() {
-        uint32_t len = GetVarint();
-        return Read(len);
     }
 
     //! \}

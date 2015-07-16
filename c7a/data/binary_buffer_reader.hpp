@@ -15,6 +15,7 @@
 #define C7A_DATA_BINARY_BUFFER_READER_HEADER
 
 #include "binary_buffer.hpp"
+#include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
 namespace data {
@@ -23,7 +24,9 @@ namespace data {
  * BinaryBufferReader represents a BinaryBuffer with an additional cursor with
  * which the memory can be read incrementally.
  */
-class BinaryBufferReader : public BinaryBuffer
+class BinaryBufferReader
+    : public BinaryBuffer,
+      public common::ItemReaderToolsBase<BinaryBufferReader>
 {
 protected:
     //! Current read cursor
@@ -145,56 +148,9 @@ public:
         return ret;
     }
 
-    //! Fetch a varint with up to 32-bit from the buffer at the cursor.
-    uint32_t GetVarint() {
-        uint32_t u, v = Get<uint8_t>();
-        if (!(v & 0x80)) return v;
-        v &= 0x7F;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 7;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 14;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 21;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>();
-        if (u & 0xF0)
-            throw std::overflow_error("Overflow during varint decoding.");
-        v |= (u & 0x7F) << 28;
-        return v;
-    }
-
-    //! Fetch a 64-bit varint from the buffer at the cursor.
-    uint64_t GetVarint64() {
-        uint64_t u, v = Get<uint8_t>();
-        if (!(v & 0x80)) return v;
-        v &= 0x7F;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 7;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 14;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 21;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 28;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 35;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 42;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 49;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>(), v |= (u & 0x7F) << 56;
-        if (!(u & 0x80)) return v;
-        u = Get<uint8_t>();
-        if (u & 0xFE)
-            throw std::overflow_error("Overflow during varint64 decoding.");
-        v |= (u & 0x7F) << 63;
-        return v;
-    }
-
-    //! Fetch a string which was Put via Put_string().
-    std::string GetString() {
-        uint32_t len = GetVarint();
-        return Read(len);
+    //! Fetch a single byte from the buffer, advancing the cursor.
+    Byte GetByte() {
+        return Get<uint8_t>();
     }
 
     //! Fetch a BinaryBuffer to a binary string or blob which was Put via
