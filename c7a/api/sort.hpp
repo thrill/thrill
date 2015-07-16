@@ -31,6 +31,17 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
+/*!
+ * A DIANode which performs a Sort operation. Sort sorts a DIA according to a given 
+ * compare function
+ *
+ * \tparam ValueType Type of DIA elements
+ * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
+ * \tparam CompareFunction Type of the compare function
+ */
 template <typename ValueType, typename ParentStack, typename CompareFunction>
 class SortNode : public DOpNode<ValueType>
 {
@@ -43,6 +54,14 @@ class SortNode : public DOpNode<ValueType>
     using ParentInput = typename ParentStack::Input;
 
 public:
+    /*!
+     * Constructor for a sort node.
+     *
+     * \param ctx Context for this operation
+     * \param parent Previous DIANode in the computation chain
+     * \param parent_stack Stack of lambda functions between parent and this node
+     * \param compare_function Function comparing two elements.
+     */
     SortNode(Context& ctx,
              std::shared_ptr<DIANode<ParentInput> > parent,
              const ParentStack& parent_stack,
@@ -93,7 +112,7 @@ public:
      * \return "[SortNode]"
      */
     std::string ToString() override {
-        return "[PrefixSumNode] Id:" + data_id_.ToString();
+        return "[SortNode] Id:" + data_id_.ToString();
     }
 
 private:
@@ -114,7 +133,6 @@ private:
     double desired_imbalance = 0.25;
 
     void PreOp(ValueType input) {
-        //LOG << "Input: " << input;
         data_.push_back(input);
     }
 
@@ -292,6 +310,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
         std::move(shared_node), sort_stack);
 }
 
+//! \}
 } // namespace api
 } // namespace c7a
 
