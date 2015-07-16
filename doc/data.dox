@@ -31,8 +31,8 @@ Data exchanges are triggered by distributed operations.
 \todo refer to list of distributed operations.
 
 Multiple data exchanges of different distributed operations can happen concurrently.
-Therefore an address-schema is required to distinguish \ref c7a::net::Channel "data channels".
-We use the same approach as for the DIAs by using a \ref c7a::net::ChannelId "ChannelId" that is generated in a determistic fashion.
+Therefore an address-schema is required to distinguish \ref c7a::data::Channel "data channels".
+We use the same approach as for the DIAs by using a \ref c7a::data::ChannelId "ChannelId" that is generated in a determistic fashion.
 Access to these channels is provided through the \ref data::Manager.
 
 ## Buffers and BufferChains
@@ -46,7 +46,7 @@ BufferChains can append BinaryBuffers or can be closed.
 ## Address Schema
 DIAs and Channels are addressed by unique IDs, which are allocated via the data::Manager by calling \ref c7a::data::Manager::AllocateDIA() "AllocateDIA" and \ref c7a::data::Manager::AllocateNetworkChannel() "AllocateNetworkChannel".
 Each call of these methods alters the state of the \ref c7a::data::Manager, thus the order in which these calls happen matters.
-All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::net::Channel "NetworkChannels".
+All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::data::Channel "NetworkChannels".
 
 ## Iterators and Emitters
 The central interface to access data consists of the \ref Iterator and the \ref Emitter class.
