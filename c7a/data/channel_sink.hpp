@@ -54,16 +54,22 @@ public:
     void Append(VirtualBlock&& vb) override {
         if (vb.bytes_used == 0) return;
 
-        SendHeader(vb.bytes_used, vb.nitems);
+        StreamBlockHeader header;
+        header.channel_id = id_;
+        header.expected_bytes = vb.bytes_used;
+        header.expected_elements = vb.nitems;
+        header.sender_rank = own_rank_;
 
         sLOG1 << "sending block"
               << common::hexdump(vb.block->begin(), vb.bytes_used);
 
         // TODO(tb): this copies data!
         net::Buffer payload_buf(vb.block->begin(), vb.bytes_used);
-        // TODO(tb): this does not work as expected: only one AsyncWrite can be
-        // active on a fd at the same item, hence packets get lost!
-        dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
+
+        dispatcher_->AsyncWrite(
+            *connection_,
+            // send out two Buffer, guaranteed to be successive
+            header.Serialize(), std::move(payload_buf));
     }
 
     // //! Sends bare data via the socket
@@ -98,15 +104,6 @@ protected:
     size_t id_ = -1;
     size_t own_rank_ = -1;
     bool closed_ = false;
-
-    void SendHeader(size_t num_bytes, size_t elements) {
-        StreamBlockHeader header;
-        header.channel_id = id_;
-        header.expected_bytes = num_bytes;
-        header.expected_elements = elements;
-        header.sender_rank = own_rank_;
-        dispatcher_->AsyncWrite(*connection_, header.Serialize());
-    }
 };
 
 } // namespace data

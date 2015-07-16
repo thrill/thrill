@@ -107,12 +107,9 @@ public:
         return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
     }
 
-    //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(
-        Connection& c,
-        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        return dispatcher_.AddReadWrite(
-            c.GetSocket().fd(), read_cb, write_cb);
+    //! Cancel all callbacks on a given connection.
+    void Cancel(int fd) {
+        return dispatcher_.Cancel(fd);
     }
 
     //! \}
