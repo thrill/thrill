@@ -21,6 +21,7 @@
 #include <c7a/common/delegate.hpp>
 
 #include <csignal>
+#include <unistd.h>
 
 namespace c7a {
 namespace net {
@@ -34,7 +35,7 @@ namespace net {
  */
 class DispatcherThread
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     //! \name Imported Typedefs
@@ -60,11 +61,18 @@ public:
 public:
     DispatcherThread(const std::string& thread_name)
         : dispatcher_(), name_(thread_name) {
+        // allocate self-pipe
+        int r = ::pipe(self_pipe_);
+        die_unless(r == 0);
+        // start thread
         thread_ = std::thread(&DispatcherThread::Work, this);
     }
 
     ~DispatcherThread() {
         Terminate();
+
+        close(self_pipe_[0]);
+        close(self_pipe_[1]);
     }
 
     //! non-copyable: delete copy-constructor
@@ -201,33 +209,27 @@ protected:
         return jobqueue_.push(std::move(job));
     }
 
-    //! signal handler: do nothing, but receiving this interrupts the select().
-    static void SignalALRM(int) {
-        return;
-    }
-
     //! What happens in the dispatcher thread
     void Work() {
         common::GetThreadDirectory().NameThisThread(name_);
-        {
-            // Set ALRM signal handler
-            struct sigaction sa;
-            memset(&sa, 0, sizeof(sa));
-            sa.sa_handler = SignalALRM;
 
-            int r = sigaction(SIGALRM, &sa, NULL);
-            die_unless(r == 0);
-        }
-
-        running_ = true;
+        // wait interrupts via self-pipe.
+        dispatcher_.dispatcher_.AddRead(
+            self_pipe_[0], [this]() {
+                ssize_t rb;
+                while ((rb = read(self_pipe_[0], &self_pipe_buffer_, 1)) == 0) {
+                    LOG << "Work: error reading from self-pipe: " << errno;
+                }
+                die_unless(rb == 1);
+                return true;
+            });
 
         while (!terminate_) {
             // process jobs in jobqueue_
             {
                 Job job;
-                while (jobqueue_.try_pop(job)) {
+                while (jobqueue_.try_pop(job))
                     job();
-                }
             }
 
             // run one dispatch
@@ -238,14 +240,16 @@ protected:
     //! wake up select() in dispatching thread.
     void WakeUpThread() {
         // there are multiple very platform-dependent ways to do this. we'll try
-        // signals for now. The signal should interrupt the select(), and as we
-        // do no processing in the signal, do nothing else.
+        // to use the self-pipe trick for now. The select() method waits on
+        // another fd, which we write one byte to when we need to interrupt the
+        // select().
 
-        // Another way to wake up the blocking select() in the dispatcher is to
-        // create a "self-pipe", and write one byte to it.
-
-        if (running_)
-            pthread_kill(thread_.native_handle(), SIGALRM);
+        // send one byte to wake up the select() handler.
+        ssize_t wb;
+        while ((wb = write(self_pipe_[1], this, 1)) == 0) {
+            LOG << "WakeUp: error sending to self-pipe: " << errno;
+        }
+        die_unless(wb == 1);
     }
 
 private:
@@ -255,9 +259,6 @@ private:
     //! thread of dispatcher
     std::thread thread_;
 
-    //! check whether the signal handler was set before issuing signals.
-    std::atomic<bool> running_ { false };
-
     //! termination flag of dispatcher thread.
     std::atomic<bool> terminate_ { false };
 
@@ -266,6 +267,12 @@ private:
 
     //! thread name for logging
     std::string name_;
+
+    //! self-pipe to wake up thread.
+    int self_pipe_[2];
+
+    //! buffer to receive one byte from self-pipe
+    int self_pipe_buffer_;
 };
 
 //! \}
