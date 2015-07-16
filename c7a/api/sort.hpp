@@ -12,6 +12,8 @@
 #ifndef C7A_API_SORT_HEADER
 #define C7A_API_SORT_HEADER
 
+#define ROUND_DOWN(x, s) ((x) & ~((s)-1))
+
 #include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/api/context.hpp>
@@ -22,6 +24,7 @@
 #include <c7a/common/logger.hpp>
 
 #include <c7a/common/partitioning/tree_builder.hpp>
+#include <c7a/common/partitioning/trivial_target_determination.hpp>
 
 #include <cmath>
 
@@ -115,9 +118,43 @@ private:
         data_.push_back(input);
     }
 
-    void MainOp() {
-        //LOG << "MainOp processing";
+    void FindAndSendSplitters(std::vector<ValueType>& splitters) {
+        //Get samples from other workers        
+        size_t num_workers = context_.number_worker();
+        size_t samplesize = std::ceil(log2((double)data_.size()) *
+                                      (1 / (desired_imbalance * desired_imbalance)));
+        
+        std::vector<ValueType> samples;
+        samples.reserve(samplesize * num_workers);
+        auto it = context_.data_manager().
+            template GetIterator<ValueType>(channel_id_samples_);
+        do {
+            it.WaitForMore();
+            while (it.HasNext()) {
+                samples.push_back(it.Next());
+            }
+        } while (!it.IsFinished());
 
+        //Find splitters
+        std::sort(samples.begin(), samples.end(), compare_function_);
+
+        size_t splitting_size = samples.size() / num_workers;
+
+        //Send splitters to other workers
+        for (size_t i = 1; i < num_workers; i++) {
+            splitters.push_back(samples[i * splitting_size]);
+            for (size_t j = 1; j < num_workers; j++) {
+                emitters_samples_[j](samples[i * splitting_size]);
+            }
+        }
+            
+        for (size_t j = 1; j < num_workers; j++) {
+            emitters_samples_[j].Close();
+        }
+    }
+
+    void MainOp() {
+        size_t num_workers = context_.number_worker();
         size_t samplesize = std::ceil(log2((double)data_.size()) *
                                       (1 / (desired_imbalance * desired_imbalance)));
 
@@ -132,42 +169,23 @@ private:
         }
         emitters_samples_[0].Close();
 
+        //Get the ceiling of log(num_workers), as SSSS needs 2^n buckets.
+        double log_workers = std::log2(num_workers);
+        const bool powof2 = (std::ceil(log_workers) - log_workers) < 0.0000001;        
+        size_t ceil_log = std::ceil(log_workers);
+        size_t workers_algo = 1 << ceil_log;
+        size_t splitter_count_algo = workers_algo - 1;
+
+
         std::vector<ValueType> splitters;
-        splitters.reserve(context_.number_worker());
+        splitters.reserve(workers_algo);
 
         if (context_.rank() == 0) {
-            //Get samples
-            std::vector<ValueType> samples;
-            samples.reserve(samplesize * context_.number_worker());
-            auto it = context_.data_manager().
-                      template GetIterator<ValueType>(channel_id_samples_);
-            do {
-                it.WaitForMore();
-                while (it.HasNext()) {
-                    samples.push_back(it.Next());
-                }
-            } while (!it.IsFinished());
-
-            //Find splitters
-            std::sort(samples.begin(), samples.end(), compare_function_);
-
-            size_t splitting_size = samples.size() / context_.number_worker();
-
-            //Send splitters to other workers
-            for (size_t i = 1; i < context_.number_worker(); i++) {
-                splitters.push_back(samples[i * splitting_size]);
-                for (size_t j = 1; j < context_.number_worker(); j++) {
-                    emitters_samples_[j](samples[i * splitting_size]);
-                }
-            }
-            
-            for (size_t j = 1; j < context_.number_worker(); j++) {
-                emitters_samples_[j].Close();
-            }
+            FindAndSendSplitters(splitters);
         }
         else {
             //Close unused emitters
-            for (size_t j = 1; j < context_.number_worker(); j++) {
+            for (size_t j = 1; j < num_workers; j++) {
                 emitters_samples_[j].Close();
             }
             auto it = context_.data_manager().
@@ -181,17 +199,11 @@ private:
         }
 
         //code from SS2NPartition, slightly altered
-        double logkdouble = std::log2(context_.number_worker());
-        const bool powof2 = (std::ceil(logkdouble) - logkdouble) < 0.00001;
         
-        size_t logk_algo = std::ceil(logkdouble);
-        size_t k_algo = 1 << logk_algo;
-        size_t splitter_count_algo = k_algo - 1;
-
-        ValueType* splitter_tree = new ValueType[k_algo];
+        ValueType* splitter_tree = new ValueType[workers_algo];
 
         if(!powof2) {
-            for (size_t i = context_.number_worker(); i < k_algo; i++) {
+            for (size_t i = num_workers; i < workers_algo; i++) {
                 splitters.push_back(splitters.back());
             }
         }
@@ -199,21 +211,63 @@ private:
         TreeBuilder<ValueType>(splitter_tree,
                                splitters.data(),
                                splitter_count_algo);
-        
       
         //end of SS2n
 
-        for (ValueType ele : data_) {
-            bool sent = false;
-            for (size_t i = 0; i < splitters.size() && !sent; i++) {
-                if (compare_function_(ele, splitters[i])) {
-                    emitters_data_[i](ele);
-                    sent = true;
-                    break;
-                }
+        const size_t stepsize = 2;
+        size_t i = 0;
+        for(; i < ROUND_DOWN(data_.size(), stepsize); i += stepsize)
+        {
+
+            size_t j0 = 1;
+            ValueType el0 = data_[i];
+            size_t j1 = 1;
+            ValueType el1 = data_[i + 1];
+  
+            for(size_t l = 0; l < ceil_log; l++)
+            {
+
+                j0 = j0 * 2 + (!compare_function_(el0, splitter_tree[j0]));
+                j1 = j1 * 2 + (!compare_function_(el1, splitter_tree[j1]));
+
             }
-            if (!sent) {
-                emitters_data_[context_.number_worker() - 1](ele);
+
+            size_t b0 = j0 - workers_algo;
+            size_t b1 = j1 - workers_algo;
+
+            //TODO(an): Remove this ugly workaround as soon as emitters are movable.
+            //Move emitter[actual_k] to emitter[splitter_count] before calling this.
+            if (b0 >= num_workers) {
+                LOG << "SEND " << el0 << " TO WORKER " << num_workers - 1;
+                emitters_data_[num_workers - 1](el0);
+            } else {                
+                LOG << "SEND " << el0 << " TO WORKER " << b0;
+                emitters_data_[b0](el0);
+            }
+            if (b1 >= num_workers) {
+                LOG << "SEND " << el1 << " TO WORKER " << num_workers - 1;
+                emitters_data_[num_workers - 1](el1);
+            } else {
+                LOG << "SEND " << el1 << " TO WORKER " << b0;
+                emitters_data_[b1](el1);
+            }
+        }
+        for(; i < data_.size(); i++)
+        {
+
+            size_t j = 1;
+            for(size_t l = 0; l < ceil_log; l++)
+            {
+                j = j * 2 + (data_[i] >= splitter_tree[j]);
+            }
+            size_t b = j - workers_algo;
+
+            if (b >= num_workers) {
+                LOG << "SEND " << data_[i] << " TO WORKER " << num_workers - 1;
+                emitters_data_[num_workers - 1](data_[i]);
+            } else {
+                LOG << "SEND " << data_[i] << " TO WORKER " << b;
+                emitters_data_[b](data_[i]);
             }
         }
 
