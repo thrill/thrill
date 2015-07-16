@@ -50,6 +50,18 @@ public:
         return GetSystemGroup().Size();
     }
 
+    //! default constructor
+    Manager() { }
+
+    //! non-copyable: delete copy-constructor
+    Manager(const Manager&) = delete;
+    //! non-copyable: delete assignment operator
+    Manager& operator = (const Manager&) = delete;
+    //! move-constructor
+    Manager(Manager&&) = default;
+    //! move-assignment
+    Manager& operator = (Manager&&) = default;
+
 private:
     /**
      * The Groups initialized and managed
