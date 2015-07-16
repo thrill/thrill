@@ -105,7 +105,6 @@ public:
     //! Returns a number that uniquely addresses a network channel
     //! Calls to this method alter the data managers state.
     //! Calls to this method must be in deterministic order for all workers!
-    //! \param order_preserving indicates if the channel should preserve the order of the receiving packages
     ChannelId AllocateChannelId() {
         return cmp_.AllocateNext();
     }
