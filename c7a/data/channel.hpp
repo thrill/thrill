@@ -140,6 +140,13 @@ public:
         return result;
     }
 
+    void Close() {
+        for (size_t i = 0; i != sinks_.size(); ++i) {
+            if (sinks_[i].closed()) continue;
+            sinks_[i].Close();
+        }
+    }
+
 protected:
     static const bool debug = false;
 
