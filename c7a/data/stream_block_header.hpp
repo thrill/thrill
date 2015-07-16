@@ -82,6 +82,7 @@ struct StreamBlockHeader {
 };
 
 //! \}
+
 } // namespace data
 } // namespace c7a
 

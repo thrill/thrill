@@ -76,14 +76,13 @@ public:
         auto channel = GetOrCreateChannel(id);
         FileBase<block_size> result;
         for (auto& q : channel->queues_) {
-            while(!q.empty() || !q.closed()) {
+            while (!q.empty() || !q.closed()) {
                 auto vblock = q.Pop(); //this is blocking
                 result.Append(vblock.block, vblock.bytes_used, vblock.nitems, vblock.first);
             }
         }
         return result;
     }
-
 
     //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
     //TODO Method to access channel via callbacks

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/binary_buffer_reader.hpp
+ * c7a/net/buffer_reader.hpp
  *
  * Look at the Doxygen below....
  *
@@ -11,22 +11,22 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BINARY_BUFFER_READER_HEADER
-#define C7A_DATA_BINARY_BUFFER_READER_HEADER
+#ifndef C7A_NET_BUFFER_READER_HEADER
+#define C7A_NET_BUFFER_READER_HEADER
 
-#include "binary_buffer.hpp"
+#include <c7a/net/buffer_ref.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
 namespace net {
 
 /*!
- * BinaryBufferReader represents a BinaryBuffer with an additional cursor with
+ * BufferReader represents a BufferRef with an additional cursor with
  * which the memory can be read incrementally.
  */
-class BinaryBufferReader
-    : public BinaryBuffer,
-      public common::ItemReaderToolsBase<BinaryBufferReader>
+class BufferReader
+    : public BufferRef,
+      public common::ItemReaderToolsBase<BufferReader>
 {
 protected:
     //! Current read cursor
@@ -37,18 +37,18 @@ public:
     //! \{
 
     //! Constructor, assign memory area from BinaryBuilder.
-    BinaryBufferReader(const BinaryBuffer& br) // NOLINT
-        : BinaryBuffer(br)
+    BufferReader(const BufferRef& br) // NOLINT
+        : BufferRef(br)
     { }
 
     //! Constructor, assign memory area from pointer and length.
-    BinaryBufferReader(const void* data, size_t n)
-        : BinaryBuffer(data, n)
+    BufferReader(const void* data, size_t n)
+        : BufferRef(data, n)
     { }
 
     //! Constructor, assign memory area from string, does NOT copy.
-    explicit BinaryBufferReader(const std::string& str)
-        : BinaryBuffer(str)
+    explicit BufferReader(const std::string& str)
+        : BufferRef(str)
     { }
 
     //! \}
@@ -86,7 +86,7 @@ public:
     //! \{
 
     //! Reset the read cursor.
-    BinaryBufferReader & Rewind() {
+    BufferReader & Rewind() {
         cursor_ = 0;
         return *this;
     }
@@ -95,11 +95,11 @@ public:
     //! cursor.
     void CheckAvailable(size_t n) const {
         if (!available(n))
-            throw std::underflow_error("BinaryBufferReader underrun");
+            throw std::underflow_error("BufferReader underrun");
     }
 
     //! Advance the cursor given number of bytes without reading them.
-    BinaryBufferReader & Skip(size_t n) {
+    BufferReader & Skip(size_t n) {
         CheckAvailable(n);
         cursor_ += n;
 
@@ -113,7 +113,7 @@ public:
 
     //! Fetch a number of unstructured bytes from the buffer, advancing the
     //! cursor.
-    BinaryBufferReader & Read(void* outdata, size_t datalen) {
+    BufferReader & Read(void* outdata, size_t datalen) {
         CheckAvailable(datalen);
 
         Byte* coutdata = reinterpret_cast<Byte*>(outdata);
@@ -153,12 +153,12 @@ public:
         return Get<uint8_t>();
     }
 
-    //! Fetch a BinaryBuffer to a binary string or blob which was Put via
+    //! Fetch a BufferRef to a binary string or blob which was Put via
     //! Put_string(). Does NOT copy the data.
-    BinaryBuffer GetBinaryBuffer() {
+    BufferRef GetBufferRef() {
         uint32_t len = GetVarint();
         // save object
-        BinaryBuffer br(data_ + cursor_, len);
+        BufferRef br(data_ + cursor_, len);
         // skip over sub block data
         Skip(len);
         return br;
@@ -170,6 +170,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_DATA_BINARY_BUFFER_READER_HEADER
+#endif // !C7A_NET_BUFFER_READER_HEADER
 
 /******************************************************************************/
