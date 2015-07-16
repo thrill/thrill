@@ -15,7 +15,6 @@
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 #include <c7a/data/channel.hpp>
-#include <c7a/data/emitter.hpp>
 #include <c7a/data/channel_sink.hpp>
 #include <c7a/data/dyn_block_writer.hpp>
 #include <c7a/data/repository.hpp>
