@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/binary_builder_test.cpp
+ * tests/net/binary_builder_test.cpp
  *
  * Part of Project c7a.
  *
@@ -8,19 +8,18 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/binary_buffer_builder.hpp>
-#include <c7a/net/binary_buffer.hpp>
-#include <c7a/net/binary_buffer_reader.hpp>
+#include <c7a/net/buffer_builder.hpp>
+#include <c7a/net/buffer_reader.hpp>
 #include <gtest/gtest.h>
 
-using c7a::net::BinaryBufferBuilder;
-using c7a::net::BinaryBuffer;
-using c7a::net::BinaryBufferReader;
+using c7a::net::BufferBuilder;
+using c7a::net::BufferRef;
+using c7a::net::BufferReader;
 using c7a::net::Buffer;
 
-TEST(BinaryBufferBuilder, Test1) {
+TEST(BufferBuilder, Test1) {
     // construct a binary blob
-    BinaryBufferBuilder bb;
+    BufferBuilder bb;
     {
         bb.Put<unsigned int>(1);
         bb.PutString("test");
@@ -31,7 +30,7 @@ TEST(BinaryBufferBuilder, Test1) {
 
     // read binary block and verify content
 
-    BinaryBuffer bbr = BinaryBuffer(bb);
+    BufferRef bbr = BufferRef(bb);
 
     const unsigned char bb_data[] = {
         // bb.Put<unsigned int>(1)
@@ -44,7 +43,7 @@ TEST(BinaryBufferBuilder, Test1) {
         0xce, 0xc2, 0xf1, 0x05,
     };
 
-    BinaryBuffer bb_verify(bb_data, sizeof(bb_data));
+    BufferRef bb_verify(bb_data, sizeof(bb_data));
 
     if (bbr != bb_verify)
         std::cout << bbr.ToString();
@@ -53,7 +52,7 @@ TEST(BinaryBufferBuilder, Test1) {
 
     // read binary block using binary_reader
 
-    BinaryBufferReader br = BinaryBuffer(bb);
+    BufferReader br = BufferRef(bb);
 
     ASSERT_EQ(br.Get<unsigned int>(), 1u);
     ASSERT_EQ(br.GetString(), "test");
