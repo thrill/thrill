@@ -83,6 +83,26 @@ public:
         watch_[fd].except_cb = except_cb;
     }
 
+    //! Cancel all callbacks on a given fd.
+    void Cancel(int fd) {
+        CheckSize(fd);
+
+        if (watch_[fd].read_cb.size() == 0 &&
+            watch_[fd].write_cb.size() == 0)
+            LOG << "SelectDispatcher::Cancel() fd=" << fd
+                << " called with no callbacks registered.";
+
+        Select::ClearRead(fd);
+        Select::ClearWrite(fd);
+        Select::ClearException(fd);
+
+        Watch& w = watch_[fd];
+        w.read_cb.clear();
+        w.write_cb.clear();
+        w.except_cb = nullptr;
+        w.active = false;
+    }
+
     void Dispatch(const std::chrono::milliseconds& timeout) {
 
         // copy select fdset
@@ -121,7 +141,7 @@ public:
                 return;
             }
 
-            throw Exception("OpenConnections() select() failed!", errno);
+            throw Exception("Dispatch::Select() failed!", errno);
         }
         if (r == 0) return;
 
