@@ -52,6 +52,8 @@ public:
     static const size_t block_size = default_block_size;
     using DynBlockWriter = data::DynBlockWriter<block_size>;
 
+    using BlockQueueReader = BlockReader<BlockQueueSource<block_size> >;
+
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), next_id_(0) { }
 
@@ -100,7 +102,6 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    template <size_t BlockSize = block_size>
     std::vector<DynBlockWriter> OpenWriters(const ChannelId& id) {
         assert(group_ != nullptr);
 
@@ -125,6 +126,28 @@ public:
                                                 id,
                                                 group_->MyRank())));
             }
+        }
+
+        assert(result.size() == group_->Size());
+        return result;
+    }
+
+    //! Creates a BlockReader for each worker. The BlockReaders are attached to
+    //! the BlockQueues in the Channel and wait for further Blocks to arrive or
+    //! the Channel's remote close.
+    std::vector<BlockQueueReader> OpenReaders(const ChannelId& id) {
+        std::vector<BlockQueueReader> result;
+
+        // rest of method is critical section
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        // received channel id
+        ChannelPtr channel = _GetOrCreateChannel(id);
+
+        for (size_t worker_id = 0; worker_id < group_->Size(); ++worker_id) {
+
+            result.emplace_back(BlockQueueSource<block_size>(
+                                    channel->queues_[worker_id]));
         }
 
         assert(result.size() == group_->Size());
