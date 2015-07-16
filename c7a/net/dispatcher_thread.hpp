@@ -208,7 +208,7 @@ protected:
 
     //! What happens in the dispatcher thread
     void Work() {
-        c7a::common::ThreadDirectory.NameThisThread(name_);
+        common::GetThreadDirectory().NameThisThread(name_);
         {
             // Set ALRM signal handler
             struct sigaction sa;
