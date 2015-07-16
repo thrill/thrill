@@ -87,6 +87,9 @@ std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
 
             std::pair<Socket, Socket> sp = Socket::CreatePair();
 
+            sp.first.SetNonBlocking(true);
+            sp.second.SetNonBlocking(true);
+
             group[i].connections_[j] = std::move(Connection(sp.first));
             group[j].connections_[i] = std::move(Connection(sp.second));
         }
