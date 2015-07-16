@@ -129,6 +129,21 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
+    void AsyncWrite(Connection& c, Buffer&& buffer1, Buffer&& buffer2,
+                    AsyncWriteCallback done_cb = nullptr) {
+        // the following captures the move-only buffer in a lambda.
+        Enqueue([ =, &c,
+                  b1 = std::move(buffer1), b2 = std::move(buffer2)]() mutable {
+                    dispatcher_.AsyncWrite(c, std::move(b1));
+                    dispatcher_.AsyncWrite(c, std::move(b2), done_cb);
+                });
+        WakeUpThread();
+    }
+
+    //! asynchronously write TWO buffers and callback when delivered. The
+    //! buffer2 are MOVED into the async writer. This is most useful to write a
+    //! header and a payload Buffers that are hereby guaranteed to be written in
+    //! order.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
         // the following captures the move-only buffer in a lambda.
