@@ -40,7 +40,7 @@ class ReadNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     /*!
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
@@ -75,7 +75,7 @@ public:
     //! the DataManager after applying the read function on it.
     void Execute() override {
         static const bool debug = false;
-        LOG << "READING data with id " << data_id_;
+        LOG << "READING data " << result_file_.ToString();
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -107,7 +107,7 @@ public:
      * \return "[ReadNode]"
      */
     std::string ToString() override {
-        return "[ReadNode] Id: " + data_id_.ToString();
+        return "[ReadNode] Id: " + result_file_.ToString();
     }
 
 private:

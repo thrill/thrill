@@ -164,13 +164,14 @@ private:
 
     //! Get channel with given id, if it does not exist, create it.
     ChannelPtr _GetOrCreateChannel(ChannelId id) {
+        assert(group_ != nullptr);
         auto it = channels_.find(id);
 
         if (it != channels_.end())
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, group_->Size());
+        ChannelPtr channel = std::make_shared<Channel>(id, group_->Size(), *group_, dispatcher_);
         channels_.insert(std::make_pair(id, channel));
         return channel;
     }

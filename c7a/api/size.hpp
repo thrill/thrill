@@ -30,7 +30,8 @@ class SizeNode : public ActionNode
 
     using Super = ActionNode;
     using Super::context_;
-    using Super::data_id_;
+    using Super::parents;
+    using Super::result_file_;
     using SumArg0 = ValueType;
 
     using ParentInput = typename ParentStack::Input;
@@ -68,7 +69,7 @@ public:
      * \return "[SizeNode]"
      */
     std::string ToString() override {
-        return "[SizeNode] Id:" + data_id_.ToString();
+        return "[SizeNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -82,7 +83,7 @@ private:
     void MainOp() {
         // get the number of elements that are stored on this worker
         data::Manager& manager = context_.data_manager();
-        local_size = manager.GetNumElements(manager.AllocateDIA());
+        local_size = parents()[0].result_file().NumItems();
 
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
