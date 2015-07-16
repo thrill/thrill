@@ -12,6 +12,8 @@
 #define C7A_DATA_STREAM_BLOCK_HEADER_HEADER
 
 #include <c7a/net/connection.hpp>
+#include <c7a/net/buffer_builder.hpp>
+#include <c7a/net/buffer_reader.hpp>
 #include <c7a/common/stats_timer.hpp>
 
 #include <cstdlib>
@@ -37,30 +39,24 @@ struct StreamBlockHeader {
     size_t      sender_rank;
 
     //! Reads the channel id and the number of elements in this block
-    void        ParseHeader(const std::string& buffer) {
+    void        ParseHeader(const net::Buffer& buffer) {
         assert(buffer.size() == sizeof(StreamBlockHeader));
-        size_t offset1 = sizeof(channel_id);
-        size_t offset2 = offset1 + sizeof(expected_bytes);
-        size_t offset3 = offset2 + sizeof(expected_elements);
-        memcpy(&channel_id, buffer.c_str() + 0, sizeof(channel_id));
-        memcpy(&expected_bytes, buffer.c_str() + offset1, sizeof(expected_bytes));
-        memcpy(&expected_elements, buffer.c_str() + offset2, sizeof(expected_elements));
-        memcpy(&sender_rank, buffer.c_str() + offset3, sizeof(sender_rank));
+        net::BufferReader br(buffer);
+        channel_id = br.Get<size_t>();
+        expected_bytes = br.Get<size_t>();
+        expected_elements = br.Get<size_t>();
+        sender_rank = br.Get<size_t>();
     }
 
     //! Serializes the whole block struct into a buffer
-    std::string Serialize() {
-        std::string result(sizeof(StreamBlockHeader), '0');
-        char* offset0 = (char*)result.data();
-        char* offset1 = offset0 + sizeof(channel_id);
-        char* offset2 = offset1 + sizeof(expected_elements);
-        char* offset3 = offset2 + sizeof(expected_bytes);
-
-        memcpy(offset0, &channel_id, sizeof(channel_id));
-        memcpy(offset1, &expected_bytes, sizeof(expected_bytes));
-        memcpy(offset2, &expected_elements, sizeof(expected_elements));
-        memcpy(offset3, &sender_rank, sizeof(sender_rank));
-        return result;
+    net::Buffer Serialize() {
+        net::BufferBuilder bb;
+        bb.Reserve(4 * sizeof(size_t));
+        bb.Put<size_t>(channel_id);
+        bb.Put<size_t>(expected_bytes);
+        bb.Put<size_t>(expected_elements);
+        bb.Put<size_t>(sender_rank);
+        return bb.ToBuffer();
     }
 
     //! resets to a End-of-Stream block header
@@ -82,6 +78,7 @@ struct StreamBlockHeader {
 };
 
 //! \}
+
 } // namespace data
 } // namespace c7a
 

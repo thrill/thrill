@@ -29,15 +29,29 @@ TEST(ChannelMultiplexerTest, Test) {
 
             ChannelId id = cmp.AllocateNext();
 
-            auto emit = cmp.OpenWriters(id);
+            // open Writers and send a message to all workers
 
-            emit[0]("hello I am " + std::to_string(net->MyRank()) + " calling 0");
-            emit[1]("hello I am " + std::to_string(net->MyRank()) + " calling 1");
+            auto writer = cmp.OpenWriters(id);
 
-            emit[0].Flush();
-            emit[1].Flush();
+            for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
+                writer[tgt]("hello I am " + std::to_string(net->MyRank())
+                            + " calling " + std::to_string(tgt));
 
-            std::this_thread::sleep_for(100ms);
+                writer[tgt].Flush();
+            }
+
+            // open Readers and receive message from all workers
+
+            auto reader = cmp.OpenReaders(id);
+
+            for (size_t src = 0; src != net->Size(); ++src) {
+                std::string msg = reader[src].Next<std::string>();
+
+                ASSERT_EQ(msg, "hello I am " + std::to_string(src)
+                          + " calling " + std::to_string(net->MyRank()));
+
+                sLOG1 << net->MyRank() << "got msg from" << src;
+            }
 
             cmp.Close();
         });

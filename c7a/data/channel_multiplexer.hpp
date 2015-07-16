@@ -15,9 +15,10 @@
 
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/data/channel_sink.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
+#include <c7a/data/block_writer.hpp>
 #include <c7a/data/repository.hpp>
 
 #include <memory>
@@ -51,7 +52,9 @@ public:
     using ChannelId = Channel::ChannelId;
 
     static const size_t block_size = default_block_size;
-    using DynBlockWriter = data::DynBlockWriter<block_size>;
+
+    using BlockWriter = data::BlockWriter<block_size>;
+    using BlockQueueReader = BlockReader<BlockQueueSource<block_size> >;
 
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), next_id_(0) { }
@@ -193,7 +196,7 @@ private:
     void OnStreamBlockHeader(Connection& s, net::Buffer&& buffer) {
 
         StreamBlockHeader header;
-        header.ParseHeader(buffer.ToString());
+        header.ParseHeader(buffer);
 
         // received channel id
         auto id = header.channel_id;
