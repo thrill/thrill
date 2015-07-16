@@ -100,7 +100,7 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AddRead(c, read_cb);
                 });
         WakeUpThread();
@@ -108,18 +108,17 @@ public:
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AddWrite(c, write_cb);
                 });
         WakeUpThread();
     }
 
-    //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(
-        Connection& c,
-        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        Enqueue([ =, &c]() {
-                    dispatcher_.AddReadWrite(c, read_cb, write_cb);
+    //! Cancel all callbacks on a given connection.
+    void Cancel(Connection& c) {
+        int fd = c.GetSocket().fd();
+        Enqueue([this, fd]() {
+                    dispatcher_.Cancel(fd);
                 });
         WakeUpThread();
     }
@@ -131,7 +130,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        Enqueue([ =, &c]() {
+        Enqueue([=, &c]() {
                     dispatcher_.AsyncRead(c, n, done_cb);
                 });
         WakeUpThread();
@@ -139,10 +138,25 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
+    void AsyncWrite(Connection& c, Buffer&& buffer1, Buffer&& buffer2,
+                    AsyncWriteCallback done_cb = nullptr) {
+        // the following captures the move-only buffer in a lambda.
+        Enqueue([=, &c,
+                  b1 = std::move(buffer1), b2 = std::move(buffer2)]() mutable {
+                    dispatcher_.AsyncWrite(c, std::move(b1));
+                    dispatcher_.AsyncWrite(c, std::move(b2), done_cb);
+                });
+        WakeUpThread();
+    }
+
+    //! asynchronously write TWO buffers and callback when delivered. The
+    //! buffer2 are MOVED into the async writer. This is most useful to write a
+    //! header and a payload Buffers that are hereby guaranteed to be written in
+    //! order.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr) {
         // the following captures the move-only buffer in a lambda.
-        Enqueue([ =, &c, b = std::move(buffer)]() mutable {
+        Enqueue([=, &c, b = std::move(buffer)]() mutable {
                     dispatcher_.AsyncWrite(c, std::move(b), done_cb);
                 });
         WakeUpThread();
