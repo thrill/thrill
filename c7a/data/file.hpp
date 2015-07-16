@@ -60,6 +60,10 @@ public:
         closed_ = true;
     }
 
+    bool closed() const {
+        return closed_;
+    }
+
     //! Return the number of blocks
     size_t NumBlocks() const { return blocks_.size(); }
 
@@ -177,6 +181,10 @@ public:
         *out_end = block->begin() + file_.used_[current_block_];
 
         return true;
+    }
+
+    bool closed() const {
+        return file_.closed();
     }
 
 protected:

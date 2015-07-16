@@ -132,6 +132,10 @@ public:
         }
     }
 
+    bool closed() const {
+        return queue_.closed();
+    }
+
 protected:
     //! BlockQueue that blocks are retrieved from
     BlockQueueType& queue_;
