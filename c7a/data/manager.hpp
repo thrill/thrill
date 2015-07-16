@@ -15,7 +15,6 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/buffer_chain.hpp>
 #include <c7a/data/buffer_chain_manager.hpp>
-#include <c7a/data/emitter.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/data/output_line_emitter.hpp>
 #include <c7a/data/socket_target.hpp>
