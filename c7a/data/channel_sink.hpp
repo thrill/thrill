@@ -104,9 +104,6 @@ protected:
     size_t id_ = -1;
     size_t own_rank_ = -1;
     bool closed_ = false;
-
-    void SendHeader(size_t num_bytes, size_t elements) {
-    }
 };
 
 } // namespace data
