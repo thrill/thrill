@@ -355,6 +355,7 @@ public:
 
             if (r <= 0) {
                 // an error occured, check errno.
+                if (errno == EAGAIN) continue;
 
                 LOG << "done Socket::send()"
                     << " fd_=" << fd_
@@ -411,6 +412,7 @@ public:
 
             if (r <= 0) {
                 // an error occured, check errno.
+                if (errno == EAGAIN) continue;
 
                 LOG << "done Socket::recv()"
                     << " fd_=" << fd_
