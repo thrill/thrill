@@ -23,7 +23,6 @@ struct TestCerealObject {
         archive(x_, y_, z_);   // serialize things by passing them to the archive
     }
 };
-
 }
 }
 }
