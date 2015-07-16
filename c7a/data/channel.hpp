@@ -14,11 +14,7 @@
 
 #include <c7a/net/connection.hpp>
 #include <c7a/data/stream_block_header.hpp>
-#include <c7a/data/binary_buffer_builder.hpp>
-#include <c7a/data/binary_buffer.hpp>
-#include <c7a/data/buffer_chain.hpp>
 #include <c7a/data/block_queue.hpp>
-#include <c7a/data/chain_id.hpp>
 
 #include <vector>
 #include <string>
@@ -45,6 +41,8 @@ namespace data {
 class Channel
 {
 public:
+
+    using ChannelId = size_t;
     //! Creates a new channel instance
     Channel(const ChannelId& id, int expected_streams)
         : id_(id),
