@@ -22,7 +22,7 @@ using c7a::common::FutureX;
 
 struct DispatcherThreadTest : public::testing::Test {
     DispatcherThreadTest() {
-        c7a::common::ThreadDirectory.NameThisThread("test-driver");
+        c7a::common::GetThreadDirectory().NameThisThread("test-driver");
     }
 };
 
