@@ -75,6 +75,31 @@ protected:
     friend class DispatcherThread;
 
 public:
+    //! default constructor
+    Dispatcher() { }
+
+    //! non-copyable: delete copy-constructor
+    Dispatcher(const Dispatcher&) = delete;
+    //! non-copyable: delete assignment operator
+    Dispatcher& operator = (const Dispatcher&) = delete;
+    //! move-constructor
+    Dispatcher(Dispatcher&& d)
+        : dispatcher_(std::move(d.dispatcher_)),
+          terminate_(d.terminate_.load()),
+          timer_pq_(std::move(d.timer_pq_)),
+          async_read_(std::move(async_read_)),
+          async_write_(std::move(async_write_))
+    { }
+    //! move-assignment
+    Dispatcher& operator = (Dispatcher&& d) {
+        dispatcher_ = std::move(d.dispatcher_);
+        terminate_ = d.terminate_.load();
+        timer_pq_ = std::move(timer_pq_);
+        async_read_ = std::move(async_read_);
+        async_write_ = std::move(async_write_);
+        return *this;
+    }
+
     //! \name Timeout Callbacks
     //! \{
 
