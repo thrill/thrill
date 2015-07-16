@@ -17,6 +17,7 @@
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/exception.hpp>
+#include <c7a/common/config.hpp>
 
 #include <deque>
 
@@ -36,36 +37,50 @@ class SelectDispatcher : protected Select
 {
     static const bool debug = false;
 
+    static const bool self_verify_ = common::g_self_verify;
+
 public:
     //! type for file descriptor readiness callbacks
     typedef std::function<bool ()> Callback;
 
+    //! Grow table if needed
+    void CheckSize(int fd) {
+        assert(fd >= 0);
+        assert(fd <= 32000); // this is an arbitrary limit to catch errors.
+        if (static_cast<size_t>(fd) >= watch_.size())
+            watch_.resize(fd + 1);
+    }
+
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(int fd,
-                 const Callback& read_cb,
-                 const Callback& except_cb = DefaultExceptionCallback) {
-        Select::SetRead(fd);
-        Select::SetException(fd);
-        watch_.emplace_back(fd, read_cb, nullptr, except_cb);
+    void AddRead(int fd, const Callback& read_cb) {
+        CheckSize(fd);
+        if (!watch_[fd].read_cb.size()) {
+            Select::SetRead(fd);
+            Select::SetException(fd);
+        }
+        watch_[fd].active = true;
+        watch_[fd].read_cb.emplace_back(read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(int fd,
-                  const Callback& write_cb,
-                  const Callback& except_cb = DefaultExceptionCallback) {
-        Select::SetWrite(fd);
-        Select::SetException(fd);
-        watch_.emplace_back(fd, nullptr, write_cb, except_cb);
+    void AddWrite(int fd, const Callback& write_cb) {
+        CheckSize(fd);
+        if (!watch_[fd].write_cb.size()) {
+            Select::SetWrite(fd);
+            Select::SetException(fd);
+        }
+        watch_[fd].active = true;
+        watch_[fd].write_cb.emplace_back(write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(int fd,
-                      const Callback& read_cb, const Callback& write_cb,
-                      const Callback& except_cb = DefaultExceptionCallback) {
-        Select::SetRead(fd);
-        Select::SetWrite(fd);
-        Select::SetException(fd);
-        watch_.emplace_back(fd, read_cb, write_cb, except_cb);
+    void SetExcept(int fd, const Callback& except_cb) {
+        CheckSize(fd);
+        if (!watch_[fd].except_cb) {
+            Select::SetException(fd);
+        }
+        watch_[fd].active = true;
+        watch_[fd].except_cb = except_cb;
     }
 
     void Dispatch(const std::chrono::milliseconds& timeout) {
@@ -73,21 +88,27 @@ public:
         // copy select fdset
         Select fdset = *this;
 
-        if (debug)
+        if (self_verify_ || debug)
         {
             std::ostringstream oss;
-            for (Watch& w : watch_) {
-                oss << w.fd << " ";
-            }
             oss << "| ";
-            for (int i = 0; i < Select::max_fd_ + 1; ++i) {
-                if (Select::InRead(i))
-                    oss << "r" << i << " ";
-                if (Select::InWrite(i))
-                    oss << "w" << i << " ";
-                if (Select::InException(i))
-                    oss << "e" << i << " ";
+
+            for (size_t fd = 3; fd < watch_.size(); ++fd) {
+                Watch& w = watch_[fd];
+
+                if (!w.active) continue;
+
+                assert((w.read_cb.size() == 0) != Select::InRead(fd));
+                assert((w.write_cb.size() == 0) != Select::InWrite(fd));
+
+                if (Select::InRead(fd))
+                    oss << "r" << fd << " ";
+                if (Select::InWrite(fd))
+                    oss << "w" << fd << " ";
+                if (Select::InException(fd))
+                    oss << "e" << fd << " ";
             }
+
             LOG << "Performing select() on " << oss.str();
         }
 
@@ -104,117 +125,115 @@ public:
         }
         if (r == 0) return;
 
-        // save _current_ size, as it may change.
-        size_t watch_size = watch_.size();
+        // start running through the table at fd 3. 0 = stdin, 1 = stdout, 2 =
+        // stderr.
 
-        for (size_t i = 0; i != watch_size; ++i)
+        for (size_t fd = 3; fd < watch_.size(); ++fd)
         {
-            Watch& w = watch_[i];
+            // we use a pointer into the watch_ table. however, since the
+            // std::vector may regrow when callback handlers are called, this
+            // pointer is reset a lot of time.
+            Watch* w = &watch_[fd];
 
-            if (w.fd < 0) continue;
+            if (!w->active) continue;
 
-            if (fdset.InRead(w.fd))
+            if (fdset.InRead(fd))
             {
-                if (w.read_cb) {
-                    // have to clear the read flag since the callback may add a
-                    // new (other) callback for the same fd.
-                    Select::ClearRead(w.fd);
-                    Select::ClearException(w.fd);
-
-                    if (!w.read_cb()) {
-                        // callback returned false: remove fd from set
-                        w.fd = -1;
+                if (w->read_cb.size()) {
+                    // run read callbacks until one returns true (in which case
+                    // it wants to be called again), or the read_cb list is
+                    // empty.
+                    while (w->read_cb.size() && w->read_cb.front()() == false) {
+                        w = &watch_[fd];
+                        w->read_cb.pop_front();
                     }
-                    else {
-                        Select::SetRead(w.fd);
-                        Select::SetException(w.fd);
+                    w = &watch_[fd];
+
+                    if (w->read_cb.size() == 0) {
+                        // if all read callbacks are done, listen no longer.
+                        Select::ClearRead(fd);
+                        if (w->write_cb.size() == 0 && !w->except_cb) {
+                            // if also all write callbacks are done, stop
+                            // listening.
+                            Select::ClearWrite(fd);
+                            Select::ClearException(fd);
+                            w->active = false;
+                        }
                     }
                 }
                 else {
                     LOG << "SelectDispatcher: got read event for fd "
-                        << w.fd << " without a read handler.";
+                        << fd << " without a read handler.";
 
-                    Select::ClearRead(w.fd);
+                    Select::ClearRead(fd);
                 }
             }
 
-            if (w.fd < 0) continue;
-
-            if (fdset.InWrite(w.fd))
+            if (fdset.InWrite(fd))
             {
-                if (w.write_cb) {
-                    // have to clear the read flag since the callback may add a
-                    // new (other) callback for the same fd.
-                    Select::ClearWrite(w.fd);
-                    Select::ClearException(w.fd);
-
-                    if (!w.write_cb()) {
-                        // callback returned false: remove fd from set
-                        w.fd = -1;
+                if (w->write_cb.size()) {
+                    // run write callbacks until one returns true (in which case
+                    // it wants to be called again), or the write_cb list is
+                    // empty.
+                    while (w->write_cb.size() && w->write_cb.front()() == false) {
+                        w = &watch_[fd];
+                        w->write_cb.pop_front();
                     }
-                    else {
-                        Select::SetWrite(w.fd);
-                        Select::SetException(w.fd);
+                    w = &watch_[fd];
+
+                    if (w->write_cb.size() == 0) {
+                        // if all write callbacks are done, listen no longer.
+                        Select::ClearWrite(fd);
+                        if (w->read_cb.size() == 0 && !w->except_cb) {
+                            // if also all write callbacks are done, stop
+                            // listening.
+                            Select::ClearRead(fd);
+                            Select::ClearException(fd);
+                            w->active = false;
+                        }
                     }
                 }
                 else {
                     LOG << "SelectDispatcher: got write event for fd "
-                        << w.fd << " without a write handler.";
+                        << fd << " without a write handler.";
 
-                    Select::ClearWrite(w.fd);
+                    Select::ClearWrite(fd);
                 }
             }
 
-            if (w.fd < 0) continue;
-
-            if (fdset.InException(w.fd))
+            if (fdset.InException(fd))
             {
-                if (w.except_cb) {
-                    Select::ClearException(w.fd);
-
-                    if (!w.except_cb()) {
+                if (w->except_cb) {
+                    if (!w->except_cb()) {
+                        w = &watch_[fd];
                         // callback returned false: remove fd from set
-                        w.fd = -1;
+                        Select::ClearException(fd);
                     }
-                    else {
-                        Select::SetException(w.fd);
-                    }
+                    w = &watch_[fd];
                 }
                 else {
-                    LOG << "SelectDispatcher: got exception event for fd "
-                        << w.fd << " without an exception handler.";
-
-                    Select::ClearException(w.fd);
+                    DefaultExceptionCallback();
                 }
             }
         }
-
-        // remove finished watchs from deque.
-        while (watch_.size() && watch_.front().fd < 0)
-            watch_.pop_front();
     }
 
 private:
-    //! struct to entries per watched file descriptor
+    //! callback vectors per watched file descriptor
     struct Watch
     {
-        int      fd;
-        Callback read_cb, write_cb, except_cb;
-
-        Watch(int _fd,
-              const Callback& _read_cb, const Callback& _write_cb,
-              const Callback& _except_cb)
-            : fd(_fd),
-
-              read_cb(_read_cb),
-              write_cb(_write_cb),
-              except_cb(_except_cb)
-        { }
+        //! boolean check whether any callbacks are registered
+        bool                 active;
+        //! queue of callbacks for fd.
+        std::deque<Callback> read_cb, write_cb;
+        //! only one exception callback for the fd.
+        Callback             except_cb = nullptr;
     };
 
-    //! handlers for all registered file descriptors, we have to keep them
-    //! address local.
-    std::deque<Watch> watch_;
+    //! handlers for all registered file descriptors. the fd integer range
+    //! should be small enough, otherwise a more complicated data structure is
+    //! needed.
+    std::vector<Watch> watch_;
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {
