@@ -33,7 +33,8 @@ public:
     { }
 
     Exception(const std::string& what, int _errno)
-        : std::runtime_error(what + ": " + strerror(_errno))
+        : std::runtime_error(
+              what + ": [" + std::to_string(_errno) + "] " + strerror(_errno))
     { }
 };
 

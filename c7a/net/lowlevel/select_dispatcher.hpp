@@ -152,7 +152,7 @@ public:
         {
             // we use a pointer into the watch_ table. however, since the
             // std::vector may regrow when callback handlers are called, this
-            // pointer is reset a lot of time.
+            // pointer is reset a lot of times.
             Watch* w = &watch_[fd];
 
             if (!w->active) continue;
@@ -257,9 +257,7 @@ private:
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {
-        // exception on listen socket ?
-        throw Exception("SelectDispatcher() exception on socket!",
-                        errno);
+        throw Exception("SelectDispatcher() exception on socket!", errno);
     }
 };
 
