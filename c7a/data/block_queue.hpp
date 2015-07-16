@@ -40,10 +40,10 @@ public:
 
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Writer = BlockWriter<Block, BlockQueue&>;
+    using Writer = BlockWriter<BlockQueue&>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
 
-    using DynWriter = BlockWriter<Block, DynBlockSink<BlockSize> >;
+    using DynWriter = BlockWriter<DynBlockSink<BlockSize> >;
 
     void Append(const BlockPtr& block, size_t block_used,
                 size_t nitems, size_t first) {

@@ -39,10 +39,10 @@ public:
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
 
-    using Writer = BlockWriter<Block, FileBase&>;
+    using Writer = BlockWriter<FileBase&>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
 
-    using DynWriter = BlockWriter<Block, DynBlockSink<BlockSize> >;
+    using DynWriter = BlockWriter<DynBlockSink<BlockSize> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
