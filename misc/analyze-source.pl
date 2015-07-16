@@ -293,6 +293,7 @@ sub process_cpp {
         # change misformatted [ = ] of lambdas to [=]
         for(my $i = 0; $i < @data-1; ++$i) {
             $data[$i] =~ s/\[ = \]/[=]/g;
+            $data[$i] =~ s/\[ ([=&]),/[$1,/g;
         }
     }
 
