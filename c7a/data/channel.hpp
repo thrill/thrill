@@ -41,7 +41,6 @@ namespace data {
 class Channel
 {
 public:
-
     using ChannelId = size_t;
     //! Creates a new channel instance
     Channel(const ChannelId& id, int expected_streams)
