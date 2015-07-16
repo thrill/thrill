@@ -31,6 +31,7 @@
 #include <queue>
 #include <ctime>
 #include <chrono>
+#include <atomic>
 
 namespace c7a {
 namespace net {
@@ -202,8 +203,8 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            LOG << "Dispatch(): empty queue - waiting 1s";
-            dispatcher_.Dispatch(milliseconds(1000));
+            LOG << "Dispatch(): empty timer queue - selecting for 10s";
+            dispatcher_.Dispatch(milliseconds(10000));
         }
         else {
             auto diff = std::chrono::duration_cast<milliseconds>(
@@ -235,7 +236,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    bool terminate_ = false;
+    std::atomic<bool> terminate_ { false };
 
     //! struct for timer callbacks
     struct Timer
@@ -282,8 +283,16 @@ protected:
             int r = c.GetSocket().recv_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
-            if (r < 0)
+            if (r <= 0) {
+                // these errors are acceptable: just redo the recv later.
+                if (errno == EINTR || errno == EAGAIN) return true;
+                // these errors are end-of-file indications (both good and bad)
+                if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
+                    if (callback_) callback_(c, Buffer());
+                    return false;
+                }
                 throw Exception("AsyncReadBuffer() error in recv", errno);
+            }
 
             size_ += r;
 
@@ -327,8 +336,14 @@ protected:
             int r = c.GetSocket().send_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
-            if (r < 0)
+            if (r <= 0) {
+                if (errno == EINTR || errno == EAGAIN) return true;
+                if (errno == EPIPE) {
+                    if (callback_) callback_(c);
+                    return false;
+                }
                 throw Exception("AsyncWriteBuffer() error in send", errno);
+            }
 
             size_ += r;
 

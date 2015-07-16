@@ -22,37 +22,41 @@ TEST(ChannelMultiplexerTest, Test) {
 
     net::Group::ExecuteLocalMock(
         2, [](net::Group* net) {
-            net::DispatcherThread dispatcher("cmp" + std::to_string(net->MyRank()));
+            common::GetThreadDirectory().NameThisThread(
+                "cmp" + std::to_string(net->MyRank()));
+
+            net::DispatcherThread dispatcher(
+                "cmp" + std::to_string(net->MyRank()) + "-dp");
 
             data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
             cmp.Connect(net);
+            {
+                ChannelId id = cmp.AllocateNext();
 
-            ChannelId id = cmp.AllocateNext();
+                // open Writers and send a message to all workers
 
-            // open Writers and send a message to all workers
+                auto writer = cmp.GetOrCreateChannel(id)->OpenWriters();
 
-            auto writer = cmp.GetOrCreateChannel(id)->OpenWriters();
+                for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
+                    writer[tgt]("hello I am " + std::to_string(net->MyRank())
+                                + " calling " + std::to_string(tgt));
 
-            for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
-                writer[tgt]("hello I am " + std::to_string(net->MyRank())
-                            + " calling " + std::to_string(tgt));
+                    writer[tgt].Flush();
+                }
 
-                writer[tgt].Flush();
+                // open Readers and receive message from all workers
+
+                auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
+
+                for (size_t src = 0; src != net->Size(); ++src) {
+                    std::string msg = reader[src].Next<std::string>();
+
+                    ASSERT_EQ(msg, "hello I am " + std::to_string(src)
+                              + " calling " + std::to_string(net->MyRank()));
+
+                    sLOG1 << net->MyRank() << "got msg from" << src;
+                }
             }
-
-            // open Readers and receive message from all workers
-
-            auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
-
-            for (size_t src = 0; src != net->Size(); ++src) {
-                std::string msg = reader[src].Next<std::string>();
-
-                ASSERT_EQ(msg, "hello I am " + std::to_string(src)
-                          + " calling " + std::to_string(net->MyRank()));
-
-                sLOG1 << net->MyRank() << "got msg from" << src;
-            }
-
             cmp.Close();
         });
 }

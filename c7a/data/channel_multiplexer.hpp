@@ -144,6 +144,18 @@ public:
     //!
     //! Requires new call to Connect() afterwards
     void Close() {
+        // close all still open Channels
+        for (auto& ch : channels_)
+            ch.second->Close();
+
+        // cancel callbacks on network connections
+        for (size_t id = 0; id < group_->Size(); ++id) {
+            if (id == group_->MyRank()) continue;
+            dispatcher_.Cancel(group_->connection(id));
+        }
+
+        dispatcher_.Terminate();
+
         group_->Close();
     }
 
@@ -194,6 +206,9 @@ private:
 
     void OnStreamBlockHeader(Connection& s, net::Buffer&& buffer) {
 
+        // received invalid Buffer: the connection has closed?
+        if (!buffer.IsValid()) return;
+
         StreamBlockHeader header;
         header.ParseHeader(buffer);
 
@@ -214,21 +229,22 @@ private:
             dispatcher_.AsyncRead(
                 s, header.expected_bytes,
                 [this, header, channel](Connection& s, net::Buffer&& buffer) {
-                    OnStreamData(s, header, channel, std::move(buffer));
+                    OnStreamBlock(s, header, channel, std::move(buffer));
                 });
         }
     }
 
-    void OnStreamData(
+    void OnStreamBlock(
         Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
         net::Buffer&& buffer) {
-        sLOG << "got data on" << s << "in channel" << header.channel_id;
+
+        sLOG << "got block on" << s << "in channel" << header.channel_id;
 
         using Block = data::Block<block_size>;
         using BlockPtr = std::shared_ptr<Block>;
         using VirtualBlock = data::VirtualBlock<block_size>;
 
-        assert(header.expected_bytes == buffer.size());
+        die_unless(header.expected_bytes == buffer.size());
 
         // TODO(tb): don't copy data!
         BlockPtr block = std::make_shared<Block>();
