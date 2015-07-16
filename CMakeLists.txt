@@ -33,7 +33,14 @@ option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
+# enable AddressSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+# enable ThreadSanitizer
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+
+# enable UndefinedBehaviorSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
