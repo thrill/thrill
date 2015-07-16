@@ -331,24 +331,21 @@ struct Impl<struct TestSerializeObject>{
 template <>
 struct Impl<struct TestCerealObject>{
     static std::string Serialize(const struct TestCerealObject& t) {
-        std::stringstream ss; // any stream can be used
-
+        std::stringstream ss;                     // any stream can be used
         cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
-        oarchive(t); // Write the data to the archive
+        oarchive(t);                              // Write the data to the archive
 
         return ss.str();
     }
 
     static TestCerealObject Deserialize(const std::string& t) {
         std::stringstream ss;
-        ss.str (t);
+        ss.str(t);
         cereal::BinaryInputArchive iarchive(ss); // Create an input archive
-
         TestCerealObject res;
-        iarchive(res); // Read the data from the archive
+        iarchive(res);                           // Read the data from the archive
         return res;
     }
-
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -358,26 +355,22 @@ struct Impl<struct TestCerealObject>{
 //! binary serializer for any integral type, usable as template.
 template <typename Type>
 struct GenericImpl {
+    // not working using cereal because:
+    /*
+    error: static_assert failed "cereal could not find any input serialization functions for the provided type and archive combination. \n\n Types must either have a serialize function,
+      load/save pair, or load_minimal/save_minimal pair (you may not mix these). \n Serialize functions generally have the following signature: \n\n template<class Archive> \n void serialize(Archive & ar) \n
+      { \n     ar( member1, member2, member3 ); \n   } \n\n "
+    */
     static std::string Serialize(const Type& v) {
-        std::stringstream ss; // any stream can be used
-
-        cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
-        oarchive(v); // Write the data to the archive
-
-        return ss.str();
+        return std::string(reinterpret_cast<const char*>(&v), sizeof(v));
     }
 
     static Type        Deserialize(const std::string& s) {
-        std::stringstream ss;
-        ss.str (s);
-        cereal::BinaryInputArchive iarchive(ss); // Create an input archive
-
-        Type res;
-        iarchive(res); // Read the data from the archive
-        return res;
+        assert(s.size() == sizeof(Type));
+        return Type(*reinterpret_cast<const Type*>(s.data()));
     }
 };
-}       // namespace serializers
+}                                                // namespace serializers
 
 //! Serialize the type to std::string
 template <class T>
