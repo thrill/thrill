@@ -294,7 +294,7 @@ private:
     void OnStreamBlockHeader(Connection& s, net::Buffer&& buffer) {
 
         StreamBlockHeader header;
-        header.ParseHeader(buffer);
+        header.ParseHeader(buffer.ToString());
 
         // received channel id
         auto id = ChannelId(NETWORK, header.channel_id);

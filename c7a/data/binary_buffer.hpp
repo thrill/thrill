@@ -54,11 +54,6 @@ public:
           size_(str.size())
     { }
 
-    //! Constructor, assign memory area from net::Buffer, does NOT copy!
-    BinaryBuffer(const net::Buffer& b) // NOLINT
-        : data_(b.data()), size_(b.size())
-    { }
-
     //! Return a pointer to the currently kept memory area.
     const void * data() const
     { return data_; }

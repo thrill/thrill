@@ -12,8 +12,6 @@
 #define C7A_DATA_STREAM_BLOCK_HEADER_HEADER
 
 #include <c7a/net/connection.hpp>
-#include <c7a/data/binary_buffer_builder.hpp>
-#include <c7a/data/binary_buffer_reader.hpp>
 #include <c7a/common/stats_timer.hpp>
 
 #include <cstdlib>
@@ -39,24 +37,31 @@ struct StreamBlockHeader {
     size_t      sender_rank;
 
     //! Reads the channel id and the number of elements in this block
-    void        ParseHeader(const net::Buffer& buffer) {
+    void        ParseHeader(const std::string& buffer) {
         assert(buffer.size() == sizeof(StreamBlockHeader));
-        BinaryBufferReader br(buffer);
-        channel_id = br.Get<size_t>();
-        expected_bytes = br.Get<size_t>();
-        expected_elements = br.Get<size_t>();
-        sender_rank = br.Get<size_t>();
+        size_t offset1 = sizeof(channel_id);
+        size_t offset2 = offset1 + sizeof(expected_bytes);
+        size_t offset3 = offset2 + sizeof(expected_elements);
+        memcpy(&channel_id, buffer.c_str() + 0, sizeof(channel_id));
+        memcpy(&expected_bytes, buffer.c_str() + offset1, sizeof(expected_bytes));
+        memcpy(&expected_elements, buffer.c_str() + offset2, sizeof(expected_elements));
+        memcpy(&sender_rank, buffer.c_str() + offset3, sizeof(sender_rank));
     }
 
     //! Serializes the whole block struct into a buffer
-    net::Buffer Serialize() {
-        BinaryBufferBuilder bb;
-        bb.Reserve(4 * sizeof(size_t));
-        bb.Put<size_t>(channel_id);
-        bb.Put<size_t>(expected_bytes);
-        bb.Put<size_t>(expected_elements);
-        bb.Put<size_t>(sender_rank);
-        return bb.ToBuffer();
+    std::string Serialize() {
+        size_t size = sizeof(StreamBlockHeader);
+        char* result = new char[size];
+        char* offset0 = result;
+        char* offset1 = offset0 + sizeof(channel_id);
+        char* offset2 = offset1 + sizeof(expected_elements);
+        char* offset3 = offset2 + sizeof(expected_bytes);
+
+        memcpy(offset0, &channel_id, sizeof(channel_id));
+        memcpy(offset1, &expected_bytes, sizeof(expected_bytes));
+        memcpy(offset2, &expected_elements, sizeof(expected_elements));
+        memcpy(offset3, &sender_rank, sizeof(sender_rank));
+        return std::string(result, size);
     }
 
     //! resets to a End-of-Stream block header
