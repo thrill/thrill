@@ -15,6 +15,7 @@
 #include <c7a/net/connection.hpp>
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/channel_sink.hpp>
 
 #include <vector>
 #include <string>
@@ -40,13 +41,30 @@ namespace data {
 //! is transfered back to the channel multiplexer.
 class Channel
 {
+    using BlockQueue = data::BlockQueue<default_block_size>;
+    using VirtualBlock = data::VirtualBlock<default_block_size>;
+    using ChannelSink = data::ChannelSink<default_block_size>;
+
 public:
     using ChannelId = size_t;
+
     //! Creates a new channel instance
-    Channel(const ChannelId& id, int expected_streams)
+    Channel(net::DispatcherThread& dispatcher,
+            net::Group* net,
+            const ChannelId& id)
         : id_(id),
-          queues_(expected_streams)
-    { }
+          queues_(net->Size()) {
+        // construct ChannelSink array
+        for (size_t i = 0; i != net->Size(); ++i) {
+            if (i == net->MyRank()) {
+                sinks_.emplace_back();
+            }
+            else {
+                sinks_.emplace_back(
+                    &dispatcher, &net->connection(i), id, net->MyRank());
+            }
+        }
+    }
 
     void CloseLoopback() {
         OnCloseStream(0);
@@ -69,14 +87,14 @@ public:
         return id_;
     }
 
-    using BlockQueue = data::BlockQueue<default_block_size>;
-    using VirtualBlock = data::VirtualBlock<default_block_size>;
-
 protected:
     static const bool debug = false;
 
     ChannelId id_;
     size_t finished_streams_ = 0;
+
+    //! ChannelSink objects are receivers of Blocks outbound for other workers.
+    std::vector<ChannelSink> sinks_;
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;

@@ -32,7 +32,7 @@ class DynBlockSink;
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
 //same interface as \ref c7a::data::Stream and \ref c7a::data::File
 template <size_t BlockSize = default_block_size>
-class BlockQueue
+class BlockQueue : public BlockSink<BlockSize>
 {
 public:
     using Block = data::Block<BlockSize>;
@@ -40,21 +40,14 @@ public:
 
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Writer = BlockWriter<BlockQueue&>;
+    using Writer = BlockWriter<BlockSize>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
 
-    using DynWriter = BlockWriter<DynBlockSink<BlockSize> >;
-
-    void Append(const BlockPtr& block, size_t block_used,
-                size_t nitems, size_t first) {
-        queue_.emplace(block, block_used, nitems, first);
-    }
-
-    void Append(VirtualBlock&& vb) {
+    void Append(VirtualBlock&& vb) override {
         queue_.emplace(std::move(vb));
     }
 
-    void Close() {
+    void Close() override {
         assert(!closed_); //racing condition tolerated
         closed_ = true;
 
@@ -76,15 +69,10 @@ public:
     size_t size() { return queue_.size(); }
 
     //! Return a BlockWriter delivering to this BlockQueue.
-    Writer GetWriter() { return Writer(*this); }
+    Writer GetWriter() { return Writer(this); }
 
     //! Return a BlockReader fetching blocks from this BlockQueue.
     Reader GetReader();
-
-    //! Return a dynamic polymorphic BlockWriter delivering to this BlockQueue.
-    DynWriter GetDynWriter() {
-        return DynWriter(DynBlockSink<BlockSize>(this));
-    }
 
 private:
     common::ConcurrentBoundedQueue<VirtualBlock> queue_;

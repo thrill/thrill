@@ -16,25 +16,32 @@
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/data/block.hpp>
+#include <c7a/data/block_sink.hpp>
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
 namespace data {
 
-//! SocketTarget is an BlockSink that sends data via a network socket to the
+//! ChannelSink is an BlockSink that sends data via a network socket to the
 //! Channel object on a different worker.
 template <size_t BlockSize>
-class ChannelSink
+class ChannelSink : public BlockSink<BlockSize>
 {
 public:
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
+    using ChannelId = size_t;
 
-    ChannelSink() { }
+    //! invalid ChannelSink, needed for placeholders in sinks arrays where
+    //! Blocks are directly sent to local workers.
+    ChannelSink()
+    { }
 
+    //! ChannelSink sending out to network.
     ChannelSink(net::DispatcherThread* dispatcher,
                 net::Connection* connection,
-                size_t channel_id, size_t own_rank)
+                ChannelId channel_id, size_t own_rank)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
@@ -43,19 +50,17 @@ public:
 
     ChannelSink(ChannelSink&&) = default;
 
-    //! Appends data to the SocketTarget.
-    //! Data may be sent but may be delayed.
-    void Append(const BlockCPtr& block, size_t block_used,
-                size_t nitems, size_t /* first */) {
-        if (block_used == 0) return;
+    //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
+    void Append(VirtualBlock&& vb) override {
+        if (vb.bytes_used == 0) return;
 
-        SendHeader(block_used, nitems);
+        SendHeader(vb.bytes_used, vb.nitems);
 
         sLOG1 << "sending block"
-              << common::hexdump(block->begin(), block_used);
+              << common::hexdump(vb.block->begin(), vb.bytes_used);
 
         // TODO(tb): this copies data!
-        net::Buffer payload_buf(block->begin(), block_used);
+        net::Buffer payload_buf(vb.block->begin(), vb.bytes_used);
         // TODO(tb): this does not work as expected: only one AsyncWrite can be
         // active on a fd at the same item, hence packets get lost!
         dispatcher_->AsyncWrite(*connection_, std::move(payload_buf));
@@ -76,7 +81,7 @@ public:
     // }
 
     //! Closes the connection
-    void Close() {
+    void Close() override {
         assert(!closed_);
         closed_ = true;
 
