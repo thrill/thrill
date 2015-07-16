@@ -15,10 +15,10 @@
 #define C7A_DATA_BINARY_BUFFER_HEADER
 
 #include <c7a/net/buffer.hpp>
-#include <c7a/data/binary_buffer_builder.hpp>
+#include <c7a/net/binary_buffer_builder.hpp>
 
 namespace c7a {
-namespace data {
+namespace net {
 
 /*!
  * BinaryBuffer represents a memory area as pointer and valid length. It
@@ -93,7 +93,7 @@ public:
     }
 };
 
-} // namespace data
+} // namespace net
 } // namespace c7a
 
 #endif // !C7A_DATA_BINARY_BUFFER_HEADER
