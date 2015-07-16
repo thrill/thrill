@@ -18,7 +18,7 @@
 #include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
-namespace data {
+namespace net {
 
 /*!
  * BinaryBufferReader represents a BinaryBuffer with an additional cursor with
@@ -167,7 +167,7 @@ public:
     //! \}
 };
 
-} // namespace data
+} // namespace net
 } // namespace c7a
 
 #endif // !C7A_DATA_BINARY_BUFFER_READER_HEADER
