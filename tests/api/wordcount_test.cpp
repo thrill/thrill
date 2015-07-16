@@ -63,11 +63,11 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
         std::string a = "a";
         std::string test = "test";
 
-        ASSERT_EQ(words[0], std::make_pair(a, 3)); 
-        ASSERT_EQ(words[1], std::make_pair(be, 1)); 
-        ASSERT_EQ(words[2], std::make_pair(might, 1)); 
-        ASSERT_EQ(words[3], std::make_pair(test, 4)); 
-        ASSERT_EQ(words[4], std::make_pair(this_str, 1));       
+        ASSERT_EQ(words[0], std::make_pair(a, 3));
+        ASSERT_EQ(words[1], std::make_pair(be, 1));
+        ASSERT_EQ(words[2], std::make_pair(might, 1));
+        ASSERT_EQ(words[3], std::make_pair(test, 4));
+        ASSERT_EQ(words[4], std::make_pair(this_str, 1));
     };
 
     c7a::ExecuteThreads(workers, port_base, start_func);
@@ -75,7 +75,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 
 
 TEST(WordCount, Generate1024DoesNotCrash) {
-    
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
@@ -90,7 +90,7 @@ TEST(WordCount, Generate1024DoesNotCrash) {
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
-    
+
     std::random_device random_device;
     std::default_random_engine generator(random_device());
     std::uniform_int_distribution<int> distribution(2, 4);
