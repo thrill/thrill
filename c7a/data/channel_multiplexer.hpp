@@ -45,11 +45,11 @@ namespace data {
 //! created.
 //!
 //! OpenChannel returns a set of emitters that can be used to emitt data to other workers.
+template <size_t BlockSize = default_block_size>
 class ChannelMultiplexer
 {
 public:
-    using ChannelPtr = std::shared_ptr<Channel>;
-    using ChannelId = Channel::ChannelId;
+    using ChannelPtr = std::shared_ptr<Channel<BlockSize> >;
 
     static const size_t block_size = default_block_size;
 
@@ -72,7 +72,6 @@ public:
     bool HasChannel(ChannelId id) {
         return channels_.find(id) != channels_.end();
     }
-
 
     //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
     //TODO Method to access channel via callbacks
@@ -174,7 +173,7 @@ private:
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, group_->Size(), *group_, dispatcher_);
+        ChannelPtr channel = std::make_shared<Channel<BlockSize> >(id, *group_, dispatcher_);
         channels_.insert(std::make_pair(id, channel));
         return channel;
     }
@@ -243,7 +242,6 @@ private:
         AsyncReadStreamBlockHeader(s);
     }
 };
-
 } // namespace data
 } // namespace c7a
 

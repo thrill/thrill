@@ -35,8 +35,6 @@ namespace data {
 class Manager
 {
 public:
-    using ChannelId = Channel::ChannelId;
-
     Manager(net::DispatcherThread& dispatcher)
         : cmp_(dispatcher) { }
 
@@ -66,9 +64,9 @@ public:
     }
 #endif      // FIXUP_LATER
 
-
     //! Returns a reference to an existing Channel.
-    std::shared_ptr<Channel> GetChannel(const ChannelId id) {
+    template <size_t BlockSize = default_block_size>
+    std::shared_ptr<Channel<BlockSize> > GetChannel(const ChannelId id) {
         assert(cmp_.HasChannel(id));
         return std::move(cmp_.GetOrCreateChannel(id));
     }
@@ -76,7 +74,8 @@ public:
     //! Returns a reference to a new Channel.
     //! This method alters the state of the manager and must be called on all
     //! Workers to ensure correct communication cordination
-    std::shared_ptr<Channel> GetNewChannel() {
+    template <size_t BlockSize = default_block_size>
+    std::shared_ptr<Channel<BlockSize> > GetNewChannel() {
         return std::move(cmp_.GetOrCreateChannel(cmp_.AllocateNext()));
     }
 
@@ -88,11 +87,10 @@ public:
 
 private:
     static const bool debug = false;
-    ChannelMultiplexer cmp_;
+    ChannelMultiplexer<default_block_size> cmp_;
 
     Repository<File> files_;
 };
-
 } // namespace data
 } // namespace c7a
 

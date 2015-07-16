@@ -18,7 +18,6 @@
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia_node.hpp>
 #include <c7a/api/function_stack.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
 
 #include <string>
 #include <vector>
@@ -46,7 +45,7 @@ public:
           channel_(ctx.data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
-        auto pre_op_function = [=](ValueType input) {
+        auto pre_op_function = [ = ](ValueType input) {
                                    PreOp(input);
                                };
 
@@ -89,8 +88,8 @@ public:
 private:
     std::vector<ValueType>* out_vector_;
 
-    std::shared_ptr<data::Channel> channel_;
-    std::vector<data::DynBlockWriter<data::default_block_size>> emitters_;
+    std::shared_ptr<data::Channel<data::default_block_size> > channel_;
+    std::vector<data::BlockWriter<data::default_block_size> > emitters_;
 
     static const bool debug = false;
 };
@@ -109,7 +108,6 @@ void DIARef<ValueType, Stack>::AllGather(
 
     core::StageBuilder().RunScope(shared_node.get());
 }
-
 } // namespace api
 } // namespace c7a
 

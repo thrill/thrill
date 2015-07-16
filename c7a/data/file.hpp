@@ -61,7 +61,7 @@ public:
 
     //returns a string that identifies this string instance
     std::string ToString() {
-        return "File@" + std::to_string(this);
+        return "File@" + std::to_string((size_t)this);
     }
 
     bool closed() const {
@@ -212,7 +212,6 @@ template <size_t BlockSize>
 typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(FileBlockSource<BlockSize>(*this, 0, 0));
 }
-
 } // namespace data
 } // namespace c7a
 
