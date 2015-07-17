@@ -84,8 +84,6 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     api::ExecuteLocalTests(start_func);
 }
 
-#if TODO_FIXME
-
 TEST(Operations, MapResultsCorrectChangingType) {
 
     std::function<void(Context&)> start_func =
@@ -98,17 +96,16 @@ TEST(Operations, MapResultsCorrectChangingType) {
                 },
                 16);
 
-            std::function<double(int)> double_elements = [](int in) {
-                                                             return (double)2 * in;
-                                                         };
+            std::function<double(int)> double_elements =
+                [](int in) {
+                    return (double)2 * in;
+                };
 
             auto doubled = integers.Map(double_elements);
 
             std::vector<double> out_vec;
 
             doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
 
             int i = 1;
             for (int element : out_vec) {
@@ -122,6 +119,8 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
     api::ExecuteLocalTests(start_func);
 }
+
+#if TODO_FIXME
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
 
@@ -146,8 +145,6 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             doubled.AllGather(&out_vec);
 
-            std::sort(out_vec.begin(), out_vec.end());
-
             int i = 1;
             for (int element : out_vec) {
                 ASSERT_DOUBLE_EQ(element, (i++ *2));
@@ -160,6 +157,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
     api::ExecuteLocalTests(start_func);
 }
+
+#endif // TODO_FIXME
 
 TEST(Operations, PrefixSumCorrectResults) {
 
@@ -179,7 +178,6 @@ TEST(Operations, PrefixSumCorrectResults) {
 
             prefixsums.AllGather(&out_vec);
 
-            std::sort(out_vec.begin(), out_vec.end());
             size_t ctr = 0;
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ctr += i + 1;
@@ -213,7 +211,6 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
 
             prefixsums.AllGather(&out_vec);
 
-            std::sort(out_vec.begin(), out_vec.end());
             size_t ctr = 1;
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ctr *= i + 1;
@@ -247,8 +244,6 @@ TEST(Operations, FilterResultsCorrectly) {
             std::vector<int> out_vec;
 
             doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
 
             int i = 1;
 
@@ -284,8 +279,6 @@ TEST(Operations, DIARefCasting) {
 
             doubled.AllGather(&out_vec);
 
-            std::sort(out_vec.begin(), out_vec.end());
-
             int i = 1;
 
             for (int element : out_vec) {
@@ -297,6 +290,8 @@ TEST(Operations, DIARefCasting) {
 
     api::ExecuteLocalTests(start_func);
 }
+
+#if TODO_FIXME
 
 TEST(Operations, WhileLoop) {
 
@@ -340,8 +335,6 @@ TEST(Operations, WhileLoop) {
             std::vector<int> out_vec;
 
             doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
 
             ASSERT_EQ(144, out_vec[0]);
             ASSERT_EQ(1u, out_vec.size());
