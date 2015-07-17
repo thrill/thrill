@@ -9,9 +9,17 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/endpoint.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/bootstrap.hpp>
 
-#include <c7a/c7a.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/generate.hpp>
+#include <c7a/api/prefixsum.hpp>
+#include <c7a/api/read.hpp>
+#include <c7a/api/sum.hpp>
+#include <c7a/api/write.hpp>
+#include <c7a/api/size.hpp>
 
 #include <algorithm>
 #include <random>
@@ -20,6 +28,8 @@
 #include "gtest/gtest.h"
 
 using namespace c7a;
+using c7a::api::Context;
+using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
@@ -293,21 +303,15 @@ TEST(Operations, DIARefCasting) {
     api::ExecuteLocalTests(start_func);
 }
 
-#if TODO_FIXME
-
 TEST(Operations, WhileLoop) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto even = [](int in) {
-                            return (in % 2 == 0);
-                        };
-
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return (int)index;
                 },
                 16);
 
@@ -316,35 +320,29 @@ TEST(Operations, WhileLoop) {
                                          emit(in);
                                      };
 
-            auto modulo_two = [](int in) {
-                                  return (in % 2);
-                              };
-
-            auto add_function = [](int in1, int in2) {
-                                    return in1 + in2;
+            auto map_multiply = [](int in) {
+                                    return 2 * in;
                                 };
 
-            DIARef<int> doubled = integers.FlatMap(flatmap_duplicate);
+            DIARef<int> squares = integers;
 
-            for (size_t i = 0; i < 10; ++i) {
-                auto evens = doubled.Filter(even);
-                auto reduced = evens.ReduceBy(modulo_two, add_function);
-                doubled = reduced;
+            // run loop four times, inflating DIA of 16 items -> 256
+            for (size_t i = 0; i < 4; ++i) {
+                auto pairs = squares.FlatMap(flatmap_duplicate);
+                auto mulitplied = pairs.Map(map_multiply);
+                squares = mulitplied;
             }
 
-            // auto evens = doubled.Filter(even);
-
             std::vector<int> out_vec;
+            squares.AllGather(&out_vec);
 
-            doubled.AllGather(&out_vec);
-
-            ASSERT_EQ(144, out_vec[0]);
-            ASSERT_EQ(1u, out_vec.size());
+            ASSERT_EQ(256u, out_vec.size());
+            for (size_t i = 0; i != 256; ++i) {
+                ASSERT_EQ(out_vec[i], 16 * (i / 16));
+            }
         };
 
     api::ExecuteLocalTests(start_func);
 }
-
-#endif // TODO_FIXME
 
 /******************************************************************************/
