@@ -22,20 +22,18 @@
 using namespace c7a;
 using namespace c7a::common;
 using namespace c7a::net;
-using Manager = c7a::data::Manager;
-using Group = c7a::net::Group;
+using c7a::net::Group;
 
-static const bool debug = true;
+static const bool debug = false;
 
 struct ChannelMultiplexerTest : public::testing::Test {
-    ChannelMultiplexerTest()
-        : dispatcher("dispatcher"), manager(dispatcher), single_group(0, 1), barrier(3) {
-        manager.Connect(&single_group);
-    }
 
-    using WorkerThread = std::function<void(Manager&)>;
-    void FunctionSelect(Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3 = [](Manager&) { }) {
-        Manager manager(dispatcher);
+    using WorkerThread = std::function<void(data::Manager&)>;
+
+    void FunctionSelect(
+        Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
+        net::DispatcherThread dispatcher("dp");
+        data::Manager manager(dispatcher);
         manager.Connect(group);
         switch (group->MyRank()) {
         case 0:
@@ -51,18 +49,14 @@ struct ChannelMultiplexerTest : public::testing::Test {
             f3(manager);
             break;
         }
-        barrier.Await();
     }
+
     void Execute(WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         Group::ExecuteLocalMock(3,
                                 [=](Group* g) {
                                     FunctionSelect(g, f1, f2, f3);
                                 });
     }
-    DispatcherThread dispatcher;
-    Manager          manager;
-    Group            single_group;
-    Barrier          barrier;
 };
 
 // open a Channel via data::Manager, and send a short message to all workers,
@@ -139,7 +133,7 @@ TEST(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
 
 TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
     Barrier sync(3);
-    auto w0 = [&sync](Manager& manager) {
+    auto w0 = [&sync](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
                   auto writers = c->OpenWriters();
                   std::string msg1 = "I came from worker 0";
@@ -152,7 +146,7 @@ TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
                       w.Close();
                   }
               };
-    auto w1 = [&sync](Manager& manager) {
+    auto w1 = [&sync](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
                   auto writers = c->OpenWriters();
                   std::string msg1 = "I came from worker 1";
@@ -162,7 +156,7 @@ TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
                       w.Close();
                   }
               };
-    auto w2 = [&sync](Manager& manager) {
+    auto w2 = [&sync](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
                   auto writers = c->OpenWriters();
                   for (auto& w : writers) {
