@@ -55,7 +55,7 @@ public:
 
     using Channel = data::Channel<BlockSize>;
     using ChannelPtr = std::shared_ptr<Channel>;
-    using BlockWriter = data::BlockWriter<BlockSize>;
+    using BlockWriter = data::BlockWriterBase<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
 
     ChannelMultiplexer(net::DispatcherThread& dispatcher)

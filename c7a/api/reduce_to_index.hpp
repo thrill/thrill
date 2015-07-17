@@ -70,7 +70,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super::data_id_;
 
 public:
-    using Emitter = data::BlockWriter<data::default_block_size>;
+    using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
               KeyExtractor, ReduceFunction, Emitter>;
 

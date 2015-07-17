@@ -41,7 +41,7 @@ public:
     using BlockCPtr = std::shared_ptr<const Block>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Writer = BlockWriter<BlockSize>;
+    using Writer = BlockWriterBase<BlockSize>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
 
     //! Append a block to this file, the block must contain given number of

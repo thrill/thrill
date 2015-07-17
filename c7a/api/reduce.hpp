@@ -144,7 +144,7 @@ private:
 
     std::shared_ptr<data::Channel<data::default_block_size> > channel_;
 
-    using emitter = data::BlockWriter<data::default_block_size>;
+    using emitter = data::BlockWriter;
     std::vector<emitter> emitters_;
 
     core::ReducePreTable<KeyExtractor, ReduceFunction, emitter>

@@ -48,7 +48,7 @@ class Channel
 {
     using BlockQueue = data::BlockQueue<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
-    using BlockWriter = data::BlockWriter<BlockSize>;
+    using BlockWriter = data::BlockWriterBase<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelSink = data::ChannelSink<BlockSize>;
     using File = data::FileBase<BlockSize>;
