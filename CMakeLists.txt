@@ -32,6 +32,8 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 
+option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
+
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
@@ -205,5 +207,34 @@ add_subdirectory(tests)
 add_subdirectory(examples)
 
 add_subdirectory(benchmarks)
+
+###############################################################################
+# cmake script TRY_COMPILE all stxxl header files
+
+if(TRY_COMPILE_HEADERS)
+
+  include(CheckCXXSourceCompiles)
+  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR})
+  set(CMAKE_REQUIRED_LIBRARIES
+    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${CMAKE_THREAD_LIBS_INIT})
+
+  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
+  list(SORT header_files)
+
+  foreach(file ${header_files})
+    string(REPLACE "/" "_" compilename "${file}") # replace / to _ to fix warnings
+    string(REPLACE "." "_" compilename "${compilename}")
+
+    check_cxx_source_compiles(
+      "#include \"${file}\"
+      int main() { return 0; }" IsSelfContained${compilename})
+
+    if(NOT IsSelfContained${compilename})
+      message(SEND_ERROR
+        "Compilation FAILED for ${file}\n\nCompiler output:\n${OUTPUT}")
+    endif()
+  endforeach()
+
+endif(TRY_COMPILE_HEADERS)
 
 ################################################################################
