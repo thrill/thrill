@@ -49,12 +49,14 @@ template <size_t BlockSize = default_block_size>
 class ChannelMultiplexer
 {
 public:
-    using ChannelPtr = std::shared_ptr<Channel<BlockSize> >;
+    using Block = data::Block<BlockSize>;
+    using BlockPtr = std::shared_ptr<Block>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    static const size_t block_size = default_block_size;
-
-    using BlockWriter = data::BlockWriter<block_size>;
-    using BlockQueueReader = BlockReader<BlockQueueSource<block_size> >;
+    using Channel = data::Channel<BlockSize>;
+    using ChannelPtr = std::shared_ptr<Channel>;
+    using BlockWriter = data::BlockWriter<BlockSize>;
+    using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
 
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), next_id_(0) { }
@@ -180,7 +182,7 @@ private:
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel<BlockSize> >(id, *group_, dispatcher_);
+        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_);
         channels_.insert(std::make_pair(id, channel));
         return channel;
     }
@@ -234,10 +236,6 @@ private:
         net::Buffer&& buffer) {
 
         sLOG << "got block on" << s << "in channel" << header.channel_id;
-
-        using Block = data::Block<block_size>;
-        using BlockPtr = std::shared_ptr<Block>;
-        using VirtualBlock = data::VirtualBlock<block_size>;
 
         die_unless(header.expected_bytes == buffer.size());
 
