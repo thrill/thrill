@@ -86,7 +86,7 @@ public:
 
     //! Indicates whether all streams are finished
     bool Finished() const {
-        return finished_streams_ == queues_.size();
+        return finished_streams_ == expected_streams();
     }
 
     const ChannelId & id() const {
@@ -162,6 +162,12 @@ public:
         }
     }
 
+    //! Indicates if the channel is closed - meaining all remite streams have
+    //! been closed. This does *not* include the loopback stream
+    bool closed() const {
+        return finished_streams_ == expected_streams();
+    }
+
 protected:
     static const bool debug = false;
 
@@ -201,13 +207,18 @@ protected:
         queues_[from].Close();
 
         finished_streams_++;
-        if (finished_streams_ == queues_.size()) {
+        if (finished_streams_ == expected_streams()) {
             sLOG << "channel" << id_ << " is closed";
         }
         else {
             sLOG << "channel" << id_ << " is not closed yet "
                  << "(expect:" << queues_.size() << "actual:" << finished_streams_ << ")";
         }
+    }
+
+    //! Number of streams that have to be closed so the channel is closed
+    bool expected_streams() const {
+        return queues_.size() - 1;
     }
 
     // void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
