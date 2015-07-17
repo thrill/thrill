@@ -91,18 +91,16 @@ public:
      * each array cell.
      */
     ReduceToIndexNode(Context& ctx,
-                      std::shared_ptr<DIANode<ParentInput> > parent,
+                      const std::shared_ptr<DIANode<ParentInput> >& parent,
                       const ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
-                      Value neutral_element
-                      )
-        :
-          DOpNode<ValueType>(ctx, { parent }),
+                      Value neutral_element)
+        : DOpNode<ValueType>(ctx, { parent }),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(ctx.data_manager().GetNewChannel),
+          channel_(ctx.data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
