@@ -120,8 +120,6 @@ TEST(Operations, MapResultsCorrectChangingType) {
     api::ExecuteLocalTests(start_func);
 }
 
-#if TODO_FIXME
-
 TEST(Operations, FlatMapResultsCorrectChangingType) {
 
     std::function<void(Context&)> start_func =
@@ -129,8 +127,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index + 1;
+                [](const size_t& index) -> int {
+                    return (int)index;
                 },
                 16);
 
@@ -145,20 +143,24 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             doubled.AllGather(&out_vec);
 
-            int i = 1;
-            for (int element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
+            ASSERT_EQ(32u, out_vec.size());
+
+            for (size_t i = 0; i != out_vec.size() / 2; ++i) {
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2 * i);
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2 * (i + 16));
             }
 
-            ASSERT_EQ(32u, out_vec.size());
-            static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
-            static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
+            static_assert(
+                std::is_same<decltype(doubled)::ItemType, double>::value,
+                "DIA must be double");
+
+            static_assert(
+                std::is_same<decltype(doubled)::StackInput, int>::value,
+                "Node must be int");
         };
 
     api::ExecuteLocalTests(start_func);
 }
-
-#endif // TODO_FIXME
 
 TEST(Operations, PrefixSumCorrectResults) {
 
