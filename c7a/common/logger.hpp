@@ -18,9 +18,40 @@
 #include <sstream>
 #include <stdexcept>
 #include <mutex>
+#include <thread>
+#include <map>
 
 namespace c7a {
 namespace common {
+
+//! thread-id to name mapping for better multi-threaded log output
+struct ThreadNameDirectory {
+    std::map<std::thread::id, std::string> threadNames_;
+    std::mutex                             threadNamesMutex_;
+
+    //! Defines a name for the current thread, only if no name was set previously
+    void                                   NameThisThread(const std::string& name) {
+        std::lock_guard<std::mutex> lock(threadNamesMutex_);
+        if (!HasNameForThisThread())
+            threadNames_[std::this_thread::get_id()] = name;
+    }
+
+    //! True if name was defined for the current thread
+    bool                                   HasNameForThisThread() {
+        return threadNames_.find(std::this_thread::get_id()) != threadNames_.end();
+    }
+
+    //! Returns the name of the current thread or 'unknown [id]'
+    std::string                            NameForThisThread() {
+        std::lock_guard<std::mutex> lock(threadNamesMutex_);
+        if (HasNameForThisThread()) {
+            return threadNames_[std::this_thread::get_id()];
+        }
+        std::stringstream ss;
+        ss << "unknown " << std::this_thread::get_id();
+        return ss.str();
+    }
+} static ThreadDirectory;
 
 /*!
  * A simple logging class which outputs a std::endl during destruction.
@@ -47,6 +78,10 @@ protected:
 public:
     //! Real active flag
     static const bool active = true;
+
+    Logger() {
+        oss_ << "[" << ThreadDirectory.NameForThisThread() << "] ";
+    }
 
     //! output any type, including io manipulators
     template <typename AnyType>
@@ -104,8 +139,9 @@ public:
 
     //! constructor: if real = false the output is suppressed.
     SpacingLogger()
-        : first_(true)
-    { }
+        : first_(true) {
+        oss_ << "[" << ThreadDirectory.NameForThisThread() << "] ";
+    }
 
     //! output any type, including io manipulators
     template <typename AnyType>

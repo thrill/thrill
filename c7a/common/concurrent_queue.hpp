@@ -29,7 +29,7 @@ namespace common {
 #if HAVE_INTELTBB
 
 template <typename T>
-using concurrent_queue = tbb::concurrent_queue<T>;
+using ConcurrentQueue = tbb::concurrent_queue<T>;
 
 #else   // !HAVE_INTELTBB
 
@@ -40,9 +40,11 @@ using concurrent_queue = tbb::concurrent_queue<T>;
  *
  * Not all methods of tbb:concurrent_queue<> are available here, please add them
  * if you need them. However, NEVER add any other methods that you might need.
+ *
+ * StyleGuide is violated, because signatures must match those in the TBB version
  */
 template <typename T>
-class concurrent_queue
+class ConcurrentQueue
 {
 public:
     typedef T value_type;

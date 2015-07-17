@@ -25,7 +25,7 @@ Group provides
 - a \ref Group::Size "Size()" and \ref Group::MyRank "MyRank()" function to describe the group.
 - a point-to-point Connection class with a rich set of Send, Receive methods to transfer raw data to another worker in the group: \ref Connection::Send "Send<T>", \ref Connection::SendString "SendString", \ref Connection::Receive "Receive<T>", \ref Connection::ReceiveString "ReceiveString".
 - \ref Group::ReceiveFromAny "ReceiveFromAny" functions to listen for messages from any worker in the group.
-- collective operations for **primitiv** datatypes: \ref Group::AllReduce "AllReduce".
+- collective operations for **primitiv** datatypes: \ref net::AllReduce() "AllReduce".
 
 If any operation on a Connection fails, then a Exception is thrown.
 

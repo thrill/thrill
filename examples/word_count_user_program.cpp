@@ -1,22 +1,29 @@
 /*******************************************************************************
- * examples/wordcount/word_count_user_program.cpp
+ * examples/word_count_user_program.cpp
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/reduce_node.hpp>
 #include <c7a/common/string.hpp>
+#include <c7a/c7a.hpp>
+
+#include <algorithm>
+#include <random>
+#include <string>
+
+using c7a::Context;
+using c7a::DIARef;
 
 template <typename InStack>
-auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
-   
+auto word_count_user(DIARef<std::string, InStack>&input) {
+
     using WordCount = std::pair<std::string, int>;
 
-    auto word_pairs = input.FlatMap(
+    auto word_pairs = input.template FlatMap<WordCount>(
         [](std::string line, auto emit) {
             /* map lambda */
             for (const std::string& word : c7a::common::split(line, ' ')) {
@@ -30,17 +37,16 @@ auto word_count_user(c7a::DIARef<std::string, InStack> & input) {
             /* reduction key: the word string */
             return in.first;
         },
-        [](WordCount a, WordCount b) {
+        [](const WordCount& a, const WordCount& b) {
             /* associative reduction operator: add counters */
             return WordCount(a.first, a.second + b.second);
         });
 }
 
 //! The WordCount user program
-int word_count(c7a::Context& ctx) {
-    using c7a::Context;
+int word_count(Context& ctx) {
     using WordCount = std::pair<std::string, int>;
-   
+
     auto lines = ReadLines(
         ctx,
         "wordcount.in",
@@ -59,8 +65,7 @@ int word_count(c7a::Context& ctx) {
     return 0;
 }
 
-int word_count_generated(c7a::Context& ctx, size_t size) {
-    using c7a::Context;
+int word_count_generated(Context& ctx, size_t size) {
     using WordCount = std::pair<std::string, int>;
 
     auto lines = GenerateFromFile(

@@ -10,70 +10,29 @@
 #include "gtest/gtest.h"
 #include "c7a/data/manager.hpp"
 #include <c7a/net/dispatcher.hpp>
-#include <c7a/net/channel_multiplexer.hpp>
 
 using namespace c7a::data;
 using namespace c7a::net;
 
 struct DataManagerFixture : public::testing::Test {
     DataManagerFixture()
-        : dispatcher(),
+        : dispatcher("disptacher"),
           manager(dispatcher),
-          id(manager.AllocateDIA()) { }
+          id(manager.AllocateFileId()) { }
 
     DispatcherThread dispatcher;
     Manager          manager;
-    DIAId            id;
+    DataId           id;
 };
 
-TEST_F(DataManagerFixture, GetIterator_FailsIfNotFound) {
-    ASSERT_ANY_THROW(manager.GetIterator<int>(999));
+TEST_F(DataManagerFixture, GetFile_FailsIfNotFound) {
+    ASSERT_ANY_THROW(manager.GetFile(999));
 }
 
-TEST_F(DataManagerFixture, GetLocalEmitter_FailsIfNotFound) {
-    ASSERT_ANY_THROW(manager.GetLocalEmitter<int>(23));
-}
-
-TEST_F(DataManagerFixture, GetLocalEmitter_CanCallEmitter) {
-    auto e = manager.GetLocalEmitter<int>(manager.AllocateDIA());
-    ASSERT_NO_THROW(e(123));
-}
 TEST_F(DataManagerFixture, AllocateTwice) {
-    manager.AllocateDIA();
-    manager.AllocateDIA();
-}
-TEST_F(DataManagerFixture, EmittAndIterate_CorrectOrder) {
-    auto emitFn = manager.GetLocalEmitter<int>(id);
-    emitFn(123);
-    emitFn(22);
-    emitFn.Flush();
-    auto it = manager.GetIterator<int>(id);
-    ASSERT_TRUE(it.HasNext());
-    ASSERT_EQ(123, it.Next());
-    ASSERT_EQ(22, it.Next());
-}
-
-TEST_F(DataManagerFixture, AllocateMultiple) {
-    manager.AllocateDIA();
-    manager.AllocateDIA();
-    manager.AllocateDIA();
-    manager.AllocateDIA();
-    manager.AllocateDIA();
-}
-
-TEST_F(DataManagerFixture, EmittAndIterate_ConcurrentAccess) {
-    auto it = manager.GetIterator<int>(id);
-    auto emitFn = manager.GetLocalEmitter<int>(id);
-    emitFn(123);
-    emitFn.Flush();
-    ASSERT_TRUE(it.HasNext());
-    ASSERT_EQ(123, it.Next());
-    ASSERT_FALSE(it.HasNext());
-
-    emitFn(22);
-    emitFn.Flush();
-    ASSERT_TRUE(it.HasNext());
-    ASSERT_EQ(22, it.Next());
+    auto id1 = manager.AllocateFileId();
+    auto id2 = manager.AllocateFileId();
+    ASSERT_FALSE(id1 == id2);
 }
 
 /******************************************************************************/

@@ -24,7 +24,8 @@ namespace net {
 //! \name Collective Operations
 //! \{
 
-//! @brief   Calculate for every worker his prefix sum.
+//! @brief   Calculate for every worker his prefix sum. Works only for worker
+//!          numbers which are powers of two.
 //! @details The prefix sum is the aggregatation of the values of all workers
 //!          with lesser index, including himself, according to a summation
 //!          operator. This function currently only supports worker numbers
@@ -34,7 +35,7 @@ namespace net {
 //! @param   value The value to be summed up
 //! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = common::SumOp<T> >
-static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     T total_sum = value;
 
     static const bool debug = false;
@@ -109,7 +110,7 @@ void Broadcast(Group& net, T& value) {
     }
 }
 
-//! @brief   Perform an All-Reduce on the workers. 
+//! @brief   Perform an All-Reduce on the workers.
 //! @details This is done by aggregating all values according to a summation
 //!          operator and sending them backto all workers.
 //!
@@ -131,7 +132,7 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   cv  A condition variable which locks on the given mutex
 //! @param   num_workers The total number of workers in the network
 static inline
-void ThreadBarrier(std::mutex &mtx, std::condition_variable &cv, int &num_workers) {
+void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
     if (num_workers > 1) {
         --num_workers;
@@ -140,6 +141,34 @@ void ThreadBarrier(std::mutex &mtx, std::condition_variable &cv, int &num_worker
     else {
         --num_workers;
         cv.notify_all();
+    }
+}
+
+//! @brief   Calculate for every worker his prefix sum.
+//! @details The prefix sum is the aggregatation of the values of all workers
+//!          with lesser index, including himself, according to a summation
+//!          operator. The run-time is in O(log n).
+//!
+//! @param   net The current worker onto which to apply the operation
+//! @param   value The value to be summed up
+//! @param   sumOp A custom summation operator
+template <typename T, typename BinarySumOp = common::SumOp<T> >
+static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+    static const bool debug = false;
+
+    // This is based on the pointer-doubling algorithm presented in the ParAlg
+    // script, which is used for list ranking.
+    for (size_t d = 1; d < net.Size(); d <<= 1) {
+        if (net.MyRank() + d < net.Size()) {
+            sLOG << "Worker" << net.MyRank() << ": sending to" << net.MyRank() + d;
+            net.SendTo(net.MyRank() + d, value);
+        }
+        if (net.MyRank() >= d) {
+            sLOG << "Worker" << net.MyRank() << ": receiving from" << net.MyRank() - d;
+            T recv_value;
+            net.ReceiveFrom(net.MyRank() - d, &recv_value);
+            value = sumOp(value, recv_value);
+        }
     }
 }
 

@@ -5,6 +5,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -13,13 +14,14 @@
 #ifndef C7A_API_DIA_BASE_HEADER
 #define C7A_API_DIA_BASE_HEADER
 
-#include <vector>
-#include <string>
-#include "context.hpp"
-#include "types.hpp"
+#include <c7a/api/context.hpp>
 #include <c7a/data/manager.hpp>
 
+#include <vector>
+#include <string>
+
 namespace c7a {
+namespace api {
 
 /*!
  * Possible states a DIABase can be in.
@@ -66,50 +68,57 @@ public:
      *
      * \param parents Reference to parents of this node, which have to be computed previously
      */
-    DIABase(Context& ctx, const DIABaseVector& parents)
+    DIABase(Context& ctx,
+            const std::vector<std::shared_ptr<DIABase> >& parents)
         : context_(ctx), parents_(parents),
-          data_id_(ctx.get_data_manager().AllocateDIA()) {
+          data_id_(ctx.data_manager().AllocateDIA()) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
     }
 
     //! Virtual destructor for a DIABase.
-    virtual ~DIABase() { }
+    virtual ~DIABase() {
+        // Remove child pointer from parent
+        // If a parent loses all its childs
+        // its reference count should be zero and he
+        // should be removed
+        // parent->remove_child(this);
+    }
 
     //! Virtual execution method. Triggers actual computation in sub-classes.
-    virtual void execute() = 0;
+    virtual void Execute() = 0;
 
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
-    //! Returns the childs of this DIABase.
-    //! \return A vector of all childs
-    const DIABaseVector & get_childs() {
-        return childs_;
+    //! Returns the children of this DIABase.
+    //! \return A vector of all children
+    const std::vector<DIABase*> & children() {
+        return children_;
     }
 
     //! Returns the parents of this DIABase.
     //! \return A vector of all parents
-    const DIABaseVector & get_parents() {
+    const std::vector<std::shared_ptr<DIABase> > & parents() {
         return parents_;
     }
 
     //! Returns the data::Manager of this DIABase.
     //! \return The data::Manager of this DIABase.
-    Context & get_context() {
+    Context & context() {
         return context_;
     }
 
-    //! Adds a child to the vector of childs. This method is called in the constructor.
+    //! Adds a child to the vector of children. This method is called in the constructor.
     //! \param child The child to add.
-    void add_child(DIABasePtr child) {
-        childs_.push_back(child);
+    void add_child(DIABase* child) {
+        children_.push_back(child);
     }
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId get_data_id() {
+    data::DIAId data_id() {
         return data_id_;
     }
 
@@ -143,14 +152,16 @@ protected:
 
     //! Context, which can give iterators to data.
     Context& context_;
-    //! Childs and parents of this DIABase.
-    DIABaseVector childs_, parents_;
+    //! Children and parents of this DIABase.
+    std::vector<DIABase*> children_;
+    std::vector<std::shared_ptr<DIABase> > parents_;
     //! Unique ID of this DIABase. Used by the data::Manager.
     data::DIAId data_id_;
 };
 
 //! \}
 
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_DIA_BASE_HEADER

@@ -5,6 +5,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -13,29 +14,25 @@
 #ifndef C7A_API_DIA_HEADER
 #define C7A_API_DIA_HEADER
 
-#include <functional>
-#include <vector>
-#include <stack>
-#include <iostream>
-#include <fstream>
+#include <c7a/api/context.hpp>
+#include <c7a/api/dia_node.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/api/lop_node.hpp>
+#include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
+
 #include <cassert>
+#include <fstream>
+#include <functional>
+#include <iostream>
 #include <memory>
+#include <stack>
 #include <string>
 #include <utility>
-
-#include "dia_node.hpp"
-#include "function_traits.hpp"
-#include "lop_node.hpp"
-#include "read_node.hpp"
-#include "context.hpp"
-#include "write_node.hpp"
-#include "generator_node.hpp"
-#include "allgather_node.hpp"
-
-#include <c7a/net/collective_communication.hpp>
-#include <c7a/common/future.hpp>
+#include <vector>
 
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -43,24 +40,39 @@ namespace c7a {
 /*!
  * DIARef is the interface between the user and the c7a framework. A DIARef can
  * be imagined as an immutable array, even though the data does not need to be
- * materialized at all. A DIARef contains a pointer to a DIANode of type T,
  * which represents the state after the previous DOp or Action. Additionally, a
  * DIARef stores the local lambda function chain of type Stack, which can transform
  * elements of the DIANode to elements of this DIARef. DOps/Actions create a
  * DIARef and a new DIANode, to which the DIARef links to. LOps only create a
  * new DIARef, which link to the previous DIANode.
  *
- * \tparam T Type of elements going into this DIA and LOp Chain.
- *
+ * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename T, typename Stack = FunctionStack<> >
+template <typename ValueType, typename Stack = FunctionStack<ValueType> >
 class DIARef
 {
     friend class Context;
-    using DIANodePtr = std::shared_ptr<DIANode<T> >;
+
+    template <typename Function>
+    using FunctionTraits = common::FunctionTraits<Function>;
 
 public:
+    //! type of the items delivered by the DOp, and pushed down the function
+    //! stack towards the next nodes. If the function stack contains LOps nodes,
+    //! these may transform the type.
+    using StackInput = typename Stack::Input;
+
+    //! type of the items virtually in the DIA, which is the type emitted by the
+    //! current LOp stack.
+    using ItemType = ValueType;
+
+    //! type of pointer to the real node object implementation. This object has
+    //! base item type StackInput which is transformed by the function stack
+    //! lambdas further. But even pushing more lambdas does not change the stack
+    //! input type.
+    using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
+
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
      * function chain from the DIANode to this DIARef.
@@ -71,9 +83,9 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr& node, Stack& stack)
+    DIARef(const DIANodePtr& node, const Stack& stack)
         : node_(node),
-          local_stack_(stack)
+          stack_(stack)
     { }
 
     /*!
@@ -85,9 +97,9 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, Stack& stack)
+    DIARef(DIANodePtr&& node, const Stack& stack)
         : node_(std::move(node)),
-          local_stack_(stack)
+          stack_(stack)
     { }
 
     /*!
@@ -100,55 +112,64 @@ public:
      * \param rhs DIA containing a non-empty function chain.
      */
     template <typename AnyStack>
-    DIARef(const DIARef<T, AnyStack>& rhs)
-        __attribute__((deprecated))
+    DIARef(const DIARef<ValueType, AnyStack>& rhs)
+#if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
-        __attribute__((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                               "Consider whether you can use auto instead of DIARef.")));
+    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                            "Consider whether you can use auto instead of DIARef.")))
+#else
+    __attribute__ ((deprecated))
+#endif
+    ;
 
     /*!
      * Returns a pointer to the according DIANode.
      */
-    DIANode<T> * get_node() const {
-        return node_.get();
+    const DIANodePtr & node() const {
+        return node_;
     }
 
     /*!
      * Returns the number of references to the according DIANode.
      */
-    int get_node_count() const {
+    size_t node_refcount() const {
         return node_.use_count();
     }
 
     /*!
      * Returns the stored function chain.
      */
-    const Stack & get_stack() const {
-        return local_stack_;
+    const Stack & stack() const {
+        return stack_;
     }
 
     /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
      * element of a possibly different type. The function chain of the returned
-     * DIARef is this DIARef's local_stack_ chained with map_fn.
+     * DIARef is this DIARef's stack_ chained with map_fn.
      *
      * \tparam MapFunction Type of the map function.
      *
-     * \param map_function Map function of type MapFunction, which maps each element
-     * to an element of a possibly different type.
-     *
+     * \param map_function Map function of type MapFunction, which maps each
+     * element to an element of a possibly different type.
      */
     template <typename MapFunction>
-    auto Map(const MapFunction &map_function) {
+    auto Map(const MapFunction &map_function) const {
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
+        using MapResult
+                  = typename common::FunctionTraits<MapFunction>::result_type;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
-                             emit_func(map_function(input));
-                         };
+                                     emit_func(map_function(input));
+                                 };
 
-        auto new_stack = local_stack_.push(conv_map_function);
-        return DIARef<T, decltype(new_stack)>(node_, new_stack);
+        static_assert(
+            std::is_same<MapArgument, ValueType>::value,
+            "MapFunction has the wrong input type");
+
+        auto new_stack = stack_.push(conv_map_function);
+        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
@@ -156,7 +177,7 @@ public:
      * according to the filter_function given by the
      * user. The filter_function maps each element to a boolean.
      * The function chain of the returned DIARef is this DIARef's
-     * local_stack_ chained with filter_function.
+     * stack_ chained with filter_function.
      *
      * \tparam FilterFunction Type of the map function.
      *
@@ -165,15 +186,19 @@ public:
      *
      */
     template <typename FilterFunction>
-    auto Filter(const FilterFunction &filter_function) {
+    auto Filter(const FilterFunction &filter_function) const {
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg<0>;
+                  = typename common::FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
-                                  if (filter_function(input)) emit_func(input);
-                              };
+                                        if (filter_function(input)) emit_func(input);
+                                    };
 
-        auto new_stack = local_stack_.push(conv_filter_function);
-        return DIARef<T, decltype(new_stack)>(node_, new_stack);
+        static_assert(
+            std::is_same<FilterArgument, ValueType>::value,
+            "FilterFunction has the wrong input type");
+
+        auto new_stack = stack_.push(conv_filter_function);
+        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
@@ -182,17 +207,20 @@ public:
      * element to elements of a possibly different type. The flatmap_function
      * has an emitter function as it's second parameter. This emitter is called
      * once for each element to be emitted. The function chain of the returned
-     * DIARef is this DIARef's local_stack_ chained with flatmap_function.
+     * DIARef is this DIARef's stack_ chained with flatmap_function.
+     *
+     * \tparam ResultType ResultType of the FlatmapFunction, if different from
+     * item type of DIA.
      *
      * \tparam FlatmapFunction Type of the map function.
      *
      * \param flatmap_function Map function of type FlatmapFunction, which maps
      * each element to elements of a possibly different type.
      */
-    template <typename FlatmapFunction>
-    auto FlatMap(const FlatmapFunction &flatmap_function) {
-        auto new_stack = local_stack_.push(flatmap_function);
-        return DIARef<T, decltype(new_stack)>(node_, new_stack);
+    template <typename ResultType = ValueType, typename FlatmapFunction>
+    auto FlatMap(const FlatmapFunction &flatmap_function) const {
+        auto new_stack = stack_.push(flatmap_function);
+        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack);
     }
 
     /*!
@@ -201,7 +229,7 @@ public:
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type. Since Reduce is a DOp,
      * it creates a new DIANode. The DIARef returned by Reduce links to this
-     * newly created DIANode. The local_stack_ of the returned DIARef consists
+     * newly created DIANode. The stack_ of the returned DIARef consists
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
@@ -221,7 +249,47 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceBy(const KeyExtractor &key_extractor,
-                  const ReduceFunction &reduce_function);
+                  const ReduceFunction &reduce_function) const;
+
+    /*!
+     * ReduceToIndex is a DOp, which groups elements of the DIARef with the
+     * key_extractor returning an unsigned integers and reduces each key-bucket
+     * to a single element using the associative reduce_function.
+     * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
+     * which has the reduced element with key i in position i.
+     * The reduce_function defines how two elements can be reduced to a single
+     * element of equal type. Since ReduceToIndex is a DOp, it creates a new
+     * DIANode. The DIARef returned by ReduceToIndex links to this
+     * newly created DIANode. The stack_ of the returned DIARef consists
+     * of the PostOp of ReduceToIndex, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function and has an unsigned
+     * integer as it's output type.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param max_index Largest index given by the key_extractor function for
+     * any element in the input DIA.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
+     */
+    template <typename KeyExtractor, typename ReduceFunction>
+    auto ReduceToIndex(const KeyExtractor &key_extractor,
+                       const ReduceFunction &reduce_function,
+                       size_t max_index,
+                       ValueType neutral_element = ValueType()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
@@ -239,17 +307,39 @@ public:
      * DIARef.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia);
+    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia) const;
 
     /*!
-     * Sum is an Action, which computes the sum of elements of all workers.
+     * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
+     * function defines how two elements are combined to a single element.
+     *
+     * \tparam SumFunction Type of the sum_function.
+     *
+     * \param sum_function Sum function (any associative function).
+     *
+     * \param neutral_element Neutral element of the sum function.
+     */
+    template <typename SumFunction = common::SumOp<ValueType> >
+    auto PrefixSum(const SumFunction& sum_function = SumFunction(),
+                   ValueType neutral_element = ValueType()) const;
+
+    /*!
+     * Sum is an Action, which computes the sum of all elements globally.
      *
      * \tparam SumFunction Type of the sum_function.
      *
      * \param sum_function Sum function.
+     *
+     * \param initial_value Initial value of the sum.
      */
     template <typename SumFunction>
-    auto Sum(const SumFunction &sum_function);
+    auto Sum(const SumFunction& sum_function = common::SumOp<ValueType>(),
+             ValueType initial_value = ValueType()) const;
+
+    /*!
+     * Size is an Action, which computes the size of all elements in all workers.
+     */
+    size_t Size() const;
 
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.
@@ -265,89 +355,22 @@ public:
      */
     template <typename WriteFunction>
     void WriteToFileSystem(const std::string& filepath,
-                           const WriteFunction& write_function) {
-        using WriteResult = typename FunctionTraits<WriteFunction>::result_type;
-
-        using WriteResultNode = WriteNode<T, WriteResult, WriteFunction,
-                                          decltype(local_stack_)>;
-
-        auto shared_node =
-            std::make_shared<WriteResultNode>(node_->get_context(),
-                                              node_.get(),
-                                              local_stack_,
-                                              write_function,
-                                              filepath);
-
-        auto write_stack = shared_node->ProduceStack();
-        core::StageBuilder().RunScope(shared_node.get());
-    }
+                           const WriteFunction& write_function) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
      */
-    template<typename Out>
-     void AllGather(std::vector<Out>* out_vector) {
-
-        using AllGatherResultNode = AllGatherNode<T, Out, decltype(local_stack_)>;
-
-
-
-        auto shared_node =
-            std::make_shared<AllGatherResultNode>(node_->get_context(),
-                                                  node_.get(),
-                                                  local_stack_,
-                                                  out_vector);
-
-
-        core::StageBuilder().RunScope(shared_node.get());
-    }
-
-    /*!
-     * Returns Chuck Norris!
-     *
-     * \return Chuck Norris
-     */
-    const std::vector<T> & evil_get_data() const {
-        return (std::vector<T>{ T() });
-    }
+    void AllGather(std::vector<ValueType>* out_vector) const;
 
     /*!
      * Returns the string which defines the DIANode node_.
      *
      * \return The string of node_
      */
-    std::string NodeString() {
+    std::string NodeString() const {
         return node_->ToString();
-    }
-
-    /*!
-     * Prints the DIANode and all it's children recursively. The printing is
-     * performed tree-style.
-     */
-    void PrintNodes() {
-        using BasePair = std::pair<DIABase*, int>;
-        std::stack<BasePair> dia_stack;
-        dia_stack.push(std::make_pair(node_, 0));
-        while (!dia_stack.empty()) {
-            auto curr = dia_stack.top();
-            auto node = curr.first;
-            int depth = curr.second;
-            dia_stack.pop();
-            auto is_end = true;
-            if (!dia_stack.empty()) is_end = dia_stack.top().second < depth;
-            for (int i = 0; i < depth - 1; ++i) {
-                std::cout << "│   ";
-            }
-            if (is_end && depth > 0) std::cout << "└── ";
-            else if (depth > 0) std::cout << "├── ";
-            std::cout << node->ToString() << std::endl;
-            auto children = node->get_childs();
-            for (auto c : children) {
-                dia_stack.push(std::make_pair(c, depth + 1));
-            }
-        }
     }
 
 private:
@@ -357,70 +380,81 @@ private:
 
     //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
-    Stack local_stack_;
+    Stack stack_;
 };
 
-//! \}
-
-template <typename T, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename AnyStack>
-DIARef<T,Stack>::DIARef(const DIARef<T, AnyStack>& rhs) {
-    // Create new LOpNode.  Transfer stack from rhs to LOpNode.  Build new
+DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
+    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    auto rhs_node = std::move(rhs.get_node());
-    auto rhs_stack = rhs.get_stack();
-    using LOpChainNode
-        = LOpNode<T, decltype(rhs_stack)>;
+    using LOpChainNode = LOpNode<ValueType, AnyStack>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
 
     auto shared_node
-        = std::make_shared<LOpChainNode>(rhs_node->get_context(),
-                                         rhs_node,
-                                         rhs_stack);
+        = std::make_shared<LOpChainNode>(rhs.node()->context(),
+                                         rhs.node(),
+                                         rhs.stack());
     node_ = std::move(shared_node);
-    local_stack_ = FunctionStack<>();
 }
 
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \tparam ReadFunction Type of the read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ * \param read_function Read function, which is performed on each
+ * element
+ */
 template <typename ReadFunction>
 auto ReadLines(Context & ctx, std::string filepath,
-                        const ReadFunction &read_function) {
-    using ReadResult = typename FunctionTraits<ReadFunction>::result_type;
-    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
+               const ReadFunction &read_function);
 
-    auto shared_node =
-        std::make_shared<ReadResultNode>(ctx,
-                                         read_function,
-                                         filepath);
-
-    auto read_stack = shared_node->ProduceStack();
-
-    return DIARef<ReadResult, decltype(read_stack)>
-               (std::move(shared_node), read_stack);
-}
-
+/*!
+ * GenerateFromFile is a DOp, which reads a file from the file system and
+ * applies the generate function on each line. The DIA is generated by
+ * pulling random (possibly duplicate) elements out of those generated
+ * elements.
+ *
+ * \tparam GeneratorFunction Type of the generator function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ * \param generator_function Generator function, which is performed on each
+ * element
+ * \param size Size of the output DIA
+ */
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
-                      size_t size) {
-    using GeneratorResult =
-        typename FunctionTraits<GeneratorFunction>::result_type;
-    using GeneratorResultNode =
-        GeneratorNode<GeneratorResult, GeneratorFunction>;
+                      size_t size);
 
-    auto shared_node =
-        std::make_shared<GeneratorResultNode>(ctx,
-                                              generator_function,
-                                              filepath,
-                                              size);
+/*!
+ * Generate is a DOp, which creates an DIA according to a generator
+ * function. This function is used to generate a DIA of a certain size by
+ * applying it to integers from 0 to size - 1.
+ *
+ * \tparam GeneratorFunction Type of the generator function. Input type has to
+ * be unsigned integer
+ *
+ * \param ctx Reference to the context object
+ * \param generator_function Generator function, which maps integers from 0 to size - 1
+ * to elements.
+ * \param size Size of the output DIA
+ */
+template <typename GeneratorFunction>
+auto Generate(Context & ctx,
+              const GeneratorFunction &generator_function,
+              size_t size);
 
-    auto generator_stack = shared_node->ProduceStack();
+//! \}
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (std::move(shared_node), generator_stack);
-}
-
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER

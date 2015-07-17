@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -17,6 +18,7 @@
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/exception.hpp>
 #include <c7a/net/buffer.hpp>
+#include <c7a/common/config.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -54,7 +56,7 @@ class Connection : protected lowlevel::Socket
 {
     static const bool debug = false;
 
-    static const bool self_verify_ = true;
+    static const bool self_verify_ = common::g_self_verify;
 
     /**
      * @brief The connection state of this connection in the c7a network state machine.

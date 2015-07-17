@@ -58,8 +58,8 @@ public:
     //! \}
 
 public:
-    DispatcherThread()
-        : dispatcher_() {
+    DispatcherThread(const std::string& thread_name)
+        : dispatcher_(), name_(thread_name) {
         thread_ = std::thread(&DispatcherThread::Work, this);
     }
 
@@ -177,6 +177,7 @@ protected:
 
     //! What happens in the dispatcher thread
     void Work() {
+        c7a::common::ThreadDirectory.NameThisThread(name_);
         {
             // Set ALRM signal handler
             struct sigaction sa;
@@ -218,19 +219,22 @@ protected:
 
 private:
     //! Queue of jobs to be run by dispatching thread at its discretion.
-    common::concurrent_queue<Job> jobqueue_;
+    common::ConcurrentQueue<Job> jobqueue_;
 
     //! thread of dispatcher
     std::thread thread_;
 
     //! check whether the signal handler was set before issuing signals.
-    bool running_ = false;
+    std::atomic<bool> running_ { false };
 
     //! termination flag of dispatcher thread.
-    bool terminate_ = false;
+    std::atomic<bool> terminate_ { false };
 
     //! enclosed dispatcher.
     Dispatcher dispatcher_;
+
+    //! thread name for logging
+    std::string name_;
 };
 
 //! \}

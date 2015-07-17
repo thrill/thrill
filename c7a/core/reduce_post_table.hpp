@@ -5,6 +5,8 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -13,7 +15,7 @@
 #ifndef C7A_CORE_REDUCE_POST_TABLE_HEADER
 #define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
-#include <c7a/api/function_traits.hpp>
+#include <c7a/common/function_traits.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -23,50 +25,133 @@
 #include <vector>
 #include <stdexcept>
 #include <array>
+#include <type_traits>
 
 namespace c7a {
 namespace core {
 
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
+template <bool, typename T, typename Value, typename Table>
+struct FlushImpl;
+
+template <typename T, typename Value, typename Table>
+struct FlushImpl<true, T, Value, Table>{
+    void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
+                    size_t min_local_index_, size_t max_local_index_,
+                    Table* table, Value neutral_element_) {
+        // retrieve items
+
+        std::vector<Value> elements_to_emit
+            (max_local_index_ - min_local_index_ + 1, neutral_element_);
+
+        for (size_t i = 0; i < num_buckets_; i++) {
+            if ((*vector_)[i] != nullptr) {
+                T curr_node = (*vector_)[i];
+                do {
+                    elements_to_emit[curr_node->key - min_local_index_] =
+                        curr_node->value;
+                    auto del = curr_node;
+                    curr_node = curr_node->next;
+                    delete del;
+                } while (curr_node != nullptr);
+
+                (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+            }
+        }
+        for (auto element_to_emit : elements_to_emit) {
+            table->EmitAll(element_to_emit);
+        }
+    }
+};
+
+template <typename T, typename Value, typename Table>
+struct FlushImpl<false, T, Value, Table>{
+    void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
+                    size_t, size_t, Table* table, Value) {
+        for (size_t i = 0; i < num_buckets_; i++) {
+            if ((*vector_)[i] != nullptr) {
+                T curr_node = (*vector_)[i];
+                do {
+                    table->EmitAll(curr_node->value);
+                    auto del = curr_node;
+                    curr_node = curr_node->next;
+                    delete del;
+                } while (curr_node != nullptr);
+
+                (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+            }
+        }
+    }
+};
+
+template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction, const bool ToIndex = false>
 class ReducePostTable
 {
+public:
     static const bool debug = false;
 
-    // TODO(ms): according to coding style: Types are CamelCase.
-    using key_t = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using value_t = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    using KeyValuePair = std::pair<key_t, value_t>;
+    using KeyValuePair = std::pair<Key, Value>;
 
 protected:
-    template <typename key_t, typename value_t>
+    template <typename Key, typename Value>
     struct node {
-        key_t   key;
-        value_t value;
-        node    * next;
+        Key   key;
+        Value value;
+        node  * next;
     };
 
 public:
+    typedef std::function<size_t(Key, ReducePostTable*)> HashFunction;
+
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
                     KeyExtractor key_extractor, ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit)
+                    std::vector<EmitterFunction>& emit,
+                    HashFunction hash_function = [](Key key,
+                                                    ReducePostTable* pt) {
+                                                     return std::hash<Key>() (key) % pt->num_buckets_;
+                                                 },
+                    size_t min_local_index = 0,
+                    size_t max_local_index = 0,
+                    Value neutral_element = Value()
+                    )
         : num_buckets_init_scale_(num_buckets),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+          min_local_index_(min_local_index),
+          max_local_index_(max_local_index),
+          neutral_element_(neutral_element)
+    {
         init();
     }
 
     ReducePostTable(KeyExtractor key_extractor,
-                    ReduceFunction reduce_function, std::vector<EmitterFunction>& emit)
+                    ReduceFunction reduce_function,
+                    std::vector<EmitterFunction>& emit,
+                    HashFunction hash_function = [](Key key,
+                                                    ReducePostTable* pt) {
+                                                     return std::hash<Key>() (key) % pt->num_buckets_;
+                                                 },
+                    size_t min_local_index = 0,
+                    size_t max_local_index = 0,
+                    Value neutral_element = Value()
+                    )
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)) {
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+          min_local_index_(min_local_index),
+          max_local_index_(max_local_index),
+          neutral_element_(neutral_element)
+    {
         init();
     }
 
@@ -85,9 +170,9 @@ public:
      */
     void Insert(KeyValuePair p) {
 
-        key_t key = p.first;
+        Key key = p.first;
 
-        size_t hashed_key = std::hash<key_t>() (key) % num_buckets_;
+        size_t hashed_key = hash_function_(key, this);
 
         LOG << "key: "
             << key
@@ -101,7 +186,7 @@ public:
         if (vector_[hashed_key] == nullptr) {
             LOG << "bucket empty, inserting...";
 
-            node<key_t, value_t>* n = new node<key_t, value_t>;
+            node<Key, Value>* n = new node<Key, Value>;
             n->key = key;
             n->value = p.second;
             n->next = nullptr;
@@ -114,7 +199,7 @@ public:
             LOG << "bucket not empty, checking if key already exists...";
 
             // check if item with same key
-            node<key_t, value_t>* curr_node = vector_[hashed_key];
+            node<Key, Value>* curr_node = vector_[hashed_key];
             do {
                 if (key == curr_node->key) {
                     LOG << "match of key: "
@@ -135,10 +220,10 @@ public:
 
             // no item found with key
             if (curr_node == nullptr) {
-                LOG << "key doesn't exist in baguette, appending...";
+                LOG << "key doesn't exist, appending...";
 
                 // insert at first pos
-                node<key_t, value_t>* n = new node<key_t, value_t>;
+                node<Key, Value>* n = new node<Key, Value>;
                 n->key = key;
                 n->value = p.second;
                 n->next = vector_[hashed_key];
@@ -159,30 +244,22 @@ public:
     /*!
      * Emits element to all childs
      */
-    void EmitAll(value_t& element) {
+    void EmitAll(Value& element) {
         for (auto& emitter : emit_) {
             emitter(element);
         }
     }
+
     /*!
      * Flushes all items.
      */
     void Flush() {
-        LOG << "Flushing in progress";
 
-        // retrieve items
-        for (size_t i = 0; i < num_buckets_; i++) {
-            if (vector_[i] != nullptr) {
-                node<key_t, value_t>* curr_node = vector_[i];
-                do {
-                    EmitAll(curr_node->value);
-                    curr_node = curr_node->next;
-                } while (curr_node != nullptr);
-                vector_[i] = nullptr; //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
-            }
-        }
-
-        // reset counters
+        FlushImpl<ToIndex, node<Key, Value>*, Value,
+                  ReducePostTable<KeyExtractor, ReduceFunction,
+                                  EmitterFunction, ToIndex> > flush_impl;
+        flush_impl.FlushToAll(&vector_, num_buckets_, min_local_index_,
+                              max_local_index_, this, neutral_element_);
         table_size_ = 0;
     }
 
@@ -215,8 +292,8 @@ public:
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
         // init new array
-        std::vector<node<key_t, value_t>*> vector_old = vector_;
-        std::vector<node<key_t, value_t>*> vector_new;
+        std::vector<node<Key, Value>*> vector_old = vector_;
+        std::vector<node<Key, Value>*> vector_new;
         vector_new.resize(num_buckets_, nullptr);
         vector_ = vector_new;
         // rehash all items in old array
@@ -259,8 +336,8 @@ public:
                 std::string log = "";
 
                 // check if item with same key
-                node<key_t, value_t>* curr_node = vector_[i];
-                value_t curr_item;
+                node<Key, Value>* curr_node = vector_[i];
+                Value curr_item;
                 do {
                     curr_item = curr_node->value;
 
@@ -306,7 +383,15 @@ private:
 
     std::vector<EmitterFunction> emit_;
 
-    std::vector<node<key_t, value_t>*> vector_;
+    std::vector<node<Key, Value>*> vector_;
+
+    HashFunction hash_function_;
+
+    size_t min_local_index_;
+
+    size_t max_local_index_;
+
+    Value neutral_element_;
 };
 
 } // namespace core

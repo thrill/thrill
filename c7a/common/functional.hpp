@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -27,7 +28,7 @@ struct Identity {
 template <typename T>
 struct SumOp {
     //! returns the sum of a and b
-    T operator () (const T& a, const T& b) {
+    T operator () (const T& a, const T& b) const {
         return a + b;
     }
 };

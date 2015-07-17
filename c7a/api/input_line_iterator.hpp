@@ -1,23 +1,23 @@
 /*******************************************************************************
- * c7a/data/input_line_iterator.hpp
+ * c7a/api/input_line_iterator.hpp
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Alexander Noe <uagtc@student.kit.edu>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_INPUT_LINE_ITERATOR_HEADER
-#define C7A_DATA_INPUT_LINE_ITERATOR_HEADER
+#ifndef C7A_API_INPUT_LINE_ITERATOR_HEADER
+#define C7A_API_INPUT_LINE_ITERATOR_HEADER
+
+#include <c7a/data/serializer.hpp>
 
 #include <stdio.h>
 #include <string>
 #include <fstream>
 #include <iostream>
-
-#include <c7a/data/serializer.hpp>
 
 namespace c7a {
 
@@ -41,19 +41,18 @@ public:
         std::streampos my_start = per_worker * my_id_;
         if (my_id_ == (num_workers - 1)) {
             my_end_ = file_size_ - 1;
-        } else {
+        }
+        else {
             my_end_ = per_worker * (my_id_ + 1) - 1;
         }
 
         file_.seekg(my_start, std::ios::beg);
-	
-	
 
         //Go to next new line if the stream-pointer is not at the beginning of a line
         if (my_id != 0) {
-	  std::streampos previous = (per_worker * my_id_) - 1;
-	  file_.seekg(previous, std::ios::beg);
-	  //file_.unget();
+            std::streampos previous = (per_worker * my_id_) - 1;
+            file_.seekg(previous, std::ios::beg);
+            //file_.unget();
             if (file_.get() != '\n') {
                 std::string str;
                 std::getline(file_, str);
@@ -88,9 +87,8 @@ private:
     std::streampos my_end_;
 };
 
-
 } // namespace c7a
 
-#endif // !C7A_DATA_INPUT_LINE_ITERATOR_HEADER
+#endif // !C7A_API_INPUT_LINE_ITERATOR_HEADER
 
 /******************************************************************************/

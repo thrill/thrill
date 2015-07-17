@@ -18,7 +18,7 @@ namespace data {
 The \ref data::Manager is a facade for the subsystem access to remote and local data.
 
 ## DIAs-Partitions
-\ref c7a::DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
+\ref c7a::api::DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
 DIAs can be materialized (data elements are held in external or internal memory) or not (DIA refers internally to upstream DIAs and how to transform elements).
 Each worker holds a partition of each DIA.
 Partitions are most likely not balanced across workers and some partitions might be even empty.
@@ -31,8 +31,8 @@ Data exchanges are triggered by distributed operations.
 \todo refer to list of distributed operations.
 
 Multiple data exchanges of different distributed operations can happen concurrently.
-Therefore an address-schema is required to distinguish \ref c7a::net::Channel "data channels".
-We use the same approach as for the DIAs by using a \ref c7a::net::ChannelId "ChannelId" that is generated in a determistic fashion.
+Therefore an address-schema is required to distinguish \ref c7a::data::Channel "data channels".
+We use the same approach as for the DIAs by using a \ref c7a::data::ChannelId "ChannelId" that is generated in a determistic fashion.
 Access to these channels is provided through the \ref data::Manager.
 
 ## Buffers and BufferChains
@@ -46,7 +46,7 @@ BufferChains can append BinaryBuffers or can be closed.
 ## Address Schema
 DIAs and Channels are addressed by unique IDs, which are allocated via the data::Manager by calling \ref c7a::data::Manager::AllocateDIA() "AllocateDIA" and \ref c7a::data::Manager::AllocateNetworkChannel() "AllocateNetworkChannel".
 Each call of these methods alters the state of the \ref c7a::data::Manager, thus the order in which these calls happen matters.
-All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::net::Channel "NetworkChannels".
+All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::data::Channel "NetworkChannels".
 
 ## Iterators and Emitters
 The central interface to access data consists of the \ref Iterator and the \ref Emitter class.
@@ -55,8 +55,9 @@ When data is pushed / pulled via these classes, data elements are serialized if 
 Emitters and Iterators can access locally stored data and channel data by accessing \ref BufferChain instances.
 Both types of emitters may buffer pushed elements until \ref Emitter::Flush() "flush" or \ref Emitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
 Emitters and Iterators can operate concurrently - emitters can push data even after an iterator was created.
-Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsClosed() "IsClosed() method".
+Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsFinished() "IsFinished() method".
 If multiple emitters exist, multiple calls to \ref Emitter::Close() "close" lead to undefined behaviour.
+Iterators offer \ref Iterator::HasNext() and \ref Iterator::Next() as most ocmmon interface to read data sequentially. \ref Iterator::Seek() can be used for internal use. Seek returns a base address and byte-length of the elements that where seeked. Seek always returns continuous memory and thus only operats on a single BinaryBufer. \ref Iterator::Seek() can be called multiple times to return multiple memory ranges until all elements have been reached, as shown in the example below.
 
 ## Examples
 To write into the local storage and then read from it use:
@@ -100,14 +101,27 @@ void Produce(c7a::data::Manager& manager, c7a::data::ChannelId id) {
 void Consume(c7a::data::Manager& manager, c7a::data::ChannelId id) {
     auto it = manager.GetIterator(id);
 
-    //loop until every emitter in produce has been closed.
-    while (!it.IsClosed()) {
+    //loop until every emitter in produce has been closed AND iterator is on end of chain
+    while (!it.IsFinished()) {
         it.WaitForMore(); //returns instantly when data available or it was closed, blocks if not
         while (it.HasNext()) { //can return false even if more data is available
             std::cout << "received " << it.Next() << std::endl;
         }
     }
 }
+\endcode
+
+Seek 100 elements from a Dia Partition
+\code
+    auto it = manager.GetIterator(id);
+    size_t element_count = 0;
+    while (element_count < 100) {
+        void* data;
+        size_t length;
+        size_t elements_seeked = it.Seek(100 - element_count, &data, &length)
+        //do something with data / length
+        element_count += elements_seeked;
+    }
 \endcode
 
 */

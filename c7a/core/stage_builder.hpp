@@ -24,6 +24,8 @@
 namespace c7a {
 namespace core {
 
+using c7a::api::DIABase;
+
 class Stage
 {
 public:
@@ -32,7 +34,7 @@ public:
     }
     void Run() {
         LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
-        node_->execute();
+        node_->Execute();
     }
 
 private:
@@ -54,10 +56,11 @@ public:
             DIABase* curr = dia_stack.top();
             dia_stack.pop();
             stages_result.emplace_back(Stage(curr));
-            const std::vector<DIABase*> parents = curr->get_parents();
-            for (DIABase* p : parents) {
+            const auto parents = curr->parents();
+            for (size_t i = 0; i < parents.size(); ++i) {
+                auto p = parents[i].get();
                 // if p is not a nullpointer and p is not cached mark it and save stage
-                if (p && (stages_found.find(p) == stages_found.end()) && p->state() != CACHED) {
+                if (p && (stages_found.find(p) == stages_found.end()) && p->state() != c7a::api::CACHED) {
                     dia_stack.push(p);
                     stages_found.insert(p);
                 }

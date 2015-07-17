@@ -52,17 +52,17 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 }
 
-static void ThreadInitializeSendCyclic(Group *net) {
+static void ThreadInitializeSendCyclic(Group* net) {
 
     size_t id = net->MyRank();
 
-    if(id != 0) {
+    if (id != 0) {
         size_t res;
         net->ReceiveFrom<size_t>(id - 1, &res);
         ASSERT_EQ(id - 1, res);
     }
 
-    if(id != net->Size() - 1) {
+    if (id != net->Size() - 1) {
         net->SendTo(id + 1, id);
     }
 }
@@ -158,10 +158,10 @@ static void RealGroupConstructAndCall(
     // randomize base port number for test
     std::random_device random_device;
     std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(30000, 65000);
+    std::uniform_int_distribution<int> distribution(10000, 30000);
     const size_t port_base = distribution(generator);
 
-    static const std::vector<Endpoint> endpoints = {
+    std::vector<Endpoint> endpoints = {
         Endpoint("127.0.0.1:" + std::to_string(port_base + 0)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 1)),
         Endpoint("127.0.0.1:" + std::to_string(port_base + 2)),
@@ -170,9 +170,9 @@ static void RealGroupConstructAndCall(
         Endpoint("127.0.0.1:" + std::to_string(port_base + 5))
     };
 
-    sLOG1 << "Group test uses ports " << port_base << "-" << port_base + 5;
+    sLOG1 << "Group test uses ports" << port_base << "-" << port_base + 5;
 
-    static const int count = endpoints.size();
+    const size_t count = endpoints.size();
 
     std::vector<std::thread> threads(count);
 
@@ -180,9 +180,9 @@ static void RealGroupConstructAndCall(
 
     std::vector<Manager> groups(count);
 
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
-            [i, &thread_function, &groups]() {
+            [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
                 groups[i].Initialize(i, endpoints);
                 // run thread function
@@ -190,8 +190,11 @@ static void RealGroupConstructAndCall(
             });
     }
 
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         threads[i].join();
+    }
+    for (size_t i = 0; i < count; i++) {
+        groups[i].Close();
     }
 }
 
@@ -233,15 +236,9 @@ TEST(Group, RealSendCyclic) {
     RealGroupConstructAndCall(ThreadInitializeSendCyclic);
 }
 
-
 TEST(Group, InitializeAndClose) {
     // Construct a Group of 6 workers which do nothing but terminate.
     Group::ExecuteLocalMock(6, [](Group*) { });
-}
-
-TEST(Manager, InitializeAndClose) {
-    // Construct a Group of 6 workers which do nothing but terminate.
-    Manager::ExecuteLocalMock(6, [](Group*) { }, [](Group*) { }, [](Group*) { });
 }
 
 TEST(Group, InitializeSendReceive) {
@@ -259,19 +256,18 @@ TEST(Group, InitializeBroadcast) {
 TEST(Group, SendCyclic) {
     Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
 }
-/*
+
 TEST(Group, TestPrefixSum) {
-    for (size_t p = 2; p <= 8; p *= 2) {
+    for (size_t p = 1; p <= 8; ++p) {
         // Construct Group of p workers which perform a PrefixSum collective
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = 1;
-                net->PrefixSum(local_value);
+                PrefixSum(*net, local_value);
                 ASSERT_EQ(local_value, net->MyRank() + 1);
             });
     }
 }
-*/
 
 TEST(Group, TestAllReduce) {
     for (size_t p = 0; p <= 8; ++p) {
@@ -279,7 +275,7 @@ TEST(Group, TestAllReduce) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = net->MyRank();
-                c7a::net::AllReduce(*net, local_value);
+                AllReduce(*net, local_value);
                 ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
     }
@@ -292,7 +288,7 @@ TEST(Group, TestBroadcast) {
             p, [](Group* net) {
                 size_t local_value;
                 if (net->MyRank() == 0) local_value = 42;
-                c7a::net::Broadcast(*net, local_value);
+                Broadcast(*net, local_value);
                 ASSERT_EQ(local_value, 42u);
             });
     }
@@ -304,7 +300,7 @@ TEST(Group, TestReduceToRoot) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = net->MyRank();
-                c7a::net::ReduceToRoot(*net, local_value);
+                ReduceToRoot(*net, local_value);
                 if (net->MyRank() == 0)
                     ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
             });
@@ -313,16 +309,16 @@ TEST(Group, TestReduceToRoot) {
 
 TEST(Group, TestBarrier) {
     static const bool debug = false;
-    std::mutex sync_mtx; // Synchronisation mutex for the barrier
-    std::mutex local_mtx; // Mutex for writing to the results array
-    std::condition_variable cv; // Condition variable for the barrier
+    std::mutex sync_mtx;            // Synchronisation mutex for the barrier
+    std::mutex local_mtx;           // Mutex for writing to the results array
+    std::condition_variable cv;     // Condition variable for the barrier
 
     for (int p = 0; p <= 8; ++p) {
         int workers = p;
         int workers_copy = workers; // Will be decremented by the barrier function
 
         std::vector<char> result(2 * workers);
-        int k = 0; // The counter for the result array
+        int k = 0;                  // The counter for the result array
         sLOG << "I'm in test" << workers;
 
         Group::ExecuteLocalMock(
@@ -333,14 +329,14 @@ TEST(Group, TestBarrier) {
 
                 sLOG << "Before Barrier, worker" << net->MyRank();
 
-                c7a::net::ThreadBarrier(sync_mtx, cv, workers_copy);
+                ThreadBarrier(sync_mtx, cv, workers_copy);
 
                 local_mtx.lock();
                 result[k++] = 'A'; // A stands for 'After barrier'
                 local_mtx.unlock();
 
                 sLOG << "After Barrier, worker" << net->MyRank();
-                });
+            });
         for (int i = 0; i < workers; ++i) {
             sLOG << "Checking position" << i;
             ASSERT_EQ(result[i], 'B');
