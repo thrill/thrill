@@ -100,9 +100,10 @@ build_test(data/serializer_test)
 
 build_only(api/wordcount_test)
 
+build_test(api/function_stack_test)
+build_test(api/operations_test)
+
 if (OFF)
-  build_test(api/function_stack_test)
-  build_test(api/operations_test)
   build_test(api/reduce_node_test)
   build_test(api/sum_node_test)
 
