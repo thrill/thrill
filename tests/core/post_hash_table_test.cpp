@@ -16,7 +16,7 @@ using namespace c7a::net;
 
 struct PostTable : public::testing::Test {
     PostTable()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id(manager.AllocateDIA()),
           iterator(manager.GetIterator<int>(id)),
