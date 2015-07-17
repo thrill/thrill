@@ -85,10 +85,10 @@ public:
 
     //! Terminate the dispatcher thread (if now already done).
     void Terminate() {
-        if (dispatcher_.terminate_) return;
+        if (terminate_) return;
 
         // set termination flags.
-        dispatcher_.Terminate();
+        terminate_ = true;
         // interrupt select().
         WakeUpThread();
         // wait for last round to finish.
@@ -217,7 +217,9 @@ protected:
                 return true;
             });
 
-        while (!dispatcher_.terminate_) {
+        while (!terminate_ ||
+               dispatcher_.HasAsyncWrites() || !jobqueue_.empty())
+        {
             // process jobs in jobqueue_
             {
                 Job job;
@@ -254,6 +256,9 @@ private:
 
     //! enclosed dispatcher.
     Dispatcher dispatcher_;
+
+    //! termination flag
+    std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
     std::string name_;
