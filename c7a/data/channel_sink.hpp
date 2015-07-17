@@ -59,8 +59,8 @@ public:
         header.expected_elements = vb.nitems;
         header.sender_rank = own_rank_;
 
-        sLOG1 << "sending block"
-              << common::hexdump(vb.block->begin(), vb.bytes_used);
+        sLOG << "sending block"
+             << common::hexdump(vb.block->begin(), vb.bytes_used);
 
         // TODO(tb): this copies data!
         net::Buffer payload_buf(vb.block->begin(), vb.bytes_used);
@@ -90,7 +90,8 @@ public:
         assert(!closed_);
         closed_ = true;
 
-        sLOG << "sending 'close channel' from worker" << own_rank_ << "on" << id_;
+        sLOG << "sending 'close channel' from worker" << own_rank_
+             << "channel" << id_;
 
         StreamBlockHeader header;
         header.channel_id = id_;

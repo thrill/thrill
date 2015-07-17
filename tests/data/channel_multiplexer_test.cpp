@@ -23,10 +23,10 @@ TEST(ChannelMultiplexerTest, Test) {
     net::Group::ExecuteLocalMock(
         2, [](net::Group* net) {
             common::GetThreadDirectory().NameThisThread(
-                "cmp" + std::to_string(net->MyRank()));
+                "chmp" + std::to_string(net->MyRank()));
 
             net::DispatcherThread dispatcher(
-                "cmp" + std::to_string(net->MyRank()) + "-dp");
+                "chmp" + std::to_string(net->MyRank()) + "-dp");
 
             data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
             cmp.Connect(net);

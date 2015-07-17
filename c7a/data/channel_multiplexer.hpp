@@ -148,19 +148,14 @@ public:
         for (auto& ch : channels_)
             ch.second->Close();
 
-        // cancel callbacks on network connections
-        for (size_t id = 0; id < group_->Size(); ++id) {
-            if (id == group_->MyRank()) continue;
-            dispatcher_.Cancel(group_->connection(id));
-        }
-
+        // terminate dispatcher, this waits for unfinished AsyncWrites.
         dispatcher_.Terminate();
 
         group_->Close();
     }
 
 private:
-    static const bool debug = true;
+    static const bool debug = false;
 
     net::DispatcherThread& dispatcher_;
 
