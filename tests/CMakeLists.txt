@@ -95,9 +95,8 @@ build_test(net/binary_builder_test)
 build_test(data/block_queue_test)
 build_test(data/file_test)
 build_test(data/stream_block_header_test)
-
-# this is the new Channel test.
 build_test(data/channel_multiplexer_test)
+build_test(data/serializer_test)
 
 build_only(api/wordcount_test)
 
@@ -107,16 +106,9 @@ if (OFF)
   build_test(api/reduce_node_test)
   build_test(api/sum_node_test)
 
-  build_test(data/stream_test)
-  build_test(data/buffer_chain_test)
   build_only(data/manager_channels_test)
   build_test(data/iterator_test)
-
-  #-tb disabled trivial data manager/emitter tests
-  #build_test(data/manager_test)
-  #build_test(data/emitter_iterator_test)
-  #build_test(data/dia_allocate_test)
-  build_test(data/serializer_test)
+  build_test(data/stream_test)
 
   #build_test(core/stage_builder_test)
   #build_test(core/post_hash_table_test)
