@@ -134,10 +134,19 @@ public:
         // a BlockSource that reads from all queues in order.
         FileBase<BlockSize> result;
         for (auto& q : queues_) {
+            sLOG << "read queue";
             while (!q.empty() || !q.closed()) {
-                result.Append(q.Pop());
+                auto block = q.Pop();
+                if (!block.IsEndBlock()) {
+                    result.Append(std::move(block));
+                    sLOG << "read block from queue" << block.AsString();
+                }
+                else {
+                    sLOG << "reached end of queue";
+                }
             }
         }
+        result.Close();
         return result;
     }
 
@@ -169,7 +178,7 @@ public:
     }
 
 protected:
-    static const bool debug = false;
+    static const bool debug = true;
 
     ChannelId id_;
     size_t finished_streams_ = 0;
@@ -232,7 +241,6 @@ protected:
 
 using Channel = ChannelBase<data::default_block_size>;
 using ChannelSPtr = std::shared_ptr<Channel>;
-
 } // namespace data
 } // namespace c7a
 
