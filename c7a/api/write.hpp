@@ -32,7 +32,7 @@ public:
     using ParentInput = typename ParentStack::Input;
 
     WriteNode(Context& ctx,
-              std::shared_ptr<DIANode<ParentInput> > parent,
+              const std::shared_ptr<DIANode<ParentInput> >& parent,
               const ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
