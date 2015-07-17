@@ -19,7 +19,6 @@
 #include <c7a/common/logger.hpp>
 
 #include <cassert>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>

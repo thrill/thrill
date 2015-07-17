@@ -16,15 +16,10 @@
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/data/manager.hpp>
-
-#include <map>
-#include <iostream>
 #include <c7a/common/logger.hpp>
+
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <array>
-#include <deque>
 #include <utility>
 
 namespace c7a {
