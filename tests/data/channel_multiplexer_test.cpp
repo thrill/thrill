@@ -29,7 +29,7 @@ static const bool debug = true;
 
 struct ChannelMultiplexerTest : public::testing::Test {
     ChannelMultiplexerTest()
-        : dispatcher("dispatcher"), manager(dispatcher), single_group(0, 1) {
+        : dispatcher("dispatcher"), manager(dispatcher), single_group(0, 1), barrier(3) {
         manager.Connect(&single_group);
     }
 
@@ -51,38 +51,18 @@ struct ChannelMultiplexerTest : public::testing::Test {
             f3(manager);
             break;
         }
-        barrier->Await();
+        barrier.Await();
     }
     void Execute(WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        barrier = new Barrier(3);
         Group::ExecuteLocalMock(3,
                                 [ = ](Group* g) {
                                     FunctionSelect(g, f1, f2, f3);
                                 });
-        free(barrier);
-    }
-
-    void Execute(WorkerThread f1, WorkerThread f2) {
-        barrier = new Barrier(2);
-        Group::ExecuteLocalMock(2,
-                                [ = ](Group* g) {
-                                    FunctionSelect(g, f1, f2);
-                                });
-        free(barrier);
-    }
-
-    void Execute(WorkerThread f1) {
-        barrier = new Barrier(1);
-        Group::ExecuteLocalMock(1,
-                                [ = ](Group* g) {
-                                    FunctionSelect(g, f1, [](Manager&) { });
-                                });
-        free(barrier);
     }
     DispatcherThread dispatcher;
     Manager          manager;
     Group            single_group;
-    Barrier          * barrier;
+    Barrier          barrier;
 };
 
 // open a Channel via data::Manager, and send a short message to all workers,
