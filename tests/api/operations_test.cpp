@@ -338,7 +338,7 @@ TEST(Operations, WhileLoop) {
 
             ASSERT_EQ(256u, out_vec.size());
             for (size_t i = 0; i != 256; ++i) {
-                ASSERT_EQ(out_vec[i], 16 * (i / 16));
+                ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
             }
         };
 
