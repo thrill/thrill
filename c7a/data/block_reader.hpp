@@ -99,17 +99,12 @@ public:
 
     //! Fetch a single byte from the current block, advancing the cursor.
     Byte GetByte() {
-        if (current_ < end_) {
-            return *current_++;
+        // loop, since blocks can actually be empty.
+        while (current_ == end_) {
+            if (!NextBlock())
+                throw std::runtime_error("Data underflow in BlockReader.");
         }
-        else {
-            // loop, since blocks can actually be empty.
-            while (current_ < end_) {
-                if (!NextBlock())
-                    throw std::runtime_error("Data underflow in BlockReader.");
-            }
-            return *current_++;
-        }
+        return *current_++;
     }
 
     //! Fetch a single item of the template type Type from the buffer,
