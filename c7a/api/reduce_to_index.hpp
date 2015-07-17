@@ -67,7 +67,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using ParentInput = typename ParentStack::Input;
 
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
 public:
     using Emitter = data::BlockWriter;
@@ -159,7 +159,7 @@ public:
      * \return "[ReduceToIndexNode]"
      */
     std::string ToString() override {
-        return "[ReduceToIndexNode] Id: " + data_id_.ToString();
+        return "[ReduceToIndexNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -227,9 +227,9 @@ private:
 
         //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
         auto file = channel_->ReadCompleteChannel().GetReader();
-        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << data_id_;
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
         while (file.HasNext()) {
-            table.Insert(std::move(file.template Next<ValueType>()));
+            table.Insert(std::move(file.template Next<KeyValuePair>()));
         }
 
         table.Flush();

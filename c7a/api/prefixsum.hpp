@@ -33,7 +33,7 @@ class PrefixSumNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     using ParentInput = typename ParentStack::Input;
 
@@ -85,7 +85,7 @@ public:
      * \return "[PrefixSumNode]"
      */
     std::string ToString() override {
-        return "[PrefixSumNode] Id:" + data_id_.ToString();
+        return "[PrefixSumNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -97,9 +97,9 @@ private:
     ValueType neutral_element_;
 
     //! Local data file
-    data::File file_ { context_.data_manager().GetFile() };
+    data::File file_;
     //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ { file_ };
+    data::File::Writer writer_ = file_.GetWriter();
 
     //! PreOp: compute local prefixsum and store items.
     void PreOp(const ValueType& input) {
