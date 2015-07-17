@@ -47,7 +47,8 @@ TEST_F(BlockQueueTest, BlockWriterToQueue) {
     bw(std::string("hello there BlockQueue"));
     bw.Close();
     ASSERT_FALSE(q.empty());
-    ASSERT_EQ(q.size(), 3u); // two real block and one termination sentinel.
+    // two real block and one termination sentinel. with verify one more.
+    ASSERT_EQ(q.size(), 3u + (MyQueue::Writer::self_verify ? 1 : 0));
 }
 
 TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {

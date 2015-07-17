@@ -14,6 +14,7 @@
 
 #include <c7a/data/block.hpp>
 #include <c7a/data/serializer.hpp>
+#include <c7a/common/config.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
@@ -24,6 +25,8 @@ class BlockReader
     : public common::ItemReaderToolsBase<BlockReader<BlockSource> >
 {
 public:
+    static const bool self_verify = common::g_self_verify;
+
     using Byte = unsigned char;
 
     using Block = typename BlockSource::Block;
@@ -41,6 +44,15 @@ public:
     //! Next() reads a complete item T
     template <typename T>
     T Next() {
+        if (self_verify) {
+            // for self-verification, T is prefixed with its hash code
+            size_t code = Get<size_t>();
+            if (code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "BlockReader::Next() attempted to retrieve item "
+                          "with different typeid!");
+            }
+        }
         return Serializer<BlockReader, T>::deserialize(*this);
     }
 

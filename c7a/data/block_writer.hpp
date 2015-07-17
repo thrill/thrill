@@ -15,6 +15,7 @@
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/serializer.hpp>
+#include <c7a/common/config.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
 
 namespace c7a {
@@ -25,6 +26,8 @@ class BlockWriterBase
     : public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
 {
 public:
+    static const bool self_verify = common::g_self_verify;
+
     using Byte = unsigned char;
     using Block = data::Block<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
@@ -90,6 +93,10 @@ public:
     template <typename T>
     BlockWriterBase& operator () (const T& x) {
         MarkItem();
+        if (self_verify) {
+            // for self-verification, prefix T with its hash code
+            Put(typeid(T).hash_code());
+        }
         Serializer<BlockWriterBase, T>::serialize(x, *this);
         return *this;
     }
