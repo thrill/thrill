@@ -35,7 +35,7 @@ class LOpNode : public DIANode<ValueType>
 public:
     using Super = DIANode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
     using ParentInput = typename ParentStack::Input;
 
     /*!
@@ -73,7 +73,7 @@ public:
      * \return "[LOpNode]"
      */
     std::string ToString() override {
-        return "[LOpNode] Id: " + data_id_.ToString();
+        return "[LOpNode] Id: " + result_file_.ToString();
     }
 
 private:

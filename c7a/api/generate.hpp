@@ -68,12 +68,13 @@ public:
     //! duplicated).
     void Execute() override {
 
-        LOG << "GENERATING data with id " << this->data_id_;
+        LOG << "GENERATING data with id " << this->result_file_;
 
         using InputArgument
                   = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
 
-        static_assert(std::is_same<InputArgument, const size_t&>::value, "The GeneratorFunction needs an unsigned integer as input parameter");
+        static_assert(std::is_same<InputArgument, const size_t&>::value,
+                      "The GeneratorFunction needs an unsigned integer as input parameter");
 
         size_t offset = (size_ / context_.number_worker()) * context_.rank();
         size_t local_elements;
@@ -108,7 +109,7 @@ public:
      * \return Stringified node.
      */
     std::string ToString() override {
-        return "[GeneratorNode] Id: " + this->data_id_.ToString();
+        return "[GeneratorNode] Id: " + this->result_file_.ToString();
     }
 
 private:
