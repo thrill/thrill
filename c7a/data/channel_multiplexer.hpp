@@ -61,6 +61,23 @@ public:
     ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), next_id_(0) { }
 
+    //! non-copyable: delete copy-constructor
+    ChannelMultiplexer(const ChannelMultiplexer&) = delete;
+    //! non-copyable: delete assignment operator
+    ChannelMultiplexer& operator = (const ChannelMultiplexer&) = delete;
+
+    //! Closes all client connections
+    ~ChannelMultiplexer() {
+        // close all still open Channels
+        for (auto& ch : channels_)
+            ch.second->Close();
+
+        // terminate dispatcher, this waits for unfinished AsyncWrites.
+        dispatcher_.Terminate();
+
+        group_->Close();
+    }
+
     void Connect(net::Group* group) {
         group_ = group;
         for (size_t id = 0; id < group_->Size(); id++) {
@@ -141,20 +158,6 @@ public:
         }
     }
 #endif      // FIXUP_LATER
-
-    //! Closes all client connections
-    //!
-    //! Requires new call to Connect() afterwards
-    void Close() {
-        // close all still open Channels
-        for (auto& ch : channels_)
-            ch.second->Close();
-
-        // terminate dispatcher, this waits for unfinished AsyncWrites.
-        dispatcher_.Terminate();
-
-        group_->Close();
-    }
 
 private:
     static const bool debug = false;

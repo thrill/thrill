@@ -48,11 +48,6 @@ public:
         cmp_.Connect(group);
     }
 
-    //! Closes all client connections. Forwarded To ChannelMultiplexer.
-    void Close() {
-        cmp_.Close();
-    }
-
 #if FIXUP_LATER
     //! Docu see net::ChannelMultiplexer::Scatter()
     template <class T>
