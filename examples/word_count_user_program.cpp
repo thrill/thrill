@@ -24,7 +24,7 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
     using WordCount = std::pair<std::string, int>;
 
     auto word_pairs = input.template FlatMap<WordCount>(
-        [](std::string line, auto emit) {
+        [](std::string line, auto emit) -> void {
             /* map lambda */
             for (const std::string& word : c7a::common::split(line, ' ')) {
                 if (word.size() != 0)
@@ -33,11 +33,11 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
         });
 
     return word_pairs.ReduceBy(
-        [](const WordCount& in) {
+        [](const WordCount& in) -> std::string {
             /* reduction key: the word string */
             return in.first;
         },
-        [](const WordCount& a, const WordCount& b) {
+        [](const WordCount& a, const WordCount& b) -> WordCount {
             /* associative reduction operator: add counters */
             return WordCount(a.first, a.second + b.second);
         });
