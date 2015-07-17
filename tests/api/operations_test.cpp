@@ -73,8 +73,6 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
 
             integers.AllGather(&out_vec);
 
-            std::sort(out_vec.begin(), out_vec.end());
-
             int i = 1;
             for (int element : out_vec) {
                 ASSERT_EQ(element, i++);
@@ -85,6 +83,8 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
 
     api::ExecuteLocalTests(start_func);
 }
+
+#if TODO_FIXME
 
 TEST(Operations, MapResultsCorrectChangingType) {
 
@@ -349,5 +349,7 @@ TEST(Operations, WhileLoop) {
 
     api::ExecuteLocalTests(start_func);
 }
+
+#endif // TODO_FIXME
 
 /******************************************************************************/
