@@ -238,6 +238,15 @@ public:
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
         }
+
+        // clean up finished AsyncRead/Writes
+        while (async_read_.size() && async_read_.front().IsDone()) {
+            async_read_.pop_front();
+        }
+
+        while (async_write_.size() && async_write_.front().IsDone()) {
+            async_write_.pop_front();
+        }
     }
 
     //! Loop over Dispatch() until terminate_ flag is set.
@@ -252,6 +261,12 @@ public:
     //! breaks after the operation finished or timed out.
     void Terminate() {
         terminate_ = true;
+    }
+
+    //! Check whether there are still AsyncWrite()s in the queue.
+    bool HasAsyncWrites() const {
+        sLOG << "HasAsyncWrites()" << async_write_.size();
+        return (async_write_.size() != 0);
     }
 
     //! \}
@@ -311,6 +326,10 @@ protected:
             if (r <= 0) {
                 // these errors are acceptable: just redo the recv later.
                 if (errno == EINTR || errno == EAGAIN) return true;
+
+                // signal artificial IsDone, for clean up.
+                size_ = buffer_.size();
+
                 // these errors are end-of-file indications (both good and bad)
                 if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
                     if (callback_) callback_(c, Buffer());
@@ -329,6 +348,8 @@ protected:
                 return true;
             }
         }
+
+        bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
         //! total size currently read
@@ -363,7 +384,12 @@ protected:
 
             if (r <= 0) {
                 if (errno == EINTR || errno == EAGAIN) return true;
+
+                // signal artificial IsDone, for clean up.
+                size_ = buffer_.size();
+
                 if (errno == EPIPE) {
+                    LOG1 << "AsyncWriteBuffer() got SIGPIPE";
                     if (callback_) callback_(c);
                     return false;
                 }
@@ -380,6 +406,8 @@ protected:
                 return true;
             }
         }
+
+        bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
         //! total size currently written
