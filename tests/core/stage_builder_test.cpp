@@ -55,8 +55,7 @@ TEST(Stage, CountReferencesSimple) {
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            reduced.AllGather(&out_vec);
+            std::vector<int> out_vec = reduced.AllGather();
 
             // 3x DIA reference + 1x child reference
             ASSERT_EQ(integers.node_refcount(), 4u);
@@ -102,11 +101,11 @@ TEST(Stage, CountReferencesLOpNode) {
             DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
 
             // Create new child reference to LOpNode
+
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            reduced.AllGather(&out_vec);
+            std::vector<int> out_vec = reduced.AllGather();
 
             // 2x DIA reference + 1x child reference
             ASSERT_EQ(integers.node_refcount(), 3u);
@@ -156,8 +155,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             quadruples = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            quadruples.AllGather(&out_vec);
+            std::vector<int> out_vec = quadruples.AllGather();
 
             // 2x DIA reference + 1x child reference
             ASSERT_EQ(integers.node_refcount(), 3u);
@@ -207,8 +205,7 @@ TEST(Stage, AdditionalChildReferences) {
             DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            octuples.AllGather(&out_vec);
+            std::vector<int> out_vec = octuples.AllGather();
 
             // 2x DIA reference + 1x child reference
             ASSERT_EQ(integers.node_refcount(), 3u);

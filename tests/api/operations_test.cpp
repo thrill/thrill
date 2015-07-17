@@ -79,9 +79,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
                     return std::stoi(line);
                 });
 
-            std::vector<int> out_vec;
-
-            integers.AllGather(&out_vec);
+            std::vector<int> out_vec = integers.AllGather();
 
             int i = 1;
             for (int element : out_vec) {
@@ -113,9 +111,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             auto doubled = integers.Map(double_elements);
 
-            std::vector<double> out_vec;
-
-            doubled.AllGather(&out_vec);
+            std::vector<double> out_vec = doubled.AllGather();
 
             int i = 1;
             for (int element : out_vec) {
@@ -149,9 +145,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             auto doubled = integers.FlatMap<double>(flatmap_double);
 
-            std::vector<double> out_vec;
-
-            doubled.AllGather(&out_vec);
+            std::vector<double> out_vec = doubled.AllGather();
 
             ASSERT_EQ(32u, out_vec.size());
 
@@ -186,9 +180,7 @@ TEST(Operations, PrefixSumCorrectResults) {
 
             auto prefixsums = integers.PrefixSum();
 
-            std::vector<size_t> out_vec;
-
-            prefixsums.AllGather(&out_vec);
+            std::vector<size_t> out_vec = prefixsums.AllGather();
 
             size_t ctr = 0;
             for (size_t i = 0; i < out_vec.size(); i++) {
@@ -219,9 +211,7 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
                     return in1 * in2;
                 }, 1);
 
-            std::vector<size_t> out_vec;
-
-            prefixsums.AllGather(&out_vec);
+            std::vector<size_t> out_vec = prefixsums.AllGather();
 
             size_t ctr = 1;
             for (size_t i = 0; i < out_vec.size(); i++) {
@@ -253,9 +243,7 @@ TEST(Operations, FilterResultsCorrectly) {
 
             auto doubled = integers.Filter(even);
 
-            std::vector<int> out_vec;
-
-            doubled.AllGather(&out_vec);
+            std::vector<int> out_vec = doubled.AllGather();
 
             int i = 1;
 
@@ -287,9 +275,7 @@ TEST(Operations, DIARefCasting) {
 
             DIARef<int> doubled = integers.Filter(even);
 
-            std::vector<int> out_vec;
-
-            doubled.AllGather(&out_vec);
+            std::vector<int> out_vec = doubled.AllGather();
 
             int i = 1;
 
@@ -333,8 +319,7 @@ TEST(Operations, WhileLoop) {
                 squares = multiplied;
             }
 
-            std::vector<int> out_vec;
-            squares.AllGather(&out_vec);
+            std::vector<int> out_vec = squares.AllGather();
 
             ASSERT_EQ(256u, out_vec.size());
             for (size_t i = 0; i != 256; ++i) {

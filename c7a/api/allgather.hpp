@@ -87,6 +87,7 @@ public:
     }
 
 private:
+    //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
     data::ChannelSPtr channel_;
@@ -96,16 +97,30 @@ private:
 };
 
 template <typename ValueType, typename Stack>
+std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+
+    using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
+
+    std::vector<ValueType> output;
+
+    auto shared_node =
+        std::make_shared<AllGatherResultNode>(
+            node_->context(), node_, stack_, &output);
+
+    core::StageBuilder().RunScope(shared_node.get());
+
+    return std::move(output);
+}
+
+template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
 
     using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(node_->context(),
-                                              node_,
-                                              stack_,
-                                              out_vector);
+        std::make_shared<AllGatherResultNode>(
+            node_->context(), node_, stack_, out_vector);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
