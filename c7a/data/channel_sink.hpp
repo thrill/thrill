@@ -59,8 +59,10 @@ public:
         header.expected_elements = vb.nitems;
         header.sender_rank = own_rank_;
 
-        sLOG << "sending block"
-             << common::hexdump(vb.block->begin(), vb.bytes_used);
+        if (debug) {
+            sLOG << "sending block"
+                 << common::hexdump(vb.block->begin(), vb.bytes_used);
+        }
 
         // TODO(tb): this copies data!
         net::Buffer payload_buf(vb.block->begin(), vb.bytes_used);

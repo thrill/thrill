@@ -184,8 +184,10 @@ protected:
     void OnStreamBlock(size_t from, VirtualBlock&& vb) {
         assert(from < queues_.size());
 
-        sLOG << "channel" << id_ << "receive from" << from << ":"
-             << common::hexdump(vb.block->data(), vb.bytes_used);
+        if (debug) {
+            sLOG << "channel" << id_ << "receive from" << from << ":"
+                 << common::hexdump(vb.block->data(), vb.bytes_used);
+        }
 
         queues_[from].Append(std::move(vb));
     }

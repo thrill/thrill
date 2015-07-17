@@ -325,11 +325,13 @@ public:
     ssize_t send_one(const void* data, size_t size, int flags = 0) {
         assert(IsValid());
 
-        LOG << "Socket::send_one()"
-            << " fd_=" << fd_
-            << " size=" << size
-            << " data=" << common::hexdump(data, size)
-            << " flags=" << flags;
+        if (debug) {
+            LOG << "Socket::send_one()"
+                << " fd_=" << fd_
+                << " size=" << size
+                << " data=" << common::hexdump(data, size)
+                << " flags=" << flags;
+        }
 
         ssize_t r = ::send(fd_, data, size, flags);
 
@@ -344,11 +346,13 @@ public:
     ssize_t send(const void* data, size_t size, int flags = 0) {
         assert(IsValid());
 
-        LOG << "Socket::send()"
-            << " fd_=" << fd_
-            << " size=" << size
-            << " data=" << common::hexdump(data, size)
-            << " flags=" << flags;
+        if (debug) {
+            LOG << "Socket::send()"
+                << " fd_=" << fd_
+                << " size=" << size
+                << " data=" << common::hexdump(data, size)
+                << " flags=" << flags;
+        }
 
         const char* cdata = static_cast<const char*>(data);
         size_t wb = 0; // written bytes
@@ -390,10 +394,12 @@ public:
 
         ssize_t r = ::recv(fd_, outdata, maxsize, flags);
 
-        LOG << "done Socket::recv_one()"
-            << " fd_=" << fd_
-            << " return=" << r
-            << " data=" << (r >= 0 ? common::hexdump(outdata, r) : "<error>");
+        if (debug) {
+            LOG << "done Socket::recv_one()"
+                << " fd_=" << fd_
+                << " return=" << r
+                << " data=" << (r >= 0 ? common::hexdump(outdata, r) : "<error>");
+        }
 
         return r;
     }
@@ -430,10 +436,12 @@ public:
             rb += r;
         }
 
-        LOG << "done Socket::recv()"
-            << " fd_=" << fd_
-            << " return=" << rb
-            << " data=" << common::hexdump(outdata, rb);
+        if (debug) {
+            LOG << "done Socket::recv()"
+                << " fd_=" << fd_
+                << " return=" << rb
+                << " data=" << common::hexdump(outdata, rb);
+        }
 
         return rb;
     }
