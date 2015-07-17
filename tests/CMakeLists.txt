@@ -98,6 +98,10 @@ build_test(data/file_test)
 build_test(data/serializer_test)
 build_test(data/stream_block_header_test)
 
+build_only(core/stage_builder_test)
+build_test(core/job_manager_test)
+build_test(core/pre_hash_table_test)
+
 build_test(api/function_stack_test)
 build_test(api/operations_test)
 build_test(api/reduce_node_test)
@@ -110,11 +114,8 @@ if (OFF)
   build_test(data/iterator_test)
   build_test(data/stream_test)
 
-  #build_test(core/stage_builder_test)
   #build_test(core/post_hash_table_test)
   #build_test(core/pre_hash_table_probing_test)
-  build_test(core/pre_hash_table_test)
-  build_test(core/job_manager_test)
 
 endif()
 
