@@ -12,6 +12,7 @@
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/core/reduce_pre_probing_table.hpp>
+#include <c7a/data/discard_sink.hpp>
 
 using IntPair = std::pair<int, int>;
 
@@ -82,10 +83,10 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    std::vector<data::File> files(workers);
+    data::DiscardSink sink;
     std::vector<data::File::Writer> writers;
     for (size_t i = 0; i < workers; i++) {
-        writers.emplace_back(files[i].GetWriter());
+        writers.emplace_back(&sink);
     }
 
     core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), data::File::Writer>
