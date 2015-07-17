@@ -178,7 +178,7 @@ public:
     }
 
 protected:
-    static const bool debug = true;
+    static const bool debug = false;
 
     ChannelId id_;
     size_t finished_streams_ = 0;

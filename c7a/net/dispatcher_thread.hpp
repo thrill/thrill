@@ -35,7 +35,7 @@ namespace net {
  */
 class DispatcherThread
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     //! \name Imported Typedefs
