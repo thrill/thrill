@@ -43,9 +43,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
             auto reduced = integers.ReduceBy(modulo_two, add_function);
 
-            std::vector<size_t> out_vec;
-
-            reduced.AllGather(&out_vec);
+            std::vector<size_t> out_vec = reduced.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end());
 
@@ -85,9 +83,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
             auto reduced = integers.ReduceToIndex(key, add_function, max_index);
 
-            std::vector<size_t> out_vec;
-
-            reduced.AllGather(&out_vec);
+            std::vector<size_t> out_vec = reduced.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end());
 
