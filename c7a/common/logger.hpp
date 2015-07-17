@@ -15,11 +15,11 @@
 #define C7A_COMMON_LOGGER_HEADER
 
 #include <iostream>
+#include <map>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
-#include <mutex>
 #include <thread>
-#include <map>
 
 namespace c7a {
 namespace common {

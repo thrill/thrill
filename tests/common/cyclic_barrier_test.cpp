@@ -9,11 +9,10 @@
 
 #include <c7a/common/cyclic_barrier.hpp>
 
-#include <string>
-#include <numeric>
 #include <thread>
 #include <atomic>
-#include <stdlib.h>
+#include <vector>
+#include <cstdlib>
 #include <time.h>
 #include <unistd.h>
 
@@ -23,6 +22,7 @@ using namespace c7a::common;
 
 static void TestWaitFor(int count, int slowThread = -1) {
 
+    // TODO(ej): use new C++11 random things instead.
     srand(time(NULL));
     int maxWaitTime = 100000;
 
