@@ -87,16 +87,16 @@ public:
         : dispatcher_(std::move(d.dispatcher_)),
           terminate_(d.terminate_.load()),
           timer_pq_(std::move(d.timer_pq_)),
-          async_read_(std::move(async_read_)),
-          async_write_(std::move(async_write_))
+          async_read_(std::move(d.async_read_)),
+          async_write_(std::move(d.async_write_))
     { }
     //! move-assignment
     Dispatcher& operator = (Dispatcher&& d) {
         dispatcher_ = std::move(d.dispatcher_);
         terminate_ = d.terminate_.load();
-        timer_pq_ = std::move(timer_pq_);
-        async_read_ = std::move(async_read_);
-        async_write_ = std::move(async_write_);
+        timer_pq_ = std::move(d.timer_pq_);
+        async_read_ = std::move(d.async_read_);
+        async_write_ = std::move(d.async_write_);
         return *this;
     }
 
