@@ -27,6 +27,10 @@ void TalkAllToAllViaChannel(net::Group* net) {
     net::DispatcherThread dispatcher(
         "chmp" + std::to_string(net->MyRank()) + "-dp");
 
+    unsigned char send_buffer[12345];
+    for (size_t i = 0; i != sizeof(send_buffer); ++i)
+        send_buffer[i] = i;
+
     static const size_t iterations = 1000;
 
     data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
@@ -45,13 +49,8 @@ void TalkAllToAllViaChannel(net::Group* net) {
             writer[tgt].Flush();
 
             // write a few MiBs of oddly sized data
-            unsigned char buffer[12345];
-
-            for (size_t i = 0; i != sizeof(buffer); ++i)
-                buffer[i] = i;
-
             for (size_t r = 0; r != iterations; ++r) {
-                writer[tgt].Append(buffer, sizeof(buffer));
+                writer[tgt].Append(send_buffer, sizeof(send_buffer));
             }
 
             writer[tgt].Flush();
@@ -70,13 +69,14 @@ void TalkAllToAllViaChannel(net::Group* net) {
             sLOG << net->MyRank() << "got msg from" << src;
 
             // write a few MiBs of oddly sized data
-            unsigned char buffer[12345];
+            unsigned char recv_buffer[sizeof(send_buffer)];
 
             for (size_t r = 0; r != iterations; ++r) {
-                reader[src].Read(buffer, sizeof(buffer));
+                reader[src].Read(recv_buffer, sizeof(recv_buffer));
 
-                for (size_t i = 0; i != sizeof(buffer); ++i)
-                    ASSERT_EQ(buffer[i], static_cast<unsigned char>(i));
+                ASSERT_TRUE(std::equal(send_buffer,
+                                       send_buffer + sizeof(send_buffer),
+                                       recv_buffer));
             }
         }
     }
@@ -85,7 +85,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
 TEST(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1-8:
-    for (size_t i = 1; i != 8; ++i) {
+    for (size_t i = 1; i <= 8; ++i) {
         net::Group::ExecuteLocalMock(i, TalkAllToAllViaChannel);
     }
 }
