@@ -12,9 +12,9 @@
 #ifndef C7A_API_SIZE_HEADER
 #define C7A_API_SIZE_HEADER
 
-#include "action_node.hpp"
-#include "function_stack.hpp"
-#include "dia.hpp"
+#include <c7a/api/action_node.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/net/group.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -32,7 +32,6 @@ class SizeNode : public ActionNode
     using Super::context_;
     using Super::parents;
     using Super::result_file_;
-    using SumArg0 = ValueType;
 
     using ParentInput = typename ParentStack::Input;
 
@@ -43,7 +42,7 @@ public:
         : ActionNode(ctx, { parent })
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=]() { };
+        auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
 
         auto lop_chain = parent_stack.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
@@ -61,7 +60,7 @@ public:
      * \return result
      */
     auto result() {
-        return global_size;
+        return global_size_;
     }
 
     /*!
@@ -74,24 +73,19 @@ public:
 
 private:
     // Local size to be used.
-    size_t local_size = 0;
+    size_t local_size_ = 0;
     // Global size resulting from all reduce.
-    size_t global_size = 0;
+    size_t global_size_ = 0;
 
     void PreOp() { }
 
     void MainOp() {
         // get the number of elements that are stored on this worker
-        data::Manager& manager = context_.data_manager();
-        local_size = parents()[0].result_file().NumItems();
-
-        LOG << "MainOp processing";
+        LOG1 << "MainOp processing, sum: " << local_size_;
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        // process the reduce
-        global_size = channel.AllReduce(local_size, [](size_t in1, size_t in2) {
-                                            return in1 + in2;
-                                        });
+        // process the reduce, default argument is SumOp.
+        global_size_ = channel.AllReduce(local_size_);
     }
 
     void PostOp() { }
@@ -99,13 +93,11 @@ private:
 
 template <typename ValueType, typename Stack>
 size_t DIARef<ValueType, Stack>::Size() const {
-    using SizeResultNode
-              = SizeNode<ValueType, Stack>;
+
+    using SizeResultNode = SizeNode<ValueType, Stack>;
 
     auto shared_node
-        = std::make_shared<SizeResultNode>(node_->context(),
-                                           node_,
-                                           stack_);
+        = std::make_shared<SizeResultNode>(node_->context(), node_, stack_);
 
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
