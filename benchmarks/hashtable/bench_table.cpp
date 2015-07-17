@@ -39,11 +39,11 @@ int main(int argc, char* argv[]) {
                 "Fill hashtable with S random integers");
 
     unsigned int workers = 1;
-    clp.AddUInt('w',"workers", "W", workers,
+    clp.AddUInt('w', "workers", "W", workers,
                 "Open hashtable with W workers, default = 1.");
 
     unsigned int modulo = 1000;
-    clp.AddUInt('m',"modulo", modulo,
+    clp.AddUInt('m', "modulo", modulo,
                 "Open hashtable with keyspace size of M.");
 
     if (!clp.Process(argc, argv)) {
@@ -56,11 +56,11 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    std::vector<c7a::data::Emitter<std::pair<int, int>>> emitter;
+    std::vector<c7a::data::Emitter<std::pair<int, int> > > emitter;
     for (size_t i = 0; i < workers; i++) {
-        emitter.emplace_back(manager.GetLocalEmitter<std::pair<int,int>>(id));
+        emitter.emplace_back(manager.GetLocalEmitter<std::pair<int, int> >(id));
     }
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::Emitter<std::pair<int, int>>>
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), c7a::data::Emitter<std::pair<int, int> > >
     table(workers, key_ex, red_fn, emitter);
 
     c7a::common::StatsTimer<true> timer(true);
@@ -72,8 +72,6 @@ int main(int argc, char* argv[]) {
 
     timer.Stop();
     std::cout << timer.Microseconds() << std::endl;
-
-
 
     return 0;
 }

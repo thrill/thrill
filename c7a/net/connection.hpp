@@ -292,7 +292,6 @@ public:
 };
 
 // \}
-
 } // namespace net
 } // namespace c7a
 

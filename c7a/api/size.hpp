@@ -42,7 +42,7 @@ public:
         : ActionNode(ctx, { parent })
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=]() { };
+        auto pre_op_fn = [ = ]() { };
 
         auto lop_chain = parent_stack.push(pre_op_fn).emit();
         parent->RegisterChild(lop_chain);
@@ -109,7 +109,6 @@ size_t DIARef<ValueType, Stack>::Size() const {
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
-
 } // namespace api
 } // namespace c7a
 

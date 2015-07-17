@@ -84,7 +84,7 @@ public:
     //! If queue is closed this call is garantueed to be non-blocking.
     bool WaitForAll() {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [=]() { return closed_; });
+        cv_.wait(lock, [ = ]() { return closed_; });
         return !elements_.empty();
     }
 
@@ -107,7 +107,6 @@ public:
         return std::move(elem);
     }
 };
-
 } // namespace common
 } // namespace c7a
 

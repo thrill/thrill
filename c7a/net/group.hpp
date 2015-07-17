@@ -397,7 +397,6 @@ private:
 };
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 

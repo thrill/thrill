@@ -334,7 +334,6 @@ public:
         i = AllReduce(i);
     }
 };
-
 } // namespace net
 } // namespace c7a
 

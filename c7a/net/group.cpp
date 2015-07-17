@@ -120,7 +120,6 @@ void Group::ExecuteLocalMock(
         group[i].Close();
     }
 }
-
 } // namespace net
 } // namespace c7a
 

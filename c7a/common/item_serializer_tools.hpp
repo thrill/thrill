@@ -231,7 +231,6 @@ public:
         return r.Read(len);
     }
 };
-
 } // namespace common
 } // namespace c7a
 

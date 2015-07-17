@@ -26,18 +26,18 @@ TEST(API, FunctionStackTest) {
 
     // User-defined functions
     auto fmap_fn =
-        [=](double input, auto emit_func) {
+        [ = ](double input, auto emit_func) {
             emit_func(input);
             emit_func(input);
         };
 
     auto map_fn =
-        [=](double input) {
+        [ = ](double input) {
             return 2 * input;
         };
 
     auto filter_fn =
-        [=](double input) {
+        [ = ](double input) {
             return input > 80;
         };
 
@@ -51,12 +51,12 @@ TEST(API, FunctionStackTest) {
 
     // Converted emitter functions
     auto conv_map_fn =
-        [=](double input, auto emit_func) {
+        [ = ](double input, auto emit_func) {
             emit_func(map_fn(input));
         };
 
     auto conv_filter_fn =
-        [=](double input, auto emit_func) {
+        [ = ](double input, auto emit_func) {
             if (filter_fn(input)) emit_func(input);
         };
 
@@ -86,12 +86,12 @@ TEST(API, SimpleDeductionTest) {
     using c7a::api::MakeFunctionStack;
 
     auto fmap_fn1 =
-        [=](int input, auto emit_func) {
+        [ = ](int input, auto emit_func) {
             emit_func(std::to_string(input));
         };
 
     auto fmap_fn2 =
-        [=](const std::string& input, auto emit_func) {
+        [ = ](const std::string& input, auto emit_func) {
             emit_func(input + " Hello");
             emit_func(10);
         };

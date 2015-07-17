@@ -116,7 +116,7 @@ public:
     //! destination. If no item is in the queue, wait until there is one.
     void pop(T& destination) {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [=]() { return !queue_.empty(); });
+        cv_.wait(lock, [ = ]() { return !queue_.empty(); });
         destination = std::move(queue_.front());
         queue_.pop();
     }
@@ -130,7 +130,6 @@ public:
 };
 
 #endif // !HAVE_INTELTBB
-
 } // namespace common
 } // namespace c7a
 
