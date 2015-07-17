@@ -81,27 +81,36 @@ struct VirtualBlock
           first(first) { }
 
     //! referenced block
-    BlockCPtr block;
+    BlockCPtr   block;
 
     //! number of valid bytes in the block (can be used to virtually shorten
     //! a block)
-    size_t    bytes_used = 0;
+    size_t      bytes_used = 0;
 
     //! number of valid items in this block (includes cut-off element at the end)
-    size_t    nitems = 0;
+    size_t      nitems = 0;
 
     //! offset of first element in the block
-    size_t    first = 0;
+    size_t      first = 0;
 
     //! Releases the reference to the block and resets book-keeping info
-    void      Release() {
+    void        Release() {
         block = BlockCPtr();
         bytes_used = 0;
         nitems = 0;
         first = 0;
     }
-};
 
+    bool        IsEndBlock() const {
+        return block == nullptr;
+    }
+
+    //Return virtual block as std::string (for debugging)
+    //inclutes eventually cut off elements form the beginning included
+    std::string AsString() const {
+        return std::string(reinterpret_cast<const char*>(block->data()), bytes_used + first);
+    }
+};
 } // namespace data
 } // namespace c7a
 
