@@ -12,10 +12,12 @@
 #ifndef C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 #define C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 
-#include <string>
-#include <vector>
 #include <c7a/net/group.hpp>
 #include <c7a/common/cyclic_barrier.hpp>
+#include <c7a/common/functional.hpp>
+
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace net {

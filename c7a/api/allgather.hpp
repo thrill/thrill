@@ -12,7 +12,7 @@
 #ifndef C7A_API_ALLGATHER_HEADER
 #define C7A_API_ALLGATHER_HEADER
 
-#include <c7a/common/future.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/api/action_node.hpp>

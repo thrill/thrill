@@ -1,13 +1,14 @@
 /*******************************************************************************
  * tests/common/cmdline_parser_example.cpp
  *
- *
  * Part of Project c7a.
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
+#include <iostream>
 
 // [example]
 #include <c7a/common/cmdline_parser.hpp>

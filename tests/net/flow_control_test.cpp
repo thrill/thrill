@@ -19,8 +19,6 @@
 #include <thread>
 #include <vector>
 #include <string>
-#include <random>
-#include <thread>
 
 using namespace c7a::net;
 

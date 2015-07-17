@@ -15,15 +15,11 @@
 
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
-#include <c7a/data/file.hpp>
 #include <c7a/data/channel.hpp>
-#include <c7a/data/channel_sink.hpp>
 #include <c7a/data/block_writer.hpp>
-#include <c7a/data/repository.hpp>
 
 #include <memory>
 #include <map>
-#include <functional>
 
 namespace c7a {
 namespace data {

@@ -17,7 +17,7 @@
 
 #include <cassert>
 #include <memory>
-#include <new>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 

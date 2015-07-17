@@ -18,8 +18,13 @@
 #include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/exception.hpp>
 #include <c7a/common/config.hpp>
+#include <c7a/common/logger.hpp>
 
+#include <cerrno>
+#include <chrono>
 #include <deque>
+#include <functional>
+#include <vector>
 
 namespace c7a {
 namespace net {

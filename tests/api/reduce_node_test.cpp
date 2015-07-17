@@ -9,12 +9,16 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
-#include <c7a/net/endpoint.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/generate.hpp>
+#include <c7a/api/reduce.hpp>
+#include <c7a/api/reduce_to_index.hpp>
 
 #include <algorithm>
-#include <random>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 

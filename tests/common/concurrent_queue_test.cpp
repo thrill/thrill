@@ -12,7 +12,7 @@
 #include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
 
-#include <string>
+#include <atomic>
 
 using namespace c7a::common;
 

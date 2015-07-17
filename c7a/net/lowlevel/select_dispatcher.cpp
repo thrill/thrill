@@ -12,6 +12,8 @@
 
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 
+#include <sstream>
+
 namespace c7a {
 namespace net {
 namespace lowlevel {

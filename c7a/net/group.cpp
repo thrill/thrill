@@ -13,9 +13,8 @@
  ******************************************************************************/
 
 #include <c7a/net/group.hpp>
-#include <c7a/net/dispatcher.hpp>
+#include <c7a/common/logger.hpp>
 
-#include <deque>
 #include <string>
 #include <thread>
 #include <utility>

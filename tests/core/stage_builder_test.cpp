@@ -7,20 +7,16 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/c7a.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/net/endpoint.hpp>
-#include <c7a/c7a.hpp>
 
 #include <algorithm>
-#include <random>
 #include <string>
 
 #include "gtest/gtest.h"
 
 using namespace c7a;
-using c7a::DIARef;
-using c7a::Context;
 
 TEST(Stage, CountReferencesSimple) {
 

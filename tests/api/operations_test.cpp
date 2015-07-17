@@ -17,13 +17,14 @@
 #include <c7a/api/generate.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
-#include <c7a/api/sum.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/api/size.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 

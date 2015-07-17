@@ -17,6 +17,7 @@
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/block_queue.hpp>
 #include <c7a/data/channel_sink.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/net/group.hpp>
 
 #include <vector>
@@ -128,7 +129,7 @@ public:
     File ReadCompleteChannel() {
         // TODO(ts): why wait for all streams on the channel to close -> create
         // a BlockSource that reads from all queues in order.
-        FileBase<BlockSize> result;
+        File result;
         for (auto& q : queues_) {
             sLOG << "read queue";
             while (!q.empty() || !q.closed()) {
