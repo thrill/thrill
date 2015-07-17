@@ -39,8 +39,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 
             auto red_words = word_count_user(lines);
 
-            std::vector<WordPair> words;
-            red_words.AllGather(&words);
+            std::vector<WordPair> words = red_words.AllGather();
 
             auto compare_function = [](WordPair wp1, WordPair wp2) {
                                         return wp1.first < wp2.first;
