@@ -27,13 +27,13 @@ void TalkAllToAllViaChannel(net::Group* net) {
     net::DispatcherThread dispatcher(
         "chmp" + std::to_string(net->MyRank()) + "-dp");
 
-    unsigned char send_buffer[12345];
+    unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
         send_buffer[i] = i;
 
     static const size_t iterations = 1000;
 
-    data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
+    data::ChannelMultiplexer<1024> cmp(dispatcher);
     cmp.Connect(net);
     {
         data::ChannelId id = cmp.AllocateNext();
