@@ -21,8 +21,8 @@ namespace c7a {
 namespace data {
 
 template <size_t BlockSize>
-class BlockWriterBase :
-        public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
+class BlockWriterBase
+    : public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
 {
 public:
     using Byte = unsigned char;

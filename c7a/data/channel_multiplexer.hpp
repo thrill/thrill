@@ -53,7 +53,7 @@ public:
     using BlockPtr = std::shared_ptr<Block>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Channel = data::Channel<BlockSize>;
+    using Channel = data::ChannelBase<BlockSize>;
     using ChannelPtr = std::shared_ptr<Channel>;
     using BlockWriter = data::BlockWriterBase<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;

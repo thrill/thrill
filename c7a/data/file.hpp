@@ -29,9 +29,6 @@ template <size_t BlockSize>
 class FileBlockSource;
 
 template <size_t BlockSize>
-class DynBlockSink;
-
-template <size_t BlockSize>
 class FileBase : public BlockSink<BlockSize>
 {
 public:
