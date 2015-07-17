@@ -19,6 +19,7 @@
 #include <c7a/net/lowlevel/socket_address.hpp>
 
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <fcntl.h>
 #include <unistd.h>
 

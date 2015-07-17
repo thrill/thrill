@@ -8,10 +8,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/cmdline_parser.hpp>
+#include <c7a/data/block_writer.hpp>
 #include <c7a/data/discard_sink.hpp>
 
 using IntPair = std::pair<int, int>;
@@ -21,9 +21,6 @@ using namespace c7a;
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
-
-    net::DispatcherThread dispatcher("dispatcher");
-    data::Manager manager(dispatcher);
 
     auto key_ex = [](int in) {
                       return in;
@@ -76,12 +73,12 @@ int main(int argc, char* argv[]) {
     }
 
     data::DiscardSink sink;
-    std::vector<data::File::Writer> writers;
+    std::vector<data::BlockWriter> writers;
     for (size_t i = 0; i < workers; i++) {
         writers.emplace_back(&sink);
     }
 
-    core::ReducePreTable<decltype(key_ex), decltype(red_fn), data::File::Writer>
+    core::ReducePreTable<decltype(key_ex), decltype(red_fn), data::BlockWriter>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale, max_num_items_per_bucket,
           max_num_items_table, key_ex, red_fn, writers);
 

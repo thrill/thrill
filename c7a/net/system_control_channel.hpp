@@ -11,8 +11,6 @@
 #ifndef C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 #define C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 
-#include <vector>
-
 namespace c7a {
 namespace net {
 

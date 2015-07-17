@@ -19,7 +19,9 @@
 #include <c7a/net/group.hpp>
 
 #include <vector>
-#include <functional>
+#include <string>
+#include <type_traits>
+#include <deque>
 
 namespace c7a {
 namespace net {

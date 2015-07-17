@@ -20,7 +20,6 @@
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/block_sink.hpp>
-#include <c7a/data/serializer.hpp>
 
 namespace c7a {
 namespace data {
