@@ -92,8 +92,8 @@ public:
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
-               std::shared_ptr<DIANode<ParentInput1> > parent1,
-               std::shared_ptr<DIANode<ParentInput2> > parent2,
+               const std::shared_ptr<DIANode<ParentInput1> >& parent1,
+               const std::shared_ptr<DIANode<ParentInput2> >& parent2,
                const ParentStack1& parent_stack1,
                const ParentStack2& parent_stack2,
                ZipFunction zip_function)

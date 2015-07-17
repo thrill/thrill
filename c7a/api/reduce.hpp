@@ -81,7 +81,7 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
-               std::shared_ptr<DIANode<ParentInput> > parent,
+               const std::shared_ptr<DIANode<ParentInput> >& parent,
                const ParentStack& parent_stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
