@@ -38,7 +38,8 @@ using ChannelId = size_t;
 //! The channel keeps track of all active channels and counts the closed ones.
 //!
 //! As soon as the number of expected streams is reached, the channel is marked
-//! as finished and no more data will arrive.
+//! as finished and no more data will arrive. Channels expect one closed stream
+//! for each connection in the net::Group
 //!
 //! Block headers are put into streams that poll more data from the socket.
 //! As soon as the block is exhausted, the socket polling responsibility
@@ -84,11 +85,6 @@ public:
     //! move-constructor
     ChannelBase(ChannelBase&&) = default;
 
-    //! Indicates whether all streams are finished
-    bool Finished() const {
-        return finished_streams_ == expected_streams();
-    }
-
     const ChannelId & id() const {
         return id_;
     }
@@ -130,7 +126,7 @@ public:
     //! The resulting blocks in the file will be ordered by their sender ascending.
     //! Blocks from the same sender are ordered the way they were received/sent.
     File ReadCompleteChannel() {
-        // TODO(tb): why wait for all streams on the channel to close -> create
+        // TODO(ts): why wait for all streams on the channel to close -> create
         // a BlockSource that reads from all queues in order.
         FileBase<BlockSize> result;
         for (auto& q : queues_) {
@@ -150,6 +146,7 @@ public:
         return result;
     }
 
+    //! shuts the channel down.
     void Close() {
         // close all sinks, this should emit sentinel to all other workers.
         for (size_t i = 0; i != sinks_.size(); ++i) {
@@ -174,14 +171,17 @@ public:
     //! Indicates if the channel is closed - meaining all remite streams have
     //! been closed. This does *not* include the loopback stream
     bool closed() const {
-        return finished_streams_ == expected_streams();
+        bool closed = true;
+        for (auto& q : queues_) {
+            closed = closed & q.closed();
+        }
+        return closed;
     }
 
 protected:
     static const bool debug = false;
 
     ChannelId id_;
-    size_t finished_streams_ = 0;
 
     //! ChannelSink objects are receivers of Blocks outbound for other workers.
     std::vector<ChannelSink> sinks_;
@@ -214,29 +214,7 @@ protected:
         assert(from < queues_.size());
         assert(!queues_[from].closed());
         queues_[from].Close();
-
-        finished_streams_++;
-        if (finished_streams_ == expected_streams()) {
-            sLOG << "channel" << id_ << " is closed";
-        }
-        else {
-            sLOG << "channel" << id_ << " is not closed yet "
-                 << "(expect:" << queues_.size() << "actual:" << finished_streams_ << ")";
-        }
     }
-
-    //! Number of streams that have to be closed so the channel is closed
-    bool expected_streams() const {
-        return queues_.size() - 1;
-    }
-
-    // void ReceiveLocalData(const void* base, size_t len, size_t elements, size_t own_rank) {
-    //     assert(finished_streams_ < queues_.size());
-    //     LOG << "channel " << id_ << " receives local data @" << base << " (" << len << " bytes / " << elements << " elements)";
-    //     //TODO(ts) this is a copy
-    //     BinaryBufferBuilder bb(base, len, elements);
-    //     buffer_sorter_.Append(own_rank, bb);
-    // }
 };
 
 using Channel = ChannelBase<data::default_block_size>;
