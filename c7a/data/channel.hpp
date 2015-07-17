@@ -44,7 +44,7 @@ using ChannelId = size_t;
 //! As soon as the block is exhausted, the socket polling responsibility
 //! is transfered back to the channel multiplexer.
 template <size_t BlockSize = default_block_size>
-class Channel
+class ChannelBase
 {
     using BlockQueue = data::BlockQueue<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
@@ -55,7 +55,7 @@ class Channel
 
 public:
     //! Creates a new channel instance
-    Channel(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
+    ChannelBase(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
           group_(group),
@@ -77,12 +77,12 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    Channel(const Channel&) = delete;
+    ChannelBase(const ChannelBase&) = delete;
     //! non-copyable: delete assignment operator
-    Channel& operator = (const Channel&) = delete;
+    ChannelBase& operator = (const ChannelBase&) = delete;
 
     //! move-constructor
-    Channel(Channel&&) = default;
+    ChannelBase(ChannelBase&&) = default;
 
     //! Indicates whether all streams are finished
     bool Finished() const {
@@ -217,6 +217,9 @@ protected:
     //     buffer_sorter_.Append(own_rank, bb);
     // }
 };
+
+using Channel = ChannelBase<data::default_block_size>;
+using ChannelSPtr = std::shared_ptr<Channel>;
 
 } // namespace data
 } // namespace c7a

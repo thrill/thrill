@@ -168,7 +168,7 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    std::shared_ptr<data::Channel<data::default_block_size> > channel_;
+    data::ChannelSPtr channel_;
 
     std::vector<Emitter> emitters_;
 
