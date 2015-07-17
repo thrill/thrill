@@ -15,12 +15,14 @@
 
 using IntPair = std::pair<int, int>;
 
+using namespace c7a;
+
 int main(int argc, char* argv[]) {
 
-    c7a::common::CmdlineParser clp;
+    common::CmdlineParser clp;
 
-    c7a::net::DispatcherThread dispatcher("dispatcher");
-    c7a::data::Manager manager(dispatcher);
+    net::DispatcherThread dispatcher("dispatcher");
+    data::Manager manager(dispatcher);
 
     auto key_ex = [](int in) {
                       return in;
@@ -80,16 +82,17 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    std::vector<c7a::data::Emitter<int>> emitter;
+    std::vector<data::File> files(workers);
+    std::vector<data::File::Writer> writers;
     for (size_t i = 0; i < workers; i++) {
-        emitter.emplace_back(manager.GetLocalEmitter<int>(manager.AllocateDIA()));
+        writers.emplace_back(files[i].GetWriter());
     }
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), c7a::data::Emitter<int>>
+    core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), data::File::Writer>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale, stepsize, max_stepsize,
-          max_partition_fill_ratio, max_num_items_table, key_ex, red_fn, emitter, std::make_pair(-1, -1));
+          max_partition_fill_ratio, max_num_items_table, key_ex, red_fn, writers, std::make_pair(-1, -1));
 
-    c7a::common::StatsTimer<true> timer(true);
+    common::StatsTimer<true> timer(true);
 
     for (size_t i = 0; i < size; i++) {
         table.Insert(std::move(elements[i]));

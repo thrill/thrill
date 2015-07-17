@@ -60,10 +60,10 @@ TEST(Stage, CountReferencesSimple) {
 
             // 3x DIA reference + 1x child reference
             ASSERT_EQ(integers.node_refcount(), 4u);
-            ASSERT_EQ(doubles.node_refcount(), 4);
-            ASSERT_EQ(quadruples.node_refcount(), 4);
+            ASSERT_EQ(doubles.node_refcount(), 4u);
+            ASSERT_EQ(quadruples.node_refcount(), 4u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1);
+            ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -109,12 +109,12 @@ TEST(Stage, CountReferencesLOpNode) {
             reduced.AllGather(&out_vec);
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 1x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 2);
+            ASSERT_EQ(quadruples.node_refcount(), 2u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1);
+            ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -160,10 +160,10 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             quadruples.AllGather(&out_vec);
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 1);
+            ASSERT_EQ(quadruples.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -211,14 +211,14 @@ TEST(Stage, AdditionalChildReferences) {
             octuples.AllGather(&out_vec);
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 2x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 3);
+            ASSERT_EQ(quadruples.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples.node_refcount(), 1);
+            ASSERT_EQ(octuples.node_refcount(), 1u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples_second.node_refcount(), 1);
+            ASSERT_EQ(octuples_second.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
