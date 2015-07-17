@@ -26,9 +26,6 @@ namespace data {
 template <size_t BlockSize>
 class BlockQueueSource;
 
-template <size_t BlockSize>
-class DynBlockSink;
-
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
 //same interface as \ref c7a::data::Stream and \ref c7a::data::File
 template <size_t BlockSize = default_block_size>
