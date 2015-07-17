@@ -48,7 +48,7 @@ public:
           local_sum_(initial_value)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](ValueType input) {
+        auto pre_op_fn = [ = ](ValueType input) {
                              PreOp(input);
                          };
 
@@ -142,7 +142,6 @@ auto DIARef<ValueType, Stack>::Sum(
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
-
 } // namespace api
 } // namespace c7a
 

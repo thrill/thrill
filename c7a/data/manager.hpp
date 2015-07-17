@@ -165,7 +165,6 @@ private:
         }
     }
 };
-
 } // namespace data
 } // namespace c7a
 

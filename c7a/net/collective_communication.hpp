@@ -173,7 +173,6 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 }
 
 //! \}
-
 } // namespace net
 } // namespace c7a
 

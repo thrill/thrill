@@ -118,7 +118,6 @@ protected:
     //! Worker function, one per thread is started.
     void Worker();
 };
-
 } // namespace common
 } // namespace c7a
 

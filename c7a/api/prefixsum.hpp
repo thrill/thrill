@@ -49,7 +49,7 @@ public:
           neutral_element_(neutral_element)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [ = ](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -73,7 +73,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
+        auto id_fn = [ = ](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -174,7 +174,6 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     return DIARef<ValueType, decltype(sum_stack)>
                (shared_node, sum_stack);
 }
-
 } // namespace api
 } // namespace c7a
 

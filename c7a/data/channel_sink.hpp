@@ -104,7 +104,6 @@ protected:
         dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
     }
 };
-
 } // namespace data
 } // namespace c7a
 
