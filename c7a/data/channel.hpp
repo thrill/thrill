@@ -173,7 +173,7 @@ public:
     bool closed() const {
         bool closed = true;
         for (auto& q : queues_) {
-            closed = closed & q.closed();
+            closed = closed && q.closed();
         }
         return closed;
     }
