@@ -98,11 +98,11 @@ build_test(data/file_test)
 build_test(data/serializer_test)
 build_test(data/stream_block_header_test)
 
-build_only(api/reduce_node_test)
-build_only(api/wordcount_test)
 build_test(api/function_stack_test)
 build_test(api/operations_test)
+build_test(api/reduce_node_test)
 build_test(api/sum_node_test)
+build_test(api/wordcount_test)
 
 if (OFF)
 

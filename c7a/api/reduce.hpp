@@ -173,7 +173,8 @@ private:
                           DIANode<ValueType>::callbacks());
 
         //we actually want to wire up callbacks in the ctor and NOT use this blocking method
-        auto reader = channel_->ReadCompleteChannel().GetReader();
+        data::File output = channel_->ReadCompleteChannel();
+        auto reader = output.GetReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
         while (reader.HasNext()) {
             table.Insert(reader.template Next<KeyValuePair>());
