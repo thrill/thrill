@@ -144,11 +144,11 @@ TEST(File, SerializeSomeItems) {
 // forced instantiation
 using MyBlock = data::Block<16>;
 template class data::FileBase<16>;
-template class data::BlockWriter<16>;
+template class data::BlockWriterBase<16>;
 template class data::BlockReader<data::FileBlockSource<16> >;
 
 // fixed size serialization test
-using MyWriter = data::BlockWriter<16>;
+using MyWriter = data::BlockWriterBase<16>;
 using MyReader = data::BlockReader<data::FileBlockSource<16> >;
 static_assert(data::Serializer<MyWriter, int>
               ::fixed_size == true, "");

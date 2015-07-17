@@ -40,7 +40,7 @@ public:
 
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Writer = BlockWriter<BlockSize>;
+    using Writer = BlockWriterBase<BlockSize>;
     using Reader = BlockReader<BlockQueueSource<BlockSize> >;
 
     void Append(VirtualBlock&& vb) override {
