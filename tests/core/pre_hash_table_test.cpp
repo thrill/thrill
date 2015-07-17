@@ -99,7 +99,7 @@ TEST_F(PreTable, CustomHashFunction) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, writers, hash_function);
 
@@ -131,7 +131,7 @@ TEST_F(PreTable, AddIntegers) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(1, key_ex, red_fn, writers);
@@ -156,7 +156,7 @@ TEST_F(PreTable, CreateEmptyTable) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(1, key_ex, red_fn, writers);
@@ -181,7 +181,7 @@ TEST_F(PreTable, PopIntegers) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(1, key_ex, red_fn, writers);
@@ -213,7 +213,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(1, 10, 2, 10, 10, key_ex, red_fn, writers);
@@ -252,8 +252,8 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
     File output1, output2;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output1);
-    writers.emplace_back(output2);
+    writers.emplace_back(output1.GetWriter());
+    writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(2, 5, 2, 10, 10, key_ex, red_fn, writers);
@@ -301,7 +301,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(1, 10, 2, 10, 4, key_ex, red_fn, writers);
@@ -339,8 +339,8 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     File output1, output2;
 
     std::vector<File::Writer> writers;
-    writers.emplace_back(output1);
-    writers.emplace_back(output2);
+    writers.emplace_back(output1.GetWriter());
+    writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(2, 5, 2, 10, 4, key_ex, red_fn, writers);
@@ -388,7 +388,7 @@ TEST_F(PreTable, ComplexType) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(1, 2, 2, 10, 3, key_ex, red_fn, writers);
@@ -420,8 +420,8 @@ TEST_F(PreTable, MultipleWorkers) {
     File output1, output2;
 
     std::vector<File::Writer> writers;
-    writers.emplace_back(output1);
-    writers.emplace_back(output2);
+    writers.emplace_back(output1.GetWriter());
+    writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(2, key_ex, red_fn, writers);
@@ -451,7 +451,7 @@ TEST_F(PreTable, ResizeOnePartition) {
     File output;
     {
         std::vector<File::Writer> writers;
-        writers.emplace_back(output);
+        writers.emplace_back(output.GetWriter());
 
         c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
         table(1, 1, 10, 1, 10, key_ex, red_fn, writers);
@@ -496,8 +496,8 @@ TEST_F(PreTable, ResizeTwoPartitions) {
     File output1, output2;
 
     std::vector<File::Writer> writers;
-    writers.emplace_back(output1);
-    writers.emplace_back(output2);
+    writers.emplace_back(output1.GetWriter());
+    writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(2, 1, 10, 1, 10, key_ex, red_fn, writers);
@@ -539,7 +539,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     std::vector<File> files(num_partitions);
     std::vector<File::Writer> writers;
     for (size_t i = 0; i != num_partitions; ++i) {
-        writers.emplace_back(files[i]);
+        writers.emplace_back(files[i].GetWriter());
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
@@ -626,7 +626,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
@@ -665,7 +665,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
@@ -718,7 +718,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     File output;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output);
+    writers.emplace_back(output.GetWriter());
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 4 * 1024;
