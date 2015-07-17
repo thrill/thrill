@@ -329,8 +329,8 @@ TEST(Operations, WhileLoop) {
             // run loop four times, inflating DIA of 16 items -> 256
             for (size_t i = 0; i < 4; ++i) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
-                auto mulitplied = pairs.Map(map_multiply);
-                squares = mulitplied;
+                auto multiplied = pairs.Map(map_multiply);
+                squares = multiplied;
             }
 
             std::vector<int> out_vec;
