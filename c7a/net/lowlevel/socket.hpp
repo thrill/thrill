@@ -198,6 +198,10 @@ public:
             return false;
         }
 
+        LOG << "Socket::close()"
+            << " fd_=" << fd_
+            << " closed";
+
         fd_ = -1;
 
         return true;
