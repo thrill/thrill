@@ -16,17 +16,13 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <map>
-#include <iostream>
-#include <string>
-#include <vector>
+#include <cassert>
 #include <stdexcept>
-#include <array>
-#include <deque>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace core {
