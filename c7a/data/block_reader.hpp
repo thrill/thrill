@@ -53,12 +53,6 @@ public:
         return true;
     }
 
-    //! AtEnd() returns true reader is at end of block source and source is closed.
-    bool AtEnd() {
-        //assumes that no block is empty
-        return current_ < end_ && !NextBlock() && source_.closed();
-    }
-
     //! \}
 
     //! \name Cursor Reading Methods
