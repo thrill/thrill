@@ -141,9 +141,23 @@ public:
     }
 
     void Close() {
+        // close all sinks, this should emit sentinel to all other workers.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
             sinks_[i].Close();
+        }
+
+        // close self-loop queues
+        if (!queues_[group_.MyRank()].closed())
+            queues_[group_.MyRank()].Close();
+
+        // wait for close packets to arrive (this is a busy waiting loop, try to
+        // do it better -tb)
+        for (size_t i = 0; i != queues_.size(); ++i) {
+            while (!queues_[i].closed()) {
+                LOG << "wait for close from worker" << i;
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
         }
     }
 
@@ -166,12 +180,12 @@ protected:
     friend class ChannelMultiplexer;
 
     //! called from ChannelMultiplexer when there is a new Block on a
-    //! Stream. TODO(tb): pass sender id when needed.
+    //! Stream.
     void OnStreamBlock(size_t from, VirtualBlock&& vb) {
         assert(from < queues_.size());
 
-        sLOG1 << "channel receive " << id_ << "from" << from << ":"
-              << common::hexdump(vb.block->data(), vb.bytes_used);
+        sLOG << "channel" << id_ << "receive from" << from << ":"
+             << common::hexdump(vb.block->data(), vb.bytes_used);
 
         queues_[from].Append(std::move(vb));
     }
@@ -179,15 +193,17 @@ protected:
     //! called from ChannelMultiplexer when a Stream closed notification was
     //! received.
     void OnCloseStream(size_t from) {
+        assert(from < queues_.size());
+        assert(!queues_[from].closed());
+        queues_[from].Close();
+
         finished_streams_++;
         if (finished_streams_ == queues_.size()) {
-            assert(from < queues_.size());
-
             sLOG << "channel" << id_ << " is closed";
-            queues_[from].Close();
         }
         else {
-            sLOG << "channel" << id_ << " is not closed yet (expect:" << queues_.size() << "actual:" << finished_streams_ << ")";
+            sLOG << "channel" << id_ << " is not closed yet "
+                 << "(expect:" << queues_.size() << "actual:" << finished_streams_ << ")";
         }
     }
 
