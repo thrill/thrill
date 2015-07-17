@@ -9,11 +9,12 @@
  ******************************************************************************/
 
 #include <c7a/core/reduce_pre_table.hpp>
+#include <c7a/data/file.hpp>
 
 #include "gtest/gtest.h"
 
 using namespace c7a::data;
-using namespace c7a::net;
+
 using IntPair = std::pair<int, int>;
 using StringPairPair = std::pair<std::string, std::pair<std::string, int> >;
 using StringPair = std::pair<std::string, int>;
