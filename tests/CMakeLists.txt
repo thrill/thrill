@@ -98,6 +98,7 @@ build_test(data/stream_block_header_test)
 
 # this is the new Channel test.
 build_only(data/channel_multiplexer_test)
+build_test(data/serializer_test)
 
 if (OFF)
   build_test(api/function_stack_test)
