@@ -175,7 +175,7 @@ private:
         //we actually want to wire up callbacks in the ctor and NOT use this blocking method
         auto reader = channel_->ReadCompleteChannel().GetReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
-        while (!reader.AtEnd()) {
+        while (reader.HasNext()) {
             table.Insert(reader.template Next<KeyValuePair>());
         }
 

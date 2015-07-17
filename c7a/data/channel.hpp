@@ -128,12 +128,13 @@ public:
 
     //! Reads add data from this Channel (blocking)
     //! The resulting blocks in the file will be ordered by their sender ascending.
-    //! Blocks from the same sender are ordered the way they were received/sent
+    //! Blocks from the same sender are ordered the way they were received/sent.
     File ReadCompleteChannel() {
+        // TODO(tb): why wait for all streams on the channel to close -> create
+        // a BlockSource that reads from all queues in order.
         FileBase<BlockSize> result;
         for (auto& q : queues_) {
             while (!q.empty() || !q.closed()) {
-                auto vblock = q.Pop(); //this is blocking
                 result.Append(q.Pop());
             }
         }
