@@ -3,6 +3,8 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -165,7 +167,7 @@ private:
      * @param nc The connection to connect.
      * @param address The address of the endpoint to connect to.
      */
-    void AsyncConnect(Connection& nc, SocketAddress& address) {
+    void AsyncConnect(Connection& nc, const SocketAddress& address) {
         // Start asynchronous connect.
         nc.GetSocket().SetNonBlocking(true);
         int res = nc.GetSocket().connect(address);
@@ -204,7 +206,7 @@ private:
      * @param address The address of the endpoint to connect to.
      */
     void AsyncConnect(
-        uint32_t group, size_t id, SocketAddress& address) {
+        uint32_t group, size_t id, const SocketAddress& address) {
 
         // Construct a new socket (old one is destroyed)
         Connection& nc = groups_[group].connection(id);
@@ -246,10 +248,17 @@ private:
      *
      * @return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(Connection& conn, SocketAddress& address) {
+    bool OnConnected(Connection& conn, const SocketAddress& address) {
 
         //First, check if everything went well.
         int err = conn.GetSocket().GetError();
+
+        if (conn.state() != ConnectionState::Connecting) {
+            LOG << "FAULTY STATE DETECTED";
+            LOG << "Client " << my_rank_ << " expected connection state " << ConnectionState::Connecting <<
+                " but got " << conn.state();
+            assert(false);
+        }
 
         if (err == Socket::Errors::ConnectionRefused ||
             err == Socket::Errors::Timeout) {
@@ -257,19 +266,11 @@ private:
             //Connection refused. The other workers might not be online yet.
 
             LOG << "Connect to " << address.ToStringHostPort() <<
-                " timed out or refused. Attempting reconnect";
+                " FD=" << conn.GetSocket().fd() << " timed out or refused with error " << err << ". Attempting reconnect";
 
-            // Construct a new connection since the
-            // socket might not be reusable.
-            Connection nc;
-
-            nc = std::move(Connection(Socket::Create()));
-            nc.set_group_id(conn.group_id());
-            nc.set_peer_id(conn.peer_id());
-
-            std::swap(conn, nc);
-
-            AsyncConnect(conn, address);
+            // Construct a new connection since the socket might not be
+            // reusable.
+            AsyncConnect(conn.group_id(), conn.peer_id(), address);
 
             return false;
         }
@@ -277,7 +278,7 @@ private:
             //Other failure. Fail hard.
             conn.set_state(ConnectionState::Invalid);
 
-            throw Exception("Error connecting asyncronously to client "
+            throw Exception("Error connecting asynchronously to client "
                             + std::to_string(conn.peer_id()) + " via "
                             + address.ToStringHostPort(), err);
         }
@@ -289,6 +290,7 @@ private:
         LOG << "OnConnected() " << my_rank_ << " connected"
             << " fd=" << conn.GetSocket().fd()
             << " to=" << conn.GetSocket().GetPeerAddress()
+            << " err=" << err
             << " group=" << conn.group_id();
 
         // send welcome message
@@ -300,7 +302,7 @@ private:
                                    });
 
         LOG << "Client " << my_rank_ << " sent active hello to "
-            << "client group id " << conn.group_id();
+            << "client " << conn.peer_id() << " group id " << conn.group_id();
 
         dispatcher_.AsyncRead(conn, sizeof(hello),
                               [=](Connection& nc, Buffer&& b) {
@@ -330,13 +332,17 @@ private:
         die_unequal(msg->c7a, c7a_sign);
         // We already know those values since we connected actively. So, check
         // for any errors.
+        if (conn.peer_id() != msg->id) {
+            LOG << "FAULTY ID DETECTED";
+        }
+
+        LOG << "client " << my_rank_ << " expected signature from client " << conn.peer_id() << " and  got signature "
+            << "from client " << msg->id;
+
         die_unequal(conn.peer_id(), msg->id);
         die_unequal(conn.group_id(), msg->group_id);
 
         conn.set_state(ConnectionState::Connected);
-
-        LOG << "client " << my_rank_ << " got signature "
-            << "from client " << msg->id;
 
         return false;
     }
@@ -420,49 +426,29 @@ private:
     }
 
 public:
-    /**
-     * @brief Executes a local mockup for testing.
-     * @details Spawns theads for each Group and calls the given thread
-     * function for each client to simulate. This function uses the
-     * LocalMock function of the Group class.
-     *
-     * See unit tests for usage examples.
-     *
-     * @param num_clients The number of clients to simulate.
-     * @param systemThreadFunction The function to execute for the system control Group.
-     * @param flowThreadFunction The function to execute for the flow control Group.
-     * @param dataThreadFunction The function to execute for the data manager Group.
-     */
-    static void ExecuteLocalMock(
-        size_t num_clients,
-        const std::function<void(Group*)>& systemThreadFunction,
-        const std::function<void(Group*)>& flowThreadFunction,
-        const std::function<void(Group*)>& dataThreadFunction) {
+    //! Construct a mock network, consisting of node_count compute
+    //! nodes. Delivers this number of net::Manager objects, which are
+    //! internally connected.
+    static std::vector<Manager> ConstructLocalMesh(size_t node_count) {
 
-        // Adjust this method too if groupcount changes.
-        die_unless(kGroupCount == 3);
+        // construct list of uninitialized net::Manager objects.
+        std::vector<Manager> nmlist(node_count);
 
-        std::vector<std::thread*> threads(kGroupCount);
-
-        //Create mock netgroups in new threads.
-        threads[0] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, systemThreadFunction);
-            });
-        threads[1] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, flowThreadFunction);
-            });
-        threads[2] = new std::thread(
-            [=] {
-                Group::ExecuteLocalMock(num_clients, dataThreadFunction);
-            });
-
-        //Join threads again.
-        for (size_t i = 0; i != threads.size(); ++i) {
-            threads[i]->join();
-            delete threads[i];
+        for (size_t n = 0; n < node_count; ++n) {
+            nmlist[n].my_rank_ = n;
         }
+
+        // construct three full mesh connection cliques, deliver net::Groups.
+        for (size_t g = 0; g < kGroupCount; ++g) {
+            std::vector<Group> group = Group::ConstructLocalMesh(node_count);
+
+            // distribute net::Group objects to managers
+            for (size_t n = 0; n < node_count; ++n) {
+                nmlist[n].groups_[g] = std::move(group[n]);
+            }
+        }
+
+        return std::move(nmlist);
     }
 
     /**
@@ -478,6 +464,8 @@ public:
                     const std::vector<Endpoint>& endpoints) {
 
         die_unless(my_rank_ < endpoints.size());
+
+        LOG << "Client " << my_rank_ << " starting: " << endpoints[my_rank_];
 
         this->my_rank_ = my_rank_;
 
@@ -511,6 +499,8 @@ public:
 
             listener_ = std::move(Connection(listen_socket));
         }
+
+        LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         //Initiate connections to all hosts with higher id.
         for (uint32_t g = 0; g < kGroupCount; g++) {
@@ -571,6 +561,12 @@ public:
      */
     Group & GetDataGroup() {
         return groups_[2];
+    }
+
+    void Close() {
+        for (size_t i = 0; i < kGroupCount; i++) {
+            groups_[i].Close();
+        }
     }
 };
 

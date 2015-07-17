@@ -11,14 +11,15 @@
 #ifndef C7A_API_DIA_NODE_HEADER
 #define C7A_API_DIA_NODE_HEADER
 
+#include <c7a/api/dia_base.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/data/manager.hpp>
+
 #include <string>
 #include <vector>
 
-#include "dia_base.hpp"
-#include "context.hpp"
-#include <c7a/data/manager.hpp>
-
 namespace c7a {
+namespace api {
 
 //! \addtogroup api Interface
 //! \{
@@ -50,7 +51,8 @@ public:
      * \param parents Reference to parents of this node, which have to be
      * computed previously
      */
-    DIANode(Context& ctx, const DIABaseVector& parents)
+    DIANode(Context& ctx,
+            const std::vector<std::shared_ptr<DIABase> >& parents)
         : DIABase(ctx, parents)
     { }
 
@@ -104,6 +106,7 @@ protected:
 
 //! \}
 
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_DIA_NODE_HEADER
