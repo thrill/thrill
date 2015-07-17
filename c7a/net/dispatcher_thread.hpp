@@ -211,7 +211,7 @@ protected:
             self_pipe_[0], [this]() {
                 ssize_t rb;
                 while ((rb = read(self_pipe_[0], &self_pipe_buffer_, 1)) == 0) {
-                    LOG << "Work: error reading from self-pipe: " << errno;
+                    LOG1 << "Work: error reading from self-pipe: " << errno;
                 }
                 die_unless(rb == 1);
                 return true;
@@ -239,10 +239,14 @@ protected:
         // another fd, which we write one byte to when we need to interrupt the
         // select().
 
+        // another method would be to send a signal() via pthread_kill() to the
+        // select thread, but that had a race condition for waking up the other
+        // thread. -tb
+
         // send one byte to wake up the select() handler.
         ssize_t wb;
         while ((wb = write(self_pipe_[1], this, 1)) == 0) {
-            LOG << "WakeUp: error sending to self-pipe: " << errno;
+            LOG1 << "WakeUp: error sending to self-pipe: " << errno;
         }
         die_unless(wb == 1);
     }
