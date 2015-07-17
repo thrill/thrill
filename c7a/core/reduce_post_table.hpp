@@ -393,7 +393,6 @@ private:
 
     Value neutral_element_;
 };
-
 } // namespace core
 } // namespace c7a
 

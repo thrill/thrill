@@ -170,7 +170,6 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, generator_stack);
 }
-
 } // namespace api
 } // namespace c7a
 

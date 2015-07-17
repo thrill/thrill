@@ -17,7 +17,7 @@ TEST(FunctionTraits, LambdaParametersTest) {
     using c7a::common::FunctionTraits;
 
     auto lambda1 =
-        [=](int x, char c) -> std::string {
+        [ = ](int x, char c) -> std::string {
             return std::to_string(x) + " " + c;
         };
 

@@ -81,7 +81,6 @@ private:
 };
 
 using TimedCounterPtr = std::shared_ptr<TimedCounter>;
-
 } // namespace common
 } // namespace c7a
 

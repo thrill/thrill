@@ -1099,7 +1099,6 @@ std::string FormatIecUnits(uint64_t number) {
         << ' ' << IECendings[scale];
     return out.str();
 }
-
 } // namespace common
 } // namespace c7a
 

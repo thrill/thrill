@@ -79,7 +79,7 @@ static void ExecuteMultiThreads(Group* net, int count, std::function<void(FlowCo
 static void MultiThreadBroadcast(Group* net) {
     const int count = 4;
     const int magic = 1337;
-    ExecuteMultiThreads(net, count, [=](FlowControlChannel& channel, int id) {
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel& channel, int id) {
                             int myRank = (int)net->MyRank() * count + id + magic;
 
                             int res = channel.Broadcast(myRank);
@@ -114,7 +114,7 @@ static void MultiThreadAllReduce(Group* net) {
 
     const int count = 4;
 
-    ExecuteMultiThreads(net, count, [=](FlowControlChannel& channel, int id) {
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel& channel, int id) {
                             int myRank = (int)net->MyRank() * count + id;
 
                             int res = channel.AllReduce(myRank);
@@ -134,7 +134,7 @@ static void MultiThreadPrefixSum(Group* net) {
 
     const int count = 4;
 
-    ExecuteMultiThreads(net, count, [=](FlowControlChannel& channel, int id) {
+    ExecuteMultiThreads(net, count, [ = ](FlowControlChannel& channel, int id) {
                             int myRank = (int)net->MyRank() * count + id;
 
                             int res = channel.PrefixSum(myRank);

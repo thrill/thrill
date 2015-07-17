@@ -151,7 +151,6 @@ public:
         return finished_;
     }
 };
-
 } // namespace common
 } // namespace c7a
 

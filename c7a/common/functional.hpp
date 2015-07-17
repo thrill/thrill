@@ -32,7 +32,6 @@ struct SumOp {
         return a + b;
     }
 };
-
 } // namespace common
 } // namespace c7a
 

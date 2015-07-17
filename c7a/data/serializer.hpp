@@ -373,7 +373,6 @@ struct GenericImpl {
 };
 }                                                // namespace serializers
 
-
 //! Serialize the type to std::string
 template <class T>
 inline std::string Serialize(const T& x) {
@@ -433,7 +432,6 @@ struct Serializer<Archive, std::pair<U, V> >
     static const bool fixed_size = (Serializer<Archive, U>::fixed_size &&
                                     Serializer<Archive, V>::fixed_size);
 };
-
 } // namespace data
 } // namespace c7a
 

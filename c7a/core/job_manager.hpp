@@ -103,7 +103,6 @@ private:
     //! number of processing workers on this compute node.
     size_t local_worker_count_;
 };
-
 } // namespace core
 } // namespace c7a
 

@@ -86,7 +86,6 @@ private:
     //!End of local block
     std::streampos my_end_;
 };
-
 } // namespace c7a
 
 #endif // !C7A_API_INPUT_LINE_ITERATOR_HEADER

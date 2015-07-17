@@ -16,7 +16,6 @@ namespace c7a {
 namespace net {
 
 // TODO
-
 } // namespace net
 } // namespace c7a
 

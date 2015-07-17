@@ -38,7 +38,7 @@ namespace api {
 template <typename Lambda>
 auto run_emitter(Lambda lambda)
 {
-    return [=](auto input)->void {
+    return [ = ](auto input)->void {
                lambda(input);
     };
 }
@@ -56,7 +56,7 @@ auto run_emitter(Lambda lambda)
 template <typename Lambda, typename ... MoreLambdas>
 auto run_emitter(Lambda lambda, MoreLambdas ... rest)
 {
-    return [=](auto input)->void {
+    return [ = ](auto input)->void {
                lambda(input, run_emitter(rest ...));
     };
 }
@@ -88,8 +88,7 @@ struct make_index_sequence_helper {
 template <size_t Length>
 struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
-
-} // namespace
+}       // namespace
 
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single
@@ -177,7 +176,6 @@ template <typename Input, typename Lambda>
 static inline auto MakeFunctionStack(Lambda lambda) {
     return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
-
 } // namespace api
 } // namespace c7a
 

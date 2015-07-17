@@ -101,10 +101,10 @@ public:
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
-        auto pre_op1_fn = [=](const ZipArg0& input) {
+        auto pre_op1_fn = [ = ](const ZipArg0& input) {
                               emit1_(input);
                           };
-        auto pre_op2_fn = [=](const ZipArg1& input) {
+        auto pre_op2_fn = [ = ](const ZipArg1& input) {
                               emit2_(input);
                           };
 
@@ -155,7 +155,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
+        auto post_op_fn = [ = ](ValueType elem, auto emit_func) {
                               return PostOp(elem, emit_func);
                           };
 
@@ -278,7 +278,6 @@ auto DIARef<ValueType, Stack>::Zip(
     return DIARef<ZipResultNode, decltype(zip_stack)>
                (zip_node, zip_stack);
 }
-
 } // namespace api
 } // namespace c7a
 
