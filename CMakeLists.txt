@@ -28,6 +28,8 @@ option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 
+option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
+
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 
 # enable warnings
@@ -60,6 +62,21 @@ if(JENKINS_BUILD)
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     message(STATUS "Building using libc++ on clang")
+  endif()
+endif()
+
+if(USE_IWYU)
+  # Generate clang compilation database
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+  find_package(PythonInterp)
+  find_program(iwyu_tool_path NAMES iwyu_tool.py)
+  if (iwyu_tool_path AND PYTHONINTERP_FOUND)
+    add_custom_target(iwyu
+      ALL      # Remove ALL if you don't iwyu to be run by default.
+      COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
+      COMMENT "Running include-what-you-use tool"
+      VERBATIM)
   endif()
 endif()
 
