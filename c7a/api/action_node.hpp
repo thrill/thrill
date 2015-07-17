@@ -11,23 +11,22 @@
 #ifndef C7A_API_ACTION_NODE_HEADER
 #define C7A_API_ACTION_NODE_HEADER
 
-#include "dia_node.hpp"
+#include <c7a/api/dia_node.hpp>
 #include <c7a/core/stage_builder.hpp>
 
 namespace c7a {
+namespace api {
 
-template <typename T>
-class ActionNode : public DIANode<T>
+class ActionNode : public DIABase
 {
 public:
     ActionNode(Context& ctx,
-               const DIABaseVector& parents)
-        : DIANode<T>(ctx, parents)
+               const std::vector<std::shared_ptr<DIABase> >& parents)
+        : DIABase(ctx, parents)
     { }
-
-    virtual ~ActionNode() { }
 };
 
+} // namespace api
 } // namespace c7a
 
 #endif // !C7A_API_ACTION_NODE_HEADER

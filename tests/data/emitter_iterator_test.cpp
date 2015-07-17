@@ -21,7 +21,7 @@ using namespace c7a::net;
 
 struct EmitterIteratorIntegration : public::testing::Test {
     EmitterIteratorIntegration()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id(manager.AllocateDIA()) { }
 
@@ -37,16 +37,16 @@ TEST_F(EmitterIteratorIntegration, EmptyHasNotNext) {
     ASSERT_FALSE(it.HasNext());
 }
 
-TEST_F(EmitterIteratorIntegration, EmptyIsNotClosed) {
+TEST_F(EmitterIteratorIntegration, EmptyIsNotFinished) {
     auto it = manager.GetIterator<int>(id);
-    ASSERT_FALSE(it.IsClosed());
+    ASSERT_FALSE(it.IsFinished());
 }
 
-TEST_F(EmitterIteratorIntegration, ClosedIsClosed) {
+TEST_F(EmitterIteratorIntegration, ClosedIsFinished) {
     auto it = manager.GetIterator<int>(id);
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt.Close();
-    ASSERT_TRUE(it.IsClosed());
+    ASSERT_TRUE(it.IsFinished());
 }
 
 TEST_F(EmitterIteratorIntegration, OneElementEmitted) {
@@ -54,12 +54,12 @@ TEST_F(EmitterIteratorIntegration, OneElementEmitted) {
     auto emitt = manager.GetLocalEmitter<int>(id);
     emitt(123);
     emitt.Flush();
-    ASSERT_FALSE(it.IsClosed());
+    ASSERT_FALSE(it.IsFinished());
     ASSERT_TRUE(it.HasNext());
     ASSERT_EQ(123, it.Next());
 
     emitt.Close();
-    ASSERT_TRUE(it.IsClosed());
+    ASSERT_TRUE(it.IsFinished());
 }
 
 TEST_F(EmitterIteratorIntegration, CloseFlushesEmitter) {
@@ -126,7 +126,7 @@ TEST_F(EmitterIteratorIntegration, WaitForMore_PausesThread) {
     int received_elelements = 0;
     int wait_calls = 0;
     std::thread receiver([&it, &wait_calls, &received_elelements]() {
-                             while (!it.IsClosed()) {
+                             while (!it.IsFinished()) {
                                  if (!it.HasNext()) {
                                      wait_calls++;
                                      it.WaitForMore();
@@ -158,7 +158,7 @@ TEST_F(EmitterIteratorIntegration, WaitForAll_PausesThread) {
     int received_elelements = 0;
     int wait_calls = 0;
     std::thread receiver([&it, &wait_calls, &received_elelements]() {
-                             while (!it.IsClosed()) {
+                             while (!it.IsFinished()) {
                                  wait_calls++;
                                  it.WaitForAll();
                                  while (it.HasNext()) {

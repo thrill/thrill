@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -13,34 +14,11 @@
 
 using namespace c7a::data;
 using namespace c7a::net;
+using IntPair = std::pair<int, int>;
+using StringPairPair = std::pair<std::string, std::pair<std::string, int> >;
 using StringPair = std::pair<std::string, int>;
 
-struct PreTable : public::testing::Test {
-    PreTable()
-        : dispatcher(),
-          manager(dispatcher),
-          id1(manager.AllocateDIA()),
-          id2(manager.AllocateDIA()) {
-        one_int_emitter.emplace_back(manager.GetLocalEmitter<int>(id1));
-        one_pair_emitter.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
-
-        two_int_emitters.emplace_back(manager.GetLocalEmitter<int>(id1));
-        two_int_emitters.emplace_back(manager.GetLocalEmitter<int>(id2));
-
-        two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
-        two_pair_emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id2));
-    }
-
-    DispatcherThread                  dispatcher;
-    Manager                           manager;
-    DIAId                             id1;
-    DIAId                             id2;
-    // all emitters access the same dia id, which is bad if you use them both
-    std::vector<Emitter<int> >        one_int_emitter;
-    std::vector<Emitter<int> >        two_int_emitters;
-    std::vector<Emitter<StringPair> > one_pair_emitter;
-    std::vector<Emitter<StringPair> > two_pair_emitters;
-};
+struct PreTable : public::testing::Test { };
 
 struct MyStruct
 {
@@ -52,9 +30,12 @@ struct MyStruct
     { }
 };
 
+using MyPair = std::pair<int, MyStruct>;
+
 namespace c7a {
 namespace data {
 namespace serializers {
+
 template <>
 struct Impl<MyStruct>{
     static std::string Serialize(const MyStruct& s) {
@@ -72,8 +53,71 @@ struct Impl<MyStruct>{
         return MyStruct(i, j);
     }
 };
-}
-}
+
+} // namespace serializers
+
+template <typename Archive>
+struct Serializer<Archive, MyStruct>
+{
+    static void serialize(const MyStruct& x, Archive& a) {
+        Serializer<Archive, int>::serialize(x.key, a);
+        Serializer<Archive, int>::serialize(x.count, a);
+    }
+    static MyStruct deserialize(Archive& a) {
+        int key = Serializer<Archive, int>::deserialize(a);
+        int count = Serializer<Archive, int>::deserialize(a);
+        return MyStruct(key, count);
+    }
+    static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
+                                    Serializer<Archive, int>::fixed_size);
+};
+
+} // namespace data
+} // namespace c7a
+
+TEST_F(PreTable, CustomHashFunction) {
+
+    auto key_ex = [](int in) {
+                      return in;
+                  };
+
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    using HashTable = typename c7a::core::ReducePreTable<
+              decltype(key_ex), decltype(red_fn), File::Writer>;
+
+    auto hash_function = [](int key, HashTable*) {
+
+                             size_t global_index = key / 2;
+                             size_t partition_id = 0;
+                             size_t partition_offset = key / 2;
+
+                             return HashTable::hash_result(partition_id, partition_offset, global_index);
+                         };
+
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, writers, hash_function);
+
+    for (int i = 0; i < 16; i++) {
+        table.Insert(std::move(i));
+    }
+
+    table.Flush();
+
+    auto it1 = output.GetReader();
+    int c = 0;
+    while (it1.HasNext()) {
+        IntPair keyvalue = it1.Next<IntPair>();
+        ASSERT_EQ(keyvalue.first, keyvalue.second);
+        c++;
+    }
+
+    ASSERT_EQ(16, c);
 }
 
 TEST_F(PreTable, AddIntegers) {
@@ -85,8 +129,12 @@ TEST_F(PreTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(1, key_ex, red_fn, one_int_emitter);
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(1, key_ex, red_fn, writers);
 
     table.Insert(1);
     table.Insert(2);
@@ -106,8 +154,12 @@ TEST_F(PreTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(1, key_ex, red_fn, one_int_emitter);
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(1, key_ex, red_fn, writers);
 
     table.Insert(1);
     table.Insert(2);
@@ -127,8 +179,12 @@ TEST_F(PreTable, PopIntegers) {
 
     auto key_ex = [](int in) { return in; };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(1, key_ex, red_fn, one_int_emitter);
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(1, key_ex, red_fn, writers);
 
     table.SetMaxSize(3);
 
@@ -155,8 +211,12 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(1, 10, 2, 10, 10, key_ex, red_fn, one_int_emitter);
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(1, 10, 2, 10, 10, key_ex, red_fn, writers);
 
     table.Insert(0);
     table.Insert(1);
@@ -167,16 +227,16 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     ASSERT_EQ(5u, table.Size());
 
     table.Flush();
+    ASSERT_EQ(0u, table.Size());
 
-    auto it = manager.GetIterator<int>(id1);
+    auto it = output.GetReader();
     int c = 0;
     while (it.HasNext()) {
-        it.Next();
+        it.Next<IntPair>();
         c++;
     }
 
     ASSERT_EQ(5, c);
-    ASSERT_EQ(0u, table.Size());
 }
 
 // Manually flush all items in table,
@@ -190,8 +250,13 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(2, 5, 2, 10, 10, key_ex, red_fn, two_int_emitters);
+    File output1, output2;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output1);
+    writers.emplace_back(output2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(2, 5, 2, 10, 10, key_ex, red_fn, writers);
 
     table.Insert(0);
     table.Insert(1);
@@ -202,25 +267,25 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     ASSERT_EQ(5u, table.Size());
 
     table.Flush();
+    ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<int>(id1);
+    auto it1 = output1.GetReader();
     int c1 = 0;
     while (it1.HasNext()) {
-        it1.Next();
+        it1.Next<IntPair>();
         c1++;
     }
 
     ASSERT_EQ(3, c1);
 
-    auto it2 = manager.GetIterator<int>(id2);
+    auto it2 = output2.GetReader();
     int c2 = 0;
     while (it2.HasNext()) {
-        it2.Next();
+        it2.Next<IntPair>();
         c2++;
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0u, table.Size());
 }
 
 // Partial flush of items in table due to
@@ -234,8 +299,12 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(1, 10, 2, 10, 4, key_ex, red_fn, one_int_emitter);
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(1, 10, 2, 10, 4, key_ex, red_fn, writers);
 
     table.Insert(0);
     table.Insert(1);
@@ -246,15 +315,14 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     table.Insert(4);
 
-    auto it = manager.GetIterator<int>(id1);
+    auto it = output.GetReader();
     int c = 0;
     while (it.HasNext()) {
-        it.Next();
+        it.Next<IntPair>();
         c++;
     }
 
     ASSERT_EQ(5, c);
-    ASSERT_EQ(0u, table.Size());
 }
 
 //// Partial flush of items in table due to
@@ -268,8 +336,14 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(2, 5, 2, 10, 4, key_ex, red_fn, two_int_emitters);
+    File output1, output2;
+
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output1);
+    writers.emplace_back(output2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(2, 5, 2, 10, 4, key_ex, red_fn, writers);
 
     table.Insert(0);
     table.Insert(1);
@@ -281,20 +355,20 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(4);
     table.Flush();
 
-    auto it1 = manager.GetIterator<int>(id1);
+    auto it1 = output1.GetReader();
     int c1 = 0;
     while (it1.HasNext()) {
-        it1.Next();
+        it1.Next<IntPair>();
         c1++;
     }
 
     ASSERT_EQ(3, c1);
     table.Flush();
 
-    auto it2 = manager.GetIterator<int>(id2);
+    auto it2 = output2.GetReader();
     int c2 = 0;
     while (it2.HasNext()) {
-        it2.Next();
+        it2.Next<IntPair>();
         c2++;
     }
 
@@ -312,8 +386,12 @@ TEST_F(PreTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
-    table(1, 2, 2, 10, 3, key_ex, red_fn, one_pair_emitter);
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(1, 2, 2, 10, 3, key_ex, red_fn, writers);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
@@ -339,8 +417,14 @@ TEST_F(PreTable, MultipleWorkers) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(2, key_ex, red_fn, one_int_emitter);
+    File output1, output2;
+
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output1);
+    writers.emplace_back(output2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(2, key_ex, red_fn, writers);
 
     ASSERT_EQ(0u, table.Size());
     table.SetMaxSize(5);
@@ -364,27 +448,33 @@ TEST_F(PreTable, ResizeOnePartition) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(1, 1, 10, 1, 10, key_ex, red_fn, one_int_emitter);
+    File output;
+    {
+        std::vector<File::Writer> writers;
+        writers.emplace_back(output);
 
-    table.Insert(1);
+        c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+        table(1, 1, 10, 1, 10, key_ex, red_fn, writers);
 
-    ASSERT_EQ(1u, table.NumBuckets());
-    ASSERT_EQ(1u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.Size());
+        table.Insert(1);
 
-    table.Insert(2); // Resize happens here
+        ASSERT_EQ(1u, table.NumBuckets());
+        ASSERT_EQ(1u, table.PartitionSize(0));
+        ASSERT_EQ(1u, table.Size());
 
-    ASSERT_EQ(10u, table.NumBuckets());
-    ASSERT_EQ(2u, table.PartitionSize(0));
-    ASSERT_EQ(2u, table.Size());
+        table.Insert(2); // Resize happens here
 
-    table.Flush();
+        ASSERT_EQ(10u, table.NumBuckets());
+        ASSERT_EQ(2u, table.PartitionSize(0));
+        ASSERT_EQ(2u, table.Size());
 
-    auto it1 = manager.GetIterator<int>(id1);
+        table.Flush();
+    }
+
+    auto it1 = output.GetReader();
     int c = 0;
     while (it1.HasNext()) {
-        it1.Next();
+        it1.Next<IntPair>();
         c++;
     }
 
@@ -403,8 +493,14 @@ TEST_F(PreTable, ResizeTwoPartitions) {
                       return in1 + in2;
                   };
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), Emitter<int> >
-    table(2, 1, 10, 1, 10, key_ex, red_fn, two_int_emitters);
+    File output1, output2;
+
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output1);
+    writers.emplace_back(output2);
+
+    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), File::Writer>
+    table(2, 1, 10, 1, 10, key_ex, red_fn, writers);
 
     ASSERT_EQ(0u, table.Size());
     ASSERT_EQ(2u, table.NumBuckets());
@@ -440,19 +536,16 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     size_t bucket_size = 1 * 1024;
     size_t nitems = bucket_size + (num_partitions * num_buckets_init_scale * bucket_size);
 
-    std::vector<Emitter<MyStruct> > emitters;
-    std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
-    std::vector<DIAId> ids;
+    std::vector<File> files(num_partitions);
+    std::vector<File::Writer> writers;
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto id = manager.AllocateDIA();
-        ids.emplace_back(id);
-        emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id));
+        writers.emplace_back(files[i]);
     }
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<MyStruct>, 16*1024>
+                              File::Writer, 16*1024>
     table(num_partitions, num_buckets_init_scale, 10, bucket_size,
-          nitems, key_ex, red_fn, { emitters });
+          nitems, key_ex, red_fn, writers);
 
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
@@ -470,11 +563,13 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
 
     table.Flush();
 
+    std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
+
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = manager.GetIterator<MyStruct>(ids[i]);
+        auto it = files[i].GetReader();
         while (it.HasNext()) {
-            auto n = it.Next();
-            keys[i].push_back(n.key);
+            auto n = it.Next<MyPair>();
+            keys[i].push_back(n.second.key);
         }
     }
 
@@ -507,11 +602,11 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     ASSERT_EQ(0u, table.Size());
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = manager.GetIterator<MyStruct>(ids[i]);
+        auto it = files[i].GetReader();
         while (it.HasNext()) {
-            auto n = it.Next();
-            if (n.count == 0) {
-                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.key));
+            auto n = it.Next<MyPair>();
+            if (n.second.count == 0) {
+                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.second.key));
             }
         }
     }
@@ -529,15 +624,15 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     size_t total_sum = 0, total_count = 0;
 
-    auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<MyStruct>, 16*1024>
+                              File::Writer, 16*1024>
     table(1, 2, 2, 128 * 1024, 1024 * 1024,
-          key_ex, red_fn, { emitters });
+          key_ex, red_fn, writers);
 
     // insert lots of items
     size_t nitems = 1 * 1024 * 1024;
@@ -547,11 +642,11 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     table.Flush();
 
-    auto it1 = manager.GetIterator<MyStruct>(id1);
+    auto it1 = output.GetReader();
     while (it1.HasNext()) {
-        auto n = it1.Next();
+        auto n = it1.Next<MyPair>();
         total_count++;
-        total_sum += n.count;
+        total_sum += n.second.count;
     }
 
     // actually check that the reduction worked
@@ -568,18 +663,17 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                       return MyStruct(in1.key, in1.count + in2.count);
                   };
 
-    auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<MyStruct> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<MyStruct>(id1));
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<MyStruct>, 16*1024>
-    table(1, 2, 2, 128, nitems,
-          key_ex, red_fn, { emitters });
+                              File::Writer, 16*1024>
+    table(1, 2, 2, 128, nitems, key_ex, red_fn, writers);
 
     // insert lots of items
     int sum = 0;
@@ -596,10 +690,10 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<MyStruct>(id1);
+    auto it1 = output.GetReader();
     while (it1.HasNext()) {
-        auto n = it1.Next();
-        ASSERT_EQ(sum, n.count);
+        auto n = it1.Next<MyPair>();
+        ASSERT_EQ(sum, n.second.count);
     }
 }
 
@@ -622,17 +716,16 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    auto id1 = manager.AllocateDIA();
-    std::vector<Emitter<StringPair> > emitters;
-    emitters.emplace_back(manager.GetLocalEmitter<StringPair>(id1));
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output);
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn),
-                              Emitter<StringPair>, 16*1024>
-    table(1, 2, 2, 128, nitems,
-          key_ex, red_fn, { emitters });
+                              File::Writer, 16*1024>
+    table(1, 2, 2, 128, nitems, key_ex, red_fn, writers);
 
     // insert lots of items
     int sum = 0;
@@ -652,10 +745,10 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     ASSERT_EQ(0u, table.Size());
 
-    auto it1 = manager.GetIterator<StringPair>(id1);
+    auto it1 = output.GetReader();
     while (it1.HasNext()) {
-        auto n = it1.Next();
-        ASSERT_EQ(sum, n.second);
+        auto n = it1.Next<StringPairPair>();
+        ASSERT_EQ(sum, n.second.second);
     }
 }
 
