@@ -36,7 +36,7 @@ public:
     using ParentInput = typename ParentStack::Input;
 
     AllGatherNode(Context& ctx,
-                  std::shared_ptr<DIANode<ParentInput> > parent,
+                  const std::shared_ptr<DIANode<ParentInput> >& parent,
                   const ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )

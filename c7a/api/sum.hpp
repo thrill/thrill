@@ -38,7 +38,7 @@ class SumNode : public ActionNode
 
 public:
     SumNode(Context& ctx,
-            std::shared_ptr<DIANode<ParentInput> > parent,
+            const std::shared_ptr<DIANode<ParentInput> >& parent,
             const ParentStack& parent_stack,
             SumFunction sum_function,
             ValueType initial_value)

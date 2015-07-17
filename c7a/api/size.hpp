@@ -37,7 +37,7 @@ class SizeNode : public ActionNode
 
 public:
     SizeNode(Context& ctx,
-             std::shared_ptr<DIANode<ParentInput> > parent,
+             const std::shared_ptr<DIANode<ParentInput> >& parent,
              const ParentStack& parent_stack)
         : ActionNode(ctx, { parent })
     {
