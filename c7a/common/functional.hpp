@@ -12,6 +12,8 @@
 #ifndef C7A_COMMON_FUNCTIONAL_HEADER
 #define C7A_COMMON_FUNCTIONAL_HEADER
 
+#include <utility>
+
 namespace c7a {
 namespace common {
 

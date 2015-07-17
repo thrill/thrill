@@ -14,9 +14,8 @@
 #ifndef C7A_API_REDUCE_TO_INDEX_HEADER
 #define C7A_API_REDUCE_TO_INDEX_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>

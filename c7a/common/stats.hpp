@@ -11,13 +11,14 @@
 #ifndef C7A_COMMON_STATS_HEADER
 #define C7A_COMMON_STATS_HEADER
 
+#include <c7a/common/stats_timer.hpp>
+#include <c7a/common/timed_counter.hpp>
+
 #include <set>
 #include <map>
 #include <sstream>
 #include <cmath> //sqrt
-
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/common/timed_counter.hpp>
+#include <iostream>
 
 namespace c7a {
 namespace common {
@@ -75,7 +76,7 @@ public:
     }
 
     std::string PrintGroup(const std::string& group_name) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "[" << group_name << "]" << std::endl;
 
         auto group_timed_counters = timed_counters_.equal_range(group_name);
@@ -137,7 +138,7 @@ public:
             auto val = group_it->second.second->Microseconds();
             sum_deviation += (val - mean) * (val - mean);
         }
-        auto deviation = sqrt(sum_deviation / count);
+        auto deviation = std::sqrt(sum_deviation / count);
         ss << "total: " << sum << ", count: " << count << ", avg: " << mean << ", std-dev: " << deviation;
         return ss.str();
     }

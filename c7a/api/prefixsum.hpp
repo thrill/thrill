@@ -13,10 +13,8 @@
 #ifndef C7A_API_PREFIXSUM_HEADER
 #define C7A_API_PREFIXSUM_HEADER
 
-#include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/api/dop_node.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>

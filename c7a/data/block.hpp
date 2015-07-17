@@ -111,6 +111,7 @@ struct VirtualBlock
         return std::string(reinterpret_cast<const char*>(block->data()), bytes_used + first);
     }
 };
+
 } // namespace data
 } // namespace c7a
 

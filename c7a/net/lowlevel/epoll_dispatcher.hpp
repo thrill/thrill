@@ -18,6 +18,7 @@
 
 #include <sys/epoll.h>
 #include <map>
+#include <cerrno>
 
 namespace c7a {
 namespace net {
@@ -41,8 +42,8 @@ public:
         epollfd_ = epoll_create1(0);
 
         if (epollfd_ == -1)
-            throw NetException("EPollDispatcher() could not get epoll() handle",
-                               errno);
+            throw Exception("EPollDispatcher() could not get epoll() handle",
+                            errno);
     }
 
     //! free epoll() dispatcher
@@ -63,8 +64,8 @@ public:
             Watch& w = it->second;
 
             if (w.read_cb)
-                throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + " already has read callback");
+                throw Exception("EPollDispatcher() fd " + std::to_string(fd)
+                                + " already has read callback");
 
             w.read_cb = read_cb;
             w.events |= EPOLLIN;
@@ -74,8 +75,8 @@ public:
             ev.data.ptr = &(*it);
 
             if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &ev) == -1)
-                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                   errno);
+                throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                errno);
         }
         else
         {
@@ -87,8 +88,8 @@ public:
             ev.data.ptr = &(*it);
 
             if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &ev) == -1)
-                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                   errno);
+                throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                errno);
         }
     }
 
@@ -102,8 +103,8 @@ public:
             Watch& w = it->second;
 
             if (w.write_cb)
-                throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + " already has write callback");
+                throw Exception("EPollDispatcher() fd " + std::to_string(fd)
+                                + " already has write callback");
 
             w.write_cb = write_cb;
             w.events |= EPOLLOUT;
@@ -113,8 +114,8 @@ public:
             ev.data.ptr = &(*it);
 
             if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &ev) == -1)
-                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                   errno);
+                throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                errno);
         }
         else
         {
@@ -126,8 +127,8 @@ public:
             ev.data.ptr = &(*it);
 
             if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &ev) == -1)
-                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                   errno);
+                throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                errno);
         }
     }
 
@@ -142,8 +143,8 @@ public:
             Watch& w = it->second;
 
             if (w.read_cb)
-                throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                   + " already has read callback");
+                throw Exception("EPollDispatcher() fd " + std::to_string(fd)
+                                + " already has read callback");
 
             if (w.write_cb)
                 throw NetException("EPollDispatcher() fd " + std::to_string(fd)
@@ -158,8 +159,8 @@ public:
             ev.data.ptr = &(*it);
 
             if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &ev) == -1)
-                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                   errno);
+                throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                errno);
         }
         else
         {
@@ -171,8 +172,8 @@ public:
             ev.data.ptr = &(*it);
 
             if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &ev) == -1)
-                throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                   errno);
+                throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                errno);
         }
     }
 
@@ -187,7 +188,7 @@ public:
         int nfds = epoll_wait(epollfd_, events, max_events, tm_msec);
 
         if (nfds == -1)
-            throw NetException("EPollDispatcher() error in epoll_wait()", errno);
+            throw Exception("EPollDispatcher() error in epoll_wait()", errno);
 
         for (int i = 0; i < nfds; ++i)
         {
@@ -215,8 +216,8 @@ public:
 
                             if (w.events == 0) {
                                 if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
-                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                       errno);
+                                    throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                                    errno);
 
                                 watch_.erase(fd);
                                 continue;
@@ -227,16 +228,16 @@ public:
                                 evn.data.ptr = wm;
 
                                 if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
-                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                       errno);
+                                    throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                                    errno);
                             }
                         }
                     }
                     else
                     {
                         if (w.read_cb)
-                            throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                               + " already has read callback");
+                            throw Exception("EPollDispatcher() fd " + std::to_string(fd)
+                                            + " already has read callback");
                         w.read_cb = cb;
                     }
                 }
@@ -262,8 +263,8 @@ public:
 
                             if (w.events == 0) {
                                 if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
-                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                       errno);
+                                    throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                                    errno);
 
                                 watch_.erase(fd);
                                 continue;
@@ -274,16 +275,16 @@ public:
                                 evn.data.ptr = wm;
 
                                 if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
-                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                       errno);
+                                    throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                                    errno);
                             }
                         }
                     }
                     else
                     {
                         if (w.write_cb)
-                            throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                               + " already has write callback");
+                            throw Exception("EPollDispatcher() fd " + std::to_string(fd)
+                                            + " already has write callback");
                         w.write_cb = cb;
                     }
                 }
@@ -309,8 +310,8 @@ public:
 
                             if (w.events == 0) {
                                 if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
-                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                       errno);
+                                    throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                                    errno);
 
                                 watch_.erase(fd);
                                 continue;
@@ -321,16 +322,16 @@ public:
                                 evn.data.ptr = wm;
 
                                 if (epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &evn) == -1)
-                                    throw NetException("EPollDispatcher() error in epoll_ctl()",
-                                                       errno);
+                                    throw Exception("EPollDispatcher() error in epoll_ctl()",
+                                                    errno);
                             }
                         }
                     }
                     else
                     {
                         if (w.except_cb)
-                            throw NetException("EPollDispatcher() fd " + std::to_string(fd)
-                                               + " already has except callback");
+                            throw Exception("EPollDispatcher() fd " + std::to_string(fd)
+                                            + " already has except callback");
                         w.except_cb = cb;
                     }
                 }
@@ -373,9 +374,9 @@ private:
     //! Default exception handler
     static bool ExceptionCallback(Socket& s) {
         // exception on listen socket ?
-        throw NetException("EPollDispatcher() exception on socket fd "
-                           + std::to_string(s.fd()) + "!",
-                           errno);
+        throw Exception("EPollDispatcher() exception on socket fd "
+                        + std::to_string(s.fd()) + "!",
+                        errno);
     }
 };
 

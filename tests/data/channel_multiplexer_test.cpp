@@ -55,7 +55,7 @@ struct ChannelMultiplexerTest : public::testing::Test {
     }
     void Execute(WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         Group::ExecuteLocalMock(3,
-                                [ = ](Group* g) {
+                                [=](Group* g) {
                                     FunctionSelect(g, f1, f2, f3);
                                 });
     }

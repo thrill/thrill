@@ -220,6 +220,7 @@ protected:
 
 using Channel = ChannelBase<data::default_block_size>;
 using ChannelSPtr = std::shared_ptr<Channel>;
+
 } // namespace data
 } // namespace c7a
 

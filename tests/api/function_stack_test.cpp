@@ -20,7 +20,7 @@ TEST(API, FunctionStackTest) {
     using c7a::api::MakeFunctionStack;
 
     static const bool debug = false;
-    
+
     std::vector<double> elements;
 
     // User-defined functions
