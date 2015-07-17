@@ -70,9 +70,10 @@ public:
             emitters_[i].Close();
         }
 
-        auto reader = channel_->ReadCompleteChannel().GetReader();
+        data::File incoming = channel_->ReadCompleteChannel();
+        auto reader = incoming.GetReader();
 
-        while (!reader.AtEnd()) {
+        while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
     }
