@@ -9,6 +9,7 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/data/serializer.hpp>
+#include <c7a/data/file.hpp>
 #include <tests/data/serializer_objects.hpp>
 
 #include <utility>
@@ -187,6 +188,17 @@ TEST(Serializer, Cereal_Test) {
     LOG << "X: " << result.x_;
     LOG << "Y: " << result.y_;
     LOG << "Z: " << result.z_;
+}
+
+TEST(Serializer, Cereal_Archive_Test) {
+    c7a::data::File f;
+    auto w = f.GetWriter();
+
+    serializers::TestCerealObject2 t;
+    t.x_ = 1;
+    t.y_ = 2;
+    t.z_ = 3;
+    Serializer<decltype(w), serializers::TestCerealObject2>::serialize(t, w);
 }
 
 /******************************************************************************/

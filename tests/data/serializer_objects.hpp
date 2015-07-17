@@ -23,6 +23,18 @@ struct TestCerealObject {
         archive(x_, y_, z_);   // serialize things by passing them to the archive
     }
 };
+
+struct TestCerealObject2 {
+    // TestCerealObject();
+    // TestCerealObject(int x, int y, int z) : x_(x), y_(y), z_(z) { };
+    int x_, y_, z_;
+
+    // This method lets cereal know which data members to serialize
+    template <class Archive>
+    void serialize(Archive& archive) {
+        archive(x_, y_, z_);   // serialize things by passing them to the archive
+    }
+};
 }
 }
 }
