@@ -12,53 +12,82 @@
 #include <c7a/data/channel.hpp>
 
 #include <gtest/gtest.h>
+#include <string>
 
 using namespace c7a;
 
-using namespace std::literals;
-using ChannelId = data::ChannelId;
+static const bool debug = false;
 
-TEST(ChannelMultiplexerTest, Test) {
+// open a Channel via data::Manager, and send a short message to all workers,
+// receive and check the message.
+void TalkAllToAllViaChannel(net::Group* net) {
+    common::GetThreadDirectory().NameThisThread(
+        "chmp" + std::to_string(net->MyRank()));
 
-    net::Group::ExecuteLocalMock(
-        2, [](net::Group* net) {
-            common::GetThreadDirectory().NameThisThread(
-                "chmp" + std::to_string(net->MyRank()));
+    net::DispatcherThread dispatcher(
+        "chmp" + std::to_string(net->MyRank()) + "-dp");
 
-            net::DispatcherThread dispatcher(
-                "chmp" + std::to_string(net->MyRank()) + "-dp");
+    static const size_t iterations = 1000;
 
-            data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
-            cmp.Connect(net);
-            {
-                ChannelId id = cmp.AllocateNext();
+    data::ChannelMultiplexer<data::default_block_size> cmp(dispatcher);
+    cmp.Connect(net);
+    {
+        data::ChannelId id = cmp.AllocateNext();
 
-                // open Writers and send a message to all workers
+        // open Writers and send a message to all workers
 
-                auto writer = cmp.GetOrCreateChannel(id)->OpenWriters();
+        auto writer = cmp.GetOrCreateChannel(id)->OpenWriters();
 
-                for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
-                    writer[tgt]("hello I am " + std::to_string(net->MyRank())
-                                + " calling " + std::to_string(tgt));
+        for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
+            writer[tgt]("hello I am " + std::to_string(net->MyRank())
+                        + " calling " + std::to_string(tgt));
 
-                    writer[tgt].Flush();
-                }
+            writer[tgt].Flush();
 
-                // open Readers and receive message from all workers
+            // write a few MiBs of oddly sized data
+            unsigned char buffer[12345];
 
-                auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
+            for (size_t i = 0; i != sizeof(buffer); ++i)
+                buffer[i] = i;
 
-                for (size_t src = 0; src != net->Size(); ++src) {
-                    std::string msg = reader[src].Next<std::string>();
-
-                    ASSERT_EQ(msg, "hello I am " + std::to_string(src)
-                              + " calling " + std::to_string(net->MyRank()));
-
-                    sLOG1 << net->MyRank() << "got msg from" << src;
-                }
+            for (size_t r = 0; r != iterations; ++r) {
+                writer[tgt].Append(buffer, sizeof(buffer));
             }
-            cmp.Close();
-        });
+
+            writer[tgt].Flush();
+        }
+
+        // open Readers and receive message from all workers
+
+        auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
+
+        for (size_t src = 0; src != net->Size(); ++src) {
+            std::string msg = reader[src].Next<std::string>();
+
+            ASSERT_EQ(msg, "hello I am " + std::to_string(src)
+                      + " calling " + std::to_string(net->MyRank()));
+
+            sLOG << net->MyRank() << "got msg from" << src;
+
+            // write a few MiBs of oddly sized data
+            unsigned char buffer[12345];
+
+            for (size_t r = 0; r != iterations; ++r) {
+                reader[src].Read(buffer, sizeof(buffer));
+
+                for (size_t i = 0; i != sizeof(buffer); ++i)
+                    ASSERT_EQ(buffer[i], static_cast<unsigned char>(i));
+            }
+        }
+    }
+    cmp.Close();
+}
+
+TEST(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
+    // test for all network mesh sizes 1-8:
+    for (size_t i = 1; i != 8; ++i) {
+        net::Group::ExecuteLocalMock(i, TalkAllToAllViaChannel);
+    }
 }
 
 #if MAYBE_FIXUP_LATER
