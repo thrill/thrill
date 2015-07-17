@@ -80,7 +80,6 @@ void TalkAllToAllViaChannel(net::Group* net) {
             }
         }
     }
-    cmp.Close();
 }
 
 TEST(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
