@@ -48,6 +48,7 @@ public:
     //! items after the offset first.
     void Append(VirtualBlock&& vb) {
         assert(!closed_);
+        if (vb.bytes_used == 0) return;
         blocks_.push_back(vb.block);
         nitems_sum_.push_back(NumItems() + vb.nitems);
         used_.push_back(vb.bytes_used);
