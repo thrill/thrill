@@ -26,6 +26,7 @@
 #include <build/c7a/proto/test_serialize_object.pb.h>
 
 //TODO CEREAL
+#include <cereal/archives/c7a.hpp>
 #include <cereal/archives/binary.hpp>
 #include <sstream>
 
@@ -431,6 +432,23 @@ struct Serializer<Archive, std::pair<U, V> >
     }
     static const bool fixed_size = (Serializer<Archive, U>::fixed_size &&
                                     Serializer<Archive, V>::fixed_size);
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////          CEREAL ARCHIVE          ///////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <typename Archive, typename T>
+struct Serializer<Archive, struct TestCerealObject2>
+{
+    static void       serialize(const struct TestCerealObject2& t, Archive& a) {
+        cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
+        oarchive(t);                                   // Write the data to the archive
+    }
+    static T deserialize(Archive& a) {
+        return T();
+    }
+    static const bool fixed_size = false;
 };
 } // namespace data
 } // namespace c7a
