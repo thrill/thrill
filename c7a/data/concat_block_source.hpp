@@ -37,15 +37,6 @@ public:
     explicit ConcatBlockSource(const std::vector<BlockSource>& sources)
         : sources_(sources) { }
 
-    //! Initialize the first block to be read by BlockReader
-    void Initialize(const Byte** out_current, const Byte** out_end) {
-        do {
-            // loop over sources, try to find one that is not empty.
-            sources_[current_].Initialize(out_current, out_end);
-            if (*out_current < *out_end) return;
-        } while (++current_ < sources_.size());
-    }
-
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
     bool NextBlock(const Byte** out_current, const Byte** out_end) {
