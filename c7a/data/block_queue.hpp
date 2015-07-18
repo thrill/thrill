@@ -23,33 +23,13 @@
 namespace c7a {
 namespace data {
 
-template <size_t BlockSize>
+template <size_t BlockSize, template<size_t> class QueueType>
 class BlockQueueSource;
-
-template <size_t BlockSize = default_block_size>
-class ReadableBlockQueue
-{
-public:
-    using Reader = BlockReader<BlockQueueSource<BlockSize> >;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-    virtual VirtualBlock Pop() = 0;
-
-    virtual bool closed() const = 0;
-
-    virtual bool empty() const = 0;
-
-    //! return number of block in the queue. Use this ONLY for DEBUGGING!
-    virtual size_t size() = 0;
-
-    //! Return a BlockReader fetching blocks from this BlockQueue.
-    //! This call blocks until the queue has at least one block
-    virtual Reader GetReader() = 0;
-};
 
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
 //same interface as \ref c7a::data::Stream and \ref c7a::data::File
 template <size_t BlockSize = default_block_size>
-class BlockQueue : public BlockSink<BlockSize>, public ReadableBlockQueue<BlockSize>
+class BlockQueue : public BlockSink<BlockSize>
 {
 public:
     using Block = data::Block<BlockSize>;
@@ -58,7 +38,7 @@ public:
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
     using Writer = BlockWriterBase<BlockSize>;
-    using Reader = BlockReader<BlockQueueSource<BlockSize> >;
+    using Reader = BlockReader<BlockQueueSource<BlockSize, BlockQueue> >;
 
     void Append(VirtualBlock&& vb) override {
         queue_.emplace(std::move(vb));
@@ -88,7 +68,6 @@ public:
     //! Return a BlockWriter delivering to this BlockQueue.
     Writer GetWriter() { return Writer(this); }
 
-    //! see \ref ReadableBlockQueue
     Reader GetReader();
 
 private:
@@ -101,13 +80,13 @@ private:
 //! The order of the queue consumption is always ascending
 //! The OrderedMultiBlockQueue is read-only / no sink
 template <size_t BlockSize = default_block_size>
-class OrderedMultiBlockQueue : public ReadableBlockQueue<BlockSize>
+class OrderedMultiBlockQueue
 {
     using Block = data::Block<BlockSize>;
     using BlockQueue = data::BlockQueue<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
-    using Reader = BlockReader<BlockQueueSource<BlockSize> >;
+    using Reader = BlockReader<BlockQueueSource<BlockSize, OrderedMultiBlockQueue> >;
 
 public:
     OrderedMultiBlockQueue(const std::vector<std::reference_wrapper<BlockQueue> >& queues) : queues_(queues) { }
@@ -151,7 +130,6 @@ public:
         return result;
     }
 
-    //! see \ref ReadableBlockQueue
     Reader GetReader();
 
 private:
@@ -160,7 +138,7 @@ private:
 };
 
 //! A BlockSource to read Blocks from a BlockQueue using a BlockReader.
-template <size_t BlockSize>
+template <size_t BlockSize, template<size_t> class QueueType>
 class BlockQueueSource
 {
 public:
@@ -168,11 +146,11 @@ public:
 
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
-
+    using BlockSourceType = QueueType<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
     //! Start reading from a BlockQueue
-    explicit BlockQueueSource(ReadableBlockQueue<BlockSize>& queue)
+    explicit BlockQueueSource(BlockSourceType& queue)
         : queue_(queue)
     { }
 
@@ -205,19 +183,20 @@ public:
 
 protected:
     //! BlockQueue that blocks are retrieved from
-    ReadableBlockQueue<BlockSize>& queue_;
+    BlockSourceType& queue_;
 
     //! The current block being read.
     BlockCPtr block_;
 };
 
+
 template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
-    return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
+    return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize, BlockQueue>(*this));
 }
 template <size_t BlockSize>
 typename OrderedMultiBlockQueue<BlockSize>::Reader OrderedMultiBlockQueue<BlockSize>::GetReader() {
-    return OrderedMultiBlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
+    return OrderedMultiBlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize, OrderedMultiBlockQueue>(*this));
 }
 } // namespace data
 } // namespace c7a
