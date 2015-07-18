@@ -40,12 +40,10 @@ public:
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
     bool NextBlock(const Byte** out_current, const Byte** out_end) {
-        if (current_ >= sources_.size()) return false;
-        do {
+        for (; current_ < sources_.size(); ++current_) {
             if (sources_[current_].NextBlock(out_current, out_end))
                 return true;
-            // current source returned false -> empty
-        } while (++current_ < sources_.size());
+        }
         return false;
     }
 
