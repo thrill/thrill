@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/concat_block_source.hpp>
 #include <c7a/common/thread_pool.hpp>
 
 #include <gtest/gtest.h>
@@ -18,7 +19,8 @@
 using namespace c7a;
 
 using MyQueue = data::BlockQueue<16>;
-using OrderedMultiBlockQueue = data::OrderedMultiBlockQueue<16>;
+using MyBlockSource = MyQueue::BlockSource;
+using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
 struct BlockQueueTest : public::testing::Test {
     MyQueue q;
@@ -83,39 +85,10 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.LoopUntilEmpty();
 }
 
-TEST_F(BlockQueueTest, OrderedMultiQueueWithoutQueues) {
-    OrderedMultiBlockQueue mq({ });
-    ASSERT_TRUE(mq.empty());
-    ASSERT_EQ(0u, mq.size());
-}
-
-TEST_F(BlockQueueTest, OrderedMultiQueue) {
-    MyQueue q2;
-    OrderedMultiBlockQueue mq({ q, q2 });
-    ASSERT_TRUE(mq.empty());
-
-    auto writer1 = q.GetWriter();
-    auto writer2 = q2.GetWriter();
-    writer1(std::string("1"));
-    writer2(std::string("2"));
-    writer1.Close();
-
-    ASSERT_FALSE(mq.empty());
-    ASSERT_FALSE(mq.closed());
-    writer2.Close();
-    ASSERT_TRUE(mq.closed());
-    ASSERT_EQ(2u, mq.size());
-
-    auto reader = mq.GetReader();
-    ASSERT_EQ("1", reader.Next<std::string>());
-    ASSERT_EQ("2", reader.Next<std::string>());
-}
-
 TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
     using namespace std::literals;
     common::ThreadPool pool(3);
     MyQueue q2;
-    OrderedMultiBlockQueue mq({ q, q2 });
 
     auto writer1 = q.GetWriter();
     auto writer2 = q2.GetWriter();
@@ -132,8 +105,10 @@ TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
                      writer2(std::string("2.2"));
                      writer2.Close();
                  });
-    pool.Enqueue([&mq]() {
-                     auto reader = mq.GetReader();
+    pool.Enqueue([this,&q2]() {
+                     auto reader = data::BlockReader<ConcatBlockSource>(
+                         ConcatBlockSource({
+                                 MyBlockSource(q), MyBlockSource(q2) }));
                      ASSERT_EQ("1.1", reader.Next<std::string>());
                      ASSERT_EQ("1.2", reader.Next<std::string>());
                      ASSERT_EQ("2.1", reader.Next<std::string>());
