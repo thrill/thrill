@@ -64,14 +64,17 @@ public:
 
     //! Closes all client connections
     ~ChannelMultiplexer() {
-        // close all still open Channels
-        for (auto& ch : channels_)
-            ch.second->Close();
+        if (group_ != nullptr) {
+            // close all still open Channels
+            for (auto& ch : channels_)
+                ch.second->Close();
+        }
 
         // terminate dispatcher, this waits for unfinished AsyncWrites.
         dispatcher_.Terminate();
 
-        group_->Close();
+        if (group_ != nullptr)
+            group_->Close();
     }
 
     void Connect(net::Group* group) {
@@ -164,7 +167,7 @@ private:
     std::map<ChannelId, ChannelPtr> channels_;
 
     // Holds NetConnections for outgoing Channels
-    net::Group* group_;
+    net::Group* group_ = nullptr;
 
     //protects critical sections
     std::mutex mutex_;
