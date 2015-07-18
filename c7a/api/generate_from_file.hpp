@@ -60,7 +60,7 @@ public:
                      GeneratorFunction generator_function,
                      std::string path_in,
                      size_t size)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "GenerateFromFile"),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -72,7 +72,7 @@ public:
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
     void Execute() override {
-
+        this->StartExecutionTimer();
         LOG << "GENERATING data to file " << result_file_.ToString();
 
         std::ifstream file(path_in_);
@@ -108,6 +108,7 @@ public:
                 func(elements_[rand_element]);
             }
         }
+        this->StopExecutionTimer();
     }
 
     /*!

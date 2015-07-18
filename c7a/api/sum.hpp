@@ -43,7 +43,7 @@ public:
             const ParentStack& parent_stack,
             SumFunction sum_function,
             ValueType initial_value)
-        : ActionNode(ctx, { parent }),
+        : ActionNode(ctx, { parent }, "Sum"),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -60,7 +60,9 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!

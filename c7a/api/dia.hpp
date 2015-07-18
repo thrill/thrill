@@ -403,7 +403,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     auto shared_node
         = std::make_shared<LOpChainNode>(rhs.node()->context(),
                                          rhs.node(),
-                                         rhs.stack());
+                                         rhs.stack(), "");
     node_ = std::move(shared_node);
 }
 

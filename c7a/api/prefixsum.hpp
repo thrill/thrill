@@ -43,7 +43,7 @@ public:
                   const ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "PrefixSum"),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -62,7 +62,9 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!

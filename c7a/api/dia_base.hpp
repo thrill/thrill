@@ -69,9 +69,11 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents)
+            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag)
         : context_(ctx), parents_(parents),
-          result_file_(ctx.data_manager().GetFile()) {
+          result_file_(ctx.data_manager().GetFile()),
+          execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
+          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -84,6 +86,7 @@ public:
         // its reference count should be zero and he
         // should be removed
         // parent->remove_child(this);
+        STOP_TIMER(lifetime_)
     }
 
     //! Virtual execution method. Triggers actual computation in sub-classes.
@@ -134,6 +137,7 @@ protected:
     //! State of the DIANode. State is NEW on creation.
     kState state_ = NEW;
 
+
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
         switch (state_) {
@@ -150,13 +154,32 @@ protected:
         }
     }
 
+    //Why are these stupid functions here?
+    //Because we do not want to include the stats.hpp into every
+    //single node class
+    inline void StartExecutionTimer() {
+        START_TIMER(execution_timer_)
+    }
+    inline void StopExecutionTimer() {
+        STOP_TIMER(execution_timer_)
+    }
+
     //! Context, which can give iterators to data.
     Context& context_;
+
     //! Children and parents of this DIABase.
     std::vector<DIABase*> children_;
     std::vector<std::shared_ptr<DIABase> > parents_;
+
     //! Unique ID of this DIABase. Used by the data::Manager.
     data::File result_file_;
+
+    //! Timer that tracks execution of this node
+    common::TimerPtr execution_timer_;
+
+    //! Timer that tracks the lifetime of this object
+    common::TimerPtr lifetime_;
+
 };
 
 //! \}
