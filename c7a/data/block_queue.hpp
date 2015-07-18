@@ -23,7 +23,7 @@
 namespace c7a {
 namespace data {
 
-template <size_t BlockSize, template<size_t> class QueueType>
+template <size_t BlockSize>
 class BlockQueueSource;
 
 //! A BlockQueue is used to hand-over blocks between threads. It fulfills the
@@ -37,8 +37,9 @@ public:
 
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
+    using BlockSource = BlockQueueSource<BlockSize>;
     using Writer = BlockWriterBase<BlockSize>;
-    using Reader = BlockReader<BlockQueueSource<BlockSize, BlockQueue> >;
+    using Reader = BlockReader<BlockSource>;
 
     void Append(VirtualBlock&& vb) override {
         queue_.emplace(std::move(vb));
@@ -75,70 +76,8 @@ private:
     std::atomic<bool> closed_ = { false };
 };
 
-//! An OrderedMultiBlockQueue holds multiple BlockQueues and unifies them.
-//! Pop will consume queue after queue, each until it is exhausted
-//! The order of the queue consumption is always ascending
-//! The OrderedMultiBlockQueue is read-only / no sink
-template <size_t BlockSize = default_block_size>
-class OrderedMultiBlockQueue
-{
-    using Block = data::Block<BlockSize>;
-    using BlockQueue = data::BlockQueue<BlockSize>;
-    using BlockPtr = std::shared_ptr<Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-    using Reader = BlockReader<BlockQueueSource<BlockSize, OrderedMultiBlockQueue> >;
-
-public:
-    OrderedMultiBlockQueue(const std::vector<std::reference_wrapper<BlockQueue> >& queues) : queues_(queues) { }
-
-    VirtualBlock Pop() {
-        VirtualBlock vblock(nullptr, 0, 0, 0);
-        //proceed to queue that has elements or waits for elements (aka not closed)
-        while (vblock.IsEndBlock()) {
-            while (
-                current_queue_ < queues_.size() &&
-                queues_[current_queue_].get().empty() &&
-                queues_[current_queue_].get().closed()
-                ) { current_queue_++; }
-
-            if (current_queue_ == queues_.size()) //end of all queues
-                return VirtualBlock(nullptr, 0, 0, 0);
-            vblock = queues_[current_queue_].get().Pop();
-        }
-        return vblock;
-    }
-
-    bool closed() const {
-        bool closed = true;
-        for (const BlockQueue& q : queues_)
-            closed = closed & q.closed();
-        return closed;
-    }
-
-    bool empty() const {
-        bool empty = true;
-        for (const BlockQueue& q : queues_)
-            empty = empty & q.empty();
-        return empty;
-    }
-
-    //! return number of block in the queue. Use this ONLY for DEBUGGING!
-    size_t size() {
-        size_t result = 0;
-        for (BlockQueue& q : queues_)
-            result += q.size();
-        return result;
-    }
-
-    Reader GetReader();
-
-private:
-    std::vector<std::reference_wrapper<BlockQueue> > queues_;
-    size_t current_queue_ = 0;
-};
-
 //! A BlockSource to read Blocks from a BlockQueue using a BlockReader.
-template <size_t BlockSize, template<size_t> class QueueType>
+template <size_t BlockSize>
 class BlockQueueSource
 {
 public:
@@ -146,11 +85,11 @@ public:
 
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
-    using BlockSourceType = QueueType<BlockSize>;
+    using BlockQueue = data::BlockQueue<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
     //! Start reading from a BlockQueue
-    explicit BlockQueueSource(BlockSourceType& queue)
+    explicit BlockQueueSource(BlockQueue& queue)
         : queue_(queue)
     { }
 
@@ -177,13 +116,9 @@ public:
         }
     }
 
-    bool closed() const {
-        return queue_.closed();
-    }
-
 protected:
     //! BlockQueue that blocks are retrieved from
-    BlockSourceType& queue_;
+    BlockQueue& queue_;
 
     //! The current block being read.
     BlockCPtr block_;
@@ -192,12 +127,9 @@ protected:
 
 template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
-    return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize, BlockQueue>(*this));
+    return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
 }
-template <size_t BlockSize>
-typename OrderedMultiBlockQueue<BlockSize>::Reader OrderedMultiBlockQueue<BlockSize>::GetReader() {
-    return OrderedMultiBlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize, OrderedMultiBlockQueue>(*this));
-}
+
 } // namespace data
 } // namespace c7a
 

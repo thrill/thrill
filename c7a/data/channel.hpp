@@ -16,6 +16,7 @@
 #include <c7a/net/connection.hpp>
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/concat_block_source.hpp>
 #include <c7a/data/channel_sink.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/net/group.hpp>
@@ -49,8 +50,11 @@ template <size_t BlockSize = default_block_size>
 class ChannelBase
 {
     using BlockQueue = data::BlockQueue<BlockSize>;
-    using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize, data::BlockQueue> >;
-    using MultiBlockQueueReader = BlockReader<BlockQueueSource<BlockSize, data::OrderedMultiBlockQueue> >;
+    using BlockQueueSource = data::BlockQueueSource<BlockSize>;
+    using BlockQueueReader = BlockReader<BlockQueueSource>;
+    using ConcatBlockSource = data::ConcatBlockSource<BlockQueueSource>;
+    using ConcatBlockReader = BlockReader<ConcatBlockSource>;
+
     using BlockWriter = data::BlockWriterBase<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelSink = data::ChannelSink<BlockSize>;
@@ -61,7 +65,6 @@ public:
     ChannelBase(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
-          multi_queue_({queues_.begin(), queues_.end()}), //holds refs
           group_(group),
           dispatcher_(dispatcher) {
         // construct ChannelSink array
@@ -117,19 +120,24 @@ public:
         std::vector<BlockQueueReader> result;
 
         for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
-
-            result.emplace_back(BlockQueueSource<BlockSize, data::BlockQueue>(queues_[worker_id]));
+            result.emplace_back(BlockQueueSource(queues_[worker_id]));
         }
 
         assert(result.size() == group_.Size());
         return result;
     }
 
-    //! Creates a BlockReader for all worker. The BlockReader is attached to
-    //! one \ref OrderedMultiBlockQueue which includes all incoming queues of
+    //! Creates a BlockReader for all workers. The BlockReader is attached to
+    //! one \ref ConcatBlockSource which includes all incoming queues of
     //! this channel.
-    MultiBlockQueueReader OpenReader() {
-        return multi_queue_.GetReader();
+    ConcatBlockReader OpenReader() {
+        // construct vector of BlockQueueSources to read from queues_.
+        std::vector<BlockQueueSource> result;
+        for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
+            result.emplace_back(queues_[worker_id]);
+        }
+        // move BlockQueueSources into concatenation BlockSource, and to Reader.
+        return ConcatBlockReader(ConcatBlockSource(result));
     }
 
     //! shuts the channel down.
@@ -174,11 +182,6 @@ protected:
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
-
-    //! OrderedMultiBlockQueue holds references to all queues.
-    //! Hold this object internally to provide OpenReader() interface
-    //! which requires the multi_queue to live longer than the reader
-    OrderedMultiBlockQueue<BlockSize> multi_queue_;
 
     net::Group& group_;
     net::DispatcherThread& dispatcher_;
