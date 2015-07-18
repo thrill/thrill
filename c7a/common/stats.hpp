@@ -83,22 +83,20 @@ public:
 
     std::string PrintGroup(const std::string& group_name) {
         std::ostringstream ss;
-        ss << "[" << group_name << "]" << std::endl;
-
         auto group_timed_counters = timed_counters_.equal_range(group_name);
         for (auto group_it = group_timed_counters.first; group_it != group_timed_counters.second; group_it++)
-            ss << "\t" << PrintTimedCounter(group_it->second.second, group_it->second.first) << std::endl;
+            ss << group_name << "; " << PrintTimedCounter(group_it->second.second, group_it->second.first) << std::endl;
 
         auto group_timers = timers_.equal_range(group_name);
         for (auto group_it = group_timers.first; group_it != group_timers.second; group_it++)
-            ss << "\t" << PrintStatsTimer(group_it->second.second, group_it->second.first) << std::endl;
+            ss << group_name << "; " << PrintStatsTimer(group_it->second.second, group_it->second.first) << std::endl;
         auto stats = PrintStatsTimerAverage(group_name);
         if (!stats.empty())
-            ss << "\t" << stats << std::endl;
+            ss << group_name << ";" << stats << std::endl;
 
         auto group_reports = reports_.equal_range(group_name);
         for (auto group_it = group_reports.first; group_it != group_reports.second; group_it++)
-            ss << "\t" << group_it->second.first << ": " << group_it->second.second << std::endl;
+            ss << group_name << "; " << group_it->second.first << "; " << group_it->second.second << std::endl;
         return ss.str();
     }
 
@@ -121,7 +119,7 @@ public:
 
     std::string PrintStatsTimer(const TimerPtr& timer, std::string name = "unnamed") {
         std::stringstream ss;
-        ss << "Timer(" << name << "): " << *timer;
+        ss << "timer; " << name << "; " << *timer;
         return ss.str();
     }
 
@@ -145,7 +143,7 @@ public:
             sum_deviation += (val - mean) * (val - mean);
         }
         auto deviation = std::sqrt(sum_deviation / count);
-        ss << "total: " << sum << ", count: " << count << ", avg: " << mean << ", std-dev: " << deviation;
+        ss << " total; " << sum << "; count; " << count << "; avg; " << mean << "; std-dev; " << deviation;
         return ss.str();
     }
 
