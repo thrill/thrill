@@ -38,6 +38,8 @@ option(ENABLE_STATS "enable stats" OFF)
 if(ENABLE_STATS)
     message(STATUS "Add Stats support")
     add_definitions(-DENABLE_STATS=1)
+else()
+    add_definitions(-DENABLE_STATS=0)
 endif()
 
 # enable warnings
