@@ -150,20 +150,6 @@ public:
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
 
-    //! Initialize the first block to be read by BlockReader
-    void Initialize(const Byte** out_current, const Byte** out_end) {
-        // set up reader for the (block,offset) pair
-        if (current_block_ >= file_.NumBlocks()) {
-            *out_current = *out_end = nullptr;
-        }
-        else {
-            const BlockCPtr& block = file_.blocks_[current_block_];
-            *out_current = block->begin() + first_offset_;
-            *out_end = block->begin() + file_.used_[current_block_];
-            assert(*out_current < *out_end);
-        }
-    }
-
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
     bool NextBlock(const Byte** out_current, const Byte** out_end) {
@@ -173,8 +159,14 @@ public:
             return false;
 
         const BlockCPtr& block = file_.blocks_[current_block_];
-        *out_current = block->begin();
-        *out_end = block->begin() + file_.used_[current_block_];
+        if (current_block_ == first_block_) {
+            *out_current = block->begin() + first_offset_;
+            *out_end = block->begin() + file_.used_[current_block_];
+        }
+        else {
+            *out_current = block->begin();
+            *out_end = block->begin() + file_.used_[current_block_];
+        }
 
         return true;
     }
@@ -186,10 +178,11 @@ public:
 protected:
     //! Start reading a File
     FileBlockSource(const FileBase& file,
-                    size_t current_block = 0, size_t first_offset = 0)
-        : file_(file), current_block_(current_block),
-          first_offset_(first_offset)
-    { }
+                    size_t first_block = 0, size_t first_offset = 0)
+        : file_(file), first_block_(first_block), first_offset_(first_offset)
+    {
+        current_block_ = first_block_ - 1;
+    }
 
     //! for calling the protected constructor
     friend class data::FileBase<BlockSize>;
@@ -198,8 +191,11 @@ protected:
     const FileBase& file_;
 
     //! index of current block.
-    size_t current_block_;
+    size_t current_block_ = -1;
 
+    //! number of the first block
+    size_t first_block_;
+    
     //! offset of first item in first block read
     size_t first_offset_;
 };

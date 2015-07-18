@@ -93,12 +93,6 @@ public:
         : queue_(queue)
     { }
 
-    //! Initialize the first block to be read by BlockReader
-    void Initialize(const Byte** out_current, const Byte** out_end) {
-        if (!NextBlock(out_current, out_end))
-            *out_current = *out_end = nullptr;
-    }
-
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
     bool NextBlock(const Byte** out_current, const Byte** out_end) {
@@ -116,6 +110,10 @@ public:
         }
     }
 
+    bool closed() const {
+        return queue_.closed();
+    }
+
 protected:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
@@ -123,7 +121,6 @@ protected:
     //! The current block being read.
     BlockCPtr block_;
 };
-
 
 template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
