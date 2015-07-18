@@ -50,7 +50,7 @@ TEST_F(BlockQueueTest, BlockWriterToQueue) {
     bw.Close();
     ASSERT_FALSE(q.empty());
     // two real block and one termination sentinel. with verify one more.
-    ASSERT_EQ(q.size(), 3u + (MyQueue::Writer::self_verify ? 1 : 0));
+    ASSERT_EQ(2u + (MyQueue::Writer::self_verify ? 1 : 0), q.size());
 }
 
 TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
