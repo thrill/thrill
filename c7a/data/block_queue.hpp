@@ -42,6 +42,7 @@ public:
     virtual size_t size() = 0;
 
     //! Return a BlockReader fetching blocks from this BlockQueue.
+    //! This call blocks until the queue has at least one block
     virtual Reader GetReader() = 0;
 };
 
@@ -87,7 +88,7 @@ public:
     //! Return a BlockWriter delivering to this BlockQueue.
     Writer GetWriter() { return Writer(this); }
 
-    //! Return a BlockReader fetching blocks from this BlockQueue.
+    //! see \ref ReadableBlockQueue
     Reader GetReader();
 
 private:
@@ -150,7 +151,7 @@ public:
         return result;
     }
 
-    //! Return a BlockReader fetching blocks from this BlockQueue.
+    //! see \ref ReadableBlockQueue
     Reader GetReader();
 
 private:
