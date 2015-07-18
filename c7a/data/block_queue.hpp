@@ -63,7 +63,7 @@ public:
     bool empty() const { return queue_.empty(); }
 
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
-    size_t size() { return queue_.size(); }
+    size_t size() { return queue_.size() - (closed() ? 1 : 0); }
 
     //! Return a BlockWriter delivering to this BlockQueue.
     Writer GetWriter() { return Writer(this); }
