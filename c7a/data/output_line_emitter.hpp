@@ -23,7 +23,7 @@ template <class T>
 class OutputLineEmitter
 {
 public:
-    OutputLineEmitter(std::ofstream& file) :
+    explicit OutputLineEmitter(std::ofstream& file) :
         out_(file),
         closed_(false) { }
 

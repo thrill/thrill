@@ -14,6 +14,8 @@
 #include <c7a/api/dia_node.hpp>
 #include <c7a/core/stage_builder.hpp>
 
+#include <vector>
+
 namespace c7a {
 namespace api {
 

@@ -57,7 +57,7 @@ protected:
         //! the offset relativ to provided pos.
         int probing_offset;
 
-        probing_result(int o) {
+        explicit probing_result(int o) {
             probing_offset = o;
         }
     };
