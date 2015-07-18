@@ -37,9 +37,7 @@ public:
 
     //! Start reading a File
     explicit BlockReader(BlockSource&& source)
-        : source_(std::move(source)) {
-        source_.Initialize(&current_, &end_);
-    }
+        : source_(std::move(source)) { }
 
     //! \name Reading (Generic) Items
     //! \{
@@ -136,10 +134,10 @@ protected:
     BlockSource source_;
 
     //! current read pointer into current block of file.
-    const Byte* current_;
+    const Byte* current_ = nullptr;
 
     //! pointer to end of current block.
-    const Byte* end_;
+    const Byte* end_ = nullptr;
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
