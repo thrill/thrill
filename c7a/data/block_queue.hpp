@@ -117,9 +117,9 @@ public:
         //proceed to queue that has elements or waits for elements (aka not closed)
         while (vblock.IsEndBlock()) {
             while (
+                current_queue_ < queues_.size() &&
                 queues_[current_queue_].get().empty() &&
-                queues_[current_queue_].get().closed() &&
-                current_queue_ < queues_.size()
+                queues_[current_queue_].get().closed()
                 ) { current_queue_++; }
 
             if (current_queue_ == queues_.size()) //end of all queues
