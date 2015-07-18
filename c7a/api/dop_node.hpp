@@ -15,6 +15,7 @@
 #include <c7a/api/context.hpp>
 
 #include <string>
+#include <vector>
 
 namespace c7a {
 namespace api {

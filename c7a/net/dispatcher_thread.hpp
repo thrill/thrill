@@ -59,7 +59,7 @@ public:
     //! \}
 
 public:
-    DispatcherThread(const std::string& thread_name)
+    explicit DispatcherThread(const std::string& thread_name)
         : dispatcher_(), name_(thread_name) {
         // allocate self-pipe
         int r = ::pipe(self_pipe_);

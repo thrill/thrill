@@ -90,7 +90,7 @@ public:
     using VirtualBlock = data::VirtualBlock<BlockSize>;
 
     //! Start reading from a BlockQueue
-    BlockQueueSource(BlockQueueType& queue)
+    explicit BlockQueueSource(BlockQueueType& queue)
         : queue_(queue)
     { }
 
@@ -131,7 +131,7 @@ protected:
 
 template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
-    return BlockQueue<BlockSize>::Reader(*this);
+    return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
 }
 
 } // namespace data

@@ -12,6 +12,10 @@
 #include <c7a/common/string.hpp>
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <string>
+#include <utility>
+
 using namespace c7a;
 
 TEST(File, PutSomeItemsGetItems) {
@@ -85,8 +89,7 @@ TEST(File, PutSomeItemsGetItems) {
         ASSERT_EQ(
             block_data.substr(
                 i * File::block_size,
-                std::min<size_t>(File::block_size, file.used(i))
-                ),
+                std::min<size_t>(File::block_size, file.used(i))),
             file.BlockAsString(i));
     }
 
@@ -119,9 +122,9 @@ TEST(File, SerializeSomeItems) {
     // put into File some items (all of different serialization bytes)
     {
         File::Writer fw = file.GetWriter();
-        fw(unsigned(5));
+        fw(static_cast<unsigned>(5));
         fw(MyPair(5, "10abc"));
-        fw(double(42.0));
+        fw(static_cast<double>(42.0));
         fw(std::string("test"));
     }
 

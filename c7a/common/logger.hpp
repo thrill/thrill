@@ -20,6 +20,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+#include <string>
 
 namespace c7a {
 namespace common {

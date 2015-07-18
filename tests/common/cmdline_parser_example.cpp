@@ -8,10 +8,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <iostream>
-
 // [example]
 #include <c7a/common/cmdline_parser.hpp>
+#include <iostream>
+#include <string>
 
 int main(int argc, char* argv[]) {
     c7a::common::CmdlineParser cp;

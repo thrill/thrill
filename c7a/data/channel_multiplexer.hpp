@@ -54,7 +54,7 @@ public:
     using BlockWriter = data::BlockWriterBase<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
 
-    ChannelMultiplexer(net::DispatcherThread& dispatcher)
+    explicit ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), next_id_(0) { }
 
     //! non-copyable: delete copy-constructor

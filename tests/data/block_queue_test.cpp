@@ -9,9 +9,11 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
 #include <c7a/data/block_queue.hpp>
 #include <c7a/common/thread_pool.hpp>
+
+#include <gtest/gtest.h>
+#include <string>
 
 using namespace c7a;
 
@@ -43,7 +45,7 @@ TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
 
 TEST_F(BlockQueueTest, BlockWriterToQueue) {
     MyQueue::Writer bw = q.GetWriter();
-    bw(int(42));
+    bw(static_cast<int>(42));
     bw(std::string("hello there BlockQueue"));
     bw.Close();
     ASSERT_FALSE(q.empty());
@@ -58,7 +60,7 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.Enqueue(
         [&q]() {
             MyQueue::Writer bw = q.GetWriter();
-            bw(int(42));
+            bw(static_cast<int>(42));
             bw(std::string("hello there BlockQueue"));
         });
 

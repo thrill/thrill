@@ -26,7 +26,7 @@ TEST(Stage, CountReferencesSimple) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -72,7 +72,7 @@ TEST(Stage, CountReferencesLOpNode) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -123,7 +123,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -171,7 +171,7 @@ TEST(Stage, AdditionalChildReferences) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 

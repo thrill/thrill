@@ -21,6 +21,8 @@
 #include <c7a/data/file.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <string>
+
 namespace c7a {
 namespace api {
 

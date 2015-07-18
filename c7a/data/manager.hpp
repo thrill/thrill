@@ -36,7 +36,7 @@ namespace data {
 class Manager
 {
 public:
-    Manager(net::DispatcherThread& dispatcher)
+    explicit Manager(net::DispatcherThread& dispatcher)
         : cmp_(dispatcher) { }
 
     //! non-copyable: delete copy-constructor
