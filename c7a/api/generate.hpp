@@ -56,7 +56,7 @@ public:
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "Generate"),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -67,7 +67,7 @@ public:
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
     void Execute() override {
-
+        this->StartExecutionTimer();
         LOG << "GENERATING data with id " << this->result_file_;
 
         using InputArgument
@@ -94,6 +94,7 @@ public:
                 func(generator_function_(i + offset));
             }
         }
+        this->StopExecutionTimer();
     }
 
     /*!

@@ -84,7 +84,7 @@ public:
                const ParentStack& parent_stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "Reduce"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(ctx.data_manager().GetNewChannel()),
@@ -111,7 +111,9 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!

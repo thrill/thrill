@@ -23,8 +23,8 @@ class ActionNode : public DIABase
 {
 public:
     ActionNode(Context& ctx,
-               const std::vector<std::shared_ptr<DIABase> >& parents)
-        : DIABase(ctx, parents)
+               const std::vector<std::shared_ptr<DIABase> >& parents, const std::string& stats_tag)
+        : DIABase(ctx, parents, stats_tag)
     { }
 };
 

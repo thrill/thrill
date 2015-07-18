@@ -52,7 +52,7 @@ public:
     ReadNode(Context& ctx,
              ReadFunction read_function,
              const std::string& path_in)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "Read"),
           read_function_(read_function),
           path_in_(path_in)
     { }
@@ -74,6 +74,7 @@ public:
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void Execute() override {
+        this->StartExecutionTimer();
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
@@ -90,6 +91,7 @@ public:
                 func(read_function_(item));
             }
         }
+        this->StopExecutionTimer();
     }
 
     /*!

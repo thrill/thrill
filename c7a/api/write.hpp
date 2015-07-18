@@ -35,7 +35,7 @@ public:
               const ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
-        : ActionNode(ctx, { parent }),
+        : ActionNode(ctx, { parent }, "Write"),
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
@@ -60,8 +60,10 @@ public:
 
     //! Closes the output file
     void Execute() override {
+        this->StartExecutionTimer();
         sLOG << "closing file" << path_out_;
         emit_.Close();
+        this->StopExecutionTimer();
     }
 
     /*!

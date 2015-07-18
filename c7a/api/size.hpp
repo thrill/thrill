@@ -39,7 +39,7 @@ public:
     SizeNode(Context& ctx,
              const std::shared_ptr<DIANode<ParentInput> >& parent,
              const ParentStack& parent_stack)
-        : ActionNode(ctx, { parent })
+        : ActionNode(ctx, { parent }, "Size")
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
@@ -52,7 +52,9 @@ public:
 
     //! Executes the size operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!
