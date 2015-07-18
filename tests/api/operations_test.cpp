@@ -100,8 +100,8 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index + 1;
+                [](const size_t& index) -> int {
+                    return index + 1;
                 },
                 16);
 
@@ -135,7 +135,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) -> int {
-                    return (int)index;
+                    return index;
                 },
                 16);
 
@@ -297,8 +297,8 @@ TEST(Operations, WhileLoop) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index;
+                [](const size_t& index) -> int {
+                    return index;
                 },
                 16);
 

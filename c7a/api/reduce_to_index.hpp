@@ -20,11 +20,12 @@
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 
+#include <cmath>
 #include <functional>
 #include <string>
-#include <vector>
 #include <type_traits>
-#include <cmath>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -199,12 +200,13 @@ private:
                                           true>;
 
         size_t min_local_index =
-            std::ceil((double)(max_index_ + 1) * (double)context_.rank() /
-                      (double)context_.number_worker());
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank())
+                      / static_cast<double>(context_.number_worker()));
         size_t max_local_index =
-            std::ceil((double)(max_index_ + 1) *
-                      (double)(context_.rank() + 1) /
-                      (double)context_.number_worker()) - 1;
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank() + 1)
+                      / static_cast<double>(context_.number_worker())) - 1;
 
         if (context_.rank() == context_.number_worker() - 1) {
             max_local_index = max_index_;
@@ -297,8 +299,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                              key_extractor,
                                              reduce_function,
                                              max_index,
-                                             neutral_element
-                                             );
+                                             neutral_element);
 
     auto reduce_stack = shared_node->ProduceStack();
 

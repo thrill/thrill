@@ -21,6 +21,7 @@
 #include <c7a/net/flow_control_manager.hpp>
 
 #include <type_traits>
+#include <string>
 
 namespace c7a {
 namespace api {

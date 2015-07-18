@@ -18,6 +18,9 @@
 #include <c7a/common/config.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
 
+#include <algorithm>
+#include <string>
+
 namespace c7a {
 namespace data {
 
