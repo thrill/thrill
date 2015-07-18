@@ -49,7 +49,8 @@ template <size_t BlockSize = default_block_size>
 class ChannelBase
 {
     using BlockQueue = data::BlockQueue<BlockSize>;
-    using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize> >;
+    using BlockQueueReader = BlockReader<BlockQueueSource<BlockSize, data::BlockQueue> >;
+    using MultiBlockQueueReader = BlockReader<BlockQueueSource<BlockSize, data::OrderedMultiBlockQueue> >;
     using BlockWriter = data::BlockWriterBase<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelSink = data::ChannelSink<BlockSize>;
@@ -117,7 +118,7 @@ public:
 
         for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
 
-            result.emplace_back(BlockQueueSource<BlockSize>(queues_[worker_id]));
+            result.emplace_back(BlockQueueSource<BlockSize, data::BlockQueue>(queues_[worker_id]));
         }
 
         assert(result.size() == group_.Size());
@@ -127,7 +128,7 @@ public:
     //! Creates a BlockReader for all worker. The BlockReader is attached to
     //! one \ref OrderedMultiBlockQueue which includes all incoming queues of
     //! this channel.
-    BlockQueueReader OpenReader() {
+    MultiBlockQueueReader OpenReader() {
         return multi_queue_.GetReader();
     }
 
