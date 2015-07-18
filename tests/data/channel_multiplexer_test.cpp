@@ -163,11 +163,8 @@ TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
                       sLOG << "close worker";
                       w.Close();
                   }
-                  auto file = c->ReadCompleteChannel();
-                  for (size_t i = 0; i < file.NumBlocks(); i++)
-                      sLOG << "block" << i << file.BlockAsString(i);
 
-                  auto reader = file.GetReader();
+                  auto reader = c->OpenReader();
                   ASSERT_EQ("I came from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I am another message from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I came from worker 1", reader.Next<std::string>());

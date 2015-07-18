@@ -60,6 +60,7 @@ public:
     ChannelBase(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
+          multi_queue_({queues_.begin(), queues_.end()}), //holds refs
           group_(group),
           dispatcher_(dispatcher) {
         // construct ChannelSink array
@@ -123,28 +124,11 @@ public:
         return result;
     }
 
-    //! Reads add data from this Channel (blocking)
-    //! The resulting blocks in the file will be ordered by their sender ascending.
-    //! Blocks from the same sender are ordered the way they were received/sent.
-    File ReadCompleteChannel() {
-        // TODO(ts): why wait for all streams on the channel to close -> create
-        // a BlockSource that reads from all queues in order.
-        File result;
-        for (auto& q : queues_) {
-            sLOG << "read queue";
-            while (!q.empty() || !q.closed()) {
-                auto block = q.Pop();
-                if (!block.IsEndBlock()) {
-                    result.Append(std::move(block));
-                    sLOG << "read block from queue" << block.AsString();
-                }
-                else {
-                    sLOG << "reached end of queue";
-                }
-            }
-        }
-        result.Close();
-        return result;
+    //! Creates a BlockReader for all worker. The BlockReader is attached to
+    //! one \ref OrderedMultiBlockQueue which includes all incoming queues of
+    //! this channel.
+    BlockQueueReader OpenReader() {
+        return multi_queue_.GetReader();
     }
 
     //! shuts the channel down.
@@ -189,6 +173,11 @@ protected:
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
+
+    //! OrderedMultiBlockQueue holds references to all queues.
+    //! Hold this object internally to provide OpenReader() interface
+    //! which requires the multi_queue to live longer than the reader
+    OrderedMultiBlockQueue<BlockSize> multi_queue_;
 
     net::Group& group_;
     net::DispatcherThread& dispatcher_;

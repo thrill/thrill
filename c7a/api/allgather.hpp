@@ -70,8 +70,7 @@ public:
             emitters_[i].Close();
         }
 
-        data::File incoming = channel_->ReadCompleteChannel();
-        auto reader = incoming.GetReader();
+        auto reader = channel_->OpenReader();
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());

@@ -227,11 +227,10 @@ private:
                           neutral_element_);
 
         //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
-        data::File output = channel_->ReadCompleteChannel();
-        auto file = output.GetReader();
+        auto reader = channel_->OpenReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
-        while (file.HasNext()) {
-            table.Insert(std::move(file.template Next<KeyValuePair>()));
+        while (reader.HasNext()) {
+            table.Insert(std::move(reader.template Next<KeyValuePair>()));
         }
 
         table.Flush();
