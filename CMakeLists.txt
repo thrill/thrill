@@ -35,6 +35,10 @@ option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
 option(ENABLE_STATS "enable stats" OFF)
+if(ENABLE_STATS)
+    message(STATUS "Add Stats support")
+    add_definitions(-DENABLE_STATS=1)
+endif()
 
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")

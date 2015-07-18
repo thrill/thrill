@@ -15,7 +15,7 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/core/job_manager.hpp>
-#include <c7a/common/stats_timer.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -71,8 +71,7 @@ ParseArgs(int argc, char* const* argv) {
     }
     return std::make_tuple(0, my_rank, endpoints);
 }
-
-} // namespace
+}       // namespace
 
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
@@ -128,7 +127,7 @@ static inline int Execute(
                 // TODO: this cannot be correct, the job needs to know which
                 // worker number it is on the node.
                 int job_result = job_startpoint(ctx);
-                overall_timer->Stop();
+                STOP_TIMER(overall_timer)
                 LOG << "Worker " << ctx.rank() << " done!";
 
                 results[i] = job_result;
@@ -183,7 +182,7 @@ ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
             };
 
         threads[i] = std::thread(
-            [=]() {
+            [ = ]() {
                 Execute(strargs[i].size(), args[i].data(),
                         intReturningFunction, 1, "worker " + std::to_string(i));
             });
@@ -266,14 +265,13 @@ ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
                 LOG << "Starting node " << node_id;
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
-                overall_timer->Stop();
+                STOP_TIMER(overall_timer)
                 LOG << "Worker " << node_id << " done!";
 
                 jm.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
 }
-
 } // namespace api
 } // namespace c7a
 

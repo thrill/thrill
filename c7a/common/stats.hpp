@@ -20,6 +20,11 @@
 #include <cmath> //sqrt
 #include <iostream>
 
+//! Macros to check if shared pointers to stats objects are valid
+#define START_TIMER(timer)      if (timer) timer->Start();
+#define STOP_TIMER(timer)       if (timer) timer->Stop();
+#define Trigger(timed_counter)  if (timed_counter) timed_counter->Trigger();
+
 namespace c7a {
 namespace common {
 
@@ -34,18 +39,21 @@ namespace common {
 //!
 //! All Counters and such are held locally until the destructor is called.
 //! Depending on the configuration all Counters and such will be printed to sLOG
+//!
+//! Returns null pointers if built with ENABLE_STATS=off
 class Stats
 {
 public:
     using NamedTimedcounter = std::pair<std::string, TimedCounter>;
     typedef decltype (std::chrono::high_resolution_clock::now ()) TimeStamp;
 
-    Stats() :
-        program_start_(std::chrono::high_resolution_clock::now()) { }
-
     Stats(const Stats& rhs) = delete;
     Stats(Stats&&) = delete;
     Stats& operator = (const Stats&) = delete;
+
+#if ENABLE_STATS
+    Stats() :
+        program_start_(std::chrono::high_resolution_clock::now()) { }
 
     TimedCounterPtr CreateTimedCounter(const std::string& group, const std::string& label) {
         auto result = timed_counters_.insert(std::make_pair(group, std::make_pair(label, std::make_shared<TimedCounter>())));
@@ -62,17 +70,15 @@ public:
     }
 
     ~Stats() {
-        if (dump_to_log_) {
-            std::set<std::string> group_names;
-            for (const auto& it : timed_counters_)
-                group_names.insert(it.first);
-            for (const auto& it : timers_)
-                group_names.insert(it.first);
-            for (const auto& it : reports_)
-                group_names.insert(it.first);
-            for (const auto& g : group_names)
-                std::cout << PrintGroup(g) << std::endl;
-        }
+        std::set<std::string> group_names;
+        for (const auto& it : timed_counters_)
+            group_names.insert(it.first);
+        for (const auto& it : timers_)
+            group_names.insert(it.first);
+        for (const auto& it : reports_)
+            group_names.insert(it.first);
+        for (const auto& g : group_names)
+            std::cout << PrintGroup(g) << std::endl;
     }
 
     std::string PrintGroup(const std::string& group_name) {
@@ -144,11 +150,6 @@ public:
     }
 
 private:
-#if ENABLE_STATS
-    static const bool dump_to_log_ = true;
-#else
-    static const bool dump_to_log_ = false;
-#endif
     std::multimap<std::string, std::pair<std::string, TimedCounterPtr> > timed_counters_;
     std::multimap<std::string, std::pair<std::string, TimerPtr> > timers_;
     std::multimap<std::string, std::pair<std::string, std::string> > reports_;
@@ -158,8 +159,20 @@ private:
     inline long Relative(const TimeStamp& time_point) {
         return std::chrono::duration_cast<std::chrono::milliseconds>(time_point - program_start_).count();
     }
-};
+#else       //ENABLE_STATS
+    Stats() = default;
 
+    TimedCounterPtr CreateTimedCounter(const std::string& /*group*/, const std::string& /*label*/) {
+        return TimedCounterPtr();
+    }
+    TimerPtr CreateTimer(const std::string& /*group*/, const std::string& /*label*/, bool /*auto_start*/ = false) {
+        return TimerPtr();
+    }
+    void AddReport(const std::string& /*group*/, const std::string& /*label*/, const std::string& /*content*/) {
+        //noop
+    }
+#endif      //ENABLE_STATS
+};
 } // namespace common
 } // namespace c7a
 
