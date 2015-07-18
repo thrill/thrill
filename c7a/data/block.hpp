@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <cassert>
+#include <string>
 
 namespace c7a {
 namespace data {
