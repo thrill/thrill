@@ -40,7 +40,7 @@ public:
                   const ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )
-        : ActionNode(ctx, { parent }),
+        : ActionNode(ctx, { parent }, "AllGather"),
           out_vector_(out_vector),
           channel_(ctx.data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters())
@@ -65,6 +65,7 @@ public:
 
     //! Closes the output file
     void Execute() override {
+        this->StartExecutionTimer();
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
@@ -75,6 +76,7 @@ public:
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
+        this->StopExecutionTimer();
     }
 
     /*!

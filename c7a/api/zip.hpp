@@ -132,6 +132,7 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        StartExecutionTimer();
         MainOp();
         // get data from data manager
         auto it1 = context_.data_manager().
@@ -149,6 +150,7 @@ public:
                 }
             }
         } while (!it1.IsClosed() && !it2.IsClosed());
+        StopExecutionTimer();
     }
 
     /*!

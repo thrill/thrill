@@ -97,7 +97,7 @@ public:
                       ReduceFunction reduce_function,
                       size_t max_index,
                       Value neutral_element)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "ReduceToIndex"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(ctx.data_manager().GetNewChannel()),
@@ -138,7 +138,9 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!

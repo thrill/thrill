@@ -47,8 +47,8 @@ public:
      */
     LOpNode(Context& ctx,
             const std::shared_ptr<DIANode<ParentInput> >& parent,
-            const ParentStack& lop_stack)
-        : DIANode<ValueType>(ctx, { parent })
+            const ParentStack& lop_stack, const std::string& stats_tag)
+        : DIANode<ValueType>(ctx, { parent }, stats_tag)
     {
         auto save_fn =
             [=](ValueType input) {
