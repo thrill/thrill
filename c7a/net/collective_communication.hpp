@@ -22,7 +22,7 @@
 namespace c7a {
 namespace net {
 
-//! \name Collective Operations
+//! \addtogroup net Network Communication
 //! \{
 
 //! @brief   Calculate for every worker his prefix sum. Works only for worker

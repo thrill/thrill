@@ -17,6 +17,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! OutputLineEmitter let's you write to files
 //! Each element is written to a new line
 template <class T>
@@ -48,6 +51,8 @@ private:
     std::ofstream& out_;
     bool closed_;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

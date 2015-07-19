@@ -26,6 +26,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! internal representation of data elements
 typedef std::string Blob;
 
@@ -369,6 +372,8 @@ struct Serializer<Archive, std::pair<U, V> >
     static const bool fixed_size = (Serializer<Archive, U>::fixed_size &&
                                     Serializer<Archive, V>::fixed_size);
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

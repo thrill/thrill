@@ -29,6 +29,7 @@
 
 namespace c7a {
 namespace api {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -190,8 +191,6 @@ private:
     }
 };
 
-//! \}
-
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceBy(
@@ -242,6 +241,8 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

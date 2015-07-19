@@ -26,6 +26,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 template <typename ValueType, typename ParentStack, typename SumFunction>
 class PrefixSumNode : public DOpNode<ValueType>
 {
@@ -176,6 +179,8 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     return DIARef<ValueType, decltype(sum_stack)>
                (shared_node, sum_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

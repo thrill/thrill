@@ -25,6 +25,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 template <typename ValueType, typename ParentStack>
 class AllGatherNode : public ActionNode
 {
@@ -125,6 +128,8 @@ void DIARef<ValueType, Stack>::AllGather(
 
     core::StageBuilder().RunScope(shared_node.get());
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

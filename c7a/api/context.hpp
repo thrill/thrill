@@ -27,6 +27,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 /*!
  * The Context of a job is a unique structure inside a worker, which holds
  *  references to all underlying parts of c7a. The context is able to give
@@ -95,6 +98,8 @@ private:
     //! number of this worker context, 0..p-1, within this compute node.
     int local_worker_id_;
 };
+
+//! \}
 
 } // namespace api
 } // namespace c7a

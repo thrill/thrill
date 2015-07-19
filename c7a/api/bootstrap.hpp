@@ -27,6 +27,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 namespace {
 
 std::tuple<int, size_t, std::vector<std::string> >
@@ -272,6 +275,9 @@ ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
             });
     }
 }
+
+//! \}
+
 } // namespace api
 } // namespace c7a
 

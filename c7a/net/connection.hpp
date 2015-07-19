@@ -30,13 +30,13 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 enum ConnectionState {
     Invalid, Connecting, TransportConnected, HelloReceived,
     HelloSent, WaitingForHello, Connected, Disconnected
 };
-
-//! \addtogroup net Network Communication
-//! \{
 
 // Because Mac OSX does not know MSG_MORE.
 #ifndef MSG_MORE

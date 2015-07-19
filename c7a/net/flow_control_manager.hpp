@@ -21,6 +21,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 class FlowControlChannelManager
 {
 protected:
@@ -71,6 +74,8 @@ public:
         return channels[threadId];
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

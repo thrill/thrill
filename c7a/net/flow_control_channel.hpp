@@ -22,6 +22,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /**
  * @brief Provides a blocking collection for communication.
  * @details This wraps a raw net group and should be used for
@@ -336,6 +339,8 @@ public:
         i = AllReduce(i);
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

@@ -23,6 +23,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 template <typename ValueType, typename ParentStack>
 class SizeNode : public ActionNode
 {
@@ -104,6 +107,8 @@ size_t DIARef<ValueType, Stack>::Size() const {
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a
