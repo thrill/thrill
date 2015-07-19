@@ -282,10 +282,10 @@ auto DIARef<ValueType, Stack>::Zip(
                (zip_node, zip_stack);
 }
 
+//! \}
+
 } // namespace api
 } // namespace c7a
-
-//! \}
 
 #endif // !C7A_API_ZIP_HEADER
 

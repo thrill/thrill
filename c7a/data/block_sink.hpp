@@ -18,6 +18,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 /*!
  * Pure virtual base class for all things that can receive Blocks from a
  * BlockWriter.
@@ -42,6 +45,8 @@ public:
         return Append(VirtualBlock(block, block_used, nitems, first));
     }
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

@@ -23,6 +23,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 template <size_t BlockSize>
 class BlockQueueSource;
 
@@ -126,6 +129,8 @@ template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
     return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
 }
+
+//! \}
 
 } // namespace data
 } // namespace c7a

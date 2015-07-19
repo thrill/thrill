@@ -20,6 +20,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /*!
  * BufferReader represents a BufferRef with an additional cursor with
  * which the memory can be read incrementally.
@@ -166,6 +169,8 @@ public:
 
     //! \}
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

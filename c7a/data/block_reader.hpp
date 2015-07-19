@@ -23,6 +23,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 template <typename BlockSource>
 class BlockReader
     : public common::ItemReaderToolsBase<BlockReader<BlockSource> >
@@ -144,6 +147,8 @@ protected:
         return source_.NextBlock(&current_, &end_);
     }
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

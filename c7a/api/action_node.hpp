@@ -19,6 +19,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 class ActionNode : public DIABase
 {
 public:
@@ -27,6 +30,8 @@ public:
         : DIABase(ctx, parents, stats_tag)
     { }
 };
+
+//! \}
 
 } // namespace api
 } // namespace c7a
