@@ -20,6 +20,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /*!
  * BufferRef represents a reference to a memory area as pointer and valid
  * length. It is not deallocated or otherwise managed. This class can be used to
@@ -97,6 +100,8 @@ public:
             free((void*)data_);
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

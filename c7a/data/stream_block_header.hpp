@@ -23,7 +23,7 @@
 namespace c7a {
 namespace data {
 
-//! \ingroup net
+//! \addtogroup data Data Subsystem
 //! \{
 
 //! Block header is sent before a sequence of blocks

@@ -19,6 +19,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! default block size of files.
 static const size_t default_block_size = 2 * 1024 * 1024;
 
@@ -112,6 +115,8 @@ struct VirtualBlock
         return std::string(reinterpret_cast<const char*>(block->data()), bytes_used + first);
     }
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

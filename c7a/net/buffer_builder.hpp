@@ -29,6 +29,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /*!
  * BufferBuilder represents a dynamically growable area of memory, which
  * can be modified by appending integral data types via Put() and other basic
@@ -316,6 +319,8 @@ public:
 
     //! \}
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

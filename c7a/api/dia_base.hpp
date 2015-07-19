@@ -23,6 +23,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 /*!
  * Possible states a DIABase can be in.
  * TODO(ch): turn this enum into an "enum class" within DIABase. These are
@@ -40,9 +43,6 @@ enum kState {
     //! accessed.
     DISPOSED
 };
-
-//! \addtogroup api Interface
-//! \{
 
 /*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build

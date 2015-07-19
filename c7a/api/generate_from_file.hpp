@@ -142,8 +142,6 @@ private:
     static const bool debug = false;
 };
 
-//! \}
-
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
@@ -172,6 +170,8 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, generator_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

@@ -24,6 +24,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 template <size_t BlockSize>
 class BlockWriterBase
     : public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
@@ -206,6 +209,8 @@ protected:
 };
 
 using BlockWriter = BlockWriterBase<data::default_block_size>;
+
+//! \}
 
 } // namespace data
 } // namespace c7a

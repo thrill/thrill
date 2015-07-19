@@ -24,7 +24,7 @@
 namespace c7a {
 namespace data {
 
-//! \ingroup data
+//! \addtogroup data Data Subsystem
 //! \{
 
 //! Multiplexes virtual Connections on Dispatcher
@@ -252,6 +252,8 @@ private:
         AsyncReadStreamBlockHeader(s);
     }
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

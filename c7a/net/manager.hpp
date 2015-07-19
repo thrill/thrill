@@ -26,6 +26,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /**
  * @brief Initializes communication channels, manages communication c
  * hannels and handles errors.
@@ -579,6 +582,8 @@ public:
         }
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

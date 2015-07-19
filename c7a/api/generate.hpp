@@ -122,8 +122,6 @@ private:
     static const bool debug = false;
 };
 
-//! \}
-
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
               const GeneratorFunction &generator_function,
@@ -151,6 +149,8 @@ auto Generate(Context & ctx,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, generator_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

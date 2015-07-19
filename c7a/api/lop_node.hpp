@@ -75,9 +75,9 @@ public:
     std::string ToString() override {
         return "[LOpNode] Id: " + result_file_.ToString();
     }
-
-private:
 };
+
+//! \}
 
 } // namespace api
 } // namespace c7a

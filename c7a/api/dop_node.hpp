@@ -48,6 +48,8 @@ public:
         : DIANode<ValueType>(ctx, parents, stats_tag) { }
 };
 
+//! \}
+
 } // namespace api
 } // namespace c7a
 

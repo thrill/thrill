@@ -19,6 +19,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 /*!
  * ConcatBlockSource is a BlockSource which concatenates all Blocks available
  * from a vector of BlockSources. They are concatenated in order: first all
@@ -54,6 +57,8 @@ protected:
     //! current source, all sources < current_ are empty.
     size_t current_ = 0;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

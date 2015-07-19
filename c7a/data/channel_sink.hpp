@@ -22,6 +22,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! ChannelSink is an BlockSink that sends data via a network socket to the
 //! Channel object on a different worker.
 template <size_t BlockSize>
@@ -116,6 +119,8 @@ protected:
     size_t own_rank_ = -1;
     bool closed_ = false;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

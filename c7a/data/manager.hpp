@@ -29,6 +29,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! Manages all kind of memory for data elements
 //!
 //!
@@ -85,6 +88,8 @@ private:
 
     Repository<File> files_;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

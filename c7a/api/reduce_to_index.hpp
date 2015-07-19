@@ -29,6 +29,7 @@
 
 namespace c7a {
 namespace api {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -245,14 +246,13 @@ private:
     }
 };
 
-//! \}
-
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-                                             const ReduceFunction &reduce_function,
-                                             size_t max_index,
-                                             ValueType neutral_element) const {
+auto DIARef<ValueType, Stack>::ReduceToIndex(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    size_t max_index,
+    ValueType neutral_element) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -307,6 +307,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

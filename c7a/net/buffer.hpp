@@ -24,6 +24,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /*!
  * Simple buffer of characters without initialization or growing functionality.
  *
@@ -224,6 +227,8 @@ protected:
     //! size of the buffer.
     size_type size_;
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

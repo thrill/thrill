@@ -18,6 +18,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! DiscardSink is an BlockSink that discards all Blocks delivered to it. Used
 //! for benchmarking!
 template <size_t BlockSize>
@@ -49,6 +52,8 @@ protected:
 };
 
 using DiscardSink = DiscardSinkBase<data::default_block_size>;
+
+//! \}
 
 } // namespace data
 } // namespace c7a

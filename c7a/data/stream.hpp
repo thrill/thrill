@@ -22,6 +22,9 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! Stream is a BlockWriter-Target that triggers callbacks it's observer.
 //! There can be multiple observers for each stream, but at least one.
 //! Observers cannot be removed once added.
@@ -67,6 +70,8 @@ private:
     std::vector<AppendCallbackFunction> append_observers_;
     std::vector<CloseCallbackFunction> close_observers_;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

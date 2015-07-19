@@ -145,10 +145,10 @@ auto ReadLines(Context & ctx, std::string filepath,
                (shared_node, read_stack);
 }
 
+//! \}
+
 } // namespace api
 } // namespace c7a
-
-//! \}
 
 #endif // !C7A_API_READ_HEADER
 
