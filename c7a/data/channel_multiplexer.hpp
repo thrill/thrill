@@ -29,14 +29,14 @@ namespace data {
 
 /*!
  * Multiplexes virtual Connections on Dispatcher.
- * 
+ *
  * A worker as a TCP conneciton to each other worker to exchange large amounts
  * of data. Since multiple exchanges can occur at the same time on this single
  * connection we use multiplexing. The slices are called Blocks and are
  * indicated by a \ref StreamBlockHeader. Multiple Blocks form a Stream on a
  * single TCP connection. The multiplexer multiplexes all streams on all
  * sockets.
- * 
+ *
  * All sockets are polled for headers. As soon as the a header arrives it is
  * either attached to an existing channel or a new channel instance is
  * created.

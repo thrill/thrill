@@ -171,6 +171,7 @@ private:
     }
 #endif      //ENABLE_STATS
 };
+
 } // namespace common
 } // namespace c7a
 
