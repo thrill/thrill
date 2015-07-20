@@ -8,7 +8,7 @@ if [ $? -ne 0 ]; then
 fi 
 
 PORT=64999
-COMMAND="../build/word_count"
+COMMAND="../build/examples/word_count"
 HOSTLIST=$(./getSlurmHostlist.sh | ./formatPort.sh $PORT)
 MY_RANK=$(./getSlurmRank.sh)
 
