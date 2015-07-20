@@ -11,6 +11,5 @@ PORT=64999
 COMMAND="../build/examples/word_count"
 HOSTLIST=$(./getSlurmHostlist.sh | ./formatPort.sh $PORT)
 MY_RANK=$(./getSlurmRank.sh)
-
-$($COMMAND -r $MY_RANK $HOSTLIST)
-
+EX="$COMMAND -r $MY_RANK $HOSTLIST"
+eval $EX
