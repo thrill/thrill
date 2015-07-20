@@ -105,10 +105,10 @@ TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
                      writer2(std::string("2.2"));
                      writer2.Close();
                  });
-    pool.Enqueue([this,&q2]() {
+    pool.Enqueue([this, &q2]() {
                      auto reader = data::BlockReader<ConcatBlockSource>(
-                         ConcatBlockSource({
-                                 MyBlockSource(q), MyBlockSource(q2) }));
+                         ConcatBlockSource(
+                             { MyBlockSource(q), MyBlockSource(q2) }));
                      ASSERT_EQ("1.1", reader.Next<std::string>());
                      ASSERT_EQ("1.2", reader.Next<std::string>());
                      ASSERT_EQ("2.1", reader.Next<std::string>());

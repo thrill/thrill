@@ -137,7 +137,6 @@ protected:
     //! State of the DIANode. State is NEW on creation.
     kState state_ = NEW;
 
-
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
         switch (state_) {
@@ -179,7 +178,6 @@ protected:
 
     //! Timer that tracks the lifetime of this object
     common::TimerPtr lifetime_;
-
 };
 
 //! \}

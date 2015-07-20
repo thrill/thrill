@@ -202,8 +202,7 @@ protected:
     //! Start reading a File
     FileBlockSource(const FileBase& file,
                     size_t first_block = 0, size_t first_offset = 0)
-        : file_(file), first_block_(first_block), first_offset_(first_offset)
-    {
+        : file_(file), first_block_(first_block), first_offset_(first_offset) {
         current_block_ = first_block_ - 1;
     }
 
@@ -218,7 +217,7 @@ protected:
 
     //! number of the first block
     size_t first_block_;
-    
+
     //! offset of first item in first block read
     size_t first_offset_;
 };

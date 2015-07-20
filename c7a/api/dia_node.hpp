@@ -103,7 +103,6 @@ protected:
             return "UNDEFINED";
         }
     }
-
 };
 
 //! \}
