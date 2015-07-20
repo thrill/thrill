@@ -26,6 +26,12 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
+/*!
+ * BlockReader takes VirtualBlock objects from BlockSource and allows reading of
+ * a) serializable Items or b) arbitray data from the Block sequence. It takes
+ * care of fetching the next Block when the previous one underruns and also of
+ * data items split between two Blocks.
+ */
 template <typename BlockSource>
 class BlockReader
     : public common::ItemReaderToolsBase<BlockReader<BlockSource> >

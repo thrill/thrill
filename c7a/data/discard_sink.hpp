@@ -21,8 +21,10 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-//! DiscardSink is an BlockSink that discards all Blocks delivered to it. Used
-//! for benchmarking!
+/*!
+ * DiscardSink is an BlockSink that discards all Blocks delivered to it. Use it
+ * for benchmarking!
+ */
 template <size_t BlockSize>
 class DiscardSinkBase : public BlockSink<BlockSize>
 {
@@ -51,6 +53,7 @@ protected:
     bool closed_ = false;
 };
 
+//! DiscardSinkBase with default block size.
 using DiscardSink = DiscardSinkBase<data::default_block_size>;
 
 //! \}
