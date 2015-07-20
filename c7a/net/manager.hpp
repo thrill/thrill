@@ -504,7 +504,8 @@ public:
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
 
-            const SocketAddress lsa = addressList[my_rank_];
+            SocketAddress lsa("0.0.0.0:0");
+            lsa.SetPort(addressList[my_rank_].GetPort());
 
             if (listen_socket.bind(lsa) != 0)
                 throw Exception("Could not bind listen socket to "
