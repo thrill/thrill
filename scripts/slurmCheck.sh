@@ -1,5 +1,7 @@
 #! /bin/bash
 
+module load compiler/gnu/4.9
+
 function printVars {
   echo "SLURM_NNODES: $SLURM_NNODES"
   echo "SLURM_NTASKS: $SLURM_NTASKS"
