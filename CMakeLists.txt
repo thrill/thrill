@@ -56,8 +56,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
-  # does not work with TBB version on our build servers
-  set(USE_TBB OFF)
 
   if(NOT USE_VALGRIND)
     # enable AddressSanitizer
@@ -185,6 +183,10 @@ endif()
 
 if(NOT TBB_FOUND)
   message(STATUS "Intel TBB not found. No problem, using slower replacements.")
+  add_definitions(-DHAVE_INTELTBB=0)
+elseif(TBB_INTERFACE_VERSION LESS 8000)
+  message(STATUS "Intel TBB ${TBB_INTERFACE_VERSION} is too old. "
+    "No problem, using slower replacements.")
   add_definitions(-DHAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
   include_directories(${TBB_INCLUDE_DIRS})
