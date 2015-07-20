@@ -12,4 +12,5 @@ COMMAND="../build/examples/word_count"
 HOSTLIST=$(./getSlurmHostlist.sh | ./formatPort.sh $PORT)
 MY_RANK=$(./getSlurmRank.sh)
 EX="$COMMAND -r $MY_RANK $HOSTLIST"
+echo "Invoking: $COMMAND"
 eval $EX
