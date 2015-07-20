@@ -1,0 +1,16 @@
+#! /bin/bash
+
+./slurmCheck.sh
+
+if [ $? -ne 0 ]; then
+  #Check failed. 
+  exit -1
+fi 
+
+PORT=64999
+COMMAND="../build/word_count"
+HOSTLIST=$(./getSlurmHostlist.sh | ./formatPort.sh $PORT)
+MY_RANK=$(./getSlurmRank.sh)
+
+$($COMMAND -r $MY_RANK $HOSTLIST)
+
