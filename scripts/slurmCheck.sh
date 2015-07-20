@@ -1,20 +1,19 @@
 #! /bin/bash
 
 function printVars {
-  echo "SLURM_STEP_NUM_TASKS: $SLURM_STEP_NUM_TASKS"
-  echo "SLURM_NUM_NODES: $SLURM_NUM_NODES"
+  echo "SLURM_NNODES: $SLURM_NNODES"
+  echo "SLURM_NTASKS: $SLURM_NTASKS"
   echo "SLURM_JOB_HOSTLIST: $SLURM_JOB_NODELIST"
-  echo "SLURM_PROCID: $SLURM_PROCID"
 }
 
 
-if [ -z $SLURM_STEP_NUM_TASKS ]; then
+if [ -z $SLURM_NNODES ]; then
   echo "Error: SLURM environment not found."
   printVars
   exit -1
 fi
 
-if [ $SLURM_STEP_NUM_TASKS -gt $SLURM_NUM_NODES ]; then 
+if [ $SLURM_NNODES -ne $SLURM_NTASKS ]; then 
   echo "Error: Multiple c7a instances running on a single node."
   printVars
   exit -1
