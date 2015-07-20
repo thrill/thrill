@@ -29,8 +29,17 @@ namespace data {
 template <size_t BlockSize>
 class BlockQueueSource;
 
-//! A BlockQueue is used to hand-over blocks between threads. It fulfills the
-//same interface as \ref c7a::data::Stream and \ref c7a::data::File
+/*!
+ * A BlockQueue is a thread-safe queue used to hand-over VirtualBlock objects
+ * between threads. It is currently used by the ChannelMultiplexer to queue
+ * received Blocks and deliver them (later) to their destination.
+ *
+ * The BlockQueue itself is also a BlockSink (so one can attach a BlockWriter to
+ * it). To read items from the queue, one needs to use a BlockReader
+ * instantiated with a BlockQueueSource.  Both are easily available via
+ * GetWriter() and GetReader().  Each block is available only *once* via the
+ * BlockQueueSource.
+ */
 template <size_t BlockSize = default_block_size>
 class BlockQueue : public BlockSink<BlockSize>
 {
@@ -49,7 +58,7 @@ public:
     }
 
     void Close() override {
-        assert(!closed_); //racing condition tolerated
+        assert(!closed_); // racing condition tolerated
         closed_ = true;
 
         // enqueue a closing VirtualBlock.
@@ -79,7 +88,10 @@ private:
     std::atomic<bool> closed_ = { false };
 };
 
-//! A BlockSource to read Blocks from a BlockQueue using a BlockReader.
+/*!
+ * A BlockSource to read Block from a BlockQueue using a BlockReader. Each Block
+ * is *taken* from the BlockQueue, hence the BlockQueue can be read only once!
+ */
 template <size_t BlockSize>
 class BlockQueueSource
 {

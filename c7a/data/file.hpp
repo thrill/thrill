@@ -30,6 +30,21 @@ namespace data {
 template <size_t BlockSize>
 class FileBlockSource;
 
+/*!
+ * A File or generally FileBase<BlockSize> is an ordered sequence of
+ * VirtualBlock objects for storing items. By using the VirtualBlock
+ * indirection, the File can be composed using existing Block objects (via
+ * reference counting), but only contain a subset of the items in those
+ * Blocks. This may be used for Zip() and Repartition().
+ *
+ * A File can be written using a BlockWriter instance, which is delivered by
+ * GetWriter(). Thereafter it can be read (multiple times) using a BlockReader,
+ * delivered by GetReader().
+ *
+ * Using a prefixsum over the number of items in a Block, one can seek to the
+ * block contained any item offset in log_2(Blocks) time, though seeking within
+ * the Block goes sequentially.
+ */
 template <size_t BlockSize>
 class FileBase : public BlockSink<BlockSize>
 {
@@ -59,7 +74,7 @@ public:
         closed_ = true;
     }
 
-    //returns a string that identifies this string instance
+    // returns a string that identifies this string instance
     std::string ToString() {
         return "File@" + std::to_string((size_t) this);
     }
@@ -139,9 +154,14 @@ protected:
     bool closed_ = false;
 };
 
+//! Default File class, using the default block size.
 using File = FileBase<default_block_size>;
 
-//! A BlockSource to read Blocks from a File.
+/*!
+ * A BlockSource to read Blocks from a File. The FileBlockSource mainly contains
+ * an index to the current block, which is incremented when the NextBlock() must
+ * be delivered.
+ */
 template <size_t BlockSize>
 class FileBlockSource
 {

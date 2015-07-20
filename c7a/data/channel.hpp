@@ -33,19 +33,32 @@ namespace data {
 
 using ChannelId = size_t;
 
-//! A Channel is a collection of \ref Stream instances and bundles them to a
-//! logical communication channel.
-//!
-//! There exists only one stream per socket at a time.
-//! The channel keeps track of all active channels and counts the closed ones.
-//!
-//! As soon as the number of expected streams is reached, the channel is marked
-//! as finished and no more data will arrive. Channels expect one closed stream
-//! for each connection in the net::Group
-//!
-//! Block headers are put into streams that poll more data from the socket.
-//! As soon as the block is exhausted, the socket polling responsibility
-//! is transfered back to the channel multiplexer.
+/*!
+ * A Channel is a virtual set of connections to all other workers instances,
+ * hence a "Channel" bundles them to a logical communication context. We call an
+ * individual connection from a worker to another worker a "Stream", though no
+ * such class exists.
+ * 
+ * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
+ * outbound Stream. The vector is of size workers, including virtual
+ * connections to the local worker(s). One can then write items destined to the
+ * corresponding worker. The written items are buffered into a Block and only
+ * sent when the Block is full. To force a send, use BlockWriter::Flush(). When
+ * all items are sent, the BlockWriters **must** be closed using
+ * BlockWriter::Close().
+ *
+ * To read the inbound Stream items, one can get a vector of BlockReader via
+ * OpenReaders(), which can then be used to read items sent by individual
+ * workers.
+ *
+ * Alternatively, one can use OpenReader() to get a BlockReader which delivers
+ * all items from *all* workers in worker order (concatenating all inbound
+ * Streams).
+ *
+ * As soon as all attached streams of the Channel have been Close()the number of
+ * expected streams is reached, the channel is marked as finished and no more
+ * data will arrive.
+ */
 template <size_t BlockSize = default_block_size>
 class ChannelBase
 {
@@ -77,10 +90,6 @@ public:
                     &dispatcher, &group_.connection(i), id, group_.MyRank());
             }
         }
-    }
-
-    void CloseLoopback() {
-        OnCloseStream(group_.MyRank());
     }
 
     //! non-copyable: delete copy-constructor

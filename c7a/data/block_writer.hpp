@@ -27,6 +27,14 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
+/*!
+ * BlockWriter contains a temporary Block object into which a) any serializable
+ * item can be stored or b) any arbitrary integral data can be appended. It
+ * counts how many serializable items are stored and the offset of the first new
+ * item. When a Block is full it is emitted to an attached BlockSink, like a
+ * File, a ChannelSink, etc. for further delivery. The BlockWriter takes care of
+ * segmenting items when a Block is full.
+ */
 template <size_t BlockSize>
 class BlockWriterBase
     : public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
@@ -82,7 +90,7 @@ public:
         AllocateBlock();
     }
 
-    //! \name Appending (Generic) Items
+    //! \name Appending (Generic) Serializable Items
     //! \{
 
     //! Mark beginning of an item.
@@ -208,6 +216,7 @@ protected:
     bool closed_ = false;
 };
 
+//! BlockWriter with defaut block size.
 using BlockWriter = BlockWriterBase<data::default_block_size>;
 
 //! \}
