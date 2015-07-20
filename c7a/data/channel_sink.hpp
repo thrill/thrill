@@ -25,8 +25,10 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-//! ChannelSink is an BlockSink that sends data via a network socket to the
-//! Channel object on a different worker.
+/*!
+ * ChannelSink is an BlockSink that sends data via a network socket to the
+ * Channel object on a different worker.
+ */
 template <size_t BlockSize>
 class ChannelSink : public BlockSink<BlockSize>
 {
@@ -36,8 +38,8 @@ public:
     using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelId = size_t;
 
-    //! invalid ChannelSink, needed for placeholders in sinks arrays where
-    //! Blocks are directly sent to local workers.
+    //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
+    //! where Blocks are directly sent to local workers.
     ChannelSink() : closed_(true) { }
 
     //! ChannelSink sending out to network.

@@ -22,9 +22,16 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-//! default block size of files.
+//! default size of blocks in File, Channel, BlockQueue, etc.
 static const size_t default_block_size = 2 * 1024 * 1024;
 
+/*!
+ * A Block is the basic storage units of containers like File, BlockQueue,
+ * etc. It consists of a fixed number of bytes without any type and meta
+ * information. Conceptually a Block is written _once_ and can then be shared
+ * read-only between containers using shared_ptr<const Block> reference
+ * counting.
+ */
 template <size_t BlockSize>
 class Block
 {
@@ -63,11 +70,20 @@ public:
 };
 
 /**
- * VirtualBlocks combine a reference to a \ref Block and book-keeping
- * information.
+ * VirtualBlock combines a reference to a read-only \ref Block and book-keeping
+ * information. The book-keeping metainformation currently is the start of the
+ * first item, the ends of the item range, and the number of items in the range.
  *
- * Multiple virtual blocks can point to the same block but have different
+ * Multiple VirtualBlock instances can share the same Block but have different
  * book-keeping information!
+ *
+ * <pre>
+ *     +--+---------+---------+-------------+---------+-----+
+ *     |  |Item1    |Item2    |Item3        |Item4    |Item5|(partial)
+ *     +--+---------+---------+-------------+---------+-----+
+ *                  ^                                       ^
+ *                  first         nitems=4                  end
+ * </pre>
  */
 template <size_t BlockSize = default_block_size>
 struct VirtualBlock
@@ -91,10 +107,11 @@ struct VirtualBlock
     //! a block)
     size_t      bytes_used = 0;
 
-    //! number of valid items in this block (includes cut-off element at the end)
+    //! number of valid items that _start_ in this block (includes cut-off
+    //! element at the end)
     size_t      nitems = 0;
 
-    //! offset of first element in the block
+    //! offset of first valid element in the block
     size_t      first = 0;
 
     //! Releases the reference to the block and resets book-keeping info
@@ -105,14 +122,12 @@ struct VirtualBlock
         first = 0;
     }
 
-    bool        IsEndBlock() const {
-        return block == nullptr;
-    }
-
-    //Return virtual block as std::string (for debugging)
-    //inclutes eventually cut off elements form the beginning included
-    std::string AsString() const {
-        return std::string(reinterpret_cast<const char*>(block->data()), bytes_used + first);
+    // Return virtual block as std::string (for debugging), includes eventually
+    // cut off elements form the beginning included
+    std::string ToString() const {
+        return std::string(
+            reinterpret_cast<const char*>(block->data() + first),
+            bytes_used - first);
     }
 };
 
