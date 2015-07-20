@@ -38,7 +38,7 @@ using ChannelId = size_t;
  * hence a "Channel" bundles them to a logical communication context. We call an
  * individual connection from a worker to another worker a "Stream", though no
  * such class exists.
- * 
+ *
  * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
  * outbound Stream. The vector is of size workers, including virtual
  * connections to the local worker(s). One can then write items destined to the

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block_reader.hpp
+ * c7a/data/concat_block_source.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BLOCK_READER_HEADERX
-#define C7A_DATA_BLOCK_READER_HEADERX
+#ifndef C7A_DATA_CONCAT_BLOCK_SOURCE_HEADER
+#define C7A_DATA_CONCAT_BLOCK_SOURCE_HEADER
 
 #include <c7a/data/block.hpp>
 
@@ -43,7 +43,7 @@ public:
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
     bool NextBlock(const Byte** out_current, const Byte** out_end) {
-        for (; current_ < sources_.size(); ++current_) {
+        for ( ; current_ < sources_.size(); ++current_) {
             if (sources_[current_].NextBlock(out_current, out_end))
                 return true;
         }
@@ -63,6 +63,6 @@ protected:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_QUEUE_HEADER
+#endif // !C7A_DATA_CONCAT_BLOCK_SOURCE_HEADER
 
 /******************************************************************************/
