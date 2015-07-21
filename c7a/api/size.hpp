@@ -43,16 +43,19 @@ public:
     SizeNode(Context& ctx,
              const std::shared_ptr<DIANode<ParentInput> >& parent,
              const ParentStack& parent_stack)
-        : ActionNode(ctx, { parent }, "Size")
+        : ActionNode(ctx, { parent }, "Size"),
+          parent_(parent)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~SizeNode() { }
+    virtual ~SizeNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Executes the size operation.
     void Execute() override {
@@ -82,6 +85,9 @@ private:
     size_t local_size_ = 0;
     // Global size resulting from all reduce.
     size_t global_size_ = 0;
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp() { }
 

@@ -47,18 +47,21 @@ public:
             ValueType initial_value)
         : ActionNode(ctx, { parent }, "Sum"),
           sum_function_(sum_function),
-          local_sum_(initial_value)
+          local_sum_(initial_value),
+          parent_(parent)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~SumNode() { }
+    virtual ~SumNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Executes the sum operation.
     void Execute() override {
@@ -90,6 +93,9 @@ private:
     ValueType local_sum_;
     // Global sum resulting from all reduce.
     ValueType global_sum_;
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp(ValueType input) {
         LOG << "PreOp: " << input;
