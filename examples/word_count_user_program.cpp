@@ -8,12 +8,13 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/string.hpp>
 #include <c7a/c7a.hpp>
+#include <c7a/common/string.hpp>
 
 #include <algorithm>
 #include <random>
 #include <string>
+#include <utility>
 
 using c7a::Context;
 using c7a::DIARef;

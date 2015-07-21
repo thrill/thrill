@@ -7,14 +7,14 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/api/bootstrap.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/c7a.hpp>
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <string>
-
-#include "gtest/gtest.h"
+#include <vector>
 
 using namespace c7a;
 

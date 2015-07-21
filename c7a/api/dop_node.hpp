@@ -11,8 +11,8 @@
 #ifndef C7A_API_DOP_NODE_HEADER
 #define C7A_API_DOP_NODE_HEADER
 
-#include <c7a/api/dia_node.hpp>
 #include <c7a/api/context.hpp>
+#include <c7a/api/dia_node.hpp>
 
 #include <string>
 #include <vector>

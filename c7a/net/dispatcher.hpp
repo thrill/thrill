@@ -15,10 +15,10 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
-#include <c7a/net/connection.hpp>
 #include <c7a/net/buffer.hpp>
-#include <c7a/net/lowlevel/socket.hpp>
+#include <c7a/net/connection.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 //TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
@@ -26,12 +26,12 @@
 #include <c7a/common/delegate.hpp>
 #endif
 
-#include <string>
+#include <atomic>
+#include <chrono>
+#include <ctime>
 #include <deque>
 #include <queue>
-#include <ctime>
-#include <chrono>
-#include <atomic>
+#include <string>
 
 namespace c7a {
 namespace net {

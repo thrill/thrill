@@ -17,11 +17,11 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include <vector>
-#include <string>
 #include <cstdint>
 #include <cstring>
 #include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace net {

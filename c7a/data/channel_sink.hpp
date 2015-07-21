@@ -12,12 +12,12 @@
 #ifndef C7A_DATA_CHANNEL_SINK_HEADER
 #define C7A_DATA_CHANNEL_SINK_HEADER
 
-#include <c7a/net/buffer.hpp>
-#include <c7a/data/stream_block_header.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
+#include <c7a/common/logger.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
-#include <c7a/common/logger.hpp>
+#include <c7a/data/stream_block_header.hpp>
+#include <c7a/net/buffer.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
 
 namespace c7a {
 namespace data {

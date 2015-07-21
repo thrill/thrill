@@ -10,15 +10,15 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/lowlevel/socket_address.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/net/lowlevel/socket_address.hpp>
 
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <string>
-#include <algorithm>
 #include <vector>
 
 namespace c7a {

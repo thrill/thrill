@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/job_manager.hpp>
 #include <c7a/api/bootstrap.hpp>
+#include <c7a/core/job_manager.hpp>
 #include <gtest/gtest.h>
 
 using namespace c7a;
