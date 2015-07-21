@@ -77,6 +77,23 @@ public:
     }
 };
 
+template <typename ValueType, typename Stack>
+template <typename AnyStack>
+DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
+    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
+    // DIARef with empty stack and LOpNode
+    using LOpChainNode = LOpNode<ValueType, AnyStack>;
+
+    LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
+    LOG0 << "Consider whether you can use auto instead of DIARef.";
+
+    auto shared_node
+        = std::make_shared<LOpChainNode>(rhs.node()->context(),
+                                         rhs.node(),
+                                         rhs.stack(), "");
+    node_ = std::move(shared_node);
+}
+
 //! \}
 
 } // namespace api
