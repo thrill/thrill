@@ -200,7 +200,7 @@ public:
                                     };
 
         static_assert(
-            std::is_same<FilterArgument, ValueType>::value,
+            std::is_convertible<ValueType, FilterArgument>::value,
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
