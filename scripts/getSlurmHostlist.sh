@@ -1,7 +1,7 @@
 #! /bin/bash
 JOBS=$SLURM_JOB_NODELIST
 BASE=$(echo $JOBS | awk 'BEGIN { FS="[" } { print $1 }')
-REST=$(echo $JOBS | awk 'BEGIN { FS="(\[|\])" } { print $2 }')
+REST=$(echo $JOBS | awk 'BEGIN { FS="(\\[|\\])" } { print $2 }')
 
 if [ -z "$REST" ]; then
   #1 item in list
