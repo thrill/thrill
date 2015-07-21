@@ -15,11 +15,11 @@
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
+#include <c7a/common/logger.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/common/logger.hpp>
 
 #include <string>
 

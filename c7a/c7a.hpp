@@ -13,12 +13,12 @@
 #ifndef C7A_C7A_HEADER
 #define C7A_C7A_HEADER
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/bootstrap.hpp>
+#include <c7a/api/dia.hpp>
 
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/generate.hpp>
+#include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/reduce.hpp>

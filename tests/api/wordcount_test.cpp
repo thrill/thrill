@@ -12,12 +12,13 @@
 #include <c7a/common/string.hpp>
 #include <examples/word_count_user_program.cpp>
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <functional>
 #include <string>
 #include <utility>
-
-#include <gtest/gtest.h>
+#include <vector>
 
 using namespace c7a::core;
 using namespace c7a::net;

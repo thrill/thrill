@@ -7,14 +7,16 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <random>
-#include <thread>
-#include <string>
-
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/common/cmdline_parser.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/c7a.hpp>
+#include <c7a/common/cmdline_parser.hpp>
+
+#include <random>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <vector>
 
 using c7a::Context;
 using c7a::DIARef;

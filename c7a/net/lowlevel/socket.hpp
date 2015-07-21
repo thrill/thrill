@@ -18,14 +18,14 @@
 #include <c7a/common/string.hpp>
 #include <c7a/net/lowlevel/socket_address.hpp>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <cerrno>
 #include <cstring>
-#include <cassert>
 #include <utility>
 
 namespace c7a {

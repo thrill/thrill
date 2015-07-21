@@ -10,10 +10,10 @@
 #include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <gtest/gtest.h>
+
 #include <string>
 #include <vector>
-
-#include <gtest/gtest.h>
 
 TEST(API, FunctionStackTest) {
     using c7a::api::FunctionStack;
