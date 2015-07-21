@@ -16,11 +16,11 @@
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/reduce_to_index.hpp>
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <string>
 #include <vector>
-
-#include "gtest/gtest.h"
 
 using c7a::api::Context;
 using c7a::api::DIARef;

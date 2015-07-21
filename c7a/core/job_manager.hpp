@@ -12,11 +12,11 @@
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
-#include <c7a/data/manager.hpp>
-#include <c7a/net/manager.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/manager.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
+#include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/manager.hpp>
 
 #include <string>
 #include <vector>

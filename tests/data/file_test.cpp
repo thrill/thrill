@@ -8,8 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/file.hpp>
 #include <c7a/common/string.hpp>
+#include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>

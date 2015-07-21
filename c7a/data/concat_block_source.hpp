@@ -15,6 +15,7 @@
 #include <c7a/data/block.hpp>
 
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace data {

@@ -8,17 +8,17 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/group.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/manager.hpp>
 #include <c7a/net/collective_communication.hpp>
+#include <c7a/net/dispatcher.hpp>
+#include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/group.hpp>
+#include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
 
+#include <random>
+#include <string>
 #include <thread>
 #include <vector>
-#include <string>
-#include <random>
 
 using namespace c7a::net;
 

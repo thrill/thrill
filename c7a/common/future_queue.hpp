@@ -11,10 +11,10 @@
 #ifndef C7A_COMMON_FUTURE_QUEUE_HEADER
 #define C7A_COMMON_FUTURE_QUEUE_HEADER
 
-#include <condition_variable>
-#include <mutex>
 #include <cassert>
+#include <condition_variable>
 #include <deque>
+#include <mutex>
 
 namespace c7a {
 namespace common {

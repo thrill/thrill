@@ -9,10 +9,10 @@
  ******************************************************************************/
 
 #include <c7a/common/cmdline_parser.hpp>
+#include <gtest/gtest.h>
 
 #include <sstream>
-
-#include "gtest/gtest.h"
+#include <string>
 
 using namespace c7a::common;
 

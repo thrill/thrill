@@ -18,15 +18,15 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
+#include <c7a/core/reduce_pre_table.hpp>
 
 #include <functional>
 #include <string>
-#include <vector>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {

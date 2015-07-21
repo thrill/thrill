@@ -9,24 +9,23 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/bootstrap.hpp>
-
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/api/generate.hpp>
+#include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
-#include <c7a/api/write.hpp>
 #include <c7a/api/size.hpp>
+#include <c7a/api/write.hpp>
+
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <functional>
 #include <random>
 #include <string>
 #include <vector>
-
-#include "gtest/gtest.h"
 
 using namespace c7a;
 using c7a::api::Context;

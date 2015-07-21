@@ -7,17 +7,16 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/manager.hpp>
+#include <c7a/common/cyclic_barrier.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/channel_multiplexer.hpp>
+#include <c7a/data/manager.hpp>
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/data/channel_multiplexer.hpp>
-#include <c7a/common/cyclic_barrier.hpp>
-
 #include <gtest/gtest.h>
 
-#include <thread>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace c7a::data;

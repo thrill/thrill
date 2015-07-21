@@ -18,9 +18,9 @@
 
 #endif // HAVE_INTELTBB
 
-#include <queue>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
 
 namespace c7a {
 namespace common {

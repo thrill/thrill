@@ -9,8 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/common/delegate.hpp>
-
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace c7a::common;
 
