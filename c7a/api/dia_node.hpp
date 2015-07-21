@@ -14,6 +14,7 @@
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
+#include <c7a/common/delegate.hpp>
 #include <c7a/data/manager.hpp>
 
 #include <string>
@@ -73,12 +74,26 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(std::function<void(T)> callback) {
-        callbacks_.push_back(callback);
+    void RegisterChild(common::delegate<void(T)> callback) {
+        this->callbacks_.push_back(callback);
     }
 
-    std::vector<std::function<void(T)> > & callbacks() {
+    void UnregisterChild(common::delegate<void(T)> callback) {
+        this->callbacks_.erase(
+                std::remove(this->callbacks_.begin(), 
+                            this->callbacks_.end(), 
+                            callback), 
+                this->callbacks_.end());
+    }
+
+    std::vector<common::delegate<void(T)> > & callbacks() {
         return callbacks_;
+    }
+
+    void PushElement(T elem) {
+        for (auto callback : this->callbacks_) {
+            callback(elem);
+        }
     }
 
 protected:
@@ -86,7 +101,7 @@ protected:
     kState state_ = NEW;
 
     //! Callback functions from the child nodes.
-    std::vector<std::function<void(T)> > callbacks_;
+    std::vector<common::delegate<void(T)> > callbacks_;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
