@@ -18,6 +18,7 @@
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <string>
 #include <utility>

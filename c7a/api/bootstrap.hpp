@@ -23,6 +23,8 @@
 #include <thread>
 #include <atomic>
 #include <random>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace api {

@@ -18,6 +18,9 @@
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <string>
+#include <vector>
+
 namespace c7a {
 namespace core {
 

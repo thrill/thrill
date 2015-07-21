@@ -19,6 +19,8 @@
 #include <sstream>
 #include <cmath> //sqrt
 #include <iostream>
+#include <utility>
+#include <string>
 
 //! Macros to check if shared pointers to stats objects are valid
 #define START_TIMER(timer)      if (timer) timer->Start();

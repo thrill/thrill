@@ -17,6 +17,8 @@
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/buffer_builder.hpp>
 
+#include <string>
+
 namespace c7a {
 namespace net {
 
@@ -76,7 +78,7 @@ public:
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
     net::Buffer ToBuffer() {
-        void* addr = (void*)data_;
+        void* addr = reinterpret_cast<void*>(data_);
         net::Buffer b = net::Buffer::Acquire(addr, size_);
         data_ = nullptr;
         size_ = 0;
@@ -97,7 +99,7 @@ public:
 
     void Delete() {
         if (data_)
-            free((void*)data_);
+            free(reinterpret_cast<void*>(data_));
     }
 };
 

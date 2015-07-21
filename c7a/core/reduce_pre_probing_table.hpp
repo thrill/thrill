@@ -18,6 +18,7 @@
 #include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <utility>

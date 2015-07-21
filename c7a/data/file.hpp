@@ -12,14 +12,15 @@
 #ifndef C7A_DATA_FILE_HEADER
 #define C7A_DATA_FILE_HEADER
 
-#include <memory>
-#include <vector>
-#include <string>
-#include <cassert>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/block_sink.hpp>
+
+#include <memory>
+#include <vector>
+#include <string>
+#include <cassert>
 
 namespace c7a {
 namespace data {

@@ -22,6 +22,7 @@
 #include <fstream>
 #include <random>
 #include <type_traits>
+#include <vector>
 
 namespace c7a {
 namespace api {
