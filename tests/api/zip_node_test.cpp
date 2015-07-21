@@ -54,7 +54,7 @@ struct Serializer<Archive, MyStruct>
 
 static const size_t test_size = 1000;
 
-TEST(ZipNode, GenerateTwoBalancedIntegerArraysAndZipThem) {
+TEST(ZipNode, TwoBalancedIntegerArrays) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -85,7 +85,7 @@ TEST(ZipNode, GenerateTwoBalancedIntegerArraysAndZipThem) {
 
             // zip
             auto zip_result = zip_input1.Zip(
-                [](size_t a, short b) -> long { return a + b; }, zip_input2);
+                zip_input2, [](size_t a, short b) -> long { return a + b; });
 
             // check result
             std::vector<long> res = zip_result.AllGather();
@@ -98,7 +98,7 @@ TEST(ZipNode, GenerateTwoBalancedIntegerArraysAndZipThem) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
-TEST(ZipNode, GenerateTwoDisbalancedIntegerArraysAndZipThem) {
+TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
     // first DIA is heavily balanced to the first workers, second DIA is
     // balanced to the last workers.
@@ -133,7 +133,7 @@ TEST(ZipNode, GenerateTwoDisbalancedIntegerArraysAndZipThem) {
 
             // zip
             auto zip_result = zip_input1.Zip(
-                [](size_t a, short b) -> MyStruct { return MyStruct(a, b); }, zip_input2);
+                zip_input2, [](size_t a, short b) -> MyStruct { return MyStruct(a, b); });
 
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();
@@ -148,7 +148,7 @@ TEST(ZipNode, GenerateTwoDisbalancedIntegerArraysAndZipThem) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
-TEST(ZipNode, GenerateTwoIntegerArraysOneEmptyAndZipThem) {
+TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -167,7 +167,7 @@ TEST(ZipNode, GenerateTwoIntegerArraysOneEmptyAndZipThem) {
 
             // zip
             auto zip_result = input1.Zip(
-                [](size_t a, short b) -> long { return a + b; }, input2);
+                input2, [](size_t a, short b) -> long { return a + b; });
 
             // check result
             std::vector<long> res = zip_result.AllGather();

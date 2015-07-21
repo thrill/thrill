@@ -307,7 +307,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Zip(
-    const ZipFunction &zip_function, SecondDIA second_dia) const {
+    SecondDIA second_dia, const ZipFunction &zip_function) const {
 
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
