@@ -36,6 +36,9 @@ public:
         LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
         node_->Execute();
     }
+    DIABase* node() {
+        return node_;
+    }
 
 private:
     static const bool debug = false;
@@ -47,25 +50,30 @@ class StageBuilder
 public:
     void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
         LOG << "FINDING stages:";
-        std::set<const DIABase*> stages_found;
+        // std::set<const DIABase*> stages_found;
+        std::vector<DIABase*> stages_found;
         // Do a reverse DFS and find all stages
         std::stack<DIABase*> dia_stack;
         dia_stack.push(action);
-        stages_found.insert(action);
+        // stages_found.insert(action);
+        stages_found.push_back(action);
         while (!dia_stack.empty()) {
             DIABase* curr = dia_stack.top();
             dia_stack.pop();
-            stages_result.emplace_back(Stage(curr));
             const auto parents = curr->parents();
             for (size_t i = 0; i < parents.size(); ++i) {
                 auto p = parents[i].get();
-                // if p is not a nullpointer and p is not cached mark it and save stage
-                if (p && (stages_found.find(p) == stages_found.end()) && p->state() != c7a::api::CACHED) {
-                    dia_stack.push(p);
-                    stages_found.insert(p);
+                if (p) {
+                    stages_found.push_back(p);
+                    if (p->state() != c7a::api::CALCULATED) {
+                        dia_stack.push(p);
+                    }
                 }
-                else LOG1 << "OMG NULLPTR";
             }
+        }
+
+        for (auto stage : stages_found) {
+            stages_result.emplace_back(Stage(stage));
         }
         std::reverse(stages_result.begin(), stages_result.end());
     }
@@ -76,6 +84,7 @@ public:
         for (auto s : result)
         {
             s.Run();
+            s.node()->set_state(c7a::api::CALCULATED);
         }
     }
 
