@@ -5,6 +5,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -13,9 +14,7 @@
 #ifndef C7A_API_ZIP_HEADER
 #define C7A_API_ZIP_HEADER
 
-#include <c7a/api/context.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/net/collective_communication.hpp>
 
@@ -64,7 +63,7 @@ namespace api {
  * \tparam ZipFunction Type of the ZipFunction.
  */
 template <typename ValueType,
-          typename ParentStack1, typename ParentStack2,
+          typename ParentStack0, typename ParentStack1,
           typename ZipFunction>
 class TwoZipNode : public DOpNode<ValueType>
 {
@@ -78,53 +77,44 @@ class TwoZipNode : public DOpNode<ValueType>
     using ZipArg1 =
               typename common::FunctionTraits<ZipFunction>::template arg<1>;
 
+    using ParentInput0 = typename ParentStack0::Input;
     using ParentInput1 = typename ParentStack1::Input;
-    using ParentInput2 = typename ParentStack2::Input;
 
 public:
     /*!
      * Constructor for a ZipNode.
      *
      * \param ctx Reference to the Context, which gives iterators for data
-     * \param parent1 First parent of the ZipNode
-     * \param parent2 Second parent of the ZipNode
-     * \param parent_stack1 Function stack with all lambdas between the parent and this node for first DIA
-     * \param parent_stack2 Function stack with all lambdas between the parent and this node for second DIA
+     * \param parent0 First parent of the ZipNode
+     * \param parent1 Second parent of the ZipNode
+     * \param parent_stack0 Function stack with all lambdas between the parent and this node for first DIA
+     * \param parent_stack1 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
+               const std::shared_ptr<DIANode<ParentInput0> >& parent0,
                const std::shared_ptr<DIANode<ParentInput1> >& parent1,
-               const std::shared_ptr<DIANode<ParentInput2> >& parent2,
+               const ParentStack0& parent_stack0,
                const ParentStack1& parent_stack1,
-               const ParentStack2& parent_stack2,
                ZipFunction zip_function)
-        : DOpNode<ValueType>(ctx, { parent1, parent2 }),
+        : DOpNode<ValueType>(ctx, { parent0, parent1 }, "ZipNode"),
           zip_function_(zip_function)
     {
-        // Hook PreOp(s)
-        auto pre_op1_fn = [=](const ZipArg0& input) {
-                              emit1_(input);
+        // // Hook PreOp(s)
+        auto pre_op0_fn = [=](const ZipArg0& input) {
+                              writers_[0](input);
                           };
-        auto pre_op2_fn = [=](const ZipArg1& input) {
-                              emit2_(input);
+        auto pre_op1_fn = [=](const ZipArg1& input) {
+                              writers_[1](input);
                           };
 
         // close the function stacks with our pre ops and register it at parent
         // nodes for output
+        auto lop_chain0 = parent_stack0.push(pre_op0_fn).emit();
         auto lop_chain1 = parent_stack1.push(pre_op1_fn).emit();
-        auto lop_chain2 = parent_stack2.push(pre_op2_fn).emit();
 
+        parent0->RegisterChild(lop_chain0);
         parent1->RegisterChild(lop_chain1);
-        parent2->RegisterChild(lop_chain2);
-
-        // Setup Emitters
-        for (size_t i = 0; i < num_dias_; ++i) {
-            id_[i] = context_.data_manager().AllocateDIA();
-        }
-        emit1_ = context_.data_manager().
-                 template GetLocalEmitter<ZipArg0>(id_[0]);
-        emit2_ = context_.data_manager().
-                 template GetLocalEmitter<ZipArg1>(id_[1]);
     }
 
     /*!
@@ -132,25 +122,24 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
-        StartExecutionTimer();
+        this->StartExecutionTimer();
         MainOp();
+
         // get data from data manager
-        auto it1 = context_.data_manager().
-                   template GetIterator<ZipArg0>(id_[0]);
-        auto it2 = context_.data_manager().
-                   template GetIterator<ZipArg1>(id_[1]);
-        do {
-            it1.WaitForMore();
-            it2.WaitForMore();
-            // Iterate over smaller DIA
-            while (it1.HasNext() && it2.HasNext()) {
-                auto item = std::make_pair(it1.Next(), it2.Next());
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(item);
-                }
+        auto it0 = files_[0].GetReader();
+        auto it1 = files_[1].GetReader();
+
+        // Iterate over smaller DIA
+        while (it0.HasNext() && it1.HasNext()) {
+            ZipArg0 i0 = it0.Next<ZipArg0>();
+            ZipArg1 i1 = it1.Next<ZipArg1>();
+            ValueType v = zip_function_(i0, i1);
+            for (auto func : DIANode<ValueType>::callbacks_) {
+                func(v);
             }
-        } while (!it1.IsClosed() && !it2.IsClosed());
-        StopExecutionTimer();
+        }
+
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -158,11 +147,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
-                              return PostOp(elem, emit_func);
-                          };
-
-        return MakeFunctionStack<ValueType>(post_op_fn);
+        return FunctionStack<ValueType>();
     }
 
     /*!
@@ -178,26 +163,29 @@ private:
     ZipFunction zip_function_;
 
     //! Number of storage DIAs backing
-    static const size_t num_dias_ = 2;
+    static const size_t num_inputs_ = 2;
 
-    //! Ids of storage DIAs
-    std::array<data::DIAId, num_dias_> id_;
+    //! Files for intermediate storage
+    std::array<data::File, num_inputs_> files_;
 
-    //! Emitter
-    data::Emitter<ZipArg0> emit1_;
-    data::Emitter<ZipArg1> emit2_;
+    //! Writers to intermediate files
+    std::array<data::File::Writer, num_inputs_> writers_  {
+        { files_[0].GetWriter(), files_[1].GetWriter() }
+    };
 
     //! Receive elements from other workers.
     void MainOp() {
+        for (size_t i = 0; i != writers_.size(); ++i) {
+            writers_[i].Close();
+        }
+
         net::FlowControlChannel& channel = context_.flow_control_channel();
-        data::Manager& data_manager = context_.data_manager();
+        //data::Manager& data_manager = context_.data_manager();
         size_t workers = context_.number_worker();
 
-        for (size_t i = 0; i < num_dias_; ++i) {
+        for (size_t i = 0; i < num_inputs_; ++i) {
             //! number of elements of this worker
-            size_t numElems = data_manager.GetNumElements(id_[i]);
-            //! target channel id
-            data::ChannelId channelId = data_manager.AllocateChannelId();
+            size_t numElems = files_[i].NumItems();
             //! exclusive prefixsum of number of elements
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
             //! total number of elements, over all worker
@@ -205,7 +193,7 @@ private:
             //! number of elements per worker
             size_t per_pe = totalNumElems / workers;
             //! offsets for scattering
-            std::vector<size_t> offsets(num_dias_, 0);
+            std::vector<size_t> offsets(num_inputs_, 0);
 
             size_t offset = 0;
             size_t count = std::min(per_pe - prefixNumElems % per_pe, numElems);
@@ -226,15 +214,12 @@ private:
             for (size_t x = target; x < workers; x++)
                 offsets[x] = offsets[x - 1];
 
-            //! scatter elements to other workers, if necessary
-            data_manager.Scatter<ValueType>(id_[i], channelId, offsets);
-        }
-    }
+            //! target channel id
+            //data::ChannelId channelId = data_manager.AllocateChannelId();
 
-    //! Use the ZipFunction to Zip workers
-    template <typename Emitter>
-    void PostOp(ValueType input, Emitter emit_func) {
-        emit_func(zip_function_(input.first, input.second));
+            //! scatter elements to other workers, if necessary
+            //data_manager.Scatter<ValueType>(id_[i], channelId, offsets);
+        }
     }
 };
 
@@ -251,35 +236,38 @@ auto DIARef<ValueType, Stack>::Zip(
                            ZipFunction>;
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ZipFunction>::template arg<0>,
-            ValueType>::value,
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            >::value,
         "ZipFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ZipFunction>::template arg<0>,
-            typename SecondDIA::ItemType>::value,
+        std::is_convertible<
+            typename SecondDIA::ItemType,
+            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            >::value,
         "ZipFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ZipFunction>::result_type,
-            ZipResult>::value,
+        std::is_convertible<
+            ZipResult,
+            typename common::FunctionTraits<ZipFunction>::result_type
+            >::value,
         "ZipFunction has the wrong output type.");
 
     auto zip_node
         = std::make_shared<ZipResultNode>(node_->context(),
                                           node_,
-                                          second_dia.get_node(),
+                                          second_dia.node(),
                                           stack_,
-                                          second_dia.get_stack(),
+                                          second_dia.stack(),
                                           zip_function);
 
     auto zip_stack = zip_node->ProduceStack();
 
-    return DIARef<ZipResultNode, decltype(zip_stack)>
-               (zip_node, zip_stack);
+    return DIARef<ZipResultNode, decltype(zip_stack)>(
+        zip_node, zip_stack);
 }
 
 //! \}
