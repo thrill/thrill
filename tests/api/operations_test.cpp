@@ -289,7 +289,7 @@ TEST(Operations, DIARefCasting) {
     api::ExecuteLocalTests(start_func);
 }
 
-TEST(Operations, WhileLoop) {
+TEST(Operations, ForLoop) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -317,6 +317,50 @@ TEST(Operations, WhileLoop) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
                 squares = multiplied;
+            }
+
+            std::vector<int> out_vec = squares.AllGather();
+
+            ASSERT_EQ(256u, out_vec.size());
+            for (size_t i = 0; i != 256; ++i) {
+                ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
+            }
+            ASSERT_EQ(256u, squares.Size());
+        };
+
+    api::ExecuteLocalTests(start_func);
+}
+
+TEST(Operations, WhileLoop) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) -> int {
+                    return index;
+                },
+                16);
+
+            auto flatmap_duplicate = [](int in, auto emit) {
+                                         emit(in);
+                                         emit(in);
+                                     };
+
+            auto map_multiply = [](int in) {
+                                    return 2 * in;
+                                };
+
+            DIARef<int> squares = integers;
+            unsigned int sum = 0;
+
+            // run loop four times, inflating DIA of 16 items -> 256
+            while (sum < 256) {
+                auto pairs = squares.FlatMap(flatmap_duplicate);
+                auto multiplied = pairs.Map(map_multiply);
+                squares = multiplied;
+                sum = squares.Size();
             }
 
             std::vector<int> out_vec = squares.AllGather();
