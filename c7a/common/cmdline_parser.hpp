@@ -12,8 +12,8 @@
 #ifndef C7A_COMMON_CMDLINE_PARSER_HEADER
 #define C7A_COMMON_CMDLINE_PARSER_HEADER
 
-#include <string>
 #include <iostream>
+#include <string>
 #include <vector>
 
 namespace c7a {

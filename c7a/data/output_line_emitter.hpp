@@ -11,7 +11,8 @@
 #ifndef C7A_DATA_OUTPUT_LINE_EMITTER_HEADER
 #define C7A_DATA_OUTPUT_LINE_EMITTER_HEADER
 
-#include "serializer.hpp"
+#include <c7a/data/serializer.hpp>
+
 #include <fstream>
 
 namespace c7a {

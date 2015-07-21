@@ -12,8 +12,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/group.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/net/group.hpp>
 
 #include <string>
 #include <thread>

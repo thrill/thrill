@@ -12,11 +12,11 @@
 #ifndef C7A_DATA_BLOCK_WRITER_HEADER
 #define C7A_DATA_BLOCK_WRITER_HEADER
 
+#include <c7a/common/config.hpp>
+#include <c7a/common/item_serializer_tools.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/serializer.hpp>
-#include <c7a/common/config.hpp>
-#include <c7a/common/item_serializer_tools.hpp>
 
 #include <algorithm>
 #include <string>
@@ -106,6 +106,7 @@ public:
     //! operator() appends a complete item
     template <typename T>
     BlockWriterBase& operator () (const T& x) {
+        assert(!closed_);
         MarkItem();
         if (self_verify) {
             // for self-verification, prefix T with its hash code
@@ -122,6 +123,7 @@ public:
 
     //! Append a memory range to the block
     BlockWriterBase & Append(const void* data, size_t size) {
+        assert(!closed_);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
@@ -147,6 +149,8 @@ public:
 
     //! Append a single byte to the block
     BlockWriterBase & PutByte(Byte data) {
+        assert(!closed_);
+
         if (current_ < end_) {
             *current_++ = data;
         }

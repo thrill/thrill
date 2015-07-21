@@ -12,8 +12,8 @@
 #ifndef C7A_DATA_BLOCK_HEADER
 #define C7A_DATA_BLOCK_HEADER
 
-#include <memory>
 #include <cassert>
+#include <memory>
 #include <string>
 
 namespace c7a {

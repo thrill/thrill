@@ -14,11 +14,11 @@
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <algorithm>
+#include <set>
 #include <stack>
 #include <string>
 #include <utility>
-#include <algorithm>
-#include <set>
 #include <vector>
 
 namespace c7a {
