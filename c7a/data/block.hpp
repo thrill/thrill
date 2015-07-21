@@ -47,7 +47,7 @@ protected:
     static const size_t size_ = BlockSize;
 
     //! the memory block itself
-    Byte data_[size_];
+    Byte data_[size_]; // NOLINT
 
 public:
     //! mutable data accessor to memory block

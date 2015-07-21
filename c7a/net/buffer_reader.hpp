@@ -17,6 +17,9 @@
 #include <c7a/net/buffer_ref.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
 
+#include <algorithm>
+#include <string>
+
 namespace c7a {
 namespace net {
 

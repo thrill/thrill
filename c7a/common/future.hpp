@@ -16,6 +16,7 @@
 #include <mutex>
 #include <cassert>
 #include <atomic>
+#include <tuple>
 
 namespace c7a {
 namespace common {
