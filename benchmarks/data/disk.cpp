@@ -35,9 +35,7 @@ int main(int argc, const char** argv) {
 
     auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
 
-    lines.WriteToFileSystem(output_file, [](const std::string& line) {
-                                return line;
-                            });
+    lines.WriteToFileSystem(output_file);
 
     overall_timer->Stop();
 }

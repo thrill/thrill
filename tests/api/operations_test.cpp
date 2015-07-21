@@ -55,15 +55,16 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
     size_t writer_size = 0;
 
-    input.WriteToFileSystem("test1.out",
-                            [&writer_size](const int& item) {
-                                //file contains ints between 1  and 15
-                                //fails if wrong integer is generated
-                                EXPECT_GE(item, 1);
-                                EXPECT_GE(16, item);
-                                writer_size++;
-                                return std::to_string(item);
-                            });
+    input.Map(
+        [&writer_size](const int& item) {
+            //file contains ints between 1  and 15
+            //fails if wrong integer is generated
+            EXPECT_GE(item, 1);
+            EXPECT_GE(16, item);
+            writer_size++;
+            return std::to_string(item);
+        })
+    .WriteToFileSystem("test1.out");
 
     ASSERT_EQ(generate_size, writer_size);
 }

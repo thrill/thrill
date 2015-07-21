@@ -171,7 +171,7 @@ public:
                                  };
 
         static_assert(
-            std::is_same<MapArgument, ValueType>::value,
+            std::is_convertible<ValueType, MapArgument>::value,
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
@@ -349,19 +349,14 @@ public:
 
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.
-     * A provided function is used prepare the elements before written.
-     *
-     * \tparam WriteFunction Type of the write_function. This is a function with
-     * one input element of the local type.
-     *
-     * \param write_function Write function, which prepares an element to be
-     * written to disk.
+     * Items are written using ostream formatting / serialization, with NO
+     * delimiters like newline, etc. So either add operator << for your
+     * structs, or prefix the WriteToFileSystem() call with Map() to
+     * std::string.
      *
      * \param filepath Destination of the output file.
      */
-    template <typename WriteFunction>
-    void WriteToFileSystem(const std::string& filepath,
-                           const WriteFunction& write_function) const;
+    void WriteToFileSystem(const std::string& filepath) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
