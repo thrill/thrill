@@ -32,10 +32,10 @@ struct BucketEmitter
         const T1* const treearr, // Tree. sizeof |splitter|
         size_t k,                // Number of buckets
         size_t logK,
-        std::vector<data::BlockWriter >& emitters,
+        std::vector<data::BlockWriter>& emitters,
         size_t actual_k,
         CompareFunction compare_function,
-        const T1* const sorted_splitters, 
+        const T1* const sorted_splitters,
         size_t prefix_elem,
         size_t total_elem) {
 
@@ -65,12 +65,11 @@ struct BucketEmitter
             if (b0 >= actual_k) {
                 b0 = actual_k - 1;
             }
-             
-            
+
             while (b0 && Equal(compare_function, el0, sorted_splitters[b0 - 1])
                    && (prefix_elem + i) * actual_k > b0 * total_elem) {
                 b0--;
-            }            
+            }
             emitters[b0](el0);
             if (b1 >= actual_k) {
                 b1 = actual_k - 1;

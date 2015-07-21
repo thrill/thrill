@@ -14,14 +14,14 @@
 
 #define ROUND_DOWN(x, s) ((x) & ~((s) - 1))
 
-#include <c7a/api/function_stack.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/api/context.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
-#include <c7a/common/logger.hpp>
+#include <c7a/net/group.hpp>
 
 #include <c7a/common/partitioning/tree_builder.hpp>
 #include <c7a/common/partitioning/trivial_target_determination.hpp>
@@ -35,7 +35,7 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a Sort operation. Sort sorts a DIA according to a given 
+ * A DIANode which performs a Sort operation. Sort sorts a DIA according to a given
  * compare function
  *
  * \tparam ValueType Type of DIA elements
@@ -74,7 +74,7 @@ public:
           emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [=](const ValueType& input) {
+        auto pre_op_fn = [ = ](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -100,7 +100,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
+        auto id_fn = [ = ](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -146,8 +146,8 @@ private:
         std::vector<ValueType> samples;
         samples.reserve(samplesize * num_workers);
         auto reader = channel_id_samples_->OpenReader();
-        
-        while(reader.HasNext()) {
+
+        while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
         }
 
@@ -175,7 +175,7 @@ private:
                                       (1 / (desired_imbalance * desired_imbalance)));
 
         net::FlowControlChannel& channel = context_.flow_control_channel();
-        
+
         size_t prefix_elem = channel.PrefixSum(data_.size());
         size_t total_elem = channel.AllReduce(data_.size());
 
@@ -211,7 +211,7 @@ private:
                 emitters_samples_[j].Close();
             }
             auto reader = channel_id_samples_->OpenReader();
-            while(reader.HasNext()) {
+            while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
