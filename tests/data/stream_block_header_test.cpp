@@ -8,7 +8,6 @@
  ******************************************************************************/
 
 #include <c7a/data/stream_block_header.hpp>
-
 #include <gtest/gtest.h>
 
 using namespace c7a;

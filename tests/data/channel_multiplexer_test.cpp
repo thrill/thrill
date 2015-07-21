@@ -9,14 +9,14 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/channel_multiplexer.hpp>
-#include <c7a/data/channel.hpp>
-#include <c7a/data/manager.hpp>
-#include <c7a/net/group.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/cyclic_barrier.hpp>
-
+#include <c7a/data/channel.hpp>
+#include <c7a/data/channel_multiplexer.hpp>
+#include <c7a/data/manager.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
+#include <c7a/net/group.hpp>
 #include <gtest/gtest.h>
+
 #include <string>
 
 using namespace c7a;

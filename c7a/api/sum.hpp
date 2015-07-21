@@ -13,15 +13,15 @@
 #define C7A_API_SUM_HEADER
 
 #include <c7a/api/action_node.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/api/function_stack.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/group.hpp>
 
-#include <type_traits>
 #include <string>
+#include <type_traits>
 
 namespace c7a {
 namespace api {
@@ -48,18 +48,21 @@ public:
             ValueType initial_value)
         : ActionNode(ctx, { parent }, "Sum"),
           sum_function_(sum_function),
-          local_sum_(initial_value)
+          local_sum_(initial_value),
+          parent_(parent)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~SumNode() { }
+    virtual ~SumNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Executes the sum operation.
     void Execute() override {
@@ -91,6 +94,9 @@ private:
     ValueType local_sum_;
     // Global sum resulting from all reduce.
     ValueType global_sum_;
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp(ValueType input) {
         LOG << "PreOp: " << input;

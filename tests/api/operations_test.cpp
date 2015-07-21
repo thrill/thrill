@@ -9,26 +9,24 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/bootstrap.hpp>
-
-#include <c7a/common/functional.hpp>
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/api/generate.hpp>
+#include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
-#include <c7a/api/write.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sort.hpp>
+#include <c7a/api/write.hpp>
+
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <functional>
 #include <random>
 #include <string>
 #include <vector>
-
-#include "gtest/gtest.h"
 
 using namespace c7a;
 using c7a::api::Context;
@@ -304,7 +302,7 @@ TEST(Operations, DIARefCasting) {
                 },
                 16);
 
-            DIARef<int> doubled = integers.Filter(even);
+            DIARef<int> doubled = integers.Filter(even).Collapse();
 
             std::vector<int> out_vec = doubled.AllGather();
 
@@ -315,6 +313,48 @@ TEST(Operations, DIARefCasting) {
             }
 
             ASSERT_EQ(8u, out_vec.size());
+        };
+
+    api::ExecuteLocalTests(start_func);
+}
+
+TEST(Operations, ForLoop) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) -> int {
+                    return index;
+                },
+                16);
+
+            auto flatmap_duplicate = [](int in, auto emit) {
+                                         emit(in);
+                                         emit(in);
+                                     };
+
+            auto map_multiply = [](int in) {
+                                    return 2 * in;
+                                };
+
+            DIARef<int> squares = integers.Collapse();
+
+            // run loop four times, inflating DIA of 16 items -> 256
+            for (size_t i = 0; i < 4; ++i) {
+                auto pairs = squares.FlatMap(flatmap_duplicate);
+                auto multiplied = pairs.Map(map_multiply);
+                squares = multiplied;
+            }
+
+            std::vector<int> out_vec = squares.AllGather();
+
+            ASSERT_EQ(256u, out_vec.size());
+            for (size_t i = 0; i != 256; ++i) {
+                ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
+            }
+            ASSERT_EQ(256u, squares.Size());
         };
 
     api::ExecuteLocalTests(start_func);
@@ -341,13 +381,15 @@ TEST(Operations, WhileLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<int> squares = integers;
+            DIARef<int> squares = integers.Collapse();
+            unsigned int sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256
-            for (size_t i = 0; i < 4; ++i) {
+            while (sum < 256) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
                 squares = multiplied;
+                sum = squares.Size();
             }
 
             std::vector<int> out_vec = squares.AllGather();
@@ -356,11 +398,7 @@ TEST(Operations, WhileLoop) {
             for (size_t i = 0; i != 256; ++i) {
                 ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
             }
-
-            // TODO(sl): fix stage building / refcounting?
-            if (!"This currently does not work, due to StageBuilding") {
-                ASSERT_EQ(256u, squares.Size());
-            }
+            ASSERT_EQ(256u, squares.Size());
         };
 
     api::ExecuteLocalTests(start_func);
