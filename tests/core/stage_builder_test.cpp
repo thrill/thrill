@@ -94,7 +94,7 @@ TEST(Stage, CountReferencesLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Create new child reference to LOpNode
 
@@ -145,7 +145,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Overwrite reference to LOpNode
             quadruples = quadruples.ReduceBy(modulo_two, add_function);
@@ -193,12 +193,12 @@ TEST(Stage, AdditionalChildReferences) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Create a child reference to LOpNode
-            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function);
+            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
             // Create a child reference to LOpNode
-            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function);
+            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function).Collapse();
 
             // Trigger execution
             std::vector<int> out_vec = octuples.AllGather();

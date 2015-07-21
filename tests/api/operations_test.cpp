@@ -273,7 +273,7 @@ TEST(Operations, DIARefCasting) {
                 },
                 16);
 
-            DIARef<int> doubled = integers.Filter(even);
+            DIARef<int> doubled = integers.Filter(even).Collapse();
 
             std::vector<int> out_vec = doubled.AllGather();
 
@@ -310,7 +310,7 @@ TEST(Operations, ForLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<int> squares = integers;
+            DIARef<int> squares = integers.Collapse();
 
             // run loop four times, inflating DIA of 16 items -> 256
             for (size_t i = 0; i < 4; ++i) {
@@ -352,7 +352,7 @@ TEST(Operations, WhileLoop) {
                                     return 2 * in;
                                 };
 
-            DIARef<int> squares = integers;
+            DIARef<int> squares = integers.Collapse();
             unsigned int sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256

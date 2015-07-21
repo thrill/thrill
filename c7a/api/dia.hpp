@@ -371,6 +371,21 @@ public:
      */
     std::vector<ValueType> AllGather() const;
 
+    auto Collapse() {
+        // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
+        // DIARef with empty stack and LOpNode
+        using LOpChainNode = LOpNode<ValueType, Stack>;
+
+        auto shared_node
+            = std::make_shared<LOpChainNode>(node_->context(),
+                                             node_,
+                                             stack_, "");
+        auto lop_stack = FunctionStack<ValueType>();
+
+        return DIARef<ValueType, decltype(lop_stack)>
+                    (shared_node, lop_stack);
+    }
+
     /*!
      * Returns the string which defines the DIANode node_.
      *
