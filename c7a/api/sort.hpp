@@ -45,7 +45,7 @@ namespace api {
 template <typename ValueType, typename ParentStack, typename CompareFunction>
 class SortNode : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -87,7 +87,9 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -138,7 +140,8 @@ private:
         //Get samples from other workers
         size_t num_workers = context_.number_worker();
         size_t samplesize = std::ceil(log2((double)data_.size()) *
-                                      (1 / (desired_imbalance * desired_imbalance)));
+                                      (1 / (desired_imbalance *
+                                            desired_imbalance)));
 
         std::vector<ValueType> samples;
         samples.reserve(samplesize * num_workers);
@@ -170,6 +173,13 @@ private:
         size_t num_workers = context_.number_worker();
         size_t samplesize = std::ceil(log2((double)data_.size()) *
                                       (1 / (desired_imbalance * desired_imbalance)));
+
+        net::FlowControlChannel& channel = context_.flow_control_channel();
+        
+        size_t prefix_elem = channel.PrefixSum(data_.size());
+        size_t total_elem = channel.AllReduce(data_.size());
+
+        LOG << prefix_elem << " elements, out of " << total_elem;
 
         std::random_device random_device;
         std::default_random_engine generator(random_device());
@@ -228,7 +238,10 @@ private:
             ceil_log,
             emitters_data_,
             num_workers,
-            compare_function_);
+            compare_function_,
+            splitters.data(),
+            prefix_elem,
+            total_elem);
 
         //end of SS2N
 

@@ -22,6 +22,9 @@ namespace sort {
 template <class T1, typename CompareFunction>
 struct BucketEmitter
 {
+    static bool Equal(CompareFunction compare_function, const T1& ele1, const T1& ele2) {
+        return !(compare_function(ele1, ele2) || compare_function(ele2, ele1));
+    }
 
     static void emitToBuckets(
         const T1* const a,
@@ -31,7 +34,10 @@ struct BucketEmitter
         size_t logK,
         std::vector<data::BlockWriter >& emitters,
         size_t actual_k,
-        CompareFunction compare_function) {
+        CompareFunction compare_function,
+        const T1* const sorted_splitters, 
+        size_t prefix_elem,
+        size_t total_elem) {
 
         const size_t stepsize = 2;
 
@@ -40,9 +46,9 @@ struct BucketEmitter
         {
 
             size_t j0 = 1;
-            T1 el0 = a[i];
+            const T1& el0 = a[i];
             size_t j1 = 1;
-            T1 el1 = a[i + 1];
+            const T1& el1 = a[i + 1];
 
             for (size_t l = 0; l < logK; l++)
             {
@@ -57,17 +63,23 @@ struct BucketEmitter
             //TODO(an): Remove this ugly workaround as soon as emitters are movable.
             //Move emitter[actual_k] to emitter[splitter_count] before calling this.
             if (b0 >= actual_k) {
-                emitters[actual_k - 1](el0);
+                b0 = actual_k - 1;
             }
-            else {
-                emitters[b0](el0);
-            }
+             
+            
+            while (b0 && Equal(compare_function, el0, sorted_splitters[b0 - 1])
+                   && (prefix_elem + i) * actual_k > b0 * total_elem) {
+                b0--;
+            }            
+            emitters[b0](el0);
             if (b1 >= actual_k) {
-                emitters[actual_k - 1](el1);
+                b1 = actual_k - 1;
             }
-            else {
-                emitters[b1](el1);
+            while (b1 && Equal(compare_function, el1, sorted_splitters[b1 - 1])
+                   && (prefix_elem + i + 1) * actual_k > b1 * total_elem) {
+                b1--;
             }
+            emitters[b1](el1);
         }
         for ( ; i < n; i++)
         {
@@ -80,11 +92,13 @@ struct BucketEmitter
             size_t b = j - k;
 
             if (b >= actual_k) {
-                emitters[actual_k - 1](a[i]);
+                b = actual_k - 1;
             }
-            else {
-                emitters[b](a[i]);
+            while (b && Equal(compare_function, a[i], sorted_splitters[b - 1])
+                   && (prefix_elem + i) * actual_k > b * total_elem) {
+                b--;
             }
+            emitters[b](a[i]);
         }
     }
 };
