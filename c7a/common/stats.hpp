@@ -14,13 +14,13 @@
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/common/timed_counter.hpp>
 
-#include <set>
-#include <map>
-#include <sstream>
 #include <cmath> //sqrt
 #include <iostream>
-#include <utility>
+#include <map>
+#include <set>
+#include <sstream>
 #include <string>
+#include <utility>
 
 //! Macros to check if shared pointers to stats objects are valid
 #define START_TIMER(timer)      if (timer) timer->Start();

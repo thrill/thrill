@@ -14,13 +14,13 @@
 
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
-#include <c7a/data/block_writer.hpp>
 #include <c7a/data/block_sink.hpp>
+#include <c7a/data/block_writer.hpp>
 
-#include <memory>
-#include <vector>
-#include <string>
 #include <cassert>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace data {

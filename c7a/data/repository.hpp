@@ -12,12 +12,12 @@
 #ifndef C7A_DATA_REPOSITORY_HEADER
 #define C7A_DATA_REPOSITORY_HEADER
 
+#include <c7a/common/logger.hpp>
+
 #include <cassert>
 #include <map>
 #include <memory>
 #include <mutex>
-
-#include <c7a/common/logger.hpp>
 
 namespace c7a {
 namespace data {

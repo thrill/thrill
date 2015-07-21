@@ -11,12 +11,12 @@
 #ifndef C7A_DATA_STREAM_BLOCK_HEADER_HEADER
 #define C7A_DATA_STREAM_BLOCK_HEADER_HEADER
 
-#include <c7a/net/connection.hpp>
 #include <c7a/net/buffer_builder.hpp>
 #include <c7a/net/buffer_reader.hpp>
+#include <c7a/net/connection.hpp>
 
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 
 namespace c7a {

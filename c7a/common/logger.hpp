@@ -19,8 +19,8 @@
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
-#include <thread>
 #include <string>
+#include <thread>
 
 namespace c7a {
 namespace common {

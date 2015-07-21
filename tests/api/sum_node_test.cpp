@@ -14,11 +14,11 @@
 #include <c7a/api/read.hpp>
 #include <c7a/api/sum.hpp>
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <random>
 #include <string>
-
-#include "gtest/gtest.h"
 
 using namespace c7a::core;
 using namespace c7a::net;

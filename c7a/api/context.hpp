@@ -12,17 +12,17 @@
 #ifndef C7A_API_CONTEXT_HEADER
 #define C7A_API_CONTEXT_HEADER
 
-#include <c7a/data/manager.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/core/job_manager.hpp>
+#include <c7a/data/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
-#include <c7a/common/stats.hpp>
 
 #include <cassert>
+#include <cstdio>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <cstdio>
 
 namespace c7a {
 namespace api {

@@ -10,8 +10,11 @@
 
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/data/file.hpp>
+#include <gtest/gtest.h>
 
-#include "gtest/gtest.h"
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace c7a::data;
 

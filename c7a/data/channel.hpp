@@ -13,17 +13,17 @@
 #ifndef C7A_DATA_CHANNEL_HEADER
 #define C7A_DATA_CHANNEL_HEADER
 
-#include <c7a/net/connection.hpp>
-#include <c7a/data/stream_block_header.hpp>
 #include <c7a/data/block_queue.hpp>
-#include <c7a/data/concat_block_source.hpp>
 #include <c7a/data/channel_sink.hpp>
+#include <c7a/data/concat_block_source.hpp>
 #include <c7a/data/file.hpp>
+#include <c7a/data/stream_block_header.hpp>
+#include <c7a/net/connection.hpp>
 #include <c7a/net/group.hpp>
 
-#include <vector>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace data {

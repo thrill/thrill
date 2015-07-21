@@ -12,10 +12,10 @@
 #ifndef C7A_NET_ENDPOINT_HEADER
 #define C7A_NET_ENDPOINT_HEADER
 
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <cstdlib>
 #include <vector>
 
 namespace c7a {
