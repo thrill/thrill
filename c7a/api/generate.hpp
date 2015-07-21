@@ -15,8 +15,8 @@
 #define C7A_API_GENERATE_HEADER
 
 #include <c7a/common/logger.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/function_stack.hpp>
 
 #include <string>
 #include <fstream>
@@ -56,7 +56,7 @@ public:
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "Generate"),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -67,13 +67,14 @@ public:
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
     void Execute() override {
-
-        LOG << "GENERATING data with id " << this->data_id_;
+        this->StartExecutionTimer();
+        LOG << "GENERATING data with id " << this->result_file_;
 
         using InputArgument
                   = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
 
-        static_assert(std::is_same<InputArgument, const size_t&>::value, "The GeneratorFunction needs an unsigned integer as input parameter");
+        static_assert(std::is_same<InputArgument, const size_t&>::value,
+                      "The GeneratorFunction needs an unsigned integer as input parameter");
 
         size_t offset = (size_ / context_.number_worker()) * context_.rank();
         size_t local_elements;
@@ -93,6 +94,7 @@ public:
                 func(generator_function_(i + offset));
             }
         }
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -108,7 +110,7 @@ public:
      * \return Stringified node.
      */
     std::string ToString() override {
-        return "[GeneratorNode] Id: " + this->data_id_.ToString();
+        return "[GeneratorNode] Id: " + this->result_file_.ToString();
     }
 
 private:
@@ -119,8 +121,6 @@ private:
 
     static const bool debug = false;
 };
-
-//! \}
 
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
@@ -149,6 +149,8 @@ auto Generate(Context & ctx,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, generator_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

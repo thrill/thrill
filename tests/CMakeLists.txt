@@ -70,19 +70,6 @@ endmacro(build_test_group)
 
 ### list of tests in subdirectories
 
-build_test(api/function_stack_test)
-build_test(api/operations_test)
-build_test(api/reduce_node_test)
-build_test(api/wordcount_test)
-build_test(api/sum_node_test)
-build_test(data/manager_test)
-build_test(data/buffer_chain_test)
-build_test(data/binary_reader_test)
-build_test(data/emitter_iterator_test)
-#build_test(data/manager_channels_test)
-build_test(data/iterator_test)
-#build_test(data/dia_allocate_test)
-build_test(data/serializer_test)
 build_plain(common/cmdline_parser_example)
 build_test_group(common/tests
   common/cmdline_parser_test.cpp
@@ -96,19 +83,41 @@ build_test_group(common/tests
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
   common/thread_pool_test.cpp
+  common/timed_counter_test.cpp
   )
-build_test(core/stage_builder_test)
-#build_test(core/post_hash_table_test)
-#build_test(core/pre_hash_table_probing_test)
-build_test(core/pre_hash_table_test)
-build_test(core/job_manager_test)
-build_test(net/dispatcher_thread_test)
-build_test(net/group_test)
+
+build_test(net/binary_builder_test)
 build_test(net/buffer_test)
+build_test(net/dispatcher_thread_test)
 build_test(net/flow_control_test)
-build_test(data/binary_builder_test)
-#build_test(net/test_channel_multiplexer) //broken because buffer is non-#copyable
-build_test(net/stream_test)
+build_test(net/group_test)
+
+build_test(data/block_queue_test)
+build_test(data/channel_multiplexer_test)
+build_test(data/file_test)
+build_test(data/serializer_test)
+build_test(data/stream_block_header_test)
+
+build_test(core/job_manager_test)
+build_test(core/pre_hash_table_test)
+build_test(core/stage_builder_test)
+
+build_test(api/function_stack_test)
+build_test(api/operations_test)
+build_test(api/reduce_node_test)
+build_test(api/sum_node_test)
+build_test(api/wordcount_test)
+
+if (OFF)
+
+  build_only(data/manager_channels_test)
+  build_test(data/iterator_test)
+  build_test(data/stream_test)
+
+  #build_test(core/post_hash_table_test)
+  #build_test(core/pre_hash_table_probing_test)
+
+endif()
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 

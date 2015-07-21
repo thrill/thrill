@@ -16,35 +16,29 @@
 
 #include <tbb/concurrent_queue.h>
 
-#else // !HAVE_INTELTBB
+#endif // HAVE_INTELTBB
 
 #include <queue>
 #include <mutex>
 #include <condition_variable>
 
-#endif // !HAVE_INTELTBB
-
 namespace c7a {
 namespace common {
-
-#if HAVE_INTELTBB
-
-template <typename T>
-using concurrent_bounded_queue = tbb::concurrent_bounded_queue<T>;
-
-#else   // !HAVE_INTELTBB
 
 /*!
  * This is a queue, similar to std::queue and tbb::concurrent_bounded_queue,
  * except that it uses mutexes for synchronization. This implementation is only
  * here to be used if the Intel TBB is not available.
  *
- * Not all methods of tbb:concurrent_bounded_queue<> are available here, please
+ * Not all methods of tbb::concurrent_bounded_queue<> are available here, please
  * add them if you need them. However, NEVER add any other methods that you
  * might need.
+ *
+ * StyleGuide is violated, because signatures MUST match those in the TBB
+ * version.
  */
 template <typename T>
-class concurrent_bounded_queue
+class OurConcurrentBoundedQueue
 {
 public:
     typedef T value_type;
@@ -120,7 +114,24 @@ public:
         destination = std::move(queue_.front());
         queue_.pop();
     }
+
+    //! return number of items available in the queue (tbb says "can return
+    //! negative size", due to pending pop()s, but we ignore that here).
+    size_t size() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return queue_.size();
+    }
 };
+
+#if HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
+
+#else   // !HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 
 #endif // !HAVE_INTELTBB
 

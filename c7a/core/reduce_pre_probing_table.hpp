@@ -14,17 +14,13 @@
 #ifndef C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 #define C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
-#include <c7a/api/function_traits.hpp>
+#include <c7a/common/function_traits.hpp>
 #include <c7a/data/manager.hpp>
-
-#include <map>
-#include <iostream>
 #include <c7a/common/logger.hpp>
+
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <array>
-#include <deque>
 #include <utility>
 
 namespace c7a {
@@ -34,9 +30,9 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -62,7 +58,7 @@ protected:
         //! the offset relativ to provided pos.
         int probing_offset;
 
-        probing_result(int o) {
+        explicit probing_result(int o) {
             probing_offset = o;
         }
     };

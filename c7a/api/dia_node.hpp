@@ -14,6 +14,7 @@
 #include <c7a/api/dia_base.hpp>
 #include <c7a/api/context.hpp>
 #include <c7a/data/manager.hpp>
+#include <c7a/common/stats.hpp>
 
 #include <string>
 #include <vector>
@@ -52,8 +53,8 @@ public:
      * computed previously
      */
     DIANode(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents)
-        : DIABase(ctx, parents)
+            const std::vector<std::shared_ptr<DIABase> >& parents, const std::string stats_tag)
+        : DIABase(ctx, parents, stats_tag)
     { }
 
     //! Virtual destructor for a DIANode.

@@ -27,8 +27,9 @@ namespace common {
  * \param size  length of binary data
  * \return      string of hexadecimal pairs
  */
-static inline std::string hexdump(const void* data, size_t size) {
-    const unsigned char* cdata = static_cast<const unsigned char*>(data);
+static inline std::string hexdump(const void* const data, size_t size) {
+    const unsigned char* const cdata
+        = static_cast<const unsigned char* const>(data);
 
     std::string out;
     out.resize(size * 2);

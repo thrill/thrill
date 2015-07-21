@@ -15,8 +15,9 @@
 #define C7A_NET_LOWLEVEL_SELECT_HEADER
 
 #include <sys/select.h>
-#include <limits>
 
+#include <limits>
+#include <cassert>
 #include <algorithm>
 
 namespace c7a {

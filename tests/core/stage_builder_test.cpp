@@ -30,14 +30,14 @@ TEST(Stage, CountReferencesSimple) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);
@@ -55,15 +55,14 @@ TEST(Stage, CountReferencesSimple) {
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            reduced.AllGather(&out_vec);
+            std::vector<int> out_vec = reduced.AllGather();
 
             // 3x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 4);
-            ASSERT_EQ(doubles.node_refcount(), 4);
-            ASSERT_EQ(quadruples.node_refcount(), 4);
+            ASSERT_EQ(integers.node_refcount(), 4u);
+            ASSERT_EQ(doubles.node_refcount(), 4u);
+            ASSERT_EQ(quadruples.node_refcount(), 4u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1);
+            ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -77,14 +76,14 @@ TEST(Stage, CountReferencesLOpNode) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);
@@ -105,16 +104,15 @@ TEST(Stage, CountReferencesLOpNode) {
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            reduced.AllGather(&out_vec);
+            std::vector<int> out_vec = reduced.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 1x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 2);
+            ASSERT_EQ(quadruples.node_refcount(), 2u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1);
+            ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -128,14 +126,14 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
+                                          emit(in);
+                                          emit(in);
+                                      };
 
             auto modulo_two = [](int in) {
                                   return (in % 2);
@@ -156,14 +154,13 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             quadruples = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            quadruples.AllGather(&out_vec);
+            std::vector<int> out_vec = quadruples.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 1);
+            ASSERT_EQ(quadruples.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -177,15 +174,15 @@ TEST(Stage, AdditionalChildReferences) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
             auto duplicate_elements = [](int in, auto emit) {
-                    emit(in);
-                    emit(in);
-                };
-
+                                          emit(in);
+                                          emit(in);
+                                      };
+            
             auto modulo_two = [](int in) {
                                   return (in % 2);
                               };
@@ -207,18 +204,17 @@ TEST(Stage, AdditionalChildReferences) {
             DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            octuples.AllGather(&out_vec);
+            std::vector<int> out_vec = octuples.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 2x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 3);
+            ASSERT_EQ(quadruples.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples.node_refcount(), 1);
+            ASSERT_EQ(octuples.node_refcount(), 1u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples_second.node_refcount(), 1);
+            ASSERT_EQ(octuples_second.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);

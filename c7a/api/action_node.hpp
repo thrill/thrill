@@ -14,17 +14,26 @@
 #include <c7a/api/dia_node.hpp>
 #include <c7a/core/stage_builder.hpp>
 
+#include <string>
+#include <vector>
+
 namespace c7a {
 namespace api {
+
+//! \addtogroup api Interface
+//! \{
 
 class ActionNode : public DIABase
 {
 public:
     ActionNode(Context& ctx,
-               const std::vector<std::shared_ptr<DIABase> >& parents)
-        : DIABase(ctx, parents)
+               const std::vector<std::shared_ptr<DIABase> >& parents,
+               const std::string& stats_tag)
+        : DIABase(ctx, parents, stats_tag)
     { }
 };
+
+//! \}
 
 } // namespace api
 } // namespace c7a

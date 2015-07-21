@@ -16,6 +16,7 @@
 #include <utility>
 #include <cassert>
 #include <tuple>
+#include <type_traits>
 
 //TODO DELETE
 #include <iostream>
@@ -24,6 +25,9 @@
 
 namespace c7a {
 namespace data {
+
+//! \addtogroup data Data Subsystem
+//! \{
 
 //! internal representation of data elements
 typedef std::string Blob;
@@ -320,6 +324,56 @@ template <class T>
 inline T Deserialize(const std::string& x) {
     return serializers::Impl<T>::Deserialize(x);
 }
+
+/******************************************************************************/
+
+//! New Serializer directly into BlockWriter and deserialize from BlockReader
+template <typename Archive, typename T, class Enable = void>
+struct Serializer
+{ };
+
+template <typename Archive, typename T>
+struct Serializer<Archive, T,
+                  typename std::enable_if<std::is_pod<T>::value>::type>
+{
+    static void serialize(const T& x, Archive& a) {
+        a.template Put<T>(x);
+    }
+    static T deserialize(Archive& a) {
+        return a.template Get<T>();
+    }
+    static const bool fixed_size = true;
+};
+
+template <typename Archive>
+struct Serializer<Archive, std::string>
+{
+    static void serialize(const std::string& x, Archive& a) {
+        a.PutString(x);
+    }
+    static std::string deserialize(Archive& a) {
+        return a.GetString();
+    }
+    static const bool fixed_size = false;
+};
+
+template <typename Archive, typename U, typename V>
+struct Serializer<Archive, std::pair<U, V> >
+{
+    static void serialize(const std::pair<U, V>& x, Archive& a) {
+        Serializer<Archive, U>::serialize(x.first, a);
+        Serializer<Archive, V>::serialize(x.second, a);
+    }
+    static std::pair<U, V> deserialize(Archive& a) {
+        U u = Serializer<Archive, U>::deserialize(a);
+        V v = Serializer<Archive, V>::deserialize(a);
+        return std::pair<U, V>(std::move(u), std::move(v));
+    }
+    static const bool fixed_size = (Serializer<Archive, U>::fixed_size &&
+                                    Serializer<Archive, V>::fixed_size);
+};
+
+//! \}
 
 } // namespace data
 } // namespace c7a

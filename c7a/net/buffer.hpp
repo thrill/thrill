@@ -24,6 +24,9 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 /*!
  * Simple buffer of characters without initialization or growing functionality.
  *
@@ -117,6 +120,9 @@ public:
         swap(a.data_, b.data_);
         swap(a.size_, b.size_);
     }
+
+    //! Check for Buffer contents is valid.
+    bool IsValid() const { return (data_ != nullptr); }
 
     //! \}
 
@@ -221,6 +227,8 @@ protected:
     //! size of the buffer.
     size_type size_;
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

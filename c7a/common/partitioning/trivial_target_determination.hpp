@@ -14,7 +14,7 @@
 
 #define ROUND_DOWN(x, s) ((x) & ~((s) - 1))
 
-#include <c7a/data/emitter.hpp>
+#include <c7a/data/file.hpp>
 
 namespace c7a {
 namespace sort {
@@ -29,7 +29,7 @@ struct BucketEmitter
         const T1* const treearr, // Tree. sizeof |splitter|
         size_t k,                // Number of buckets
         size_t logK,
-        std::vector<data::Emitter<T1> >& emitters,
+        std::vector<data::BlockWriter >& emitters,
         size_t actual_k,
         CompareFunction compare_function) {
 

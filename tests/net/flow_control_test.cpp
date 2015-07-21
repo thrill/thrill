@@ -19,8 +19,6 @@
 #include <thread>
 #include <vector>
 #include <string>
-#include <random>
-#include <thread>
 
 using namespace c7a::net;
 
@@ -59,17 +57,17 @@ static void SingleThreadBroadcast(Group* net) {
 
 static void ExecuteMultiThreads(Group* net, int count, std::function<void(FlowControlChannel&, int)> function) {
 
-    std::vector<std::thread*> threads(count);
+    std::vector<std::thread> threads(count);
     FlowControlChannelManager manager(*net, count);
 
     for (int i = 0; i < count; i++) {
-        threads[i] = new std::thread([i, function, &manager] {
-                                         function(manager.GetFlowControlChannel(i), i);
-                                     });
+        threads[i] = std::thread([i, function, &manager] {
+                                     function(manager.GetFlowControlChannel(i), i);
+                                 });
     }
 
     for (int i = 0; i < count; i++) {
-        threads[i]->join();
+        threads[i].join();
     }
 }
 

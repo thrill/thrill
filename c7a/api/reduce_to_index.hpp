@@ -14,22 +14,22 @@
 #ifndef C7A_API_REDUCE_TO_INDEX_HEADER
 #define C7A_API_REDUCE_TO_INDEX_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
-#include <c7a/data/emitter.hpp>
 
+#include <cmath>
 #include <functional>
 #include <string>
-#include <vector>
 #include <type_traits>
-#include <cmath>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -68,11 +68,12 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using ParentInput = typename ParentStack::Input;
 
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
 public:
+    using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >;
+              KeyExtractor, ReduceFunction, Emitter>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -91,20 +92,17 @@ public:
      * each array cell.
      */
     ReduceToIndexNode(Context& ctx,
-                      std::shared_ptr<DIANode<ParentInput> > parent,
+                      const std::shared_ptr<DIANode<ParentInput> >& parent,
                       const ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
-                      Value neutral_element
-                      )
-        :
-          DOpNode<ValueType>(ctx, { parent }),
+                      Value neutral_element)
+        : DOpNode<ValueType>(ctx, { parent }, "ReduceToIndex"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_id_(ctx.data_manager().AllocateNetworkChannel()),
-          emitters_(ctx.data_manager().
-                    template GetNetworkEmitters<KeyValuePair>(channel_id_)),
+          channel_(ctx.data_manager().GetNewChannel()),
+          emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
                             [=](size_t key, PreHashTable* ht) {
@@ -141,7 +139,9 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -162,7 +162,7 @@ public:
      * \return "[ReduceToIndexNode]"
      */
     std::string ToString() override {
-        return "[ReduceToIndexNode] Id: " + data_id_.ToString();
+        return "[ReduceToIndexNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -171,11 +171,11 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    data::ChannelId channel_id_;
+    data::ChannelSPtr channel_;
 
-    std::vector<data::Emitter<KeyValuePair> > emitters_;
+    std::vector<Emitter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
+    core::ReducePreTable<KeyExtractor, ReduceFunction, Emitter>
     reduce_pre_table_;
 
     size_t max_index_;
@@ -203,12 +203,13 @@ private:
                                           true>;
 
         size_t min_local_index =
-            std::ceil((double)(max_index_ + 1) * (double)context_.rank() /
-                      (double)context_.number_worker());
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank())
+                      / static_cast<double>(context_.number_worker()));
         size_t max_local_index =
-            std::ceil((double)(max_index_ + 1) *
-                      (double)(context_.rank() + 1) /
-                      (double)context_.number_worker()) - 1;
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank() + 1)
+                      / static_cast<double>(context_.number_worker())) - 1;
 
         if (context_.rank() == context_.number_worker() - 1) {
             max_local_index = max_index_;
@@ -228,16 +229,12 @@ private:
                           max_local_index,
                           neutral_element_);
 
-        auto it = context_.data_manager().
-                  template GetIterator<KeyValuePair>(channel_id_);
-
-        sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                table.Insert(std::move(it.Next()));
-            }
-        } while (!it.IsFinished());
+        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
+        auto reader = channel_->OpenReader();
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
+        while (reader.HasNext()) {
+            table.Insert(std::move(reader.template Next<KeyValuePair>()));
+        }
 
         table.Flush();
     }
@@ -249,14 +246,13 @@ private:
     }
 };
 
-//! \}
-
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-                                             const ReduceFunction &reduce_function,
-                                             size_t max_index,
-                                             ValueType neutral_element) const {
+auto DIARef<ValueType, Stack>::ReduceToIndex(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    size_t max_index,
+    ValueType neutral_element) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -304,14 +300,15 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                              key_extractor,
                                              reduce_function,
                                              max_index,
-                                             neutral_element
-                                             );
+                                             neutral_element);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

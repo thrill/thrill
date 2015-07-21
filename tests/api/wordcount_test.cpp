@@ -8,15 +8,16 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/endpoint.hpp>
 #include <c7a/c7a.hpp>
-#include <c7a/api/bootstrap.hpp>
 #include <c7a/common/string.hpp>
 #include <examples/word_count_user_program.cpp>
 
-#include <map>
+#include <algorithm>
+#include <functional>
+#include <string>
+#include <utility>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace c7a::core;
 using namespace c7a::net;
@@ -39,9 +40,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 
             auto red_words = word_count_user(lines);
 
-            std::vector<WordPair> words;
-
-            red_words.AllGather(&words);
+            std::vector<WordPair> words = red_words.AllGather();
 
             auto compare_function = [](WordPair wp1, WordPair wp2) {
                                         return wp1.first < wp2.first;

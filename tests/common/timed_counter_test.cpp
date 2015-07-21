@@ -8,9 +8,9 @@
  ******************************************************************************/
 
 #include <c7a/common/timed_counter.hpp>
+#include <gtest/gtest.h>
 
-#include "gtest/gtest.h"
-#include <thread> //this_thread
+#include <thread>
 
 using namespace c7a::common;
 

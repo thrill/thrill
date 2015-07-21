@@ -377,6 +377,13 @@ public:
     void AllGather(std::vector<ValueType>* out_vector) const;
 
     /*!
+     * AllGather is an Action, which returns the whole DIA in an std::vector on
+     * each worker. This is only for testing purposes and should not be used on
+     * large datasets. Variant that returns the vector.
+     */
+    std::vector<ValueType> AllGather() const;
+
+    /*!
      * Returns the string which defines the DIANode node_.
      *
      * \return The string of node_
@@ -408,7 +415,7 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     auto shared_node
         = std::make_shared<LOpChainNode>(rhs.node()->context(),
                                          rhs.node(),
-                                         rhs.stack());
+                                         rhs.stack(), "");
     node_ = std::move(shared_node);
 }
 

@@ -11,9 +11,10 @@
 #ifndef C7A_COMMON_TIMED_COUNTER_HEADER
 #define C7A_COMMON_TIMED_COUNTER_HEADER
 
+#include <algorithm>
 #include <chrono>
+#include <memory>
 #include <vector>
-#include <algorithm> //sort
 
 namespace c7a {
 namespace common {
@@ -32,7 +33,7 @@ public:
         occurences_ = rhs.occurences_;
     }
 
-    explicit TimedCounter() { }
+    TimedCounter() { }
 
     //! Adds the occurences of another TimedCounter to this instance.
     //! Occurences will be sorted to be ascending

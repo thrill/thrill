@@ -12,7 +12,7 @@
 #ifndef C7A_API_ALLGATHER_HEADER
 #define C7A_API_ALLGATHER_HEADER
 
-#include <c7a/common/future.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/api/action_node.hpp>
@@ -25,28 +25,29 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 template <typename ValueType, typename ParentStack>
 class AllGatherNode : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     using ParentInput = typename ParentStack::Input;
 
     AllGatherNode(Context& ctx,
-                  std::shared_ptr<DIANode<ParentInput> > parent,
+                  const std::shared_ptr<DIANode<ParentInput> >& parent,
                   const ParentStack& parent_stack,
                   std::vector<ValueType>* out_vector
                   )
-        : ActionNode(ctx, { parent }),
+        : ActionNode(ctx, { parent }, "AllGather"),
           out_vector_(out_vector),
-          channel_used_(ctx.data_manager().AllocateNetworkChannel())
+          channel_(ctx.data_manager().GetNewChannel()),
+          emitters_(channel_->OpenWriters())
     {
-        emitters_ = context_.data_manager().
-                    template GetNetworkEmitters<ValueType>(channel_used_);
-
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
@@ -67,19 +68,18 @@ public:
 
     //! Closes the output file
     void Execute() override {
+        this->StartExecutionTimer();
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
         }
 
-        auto it = context_.data_manager().template GetIterator<ValueType>(channel_used_);
+        auto reader = channel_->OpenReader();
 
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                out_vector_->push_back(it.Next());
-            }
-        } while (!it.IsFinished());
+        while (reader.HasNext()) {
+            out_vector_->push_back(reader.template Next<ValueType>());
+        }
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -87,18 +87,34 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() override {
-        return "[AllGatherNode] Id: " + data_id_.ToString();
+        return "[AllGatherNode] Id: " + result_file_.ToString();
     }
 
 private:
+    //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelId channel_used_;
+    data::ChannelSPtr channel_;
+    std::vector<data::BlockWriter> emitters_;
 
     static const bool debug = false;
-
-    std::vector<data::Emitter<ValueType> > emitters_;
 };
+
+template <typename ValueType, typename Stack>
+std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+
+    using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
+
+    std::vector<ValueType> output;
+
+    auto shared_node =
+        std::make_shared<AllGatherResultNode>(
+            node_->context(), node_, stack_, &output);
+
+    core::StageBuilder().RunScope(shared_node.get());
+
+    return std::move(output);
+}
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::AllGather(
@@ -107,13 +123,13 @@ void DIARef<ValueType, Stack>::AllGather(
     using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(node_->context(),
-                                              node_,
-                                              stack_,
-                                              out_vector);
+        std::make_shared<AllGatherResultNode>(
+            node_->context(), node_, stack_, out_vector);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a
