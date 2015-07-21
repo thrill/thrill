@@ -264,7 +264,7 @@ private:
         channels_[in] = data_manager.GetNewChannel();
 
         //! scatter elements to other workers, if necessary
-        channels_[in]->Scatter<ZipArgNum>(files_[in], offsets);
+        channels_[in]->template Scatter<ZipArgNum>(files_[in], offsets);
     }
 
     //! Receive elements from other workers.
