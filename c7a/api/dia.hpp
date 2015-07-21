@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -17,7 +18,6 @@
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_node.hpp>
 #include <c7a/api/function_stack.hpp>
-#include <c7a/api/lop_node.hpp>
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/functional.hpp>
 
@@ -37,6 +37,9 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+template <typename T>
+class DIANode;
+
 /*!
  * DIARef is the interface between the user and the c7a framework. A DIARef can
  * be imagined as an immutable array, even though the data does not need to be
@@ -49,7 +52,7 @@ namespace api {
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType, typename Stack = FunctionStack<ValueType> >
+template <typename ValueType, typename _Stack = FunctionStack<ValueType> >
 class DIARef
 {
     friend class Context;
@@ -58,6 +61,9 @@ class DIARef
     using FunctionTraits = common::FunctionTraits<Function>;
 
 public:
+    //! Type of this function stack
+    using Stack = _Stack;
+
     //! type of the items delivered by the DOp, and pushed down the function
     //! stack towards the next nodes. If the function stack contains LOps nodes,
     //! these may transform the type.
@@ -389,23 +395,6 @@ private:
     //! the last DIANode to this DIARef.
     Stack stack_;
 };
-
-template <typename ValueType, typename Stack>
-template <typename AnyStack>
-DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, AnyStack>;
-
-    LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
-    LOG0 << "Consider whether you can use auto instead of DIARef.";
-
-    auto shared_node
-        = std::make_shared<LOpChainNode>(rhs.node()->context(),
-                                         rhs.node(),
-                                         rhs.stack(), "");
-    node_ = std::move(shared_node);
-}
 
 /*!
  * ReadLines is a DOp, which reads a file from the file system and
