@@ -1,6 +1,6 @@
 #! /bin/bash
 
-module load compiler/gnu/4.9
+#todo: Check for g+ 4.9.2 loaded. 
 
 function printVars {
   echo "SLURM_NNODES: $SLURM_NNODES"
