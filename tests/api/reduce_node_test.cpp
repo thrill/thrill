@@ -9,12 +9,16 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
-#include <c7a/net/endpoint.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/generate.hpp>
+#include <c7a/api/reduce.hpp>
+#include <c7a/api/reduce_to_index.hpp>
 
 #include <algorithm>
-#include <random>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -43,9 +47,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
             auto reduced = integers.ReduceBy(modulo_two, add_function);
 
-            std::vector<size_t> out_vec;
-
-            reduced.AllGather(&out_vec);
+            std::vector<size_t> out_vec = reduced.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end());
 
@@ -85,9 +87,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
             auto reduced = integers.ReduceToIndex(key, add_function, max_index);
 
-            std::vector<size_t> out_vec;
-
-            reduced.AllGather(&out_vec);
+            std::vector<size_t> out_vec = reduced.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end());
 

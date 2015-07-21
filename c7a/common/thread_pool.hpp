@@ -14,16 +14,15 @@
 #ifndef C7A_COMMON_THREAD_POOL_HEADER
 #define C7A_COMMON_THREAD_POOL_HEADER
 
-#include <c7a/common/logger.hpp>
 #include <c7a/common/delegate.hpp>
 
 #include <atomic>
+#include <cassert>
 #include <condition_variable>
 #include <deque>
 #include <mutex>
 #include <thread>
 #include <vector>
-#include <cassert>
 
 namespace c7a {
 namespace common {

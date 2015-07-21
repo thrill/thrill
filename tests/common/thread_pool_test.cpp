@@ -10,9 +10,11 @@
 
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/common/stats_timer.hpp>
+#include <c7a/common/logger.hpp>
 
 #include <string>
 #include <numeric>
+#include <vector>
 
 #include "gtest/gtest.h"
 

@@ -9,10 +9,14 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/sum.hpp>
+#include <c7a/api/bootstrap.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/read.hpp>
-#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/sum.hpp>
+
+#include <algorithm>
+#include <random>
+#include <string>
 
 #include "gtest/gtest.h"
 

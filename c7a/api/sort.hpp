@@ -49,7 +49,7 @@ class SortNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     using ParentInput = typename ParentStack::Input;
 
@@ -66,14 +66,12 @@ public:
              std::shared_ptr<DIANode<ParentInput> > parent,
              const ParentStack& parent_stack,
              CompareFunction compare_function)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "Sort"),
           compare_function_(compare_function),
-          channel_id_samples_(ctx.data_manager().AllocateNetworkChannel()),
-          emitters_samples_(ctx.data_manager().
-                            template GetNetworkEmitters<ValueType>(channel_id_samples_)),
-          channel_id_data_(ctx.data_manager().AllocateNetworkChannel()),
-          emitters_data_(ctx.data_manager().
-                         template GetNetworkEmitters<ValueType>(channel_id_data_))
+          channel_id_samples_(ctx.data_manager().GetNewChannel()),
+          emitters_samples_(channel_id_samples_->OpenWriters()),
+          channel_id_data_(ctx.data_manager().GetNewChannel()),
+          emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
@@ -112,7 +110,7 @@ public:
      * \return "[SortNode]"
      */
     std::string ToString() override {
-        return "[SortNode] Id:" + data_id_.ToString();
+        return "[SortNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -122,12 +120,12 @@ private:
     std::vector<ValueType> data_;
 
     //!Emitter to send samples to process 0
-    data::ChannelId channel_id_samples_;
-    std::vector<data::Emitter<ValueType> > emitters_samples_;
+    data::ChannelSPtr channel_id_samples_;
+    std::vector<data::BlockWriter> emitters_samples_;
 
     //!Emitters to send data to other workers specified by splitters.
-    data::ChannelId channel_id_data_;
-    std::vector<data::Emitter<ValueType> > emitters_data_;
+    data::ChannelSPtr channel_id_data_;
+    std::vector<data::BlockWriter> emitters_data_;
 
     //epsilon
     double desired_imbalance = 0.25;
@@ -144,14 +142,11 @@ private:
 
         std::vector<ValueType> samples;
         samples.reserve(samplesize * num_workers);
-        auto it = context_.data_manager().
-                  template GetIterator<ValueType>(channel_id_samples_);
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                samples.push_back(it.Next());
-            }
-        } while (!it.IsFinished());
+        auto reader = channel_id_samples_->OpenReader();
+        
+        while(reader.HasNext()) {
+            samples.push_back(reader.template Next<ValueType>());
+        }
 
         //Find splitters
         std::sort(samples.begin(), samples.end(), compare_function_);
@@ -205,14 +200,10 @@ private:
             for (size_t j = 1; j < num_workers; j++) {
                 emitters_samples_[j].Close();
             }
-            auto it = context_.data_manager().
-                      template GetIterator<ValueType>(channel_id_samples_);
-            do {
-                it.WaitForMore();
-                while (it.HasNext()) {
-                    splitters.push_back(it.Next());
-                }
-            } while (!it.IsFinished());
+            auto reader = channel_id_samples_->OpenReader();
+            while(reader.HasNext()) {
+                splitters.push_back(reader.template Next<ValueType>());
+            }
         }
 
         //code from SS2NPartition, slightly altered
@@ -247,15 +238,11 @@ private:
 
         data_.clear();
 
-        auto it = context_.data_manager().
-                  template GetIterator<ValueType>(channel_id_data_);
+        auto reader = channel_id_data_->OpenReader();
 
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                data_.push_back(it.Next());
-            }
-        } while (!it.IsFinished());
+        while (reader.HasNext()) {
+            data_.push_back(reader.template Next<ValueType>());
+        }
 
         std::sort(data_.begin(), data_.end(), compare_function_);
 

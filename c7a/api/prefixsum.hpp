@@ -13,17 +13,21 @@
 #ifndef C7A_API_PREFIXSUM_HEADER
 #define C7A_API_PREFIXSUM_HEADER
 
-#include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/api/dop_node.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/common/logger.hpp>
+
+#include <string>
 
 namespace c7a {
 namespace api {
+
+//! \addtogroup api Interface
+//! \{
 
 template <typename ValueType, typename ParentStack, typename SumFunction>
 class PrefixSumNode : public DOpNode<ValueType>
@@ -32,17 +36,17 @@ class PrefixSumNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     using ParentInput = typename ParentStack::Input;
 
 public:
     PrefixSumNode(Context& ctx,
-                  std::shared_ptr<DIANode<ParentInput> > parent,
+                  const std::shared_ptr<DIANode<ParentInput> >& parent,
                   const ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "PrefixSum"),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -61,7 +65,9 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -84,7 +90,7 @@ public:
      * \return "[PrefixSumNode]"
      */
     std::string ToString() override {
-        return "[PrefixSumNode] Id:" + data_id_.ToString();
+        return "[PrefixSumNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -94,29 +100,37 @@ private:
     ValueType local_sum_;
     //! Neutral element.
     ValueType neutral_element_;
-    //! Local data
-    std::vector<ValueType> data_;
 
-    void PreOp(ValueType input) {
+    //! Local data file
+    data::File file_;
+    //! Data writer to local file (only active in PreOp).
+    data::File::Writer writer_ = file_.GetWriter();
+
+    //! PreOp: compute local prefixsum and store items.
+    void PreOp(const ValueType& input) {
         LOG << "Input: " << input;
         local_sum_ = sum_function_(local_sum_, input);
-        data_.push_back(input);
+        writer_(input);
     }
 
     void MainOp() {
+        writer_.Close();
+
         LOG << "MainOp processing";
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        ValueType prefix_sum = channel.PrefixSum(local_sum_, sum_function_, false);
+        ValueType sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
         if (context_.rank() == 0) {
-            prefix_sum = neutral_element_;
+            sum = neutral_element_;
         }
 
-        for (size_t i = 0; i < data_.size(); i++) {
-            prefix_sum = sum_function_(prefix_sum, data_[i]);
+        data::File::Reader reader = file_.GetReader();
+
+        for (size_t i = 0; i < file_.NumItems(); ++i) {
+            sum = sum_function_(sum, reader.Next<ValueType>());
             for (auto func : DIANode<ValueType>::callbacks_) {
-                func(prefix_sum);
+                func(sum);
             }
         }
     }
@@ -165,6 +179,8 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     return DIARef<ValueType, decltype(sum_stack)>
                (shared_node, sum_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

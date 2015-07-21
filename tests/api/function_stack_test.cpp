@@ -7,20 +7,19 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/context.hpp>
 #include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
 
 #include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
 
-using namespace c7a::core;
-
 TEST(API, FunctionStackTest) {
     using c7a::api::FunctionStack;
     using c7a::api::MakeFunctionStack;
+
+    static const bool debug = false;
 
     std::vector<double> elements;
 
@@ -60,9 +59,9 @@ TEST(API, FunctionStackTest) {
             if (filter_fn(input)) emit_func(input);
         };
 
-    std::cout << "==============" << std::endl;
-    std::cout << "FunctionStack" << std::endl;
-    std::cout << "==============" << std::endl;
+    LOG << "==============";
+    LOG << "FunctionStack";
+    LOG << "==============";
     auto new_stack = MakeFunctionStack<double>(fmap_fn);
     auto new_stack2 = new_stack.push(conv_map_fn);
     auto new_stack3 = new_stack2.push(conv_filter_fn);

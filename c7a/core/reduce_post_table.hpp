@@ -16,16 +16,10 @@
 #define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <map>
-#include <iostream>
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <array>
-#include <type_traits>
 
 namespace c7a {
 namespace core {

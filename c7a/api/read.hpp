@@ -15,8 +15,8 @@
 #define C7A_API_READ_HEADER
 
 #include <c7a/common/logger.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/function_stack.hpp>
 
 #include <string>
 #include <fstream>
@@ -40,7 +40,7 @@ class ReadNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     /*!
     * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
@@ -52,7 +52,7 @@ public:
     ReadNode(Context& ctx,
              ReadFunction read_function,
              const std::string& path_in)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "Read"),
           read_function_(read_function),
           path_in_(path_in)
     { }
@@ -74,8 +74,9 @@ public:
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
     void Execute() override {
+        this->StartExecutionTimer();
         static const bool debug = false;
-        LOG << "READING data with id " << data_id_;
+        LOG << "READING data " << result_file_.ToString();
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -90,6 +91,7 @@ public:
                 func(read_function_(item));
             }
         }
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -107,7 +109,7 @@ public:
      * \return "[ReadNode]"
      */
     std::string ToString() override {
-        return "[ReadNode] Id: " + data_id_.ToString();
+        return "[ReadNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -143,11 +145,12 @@ auto ReadLines(Context & ctx, std::string filepath,
                (shared_node, read_stack);
 }
 
+//! \}
+
 } // namespace api
 } // namespace c7a
 
 //! \}
-
 #endif // !C7A_API_READ_HEADER
 
 /******************************************************************************/

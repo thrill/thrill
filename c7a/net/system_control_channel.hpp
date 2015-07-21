@@ -11,10 +11,11 @@
 #ifndef C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 #define C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 
-#include <vector>
-
 namespace c7a {
 namespace net {
+
+//! \addtogroup net Network Communication
+//! \{
 
 /**
  * @brief Provides a non-blocking collection for communication.
@@ -116,6 +117,8 @@ public:
      */
     void notifyBackupComplete();
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

@@ -16,18 +16,14 @@
 #ifndef C7A_NET_GROUP_HEADER
 #define C7A_NET_GROUP_HEADER
 
-#include <c7a/net/endpoint.hpp>
 #include <c7a/net/connection.hpp>
-#include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <map>
+#include <functional>
 #include <string>
-#include <thread>
-#include <utility>
 #include <vector>
 
 namespace c7a {

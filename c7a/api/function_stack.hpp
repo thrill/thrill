@@ -178,6 +178,8 @@ static inline auto MakeFunctionStack(Lambda lambda) {
     return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
 
+//! \}
+
 } // namespace api
 } // namespace c7a
 

@@ -16,20 +16,18 @@ using namespace c7a::net;
 
 struct PostTable : public::testing::Test {
     PostTable()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id(manager.AllocateDIA()),
           iterator(manager.GetIterator<int>(id)),
-          pair_emit(manager.GetLocalEmitter<std::pair<std::string, int> >(id)) {
-        emitters.emplace_back(manager.GetLocalEmitter<int>(id));
-    }
+          emitters.emplace_back(manager.GetLocalEmitter<int>(id))
+    { }
 
-    DispatcherThread                      dispatcher;
-    Manager                               manager;
-    ChainId                               id = manager.AllocateDIA();
-    Iterator<int>                         iterator;
-    Emitter<std::pair<std::string, int> > pair_emit; //both emitters access the same dia id, which is bad if you use them both
-    std::vector<Emitter<int> >            emitters;
+    DispatcherThread           dispatcher;
+    Manager                    manager;
+    ChainId                    id = manager.AllocateDIA();
+    Iterator<int>              iterator;
+    std::vector<Emitter<int> > emitters;
 
     size_t CountIteratorElements() {
         size_t result = 0;

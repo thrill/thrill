@@ -12,7 +12,10 @@
 #include <c7a/common/future.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+
 #include <future>
+#include <tuple>
+#include <utility>
 
 using namespace std::literals;
 using namespace c7a::net;
@@ -22,7 +25,7 @@ using c7a::common::FutureX;
 
 struct DispatcherThreadTest : public::testing::Test {
     DispatcherThreadTest() {
-        c7a::common::ThreadDirectory.NameThisThread("test-driver");
+        c7a::common::GetThreadDirectory().NameThisThread("test-driver");
     }
 };
 

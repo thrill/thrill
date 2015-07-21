@@ -16,17 +16,13 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <map>
-#include <iostream>
+#include <algorithm>
+#include <cassert>
 #include <string>
-#include <vector>
-#include <stdexcept>
-#include <array>
-#include <deque>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace core {
@@ -123,7 +119,7 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)),
+          emit_(emit),
           hash_function_(hash_function)
     {
         init();
@@ -150,7 +146,7 @@ public:
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)),
+          emit_(emit),
           hash_function_(hash_function)
     {
         init();
@@ -179,6 +175,8 @@ public:
 
     void init() {
         sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
+        assert(emit_.size() == num_partitions_);
+
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
@@ -585,7 +583,7 @@ private:
     KeyExtractor key_extractor_;
 
     ReduceFunction reduce_function_;
-    std::vector<EmitterFunction> emit_;
+    std::vector<EmitterFunction>& emit_;
     std::vector<int> emit_stats_;
 
     std::vector<BucketBlock*> vector_;
