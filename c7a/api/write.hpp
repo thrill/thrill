@@ -42,24 +42,27 @@ public:
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(file_)
+          emit_(file_),
+          parent_(parent)
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_function = [=](ValueType input) {
-                                   PreOp(input);
-                               };
+        auto pre_op_fn = [=](ValueType input) {
+                               PreOp(input);
+                           };
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_function).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
     void PreOp(ValueType input) {
         emit_(write_function_(input));
     }
 
-    virtual ~WriteNode() { }
+    virtual ~WriteNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Closes the output file
     void Execute() override {
@@ -89,6 +92,9 @@ private:
 
     //! Emitter to file
     data::OutputLineEmitter<std::string> emit_;
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     static const bool debug = false;
 };
