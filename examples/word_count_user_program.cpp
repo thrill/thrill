@@ -19,9 +19,14 @@
 using c7a::Context;
 using c7a::DIARef;
 
+using WordCount = std::pair<std::string, int>;
+
+std::ostream& operator << (std::ostream& os, const WordCount& wc) {
+    return os << wc.first << ": " << wc.second << std::endl;
+}
+
 template <typename InStack>
 auto word_count_user(DIARef<std::string, InStack>&input) {
-
     using WordCount = std::pair<std::string, int>;
 
     auto word_pairs = input.template FlatMap<WordCount>(
@@ -46,7 +51,6 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
 
 //! The WordCount user program
 int word_count(Context& ctx) {
-    using WordCount = std::pair<std::string, int>;
 
     auto lines = ReadLines(
         ctx,
@@ -58,16 +62,12 @@ int word_count(Context& ctx) {
     auto red_words = word_count_user(lines);
 
     red_words.WriteToFileSystem(
-        "wordcount_" + std::to_string(ctx.rank()) + ".out",
-        [](const WordCount& item) {
-            return item.first + ": " + std::to_string(item.second);
-        });
+        "wordcount_" + std::to_string(ctx.rank()) + ".out");
 
     return 0;
 }
 
 int word_count_generated(Context& ctx, size_t size) {
-    using WordCount = std::pair<std::string, int>;
 
     auto lines = GenerateFromFile(
         ctx,
@@ -80,10 +80,7 @@ int word_count_generated(Context& ctx, size_t size) {
     auto reduced_words = word_count_user(lines);
 
     reduced_words.WriteToFileSystem(
-        "wordcount_" + std::to_string(ctx.rank()) + ".out",
-        [](const WordCount& item) {
-            return item.first + ": " + std::to_string(item.second);
-        });
+        "wordcount_" + std::to_string(ctx.rank()) + ".out");
     return 0;
 }
 
