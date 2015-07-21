@@ -270,7 +270,7 @@ public:
      * @return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T AllReduce(T& value, BinarySumOp sumOp = common::SumOp<T>()) {
+    T AllReduce(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
 
