@@ -44,7 +44,8 @@ public:
         : ActionNode(ctx, { parent }, "AllGather"),
           out_vector_(out_vector),
           channel_(ctx.data_manager().GetNewChannel()),
-          emitters_(channel_->OpenWriters())
+          emitters_(channel_->OpenWriters()),
+          parent_(parent)
     {
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
@@ -52,8 +53,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_function).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_function).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
     void PreOp(ValueType element) {
@@ -62,7 +63,9 @@ public:
         }
     }
 
-    virtual ~AllGatherNode() { }
+    virtual ~AllGatherNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Closes the output file
     void Execute() override {
@@ -94,6 +97,9 @@ private:
 
     data::ChannelPtr channel_;
     std::vector<data::BlockWriter> emitters_;
+
+    std::shared_ptr<DIANode<ParentInput>> parent_; 
+    common::delegate<void(ParentInput)> lop_chain_; 
 
     static const bool debug = false;
 };

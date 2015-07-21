@@ -17,6 +17,7 @@
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/delegate.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
@@ -91,7 +92,8 @@ public:
           channel_(ctx.data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
-                            reduce_function_, emitters_)
+                            reduce_function_, emitters_),
+          parent_(parent)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ReduceArg& input) {
@@ -100,12 +102,14 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
     //! Virtual destructor for a ReduceNode.
-    virtual ~ReduceNode() { }
+    virtual ~ReduceNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     /*!
      * Actually executes the reduce operation. Uses the member functions PreOp,
@@ -152,6 +156,9 @@ private:
     core::ReducePreTable<KeyExtractor, ReduceFunction, emitter>
     reduce_pre_table_;
 
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
+
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
@@ -169,7 +176,7 @@ private:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)> >;
+                                          common::delegate<void(ValueType)> >;
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
