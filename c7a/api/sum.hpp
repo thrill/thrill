@@ -13,15 +13,15 @@
 #define C7A_API_SUM_HEADER
 
 #include <c7a/api/action_node.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/api/function_stack.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/group.hpp>
 
-#include <type_traits>
 #include <string>
+#include <type_traits>
 
 namespace c7a {
 namespace api {

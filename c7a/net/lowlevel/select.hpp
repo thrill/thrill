@@ -16,9 +16,9 @@
 
 #include <sys/select.h>
 
-#include <limits>
-#include <cassert>
 #include <algorithm>
+#include <cassert>
+#include <limits>
 
 namespace c7a {
 namespace net {

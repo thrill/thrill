@@ -12,10 +12,10 @@
 #ifndef C7A_DATA_BLOCK_READER_HEADER
 #define C7A_DATA_BLOCK_READER_HEADER
 
-#include <c7a/data/block.hpp>
-#include <c7a/data/serializer.hpp>
 #include <c7a/common/config.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
+#include <c7a/data/block.hpp>
+#include <c7a/data/serializer.hpp>
 
 #include <algorithm>
 #include <string>

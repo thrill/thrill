@@ -14,11 +14,11 @@
 #ifndef C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 #define C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
-#include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/lowlevel/select.hpp>
-#include <c7a/net/exception.hpp>
 #include <c7a/common/config.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/net/exception.hpp>
+#include <c7a/net/lowlevel/select.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 
 #include <cerrno>
 #include <chrono>

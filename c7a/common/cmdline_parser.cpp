@@ -11,8 +11,8 @@
 #include <c7a/common/cmdline_parser.hpp>
 
 #include <algorithm>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>

@@ -14,10 +14,10 @@
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
-#include <c7a/net/group.hpp>
 #include <c7a/common/functional.hpp>
-#include <mutex>
+#include <c7a/net/group.hpp>
 #include <condition_variable>
+#include <mutex>
 
 namespace c7a {
 namespace net {

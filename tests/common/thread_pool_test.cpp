@@ -8,15 +8,14 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/thread_pool.hpp>
-#include <c7a/common/stats_timer.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/stats_timer.hpp>
+#include <c7a/common/thread_pool.hpp>
+#include <gtest/gtest.h>
 
-#include <string>
 #include <numeric>
+#include <string>
 #include <vector>
-
-#include "gtest/gtest.h"
 
 using namespace c7a::common;
 

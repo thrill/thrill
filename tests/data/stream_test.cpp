@@ -8,8 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/data/stream.hpp>
-
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 using namespace c7a::data;
 using BlockPtr = std::shared_ptr<Block<1> >;

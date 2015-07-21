@@ -12,11 +12,11 @@
 #ifndef C7A_DATA_BLOCK_WRITER_HEADER
 #define C7A_DATA_BLOCK_WRITER_HEADER
 
+#include <c7a/common/config.hpp>
+#include <c7a/common/item_serializer_tools.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/serializer.hpp>
-#include <c7a/common/config.hpp>
-#include <c7a/common/item_serializer_tools.hpp>
 
 #include <algorithm>
 #include <string>

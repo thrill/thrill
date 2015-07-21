@@ -16,8 +16,8 @@
 #ifndef C7A_NET_GROUP_HEADER
 #define C7A_NET_GROUP_HEADER
 
-#include <c7a/net/connection.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/net/connection.hpp>
 
 #include <algorithm>
 #include <cassert>
