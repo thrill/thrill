@@ -15,13 +15,13 @@
 #define C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/manager.hpp>
 
 #include <algorithm>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace core {

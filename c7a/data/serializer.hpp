@@ -11,12 +11,12 @@
 #ifndef C7A_DATA_SERIALIZER_HEADER
 #define C7A_DATA_SERIALIZER_HEADER
 
-#include <string>
-#include <cstring>
-#include <utility>
 #include <cassert>
+#include <cstring>
+#include <string>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 //TODO DELETE
 #include <iostream>
