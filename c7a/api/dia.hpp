@@ -313,7 +313,7 @@ public:
      * DIARef.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia) const;
+    auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
