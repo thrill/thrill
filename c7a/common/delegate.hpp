@@ -253,8 +253,8 @@ private:
 
     deleter_type deleter_;
 
-    std::shared_ptr<void> store_;
-    std::size_t store_size_;
+    std::shared_ptr<void> store_ = nullptr;
+    std::size_t store_size_ = 0;
 
     template <class T>
     static void functor_deleter(void* const p) {
