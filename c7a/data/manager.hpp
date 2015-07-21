@@ -17,7 +17,6 @@
 #include <c7a/data/channel.hpp>
 #include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/data/output_line_emitter.hpp>
 #include <c7a/data/repository.hpp>
 
 #include <functional>
