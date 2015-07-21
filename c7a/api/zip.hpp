@@ -180,7 +180,7 @@ private:
         }
 
         net::FlowControlChannel& channel = context_.flow_control_channel();
-        //data::Manager& data_manager = context_.data_manager();
+        data::Manager& data_manager = context_.data_manager();
         size_t workers = context_.number_worker();
 
         for (size_t i = 0; i < num_inputs_; ++i) {
@@ -188,7 +188,8 @@ private:
             size_t numElems = files_[i].NumItems();
             //! exclusive prefixsum of number of elements
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
-            //! total number of elements, over all worker
+            //! total number of elements, over all worker. TODO(tb): use a
+            //! Broadcast from the last node instead.
             size_t totalNumElems = channel.AllReduce(numElems);
             //! number of elements per worker
             size_t per_pe = totalNumElems / workers;
@@ -215,10 +216,10 @@ private:
                 offsets[x] = offsets[x - 1];
 
             //! target channel id
-            //data::ChannelId channelId = data_manager.AllocateChannelId();
+            data::ChannelPtr channel = data_manager.GetNewChannel();
 
             //! scatter elements to other workers, if necessary
-            //data_manager.Scatter<ValueType>(id_[i], channelId, offsets);
+            //channel->Scatter<ValueType>(files_[i], channel, offsets);
         }
     }
 };
