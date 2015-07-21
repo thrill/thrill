@@ -170,7 +170,7 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    data::ChannelSPtr channel_;
+    data::ChannelPtr channel_;
 
     std::vector<Emitter> emitters_;
 

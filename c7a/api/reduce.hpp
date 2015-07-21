@@ -144,7 +144,7 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    data::ChannelSPtr channel_;
+    data::ChannelPtr channel_;
 
     using emitter = data::BlockWriter;
     std::vector<emitter> emitters_;

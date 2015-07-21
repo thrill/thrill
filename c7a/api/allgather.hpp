@@ -92,7 +92,7 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelSPtr channel_;
+    data::ChannelPtr channel_;
     std::vector<data::BlockWriter> emitters_;
 
     static const bool debug = false;
