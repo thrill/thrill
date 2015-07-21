@@ -78,7 +78,7 @@ public:
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
     net::Buffer ToBuffer() {
-        void* addr = reinterpret_cast<void*>(data_);
+        void* addr = reinterpret_cast<void*>(const_cast<Byte*>(data_));
         net::Buffer b = net::Buffer::Acquire(addr, size_);
         data_ = nullptr;
         size_ = 0;
@@ -99,7 +99,7 @@ public:
 
     void Delete() {
         if (data_)
-            free(reinterpret_cast<void*>(data_));
+            free(reinterpret_cast<void*>(const_cast<Byte*>(data_)));
     }
 };
 
