@@ -20,6 +20,8 @@
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 
+#include <string>
+
 namespace c7a {
 namespace api {
 

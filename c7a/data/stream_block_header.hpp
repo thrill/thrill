@@ -14,7 +14,6 @@
 #include <c7a/net/connection.hpp>
 #include <c7a/net/buffer_builder.hpp>
 #include <c7a/net/buffer_reader.hpp>
-#include <c7a/common/stats_timer.hpp>
 
 #include <cstdlib>
 #include <cstdio>
