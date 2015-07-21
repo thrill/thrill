@@ -269,7 +269,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(0u, table.Size());
 }
 
-TEST_F(ReducePreProbingTable, ComplexType) {
+TEST_F(ReducePreProbingTable, DISABLED_ComplexType) {
     auto key_ex = [](StringPair in) {
                       return in.first;
                   };
@@ -279,7 +279,7 @@ TEST_F(ReducePreProbingTable, ComplexType) {
                   };
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), Emitter<StringPair> >
-    table(1, 10, 2, 1, 10, 1.1f, 3, key_ex, red_fn, one_pair_emitter,
+    table(1, 10, 2, 1, 10, 1.0f, 3, key_ex, red_fn, one_pair_emitter,
           std::pair<std::string, StringPair>("", std::pair<std::string, int>("", -1)));
 
     table.Insert(StringPair("hallo", 1));

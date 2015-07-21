@@ -23,6 +23,9 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 /*!
  * Possible states a DIABase can be in.
  * TODO(ch): turn this enum into an "enum class" within DIABase. These are
@@ -41,9 +44,6 @@ enum kState {
     DISPOSED
 };
 
-//! \addtogroup api Interface
-//! \{
-
 /*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build
  * the execution graph, which is used to execute the computation.
@@ -59,7 +59,7 @@ class DIABase
 public:
     /*!
      * The constructor for a DIABase. Sets the data::Manager and the
-     * associated DIAId.
+     * associated \ref data::File 'result_file'.
      *
      * Sets the parents for this node and adds this node as a child for
      * each parent.
@@ -69,9 +69,11 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents)
+            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag)
         : context_(ctx), parents_(parents),
-          data_id_(ctx.data_manager().AllocateDIA()) {
+          result_file_(ctx.data_manager().GetFile()),
+          execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
+          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -84,6 +86,7 @@ public:
         // its reference count should be zero and he
         // should be removed
         // parent->remove_child(this);
+        STOP_TIMER(lifetime_)
     }
 
     //! Virtual execution method. Triggers actual computation in sub-classes.
@@ -118,8 +121,8 @@ public:
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId data_id() {
-        return data_id_;
+    data::File result_file() {
+        return result_file_;
     }
 
     kState state() const {
@@ -150,13 +153,31 @@ protected:
         }
     }
 
+    //Why are these stupid functions here?
+    //Because we do not want to include the stats.hpp into every
+    //single node class
+    inline void StartExecutionTimer() {
+        START_TIMER(execution_timer_)
+    }
+    inline void StopExecutionTimer() {
+        STOP_TIMER(execution_timer_)
+    }
+
     //! Context, which can give iterators to data.
     Context& context_;
+
     //! Children and parents of this DIABase.
     std::vector<DIABase*> children_;
     std::vector<std::shared_ptr<DIABase> > parents_;
+
     //! Unique ID of this DIABase. Used by the data::Manager.
-    data::DIAId data_id_;
+    data::File result_file_;
+
+    //! Timer that tracks execution of this node
+    common::TimerPtr execution_timer_;
+
+    //! Timer that tracks the lifetime of this object
+    common::TimerPtr lifetime_;
 };
 
 //! \}

@@ -38,7 +38,7 @@ public:
      *
      * @param n The count of threads to wait for.
      */
-    Barrier(int n) : threadCount(n), current(0) {
+    explicit Barrier(int n) : threadCount(n), current(0) {
         counts[0] = 0;
         counts[1] = 0;
     }

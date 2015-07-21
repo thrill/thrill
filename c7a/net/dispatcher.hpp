@@ -31,6 +31,7 @@
 #include <queue>
 #include <ctime>
 #include <chrono>
+#include <atomic>
 
 namespace c7a {
 namespace net {
@@ -50,7 +51,7 @@ class Dispatcher
 
 protected:
     //! switch between different low-level dispatchers
-    typedef lowlevel::SelectDispatcher<Connection&> SubDispatcher;
+    typedef lowlevel::SelectDispatcher SubDispatcher;
     //typedef lowlevel::EPollDispatcher SubDispatcher;
 
     //! import into class namespace
@@ -74,6 +75,31 @@ protected:
     friend class DispatcherThread;
 
 public:
+    //! default constructor
+    Dispatcher() { }
+
+    //! non-copyable: delete copy-constructor
+    Dispatcher(const Dispatcher&) = delete;
+    //! non-copyable: delete assignment operator
+    Dispatcher& operator = (const Dispatcher&) = delete;
+    //! move-constructor
+    Dispatcher(Dispatcher&& d)
+        : dispatcher_(std::move(d.dispatcher_)),
+          terminate_(d.terminate_.load()),
+          timer_pq_(std::move(d.timer_pq_)),
+          async_read_(std::move(d.async_read_)),
+          async_write_(std::move(d.async_write_))
+    { }
+    //! move-assignment
+    Dispatcher& operator = (Dispatcher&& d) {
+        dispatcher_ = std::move(d.dispatcher_);
+        terminate_ = d.terminate_.load();
+        timer_pq_ = std::move(d.timer_pq_);
+        async_read_ = std::move(d.async_read_);
+        async_write_ = std::move(d.async_write_);
+        return *this;
+    }
+
     //! \name Timeout Callbacks
     //! \{
 
@@ -95,24 +121,21 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef function<bool (Connection&)> ConnectionCallback;
+    typedef function<bool ()> ConnectionCallback;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        return dispatcher_.AddRead(c.GetSocket().fd(), c, read_cb);
+        return dispatcher_.AddRead(c.GetSocket().fd(), read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        return dispatcher_.AddWrite(c.GetSocket().fd(), c, write_cb);
+        return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
     }
 
-    //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(
-        Connection& c,
-        const ConnectionCallback& read_cb, const ConnectionCallback& write_cb) {
-        return dispatcher_.AddReadWrite(
-            c.GetSocket().fd(), c, read_cb, write_cb);
+    //! Cancel all callbacks on a given connection.
+    void Cancel(int fd) {
+        return dispatcher_.Cancel(fd);
     }
 
     //! \}
@@ -139,7 +162,7 @@ public:
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, [&arb](Connection& c) { return arb(c); });
+        AddRead(c, [&arb, &c]() { return arb(c); });
     }
 
     //! callback signature for async write callbacks
@@ -161,7 +184,7 @@ public:
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, [&awb](Connection& c) { return awb(c); });
+        AddWrite(c, [&awb, &c]() { return awb(c); });
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
@@ -205,8 +228,8 @@ public:
 
         // calculate time until next timer event
         if (timer_pq_.empty()) {
-            LOG << "Dispatch(): empty queue - waiting 1s";
-            dispatcher_.Dispatch(milliseconds(1000));
+            LOG << "Dispatch(): empty timer queue - selecting for 10s";
+            dispatcher_.Dispatch(milliseconds(10000));
         }
         else {
             auto diff = std::chrono::duration_cast<milliseconds>(
@@ -214,6 +237,15 @@ public:
 
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
+        }
+
+        // clean up finished AsyncRead/Writes
+        while (async_read_.size() && async_read_.front().IsDone()) {
+            async_read_.pop_front();
+        }
+
+        while (async_write_.size() && async_write_.front().IsDone()) {
+            async_write_.pop_front();
         }
     }
 
@@ -231,6 +263,12 @@ public:
         terminate_ = true;
     }
 
+    //! Check whether there are still AsyncWrite()s in the queue.
+    bool HasAsyncWrites() const {
+        sLOG << "HasAsyncWrites()" << async_write_.size();
+        return (async_write_.size() != 0);
+    }
+
     //! \}
 
 protected:
@@ -238,7 +276,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    bool terminate_ = false;
+    std::atomic<bool> terminate_ { false };
 
     //! struct for timer callbacks
     struct Timer
@@ -285,8 +323,20 @@ protected:
             int r = c.GetSocket().recv_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
-            if (r < 0)
+            if (r <= 0) {
+                // these errors are acceptable: just redo the recv later.
+                if (errno == EINTR || errno == EAGAIN) return true;
+
+                // signal artificial IsDone, for clean up.
+                size_ = buffer_.size();
+
+                // these errors are end-of-file indications (both good and bad)
+                if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
+                    if (callback_) callback_(c, Buffer());
+                    return false;
+                }
                 throw Exception("AsyncReadBuffer() error in recv", errno);
+            }
 
             size_ += r;
 
@@ -298,6 +348,8 @@ protected:
                 return true;
             }
         }
+
+        bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
         //! total size currently read
@@ -330,8 +382,19 @@ protected:
             int r = c.GetSocket().send_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
-            if (r < 0)
+            if (r <= 0) {
+                if (errno == EINTR || errno == EAGAIN) return true;
+
+                // signal artificial IsDone, for clean up.
+                size_ = buffer_.size();
+
+                if (errno == EPIPE) {
+                    LOG1 << "AsyncWriteBuffer() got SIGPIPE";
+                    if (callback_) callback_(c);
+                    return false;
+                }
                 throw Exception("AsyncWriteBuffer() error in send", errno);
+            }
 
             size_ += r;
 
@@ -343,6 +406,8 @@ protected:
                 return true;
             }
         }
+
+        bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
         //! total size currently written

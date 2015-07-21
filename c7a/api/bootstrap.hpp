@@ -15,7 +15,7 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/core/job_manager.hpp>
-#include <c7a/common/stats_timer.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -23,9 +23,14 @@
 #include <thread>
 #include <atomic>
 #include <random>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace api {
+
+//! \addtogroup api Interface
+//! \{
 
 namespace {
 
@@ -120,7 +125,7 @@ static inline int Execute(
         threads[i] = std::thread(
             [&jobMan, &results, &job_startpoint, i, log_prefix] {
                 Context ctx(jobMan, i);
-                common::ThreadDirectory.NameThisThread(
+                common::GetThreadDirectory().NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 
                 LOG << "Starting job on worker " << ctx.rank();
@@ -128,7 +133,7 @@ static inline int Execute(
                 // TODO: this cannot be correct, the job needs to know which
                 // worker number it is on the node.
                 int job_result = job_startpoint(ctx);
-                overall_timer->Stop();
+                STOP_TIMER(overall_timer)
                 LOG << "Worker " << ctx.rank() << " done!";
 
                 results[i] = job_result;
@@ -260,19 +265,21 @@ ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
             [job_startpoint, log_prefix](core::JobManager& jm, size_t node_id) {
 
                 Context ctx(jm, 0);
-                common::ThreadDirectory.NameThisThread(
+                common::GetThreadDirectory().NameThisThread(
                     log_prefix + " node " + std::to_string(node_id));
 
                 LOG << "Starting node " << node_id;
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
-                overall_timer->Stop();
+                STOP_TIMER(overall_timer)
                 LOG << "Worker " << node_id << " done!";
 
                 jm.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

@@ -8,8 +8,6 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <vector>
-#include <c7a/common/cyclic_barrier.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 
 namespace c7a {

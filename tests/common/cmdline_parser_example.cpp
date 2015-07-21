@@ -1,7 +1,6 @@
 /*******************************************************************************
  * tests/common/cmdline_parser_example.cpp
  *
- *
  * Part of Project c7a.
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
@@ -11,6 +10,8 @@
 
 // [example]
 #include <c7a/common/cmdline_parser.hpp>
+#include <iostream>
+#include <string>
 
 int main(int argc, char* argv[]) {
     c7a::common::CmdlineParser cp;

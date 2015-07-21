@@ -17,13 +17,16 @@
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
 //! OutputLineEmitter let's you write to files
 //! Each element is written to a new line
 template <class T>
 class OutputLineEmitter
 {
 public:
-    OutputLineEmitter(std::ofstream& file) :
+    explicit OutputLineEmitter(std::ofstream& file) :
         out_(file),
         closed_(false) { }
 
@@ -48,6 +51,8 @@ private:
     std::ofstream& out_;
     bool closed_;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

@@ -12,36 +12,37 @@
 #ifndef C7A_API_WRITE_HEADER
 #define C7A_API_WRITE_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/action_node.hpp>
-#include <c7a/api/dia_node.hpp>
-#include <c7a/api/function_stack.hpp>
 
 #include <string>
 
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 template <typename ValueType, typename ParentStack, typename WriteFunction>
 class WriteNode : public ActionNode
 {
 public:
     using Super = ActionNode;
+    using Super::result_file_;
     using Super::context_;
-    using Super::data_id_;
 
     using ParentInput = typename ParentStack::Input;
 
     WriteNode(Context& ctx,
-              std::shared_ptr<DIANode<ParentInput> > parent,
+              const std::shared_ptr<DIANode<ParentInput> >& parent,
               const ParentStack& parent_stack,
               WriteFunction write_function,
               std::string path_out)
-        : ActionNode(ctx, { parent }),
+        : ActionNode(ctx, { parent }, "Write"),
           write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
-          emit_(context_.data_manager().
-                template GetOutputLineEmitter<std::string>(file_))
+          emit_(file_)
     {
         sLOG << "Creating write node.";
 
@@ -62,8 +63,10 @@ public:
 
     //! Closes the output file
     void Execute() override {
+        this->StartExecutionTimer();
         sLOG << "closing file" << path_out_;
         emit_.Close();
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -71,7 +74,7 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() override {
-        return "[WriteNode] Id:" + data_id_.ToString();
+        return "[WriteNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -120,6 +123,8 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
 
     core::StageBuilder().RunScope(shared_node.get());
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

@@ -12,8 +12,8 @@
 
 #include <c7a/net/lowlevel/socket.hpp>
 
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 
 namespace c7a {

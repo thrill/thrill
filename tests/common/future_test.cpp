@@ -9,7 +9,6 @@
 
 #include <c7a/common/future.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/net/dispatcher.hpp>
 
 #include <string>
 

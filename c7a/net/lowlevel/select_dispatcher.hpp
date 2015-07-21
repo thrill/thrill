@@ -17,8 +17,14 @@
 #include <c7a/net/lowlevel/socket.hpp>
 #include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/exception.hpp>
+#include <c7a/common/config.hpp>
+#include <c7a/common/logger.hpp>
 
+#include <cerrno>
+#include <chrono>
 #include <deque>
+#include <functional>
+#include <vector>
 
 namespace c7a {
 namespace net {
@@ -32,200 +38,99 @@ namespace lowlevel {
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
  */
-template <typename _Cookie>
 class SelectDispatcher : protected Select
 {
     static const bool debug = false;
 
-public:
-    //! cookie data structure for callback
-    typedef _Cookie Cookie;
+    static const bool self_verify_ = common::g_self_verify;
 
-    //! cookie type for file descriptor readiness callbacks
-    typedef std::function<bool (Cookie&)> Callback;
+public:
+    //! type for file descriptor readiness callbacks
+    typedef std::function<bool ()> Callback;
+
+    //! Grow table if needed
+    void CheckSize(int fd) {
+        assert(fd >= 0);
+        assert(fd <= 32000); // this is an arbitrary limit to catch errors.
+        if (static_cast<size_t>(fd) >= watch_.size())
+            watch_.resize(fd + 1);
+    }
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(int fd, const Cookie& c,
-                 const Callback& read_cb,
-                 const Callback& except_cb = DefaultExceptionCallback) {
-        Select::SetRead(fd);
-        Select::SetException(fd);
-        watch_.emplace_back(fd, c, read_cb, nullptr, except_cb);
+    void AddRead(int fd, const Callback& read_cb) {
+        CheckSize(fd);
+        if (!watch_[fd].read_cb.size()) {
+            Select::SetRead(fd);
+            Select::SetException(fd);
+        }
+        watch_[fd].active = true;
+        watch_[fd].read_cb.emplace_back(read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(int fd, const Cookie& c,
-                  const Callback& write_cb,
-                  const Callback& except_cb = DefaultExceptionCallback) {
-        Select::SetWrite(fd);
-        Select::SetException(fd);
-        watch_.emplace_back(fd, c, nullptr, write_cb, except_cb);
+    void AddWrite(int fd, const Callback& write_cb) {
+        CheckSize(fd);
+        if (!watch_[fd].write_cb.size()) {
+            Select::SetWrite(fd);
+            Select::SetException(fd);
+        }
+        watch_[fd].active = true;
+        watch_[fd].write_cb.emplace_back(write_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddReadWrite(int fd, const Cookie& c,
-                      const Callback& read_cb, const Callback& write_cb,
-                      const Callback& except_cb = DefaultExceptionCallback) {
-        Select::SetRead(fd);
-        Select::SetWrite(fd);
-        Select::SetException(fd);
-        watch_.emplace_back(fd, c, read_cb, write_cb, except_cb);
+    void SetExcept(int fd, const Callback& except_cb) {
+        CheckSize(fd);
+        if (!watch_[fd].except_cb) {
+            Select::SetException(fd);
+        }
+        watch_[fd].active = true;
+        watch_[fd].except_cb = except_cb;
     }
 
-    void Dispatch(const std::chrono::milliseconds& timeout) {
+    //! Cancel all callbacks on a given fd.
+    void Cancel(int fd) {
+        CheckSize(fd);
 
-        // copy select fdset
-        Select fdset = *this;
+        if (watch_[fd].read_cb.size() == 0 &&
+            watch_[fd].write_cb.size() == 0)
+            LOG << "SelectDispatcher::Cancel() fd=" << fd
+                << " called with no callbacks registered.";
 
-        if (debug)
-        {
-            std::ostringstream oss;
-            for (Watch& w : watch_) {
-                oss << w.fd << " ";
-            }
-            oss << "| ";
-            for (int i = 0; i < Select::max_fd_ + 1; ++i) {
-                if (Select::InRead(i))
-                    oss << "r" << i << " ";
-                if (Select::InWrite(i))
-                    oss << "w" << i << " ";
-                if (Select::InException(i))
-                    oss << "e" << i << " ";
-            }
-            LOG << "Performing select() on " << oss.str();
-        }
+        Select::ClearRead(fd);
+        Select::ClearWrite(fd);
+        Select::ClearException(fd);
 
-        int r = fdset.select_timeout(timeout.count());
-
-        if (r < 0) {
-            // if we caught a signal, this is intended to interrupt a select().
-            if (errno == EINTR) {
-                LOG << "Dispatch(): select() was interrupted due to a signal.";
-                return;
-            }
-
-            throw Exception("OpenConnections() select() failed!", errno);
-        }
-        if (r == 0) return;
-
-        // save _current_ size, as it may change.
-        size_t watch_size = watch_.size();
-
-        for (size_t i = 0; i != watch_size; ++i)
-        {
-            Watch& w = watch_[i];
-
-            if (w.fd < 0) continue;
-
-            if (fdset.InRead(w.fd))
-            {
-                if (w.read_cb) {
-                    // have to clear the read flag since the callback may add a
-                    // new (other) callback for the same fd.
-                    Select::ClearRead(w.fd);
-                    Select::ClearException(w.fd);
-
-                    if (!w.read_cb(w.cookie)) {
-                        // callback returned false: remove fd from set
-                        w.fd = -1;
-                    }
-                    else {
-                        Select::SetRead(w.fd);
-                        Select::SetException(w.fd);
-                    }
-                }
-                else {
-                    LOG << "SelectDispatcher: got read event for fd "
-                        << w.fd << " without a read handler.";
-
-                    Select::ClearRead(w.fd);
-                }
-            }
-
-            if (w.fd < 0) continue;
-
-            if (fdset.InWrite(w.fd))
-            {
-                if (w.write_cb) {
-                    // have to clear the read flag since the callback may add a
-                    // new (other) callback for the same fd.
-                    Select::ClearWrite(w.fd);
-                    Select::ClearException(w.fd);
-
-                    if (!w.write_cb(w.cookie)) {
-                        // callback returned false: remove fd from set
-                        w.fd = -1;
-                    }
-                    else {
-                        Select::SetWrite(w.fd);
-                        Select::SetException(w.fd);
-                    }
-                }
-                else {
-                    LOG << "SelectDispatcher: got write event for fd "
-                        << w.fd << " without a write handler.";
-
-                    Select::ClearWrite(w.fd);
-                }
-            }
-
-            if (w.fd < 0) continue;
-
-            if (fdset.InException(w.fd))
-            {
-                if (w.except_cb) {
-                    Select::ClearException(w.fd);
-
-                    if (!w.except_cb(w.cookie)) {
-                        // callback returned false: remove fd from set
-                        w.fd = -1;
-                    }
-                    else {
-                        Select::SetException(w.fd);
-                    }
-                }
-                else {
-                    LOG << "SelectDispatcher: got exception event for fd "
-                        << w.fd << " without an exception handler.";
-
-                    Select::ClearException(w.fd);
-                }
-            }
-        }
-
-        // remove finished watchs from deque.
-        while (watch_.size() && watch_.front().fd < 0)
-            watch_.pop_front();
+        Watch& w = watch_[fd];
+        w.read_cb.clear();
+        w.write_cb.clear();
+        w.except_cb = nullptr;
+        w.active = false;
     }
+
+    //! Run one iteration of dispatching select().
+    void Dispatch(const std::chrono::milliseconds& timeout);
 
 private:
-    //! struct to entries per watched file descriptor
+    //! callback vectors per watched file descriptor
     struct Watch
     {
-        int      fd;
-        Cookie&  cookie;
-        Callback read_cb, write_cb, except_cb;
-
-        Watch(int _fd, const Cookie& _cookie,
-              const Callback& _read_cb, const Callback& _write_cb,
-              const Callback& _except_cb)
-            : fd(_fd),
-              cookie(_cookie),
-              read_cb(_read_cb),
-              write_cb(_write_cb),
-              except_cb(_except_cb)
-        { }
+        //! boolean check whether any callbacks are registered
+        bool                 active;
+        //! queue of callbacks for fd.
+        std::deque<Callback> read_cb, write_cb;
+        //! only one exception callback for the fd.
+        Callback             except_cb = nullptr;
     };
 
-    //! handlers for all registered file descriptors, we have to keep them
-    //! address local.
-    std::deque<Watch> watch_;
+    //! handlers for all registered file descriptors. the fd integer range
+    //! should be small enough, otherwise a more complicated data structure is
+    //! needed.
+    std::vector<Watch> watch_;
 
     //! Default exception handler
-    static bool DefaultExceptionCallback(const Cookie& /* c */) {
-        // exception on listen socket ?
-        throw Exception("SelectDispatcher() exception on socket!",
-                        errno);
+    static bool DefaultExceptionCallback() {
+        throw Exception("SelectDispatcher() exception on socket!", errno);
     }
 };
 

@@ -12,6 +12,8 @@
 #ifndef C7A_NET_EXCEPTION_HEADER
 #define C7A_NET_EXCEPTION_HEADER
 
+#include <cstring>
+#include <stdexcept>
 #include <string>
 
 namespace c7a {
@@ -33,7 +35,8 @@ public:
     { }
 
     Exception(const std::string& what, int _errno)
-        : std::runtime_error(what + ": " + strerror(_errno))
+        : std::runtime_error(
+              what + ": [" + std::to_string(_errno) + "] " + strerror(_errno))
     { }
 };
 

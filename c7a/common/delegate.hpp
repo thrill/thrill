@@ -15,9 +15,10 @@
 #ifndef C7A_COMMON_DELEGATE_HEADER
 #define C7A_COMMON_DELEGATE_HEADER
 
+#include <algorithm>
 #include <cassert>
 #include <memory>
-#include <new>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 

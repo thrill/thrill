@@ -15,6 +15,7 @@
 #include <c7a/api/context.hpp>
 
 #include <string>
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -43,9 +44,11 @@ public:
      * computed previously
      */
     DOpNode(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents)
-        : DIANode<ValueType>(ctx, parents) { }
+            const std::vector<std::shared_ptr<DIABase> >& parents, const std::string& stats_tag)
+        : DIANode<ValueType>(ctx, parents, stats_tag) { }
 };
+
+//! \}
 
 } // namespace api
 } // namespace c7a

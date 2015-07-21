@@ -9,18 +9,30 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/endpoint.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/api/bootstrap.hpp>
 
-#include <c7a/c7a.hpp>
 #include <c7a/common/functional.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/generate.hpp>
+#include <c7a/api/prefixsum.hpp>
+#include <c7a/api/read.hpp>
+#include <c7a/api/write.hpp>
+#include <c7a/api/size.hpp>
+#include <c7a/api/sort.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 
 using namespace c7a;
+using c7a::api::Context;
+using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
@@ -70,11 +82,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
                     return std::stoi(line);
                 });
 
-            std::vector<int> out_vec;
-
-            integers.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
+            std::vector<int> out_vec = integers.AllGather();
 
             int i = 1;
             for (int element : out_vec) {
@@ -94,22 +102,19 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index + 1;
+                [](const size_t& index) -> int {
+                    return index + 1;
                 },
                 16);
 
-            std::function<double(int)> double_elements = [](int in) {
-                                                             return (double)2 * in;
-                                                         };
+            std::function<double(int)> double_elements =
+                [](int in) {
+                    return (double)2 * in;
+                };
 
             auto doubled = integers.Map(double_elements);
 
-            std::vector<double> out_vec;
-
-            doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
+            std::vector<double> out_vec = doubled.AllGather();
 
             int i = 1;
             for (int element : out_vec) {
@@ -131,8 +136,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index + 1;
+                [](const size_t& index) -> int {
+                    return index;
                 },
                 16);
 
@@ -143,20 +148,22 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             auto doubled = integers.FlatMap<double>(flatmap_double);
 
-            std::vector<double> out_vec;
-
-            doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
-
-            int i = 1;
-            for (int element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
-            }
+            std::vector<double> out_vec = doubled.AllGather();
 
             ASSERT_EQ(32u, out_vec.size());
-            static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
-            static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
+
+            for (size_t i = 0; i != out_vec.size() / 2; ++i) {
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2 * i);
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2 * (i + 16));
+            }
+
+            static_assert(
+                std::is_same<decltype(doubled)::ItemType, double>::value,
+                "DIA must be double");
+
+            static_assert(
+                std::is_same<decltype(doubled)::StackInput, int>::value,
+                "Node must be int");
         };
 
     api::ExecuteLocalTests(start_func);
@@ -176,11 +183,8 @@ TEST(Operations, PrefixSumCorrectResults) {
 
             auto prefixsums = integers.PrefixSum();
 
-            std::vector<size_t> out_vec;
+            std::vector<size_t> out_vec = prefixsums.AllGather();
 
-            prefixsums.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
             size_t ctr = 0;
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ctr += i + 1;
@@ -210,11 +214,8 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
                     return in1 * in2;
                 }, 1);
 
-            std::vector<size_t> out_vec;
+            std::vector<size_t> out_vec = prefixsums.AllGather();
 
-            prefixsums.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
             size_t ctr = 1;
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ctr *= i + 1;
@@ -245,11 +246,7 @@ TEST(Operations, FilterResultsCorrectly) {
 
             auto doubled = integers.Filter(even);
 
-            std::vector<int> out_vec;
-
-            doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
+            std::vector<int> out_vec = doubled.AllGather();
 
             int i = 1;
 
@@ -270,8 +267,8 @@ TEST(Operations, SortTest) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index + 1;
+                [](const size_t& index) -> int {
+                    return index + 1;
                 },
                 16);
 
@@ -280,8 +277,6 @@ TEST(Operations, SortTest) {
             std::vector<int> out_vec;
 
             sorted.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
 
             for (size_t i = 0; i < out_vec.size() - 1; i++) {
                 ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
@@ -311,11 +306,7 @@ TEST(Operations, DIARefCasting) {
 
             DIARef<int> doubled = integers.Filter(even);
 
-            std::vector<int> out_vec;
-
-            doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
+            std::vector<int> out_vec = doubled.AllGather();
 
             int i = 1;
 
@@ -334,14 +325,10 @@ TEST(Operations, WhileLoop) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto even = [](int in) {
-                            return (in % 2 == 0);
-                        };
-
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) {
-                    return (int)index + 1;
+                [](const size_t& index) -> int {
+                    return index;
                 },
                 16);
 
@@ -350,32 +337,30 @@ TEST(Operations, WhileLoop) {
                                          emit(in);
                                      };
 
-            auto modulo_two = [](int in) {
-                                  return (in % 2);
-                              };
-
-            auto add_function = [](int in1, int in2) {
-                                    return in1 + in2;
+            auto map_multiply = [](int in) {
+                                    return 2 * in;
                                 };
 
-            DIARef<int> doubled = integers.FlatMap(flatmap_duplicate);
+            DIARef<int> squares = integers;
 
-            for (size_t i = 0; i < 10; ++i) {
-                auto evens = doubled.Filter(even);
-                auto reduced = evens.ReduceBy(modulo_two, add_function);
-                doubled = reduced;
+            // run loop four times, inflating DIA of 16 items -> 256
+            for (size_t i = 0; i < 4; ++i) {
+                auto pairs = squares.FlatMap(flatmap_duplicate);
+                auto multiplied = pairs.Map(map_multiply);
+                squares = multiplied;
             }
 
-            // auto evens = doubled.Filter(even);
+            std::vector<int> out_vec = squares.AllGather();
 
-            std::vector<int> out_vec;
+            ASSERT_EQ(256u, out_vec.size());
+            for (size_t i = 0; i != 256; ++i) {
+                ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
+            }
 
-            doubled.AllGather(&out_vec);
-
-            std::sort(out_vec.begin(), out_vec.end());
-
-            ASSERT_EQ(144, out_vec[0]);
-            ASSERT_EQ(1u, out_vec.size());
+            // TODO(sl): fix stage building / refcounting?
+            if (!"This currently does not work, due to StageBuilding") {
+                ASSERT_EQ(256u, squares.Size());
+            }
         };
 
     api::ExecuteLocalTests(start_func);

@@ -19,6 +19,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/net/collective_communication.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <vector>
@@ -92,8 +93,8 @@ public:
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(Context& ctx,
-               std::shared_ptr<DIANode<ParentInput1> > parent1,
-               std::shared_ptr<DIANode<ParentInput2> > parent2,
+               const std::shared_ptr<DIANode<ParentInput1> >& parent1,
+               const std::shared_ptr<DIANode<ParentInput2> >& parent2,
                const ParentStack1& parent_stack1,
                const ParentStack2& parent_stack2,
                ZipFunction zip_function)
@@ -131,6 +132,7 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        StartExecutionTimer();
         MainOp();
         // get data from data manager
         auto it1 = context_.data_manager().
@@ -148,6 +150,7 @@ public:
                 }
             }
         } while (!it1.IsClosed() && !it2.IsClosed());
+        StopExecutionTimer();
     }
 
     /*!
@@ -194,7 +197,7 @@ private:
             //! number of elements of this worker
             size_t numElems = data_manager.GetNumElements(id_[i]);
             //! target channel id
-            net::ChannelId channelId = data_manager.AllocateNetworkChannel();
+            data::ChannelId channelId = data_manager.AllocateChannelId();
             //! exclusive prefixsum of number of elements
             size_t prefixNumElems = channel.PrefixSum(numElems, common::SumOp<ValueType>(), false);
             //! total number of elements, over all worker
@@ -279,11 +282,12 @@ auto DIARef<ValueType, Stack>::Zip(
                (zip_node, zip_stack);
 }
 
+//! \}
+
 } // namespace api
 } // namespace c7a
 
 //! \}
-
 #endif // !C7A_API_ZIP_HEADER
 
 /******************************************************************************/

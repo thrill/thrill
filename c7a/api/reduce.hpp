@@ -15,9 +15,8 @@
 #ifndef C7A_API_REDUCE_HEADER
 #define C7A_API_REDUCE_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
@@ -27,9 +26,11 @@
 #include <vector>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 namespace c7a {
 namespace api {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -65,7 +66,7 @@ class ReduceNode : public DOpNode<ValueType>
     typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
 public:
     /*!
@@ -81,16 +82,15 @@ public:
      * \param reduce_function Reduce function
      */
     ReduceNode(Context& ctx,
-               std::shared_ptr<DIANode<ParentInput> > parent,
+               const std::shared_ptr<DIANode<ParentInput> >& parent,
                const ParentStack& parent_stack,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "Reduce"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_id_(ctx.data_manager().AllocateNetworkChannel()),
-          emitters_(ctx.data_manager().
-                    template GetNetworkEmitters<KeyValuePair>(channel_id_)),
+          channel_(ctx.data_manager().GetNewChannel()),
+          emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_)
     {
@@ -113,7 +113,9 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
     /*!
@@ -134,7 +136,7 @@ public:
      * \return "[ReduceNode]"
      */
     std::string ToString() override {
-        return "[ReduceNode] Id: " + data_id_.ToString();
+        return "[ReduceNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -143,11 +145,12 @@ private:
     //!Reduce function
     ReduceFunction reduce_function_;
 
-    data::ChannelId channel_id_;
+    data::ChannelSPtr channel_;
 
-    std::vector<data::Emitter<KeyValuePair> > emitters_;
+    using emitter = data::BlockWriter;
+    std::vector<emitter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter<KeyValuePair> >
+    core::ReducePreTable<KeyExtractor, ReduceFunction, emitter>
     reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
@@ -172,16 +175,12 @@ private:
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
 
-        auto it = context_.data_manager().
-                  template GetIterator<KeyValuePair>(channel_id_);
-
-        sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                table.Insert(it.Next());
-            }
-        } while (!it.IsFinished());
+        //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+        auto reader = channel_->OpenReader();
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+        while (reader.HasNext()) {
+            table.Insert(reader.template Next<KeyValuePair>());
+        }
 
         table.Flush();
     }
@@ -192,8 +191,6 @@ private:
         emit_func(input);
     }
 };
-
-//! \}
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
@@ -245,6 +242,8 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

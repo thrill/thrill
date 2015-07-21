@@ -58,9 +58,9 @@ struct TreeBuilder
             return mykey;
         }
     }
-#endif // !C7A_COMMON_PARTITIONING_TREE_BUILDER_HEADER
-}
+};
 } //sort
 } //c7a
+#endif // !C7A_COMMON_PARTITIONING_TREE_BUILDER_HEADER
 
 /******************************************************************************/

@@ -11,6 +11,7 @@
  ******************************************************************************/
 
 #include <c7a/common/thread_pool.hpp>
+#include <c7a/common/logger.hpp>
 
 namespace c7a {
 namespace common {

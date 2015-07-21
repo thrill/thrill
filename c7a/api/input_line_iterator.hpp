@@ -14,10 +14,8 @@
 
 #include <c7a/data/serializer.hpp>
 
-#include <stdio.h>
 #include <string>
 #include <fstream>
-#include <iostream>
 
 namespace c7a {
 
