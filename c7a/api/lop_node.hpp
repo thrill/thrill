@@ -52,8 +52,7 @@ public:
     {
         auto save_fn =
             [=](ValueType input) {
-                for (const std::function<void(ValueType)>& func : this->callbacks_)
-                    func(input);
+                local_elements_.push_back(input);
             };
         auto lop_chain = lop_stack.push(save_fn).emit();
         parent->RegisterChild(lop_chain);
@@ -66,7 +65,12 @@ public:
      * Pushes elements to next node.
      * Can be skipped for LOps.
      */
-    void Execute() override { }
+    void Execute() override { 
+        // Push local elements to children
+        for (ValueType item : local_elements_) {
+            this->PushElement(item);
+        }
+    }
 
     /*!
      * Returns "[LOpNode]" and its id as a string.
@@ -75,6 +79,10 @@ public:
     std::string ToString() override {
         return "[LOpNode] Id: " + result_file_.ToString();
     }
+
+private:
+    //! Storage
+    std::vector<ValueType> local_elements_;
 };
 
 //! \}

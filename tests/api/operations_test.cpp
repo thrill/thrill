@@ -326,11 +326,7 @@ TEST(Operations, WhileLoop) {
             for (size_t i = 0; i != 256; ++i) {
                 ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
             }
-
-            // TODO(sl): fix stage building / refcounting?
-            if (!"This currently does not work, due to StageBuilding") {
-                ASSERT_EQ(256u, squares.Size());
-            }
+            ASSERT_EQ(256u, squares.Size());
         };
 
     api::ExecuteLocalTests(start_func);

@@ -81,6 +81,16 @@ public:
         return callbacks_;
     }
 
+    void PushElement(T elem) {
+        // TODO(sl): Build mapping between callbacks and children
+        for (size_t i = 0; i < callbacks_.size(); ++i) {
+            // If child not calculated push element
+            if (this->children_[i]->state() != c7a::api::CALCULATED) {
+                callbacks_[i](elem);
+            }
+        }
+    }
+
 protected:
     //! State of the DIANode. State is NEW on creation.
     kState state_ = NEW;
