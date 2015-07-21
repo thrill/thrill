@@ -62,6 +62,7 @@ using ChannelId = size_t;
 template <size_t BlockSize = default_block_size>
 class ChannelBase
 {
+public:
     using BlockQueue = data::BlockQueue<BlockSize>;
     using BlockQueueSource = data::BlockQueueSource<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
@@ -73,9 +74,12 @@ class ChannelBase
     using ChannelSink = data::ChannelSink<BlockSize>;
     using File = data::FileBase<BlockSize>;
 
-public:
+    using Reader = BlockQueueReader;
+    using ConcatReader = ConcatBlockReader;
+
     //! Creates a new channel instance
-    ChannelBase(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
+    ChannelBase(const ChannelId& id, net::Group& group,
+                net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
           group_(group),
