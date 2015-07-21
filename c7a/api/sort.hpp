@@ -176,14 +176,15 @@ private:
     }
 
     void MainOp() {
-        size_t num_workers = context_.number_worker();
-        size_t samplesize = std::ceil(log2((double)data_.size()) *
-                                      (1 / (desired_imbalance * desired_imbalance)));
-
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
         size_t prefix_elem = channel.PrefixSum(data_.size());
         size_t total_elem = channel.AllReduce(data_.size());
+        
+        size_t num_workers = context_.number_worker();
+        size_t samplesize = std::ceil(log2((double)total_elem) *
+                                      (1 / (desired_imbalance * desired_imbalance)));
+
 
         LOG << prefix_elem << " elements, out of " << total_elem;
 
