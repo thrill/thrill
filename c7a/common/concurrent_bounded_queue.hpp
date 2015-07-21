@@ -16,23 +16,14 @@
 
 #include <tbb/concurrent_queue.h>
 
-#else // !HAVE_INTELTBB
+#endif // HAVE_INTELTBB
 
 #include <queue>
 #include <mutex>
 #include <condition_variable>
 
-#endif // !HAVE_INTELTBB
-
 namespace c7a {
 namespace common {
-
-#if HAVE_INTELTBB
-
-template <typename T>
-using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
-
-#else   // !HAVE_INTELTBB
 
 /*!
  * This is a queue, similar to std::queue and tbb::concurrent_bounded_queue,
@@ -42,9 +33,12 @@ using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
  * Not all methods of tbb::concurrent_bounded_queue<> are available here, please
  * add them if you need them. However, NEVER add any other methods that you
  * might need.
+ *
+ * StyleGuide is violated, because signatures MUST match those in the TBB
+ * version.
  */
 template <typename T>
-class ConcurrentBoundedQueue
+class OurConcurrentBoundedQueue
 {
 public:
     typedef T value_type;
@@ -128,6 +122,16 @@ public:
         return queue_.size();
     }
 };
+
+#if HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
+
+#else   // !HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 
 #endif // !HAVE_INTELTBB
 
