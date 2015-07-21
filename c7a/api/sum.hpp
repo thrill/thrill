@@ -59,7 +59,7 @@ public:
         parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~SumNode() { 
+    virtual ~SumNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -94,7 +94,7 @@ private:
     // Global sum resulting from all reduce.
     ValueType global_sum_;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp(ValueType input) {

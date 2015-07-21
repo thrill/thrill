@@ -48,8 +48,8 @@ public:
         sLOG << "Creating write node.";
 
         auto pre_op_fn = [=](ValueType input) {
-                               PreOp(input);
-                           };
+                             PreOp(input);
+                         };
         // close the function stack with our pre op and register it at parent
         // node for output
         lop_chain_ = parent_stack.push(pre_op_fn).emit();
@@ -60,7 +60,7 @@ public:
         emit_(write_function_(input));
     }
 
-    virtual ~WriteNode() { 
+    virtual ~WriteNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -93,7 +93,7 @@ private:
     //! Emitter to file
     data::OutputLineEmitter<std::string> emit_;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 
     static const bool debug = false;

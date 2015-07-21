@@ -53,7 +53,7 @@ public:
         parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~SizeNode() { 
+    virtual ~SizeNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -86,7 +86,7 @@ private:
     // Global size resulting from all reduce.
     size_t global_size_ = 0;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp() { }

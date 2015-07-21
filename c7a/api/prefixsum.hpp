@@ -60,7 +60,7 @@ public:
         parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~PrefixSumNode() { 
+    virtual ~PrefixSumNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -102,7 +102,7 @@ private:
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 
     //! PreOp: compute local prefixsum and store items.

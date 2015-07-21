@@ -61,7 +61,7 @@ public:
     }
 
     //! Virtual destructor for a LOpNode.
-    virtual ~LOpNode() { 
+    virtual ~LOpNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -69,7 +69,7 @@ public:
      * Pushes elements to next node.
      * Can be skipped for LOps.
      */
-    void Execute() override { 
+    void Execute() override {
         // Push local elements to children
         writer_.Close();
         data::File::Reader reader = file_.GetReader();
@@ -92,7 +92,7 @@ private:
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 };
 
@@ -126,7 +126,7 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>
-        (shared_node, lop_stack);
+               (shared_node, lop_stack);
 }
 
 //! \}
