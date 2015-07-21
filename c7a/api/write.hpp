@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -14,10 +15,9 @@
 
 #include <c7a/api/action_node.hpp>
 #include <c7a/core/stage_builder.hpp>
-#include <c7a/data/serializer.hpp>
 
-#include <string>
 #include <fstream>
+#include <string>
 
 namespace c7a {
 namespace api {
@@ -25,9 +25,11 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentStack, typename WriteFunction>
+template <typename ValueType, typename ParentStack>
 class WriteNode : public ActionNode
 {
+    static const bool debug = false;
+
 public:
     using Super = ActionNode;
     using Super::result_file_;
@@ -38,10 +40,8 @@ public:
     WriteNode(Context& ctx,
               const std::shared_ptr<DIANode<ParentInput> >& parent,
               const ParentStack& parent_stack,
-              WriteFunction write_function,
-              std::string path_out)
+              const std::string& path_out)
         : ActionNode(ctx, { parent }, "Write"),
-          write_function_(write_function),
           path_out_(path_out),
           file_(path_out_),
           emit_(file_),
@@ -59,7 +59,7 @@ public:
     }
 
     void PreOp(ValueType input) {
-        emit_(write_function_(input));
+        emit_(input);
     }
 
     virtual ~WriteNode() {
@@ -83,8 +83,8 @@ public:
     }
 
 protected:
-    //! OutputLineEmitter let's you write to files. Each element is written to a
-    //! new line using ostream.
+    //! OutputLineEmitter let's you write to files. Each element is written
+    //! using ostream.
     class OutputLineEmitter
     {
     public:
@@ -92,8 +92,8 @@ protected:
             : out_(file) { }
 
         //! write item out using ostream formatting / serialization.
-        void operator () (const std::string& x) {
-            out_ << x << std::endl;
+        void operator () (const ValueType& v) {
+            out_ << v;
         }
 
         //! Flushes and closes the block (cannot be undone)
@@ -118,9 +118,6 @@ protected:
     };
 
 private:
-    //! The write function which is applied on every line read.
-    WriteFunction write_function_;
-
     //! Path of the output file.
     std::string path_out_;
 
@@ -132,36 +129,18 @@ private:
 
     std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
-
-    static const bool debug = false;
 };
 
 template <typename ValueType, typename Stack>
-template <typename WriteFunction>
 void DIARef<ValueType, Stack>::WriteToFileSystem(
-    const std::string& filepath,
-    const WriteFunction& write_function) const {
+    const std::string& filepath) const {
 
-    using WriteResultNode = WriteNode<
-              ValueType, Stack, WriteFunction>;
-
-    static_assert(
-        std::is_same<
-            typename std::decay<typename common::FunctionTraits<WriteFunction>::template arg<0> >::type,
-            ValueType>::value,
-        "WriteFunction has the wrong input type");
-
-    static_assert(
-        std::is_same<
-            typename common::FunctionTraits<WriteFunction>::result_type,
-            std::string>::value,
-        "WriteFunction should have std::string as output type.");
+    using WriteResultNode = WriteNode<ValueType, Stack>;
 
     auto shared_node =
         std::make_shared<WriteResultNode>(node_->context(),
                                           node_,
                                           stack_,
-                                          write_function,
                                           filepath);
 
     core::StageBuilder().RunScope(shared_node.get());
