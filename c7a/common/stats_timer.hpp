@@ -17,10 +17,10 @@
 #ifndef C7A_COMMON_STATS_TIMER_HEADER
 #define C7A_COMMON_STATS_TIMER_HEADER
 
-#include <chrono>
 #include <cassert>
-#include <ostream>
+#include <chrono>
 #include <memory>
+#include <ostream>
 
 namespace c7a {
 namespace common {

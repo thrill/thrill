@@ -9,13 +9,12 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/data/serializer.hpp>
+#include <gtest/gtest.h>
 
-#include <utility>
 #include <string>
-#include <typeinfo>
 #include <tuple>
-
-#include "gtest/gtest.h"
+#include <typeinfo>
+#include <utility>
 
 using namespace c7a::data;
 

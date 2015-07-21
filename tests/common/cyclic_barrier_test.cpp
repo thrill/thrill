@@ -8,15 +8,15 @@
  ******************************************************************************/
 
 #include <c7a/common/cyclic_barrier.hpp>
+#include <gtest/gtest.h>
 
-#include <thread>
-#include <atomic>
-#include <vector>
-#include <cstdlib>
-#include <time.h>
 #include <unistd.h>
 
-#include "gtest/gtest.h"
+#include <atomic>
+#include <cstdlib>
+#include <ctime>
+#include <thread>
+#include <vector>
 
 using namespace c7a::common;
 

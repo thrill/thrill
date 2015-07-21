@@ -13,15 +13,15 @@
 #ifndef C7A_NET_MANAGER_HEADER
 #define C7A_NET_MANAGER_HEADER
 
-#include <c7a/net/endpoint.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/dispatcher.hpp>
+#include <c7a/net/endpoint.hpp>
 #include <c7a/net/group.hpp>
 
-#include <vector>
+#include <deque>
 #include <string>
 #include <type_traits>
-#include <deque>
+#include <vector>
 
 namespace c7a {
 namespace net {

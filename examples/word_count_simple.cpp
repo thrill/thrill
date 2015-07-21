@@ -7,15 +7,15 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <random>
-#include <thread>
-#include <string>
-
 #include "word_count_user_program.cpp"
 
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/common/cmdline_parser.hpp>
 #include <c7a/c7a.hpp>
+#include <c7a/common/cmdline_parser.hpp>
+
+#include <random>
+#include <string>
+#include <thread>
 
 using c7a::api::ExecuteLocalThreadsTCP;
 using c7a::api::Context;

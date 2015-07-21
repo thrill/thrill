@@ -12,12 +12,12 @@
 #ifndef C7A_API_ALLGATHER_HEADER
 #define C7A_API_ALLGATHER_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/net/collective_communication.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/api/action_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dia_node.hpp>
 #include <c7a/api/function_stack.hpp>
+#include <c7a/data/manager.hpp>
+#include <c7a/net/collective_communication.hpp>
 
 #include <string>
 #include <vector>
@@ -46,7 +46,8 @@ public:
         : ActionNode(ctx, { parent }, "AllGather"),
           out_vector_(out_vector),
           channel_(ctx.data_manager().GetNewChannel()),
-          emitters_(channel_->OpenWriters())
+          emitters_(channel_->OpenWriters()),
+          parent_(parent)
     {
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
@@ -54,8 +55,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_function).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_function).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
     void PreOp(ValueType element) {
@@ -64,7 +65,9 @@ public:
         }
     }
 
-    virtual ~AllGatherNode() { }
+    virtual ~AllGatherNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Closes the output file
     void Execute() override {
@@ -96,6 +99,9 @@ private:
 
     data::ChannelSPtr channel_;
     std::vector<data::BlockWriter> emitters_;
+
+    std::shared_ptr<DIANode<ParentInput>> parent_; 
+    common::delegate<void(ParentInput)> lop_chain_; 
 
     static const bool debug = false;
 };

@@ -14,16 +14,16 @@
 #define C7A_API_BOOTSTRAP_HEADER
 
 #include <c7a/api/context.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/common/stats.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/stats.hpp>
+#include <c7a/core/job_manager.hpp>
 
-#include <tuple>
-#include <thread>
 #include <atomic>
 #include <random>
 #include <string>
+#include <thread>
+#include <tuple>
 #include <vector>
 
 namespace c7a {

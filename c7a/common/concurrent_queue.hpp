@@ -18,8 +18,8 @@
 
 #endif // HAVE_INTELTBB
 
-#include <queue>
 #include <mutex>
+#include <queue>
 
 namespace c7a {
 namespace common {

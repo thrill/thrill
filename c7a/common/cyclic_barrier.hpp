@@ -12,9 +12,9 @@
 #ifndef C7A_COMMON_CYCLIC_BARRIER_HEADER
 #define C7A_COMMON_CYCLIC_BARRIER_HEADER
 
-#include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
 
 namespace c7a {
 namespace common {
