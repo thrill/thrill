@@ -113,7 +113,6 @@ if (OFF)
 
   build_only(data/manager_channels_test)
   build_test(data/iterator_test)
-  build_test(data/stream_test)
 
   #build_test(core/post_hash_table_test)
   #build_test(core/pre_hash_table_probing_test)
