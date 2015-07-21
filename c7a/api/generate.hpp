@@ -134,9 +134,9 @@ auto Generate(Context & ctx,
 
     static_assert(
         std::is_convertible<
-        size_t,
-        typename common::FunctionTraits<GeneratorFunction>::template arg<0>
-        >::value,
+            size_t,
+            typename common::FunctionTraits<GeneratorFunction>::template arg<0>
+            >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
     auto shared_node =

@@ -17,8 +17,8 @@
 #define C7A_COMMON_ITEM_SERIALIZER_TOOLS_HEADER
 
 #include <cstdint>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 namespace c7a {
 namespace common {
