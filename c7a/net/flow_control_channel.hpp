@@ -150,7 +150,7 @@ public:
 
         T res = value;
         //return value when computing non-exclusive prefix sum
-        T exclusiveRes;
+        T exclusiveRes = T();
         std::vector<T> localPrefixBuffer(threadCount);
 
         //Local Reduce
