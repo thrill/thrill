@@ -48,19 +48,21 @@ public:
         : DOpNode<ValueType>(ctx, { parent }, "PrefixSum"),
           sum_function_(sum_function),
           local_sum_(neutral_element),
-          neutral_element_(neutral_element)
+          neutral_element_(neutral_element),
+          parent_(parent)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~PrefixSumNode() { }
+    virtual ~PrefixSumNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     //! Executes the sum operation.
     void Execute() override {
@@ -76,12 +78,7 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
-                         return emit_func(t);
-                     };
-
-        return MakeFunctionStack<ValueType>(id_fn);
+        return FunctionStack<ValueType>();
     }
 
     /*!
@@ -104,6 +101,9 @@ private:
     data::File file_;
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     //! PreOp: compute local prefixsum and store items.
     void PreOp(const ValueType& input) {

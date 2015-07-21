@@ -12,6 +12,7 @@
 #define C7A_API_LOP_NODE_HEADER
 
 #include <c7a/api/dia_node.hpp>
+#include <c7a/data/file.hpp>
 
 #include <string>
 #include <vector>
@@ -48,25 +49,34 @@ public:
     LOpNode(Context& ctx,
             const std::shared_ptr<DIANode<ParentInput> >& parent,
             const ParentStack& lop_stack, const std::string& stats_tag)
-        : DIANode<ValueType>(ctx, { parent }, stats_tag)
+        : DIANode<ValueType>(ctx, { parent }, stats_tag),
+          parent_(parent)
     {
         auto save_fn =
             [=](ValueType input) {
-                for (const std::function<void(ValueType)>& func : this->callbacks_)
-                    func(input);
+                writer_(input);
             };
-        auto lop_chain = lop_stack.push(save_fn).emit();
-        parent->RegisterChild(lop_chain);
+        lop_chain_ = lop_stack.push(save_fn).emit();
+        parent_->RegisterChild(lop_chain_);
     }
 
     //! Virtual destructor for a LOpNode.
-    virtual ~LOpNode() { }
+    virtual ~LOpNode() { 
+        parent_->UnregisterChild(lop_chain_);
+    }
 
     /*!
      * Pushes elements to next node.
      * Can be skipped for LOps.
      */
-    void Execute() override { }
+    void Execute() override { 
+        // Push local elements to children
+        writer_.Close();
+        data::File::Reader reader = file_.GetReader();
+        for (size_t i = 0; i < file_.NumItems(); ++i) {
+            this->PushElement(reader.Next<ValueType>());
+        }
+    }
 
     /*!
      * Returns "[LOpNode]" and its id as a string.
@@ -75,6 +85,15 @@ public:
     std::string ToString() override {
         return "[LOpNode] Id: " + result_file_.ToString();
     }
+
+private:
+    //! Local data file
+    data::File file_;
+    //! Data writer to local file (only active in PreOp).
+    data::File::Writer writer_ = file_.GetWriter();
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 };
 
 template <typename ValueType, typename Stack>
