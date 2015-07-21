@@ -106,59 +106,6 @@ public:
         return _GetOrCreateChannel(id);
     }
 
-#if FIXUP_LATER
-    //! Scatters the BufferChain to all workers
-    //!
-    //! elements from 0..offset[0] are sent to the first worker,
-    //! elements from (offset[0] + 1)..offset[1] are sent to the second worker.
-    //! elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
-    //! The offset values range from 0..Manager::GetNumElements()
-    //! The number of given offsets must be equal to the net::Group::Size()
-    //!/param source BufferChain containing the data to be scattered
-    //!/param target id of the channel that will hold the resulting data. This
-    //               channel must be created with CreateOrderPreservingChannel.
-    //               Make sure *all* workers allocated this channel *before* any
-    //               worker sends data
-    //!/param offsets - as described above. offsets.size must be equal to group.size
-    template <class T>
-    void Scatter(const std::shared_ptr<BufferChain>& source,
-                 const ChannelId target, std::vector<size_t> offsets) {
-        //potential problem: channel was created by reception of packets,
-        //which would cause the channel to be not order-preserving.
-        assert(HasChannel(target));
-        assert(offsets.size() == group_->Size());
-
-        size_t sent_elements = 0;
-        size_t elements_to_send = 0;
-        Iterator<T> source_it(*source);
-        for (size_t worker_id = 0; worker_id < offsets.size(); worker_id++) {
-            elements_to_send = offsets[worker_id] - sent_elements;
-            if (worker_id == group_->MyRank()) {
-                auto channel = channels_[target];
-                sLOG << "sending" << elements_to_send << "elements via channel" << target << "to self";
-                MoveFromItToTarget<T>(
-                    source_it,
-                    [&channel, worker_id](const void* base, size_t length, size_t elements) {
-                        // -tb removed for now.
-                        //channel->ReceiveLocalData(base, length, elements, worker_id);
-                    }, elements_to_send);
-                channel->CloseLoopback();
-            }
-            else {
-                SocketTarget sink(
-                    &dispatcher_,
-                    &(group_->connection(worker_id)),
-                    target,
-                    group_->MyRank());
-                sLOG << "sending" << elements_to_send << "elements via channel" << target << "to worker" << worker_id;
-                MoveFromItToTarget<T>(source_it, [&sink](const void* base, size_t length, size_t elements) { sink.Pipe(base, length, elements); }, elements_to_send);
-                sink.Close();
-            }
-            sent_elements += elements_to_send;
-        }
-    }
-#endif      // FIXUP_LATER
-
 private:
     static const bool debug = false;
 

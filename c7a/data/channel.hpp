@@ -149,6 +149,41 @@ public:
         return ConcatBlockReader(ConcatBlockSource(result));
     }
 
+    /*!
+     * Scatters a File to many workers
+     *
+     * elements from 0..offset[0] are sent to the first worker,
+     * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
+     * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
+     * The offset values range from 0..Manager::GetNumElements().
+     * The number of given offsets must be equal to the net::Group::Size().
+     *
+     * /param source File containing the data to be scattered.
+     *
+     * /param offsets - as described above. offsets.size must be equal to group.size
+     */
+    template <typename Type>
+    void Scatter(const File& source, const std::vector<size_t>& offsets) {
+        assert(offsets.size() == group_.Size());
+
+        // current item offset in Reader
+        size_t current = 0;
+        typename File::Reader reader = source.GetReader();
+
+        std::vector<BlockWriter> writers = OpenWriters();
+
+        for (size_t worker_id = 0; worker_id < offsets.size(); ++worker_id) {
+            // write [current,limit) to this worker
+            size_t limit = offsets[worker_id];
+            for ( ; current < limit; ++current) {
+                assert(reader.HasNext());
+                // move over one item (with deserialization and serialization)
+                writers[worker_id](reader.template Next<Type>());
+            }
+            writers[worker_id].Close();
+        }
+    }
+
     //! shuts the channel down.
     void Close() {
         // close all sinks, this should emit sentinel to all other workers.
