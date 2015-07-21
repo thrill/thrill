@@ -16,8 +16,8 @@
 #define C7A_API_REDUCE_HEADER
 
 #include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
 #include <c7a/common/delegate.hpp>
+#include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
@@ -107,7 +107,7 @@ public:
     }
 
     //! Virtual destructor for a ReduceNode.
-    virtual ~ReduceNode() { 
+    virtual ~ReduceNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -156,7 +156,7 @@ private:
     core::ReducePreTable<KeyExtractor, ReduceFunction, emitter>
     reduce_pre_table_;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each

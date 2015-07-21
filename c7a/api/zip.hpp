@@ -16,9 +16,9 @@
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/net/collective_communication.hpp>
-#include <c7a/data/file.hpp>
 #include <c7a/data/channel_multiplexer.hpp>
+#include <c7a/data/file.hpp>
+#include <c7a/net/collective_communication.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -138,7 +138,8 @@ public:
         if (dia_min_size_ != 0) {
             // get inbound readers from all Channels
             std::vector<data::Channel::ConcatReader> readers {
-                channels_[0]->OpenReader(), channels_[1]->OpenReader() };
+                channels_[0]->OpenReader(), channels_[1]->OpenReader()
+            };
 
             size_t result_count = 0;
 
@@ -179,9 +180,9 @@ private:
     ZipFunction zip_function_;
 
     //! Shared pointer holding reference to parent0
-    std::shared_ptr<DIANode<ParentInput0>> parent0_;
+    std::shared_ptr<DIANode<ParentInput0> > parent0_;
     //! Shared pointer holding reference to parent1
-    std::shared_ptr<DIANode<ParentInput1>> parent1_;
+    std::shared_ptr<DIANode<ParentInput1> > parent1_;
 
     //! Collapse function stack methods registered at parent0
     common::delegate<void(ParentInput0)> lop_chain0_;
