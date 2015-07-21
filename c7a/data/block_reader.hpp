@@ -75,6 +75,15 @@ public:
         return true;
     }
 
+    //! Return complete contents until empty as a std::vector<T>. Use this only
+    //! if you are sure that it will fit into memory, -> only use it for tests.
+    template <typename T>
+    std::vector<T> ReadComplete() {
+        std::vector<T> out;
+        while (HasNext()) out.emplace_back(Next<T>());
+        return out;
+    }
+
     //! \}
 
     //! \name Cursor Reading Methods
