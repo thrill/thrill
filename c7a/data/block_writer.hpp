@@ -106,6 +106,7 @@ public:
     //! operator() appends a complete item
     template <typename T>
     BlockWriterBase& operator () (const T& x) {
+        assert(!closed_);
         MarkItem();
         if (self_verify) {
             // for self-verification, prefix T with its hash code
@@ -122,6 +123,7 @@ public:
 
     //! Append a memory range to the block
     BlockWriterBase & Append(const void* data, size_t size) {
+        assert(!closed_);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
@@ -147,6 +149,8 @@ public:
 
     //! Append a single byte to the block
     BlockWriterBase & PutByte(Byte data) {
+        assert(!closed_);
+
         if (current_ < end_) {
             *current_++ = data;
         }
