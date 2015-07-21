@@ -120,7 +120,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
             }
 
             ASSERT_EQ(16u, out_vec.size());
-            static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
+            static_assert(std::is_same<decltype(doubled)::ValueType, double>::value, "DIA must be double");
             static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
         };
 
@@ -156,7 +156,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             }
 
             static_assert(
-                std::is_same<decltype(doubled)::ItemType, double>::value,
+                std::is_same<decltype(doubled)::ValueType, double>::value,
                 "DIA must be double");
 
             static_assert(

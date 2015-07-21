@@ -52,7 +52,7 @@ class DIANode;
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType, typename _Stack = FunctionStack<ValueType> >
+template <typename _ValueType, typename _Stack = FunctionStack<_ValueType> >
 class DIARef
 {
     friend class Context;
@@ -71,7 +71,7 @@ public:
 
     //! type of the items virtually in the DIA, which is the type emitted by the
     //! current LOp stack.
-    using ItemType = ValueType;
+    using ValueType = _ValueType;
 
     //! type of pointer to the real node object implementation. This object has
     //! base item type StackInput which is transformed by the function stack

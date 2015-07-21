@@ -325,7 +325,7 @@ auto DIARef<ValueType, Stack>::Zip(
 
     static_assert(
         std::is_convertible<
-            typename SecondDIA::ItemType,
+            typename SecondDIA::ValueType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type");
