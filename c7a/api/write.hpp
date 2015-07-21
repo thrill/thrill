@@ -14,8 +14,10 @@
 
 #include <c7a/api/action_node.hpp>
 #include <c7a/core/stage_builder.hpp>
+#include <c7a/data/serializer.hpp>
 
 #include <string>
+#include <fstream>
 
 namespace c7a {
 namespace api {
@@ -80,6 +82,41 @@ public:
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 
+protected:
+    //! OutputLineEmitter let's you write to files. Each element is written to a
+    //! new line using ostream.
+    class OutputLineEmitter
+    {
+    public:
+        explicit OutputLineEmitter(std::ofstream& file)
+            : out_(file) { }
+
+        //! write item out using ostream formatting / serialization.
+        void operator () (const std::string& x) {
+            out_ << x << std::endl;
+        }
+
+        //! Flushes and closes the block (cannot be undone)
+        //! No further emitt operations can be done afterwards.
+        void Close() {
+            assert(!closed_);
+            closed_ = true;
+            out_.close();
+        }
+
+        //! Writes the data to the target without closing the emitter
+        void Flush() {
+            out_.flush();
+        }
+
+    private:
+        //! output stream
+        std::ofstream& out_;
+
+        //! whether the output stream is closed.
+        bool closed_ = false;
+    };
+
 private:
     //! The write function which is applied on every line read.
     WriteFunction write_function_;
@@ -91,7 +128,7 @@ private:
     std::ofstream file_;
 
     //! Emitter to file
-    data::OutputLineEmitter<std::string> emit_;
+    OutputLineEmitter emit_;
 
     std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
