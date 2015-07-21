@@ -2,6 +2,12 @@
 
 #todo: Check for g+ 4.9.2 loaded. 
 
+GCC=$(gcc --version | grep "4.9.2")
+if [ -z "$GCC" ]; then 
+  echo "GCC version is not 4.9.2. Please load the according module"
+  exit -1
+fi
+
 function printVars {
   echo "SLURM_NNODES: $SLURM_NNODES"
   echo "SLURM_NTASKS: $SLURM_NTASKS"
