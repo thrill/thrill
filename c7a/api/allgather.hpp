@@ -63,7 +63,7 @@ public:
         }
     }
 
-    virtual ~AllGatherNode() { 
+    virtual ~AllGatherNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -98,8 +98,8 @@ private:
     data::ChannelPtr channel_;
     std::vector<data::BlockWriter> emitters_;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_; 
-    common::delegate<void(ParentInput)> lop_chain_; 
+    std::shared_ptr<DIANode<ParentInput> > parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     static const bool debug = false;
 };

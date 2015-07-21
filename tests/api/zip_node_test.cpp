@@ -8,12 +8,12 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/api/allgather.hpp>
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/api/generate.hpp>
-#include <c7a/api/allgather.hpp>
+#include <c7a/api/lop_node.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/c7a.hpp>
-#include <c7a/api/lop_node.hpp>
 
 #include <gtest/gtest.h>
 
@@ -43,7 +43,7 @@ struct Serializer<Archive, MyStruct>
     static MyStruct deserialize(Archive& ar) {
         int a = Serializer<Archive, int>::deserialize(ar);
         int b = Serializer<Archive, int>::deserialize(ar);
-        return MyStruct(a,b);
+        return MyStruct(a, b);
     }
     static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
                                     Serializer<Archive, int>::fixed_size);

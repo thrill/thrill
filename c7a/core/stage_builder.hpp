@@ -36,7 +36,7 @@ public:
         LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
         node_->Execute();
     }
-    DIABase* node() {
+    DIABase * node() {
         return node_;
     }
 

@@ -13,8 +13,8 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_base.hpp>
-#include <c7a/common/stats.hpp>
 #include <c7a/common/delegate.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 
 #include <string>
@@ -80,10 +80,10 @@ public:
 
     void UnregisterChild(common::delegate<void(T)> callback) {
         this->callbacks_.erase(
-                std::remove(this->callbacks_.begin(), 
-                            this->callbacks_.end(), 
-                            callback), 
-                this->callbacks_.end());
+            std::remove(this->callbacks_.begin(),
+                        this->callbacks_.end(),
+                        callback),
+            this->callbacks_.end());
     }
 
     std::vector<common::delegate<void(T)> > & callbacks() {
