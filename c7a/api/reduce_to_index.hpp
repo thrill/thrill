@@ -17,6 +17,7 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/delegate.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
@@ -199,7 +200,7 @@ private:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)>,
+                                          common::delegate<void(ValueType)>,
                                           true>;
 
         size_t min_local_index =
