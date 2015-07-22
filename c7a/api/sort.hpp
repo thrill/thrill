@@ -26,52 +26,48 @@
 namespace c7a {
 namespace api {
 
-namespace {
+//! \addtogroup api Interface
+//! \{
+
+namespace sort_local {
 
 template <typename ValueType>
 struct TreeBuilder
 {
-
     ValueType * tree_;
     ValueType * samples_;
-    size_t    index_;
+    size_t    index_ = 0;
     size_t    ssplitter;
 
-    TreeBuilder(ValueType* splitter_tree, // Target: tree. Size of 'number of splitter'
-                ValueType* samples,       // Source: sorted splitters. Size of 'number of splitter'
-                size_t ssplitter)         // Number of splitter
+    /*!
+     * Target: tree. Size of 'number of splitter'
+     * Source: sorted splitters. Size of 'number of splitter'
+     * Number of splitter
+     */
+    TreeBuilder(ValueType* splitter_tree,
+                ValueType* samples,
+                size_t ssplitter)
         : tree_(splitter_tree),
           samples_(samples),
-          index_(0),
           ssplitter(ssplitter) {
         recurse(samples, samples + ssplitter, 1);
     }
 
-    ssize_t   snum(ValueType* s) const {
-        return (ssize_t)(s - samples_);
-    }
-
-    ValueType recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
+    void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
 
         // pick middle element as splitter
         ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
-
-        ValueType mykey = tree_[treeidx] = *mid;
+        tree_[treeidx] = *mid;
 
         ValueType* midlo = mid, * midhi = mid + 1;
 
         if (2 * treeidx < ssplitter)
         {
             recurse(lo, midlo, 2 * treeidx + 0);
-
-            return recurse(midhi, hi, 2 * treeidx + 1);
-        }
-        else
-        {
-            return mykey;
+            recurse(midhi, hi, 2 * treeidx + 1);
         }
     }
-};	
+};
 
 template <class T1, typename CompareFunction>
 struct BucketEmitter
@@ -80,9 +76,9 @@ struct BucketEmitter
         return !(compare_function(ele1, ele2) || compare_function(ele2, ele1));
     }
 
-	static size_t RoundDown(size_t ele, size_t by) {
-		return ((ele) & ~((by) - 1));
-	}
+        static size_t RoundDown(size_t ele, size_t by) {
+                return ((ele) & ~((by) - 1));
+        }
 
     static void emitToBuckets(
         const T1* const a,
@@ -160,10 +156,7 @@ struct BucketEmitter
     }
 };
 
-}
-
-//! \addtogroup api Interface
-//! \{
+} // namespace sort_local
 
 /*!
  * A DIANode which performs a Sort operation. Sort sorts a DIA according to a given
@@ -215,7 +208,7 @@ public:
         parent_->RegisterChild(lop_chain_);
     }
 
-    virtual ~SortNode() {        
+    virtual ~SortNode() {
         parent_->UnregisterChild(lop_chain_);
     }
 
@@ -265,9 +258,9 @@ private:
 
     //epsilon
     double desired_imbalance = 0.25;
-    
-    std::shared_ptr<DIANode<ParentInput>> parent_; 
-    common::delegate<void(ParentInput)> lop_chain_; 
+
+    std::shared_ptr<DIANode<ParentInput>> parent_;
+    common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp(ValueType input) {
         data_.push_back(input);
@@ -311,7 +304,7 @@ private:
 
         size_t prefix_elem = channel.PrefixSum(data_.size());
         size_t total_elem = channel.AllReduce(data_.size());
-        
+
         size_t num_workers = context_.number_worker();
         size_t samplesize = std::ceil(log2((double)total_elem) *
                                       (1 / (desired_imbalance * desired_imbalance)));
@@ -363,11 +356,11 @@ private:
             }
         }
 
-        TreeBuilder<ValueType>(splitter_tree,
+        sort_local::TreeBuilder<ValueType>(splitter_tree,
                                      splitters.data(),
                                      splitter_count_algo);
 
-        BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
+        sort_local::BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
             data_.data(),
             data_.size(),
             splitter_tree, // Tree. sizeof |splitter|
@@ -394,7 +387,7 @@ private:
             data_.push_back(reader.template Next<ValueType>());
         }
 
-		LOG << "node " << context_.rank() << " : " << data_.size();
+                LOG << "node " << context_.rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
 
