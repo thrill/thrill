@@ -53,8 +53,8 @@ public:
     using Writer = BlockWriterBase<BlockSize>;
     using Reader = BlockReader<BlockSource>;
 
-    void Append(VirtualBlock&& vb) override {
-        queue_.emplace(std::move(vb));
+    void AppendBlock(const VirtualBlock& vb) override {
+        queue_.emplace(vb);
     }
 
     void Close() override {

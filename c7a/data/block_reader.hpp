@@ -49,6 +49,9 @@ public:
     explicit BlockReader(BlockSource&& source)
         : source_(std::move(source)) { }
 
+    //! Return reference to enclosed BlockSource
+    BlockSource & source() { return source_; }
+
     //! \name Reading (Generic) Items
     //! \{
 

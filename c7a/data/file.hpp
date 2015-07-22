@@ -61,7 +61,7 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void Append(VirtualBlock&& vb) {
+    void AppendBlock(const VirtualBlock& vb) {
         assert(!closed_);
         if (vb.bytes_used == 0) return;
         blocks_.push_back(vb.block);

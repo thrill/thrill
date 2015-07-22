@@ -55,7 +55,7 @@ public:
     ChannelSink(ChannelSink&&) = default;
 
     //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
-    void Append(VirtualBlock&& vb) override {
+    void AppendBlock(const VirtualBlock& vb) override {
         if (vb.bytes_used == 0) return;
 
         StreamBlockHeader header;
