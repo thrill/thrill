@@ -173,26 +173,29 @@ public:
 
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = typename data::VirtualBlock<BlockSize>;
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
-    bool NextBlock(const Byte** out_current, const Byte** out_end) {
+    VirtualBlock NextBlock() {
         ++current_block_;
 
         if (current_block_ >= file_.NumBlocks())
-            return false;
+            return VirtualBlock();
 
         const BlockCPtr& block = file_.blocks_[current_block_];
         if (current_block_ == first_block_) {
-            *out_current = block->begin() + first_offset_;
-            *out_end = block->begin() + file_.used_[current_block_];
+            return VirtualBlock(block,
+                                file_.used_[current_block_],
+                                file_.ItemsStartIn(current_block_),
+                                file_.offset_of_first(current_block_));
         }
         else {
-            *out_current = block->begin();
-            *out_end = block->begin() + file_.used_[current_block_];
+            return VirtualBlock(block,
+                                file_.used_[current_block_],
+                                file_.ItemsStartIn(current_block_),
+                                0);
         }
-
-        return true;
     }
 
     bool closed() const {
