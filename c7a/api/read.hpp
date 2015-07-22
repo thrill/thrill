@@ -149,6 +149,7 @@ auto ReadLines(Context & ctx, std::string filepath,
 } // namespace api
 } // namespace c7a
 
+//! \}
 #endif // !C7A_API_READ_HEADER
 
 /******************************************************************************/

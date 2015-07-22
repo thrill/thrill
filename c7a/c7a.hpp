@@ -26,6 +26,7 @@
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sum.hpp>
+#include <c7a/api/sort.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/api/zip.hpp>
 

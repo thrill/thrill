@@ -330,6 +330,18 @@ public:
                    ValueType neutral_element = ValueType()) const;
 
     /*!
+     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function. 
+     *  Should be (ValueType,ValueType)->bool
+     * 
+     * \param compare_function Function, which compares two elements. Returns true, if 
+     * first element is smaller than second. False otherwise.
+     */
+    template <typename CompareFunction = std::less<ValueType> >
+    auto Sort(const CompareFunction& compare_function = std::less<ValueType>()) const;
+
+    /*!
      * Sum is an Action, which computes the sum of all elements globally.
      *
      * \tparam SumFunction Type of the sum_function.
