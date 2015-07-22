@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/bench.cpp
+ * benchmarks/hashtable/bench_bucket_hashtable.cpp
  *
  * Part of Project c7a.
  *
@@ -8,9 +8,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_pre_table.hpp>
-#include <c7a/common/stats_timer.hpp>
 #include <c7a/common/cmdline_parser.hpp>
+#include <c7a/common/stats_timer.hpp>
+#include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/discard_sink.hpp>
 
@@ -39,27 +39,27 @@ int main(int argc, char* argv[]) {
                 "Fill hashtable with S random integers");
 
     unsigned int workers = 1;
-    clp.AddUInt('w',"workers", "W", workers,
+    clp.AddUInt('w', "workers", "W", workers,
                 "Open hashtable with W workers, default = 1.");
 
     unsigned int num_buckets_init_scale = 10;
-    clp.AddUInt('i',"num_buckets_init_scale", "I", num_buckets_init_scale,
+    clp.AddUInt('i', "num_buckets_init_scale", "I", num_buckets_init_scale,
                 "Open hashtable with num_buckets_init_scale, default = 10.");
 
     unsigned int num_buckets_resize_scale = 2;
-    clp.AddUInt('r',"num_buckets_resize_scale", "R", num_buckets_resize_scale,
+    clp.AddUInt('r', "num_buckets_resize_scale", "R", num_buckets_resize_scale,
                 "Open hashtable with num_buckets_resize_scale, default = 2.");
 
     unsigned int max_num_items_per_bucket = 256;
-    clp.AddUInt('b',"max_num_items_per_bucket", "B", max_num_items_per_bucket,
+    clp.AddUInt('b', "max_num_items_per_bucket", "B", max_num_items_per_bucket,
                 "Open hashtable with max_num_items_per_bucket, default = 256.");
 
     unsigned int max_num_items_table = 1048576;
-    clp.AddUInt('t',"max_num_items_table", "T", max_num_items_table,
+    clp.AddUInt('t', "max_num_items_table", "T", max_num_items_table,
                 "Open hashtable with max_num_items_table, default = 1048576.");
 
     unsigned int modulo = 1000;
-    clp.AddUInt('m',"modulo", modulo,
+    clp.AddUInt('m', "modulo", modulo,
                 "Open hashtable with keyspace size of M.");
 
     if (!clp.Process(argc, argv)) {
