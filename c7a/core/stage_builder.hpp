@@ -36,6 +36,7 @@ public:
     void Execute() {
         LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
         node_->Execute();
+        node_->PushData();
         node_->UnregisterChilds();
         node_->set_state(c7a::api::EXECUTED);
     }
@@ -96,8 +97,8 @@ public:
         for (auto s : result)
         {
             // TODO(sl): This is nonsense -tb, fix it:
-            if (s.node()->state() == c7a::api::EXECUTED) s.Execute();
             if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
+            if (s.node()->state() == c7a::api::NEW) s.Execute();
         }
     }
 
