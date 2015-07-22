@@ -322,14 +322,14 @@ auto DIARef<ValueType, Stack>::Zip(
             ValueType,
             typename common::FunctionTraits<ZipFunction>::template arg<0>
             >::value,
-        "ZipFunction has the wrong input type");
+        "ZipFunction has the wrong input type in DIA 0");
 
     static_assert(
         std::is_convertible<
             typename SecondDIA::ValueType,
-            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            typename common::FunctionTraits<ZipFunction>::template arg<1>
             >::value,
-        "ZipFunction has the wrong input type");
+        "ZipFunction has the wrong input type in DIA 1");
 
     auto zip_node
         = std::make_shared<ZipResultNode>(node_->context(),
