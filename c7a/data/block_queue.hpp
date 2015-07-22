@@ -68,7 +68,7 @@ public:
     VirtualBlock Pop() {
         VirtualBlock vb;
         queue_.pop(vb);
-        return std::move(vb);
+        return vb;
     }
 
     bool closed() const { return closed_; }
@@ -110,19 +110,8 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    bool NextBlock(const Byte** out_current, const Byte** out_end) {
-        VirtualBlock vb = queue_.Pop();
-        block_ = vb.block;
-
-        if (block_) {
-            *out_current = block_->begin();
-            *out_end = block_->begin() + vb.bytes_used;
-            return true;
-        }
-        else {
-            // termination block received.
-            return false;
-        }
+    VirtualBlock NextBlock() {
+        return queue_.Pop();
     }
 
     bool closed() const {
@@ -132,9 +121,6 @@ public:
 protected:
     //! BlockQueue that blocks are retrieved from
     BlockQueue& queue_;
-
-    //! The current block being read.
-    BlockCPtr block_;
 };
 
 template <size_t BlockSize>

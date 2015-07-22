@@ -114,6 +114,9 @@ struct VirtualBlock
     //! offset of first valid element in the block
     size_t      first = 0;
 
+    //! Return whether the enclosed block is valid.
+    bool        IsValid() const { return block != nullptr; }
+
     //! Releases the reference to the block and resets book-keeping info
     void        Release() {
         block = BlockCPtr();

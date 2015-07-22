@@ -43,6 +43,7 @@ public:
 
     using Block = typename BlockSource::Block;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = typename BlockSource::VirtualBlock;
 
     //! Start reading a File
     explicit BlockReader(BlockSource&& source)
@@ -151,6 +152,9 @@ protected:
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;
 
+    //! The current block being read.
+    BlockCPtr block_;
+
     //! current read pointer into current block of file.
     const Byte* current_ = nullptr;
 
@@ -159,7 +163,14 @@ protected:
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
-        return source_.NextBlock(&current_, &end_);
+        VirtualBlock vb = source_.NextBlock();
+        block_ = vb.block;
+        if (!vb.IsValid()) return false;
+        // TODO(tb): figure out how to make VirtualBlock/BlockReader work
+        // correctly when first item != 0.
+        current_ = vb.block->begin();
+        end_ = vb.block->begin() + vb.bytes_used;
+        return true;
     }
 };
 
