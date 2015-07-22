@@ -589,7 +589,6 @@ private:
 
     HashFunction hash_function_;
 };
-
 } // namespace core
 } // namespace c7a
 
