@@ -12,8 +12,6 @@
 #ifndef C7A_COMMON_PARTITIONING_TRIVIAL_TARGET_DETERMINATION_HEADER
 #define C7A_COMMON_PARTITIONING_TRIVIAL_TARGET_DETERMINATION_HEADER
 
-#define ROUND_DOWN(x, s) ((x) & ~((s) - 1))
-
 #include <c7a/data/file.hpp>
 
 namespace c7a {
@@ -25,6 +23,10 @@ struct BucketEmitter
     static bool Equal(CompareFunction compare_function, const T1& ele1, const T1& ele2) {
         return !(compare_function(ele1, ele2) || compare_function(ele2, ele1));
     }
+
+	static size_t RoundDown(size_t ele, size_t by) {
+		return ((ele) & ~((by) - 1));
+	}
 
     static void emitToBuckets(
         const T1* const a,
@@ -42,7 +44,7 @@ struct BucketEmitter
         const size_t stepsize = 2;
 
         size_t i = 0;
-        for ( ; i < ROUND_DOWN(n, stepsize); i += stepsize)
+        for ( ; i < RoundDown(n, stepsize); i += stepsize)
         {
 
             size_t j0 = 1;
