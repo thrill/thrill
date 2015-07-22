@@ -333,7 +333,7 @@ TEST(Operations, ForLoop) {
     api::ExecuteLocalTests(start_func);
 }
 
-TEST(Operations, WhileLoop) {
+TEST(Operations, DISABLED_WhileLoop) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {

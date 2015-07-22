@@ -89,7 +89,14 @@ public:
         this->StopExecutionTimer();
     }
 
-    void PushData() override { }
+    void PushData() override {
+
+        for (size_t i = 0; i < data_.size(); i++) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
+                func(data_[i]);
+            }
+        }
+    }
 
     void Dispose() override { }
 
@@ -379,13 +386,6 @@ private:
         LOG << "node " << context_.rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
-
-        for (size_t i = 0; i < data_.size(); i++) {
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(data_[i]);
-            }
-        }
-        std::vector<ValueType>().swap(data_);
     }
 
     void PostOp() { }

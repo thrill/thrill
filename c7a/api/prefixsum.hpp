@@ -68,7 +68,18 @@ public:
         this->StopExecutionTimer();
     }
 
-    void PushData() override { }
+    void PushData() override {
+        data::File::Reader reader = file_.GetReader();
+
+        ValueType sum = local_sum_;
+
+        for (size_t i = 0; i < file_.NumItems(); ++i) {
+            sum = sum_function_(sum, reader.Next<ValueType>());
+            for (auto func : DIANode<ValueType>::callbacks_) {
+                func(sum);
+            }
+        }
+    }
 
     void Dispose() override { }
 
@@ -122,14 +133,7 @@ private:
             sum = neutral_element_;
         }
 
-        data::File::Reader reader = file_.GetReader();
-
-        for (size_t i = 0; i < file_.NumItems(); ++i) {
-            sum = sum_function_(sum, reader.Next<ValueType>());
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(sum);
-            }
-        }
+        local_sum_ = sum;
     }
 
     void PostOp() { }

@@ -38,28 +38,28 @@ int page_rank(Context& ctx) {
     using Page = std::tuple<int, double, std::vector<int> >;
 
     auto key_page_with_links = [](PageWithLinks in) {
-	                              return std::get<0>(in);
+                                   return std::get<0>(in);
                                };
 
     auto key_page_with_rank = [](PageWithRank in) {
-		                          return (size_t) std::get<0>(in);
+                                  return (size_t)std::get<0>(in);
                               };
 
     auto links = ReadLines(
         ctx,
         "pagerank.in",
         [](const std::string& line) {
-			auto splitted = c7a::common::split(line, " ");
+            auto splitted = c7a::common::split(line, " ");
 
-			std::vector<int> links;
-			links.reserve(splitted.size() - 1);
-			for (size_t i = 1; i < splitted.size(); i++) {
-				links.push_back(std::stoi(splitted[i]));
-			}
-            return std::make_tuple(std::stoi(splitted[0]),links);
+            std::vector<int> links;
+            links.reserve(splitted.size() - 1);
+            for (size_t i = 1; i < splitted.size(); i++) {
+                links.push_back(std::stoi(splitted[i]));
+            }
+            return std::make_tuple(std::stoi(splitted[0]), links);
         });
 
-	auto size = links.Size();
+    auto size = links.Size();
 
     DIARef<PageWithRank> ranks =
         links
@@ -73,9 +73,9 @@ int page_rank(Context& ctx) {
         auto pages =
             links
             .Zip(ranks, [](PageWithLinks first, PageWithRank second) {
-					return std::make_tuple(std::get<0>(first),
-										   std::get<1>(second),
-										   std::get<1>(first));
+                     return std::make_tuple(std::get<0>(first),
+                                            std::get<1>(second),
+                                            std::get<1>(first));
                  });
 
         auto contribs = pages.FlatMap<PageWithRank>(
@@ -100,13 +100,13 @@ int page_rank(Context& ctx) {
                           });
 
         ranks = contribs
-                .ReduceToIndex(key_page_with_rank, 
-							   [](PageWithRank rank1, PageWithRank rank2) {
-                                   return std::make_tuple(std::get<0>(rank1), 
-														  std::get<1>(rank1) + std::get<1>(rank2));
-                               }, 
-							   size - 1							   
-					)
+                .ReduceToIndex(key_page_with_rank,
+                               [](PageWithRank rank1, PageWithRank rank2) {
+                                   return std::make_tuple(std::get<0>(rank1),
+                                                          std::get<1>(rank1) + std::get<1>(rank2));
+                               },
+                               size - 1
+                               )
                 .Map([&s, &dangling_sum](PageWithRank input) {
                          int url = std::get<0>(input);
                          double rank = std::get<1>(input);
@@ -115,9 +115,9 @@ int page_rank(Context& ctx) {
     }
 
     ranks.Map([](const PageWithRank& item) {
-            return std::to_string(std::get<0>(item)) + ": " + std::to_string(std::get<1>(item));
-        }).
-		WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
+                  return std::to_string(std::get<0>(item)) + ": " + std::to_string(std::get<1>(item));
+              }).
+    WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
 
     return 0;
 }

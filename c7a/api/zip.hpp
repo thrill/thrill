@@ -130,31 +130,30 @@ public:
     void Execute() override {
         this->StartExecutionTimer();
         MainOp();
-        PushData();
         this->StopExecutionTimer();
     }
 
     void PushData() override {
-        if (dia_min_size_ == 0) return;
-
-        // get inbound readers from all Channels
-        std::vector<data::Channel::CachingConcatReader> readers {
-            channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
-                };
-
         size_t result_count = 0;
 
-        while (readers[0].HasNext() && readers[1].HasNext()) {
-            ZipArg0 i0 = readers[0].Next<ZipArg0>();
-            ZipArg1 i1 = readers[1].Next<ZipArg1>();
-            ValueType v = zip_function_(i0, i1);
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(v);
+        if (dia_min_size_ != 0) {
+            // get inbound readers from all Channels
+            std::vector<data::Channel::CachingConcatReader> readers {
+                channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
+            };
+
+            while (readers[0].HasNext() && readers[1].HasNext()) {
+                ZipArg0 i0 = readers[0].Next<ZipArg0>();
+                ZipArg1 i1 = readers[1].Next<ZipArg1>();
+                ValueType v = zip_function_(i0, i1);
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    func(v);
+                }
+                ++result_count;
             }
-            ++result_count;
         }
 
-        sLOG << "result_count" << result_count;
+        sLOG1 << "Zip: result_count" << result_count;
     }
 
     void Dispose() override { }
