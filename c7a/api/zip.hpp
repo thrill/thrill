@@ -135,7 +135,7 @@ public:
     }
 
     void PushData() override {
-        if (dia_min_size_ != 0) return;
+        if (dia_min_size_ == 0) return;
 
         // get inbound readers from all Channels
         std::vector<data::Channel::CachingConcatReader> readers {
