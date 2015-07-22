@@ -13,10 +13,13 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <random>
 #include <string>
 #include <vector>
 
 using namespace c7a;
+using c7a::DIARef;
+using c7a::Context;
 
 TEST(Stage, CountReferencesSimple) {
 
@@ -97,7 +100,6 @@ TEST(Stage, CountReferencesLOpNode) {
             DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Create new child reference to LOpNode
-
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
@@ -179,7 +181,7 @@ TEST(Stage, AdditionalChildReferences) {
                                           emit(in);
                                           emit(in);
                                       };
-
+            
             auto modulo_two = [](int in) {
                                   return (in % 2);
                               };

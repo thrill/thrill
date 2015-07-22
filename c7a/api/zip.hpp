@@ -349,6 +349,7 @@ auto DIARef<ValueType, Stack>::Zip(
 } // namespace api
 } // namespace c7a
 
+//! \}
 #endif // !C7A_API_ZIP_HEADER
 
 /******************************************************************************/
