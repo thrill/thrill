@@ -263,25 +263,31 @@ TEST(Operations, SortTest) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto integers = Generate(
-                ctx,
-                [](const size_t& index) -> int {
-                    return index + 1;
-                },
-                16);
+		
+		std::random_device random_device;
+		std::default_random_engine generator(random_device());
+		std::uniform_int_distribution<int> distribution(1, 10);
 
-            auto sorted = integers.Sort();
+		auto integers = Generate(
+			ctx,
+			[&distribution, &generator](const size_t&) -> int {
+				int toret = distribution(generator);
+				return toret;
+			},
+			100);
 
-            std::vector<int> out_vec;
+		auto sorted = integers.Sort();
 
-            sorted.AllGather(&out_vec);
+		std::vector<int> out_vec;
 
-            for (size_t i = 0; i < out_vec.size() - 1; i++) {
-                ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
-            }
+		sorted.AllGather(&out_vec);
 
-            ASSERT_EQ(16u, out_vec.size());
-        };
+		for (size_t i = 0; i < out_vec.size() - 1; i++) {
+			ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
+		}
+
+		ASSERT_EQ(100u, out_vec.size());
+	};
 
     api::ExecuteLocalTests(start_func);
 }
