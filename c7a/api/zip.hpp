@@ -215,8 +215,8 @@ private:
         size_t size_prefixsum = dia_size_prefixsum_[in];
         const size_t& total_size = dia_total_size_[in];
 
-        //! number of elements per worker
-        size_t per_pe = total_size / workers;
+        //! number of elements per worker (rounded up)
+        size_t per_pe = (total_size + workers - 1) / workers;
         //! offsets for scattering
         std::vector<size_t> offsets(workers, 0);
 
