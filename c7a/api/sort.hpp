@@ -34,10 +34,10 @@ namespace sort_local {
 template <typename ValueType>
 struct TreeBuilder
 {
-    ValueType * tree_;
-    ValueType * samples_;
-    size_t    index_ = 0;
-    size_t    ssplitter;
+    ValueType* tree_;
+    ValueType* samples_;
+    size_t   index_ = 0;
+    size_t   ssplitter;
 
     /*!
      * Target: tree. Size of 'number of splitter'
@@ -53,7 +53,7 @@ struct TreeBuilder
         recurse(samples, samples + ssplitter, 1);
     }
 
-    void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
+    void     recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
 
         // pick middle element as splitter
         ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
@@ -72,15 +72,15 @@ struct TreeBuilder
 template <class T1, typename CompareFunction>
 struct BucketEmitter
 {
-    static bool Equal(CompareFunction compare_function, const T1& ele1, const T1& ele2) {
+    static bool   Equal(CompareFunction compare_function, const T1& ele1, const T1& ele2) {
         return !(compare_function(ele1, ele2) || compare_function(ele2, ele1));
     }
 
-        static size_t RoundDown(size_t ele, size_t by) {
-                return ((ele) & ~((by) - 1));
-        }
+    static size_t RoundDown(size_t ele, size_t by) {
+        return ((ele) & ~((by) - 1));
+    }
 
-    static void emitToBuckets(
+    static void   emitToBuckets(
         const T1* const a,
         const size_t n,
         const T1* const treearr, // Tree. sizeof |splitter|
@@ -199,7 +199,7 @@ public:
           parent_(parent)
     {
         // Hook PreOp(s)
-        auto pre_op_fn = [ = ](const ValueType& input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
 
@@ -227,7 +227,7 @@ public:
      */
     auto ProduceStack() {
         // Hook Identity
-        auto id_fn = [ = ](ValueType t, auto emit_func) {
+        auto id_fn = [=](ValueType t, auto emit_func) {
                          return emit_func(t);
                      };
 
@@ -259,7 +259,7 @@ private:
     //epsilon
     double desired_imbalance = 0.25;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
+    std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
 
     void PreOp(ValueType input) {
@@ -357,8 +357,8 @@ private:
         }
 
         sort_local::TreeBuilder<ValueType>(splitter_tree,
-                                     splitters.data(),
-                                     splitter_count_algo);
+                                           splitters.data(),
+                                           splitter_count_algo);
 
         sort_local::BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
             data_.data(),
@@ -387,7 +387,7 @@ private:
             data_.push_back(reader.template Next<ValueType>());
         }
 
-                LOG << "node " << context_.rank() << " : " << data_.size();
+        LOG << "node " << context_.rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
 
@@ -443,6 +443,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
 }
 
 //! \}
+
 } // namespace api
 } // namespace c7a
 
