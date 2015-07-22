@@ -23,7 +23,7 @@
 //TODO DELETE
 #include <iostream>
 #include <tests/data/serializer_objects.hpp>
-#include <build/c7a/proto/test_serialize_object.pb.h>
+// #include <build/c7a/proto/test_serialize_object.pb.h>
 
 //TODO CEREAL
 #include <cereal/archives/c7a.hpp>
@@ -303,28 +303,28 @@ struct Impl<std::tuple<Args ...> >{
     }
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////          PROTOBUF          ///////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////          PROTOBUF          ///////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <>
-struct Impl<struct TestSerializeObject>{
-    static std::string Serialize(const struct TestSerializeObject& t) {
-        serial::TestSerializeObject tso;
-        tso.set_bla_(t.bla_);
-        tso.set_blu_(t.blu_);
-        std::string res;
-        tso.SerializeToString(&res);
-        return res;
-        return "";
-    }
-    static TestSerializeObject Deserialize(const std::string& x) {
-        serial::TestSerializeObject tso;
-        tso.ParseFromString(x);
-        struct TestSerializeObject pt(tso.bla_(), tso.blu_());
-        return pt;
-    }
-};
+// template <>
+// struct Impl<struct TestSerializeObject>{
+//     static std::string Serialize(const struct TestSerializeObject& t) {
+//         serial::TestSerializeObject tso;
+//         tso.set_bla_(t.bla_);
+//         tso.set_blu_(t.blu_);
+//         std::string res;
+//         tso.SerializeToString(&res);
+//         return res;
+//         return "";
+//     }
+//     static TestSerializeObject Deserialize(const std::string& x) {
+//         serial::TestSerializeObject tso;
+//         tso.ParseFromString(x);
+//         struct TestSerializeObject pt(tso.bla_(), tso.blu_());
+//         return pt;
+//     }
+// };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////          CEREAL          ///////////////////////////////////////////////////////
@@ -398,6 +398,7 @@ struct Serializer<Archive, T,
                   typename std::enable_if<std::is_pod<T>::value>::type>
 {
     static void serialize(const T& x, Archive& a) {
+        LOG1 << "is_pod serialization";
         a.template Put<T>(x);
     }
     static T deserialize(Archive& a) {
@@ -434,19 +435,19 @@ struct Serializer<Archive, std::pair<U, V> >
                                     Serializer<Archive, V>::fixed_size);
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////          CEREAL ARCHIVE          ///////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <typename Archive, typename T>
-struct Serializer<Archive, struct TestCerealObject2>
+template <typename Archive>
+struct Serializer<Archive, struct serializers::TestCerealObject2>
 {
-    static void       serialize(const struct TestCerealObject2& t, Archive& a) {
+    static void       serialize(const struct serializers::TestCerealObject2& t, Archive& a) {
         cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
         oarchive(t);                                   // Write the data to the archive
     }
-    static T deserialize(Archive& a) {
-        return T();
+
+    static serializers::TestCerealObject2 deserialize(Archive& a) {
+        cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
+        serializers::TestCerealObject2 res;
+        iarchive(res);                                 // Read the data from the archive
+        return res;
     }
     static const bool fixed_size = false;
 };
