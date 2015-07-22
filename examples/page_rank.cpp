@@ -11,6 +11,7 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/c7a.hpp>
 #include <c7a/common/cmdline_parser.hpp>
+#include <c7a/common/string.hpp>
 
 #include <random>
 #include <string>
@@ -37,19 +38,28 @@ int page_rank(Context& ctx) {
     using Page = std::tuple<int, double, std::vector<int> >;
 
     auto key_page_with_links = [](PageWithLinks in) {
-                                   return in.first;
+	                              return std::get<0>(in);
                                };
 
     auto key_page_with_rank = [](PageWithRank in) {
-                                  return in.first;
+		                          return (size_t) std::get<0>(in);
                               };
 
     auto links = ReadLines(
         ctx,
         "pagerank.in",
         [](const std::string& line) {
-            return line;
+			auto splitted = c7a::common::split(line, " ");
+
+			std::vector<int> links;
+			links.reserve(splitted.size() - 1);
+			for (size_t i = 1; i < splitted.size(); i++) {
+				links.push_back(std::stoi(splitted[i]));
+			}
+            return std::make_tuple(std::stoi(splitted[0]),links);
         });
+
+	auto size = links.Size();
 
     DIARef<PageWithRank> ranks =
         links
@@ -62,11 +72,11 @@ int page_rank(Context& ctx) {
 
         auto pages =
             links
-            .Zip([](PageWithLinks first, PageWithRank second) {
-                     return std::make_tuple(std::get<0>(first),
-                                            std::get<1>(second),
-                                            std::get<1>(first));
-                 }, ranks);
+            .Zip(ranks, [](PageWithLinks first, PageWithRank second) {
+					return std::make_tuple(std::get<0>(first),
+										   std::get<1>(second),
+										   std::get<1>(first));
+                 });
 
         auto contribs = pages.FlatMap<PageWithRank>(
             [](Page page, auto emit) {
@@ -90,17 +100,13 @@ int page_rank(Context& ctx) {
                           });
 
         ranks = contribs
-                .ReduceToIndex(key_page_with_rank, [](PageWithRank input) {
-                                   return std::get<0>(input);
-                               }, [](std::vector<PageWithRank> ranks) {
-                                   double sum = 0.0;
-                                   int url = 0;
-                                   for (PageWithRank r : ranks) {
-                                       sum += std::get<1>(r);
-                                       url = std::get<0>(r);
-                                   }
-                                   return std::make_tuple(url, sum);
-                               })
+                .ReduceToIndex(key_page_with_rank, 
+							   [](PageWithRank rank1, PageWithRank rank2) {
+                                   return std::make_tuple(std::get<0>(rank1), 
+														  std::get<1>(rank1) + std::get<1>(rank2));
+                               }, 
+							   size - 1							   
+					)
                 .Map([&s, &dangling_sum](PageWithRank input) {
                          int url = std::get<0>(input);
                          double rank = std::get<1>(input);
@@ -108,11 +114,10 @@ int page_rank(Context& ctx) {
                      });
     }
 
-    ranks.WriteToFileSystem(
-        "pagerank_" + std::to_string(ctx.rank()) + ".out",
-        [](const WordCount& item) {
-            return item.first + ": " + std::to_string(item.second);
-        });
+    ranks.Map([](const PageWithRank& item) {
+            return std::to_string(std::get<0>(item)) + ": " + std::to_string(std::get<1>(item));
+        }).
+		WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
 
     return 0;
 }
