@@ -53,6 +53,7 @@ protected:
         }
     };
 
+    // REVIEW(ms): remove the probing_result stuff, no other policy than linear is needed.
     struct probing_result
     {
         //! the offset relativ to provided pos.
@@ -183,6 +184,9 @@ public:
         int pos = h.global_index;
         size_t count = 0;
 
+        // REVIEW(ms): try to make the loop tighter, remove extra variables and
+        // try to reduce the number of +/-/< operations, have only current + end
+        // iterators.
         KeyValuePair* current = &vector_[pos];
 
         while (current->first != sentinel_.first)
@@ -467,6 +471,8 @@ public:
             log += " (";
             log += vector_[i].first;
             log += ", ";
+            // REVIEW(ms): about Value -> String: you cannot in general.
+
             //log += vector_[i].second; // TODO(ms): How to convert Value to a string?
             log += ")\n";
         }
@@ -477,6 +483,9 @@ public:
     }
 
 private:
+    // REVIEW(ms): use doxygen format like everyone else! which of these are
+    // static const?
+
     size_t num_partitions_;                         // partition size
 
     size_t num_items_init_scale_ = 10;              // set number of items per partition based on num_partitions
