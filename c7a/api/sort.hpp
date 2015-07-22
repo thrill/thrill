@@ -355,7 +355,7 @@ private:
 
         //code from SS2NPartition, slightly altered
 
-        ValueType* splitter_tree = new ValueType[workers_algo];
+        ValueType* splitter_tree = new ValueType[workers_algo + 1];
 
         if (!powof2) {
             for (size_t i = num_workers; i < workers_algo; i++) {
