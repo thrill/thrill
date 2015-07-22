@@ -17,7 +17,6 @@
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/size.hpp>
-#include <c7a/api/sort.hpp>
 #include <c7a/api/write.hpp>
 
 #include <gtest/gtest.h>
@@ -254,40 +253,6 @@ TEST(Operations, FilterResultsCorrectly) {
 
             ASSERT_EQ(8u, out_vec.size());
         };
-
-    api::ExecuteLocalTests(start_func);
-}
-
-TEST(Operations, SortTest) {
-
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
-
-		
-		std::random_device random_device;
-		std::default_random_engine generator(random_device());
-		std::uniform_int_distribution<int> distribution(1, 10);
-
-		auto integers = Generate(
-			ctx,
-			[&distribution, &generator](const size_t&) -> int {
-				int toret = distribution(generator);
-				return toret;
-			},
-			100);
-
-		auto sorted = integers.Sort();
-
-		std::vector<int> out_vec;
-
-		sorted.AllGather(&out_vec);
-
-		for (size_t i = 0; i < out_vec.size() - 1; i++) {
-			ASSERT_FALSE(out_vec[i + 1] < out_vec[i]);
-		}
-
-		ASSERT_EQ(100u, out_vec.size());
-	};
 
     api::ExecuteLocalTests(start_func);
 }
