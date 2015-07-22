@@ -37,9 +37,7 @@ enum kState {
     NEW,
     //! The DIABase has been calculated but not explicitly cached.  Data might
     //! be available or has to be recalculated when needed
-    CALCULATED,
-    //! The DIABase is cached and it's data can be accessed
-    CACHED,
+    EXECUTED,
     //! The DIABase is disposed by the user, needs to be recomputed when
     //! accessed.
     DISPOSED
@@ -93,6 +91,15 @@ public:
     //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void Execute() = 0;
 
+    //! Virtual method for pushing data. Triggers actual pushing in sub-classes.
+    virtual void PushData() = 0;
+
+    //! Virtual clear method. Triggers actual disposing in sub-classes.
+    virtual void Dispose() = 0;
+
+    //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
+    virtual void UnregisterChilds() = 0;
+
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
@@ -143,10 +150,8 @@ protected:
         switch (state_) {
         case NEW:
             return "NEW";
-        case CALCULATED:
-            return "CALCULATED";
-        case CACHED:
-            return "CACHED";
+        case EXECUTED:
+            return "EXECUTED";
         case DISPOSED:
             return "DISPOSED";
         default:

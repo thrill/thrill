@@ -44,8 +44,7 @@ public:
         : ActionNode(ctx, { parent }, "Write"),
           path_out_(path_out),
           file_(path_out_),
-          emit_(file_),
-          parent_(parent)
+          emit_(file_)
     {
         sLOG << "Creating write node.";
 
@@ -54,17 +53,15 @@ public:
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
-        lop_chain_ = parent_stack.push(pre_op_fn).emit();
-        parent_->RegisterChild(lop_chain_);
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
+        parent->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType input) {
         emit_(input);
     }
 
-    virtual ~WriteNode() {
-        parent_->UnregisterChild(lop_chain_);
-    }
+    virtual ~WriteNode() { }
 
     //! Closes the output file
     void Execute() override {
@@ -73,6 +70,10 @@ public:
         emit_.Close();
         this->StopExecutionTimer();
     }
+
+    void PushData() override { }
+
+    void Dispose() override { }
 
     /*!
      * Returns "[WriteNode]" and its id as a string.
@@ -126,9 +127,6 @@ private:
 
     //! Emitter to file
     OutputEmitter emit_;
-
-    std::shared_ptr<DIANode<ParentInput> > parent_;
-    common::delegate<void(ParentInput)> lop_chain_;
 };
 
 template <typename ValueType, typename Stack>

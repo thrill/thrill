@@ -102,8 +102,7 @@ public:
                const ParentStack1& parent_stack1,
                ZipFunction zip_function)
         : DOpNode<ValueType>(ctx, { parent0, parent1 }, "ZipNode"),
-          zip_function_(zip_function),
-          parent0_(parent0), parent1_(parent1)
+          zip_function_(zip_function)
     {
         // // Hook PreOp(s)
         auto pre_op0_fn = [=](const ZipArg0& input) {
@@ -115,17 +114,14 @@ public:
 
         // close the function stacks with our pre ops and register it at parent
         // nodes for output
-        lop_chain0_ = parent_stack0.push(pre_op0_fn).emit();
-        lop_chain1_ = parent_stack1.push(pre_op1_fn).emit();
+        auto lop_chain0 = parent_stack0.push(pre_op0_fn).emit();
+        auto lop_chain1 = parent_stack1.push(pre_op1_fn).emit();
 
-        parent0_->RegisterChild(lop_chain0_);
-        parent1_->RegisterChild(lop_chain1_);
+        parent0->RegisterChild(lop_chain0);
+        parent1->RegisterChild(lop_chain1);
     }
 
-    ~TwoZipNode() {
-        parent0_->UnregisterChild(lop_chain0_);
-        parent1_->UnregisterChild(lop_chain1_);
-    }
+    ~TwoZipNode() { }
 
     /*!
      * Actually executes the zip operation. Uses the member functions PreOp,
@@ -159,6 +155,10 @@ public:
         this->StopExecutionTimer();
     }
 
+    void PushData() override { }
+
+    void Dispose() override { }
+
     /*!
      * Creates empty stack.
      */
@@ -178,16 +178,6 @@ public:
 private:
     //! Zip function
     ZipFunction zip_function_;
-
-    //! Shared pointer holding reference to parent0
-    std::shared_ptr<DIANode<ParentInput0> > parent0_;
-    //! Shared pointer holding reference to parent1
-    std::shared_ptr<DIANode<ParentInput1> > parent1_;
-
-    //! Collapse function stack methods registered at parent0
-    common::delegate<void(ParentInput0)> lop_chain0_;
-    //! Collapse function stack methods registered at parent1
-    common::delegate<void(ParentInput1)> lop_chain1_;
 
     //! Number of storage DIAs backing
     static const size_t num_inputs_ = 2;
