@@ -264,6 +264,8 @@ private:
             data_.push_back(reader.template Next<ValueType>());
         }
 
+		LOG << "node " << context_.rank() << " : " << data_.size();
+
         std::sort(data_.begin(), data_.end(), compare_function_);
 
         for (size_t i = 0; i < data_.size(); i++) {
@@ -288,21 +290,21 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
         std::is_same<
             typename common::FunctionTraits<CompareFunction>::template arg<0>,
             ValueType>::value ||
-        std::is_same<CompareFunction, common::LessThan<ValueType> >::value,
+        std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
         std::is_same<
             typename common::FunctionTraits<CompareFunction>::template arg<1>,
             ValueType>::value ||
-        std::is_same<CompareFunction, common::LessThan<ValueType> >::value,
+        std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
         std::is_same<
             typename common::FunctionTraits<CompareFunction>::result_type,
             ValueType>::value ||
-        std::is_same<CompareFunction, common::LessThan<ValueType> >::value,
+        std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
 
     auto shared_node

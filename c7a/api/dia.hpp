@@ -332,8 +332,8 @@ public:
      * \param compare_function Function, which compares two elements. Returns true, if 
      * first element is smaller than second. False otherwise.
      */
-    template <typename CompareFunction = common::LessThan<ValueType> >
-    auto Sort(const CompareFunction& compare_function = common::LessThan<ValueType>()) const;
+    template <typename CompareFunction = std::less<ValueType> >
+    auto Sort(const CompareFunction& compare_function = std::less<ValueType>()) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
