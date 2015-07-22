@@ -83,12 +83,12 @@ public:
     }
 
 protected:
-    //! OutputLineEmitter let's you write to files. Each element is written
+    //! OutputEmitter let's you write to files. Each element is written
     //! using ostream.
-    class OutputLineEmitter
+    class OutputEmitter
     {
     public:
-        explicit OutputLineEmitter(std::ofstream& file)
+        explicit OutputEmitter(std::ofstream& file)
             : out_(file) { }
 
         //! write item out using ostream formatting / serialization.
@@ -125,7 +125,7 @@ private:
     std::ofstream file_;
 
     //! Emitter to file
-    OutputLineEmitter emit_;
+    OutputEmitter emit_;
 
     std::shared_ptr<DIANode<ParentInput> > parent_;
     common::delegate<void(ParentInput)> lop_chain_;
