@@ -9,7 +9,7 @@ macro(c7a_build TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
   target_link_libraries(${TARGETNAME}
-    c7a gtest gtest_main gmock ${ALL_LIBRARIES})
+    c7a gtest gtest_main ${ALL_LIBRARIES})
 
 endmacro(c7a_build)
 

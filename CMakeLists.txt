@@ -157,9 +157,8 @@ endif(USE_GCOV)
 enable_testing()
 
 # google test + mock - enable "make test" and add_test()
-add_subdirectory(extlib/gmock) # note: gmock includes gtest
+add_subdirectory(extlib/gtest)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
 set(C7A_VALGRIND_OPTS
