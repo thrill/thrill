@@ -183,7 +183,7 @@ public:
         hash_result h = hash_function_(key, this);
 
         int pos = h.global_index;
-        size_t pos_offset = 0; 
+        size_t pos_offset = 0;
         size_t num_collisions = 0;
 
         // REVIEW(ms): try to make the loop tighter, remove extra variables and
@@ -204,21 +204,21 @@ public:
                 return;
             }
 
-            ++num_collisions; 
-            probing_result pr = probing_function_(pos, this); 
+            ++num_collisions;
+            probing_result pr = probing_function_(pos, this);
             pos_offset += pr.probing_offset;
 
-            if (num_collisions > num_collisions_to_resize_ || pos_offset > num_items_per_partition_) 
-            { 
-                ResizeUp(); 
-                Insert(std::move(p)); 
-                return; 
+            if (num_collisions > num_collisions_to_resize_ || pos_offset > num_items_per_partition_)
+            {
+                ResizeUp();
+                Insert(std::move(p));
+                return;
             }
 
-            if (h.partition_offset + pos_offset >= num_items_per_partition_) 
-            { 
-                pos -= (h.partition_offset + pos_offset); 
-            }  
+            if (h.partition_offset + pos_offset >= num_items_per_partition_)
+            {
+                pos -= (h.partition_offset + pos_offset);
+            }
 
             current = &vector_[pos + pos_offset];
         }
