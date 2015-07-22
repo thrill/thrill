@@ -247,7 +247,7 @@ protected:
                  << common::hexdump(vb.block->data(), vb.bytes_used);
         }
 
-        queues_[from].Append(std::move(vb));
+        queues_[from].AppendBlock(vb);
     }
 
     //! called from ChannelMultiplexer when a Stream closed notification was
