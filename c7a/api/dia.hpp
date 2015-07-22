@@ -332,10 +332,10 @@ public:
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
      *
-     * \tparam CompareFunction Type of the compare_function. 
+     * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
-     * 
-     * \param compare_function Function, which compares two elements. Returns true, if 
+     *
+     * \param compare_function Function, which compares two elements. Returns true, if
      * first element is smaller than second. False otherwise.
      */
     template <typename CompareFunction = std::less<ValueType> >

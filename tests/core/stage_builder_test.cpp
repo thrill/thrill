@@ -181,7 +181,7 @@ TEST(Stage, AdditionalChildReferences) {
                                           emit(in);
                                           emit(in);
                                       };
-            
+
             auto modulo_two = [](int in) {
                                   return (in % 2);
                               };
