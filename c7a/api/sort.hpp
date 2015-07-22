@@ -256,11 +256,11 @@ private:
     std::vector<ValueType> data_;
 
     //!Emitter to send samples to process 0
-    data::ChannelSPtr channel_id_samples_;
+    data::ChannelPtr channel_id_samples_;
     std::vector<data::BlockWriter> emitters_samples_;
 
     //!Emitters to send data to other workers specified by splitters.
-    data::ChannelSPtr channel_id_data_;
+    data::ChannelPtr channel_id_data_;
     std::vector<data::BlockWriter> emitters_data_;
 
     //epsilon
