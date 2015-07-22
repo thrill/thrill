@@ -55,27 +55,25 @@ namespace cereal {
     inadvertently.
 
     \ingroup Archives */
-template <typename Archive>
-class c7aOutputArchive : public OutputArchive<c7aOutputArchive<Archive>, AllowEmptyClassElision>
+template <typename WriterArchive>
+class c7aOutputArchive : public OutputArchive<c7aOutputArchive<WriterArchive>, AllowEmptyClassElision>
 {
 public:
     //! Construct, outputting to the provided stream
     /*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
                       even cout! */
-    c7aOutputArchive(Archive& a) :
-        OutputArchive<c7aOutputArchive, AllowEmptyClassElision>(this),
-        a_(a) {
-        std::cout << "LALLALALA" << std::endl;
-    }
+    c7aOutputArchive(WriterArchive& a) :
+        OutputArchive<c7aOutputArchive, AllowEmptyClassElision>(this), a_(a)
+    { }
 
     //! Writes size bytes of data to the output stream
     void saveBinary(const void* data, std::size_t size) {
-        std::cout << "LALLALALA" << c7a::common::hexdump(data, size) << std::endl;
+        std::cout << c7a::common::hexdump(data, size) << std::endl;
         a_.Append(data, size);
     }
 
 private:
-    Archive& a_;
+    WriterArchive& a_;
 };
 
 // ######################################################################
@@ -90,85 +88,76 @@ private:
 //   inadvertently.
 
 //   \ingroup Archives
-class c7aInputArchive : public InputArchive<c7aInputArchive, AllowEmptyClassElision>
+
+template <typename ReaderArchive>
+class c7aInputArchive : public InputArchive<c7aInputArchive<ReaderArchive>, AllowEmptyClassElision>
 {
 public:
     //! Construct, loading from the provided stream
-    c7aInputArchive(std::istream& stream) :
-        InputArchive<c7aInputArchive, AllowEmptyClassElision>(this),
-        itsStream(stream)
+    c7aInputArchive(ReaderArchive& a) :
+        InputArchive<c7aInputArchive, AllowEmptyClassElision>(this), a_(a)
     { }
 
     //! Reads size bytes of data from the input stream
     void loadBinary(void* const data, std::size_t size) {
-        auto const readSize = static_cast<std::size_t>(itsStream.rdbuf()->sgetn(reinterpret_cast<char*>(data), size));
-
-        if (readSize != size)
-            throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
+        std::cout << "loading binary" << std::endl;
+        a_.Read(data, size);
     }
 
 private:
-    std::istream& itsStream;
+    ReaderArchive& a_;
 };
 
 // ######################################################################
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to binary
-template <class T, typename Archive>
+template <class T, typename WriterArchive>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<Archive>& ar, T const& t) {
+CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<WriterArchive>& ar, T const& t) {
     ar.saveBinary(std::addressof(t), sizeof(t));
 }
 
 //! Loading for POD types from binary
-template <class T, typename Archive>
+template <class T, typename ReaderArchive>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive& ar, T& t) {
+CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, T& t) {
     ar.loadBinary(std::addressof(t), sizeof(t));
 }
 
 //! Serializing NVP types to binary
-template <class Archivec, class T, typename Archive>
+template <class Archive, class T, typename ReaderArchive, typename WriterArchive>
 inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive, c7aOutputArchive<Archive>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archivec & ar, NameValuePair<T>&t)
+CEREAL_ARCHIVE_RESTRICT(c7aInputArchive<ReaderArchive>, c7aOutputArchive<WriterArchive>)
+CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, NameValuePair<T>&t)
 {
     ar(t.value);
 }
 
 //! Serializing SizeTags to binary
-template <class Archivec, class T, typename Archive>
+template <class Archive, class T, typename ReaderArchive, typename WriterArchive>
 inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive, c7aOutputArchive<Archive>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archivec & ar, SizeTag<T>&t)
+CEREAL_ARCHIVE_RESTRICT(c7aInputArchive<ReaderArchive>, c7aOutputArchive<WriterArchive>)
+CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, SizeTag<T>&t)
 {
     ar(t.size);
 }
 
 //! Saving binary data
-template <class T, typename Archive>
+template <class T, typename WriterArchive>
 inline
-void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<Archive>& ar, BinaryData<T> const& bd) {
+void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<WriterArchive>& ar, BinaryData<T> const& bd) {
     ar.saveBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
 //! Loading binary data
-template <class T, typename Archive>
+template <class T, typename ReaderArchive>
 inline
-void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive& ar, BinaryData<T>& bd) {
+void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 } // namespace cereal
-
-// register archives for polymorphic support
-
-// CEREAL_REGISTER_ARCHIVE(cereal::c7aOutputArchive<Archive>)
-// CEREAL_REGISTER_ARCHIVE(cereal::c7aInputArchive)
-
-// // tie input and output archives together
-// CEREAL_SETUP_ARCHIVE_TRAITS(cereal::c7aInputArchive, cereal::c7aOutputArchive<c7a::common::ItemWriterToolsBase<BlockWriter<c7a::data::ChannelSink<c7a::data::default_block_size>> >>)
 
 #endif // CEREAL_ARCHIVES_C7A_HPP_

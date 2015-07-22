@@ -167,13 +167,13 @@ TEST(Serializer, TuplePair_SerializeDeserialize_Test) {
     ASSERT_EQ(std::get<3>(t).second, std::get<3>(result).second);
 }
 
-TEST(Serializer, ProtoBuf_Test) {
-    serializers::TestSerializeObject t(1, 2);
-    auto serialized = Serialize<serializers::TestSerializeObject>(t);
-    auto result = Deserialize<serializers::TestSerializeObject>(serialized);
-    ASSERT_EQ(t.bla_, result.bla_);
-    ASSERT_EQ(t.blu_, result.blu_);
-}
+// TEST(Serializer, ProtoBuf_Test) {
+//     serializers::TestSerializeObject t(1, 2);
+//     auto serialized = Serialize<serializers::TestSerializeObject>(t);
+//     auto result = Deserialize<serializers::TestSerializeObject>(serialized);
+//     ASSERT_EQ(t.bla_, result.bla_);
+//     ASSERT_EQ(t.blu_, result.blu_);
+// }
 
 TEST(Serializer, Cereal_Test) {
     serializers::TestCerealObject t;
@@ -192,13 +192,20 @@ TEST(Serializer, Cereal_Test) {
 
 TEST(Serializer, Cereal_Archive_Test) {
     c7a::data::File f;
-    auto w = f.GetWriter();
+    serializers::TestCerealObject2 t(1, 2, 3);
 
-    serializers::TestCerealObject2 t;
-    t.x_ = 1;
-    t.y_ = 2;
-    t.z_ = 3;
-    Serializer<decltype(w), serializers::TestCerealObject2>::serialize(t, w);
+    {
+        auto w = f.GetWriter();
+        Serializer<decltype(w), serializers::TestCerealObject2>::serialize(t, w);
+    }
+
+    auto r = f.GetReader();
+    auto res = Serializer<decltype(r), serializers::TestCerealObject2>::deserialize(r);
+    ASSERT_EQ(t.x_, res.x_);
+    ASSERT_EQ(t.y_, res.y_);
+    ASSERT_EQ(t.z_, res.z_);
+    ASSERT_EQ(t.tco.z_, res.tco.z_);
+    sLOG << res.x_ << res.y_ << res.z_;
 }
 
 /******************************************************************************/
