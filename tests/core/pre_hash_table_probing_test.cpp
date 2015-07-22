@@ -669,7 +669,7 @@ void randomStr(std::string& s, const int len) {
     s[len] = 0;
 }
 
-TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
+TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
