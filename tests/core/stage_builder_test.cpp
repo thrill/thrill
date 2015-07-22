@@ -150,7 +150,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Overwrite reference to LOpNode
-            quadruples = quadruples.ReduceBy(modulo_two, add_function);
+            quadruples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
 
             // Trigger execution
             std::vector<int> out_vec = quadruples.AllGather();
