@@ -184,13 +184,13 @@ template class data::BlockReader<data::FileBlockSource<16> >;
 // fixed size serialization test
 using MyWriter = data::BlockWriter<data::FileBase<16> >;
 using MyReader = data::BlockReader<data::FileBlockSource<16> >;
-static_assert(data::Serializer<MyWriter, int>
+static_assert(data::serializers::Impl<MyWriter, int>
               ::fixed_size == true, "");
-static_assert(data::Serializer<MyWriter, std::string>
+static_assert(data::serializers::Impl<MyWriter, std::string>
               ::fixed_size == false, "");
-static_assert(data::Serializer<MyWriter, std::pair<int, short> >
+static_assert(data::serializers::Impl<MyWriter, std::pair<int, short> >
               ::fixed_size == true, "");
-static_assert(data::Serializer<MyWriter, std::pair<int, std::string> >
+static_assert(data::serializers::Impl<MyWriter, std::pair<int, std::string> >
               ::fixed_size == false, "");
 
 /******************************************************************************/
