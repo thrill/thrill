@@ -62,8 +62,6 @@ public:
         }
     }
 
-    virtual ~AllGatherNode() { }
-
     //! Closes the output file
     void Execute() override {
         this->StartExecutionTimer();
@@ -79,8 +77,6 @@ public:
         }
         this->StopExecutionTimer();
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 
