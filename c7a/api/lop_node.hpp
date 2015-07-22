@@ -49,21 +49,18 @@ public:
     LOpNode(Context& ctx,
             const std::shared_ptr<DIANode<ParentInput> >& parent,
             const ParentStack& lop_stack, const std::string& stats_tag)
-        : DIANode<ValueType>(ctx, { parent }, stats_tag),
-          parent_(parent)
+        : DIANode<ValueType>(ctx, { parent }, stats_tag)
     {
         auto save_fn =
             [=](ValueType input) {
                 writer_(input);
             };
-        lop_chain_ = lop_stack.push(save_fn).emit();
-        parent_->RegisterChild(lop_chain_);
+        auto lop_chain = lop_stack.push(save_fn).emit();
+        parent->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a LOpNode.
-    virtual ~LOpNode() {
-        parent_->UnregisterChild(lop_chain_);
-    }
+    virtual ~LOpNode() { }
 
     /*!
      * Pushes elements to next node.
@@ -78,6 +75,10 @@ public:
         }
     }
 
+    void PushData() override { }
+
+    void Dispose() override { }
+
     /*!
      * Returns "[LOpNode]" and its id as a string.
      * \return "[LOpNode]"
@@ -91,9 +92,6 @@ private:
     data::File file_;
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
-
-    std::shared_ptr<DIANode<ParentInput> > parent_;
-    common::delegate<void(ParentInput)> lop_chain_;
 };
 
 template <typename ValueType, typename Stack>

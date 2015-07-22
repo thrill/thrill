@@ -93,6 +93,10 @@ public:
         this->StopExecutionTimer();
     }
 
+    void PushData() override { }
+
+    void Dispose() override { }
+
     /*!
      * Produces an 'empty' function stack, which only contains the identity
      * emitter function.

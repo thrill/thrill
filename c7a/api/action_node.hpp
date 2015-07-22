@@ -30,6 +30,8 @@ public:
                const std::string& stats_tag)
         : DIABase(ctx, parents, stats_tag)
     { }
+
+    void UnregisterChilds() override { }
 };
 
 //! \}
