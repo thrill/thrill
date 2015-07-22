@@ -12,8 +12,6 @@
 #ifndef C7A_API_SORT_HEADER
 #define C7A_API_SORT_HEADER
 
-#define ROUND_DOWN(x, s) ((x) & ~((s) - 1))
-
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/api/function_stack.hpp>
@@ -23,13 +21,146 @@
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/group.hpp>
 
-#include <c7a/common/partitioning/tree_builder.hpp>
-#include <c7a/common/partitioning/trivial_target_determination.hpp>
-
 #include <cmath>
 
 namespace c7a {
 namespace api {
+
+namespace {
+
+template <typename ValueType>
+struct TreeBuilder
+{
+
+    ValueType * tree_;
+    ValueType * samples_;
+    size_t    index_;
+    size_t    ssplitter;
+
+    TreeBuilder(ValueType* splitter_tree, // Target: tree. Size of 'number of splitter'
+                ValueType* samples,       // Source: sorted splitters. Size of 'number of splitter'
+                size_t ssplitter)         // Number of splitter
+        : tree_(splitter_tree),
+          samples_(samples),
+          index_(0),
+          ssplitter(ssplitter) {
+        recurse(samples, samples + ssplitter, 1);
+    }
+
+    ssize_t   snum(ValueType* s) const {
+        return (ssize_t)(s - samples_);
+    }
+
+    ValueType recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
+
+        // pick middle element as splitter
+        ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
+
+        ValueType mykey = tree_[treeidx] = *mid;
+
+        ValueType* midlo = mid, * midhi = mid + 1;
+
+        if (2 * treeidx < ssplitter)
+        {
+            recurse(lo, midlo, 2 * treeidx + 0);
+
+            return recurse(midhi, hi, 2 * treeidx + 1);
+        }
+        else
+        {
+            return mykey;
+        }
+    }
+};	
+
+template <class T1, typename CompareFunction>
+struct BucketEmitter
+{
+    static bool Equal(CompareFunction compare_function, const T1& ele1, const T1& ele2) {
+        return !(compare_function(ele1, ele2) || compare_function(ele2, ele1));
+    }
+
+	static size_t RoundDown(size_t ele, size_t by) {
+		return ((ele) & ~((by) - 1));
+	}
+
+    static void emitToBuckets(
+        const T1* const a,
+        const size_t n,
+        const T1* const treearr, // Tree. sizeof |splitter|
+        size_t k,                // Number of buckets
+        size_t logK,
+        std::vector<data::BlockWriter>& emitters,
+        size_t actual_k,
+        CompareFunction compare_function,
+        const T1* const sorted_splitters,
+        size_t prefix_elem,
+        size_t total_elem) {
+
+        const size_t stepsize = 2;
+
+        size_t i = 0;
+        for ( ; i < RoundDown(n, stepsize); i += stepsize)
+        {
+
+            size_t j0 = 1;
+            const T1& el0 = a[i];
+            size_t j1 = 1;
+            const T1& el1 = a[i + 1];
+
+            for (size_t l = 0; l < logK; l++)
+            {
+
+                j0 = j0 * 2 + !(compare_function(el0, treearr[j0]));
+                j1 = j1 * 2 + !(compare_function(el1, treearr[j1]));
+            }
+
+            size_t b0 = j0 - k;
+            size_t b1 = j1 - k;
+
+            //TODO(an): Remove this ugly workaround as soon as emitters are movable.
+            //Move emitter[actual_k] to emitter[splitter_count] before calling this.
+            if (b0 >= actual_k) {
+                b0 = actual_k - 1;
+            }
+
+            while (b0 && Equal(compare_function, el0, sorted_splitters[b0 - 1])
+                   && (prefix_elem + i) * actual_k > b0 * total_elem) {
+                b0--;
+            }
+            emitters[b0](el0);
+            if (b1 >= actual_k) {
+                b1 = actual_k - 1;
+            }
+            while (b1 && Equal(compare_function, el1, sorted_splitters[b1 - 1])
+                   && (prefix_elem + i + 1) * actual_k > b1 * total_elem) {
+                b1--;
+            }
+            emitters[b1](el1);
+        }
+        for ( ; i < n; i++)
+        {
+
+            size_t j = 1;
+            for (size_t l = 0; l < logK; l++)
+            {
+                j = j * 2 + !(compare_function(a[i], treearr[j]));
+            }
+            size_t b = j - k;
+
+            if (b >= actual_k) {
+                b = actual_k - 1;
+            }
+            while (b && Equal(compare_function, a[i], sorted_splitters[b - 1])
+                   && (prefix_elem + i) * actual_k > b * total_elem) {
+                b--;
+            }
+            emitters[b](a[i]);
+        }
+    }
+};
+
+}
 
 //! \addtogroup api Interface
 //! \{
@@ -232,11 +363,11 @@ private:
             }
         }
 
-        sort::TreeBuilder<ValueType>(splitter_tree,
+        TreeBuilder<ValueType>(splitter_tree,
                                      splitters.data(),
                                      splitter_count_algo);
 
-        sort::BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
+        BucketEmitter<ValueType, CompareFunction>::emitToBuckets(
             data_.data(),
             data_.size(),
             splitter_tree, // Tree. sizeof |splitter|
