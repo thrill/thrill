@@ -23,7 +23,38 @@
 using c7a::api::Context;
 using c7a::api::DIARef;
 
+TEST(Sort, SortKnownIntegers) {
 
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+		
+		std::random_device random_device;
+		std::default_random_engine generator(random_device());
+		std::uniform_int_distribution<int> distribution(1, 10000);
+
+		auto integers = Generate(
+			ctx,
+			[](const size_t& index) -> int {
+				return index;
+			},
+			100);
+
+		auto sorted = integers.Sort();
+
+		std::vector<int> out_vec;
+
+		sorted.AllGather(&out_vec);
+
+		for (size_t i = 0; i < out_vec.size() - 1; i++) {
+			ASSERT_EQ((int) i, out_vec[i]);
+		}
+
+		ASSERT_EQ(100u, out_vec.size());
+	};
+
+	c7a::api::ExecuteLocalTests(start_func);
+}
 
 TEST(Sort, SortRandomIntegers) {
 
@@ -38,8 +69,7 @@ TEST(Sort, SortRandomIntegers) {
 		auto integers = Generate(
 			ctx,
 			[&distribution, &generator](const size_t&) -> int {
-				int toret = distribution(generator);
-				return toret;
+				return distribution(generator);
 			},
 			100);
 
@@ -72,8 +102,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
 		auto integers = Generate(
 			ctx,
 			[&distribution, &generator](const size_t&) -> int {
-				int toret = distribution(generator);
-				return toret;
+				return distribution(generator);
 			},
 			100);
 
@@ -111,9 +140,7 @@ TEST(Sort, SortRandomIntIntStructs) {
 		auto integers = Generate(
 			ctx,
 			[&distribution, &generator](const size_t&) -> Pair {
-				int ele1 = distribution(generator);
-				int ele2 = distribution(generator);
-				return std::make_pair(ele1, ele2);
+				return std::make_pair(distribution(generator), distribution(generator));
 			},
 			100);
 
