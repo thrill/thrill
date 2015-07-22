@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/bench.cpp
+ * benchmarks/data/disk.cpp
  *
  * Part of Project c7a.
  *
