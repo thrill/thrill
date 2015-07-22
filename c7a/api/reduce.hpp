@@ -56,13 +56,9 @@ class ReduceNode : public DOpNode<ValueType>
 
     using ReduceArg = typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
-    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
+    using ReduceResult = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using ParentInput = typename ParentStack::Input;
-
-    typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
     using Super::result_file_;
@@ -182,7 +178,7 @@ private:
         auto reader = channel_->OpenReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
         while (reader.HasNext()) {
-            table.Insert(reader.template Next<KeyValuePair>());
+            table.Insert(reader.template Next<ReduceResult>());
         }
 
         table.Flush();
