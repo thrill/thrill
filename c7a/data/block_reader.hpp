@@ -41,7 +41,7 @@ public:
     //! Next() reads a complete item T
     template <typename T>
     T Next() {
-        return Serializer<BlockReader, T>::deserialize(*this);
+        return Deserialize<BlockReader, T>(*this);
     }
 
     //! HasNext() returns true if at least one more byte is available.
