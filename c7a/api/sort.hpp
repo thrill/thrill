@@ -101,17 +101,30 @@ public:
         size_t prefix_elem,
         size_t total_elem) {
 
+        // enlarge emitters array to next power of two to have direct access.
+        assert(emitters.size() == actual_k);
+        assert(actual_k <= k);
+
+        while (emitters.size() < k)
+            emitters.emplace_back(nullptr);
+
+        std::swap(emitters[actual_k - 1], emitters[k - 1]);
+
+        // classify all items (take two at once) and immediately transmit them.
+
         const size_t stepsize = 2;
 
         size_t i = 0;
         for ( ; i < RoundDown(size, stepsize); i += stepsize)
         {
-
+            // take two items
             size_t j0 = 1;
             const T1& el0 = array[i];
+
             size_t j1 = 1;
             const T1& el1 = array[i + 1];
 
+            // run items down the tree
             for (size_t l = 0; l < logK; l++)
             {
                 j0 = j0 * 2 + !(compare_function(el0, tree[j0]));
@@ -121,30 +134,22 @@ public:
             size_t b0 = j0 - k;
             size_t b1 = j1 - k;
 
-            // TODO(an): Remove this ugly workaround as soon as emitters are
-            // movable.  Move emitter[actual_k] to emitter[splitter_count]
-            // before calling this.
-            if (b0 >= actual_k) {
-                b0 = actual_k - 1;
-            }
-
             while (b0 && Equal(compare_function, el0, sorted_splitters[b0 - 1])
-                   && (prefix_elem + i) * actual_k > b0 * total_elem) {
+                   && (prefix_elem + i) * actual_k >= b0 * total_elem) {
                 b0--;
             }
+            assert(emitters[b0].IsValid());
             emitters[b0](el0);
 
-            if (b1 >= actual_k) {
-                b1 = actual_k - 1;
-            }
-
             while (b1 && Equal(compare_function, el1, sorted_splitters[b1 - 1])
-                   && (prefix_elem + i + 1) * actual_k > b1 * total_elem) {
+                   && (prefix_elem + i + 1) * actual_k >= b1 * total_elem) {
                 b1--;
             }
+            assert(emitters[b1].IsValid());
             emitters[b1](el1);
         }
 
+        // last iteration of loop if we have an odd number of items.
         for ( ; i < size; i++)
         {
             size_t j = 1;
@@ -152,15 +157,14 @@ public:
             {
                 j = j * 2 + !(compare_function(array[i], tree[j]));
             }
+
             size_t b = j - k;
 
-            if (b >= actual_k) {
-                b = actual_k - 1;
-            }
             while (b && Equal(compare_function, array[i], sorted_splitters[b - 1])
-                   && (prefix_elem + i) * actual_k > b * total_elem) {
+                   && (prefix_elem + i) * actual_k >= b * total_elem) {
                 b--;
             }
+            assert(emitters[b].IsValid());
             emitters[b](array[i]);
         }
     }
@@ -376,9 +380,8 @@ private:
 
         //end of SS2N
 
-        for (size_t i = 0; i < emitters_data_.size(); i++) {
+        for (size_t i = 0; i < emitters_data_.size(); i++)
             emitters_data_[i].Close();
-        }
 
         data_.clear();
 
