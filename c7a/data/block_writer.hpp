@@ -196,8 +196,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_->Append(block_, current_ - block_->begin(),
-                      nitems_, first_offset_);
+        sink_->AppendBlock(block_, current_ - block_->begin(),
+                           nitems_, first_offset_);
     }
 
     //! current block, already allocated as shared ptr, since we want to use

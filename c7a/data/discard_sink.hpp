@@ -38,7 +38,7 @@ public:
     DiscardSinkBase() { }
 
     //! Discards VirtualBlock.
-    void Append(VirtualBlock&&) override { }
+    void AppendBlock(const VirtualBlock&) override { }
 
     //! Closes the sink
     void Close() override {
