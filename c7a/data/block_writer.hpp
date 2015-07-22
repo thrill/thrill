@@ -62,7 +62,7 @@ public:
     //! move-constructor
     BlockWriterBase(BlockWriterBase&&) = default;
     //! move-assignment
-    BlockWriterBase& operator = (BlockWriterBase&&) = delete;
+    BlockWriterBase& operator = (BlockWriterBase&&) = default;
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriterBase() {
@@ -80,7 +80,8 @@ public:
                 block_ = BlockPtr();
                 current_ = nullptr;
             }
-            sink_->Close();
+            if (sink_)
+                sink_->Close();
         }
     }
 
@@ -89,6 +90,9 @@ public:
         FlushBlock();
         AllocateBlock();
     }
+
+    //! Return whether an actual BlockSink is attached.
+    bool IsValid() const { return sink_ != nullptr; }
 
     //! \name Appending (Generic) Serializable Items
     //! \{
