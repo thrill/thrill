@@ -86,7 +86,7 @@ public:
     template <typename T>
     BlockWriter& operator () (const T& x) {
         MarkItem();
-        Serializer<BlockWriter, T>::serialize(x, *this);
+        Serialize<BlockWriter, T>(x, *this);
         return *this;
     }
 
