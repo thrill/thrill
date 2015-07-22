@@ -69,6 +69,10 @@ public:
     using ConcatBlockSource = data::ConcatBlockSource<BlockQueueSource>;
     using ConcatBlockReader = BlockReader<ConcatBlockSource>;
 
+    using CachingBlockQueueSource = data::CachingBlockQueueSource<BlockSize>;
+    using CachingConcatBlockSource = data::ConcatBlockSource<CachingBlockQueueSource>;
+    using CachingConcatBlockReader = BlockReader<CachingConcatBlockSource>;
+
     using BlockWriter = data::BlockWriterBase<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelSink = data::ChannelSink<BlockSize>;
@@ -76,12 +80,14 @@ public:
 
     using Reader = BlockQueueReader;
     using ConcatReader = ConcatBlockReader;
+    using CachingConcatReader = CachingConcatBlockReader;
 
     //! Creates a new channel instance
     ChannelBase(const ChannelId& id, net::Group& group,
                 net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
+          cache_files_(group.Size()),
           group_(group),
           dispatcher_(dispatcher) {
         // construct ChannelSink array
@@ -151,6 +157,21 @@ public:
         }
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
         return ConcatBlockReader(ConcatBlockSource(result));
+    }
+
+    //! Creates a BlockReader for all workers. The BlockReader is attached to
+    //! one \ref ConcatBlockSource which includes all incoming queues of this
+    //! channel. The received Blocks are also cached in the Channel, hence this
+    //! function can be called multiple times to read the items again.
+    CachingConcatBlockReader OpenCachingReader() {
+        // construct vector of CachingBlockQueueSources to read from queues_.
+        std::vector<CachingBlockQueueSource> result;
+        for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
+            result.emplace_back(queues_[worker_id], cache_files_[worker_id]);
+        }
+        // move CachingBlockQueueSources into concatenation BlockSource, and to
+        // Reader.
+        return CachingConcatBlockReader(CachingConcatBlockSource(result));
     }
 
     /*!
@@ -230,6 +251,9 @@ protected:
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
+
+    //! Vector of Files to cache inbound Blocks needed for OpenCachingReader().
+    std::vector<File> cache_files_;
 
     net::Group& group_;
     net::DispatcherThread& dispatcher_;

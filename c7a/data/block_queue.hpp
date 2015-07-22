@@ -16,6 +16,7 @@
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/file.hpp>
 
 #include <atomic>
 #include <memory>
@@ -57,6 +58,7 @@ public:
         queue_.emplace(vb);
     }
 
+    //! Close called by BlockWriter.
     void Close() override {
         assert(!closed_); // racing condition tolerated
         closed_ = true;
@@ -66,14 +68,20 @@ public:
     }
 
     VirtualBlock Pop() {
+        assert(!read_closed_);
         VirtualBlock vb;
         queue_.pop(vb);
+        read_closed_ = !vb.IsValid();
         return vb;
     }
 
+    //! check if writer side Close() was called.
     bool closed() const { return closed_; }
 
     bool empty() const { return queue_.empty(); }
+
+    //! check if reader side has returned a closing sentinel block
+    bool read_closed() const { return read_closed_; }
 
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
     size_t size() { return queue_.size() - (closed() ? 1 : 0); }
@@ -85,7 +93,11 @@ public:
 
 private:
     common::ConcurrentBoundedQueue<VirtualBlock> queue_;
+
     std::atomic<bool> closed_ = { false };
+
+    //! whether Pop() has returned a closing VirtualBlock.
+    bool read_closed_ = false;
 };
 
 /*!
@@ -115,7 +127,7 @@ public:
     }
 
     bool closed() const {
-        return queue_.closed();
+        return queue_.read_closed();
     }
 
 protected:
@@ -127,6 +139,58 @@ template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
     return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
 }
+
+/*!
+ * A BlockSource to read Blocks from a BlockQueue using a BlockReader, and at
+ * the same time CACHE all items received. All Blocks read from the BlockQueue
+ * are saved in the cache File. If the cache BlockQueue is initially already
+ * closed, then Blocks are read from the File instead.
+ */
+template <size_t BlockSize>
+class CachingBlockQueueSource
+    : public data::BlockQueueSource<BlockSize>, data::FileBlockSource<BlockSize>
+{
+public:
+    using Byte = unsigned char;
+
+    using Block = data::Block<BlockSize>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
+    using BlockQueue = data::BlockQueue<BlockSize>;
+    using BlockQueueSource = data::BlockQueueSource<BlockSize>;
+    using FileBlockSource = data::FileBlockSource<BlockSize>;
+
+    //! Start reading from a BlockQueue
+    CachingBlockQueueSource(BlockQueue& queue, File& file)
+        : BlockQueueSource(queue), FileBlockSource(file), file_(file) {
+        // determinate whether we read from the Queue or from the File.
+        from_queue_ = !BlockQueueSource::closed();
+    }
+
+    //! Return next virtual block for BlockReader.
+    VirtualBlock NextBlock() {
+        if (from_queue_) {
+            VirtualBlock vb = BlockQueueSource::NextBlock();
+            // cache block in file_
+            file_.AppendBlock(vb);
+            return vb;
+        }
+        else {
+            return FileBlockSource::NextBlock();
+        }
+    }
+
+    bool closed() const {
+        return from_queue_ ?
+               BlockQueueSource::closed() : FileBlockSource::closed();
+    }
+
+protected:
+    //! whether we read from BlockQueue or from the File.
+    bool from_queue_;
+
+    //! Reference to file for caching Blocks
+    File file_;
+};
 
 //! \}
 
