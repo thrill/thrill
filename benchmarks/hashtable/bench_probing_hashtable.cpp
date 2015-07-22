@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
     }
 
     core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), data::BlockWriter>
-    table(workers, num_buckets_init_scale, num_buckets_resize_scale, stepsize, max_stepsize,
+    table(workers, num_buckets_init_scale, num_buckets_resize_scale, max_stepsize,
           max_partition_fill_ratio, max_num_items_table, key_ex, red_fn, writers, std::make_pair(-1, -1));
 
     common::StatsTimer<true> timer(true);

@@ -116,8 +116,7 @@ TEST_F(PreTable, CustomHashFunction) {
     auto it1 = output.GetReader();
     int c = 0;
     while (it1.HasNext()) {
-        IntPair keyvalue = it1.Next<IntPair>();
-        ASSERT_EQ(keyvalue.first, keyvalue.second);
+        it1.Next<int>();
         c++;
     }
 
@@ -236,7 +235,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     auto it = output.GetReader();
     int c = 0;
     while (it.HasNext()) {
-        it.Next<IntPair>();
+        it.Next<int>();
         c++;
     }
 
@@ -276,7 +275,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     auto it1 = output1.GetReader();
     int c1 = 0;
     while (it1.HasNext()) {
-        it1.Next<IntPair>();
+        it1.Next<int>();
         c1++;
     }
 
@@ -285,7 +284,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     auto it2 = output2.GetReader();
     int c2 = 0;
     while (it2.HasNext()) {
-        it2.Next<IntPair>();
+        it2.Next<int>();
         c2++;
     }
 
@@ -322,7 +321,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     auto it = output.GetReader();
     int c = 0;
     while (it.HasNext()) {
-        it.Next<IntPair>();
+        it.Next<int>();
         c++;
     }
 
@@ -362,7 +361,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     auto it1 = output1.GetReader();
     int c1 = 0;
     while (it1.HasNext()) {
-        it1.Next<IntPair>();
+        it1.Next<int>();
         c1++;
     }
 
@@ -372,7 +371,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     auto it2 = output2.GetReader();
     int c2 = 0;
     while (it2.HasNext()) {
-        it2.Next<IntPair>();
+        it2.Next<int>();
         c2++;
     }
 
@@ -478,7 +477,7 @@ TEST_F(PreTable, ResizeOnePartition) {
     auto it1 = output.GetReader();
     int c = 0;
     while (it1.HasNext()) {
-        it1.Next<IntPair>();
+        it1.Next<int>();
         c++;
     }
 
@@ -572,8 +571,8 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = files[i].GetReader();
         while (it.HasNext()) {
-            auto n = it.Next<MyPair>();
-            keys[i].push_back(n.second.key);
+            auto n = it.Next<MyStruct>();
+            keys[i].push_back(n.key);
         }
     }
 
@@ -608,9 +607,9 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = files[i].GetReader();
         while (it.HasNext()) {
-            auto n = it.Next<MyPair>();
-            if (n.second.count == 0) {
-                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.second.key));
+            auto n = it.Next<MyStruct>();
+            if (n.count == 0) {
+                ASSERT_NE(keys[i].end(), std::find(keys[i].begin(), keys[i].end(), n.key));
             }
         }
     }
@@ -648,9 +647,9 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {
-        auto n = it1.Next<MyPair>();
+        auto n = it1.Next<MyStruct>();
         total_count++;
-        total_sum += n.second.count;
+        total_sum += n.count;
     }
 
     // actually check that the reduction worked
@@ -696,8 +695,8 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {
-        auto n = it1.Next<MyPair>();
-        ASSERT_EQ(sum, n.second.count);
+        auto n = it1.Next<MyStruct>();
+        ASSERT_EQ(sum, n.count);
     }
 }
 
@@ -751,8 +750,8 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {
-        auto n = it1.Next<StringPairPair>();
-        ASSERT_EQ(sum, n.second.second);
+        auto n = it1.Next<StringPair>();
+        ASSERT_EQ(sum, n.second);
     }
 }
 
