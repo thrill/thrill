@@ -60,28 +60,14 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
         [](Context& ctx) {
 
             // numbers 0..999 (evenly distributed to workers)
-            auto input1 = Generate(
+            auto zip_input1 = Generate(
                 ctx,
                 [](size_t index) { return index; },
                 test_size);
-
-            // TODO(sl): this did not work:
 
             // numbers 1000..1999
-            // auto input2 = input1.Map(
-            //     [](size_t i) { return static_cast<short>(test_size + i); });
-
-            // numbers 0..999 (evenly distributed to workers)
-            auto input2 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
-
-            auto zip_input1 = input1;
-
-            // numbers 1900..1999 (concentrated on last workers)
-            auto zip_input2 = input2.Map(
-                [](size_t i) -> short { return i + test_size; });
+            auto zip_input2 = zip_input1.Map(
+                [](size_t i) { return static_cast<short>(test_size + i); });
 
             // zip
             auto zip_result = zip_input1.Zip(
@@ -111,17 +97,9 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
                 [](size_t index) { return index; },
                 test_size);
 
-            // TODO(sl): this did not work:
-
             // numbers 1000..1999
-            // auto input2 = input1.Map(
-            //     [](size_t i) { return static_cast<short>(test_size + i); });
-
-            // numbers 0..999 (evenly distributed to workers)
-            auto input2 = Generate(
-                ctx,
-                [](size_t index) { return index + test_size; },
-                test_size);
+            auto input2 = input1.Map(
+                [](size_t i) { return static_cast<short>(test_size + i); });
 
             // numbers 0..99 (concentrated on first workers)
             auto zip_input1 = input1.Filter(

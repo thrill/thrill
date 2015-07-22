@@ -202,22 +202,19 @@ public:
           channel_id_samples_(ctx.data_manager().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
           channel_id_data_(ctx.data_manager().GetNewChannel()),
-          emitters_data_(channel_id_data_->OpenWriters()),
-          parent_(parent)
+          emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
         auto pre_op_fn = [ = ](const ValueType& input) {
                              PreOp(input);
                          };
 
-        lop_chain_ = parent_stack.push(pre_op_fn).emit();
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
 
-        parent_->RegisterChild(lop_chain_);
+        parent->RegisterChild(lop_chain);
     }
 
-    virtual ~SortNode() {        
-        parent_->UnregisterChild(lop_chain_);
-    }
+    virtual ~SortNode() { }
 
     //! Executes the sum operation.
     void Execute() override {
@@ -225,6 +222,10 @@ public:
         MainOp();
         this->StopExecutionTimer();
     }
+
+    void PushData() override { }
+
+    void Dispose() override { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -266,9 +267,6 @@ private:
     //epsilon
     double desired_imbalance = 0.25;
     
-    std::shared_ptr<DIANode<ParentInput>> parent_; 
-    common::delegate<void(ParentInput)> lop_chain_; 
-
     void PreOp(ValueType input) {
         data_.push_back(input);
     }
