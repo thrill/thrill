@@ -235,7 +235,7 @@ private:
         auto reader = channel_->OpenReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
         while (reader.HasNext()) {
-            table.Insert(std::move(reader.template Next<KeyValuePair>()));
+            table.Insert(std::move(reader.template Next<Value>()));
         }
 
         table.Flush();
