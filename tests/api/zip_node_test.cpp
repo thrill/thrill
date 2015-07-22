@@ -76,6 +76,8 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
             // check result
             std::vector<long> res = zip_result.AllGather();
 
+            ASSERT_EQ(test_size, res.size());
+
             for (size_t i = 0; i != res.size(); ++i) {
                 ASSERT_EQ(static_cast<long>(i + i + test_size), res[i]);
             }
@@ -116,11 +118,17 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();
 
+            ASSERT_EQ(test_size / 10, res.size());
+
             for (size_t i = 0; i != res.size(); ++i) {
                 //sLOG1 << i << res[i].a << res[i].b;
                 ASSERT_EQ(static_cast<long>(i), res[i].a);
                 ASSERT_EQ(static_cast<long>(2 * test_size - test_size / 10 + i), res[i].b);
             }
+
+            // TODO(sl): make this work!
+            // check size of zip (recalculates ZipNode)
+            ASSERT_EQ(100u, zip_result.Size());
         };
 
     c7a::api::ExecuteLocalTests(start_func);

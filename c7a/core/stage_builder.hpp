@@ -85,7 +85,7 @@ public:
             }
         }
         for (auto stage : stages_found) {
-            stages_result.emplace_back(Stage(stage));
+            stages_result.emplace_back(stage);
         }
         std::reverse(stages_result.begin(), stages_result.end());
     }
@@ -95,10 +95,9 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            s.Execute();
-            // TODO(sl): Use this
-            // if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
-            // if (s.node()->state() == c7a::api::EXECUTED) s.Execute();
+            // TODO(sl): This is nonsense -tb, fix it:
+            if (s.node()->state() == c7a::api::EXECUTED) s.Execute();
+            if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
         }
     }
 
