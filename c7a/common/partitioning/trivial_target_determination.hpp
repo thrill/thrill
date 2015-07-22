@@ -88,7 +88,7 @@ struct BucketEmitter
             size_t j = 1;
             for (size_t l = 0; l < logK; l++)
             {
-                j = j * 2 + (a[i] >= treearr[j]);
+                j = j * 2 + !(compare_function(a[i], treearr[j]));
             }
             size_t b = j - k;
 

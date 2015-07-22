@@ -185,7 +185,6 @@ private:
         size_t samplesize = std::ceil(log2((double)total_elem) *
                                       (1 / (desired_imbalance * desired_imbalance)));
 
-
         LOG << prefix_elem << " elements, out of " << total_elem;
 
         std::random_device random_device;
@@ -303,9 +302,9 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     static_assert(
         std::is_same<
             typename common::FunctionTraits<CompareFunction>::result_type,
-            ValueType>::value ||
+            bool>::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
-        "CompareFunction has the wrong input type");
+        "CompareFunction has the wrong output type (should be bool)");
 
     auto shared_node
         = std::make_shared<SortResultNode>(node_->context(),
