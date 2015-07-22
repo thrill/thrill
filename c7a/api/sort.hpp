@@ -31,147 +31,6 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-namespace sort_local {
-
-template <typename ValueType>
-struct TreeBuilder
-{
-    ValueType* tree_;
-    ValueType* samples_;
-    size_t   index_ = 0;
-    size_t   ssplitter;
-
-    /*!
-     * Target: tree. Size of 'number of splitter'
-     * Source: sorted splitters. Size of 'number of splitter'
-     * Number of splitter
-     */
-    TreeBuilder(ValueType* splitter_tree,
-                ValueType* samples,
-                size_t ssplitter)
-        : tree_(splitter_tree),
-          samples_(samples),
-          ssplitter(ssplitter) {
-        recurse(samples, samples + ssplitter, 1);
-    }
-
-    void     recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
-
-        // pick middle element as splitter
-        ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
-        tree_[treeidx] = *mid;
-
-        ValueType* midlo = mid, * midhi = mid + 1;
-
-        if (2 * treeidx < ssplitter)
-        {
-            recurse(lo, midlo, 2 * treeidx + 0);
-            recurse(midhi, hi, 2 * treeidx + 1);
-        }
-    }
-};
-
-template <class T1, typename CompareFunction>
-class BucketEmitter
-{
-public:
-    static bool Equal(CompareFunction compare_function,
-                      const T1& ele1, const T1& ele2) {
-        return !(compare_function(ele1, ele2) || compare_function(ele2, ele1));
-    }
-
-    //! round n down by k where k is a power of two.
-    template <typename Integral>
-    static inline size_t RoundDown(Integral n, Integral k) {
-        return (n & ~(k - 1));
-    }
-
-    static void EmitToBuckets(
-        const T1* const array,
-        const size_t size,
-        const T1* const tree, // Tree. sizeof |splitter|
-        // Number of buckets: k = 2^{logK}
-        size_t k,
-        size_t logK,
-        std::vector<data::BlockWriter>& emitters,
-        // Number of actual workers to send to
-        size_t actual_k,
-        CompareFunction compare_function,
-        const T1* const sorted_splitters,
-        size_t prefix_elem,
-        size_t total_elem) {
-
-        // enlarge emitters array to next power of two to have direct access.
-        assert(emitters.size() == actual_k);
-        assert(actual_k <= k);
-
-        while (emitters.size() < k)
-            emitters.emplace_back(nullptr);
-
-        std::swap(emitters[actual_k - 1], emitters[k - 1]);
-
-        // classify all items (take two at once) and immediately transmit them.
-
-        const size_t stepsize = 2;
-
-        size_t i = 0;
-        for ( ; i < RoundDown(size, stepsize); i += stepsize)
-        {
-            // take two items
-            size_t j0 = 1;
-            const T1& el0 = array[i];
-
-            size_t j1 = 1;
-            const T1& el1 = array[i + 1];
-
-            // run items down the tree
-            for (size_t l = 0; l < logK; l++)
-            {
-                j0 = j0 * 2 + !(compare_function(el0, tree[j0]));
-                j1 = j1 * 2 + !(compare_function(el1, tree[j1]));
-            }
-
-            size_t b0 = j0 - k;
-            size_t b1 = j1 - k;
-
-            while (b0 && Equal(compare_function, el0, sorted_splitters[b0 - 1])
-                   && (prefix_elem + i) * actual_k >= b0 * total_elem) {
-                b0--;
-            }
-            assert(emitters[b0].IsValid());
-            emitters[b0](el0);
-
-            while (b1 && Equal(compare_function, el1, sorted_splitters[b1 - 1])
-                   && (prefix_elem + i + 1) * actual_k >= b1 * total_elem) {
-                b1--;
-            }
-            assert(emitters[b1].IsValid());
-            emitters[b1](el1);
-        }
-
-        // last iteration of loop if we have an odd number of items.
-        for ( ; i < size; i++)
-        {
-            size_t j = 1;
-            for (size_t l = 0; l < logK; l++)
-            {
-                j = j * 2 + !(compare_function(array[i], tree[j]));
-            }
-
-            size_t b = j - k;
-
-            while (b && Equal(compare_function, array[i], sorted_splitters[b - 1])
-                   && (prefix_elem + i) * actual_k >= b * total_elem) {
-                b--;
-            }
-            assert(emitters[b].IsValid());
-            emitters[b](array[i]);
-        }
-    }
-};
-
-} // namespace sort_local
-
 /*!
  * A DIANode which performs a Sort operation. Sort sorts a DIA according to a given
  * compare function
@@ -306,6 +165,136 @@ private:
         }
     }
 
+    class TreeBuilder
+    {
+    public:
+        ValueType* tree_;
+        ValueType* samples_;
+        size_t index_ = 0;
+        size_t ssplitter;
+
+        /*!
+         * Target: tree. Size of 'number of splitter'
+         * Source: sorted splitters. Size of 'number of splitter'
+         * Number of splitter
+         */
+        TreeBuilder(ValueType* splitter_tree,
+                    ValueType* samples,
+                    size_t ssplitter)
+            : tree_(splitter_tree),
+              samples_(samples),
+              ssplitter(ssplitter) {
+            recurse(samples, samples + ssplitter, 1);
+        }
+
+        void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
+
+            // pick middle element as splitter
+            ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
+            tree_[treeidx] = *mid;
+
+            ValueType* midlo = mid, * midhi = mid + 1;
+
+            if (2 * treeidx < ssplitter)
+            {
+                recurse(lo, midlo, 2 * treeidx + 0);
+                recurse(midhi, hi, 2 * treeidx + 1);
+            }
+        }
+    };
+
+    bool Equal(const ValueType& ele1, const ValueType& ele2) {
+        return !(compare_function_(ele1, ele2) || compare_function_(ele2, ele1));
+    }
+
+    //! round n down by k where k is a power of two.
+    template <typename Integral>
+    static inline size_t RoundDown(Integral n, Integral k) {
+        return (n & ~(k - 1));
+    }
+
+    void EmitToBuckets(
+        // Tree of splitters, sizeof |splitter|
+        const ValueType* const tree,
+        // Number of buckets: k = 2^{log_k}
+        size_t k,
+        size_t log_k,
+        // Number of actual workers to send to
+        size_t actual_k,
+        const ValueType* const sorted_splitters,
+        size_t prefix_elem,
+        size_t total_elem) {
+
+        // enlarge emitters array to next power of two to have direct access,
+        // because we fill the splitter set up with sentinels == last splitter,
+        // hence all items land in the last bucket.
+        assert(emitters_data_.size() == actual_k);
+        assert(actual_k <= k);
+
+        while (emitters_data_.size() < k)
+            emitters_data_.emplace_back(nullptr);
+
+        std::swap(emitters_data_[actual_k - 1], emitters_data_[k - 1]);
+
+        // classify all items (take two at once) and immediately transmit them.
+
+        const size_t stepsize = 2;
+
+        size_t i = 0;
+        for ( ; i < RoundDown(data_.size(), stepsize); i += stepsize)
+        {
+            // take two items
+            size_t j0 = 1;
+            const ValueType& el0 = data_[i];
+
+            size_t j1 = 1;
+            const ValueType& el1 = data_[i + 1];
+
+            // run items down the tree
+            for (size_t l = 0; l < log_k; l++)
+            {
+                j0 = j0 * 2 + !(compare_function_(el0, tree[j0]));
+                j1 = j1 * 2 + !(compare_function_(el1, tree[j1]));
+            }
+
+            size_t b0 = j0 - k;
+            size_t b1 = j1 - k;
+
+            while (b0 && Equal(el0, sorted_splitters[b0 - 1])
+                   && (prefix_elem + i) * actual_k >= b0 * total_elem) {
+                b0--;
+            }
+            assert(emitters_data_[b0].IsValid());
+            emitters_data_[b0](el0);
+
+            while (b1 && Equal(el1, sorted_splitters[b1 - 1])
+                   && (prefix_elem + i + 1) * actual_k >= b1 * total_elem) {
+                b1--;
+            }
+            assert(emitters_data_[b1].IsValid());
+            emitters_data_[b1](el1);
+        }
+
+        // last iteration of loop if we have an odd number of items.
+        for ( ; i < data_.size(); i++)
+        {
+            size_t j = 1;
+            for (size_t l = 0; l < log_k; l++)
+            {
+                j = j * 2 + !(compare_function_(data_[i], tree[j]));
+            }
+
+            size_t b = j - k;
+
+            while (b && Equal(data_[i], sorted_splitters[b - 1])
+                   && (prefix_elem + i) * actual_k >= b * total_elem) {
+                b--;
+            }
+            assert(emitters_data_[b].IsValid());
+            emitters_data_[b](data_[i]);
+        }
+    }
+
     void MainOp() {
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
@@ -361,22 +350,20 @@ private:
             splitters.push_back(splitters.back());
         }
 
-        sort_local::TreeBuilder<ValueType>(splitter_tree,
-                                           splitters.data(),
-                                           splitter_count_algo);
+        TreeBuilder(splitter_tree,
+                    splitters.data(),
+                    splitter_count_algo);
 
-        sort_local::BucketEmitter<ValueType, CompareFunction>::EmitToBuckets(
-            data_.data(),
-            data_.size(),
+        EmitToBuckets(
             splitter_tree, // Tree. sizeof |splitter|
             workers_algo,  // Number of buckets
             ceil_log,
-            emitters_data_,
             num_workers,
-            compare_function_,
             splitters.data(),
             prefix_elem,
             total_elem);
+
+        delete[] splitter_tree;
 
         //end of SS2N
 
