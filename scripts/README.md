@@ -6,7 +6,7 @@ Workflow at the moment is:
  1. Adjust invoke.sh
  2. Call invokeCluster.sh or invokeInteractive.sh
 
-== invoke.sh
+## invoke.sh
 
 Main script. Wraps a c7a execution on the BW HPC cluster. 
 
@@ -14,18 +14,18 @@ This script autmatically pulls the hostlist and the local rank from the SLURM re
 
 Please execute this script by using `msub` or one of the two auxillary scripts below.
 
-== invokeCluster.sh
+## invokeCluster.sh
 
 Auxillary script. 
 
 This script, if executed on a BW HPC login node, submits invoke.sh as a task to the cluster. The number of hosts can be given as first argument. 
 
-== invokeInteractive.sh
+## invokeInteractive.sh
 
 Auxillary script.
 
 This script, if executed on a BW HPC login node, submits invoke.sh as a task to a single node on the cluster. Standard I/O streams are redirected so that the task is available interactively. 
 
-== Other Scripts
+## Other Scripts
 
 Other scripts contain small components that are used by the scripts mentioned above. 
