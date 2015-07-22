@@ -61,8 +61,6 @@ public:
         emit_(input);
     }
 
-    virtual ~WriteNode() { }
-
     //! Closes the output file
     void Execute() override {
         this->StartExecutionTimer();
@@ -70,8 +68,6 @@ public:
         emit_.Close();
         this->StopExecutionTimer();
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 

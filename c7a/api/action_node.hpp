@@ -31,7 +31,11 @@ public:
         : DIABase(ctx, parents, stats_tag)
     { }
 
-    void UnregisterChilds() override { }
+    //! ActionNodes do not have children.
+    void UnregisterChilds() final { }
+
+    //! Actionnodes do not push data, they only Execute.
+    void PushData() final { }
 };
 
 //! \}

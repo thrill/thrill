@@ -52,16 +52,12 @@ public:
         parent->RegisterChild(lop_chain);
     }
 
-    virtual ~SizeNode() { }
-
     //! Executes the size operation.
     void Execute() override {
         this->StartExecutionTimer();
         MainOp();
         this->StopExecutionTimer();
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 

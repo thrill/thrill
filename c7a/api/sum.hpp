@@ -58,16 +58,12 @@ public:
         parent->RegisterChild(lop_chain);
     }
 
-    virtual ~SumNode() { }
-
     //! Executes the sum operation.
     void Execute() override {
         this->StartExecutionTimer();
         MainOp();
         this->StopExecutionTimer();
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 
