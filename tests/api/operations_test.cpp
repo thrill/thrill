@@ -62,7 +62,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
             EXPECT_GE(item, 1);
             EXPECT_GE(16, item);
             writer_size++;
-            return std::to_string(item);
+            return std::to_string(item) + "\n";
         })
     .WriteToFileSystem("test1.out");
 

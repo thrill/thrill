@@ -58,7 +58,7 @@ int word_count(Context& ctx) {
 
     red_words.Map(
         [](const WordCount& wc) {
-            return wc.first + ": " + std::to_string(wc.second);
+            return wc.first + ": " + std::to_string(wc.second) + "\n";
         })
     .WriteToFileSystem(
         "wordcount_" + std::to_string(ctx.rank()) + ".out");
@@ -79,7 +79,7 @@ int word_count_generated(Context& ctx, size_t size) {
 
     reduced_words.Map(
         [](const WordCount& wc) {
-            return wc.first + ": " + std::to_string(wc.second);
+            return wc.first + ": " + std::to_string(wc.second) + "\n";
         })
     .WriteToFileSystem(
         "wordcount_" + std::to_string(ctx.rank()) + ".out");
