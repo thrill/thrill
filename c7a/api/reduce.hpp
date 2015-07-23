@@ -132,7 +132,7 @@ public:
         auto reader = channel_->OpenReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
         while (reader.HasNext()) {
-            table.Insert(reader.template Next<KeyValuePair>());
+            table.Insert(reader.template Next<Value>());
         }
 
         table.Flush();
