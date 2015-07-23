@@ -172,6 +172,62 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
     Execute(w0, w1, w2);
 }
 
+TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
+    auto w0 = [](data::Manager& manager) {
+                  auto c = manager.GetNewChannel();
+                  auto writers = c->OpenWriters();
+                  std::string msg1 = "I came from worker 0";
+                  std::string msg2 = "I am another message from worker 0";
+                  writers[2](msg1);
+                  //writers[2].Flush();
+                  writers[2](msg2);
+                  for (auto& w : writers) {
+                      sLOG << "close worker";
+                      w.Close();
+                  }
+              };
+    auto w1 = [](data::Manager& manager) {
+                  auto c = manager.GetNewChannel();
+                  auto writers = c->OpenWriters();
+                  std::string msg1 = "I came from worker 1";
+                  writers[2](msg1);
+                  for (auto& w : writers) {
+                      sLOG << "close worker";
+                      w.Close();
+                  }
+              };
+    auto w2 = [](data::Manager& manager) {
+                  auto c = manager.GetNewChannel();
+                  auto writers = c->OpenWriters();
+                  for (auto& w : writers) {
+                      sLOG << "close worker";
+                      w.Close();
+                  }
+
+                  {
+                      auto reader = c->OpenCachingReader();
+                      ASSERT_EQ("I came from worker 0",
+                                reader.Next<std::string>());
+                      ASSERT_EQ("I am another message from worker 0",
+                                reader.Next<std::string>());
+                      ASSERT_EQ("I came from worker 1",
+                                reader.Next<std::string>());
+                      ASSERT_TRUE(!reader.HasNext());
+                  }
+                  {
+                      auto reader = c->OpenCachingReader();
+                      ASSERT_EQ("I came from worker 0",
+                                reader.Next<std::string>());
+                      ASSERT_EQ("I am another message from worker 0",
+                                reader.Next<std::string>());
+                      ASSERT_EQ("I came from worker 1",
+                                reader.Next<std::string>());
+                      ASSERT_TRUE(!reader.HasNext());
+                  }
+              };
+    Execute(w0, w1, w2);
+}
+
 TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
     auto w0 =
         [](data::Manager& manager) {

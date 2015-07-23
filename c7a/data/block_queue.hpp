@@ -171,7 +171,8 @@ public:
         if (from_queue_) {
             VirtualBlock vb = BlockQueueSource::NextBlock();
             // cache block in file_
-            file_.AppendBlock(vb);
+            if (vb.IsValid())
+                file_.AppendBlock(vb);
             return vb;
         }
         else {
@@ -189,7 +190,7 @@ protected:
     bool from_queue_;
 
     //! Reference to file for caching Blocks
-    File file_;
+    File& file_;
 };
 
 //! \}
