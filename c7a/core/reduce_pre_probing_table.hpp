@@ -162,7 +162,6 @@ public:
 
         int pos = h.global_index;
         size_t pos_offset = 0;
-        size_t num_collisions = 0;
 
         // REVIEW(ms): try to make the loop tighter, remove extra variables and
         // try to reduce the number of +/-/< operations, have only current + end
@@ -182,10 +181,9 @@ public:
                 return;
             }
 
-            ++num_collisions;
-            pos_offset += 1;
+            ++pos_offset;
 
-            if (num_collisions > num_collisions_to_resize_ || pos_offset > num_items_per_partition_)
+            if (pos_offset > num_collisions_to_resize_ || pos_offset >= num_items_per_partition_)
             {
                 ResizeUp();
                 Insert(std::move(p));
@@ -470,21 +468,21 @@ private:
     size_t num_items_init_scale_ = 10;              // set number of items per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_items_resize_scale_ = 2;             // resize scale on max_num_items_per_bucket_
+    size_t num_items_resize_scale_ = 2;             // resize scale triggered by max_partition_fill_ratio_
 
-    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max();    // max stepsize before resize
+    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max();    // max num of collisions before resize
 
     double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
 
     size_t max_num_items_table_ = 1048576;          // max num of items before spilling of largest partition
 
-    size_t num_items_ = 0;                              // num items in the table
+    size_t num_items_ = 0;                          // num items in the table
 
     size_t num_items_per_partition_;                // num items per partition
 
     std::vector<size_t> items_per_partition_;       // current number of items per partition
 
-    size_t table_size_ = 0;                         // total number of items
+    size_t table_size_ = 0;                         // number of slots
 
     KeyExtractor key_extractor_;
 
