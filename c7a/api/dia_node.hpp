@@ -14,7 +14,6 @@
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/common/delegate.hpp>
 #include <c7a/data/manager.hpp>
 
 #include <string>
@@ -74,19 +73,15 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(common::delegate<void(T)> callback) {
+    void RegisterChild(std::function<void(T)> callback) {
         this->callbacks_.push_back(callback);
     }
 
-    void UnregisterChild(common::delegate<void(T)> callback) {
-        this->callbacks_.erase(
-                std::remove(this->callbacks_.begin(), 
-                            this->callbacks_.end(), 
-                            callback), 
-                this->callbacks_.end());
+    void UnregisterChilds() override {
+        this->callbacks_.clear();
     }
 
-    std::vector<common::delegate<void(T)> > & callbacks() {
+    std::vector<std::function<void(T)> > & callbacks() {
         return callbacks_;
     }
 
@@ -101,17 +96,15 @@ protected:
     kState state_ = NEW;
 
     //! Callback functions from the child nodes.
-    std::vector<common::delegate<void(T)> > callbacks_;
+    std::vector<std::function<void(T)> > callbacks_;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
         switch (state_) {
         case NEW:
             return "NEW";
-        case CALCULATED:
-            return "CALCULATED";
-        case CACHED:
-            return "CACHED";
+        case EXECUTED:
+            return "EXECUTED";
         case DISPOSED:
             return "DISPOSED";
         default:

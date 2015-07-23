@@ -62,22 +62,32 @@ using ChannelId = size_t;
 template <size_t BlockSize = default_block_size>
 class ChannelBase
 {
+public:
     using BlockQueue = data::BlockQueue<BlockSize>;
     using BlockQueueSource = data::BlockQueueSource<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
     using ConcatBlockSource = data::ConcatBlockSource<BlockQueueSource>;
     using ConcatBlockReader = BlockReader<ConcatBlockSource>;
 
+    using CachingBlockQueueSource = data::CachingBlockQueueSource<BlockSize>;
+    using CachingConcatBlockSource = data::ConcatBlockSource<CachingBlockQueueSource>;
+    using CachingConcatBlockReader = BlockReader<CachingConcatBlockSource>;
+
     using BlockWriter = data::BlockWriterBase<BlockSize>;
     using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelSink = data::ChannelSink<BlockSize>;
     using File = data::FileBase<BlockSize>;
 
-public:
+    using Reader = BlockQueueReader;
+    using ConcatReader = ConcatBlockReader;
+    using CachingConcatReader = CachingConcatBlockReader;
+
     //! Creates a new channel instance
-    ChannelBase(const ChannelId& id, net::Group& group, net::DispatcherThread& dispatcher)
+    ChannelBase(const ChannelId& id, net::Group& group,
+                net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
+          cache_files_(group.Size()),
           group_(group),
           dispatcher_(dispatcher) {
         // construct ChannelSink array
@@ -149,6 +159,56 @@ public:
         return ConcatBlockReader(ConcatBlockSource(result));
     }
 
+    //! Creates a BlockReader for all workers. The BlockReader is attached to
+    //! one \ref ConcatBlockSource which includes all incoming queues of this
+    //! channel. The received Blocks are also cached in the Channel, hence this
+    //! function can be called multiple times to read the items again.
+    CachingConcatBlockReader OpenCachingReader() {
+        // construct vector of CachingBlockQueueSources to read from queues_.
+        std::vector<CachingBlockQueueSource> result;
+        for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
+            result.emplace_back(queues_[worker_id], cache_files_[worker_id]);
+        }
+        // move CachingBlockQueueSources into concatenation BlockSource, and to
+        // Reader.
+        return CachingConcatBlockReader(CachingConcatBlockSource(result));
+    }
+
+    /*!
+     * Scatters a File to many workers
+     *
+     * elements from 0..offset[0] are sent to the first worker,
+     * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
+     * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
+     * The offset values range from 0..Manager::GetNumElements().
+     * The number of given offsets must be equal to the net::Group::Size().
+     *
+     * /param source File containing the data to be scattered.
+     *
+     * /param offsets - as described above. offsets.size must be equal to group.size
+     */
+    template <typename Type>
+    void Scatter(const File& source, const std::vector<size_t>& offsets) {
+        assert(offsets.size() == group_.Size());
+
+        // current item offset in Reader
+        size_t current = 0;
+        typename File::Reader reader = source.GetReader();
+
+        std::vector<BlockWriter> writers = OpenWriters();
+
+        for (size_t worker_id = 0; worker_id < offsets.size(); ++worker_id) {
+            // write [current,limit) to this worker
+            size_t limit = offsets[worker_id];
+            for ( ; current < limit; ++current) {
+                assert(reader.HasNext());
+                // move over one item (with deserialization and serialization)
+                writers[worker_id](reader.template Next<Type>());
+            }
+            writers[worker_id].Close();
+        }
+    }
+
     //! shuts the channel down.
     void Close() {
         // close all sinks, this should emit sentinel to all other workers.
@@ -192,6 +252,9 @@ protected:
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
 
+    //! Vector of Files to cache inbound Blocks needed for OpenCachingReader().
+    std::vector<File> cache_files_;
+
     net::Group& group_;
     net::DispatcherThread& dispatcher_;
 
@@ -208,7 +271,7 @@ protected:
                  << common::hexdump(vb.block->data(), vb.bytes_used);
         }
 
-        queues_[from].Append(std::move(vb));
+        queues_[from].AppendBlock(vb);
     }
 
     //! called from ChannelMultiplexer when a Stream closed notification was
@@ -221,7 +284,7 @@ protected:
 };
 
 using Channel = ChannelBase<data::default_block_size>;
-using ChannelSPtr = std::shared_ptr<Channel>;
+using ChannelPtr = std::shared_ptr<Channel>;
 
 //! \}
 

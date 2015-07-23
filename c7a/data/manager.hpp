@@ -17,7 +17,6 @@
 #include <c7a/data/channel.hpp>
 #include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/data/output_line_emitter.hpp>
 #include <c7a/data/repository.hpp>
 
 #include <functional>
@@ -65,7 +64,7 @@ public:
 #endif      // FIXUP_LATER
 
     //! Returns a reference to an existing Channel.
-    ChannelSPtr GetChannel(const ChannelId id) {
+    ChannelPtr GetChannel(const ChannelId id) {
         assert(cmp_.HasChannel(id));
         return std::move(cmp_.GetOrCreateChannel(id));
     }
@@ -73,7 +72,7 @@ public:
     //! Returns a reference to a new Channel.
     //! This method alters the state of the manager and must be called on all
     //! Workers to ensure correct communication cordination
-    ChannelSPtr GetNewChannel() {
+    ChannelPtr GetNewChannel() {
         return std::move(cmp_.GetOrCreateChannel(cmp_.AllocateNext()));
     }
 

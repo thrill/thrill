@@ -13,8 +13,7 @@
 #define C7A_API_SIZE_HEADER
 
 #include <c7a/api/action_node.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/function_stack.hpp>
+#include <c7a/core/stage_builder.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
@@ -44,18 +43,13 @@ public:
     SizeNode(Context& ctx,
              const std::shared_ptr<DIANode<ParentInput> >& parent,
              const ParentStack& parent_stack)
-        : ActionNode(ctx, { parent }, "Size"),
-          parent_(parent)
+        : ActionNode(ctx, { parent }, "Size")
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
 
-        lop_chain_ = parent_stack.push(pre_op_fn).emit();
-        parent_->RegisterChild(lop_chain_);
-    }
-
-    virtual ~SizeNode() { 
-        parent_->UnregisterChild(lop_chain_);
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
+        parent->RegisterChild(lop_chain);
     }
 
     //! Executes the size operation.
@@ -64,6 +58,8 @@ public:
         MainOp();
         this->StopExecutionTimer();
     }
+
+    void Dispose() override { }
 
     /*!
      * Returns result of global size.
@@ -87,14 +83,11 @@ private:
     // Global size resulting from all reduce.
     size_t global_size_ = 0;
 
-    std::shared_ptr<DIANode<ParentInput>> parent_;
-    common::delegate<void(ParentInput)> lop_chain_;
-
     void PreOp() { }
 
     void MainOp() {
         // get the number of elements that are stored on this worker
-        LOG1 << "MainOp processing, sum: " << local_size_;
+        LOG << "MainOp processing, sum: " << local_size_;
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
         // process the reduce, default argument is SumOp.

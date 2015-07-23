@@ -14,6 +14,7 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/lop_node.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/size.hpp>
@@ -54,15 +55,16 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
     size_t writer_size = 0;
 
-    input.WriteToFileSystem("test1.out",
-                            [&writer_size](const int& item) {
-                                //file contains ints between 1  and 15
-                                //fails if wrong integer is generated
-                                EXPECT_GE(item, 1);
-                                EXPECT_GE(16, item);
-                                writer_size++;
-                                return std::to_string(item);
-                            });
+    input.Map(
+        [&writer_size](const int& item) {
+            //file contains ints between 1  and 15
+            //fails if wrong integer is generated
+            EXPECT_GE(item, 1);
+            EXPECT_GE(16, item);
+            writer_size++;
+            return std::to_string(item) + "\n";
+        })
+    .WriteToFileSystem("test1.out");
 
     ASSERT_EQ(generate_size, writer_size);
 }
@@ -119,7 +121,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
             }
 
             ASSERT_EQ(16u, out_vec.size());
-            static_assert(std::is_same<decltype(doubled)::ItemType, double>::value, "DIA must be double");
+            static_assert(std::is_same<decltype(doubled)::ValueType, double>::value, "DIA must be double");
             static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
         };
 
@@ -155,7 +157,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             }
 
             static_assert(
-                std::is_same<decltype(doubled)::ItemType, double>::value,
+                std::is_same<decltype(doubled)::ValueType, double>::value,
                 "DIA must be double");
 
             static_assert(
@@ -316,7 +318,7 @@ TEST(Operations, ForLoop) {
             for (size_t i = 0; i < 4; ++i) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied;
+                squares = multiplied.Collapse();
             }
 
             std::vector<int> out_vec = squares.AllGather();
@@ -359,7 +361,7 @@ TEST(Operations, WhileLoop) {
             while (sum < 256) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied;
+                squares = multiplied.Collapse();
                 sum = squares.Size();
             }
 

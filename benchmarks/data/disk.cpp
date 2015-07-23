@@ -1,4 +1,17 @@
-#include <c7a/c7a.hpp>
+/*******************************************************************************
+ * benchmarks/data/disk.cpp
+ *
+ * Part of Project c7a.
+ *
+ * Copyright (C) 2015 Tobias Sturm <tobias.sturm@student.kit.edu>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+#include <c7a/api/read.hpp>
+#include <c7a/api/write.hpp>
+#include <c7a/common/cmdline_parser.hpp>
+
 #include <iostream>
 
 using namespace c7a;
@@ -10,7 +23,7 @@ int main(int argc, const char** argv) {
     api::Context ctx(jobMan, 0);
     common::GetThreadDirectory().NameThisThread("benchmark");
 
-    c7a::common::CmdlineParser clp;
+    common::CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <tobias.sturm@student.kit.edu>");
     std::string input_file, output_file;
@@ -21,9 +34,10 @@ int main(int argc, const char** argv) {
     auto overall_timer = ctx.stats().CreateTimer("overall", "", true);
 
     auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
-    lines.WriteToFileSystem(output_file, [](const std::string& line) {
-                                return line;
-                            });
+
+    lines.WriteToFileSystem(output_file);
 
     overall_timer->Stop();
 }
+
+/******************************************************************************/

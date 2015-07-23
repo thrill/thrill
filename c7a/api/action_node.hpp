@@ -12,7 +12,6 @@
 #define C7A_API_ACTION_NODE_HEADER
 
 #include <c7a/api/dia_node.hpp>
-#include <c7a/core/stage_builder.hpp>
 
 #include <string>
 #include <vector>
@@ -31,6 +30,12 @@ public:
                const std::string& stats_tag)
         : DIABase(ctx, parents, stats_tag)
     { }
+
+    //! ActionNodes do not have children.
+    void UnregisterChilds() final { }
+
+    //! Actionnodes do not push data, they only Execute.
+    void PushData() final { }
 };
 
 //! \}

@@ -32,11 +32,26 @@ public:
     explicit Stage(DIABase* node) : node_(node) {
         LOG << "CREATING stage" << node_->ToString() << "node" << node_;
     }
-    void Run() {
-        LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
+
+    void Execute() {
+        LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
         node_->Execute();
+        node_->UnregisterChilds();
+        node_->set_state(c7a::api::EXECUTED);
     }
-    DIABase* node() {
+
+    void PushData() {
+        LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
+        node_->PushData();
+    }
+
+    void Dispose() {
+        LOG << "DISPOSING stage " << node_->ToString() << "node" << node_;
+        node_->Dispose();
+        node_->set_state(c7a::api::DISPOSED);
+    }
+
+    DIABase * node() {
         return node_;
     }
 
@@ -63,15 +78,12 @@ public:
             const auto parents = curr->parents();
             for (size_t i = 0; i < parents.size(); ++i) {
                 auto p = parents[i].get();
-                if (p) {
-                    stages_found.push_back(p);
-                    if (p->state() != c7a::api::CALCULATED) {
-                        dia_stack.push(p);
-                    }
+                stages_found.push_back(p);
+                if (p->state() != c7a::api::EXECUTED) {
+                    dia_stack.push(p);
                 }
             }
         }
-
         for (auto stage : stages_found) {
             stages_result.emplace_back(Stage(stage));
         }
@@ -83,8 +95,10 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            s.Run();
-            s.node()->set_state(c7a::api::CALCULATED);
+            s.Execute();
+            // TODO(sl): Use this
+            // if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
+            // if (s.node()->state() == c7a::api::EXECUTED) s.Execute();
         }
     }
 
