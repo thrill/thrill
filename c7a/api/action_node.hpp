@@ -25,6 +25,7 @@ public:
         : DIABase(ctx, parents)
     { }
 };
+
 } // namespace api
 } // namespace c7a
 

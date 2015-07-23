@@ -66,6 +66,7 @@ public:
         m.unlock();
     }
 };
+
 } // namespace common
 } // namespace c7a
 

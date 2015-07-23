@@ -297,7 +297,7 @@ private:
         const WelcomeMsg hello = { c7a_sign, (uint32_t)conn.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(conn, &hello, sizeof(hello),
-                                   [ = ](Connection& nc) {
+                                   [=](Connection& nc) {
                                        return OnHelloSent(nc);
                                    });
 
@@ -305,7 +305,7 @@ private:
             << "client " << conn.peer_id() << " group id " << conn.group_id();
 
         dispatcher_.AsyncRead(conn, sizeof(hello),
-                              [ = ](Connection& nc, Buffer&& b) {
+                              [=](Connection& nc, Buffer&& b) {
                                   OnIncomingWelcome(nc, std::move(b));
                               });
 
@@ -387,7 +387,7 @@ private:
         const WelcomeMsg msg_out = { c7a_sign, msg_in->group_id, my_rank_ };
 
         dispatcher_.AsyncWriteCopy(c, &msg_out, sizeof(msg_out),
-                                   [ = ](Connection& nc) {
+                                   [=](Connection& nc) {
                                        return OnHelloSent(nc);
                                    });
 
@@ -511,7 +511,7 @@ public:
 
         //Add reads to the dispatcher to accept new connections.
         dispatcher_.AddRead(listener_,
-                            [ = ](Connection& nc) {
+                            [=](Connection& nc) {
                                 return OnIncomingConnection(nc);
                             });
 
@@ -569,6 +569,7 @@ public:
         }
     }
 };
+
 } // namespace net
 } // namespace c7a
 

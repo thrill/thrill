@@ -312,6 +312,7 @@ public:
     //! print nicely formatted result of processing
     void PrintResult(std::ostream& os = std::cout);
 };
+
 } // namespace common
 } // namespace c7a
 

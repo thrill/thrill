@@ -319,6 +319,7 @@ private:
                 static_cast<T*>(object_ptr)->second)(std::forward<A>(args) ...);
     }
 };
+
 } // namespace common
 } // namespace c7a
 

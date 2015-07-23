@@ -35,6 +35,7 @@ namespace c7a {
 
 using api::DIARef;
 using api::Context;
+
 } // namespace c7a
 
 #endif // !C7A_C7A_HEADER

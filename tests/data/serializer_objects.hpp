@@ -1,4 +1,15 @@
+/*******************************************************************************
+ * tests/data/serializer_objects.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
 #pragma once
+#ifndef C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
+#define C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #include <cereal/archives/c7a.hpp>
 
 namespace c7a {
@@ -38,6 +49,9 @@ struct TestCerealObject2 {
         archive(x_, y_, z_, tco);   // serialize things by passing them to the archive
     }
 };
+#endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 }
 }
 }
+
+/******************************************************************************/
