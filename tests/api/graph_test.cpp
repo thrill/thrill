@@ -7,7 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/graph.hpp>
+#include <c7a/api/stats_graph.hpp>
 #include <c7a/common/logger.hpp>
 
 #include <gtest/gtest.h>
