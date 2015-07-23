@@ -130,31 +130,39 @@ public:
     void Execute() override {
         this->StartExecutionTimer();
         MainOp();
-        PushData();
         this->StopExecutionTimer();
     }
 
     void PushData() override {
-        if (dia_min_size_ == 0) return;
-
-        // get inbound readers from all Channels
-        std::vector<data::Channel::CachingConcatReader> readers {
-            channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
-                };
-
         size_t result_count = 0;
 
-        while (readers[0].HasNext() && readers[1].HasNext()) {
-            ZipArg0 i0 = readers[0].Next<ZipArg0>();
-            ZipArg1 i1 = readers[1].Next<ZipArg1>();
-            ValueType v = zip_function_(i0, i1);
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(v);
+        if (dia_min_size_ != 0) {
+            // get inbound readers from all Channels
+            std::vector<data::Channel::CachingConcatReader> readers {
+                channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
+            };
+
+            while (readers[0].HasNext() && readers[1].HasNext()) {
+                ZipArg0 i0 = readers[0].Next<ZipArg0>();
+                ZipArg1 i1 = readers[1].Next<ZipArg1>();
+                ValueType v = zip_function_(i0, i1);
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    func(v);
+                }
+                ++result_count;
             }
-            ++result_count;
+
+            // Empty out readers. If they have additional items, this is
+            // necessary for the CachingBlockQueueSource, as it has to cache the
+            // additional blocks -tb. TODO(tb): this is weird behaviour.
+            while (readers[0].HasNext())
+                readers[0].Next<ZipArg0>();
+
+            while (readers[1].HasNext())
+                readers[1].Next<ZipArg1>();
         }
 
-        sLOG << "result_count" << result_count;
+        sLOG << "Zip: result_count" << result_count;
     }
 
     void Dispose() override { }
@@ -216,8 +224,8 @@ private:
         size_t size_prefixsum = dia_size_prefixsum_[in];
         const size_t& total_size = dia_total_size_[in];
 
-        //! number of elements per worker
-        size_t per_pe = total_size / workers;
+        //! number of elements per worker (rounded up)
+        size_t per_pe = (total_size + workers - 1) / workers;
         //! offsets for scattering
         std::vector<size_t> offsets(workers, 0);
 

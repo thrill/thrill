@@ -74,6 +74,10 @@ public:
     //! the DataManager after applying the read function on it.
     void Execute() override {
         this->StartExecutionTimer();
+        this->StopExecutionTimer();
+    }
+
+    void PushData() override {
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
@@ -90,10 +94,7 @@ public:
                 func(read_function_(item));
             }
         }
-        this->StopExecutionTimer();
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 
