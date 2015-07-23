@@ -174,7 +174,7 @@ private:
                  << "from" << header.sender_rank;
 
             dispatcher_.AsyncRead(
-                s, header.expected_bytes,
+                s, header.size,
                 [this, header, channel](Connection& s, net::Buffer&& buffer) {
                     OnStreamBlock(s, header, channel, std::move(buffer));
                 });
@@ -187,7 +187,7 @@ private:
 
         sLOG << "got block on" << s << "in channel" << header.channel_id;
 
-        die_unless(header.expected_bytes == buffer.size());
+        die_unless(header.size == buffer.size());
 
         // TODO(tb): don't copy data!
         BlockPtr block = std::make_shared<Block>();
@@ -195,8 +195,8 @@ private:
 
         channel->OnStreamBlock(
             header.sender_rank,
-            VirtualBlock(block,
-                         header.expected_bytes, header.expected_elements, 0));
+            VirtualBlock(block, 0, header.size,
+                         header.first_item, header.nitems));
 
         AsyncReadStreamBlockHeader(s);
     }
