@@ -47,7 +47,7 @@ public:
         emitters_ = context_.data_manager().
                     template GetNetworkEmitters<ValueType>(channel_used_);
 
-        auto pre_op_function = [ = ](ValueType input) {
+        auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
 
@@ -114,6 +114,7 @@ void DIARef<ValueType, Stack>::AllGather(
 
     core::StageBuilder().RunScope(shared_node.get());
 }
+
 } // namespace api
 } // namespace c7a
 

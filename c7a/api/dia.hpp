@@ -160,7 +160,7 @@ public:
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
                   = typename common::FunctionTraits<MapFunction>::result_type;
-        auto conv_map_function = [ = ](MapArgument input, auto emit_func) {
+        auto conv_map_function = [=](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
 
@@ -189,7 +189,7 @@ public:
     auto Filter(const FilterFunction &filter_function) const {
         using FilterArgument
                   = typename common::FunctionTraits<FilterFunction>::template arg<0>;
-        auto conv_filter_function = [ = ](FilterArgument input, auto emit_func) {
+        auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
                                         if (filter_function(input)) emit_func(input);
                                     };
 
@@ -453,6 +453,7 @@ auto Generate(Context & ctx,
               size_t size);
 
 //! \}
+
 } // namespace api
 } // namespace c7a
 

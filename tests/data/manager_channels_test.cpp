@@ -52,7 +52,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     void Execute(WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         barrier = new Barrier(3);
         Group::ExecuteLocalMock(3,
-                                [ = ](Group* g) {
+                                [=](Group* g) {
                                     FunctionSelect(g, f1, f2, f3);
                                 });
         delete barrier;
@@ -61,7 +61,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     void Execute(WorkerThread f1, WorkerThread f2) {
         barrier = new Barrier(2);
         Group::ExecuteLocalMock(2,
-                                [ = ](Group* g) {
+                                [=](Group* g) {
                                     FunctionSelect(g, f1, f2);
                                 });
         delete barrier;
@@ -70,7 +70,7 @@ struct DataManagerChannelFixture : public::testing::Test {
     void Execute(WorkerThread f1) {
         barrier = new Barrier(1);
         Group::ExecuteLocalMock(1,
-                                [ = ](Group* g) {
+                                [=](Group* g) {
                                     FunctionSelect(g, f1, [](Manager&) { });
                                 });
         delete barrier;

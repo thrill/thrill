@@ -148,6 +148,7 @@ template <size_t BlockSize>
 typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
     return BlockQueue<BlockSize>::Reader(*this);
 }
+
 } // namespace data
 } // namespace c7a
 

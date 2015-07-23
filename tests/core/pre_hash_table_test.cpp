@@ -53,7 +53,8 @@ struct Impl<MyStruct>{
         return MyStruct(i, j);
     }
 };
-}       // namespace serializers
+
+} // namespace serializers
 
 template <typename Archive>
 struct Serializer<Archive, MyStruct>
@@ -70,6 +71,7 @@ struct Serializer<Archive, MyStruct>
     static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
                                     Serializer<Archive, int>::fixed_size);
 };
+
 } // namespace data
 } // namespace c7a
 

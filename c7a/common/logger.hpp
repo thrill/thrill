@@ -222,6 +222,7 @@ public:
             die("Inequality: " #X " != " #Y " : " \
                 "\"" << "\" != \"" << Y << "\""); \
     } while (0)
+
 } // namespace common
 } // namespace c7a
 
