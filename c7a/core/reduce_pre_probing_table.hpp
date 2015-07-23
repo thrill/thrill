@@ -55,22 +55,8 @@ public:
         }
     };
 
-    // REVIEW(ms): remove the probing_result stuff, no other policy than linear is needed.
-    struct probing_result
-    {
-    public:
-        //! the offset relativ to provided pos.
-        int probing_offset;
-
-        explicit probing_result(int o) {
-            probing_offset = o;
-        }
-    };
-
 public:
     typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
-
-    typedef std::function<probing_result(int, ReducePreProbingTable*)> ProbingFunction;
 
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
@@ -93,11 +79,6 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                },
-                          ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable*) {
-                                    probing_result pr(1);
-                                    return pr;
                                 })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
@@ -108,8 +89,7 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function),
-          probing_function_(probing_function)
+          hash_function_(hash_function)
     {
         init(sentinel);
     }
@@ -129,18 +109,12 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                },
-                          ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable*) {
-                                    probing_result pr(1);
-                                    return pr;
                                 })
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function),
-          probing_function_(probing_function)
+          hash_function_(hash_function)
     {
         init(sentinel);
     }
@@ -157,17 +131,17 @@ public:
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
-        num_items_ = num_partitions_ * num_items_init_scale_;
-        if (num_partitions_ > num_items_ &&
-            num_items_ % num_partitions_ != 0) {
+        table_size_ = num_partitions_ * num_items_init_scale_;
+        if (num_partitions_ > table_size_ &&
+                table_size_ % num_partitions_ != 0) {
             throw std::invalid_argument("partition_size must be less than or equal to num_items "
                                         "AND partition_size a divider of num_items");
         }
-        num_items_per_partition_ = num_items_ / num_partitions_;
+        num_items_per_partition_ = table_size_ / num_partitions_;
 
         // set the key to initial key
         sentinel_ = KeyValuePair(sentinel.first, sentinel.second);
-        vector_.resize(num_items_, sentinel_);
+        vector_.resize(table_size_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
     }
 
@@ -181,6 +155,10 @@ public:
         Key key = key_extractor_(p);
 
         hash_result h = hash_function_(key, this);
+
+        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
+        assert(h.partition_offset >= 0 && h.partition_offset < num_items_per_partition_);
+        assert(h.global_index >= 0 && h.global_index < table_size_);
 
         int pos = h.global_index;
         size_t pos_offset = 0;
@@ -205,8 +183,7 @@ public:
             }
 
             ++num_collisions;
-            probing_result pr = probing_function_(pos, this);
-            pos_offset += pr.probing_offset;
+            pos_offset += 1;
 
             if (num_collisions > num_collisions_to_resize_ || pos_offset > num_items_per_partition_)
             {
@@ -229,13 +206,13 @@ public:
             vector_[pos + pos_offset] = KeyValuePair(key, p);
 
             // increase total counter
-            table_size_++;
+            num_items_++;
 
             // increase counter for partition
             items_per_partition_[h.partition_id]++;
         }
 
-        if (table_size_ > max_num_items_table_)
+        if (num_items_ > max_num_items_table_)
         {
             LOG << "flush";
             FlushLargestPartition();
@@ -320,7 +297,7 @@ public:
         }
 
         // reset total counter
-        table_size_ -= items_per_partition_[partition_id];
+        num_items_ -= items_per_partition_[partition_id];
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
@@ -331,14 +308,14 @@ public:
     }
 
     /*!
-     * Returns the total num of items.
+     * Returns the size of the table.
      */
     size_t Size() {
         return table_size_;
     }
 
     /*!
-     * Returns the total num of items.
+     * Returns the total num of items in table in all partitions.
      */
     size_t NumItems() {
         return num_items_;
@@ -391,18 +368,18 @@ public:
      */
     void ResizeUp() {
         LOG << "Resizing";
-        num_items_ *= num_items_resize_scale_;
-        num_items_per_partition_ = num_items_ / num_partitions_;
+        table_size_ *= num_items_resize_scale_;
+        num_items_per_partition_ = table_size_ / num_partitions_;
         // reset items_per_partition and table_size
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
-        table_size_ = 0;
+        num_items_ = 0;
 
         // move old hash array
         std::vector<KeyValuePair> vector_old;
         std::swap(vector_old, vector_);
 
         // init new hash array
-        vector_.resize(num_items_, sentinel_);
+        vector_.resize(table_size_, sentinel_);
 
         // rehash all items in old array
         for (KeyValuePair k_v_pair : vector_old)
@@ -428,7 +405,7 @@ public:
         }
 
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
-        table_size_ = 0;
+        num_items_ = 0;
         LOG << "Cleared";
     }
 
@@ -437,17 +414,17 @@ public:
      */
     void Reset() {
         LOG << "Resetting";
-        num_items_ = num_partitions_ * num_items_init_scale_;
-        num_items_per_partition_ = num_items_ / num_partitions_;
+        table_size_ = num_partitions_ * num_items_init_scale_;
+        num_items_per_partition_ = table_size_ / num_partitions_;
 
         for (KeyValuePair k_v_pair : vector_)
         {
             k_v_pair = sentinel_; // TODO(ms): fix, doesnt work
         }
 
-        vector_.resize(num_items_, sentinel_);
+        vector_.resize(table_size_, sentinel_);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
-        table_size_ = 0;
+        num_items_ = 0;
         LOG << "Resetted";
     }
 
@@ -458,7 +435,7 @@ public:
 
         std::string log = "Printing\n";
 
-        for (size_t i = 0; i < num_items_; i++)
+        for (size_t i = 0; i < table_size_; i++)
         {
             if (vector_[i].first == sentinel_.first)
             {
@@ -501,11 +478,11 @@ private:
 
     size_t max_num_items_table_ = 1048576;          // max num of items before spilling of largest partition
 
-    size_t num_items_;                              // num items
+    size_t num_items_ = 0;                              // num items in the table
 
     size_t num_items_per_partition_;                // num items per partition
 
-    std::vector<size_t> items_per_partition_;       // num items per partition
+    std::vector<size_t> items_per_partition_;       // current number of items per partition
 
     size_t table_size_ = 0;                         // total number of items
 
@@ -521,7 +498,6 @@ private:
     KeyValuePair sentinel_;
 
     HashFunction hash_function_;
-    ProbingFunction probing_function_;
 };
 
 } // namespace core

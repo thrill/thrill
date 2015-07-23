@@ -38,9 +38,9 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 
     auto hash_function = [](int key, HashTable*) {
 
-        size_t global_index = 0;
+        size_t global_index = key / 2;
         size_t partition_id = 0;
-        size_t partition_offset = 0;
+        size_t partition_offset = key / 2;
 
         return HashTable::hash_result(partition_id, partition_offset, global_index);
     };
@@ -53,48 +53,6 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 
     for (int i = 0; i < 16; i++) {
         table.Insert(i);
-    }
-
-    table.Flush();
-
-    auto it = output.GetReader();
-    int c = 0;
-    while (it.HasNext()) {
-        it.Next<int>();
-        c++;
-    }
-
-    ASSERT_EQ(16, c);
-}
-
-TEST_F(ReducePreProbingTable, CustomProbingFunction) {
-    auto key_ex = [](int in) {
-        return in;
-    };
-
-    auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
-
-    using HashTable = typename c7a::core::ReducePreProbingTable<
-            decltype(key_ex), decltype(red_fn), File::Writer>;
-
-    auto hash_function = [](int key, HashTable*) {
-        return HashTable::hash_result(0, 0, 0);
-    };
-
-    auto probing_function = [](int post, HashTable*) {
-        return HashTable::probing_result(1);
-    };
-
-    File output;
-    std::vector<File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
-
-    HashTable table(1, key_ex, red_fn, writers, std::make_pair(-1, -1), hash_function, probing_function);
-
-    for (int i = 0; i < 16; i++) {
-        table.Insert(std::move(i));
     }
 
     table.Flush();
@@ -129,11 +87,11 @@ TEST_F(ReducePreProbingTable, AddIntegers) {
     table.Insert(1);
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 }
 
 TEST_F(ReducePreProbingTable, CreateEmptyTable) {
@@ -154,11 +112,11 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
     table.Insert(1);
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(0u);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 }
 
 TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
@@ -182,11 +140,11 @@ TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     table.Insert(0);
 
-    ASSERT_EQ(1u, table.Size());
+    ASSERT_EQ(1u, table.NumItems());
 }
 
 // Manually flush all items in table,
@@ -213,7 +171,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5u, table.Size());
+    ASSERT_EQ(5u, table.NumItems());
 
     table.Flush();
 
@@ -225,7 +183,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     }
 
     ASSERT_EQ(5, c);
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 // Manually flush all items in table,
@@ -253,7 +211,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5u, table.Size());
+    ASSERT_EQ(5u, table.NumItems());
 
     table.Flush();
 
@@ -274,7 +232,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 // Partial flush of items in table due to
@@ -300,7 +258,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4u, table.Size());
+    ASSERT_EQ(4u, table.NumItems());
 
     table.Insert(4);
 
@@ -312,7 +270,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
     }
 
     ASSERT_EQ(5, c);
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 //// Partial flush of items in table due to
@@ -339,7 +297,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4u, table.Size());
+    ASSERT_EQ(4u, table.NumItems());
 
     table.Insert(4);
     table.Flush();
@@ -362,7 +320,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 TEST_F(ReducePreProbingTable, ComplexType) {
@@ -386,15 +344,15 @@ TEST_F(ReducePreProbingTable, ComplexType) {
     table.Insert(StringPair("hello", 1));
     table.Insert(StringPair("bonjour", 1));
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(StringPair("hello", 1));
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(StringPair("baguette", 1));
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 TEST_F(ReducePreProbingTable, MultipleWorkers) {
@@ -414,15 +372,15 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(2, key_ex, red_fn, writers, std::make_pair(-1, -1));
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
     table.SetMaxSize(5);
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
     }
 
-    ASSERT_LE(table.Size(), 3u);
-    ASSERT_GT(table.Size(), 0u);
+    ASSERT_LE(table.NumItems(), 3u);
+    ASSERT_GT(table.NumItems(), 0u);
 }
 
 // Resize due to max partition fill ratio reached. Set max partition fill ratio to 1.0f,
@@ -445,21 +403,21 @@ TEST_F(ReducePreProbingTable, ResizeOnePartition) {
 
     table.Insert(0);
 
-    ASSERT_EQ(2u, table.NumItems());
+    ASSERT_EQ(2u, table.Size());
     ASSERT_EQ(1u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.Size());
+    ASSERT_EQ(1u, table.NumItems());
 
     table.Insert(1);
 
-    ASSERT_EQ(2u, table.NumItems());
-    ASSERT_EQ(2u, table.PartitionSize(0));
     ASSERT_EQ(2u, table.Size());
+    ASSERT_EQ(2u, table.PartitionSize(0));
+    ASSERT_EQ(2u, table.NumItems());
 
     table.Insert(2); // Resize happens here
 
-    ASSERT_EQ(20u, table.NumItems());
+    ASSERT_EQ(20u, table.Size());
     ASSERT_EQ(3u, table.PartitionSize(0));
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Flush();
 
@@ -492,30 +450,30 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
     table(2, 2, 10, 10, 1.0f, 10, key_ex, red_fn, writers, std::make_pair(-1, -1));
 
-    ASSERT_EQ(0u, table.Size());
-    ASSERT_EQ(4u, table.NumItems());
+    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(4u, table.Size());
     ASSERT_EQ(0u, table.PartitionSize(0));
     ASSERT_EQ(0u, table.PartitionSize(1));
 
     table.Insert(0);
     table.Insert(1);
 
-    ASSERT_EQ(2u, table.Size());
-    ASSERT_EQ(4u, table.NumItems());
+    ASSERT_EQ(2u, table.NumItems());
+    ASSERT_EQ(4u, table.Size());
     ASSERT_EQ(1u, table.PartitionSize(0));
     ASSERT_EQ(1u, table.PartitionSize(1));
 
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.Size());
-    ASSERT_EQ(4u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(4u, table.Size());
     ASSERT_EQ(2u, table.PartitionSize(0));
     ASSERT_EQ(1u, table.PartitionSize(1));
 
     table.Insert(3); // Resize happens here
 
-    ASSERT_EQ(4u, table.Size());
     ASSERT_EQ(4u, table.NumItems());
+    ASSERT_EQ(4u, table.Size());
     ASSERT_EQ(4u, table.PartitionSize(0) + table.PartitionSize(1));
 }
 
@@ -551,16 +509,16 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
     }
-    ASSERT_EQ(num_partitions * num_items_init_scale, table.NumItems());
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     // insert as many items which DO NOT lead to partition overflow
     for (size_t i = 0; i != num_items_init_scale; ++i) {
         table.Insert(IntPair(i, 0));
     }
 
-    ASSERT_EQ(num_partitions * num_items_init_scale, table.NumItems());
-    ASSERT_EQ(num_items_init_scale, table.Size());
+    ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
+    ASSERT_EQ(num_items_init_scale, table.NumItems());
 
     table.Flush();
 
@@ -575,8 +533,8 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
     }
-    ASSERT_EQ(num_partitions * num_items_init_scale, table.NumItems());
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     // insert as many items which DO NOT lead to partition overflow
     // (need to insert again because of previous flush call needed to backup data)
@@ -584,12 +542,12 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
         table.Insert(IntPair(i, 0));
     }
 
-    ASSERT_EQ(num_partitions * num_items_init_scale, table.NumItems());
-    ASSERT_EQ(num_items_init_scale, table.Size());
+    ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
+    ASSERT_EQ(num_items_init_scale, table.NumItems());
 
     // insert as many items guaranteed to DO lead to partition overflow
     // resize happens here
-    for (size_t i = 0; i != table.NumItems(); ++i) {
+    for (size_t i = 0; i != table.Size(); ++i) {
         table.Insert(IntPair(i, 1));
     }
 
@@ -598,7 +556,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     for (size_t i = 0; i != num_partitions; ++i) {
         ASSERT_EQ(0u, table.PartitionSize(i));
     }
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = outputs[i].GetReader();
@@ -685,11 +643,11 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
         }
     }
 
-    ASSERT_EQ(nitems, table.Size());
+    ASSERT_EQ(nitems, table.NumItems());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {
