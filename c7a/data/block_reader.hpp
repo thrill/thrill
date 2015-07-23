@@ -102,13 +102,10 @@ public:
         static const bool debug = false;
 
         std::vector<VirtualBlock> out;
+        if (n == 0) return out;
 
-        while (current_ == end_) {
-            if (!NextBlock()) {
-                // no items left
-                return out;
-            }
-        }
+        die_unless(HasNext());
+        assert(block_);
 
         const Byte* begin_output = current_;
         size_t first_output = current_ - block_->begin();
@@ -117,7 +114,7 @@ public:
         // boundary.
         if (n >= nitems_)
         {
-            // if the current block still contains items, push it partially
+            // *** if the current block still contains items, push it partially
 
             if (n >= nitems_) {
                 // construct first VirtualBlock using current_ pointer
@@ -134,13 +131,17 @@ public:
 
                 n -= nitems_;
 
-                // get next block. if not possible -> may be okay since last item
-                // might just terminate the current block.
-                if (!NextBlock())
+                // get next block. if not possible -> may be okay since last
+                // item might just terminate the current block.
+                if (!NextBlock()) {
+                    assert(n == 0);
+                    sLOG << "exit1 after batch:"
+                         << "current_=" << current_ - block_->begin();
                     return out;
+                }
             }
 
-            // then append complete blocks without deserializing them
+            // *** then append complete blocks without deserializing them
 
             while (n >= nitems_) {
                 out.emplace_back(
@@ -153,8 +154,12 @@ public:
 
                 n -= nitems_;
 
-                if (!NextBlock())
+                if (!NextBlock()) {
+                    assert(n == 0);
+                    sLOG << "exit2 after batch:"
+                         << "current_=" << current_ - block_->begin();
                     return out;
+                }
             }
 
             // move current_ to the first valid item of the block we got (at
@@ -189,6 +194,9 @@ public:
         out.back().set_end(current_ - block_->begin());
 
         sLOG << "partial last:" << out.back();
+
+        sLOG << "exit3 after batch:"
+             << "current_=" << current_ - block_->begin();
 
         return out;
     }
@@ -282,6 +290,7 @@ protected:
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
         VirtualBlock vb = source_.NextBlock();
+        sLOG0 << "BlockReader::NextBlock" << vb;
 
         block_ = vb.block();
         if (!vb.IsValid()) return false;

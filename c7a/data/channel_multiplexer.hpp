@@ -188,6 +188,7 @@ private:
         sLOG << "got block on" << s << "in channel" << header.channel_id;
 
         die_unless(header.size == buffer.size());
+        assert(buffer.size() <= Block::block_size);
 
         // TODO(tb): don't copy data!
         BlockPtr block = std::make_shared<Block>();
