@@ -37,13 +37,8 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
               decltype(key_ex), decltype(red_fn), File::Writer>;
 
     auto hash_function = [](int key, HashTable*) {
-
-                             size_t global_index = key / 2;
-                             size_t partition_id = 0;
-                             size_t partition_offset = key / 2;
-
-                             return HashTable::hash_result(partition_id, partition_offset, global_index);
-                         };
+        return HashTable::hash_result(0, 0, 0);
+    };
 
     File output;
     std::vector<File::Writer> writers;
@@ -80,16 +75,10 @@ TEST_F(ReducePreProbingTable, CustomProbingFunction) {
             decltype(key_ex), decltype(red_fn), File::Writer>;
 
     auto hash_function = [](int key, HashTable*) {
-
-        size_t global_index = key / 2;
-        size_t partition_id = 0;
-        size_t partition_offset = key / 2;
-
-        return HashTable::hash_result(partition_id, partition_offset, global_index);
+        return HashTable::hash_result(0, 0, 0);
     };
 
     auto probing_function = [](int post, HashTable*) {
-
         return HashTable::probing_result(1);
     };
 
