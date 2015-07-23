@@ -78,6 +78,11 @@ public:
         }
     }
 
+    //! non-copyable: delete copy-constructor
+    DIABase(const DIABase &) = delete;
+    //! non-copyable: delete assignment operator
+    DIABase & operator = (const DIABase &) = delete;
+
     //! Virtual destructor for a DIABase.
     virtual ~DIABase() {
         // Remove child pointer from parent
