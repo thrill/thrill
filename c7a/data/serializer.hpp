@@ -20,14 +20,8 @@
 
 #include <c7a/common/logger.hpp>
 
-//TODO DELETE
-#include <iostream>
 #include <tests/data/serializer_objects.hpp>
-// #include <build/c7a/proto/test_serialize_object.pb.h>
-//TODO REMOVE CEREAL
-#include <cereal/archives/c7a.hpp>
-#include <cereal/archives/binary.hpp>
-#include <sstream>
+#include <c7a/data/serializer_cereal_archive.hpp>
 
 namespace c7a {
 namespace data {
@@ -35,7 +29,7 @@ namespace data {
 //! \namespace namespace to hide the implementations of serializers
 namespace serializers {
 
-static const bool debug = true;
+static const bool debug = false;
 
 template <typename Archive, typename T, class Enable = void>
 struct Impl
@@ -157,7 +151,8 @@ struct Impl<Archive, struct TestCerealObject2>
     }
     static const bool fixed_size = false;
 };
-}       // namespace serializers
+
+} // namespace serializers
 
 /***************** Call Serialize/Deserialize *************************/
 
@@ -172,6 +167,7 @@ template <typename Archive, typename T>
 inline T Deserialize(Archive& a) {
     return serializers::Impl<Archive, T>::Deserialize(a);
 }
+
 } // namespace data
 } // namespace c7a
 
