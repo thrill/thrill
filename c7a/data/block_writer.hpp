@@ -62,7 +62,7 @@ public:
     //! move-constructor
     BlockWriterBase(BlockWriterBase&&) = default;
     //! move-assignment
-    BlockWriterBase& operator = (BlockWriterBase&&) = delete;
+    BlockWriterBase& operator = (BlockWriterBase&&) = default;
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriterBase() {
@@ -80,7 +80,8 @@ public:
                 block_ = BlockPtr();
                 current_ = nullptr;
             }
-            sink_->Close();
+            if (sink_)
+                sink_->Close();
         }
     }
 
@@ -89,6 +90,9 @@ public:
         FlushBlock();
         AllocateBlock();
     }
+
+    //! Return whether an actual BlockSink is attached.
+    bool IsValid() const { return sink_ != nullptr; }
 
     //! \name Appending (Generic) Serializable Items
     //! \{
@@ -192,8 +196,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_->Append(block_, current_ - block_->begin(),
-                      nitems_, first_offset_);
+        sink_->AppendBlock(block_, current_ - block_->begin(),
+                           nitems_, first_offset_);
     }
 
     //! current block, already allocated as shared ptr, since we want to use

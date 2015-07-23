@@ -13,10 +13,13 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <random>
 #include <string>
 #include <vector>
 
 using namespace c7a;
+using c7a::DIARef;
+using c7a::Context;
 
 TEST(Stage, CountReferencesSimple) {
 
@@ -53,10 +56,10 @@ TEST(Stage, CountReferencesSimple) {
             // Trigger execution
             std::vector<int> out_vec = reduced.AllGather();
 
-            // 3x DIA reference + 2x child reference
-            ASSERT_EQ(integers.node_refcount(), 5u);
-            ASSERT_EQ(doubles.node_refcount(), 5u);
-            ASSERT_EQ(quadruples.node_refcount(), 5u);
+            // 3x DIA reference + 1x child reference
+            ASSERT_EQ(integers.node_refcount(), 4u);
+            ASSERT_EQ(doubles.node_refcount(), 4u);
+            ASSERT_EQ(quadruples.node_refcount(), 4u);
             // 1x DIA reference + 0x child reference
             ASSERT_EQ(reduced.node_refcount(), 1u);
         };
@@ -97,17 +100,16 @@ TEST(Stage, CountReferencesLOpNode) {
             DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Create new child reference to LOpNode
-
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
             std::vector<int> out_vec = reduced.AllGather();
 
-            // 2x DIA reference + 2x child reference
-            ASSERT_EQ(integers.node_refcount(), 4u);
-            ASSERT_EQ(doubles.node_refcount(), 4u);
-            // 1x DIA reference + 2x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 3u);
+            // 2x DIA reference + 1x child reference
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
+            // 1x DIA reference + 1x child reference
+            ASSERT_EQ(quadruples.node_refcount(), 2u);
             // 1x DIA reference + 0x child reference
             ASSERT_EQ(reduced.node_refcount(), 1u);
         };
@@ -148,14 +150,14 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Overwrite reference to LOpNode
-            quadruples = quadruples.ReduceBy(modulo_two, add_function);
+            quadruples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
 
             // Trigger execution
             std::vector<int> out_vec = quadruples.AllGather();
 
-            // 2x DIA reference + 2x child reference
-            ASSERT_EQ(integers.node_refcount(), 4u);
-            ASSERT_EQ(doubles.node_refcount(), 4u);
+            // 2x DIA reference + 1x child reference
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
             ASSERT_EQ(quadruples.node_refcount(), 1u);
         };
@@ -203,11 +205,11 @@ TEST(Stage, AdditionalChildReferences) {
             // Trigger execution
             std::vector<int> out_vec = octuples.AllGather();
 
-            // 2x DIA reference + 2x child reference
-            ASSERT_EQ(integers.node_refcount(), 4u);
-            ASSERT_EQ(doubles.node_refcount(), 4u);
-            // 1x DIA reference + 4x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 5u);
+            // 2x DIA reference + 1x child reference
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
+            // 1x DIA reference + 2x child reference
+            ASSERT_EQ(quadruples.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
             ASSERT_EQ(octuples.node_refcount(), 1u);
             // 1x DIA reference + 0x child reference

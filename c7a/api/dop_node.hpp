@@ -11,7 +11,6 @@
 #ifndef C7A_API_DOP_NODE_HEADER
 #define C7A_API_DOP_NODE_HEADER
 
-#include <c7a/api/context.hpp>
 #include <c7a/api/dia_node.hpp>
 
 #include <string>
@@ -44,7 +43,8 @@ public:
      * computed previously
      */
     DOpNode(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents, const std::string& stats_tag)
+            const std::vector<std::shared_ptr<DIABase> >& parents,
+            const std::string& stats_tag)
         : DIANode<ValueType>(ctx, parents, stats_tag) { }
 };
 

@@ -42,7 +42,7 @@ TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
 TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
     std::shared_ptr<data::Block<16> > block
         = std::make_shared<data::Block<16> >();
-    q.Append(data::VirtualBlock<16>(block, 0, 0, 0));
+    q.AppendBlock(data::VirtualBlock<16>(block, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 

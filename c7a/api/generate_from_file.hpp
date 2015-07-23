@@ -14,7 +14,6 @@
 #ifndef C7A_API_GENERATE_FROM_FILE_HEADER
 #define C7A_API_GENERATE_FROM_FILE_HEADER
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -111,6 +110,10 @@ public:
         }
         this->StopExecutionTimer();
     }
+
+    void PushData() override { }
+
+    void Dispose() override { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
