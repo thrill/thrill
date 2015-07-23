@@ -10,7 +10,7 @@
 #pragma once
 #ifndef C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #define C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
-#include <cereal/archives/c7a.hpp>
+#include <c7a/data/serializer_cereal_archive.hpp>
 
 namespace c7a {
 namespace data {

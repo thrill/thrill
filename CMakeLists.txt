@@ -135,6 +135,12 @@ set(C7A_VALGRIND_OPTS
 #  --error-exitcode=1)
 #  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
 
+###############################################################################
+# add cereal
+MESSAGE (${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
+
+
 ################################################################################
 ### Find Required Libraries
 

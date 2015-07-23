@@ -1,3 +1,15 @@
+/*******************************************************************************
+ * c7a/data/serializer_cereal_archive.hpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+#pragma once
+#ifndef C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
+#define C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
 /*! \file binary.hpp
     \brief Binary input and output archives */
 /*
@@ -29,7 +41,7 @@
 #ifndef CEREAL_ARCHIVES_C7A_HPP_
 #define CEREAL_ARCHIVES_C7A_HPP_
 
-#include <cereal/cereal.hpp>
+#include "cereal/cereal.hpp"
 #include <sstream>
 #include <iostream>
 #include <c7a/common/string.hpp>
@@ -156,6 +168,10 @@ inline
 void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
+#endif // !C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
+
 } // namespace cereal
 
 #endif // CEREAL_ARCHIVES_C7A_HPP_
+
+/******************************************************************************/
