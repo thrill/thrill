@@ -26,24 +26,24 @@ struct ReducePreProbingTable : public::testing::Test { };
 
 TEST_F(ReducePreProbingTable, DISABLED_CustomHashFunction) {
     auto key_ex = [](int in) {
-        return in;
-    };
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
-        return in1 + in2;
-    };
+                      return in1 + in2;
+                  };
 
     using HashTable = typename c7a::core::ReducePreProbingTable<
-            decltype(key_ex), decltype(red_fn), File::Writer>;
+              decltype(key_ex), decltype(red_fn), File::Writer>;
 
     auto hash_function = [](int key, HashTable*) {
 
-        size_t global_index = key / 2;
-        size_t partition_id = 0;
-        size_t partition_offset = key / 2;
+                             size_t global_index = key / 2;
+                             size_t partition_id = 0;
+                             size_t partition_offset = key / 2;
 
-        return HashTable::hash_result(partition_id, partition_offset, global_index);
-    };
+                             return HashTable::hash_result(partition_id, partition_offset, global_index);
+                         };
 
     File output;
     std::vector<File::Writer> writers;
@@ -125,7 +125,6 @@ TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
                   };
 
     auto key_ex = [](int in) { return in; };
-
 
     File output;
     std::vector<File::Writer> writers;
@@ -491,7 +490,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     size_t num_items_init_scale = 2;
     size_t nitems = num_partitions * num_items_init_scale;
 
-    std::vector<std::vector<int>> keys(num_partitions, std::vector<int>());
+    std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
 
     std::vector<File> outputs;
     std::vector<File::Writer> writers;
@@ -590,7 +589,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
-            File::Writer>
+                                     File::Writer>
     table(1, 2, 2, nitems, 1.0f, nitems, key_ex, red_fn, writers,
           std::pair<int, IntPair>(-1, std::pair<int, int>(-1, -1)));
 
@@ -631,7 +630,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
-            File::Writer>
+                                     File::Writer>
     table(1, 2, 2, nitems, 1.0f, nitems, key_ex, red_fn, writers,
           std::pair<int, IntPair>(-1, std::pair<int, int>(-1, -1)));
 
@@ -684,8 +683,8 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
-            File::Writer>
-    table(1, nitems, 2, nitems, 1.0f, nitems*2, key_ex, red_fn, writers,
+                                     File::Writer>
+    table(1, nitems, 2, nitems, 1.0f, nitems * 2, key_ex, red_fn, writers,
           std::pair<std::string, StringPair>("", std::pair<std::string, int>("", -1)));
 
     // insert lots of items

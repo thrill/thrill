@@ -17,12 +17,12 @@
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <limits>
 #include <algorithm>
 #include <cassert>
 #include <string>
 #include <utility>
 #include <vector>
-#include "limits.h"
 
 namespace c7a {
 namespace core {
@@ -82,34 +82,34 @@ public:
                           std::vector<EmitterFunction>& emit,
                           std::pair<Key, Value> sentinel,
                           HashFunction hash_function
-                          = [](Key v, ReducePreProbingTable* ht) {
-                              size_t hashed = std::hash<Key>() (v);
+                              = [](Key v, ReducePreProbingTable* ht) {
+                                    size_t hashed = std::hash<Key>() (v);
 
-                              size_t partition_offset = hashed %
-                                                        ht->num_items_per_partition_;
-                              size_t partition_id = hashed % ht->num_partitions_;
-                              size_t global_index = partition_id *
-                                                    ht->num_items_per_partition_ +
-                                                    partition_offset;
-                              hash_result hr(partition_id, partition_offset, global_index);
-                              return hr;
-                          },
+                                    size_t partition_offset = hashed %
+                                                              ht->num_items_per_partition_;
+                                    size_t partition_id = hashed % ht->num_partitions_;
+                                    size_t global_index = partition_id *
+                                                          ht->num_items_per_partition_ +
+                                                          partition_offset;
+                                    hash_result hr(partition_id, partition_offset, global_index);
+                                    return hr;
+                                },
                           ProbingFunction probing_function
-                          = [](int pos, ReducePreProbingTable*) {
-                              probing_result pr(1);
-                              return pr;
-                          })
-            : num_partitions_(num_partitions),
-              num_items_init_scale_(num_items_init_scale),
-              num_items_resize_scale_(num_items_resize_scale),
-              num_collisions_to_resize_(num_collisions_to_resize),
-              max_partition_fill_ratio_(max_partition_fill_ratio),
-              max_num_items_table_(max_num_items_table),
-              key_extractor_(key_extractor),
-              reduce_function_(reduce_function),
-              emit_(std::move(emit)),
-              hash_function_(hash_function),
-              probing_function_(probing_function)
+                              = [](int pos, ReducePreProbingTable*) {
+                                    probing_result pr(1);
+                                    return pr;
+                                })
+        : num_partitions_(num_partitions),
+          num_items_init_scale_(num_items_init_scale),
+          num_items_resize_scale_(num_items_resize_scale),
+          num_collisions_to_resize_(num_collisions_to_resize),
+          max_partition_fill_ratio_(max_partition_fill_ratio),
+          max_num_items_table_(max_num_items_table),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(std::move(emit)),
+          hash_function_(hash_function),
+          probing_function_(probing_function)
     {
         init(sentinel);
     }
@@ -495,7 +495,7 @@ private:
 
     size_t num_items_resize_scale_ = 2;             // resize scale on max_num_items_per_bucket_
 
-    size_t num_collisions_to_resize_ = UINT_MAX;    // max stepsize before resize
+    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max();    // max stepsize before resize
 
     double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
 
