@@ -62,9 +62,9 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    typedef std::pair<Key, Value> KeyValuePair;
-
     using ParentInput = typename ParentStack::Input;
+
+    typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
     using Super::result_file_;
@@ -142,7 +142,51 @@ public:
         this->StopExecutionTimer();
     }
 
-    void PushData() override { }
+    void PushData() override {
+        // TODO(tb@ms): this is not what should happen: every thing is reduced again:
+
+        using ReduceTable
+                  = core::ReducePostTable<KeyExtractor,
+                                          ReduceFunction,
+                                          std::function<void(ValueType)>,
+                                          true>;
+
+        size_t min_local_index =
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank())
+                      / static_cast<double>(context_.number_worker()));
+        size_t max_local_index =
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank() + 1)
+                      / static_cast<double>(context_.number_worker())) - 1;
+
+        if (context_.rank() == context_.number_worker() - 1) {
+            max_local_index = max_index_;
+        }
+        if (context_.rank() == 0) {
+            min_local_index = 0;
+        }
+
+        ReduceTable table(key_extractor_, reduce_function_,
+                          DIANode<ValueType>::callbacks(),
+                          [=](Key key, ReduceTable* ht) {
+                              return (key - min_local_index) *
+                              (ht->NumBuckets() - 1) /
+                              (max_local_index - min_local_index + 1);
+                          },
+                          min_local_index,
+                          max_local_index,
+                          neutral_element_);
+
+        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
+        auto reader = channel_->OpenReader();
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
+        while (reader.HasNext()) {
+            table.Insert(std::move(reader.template Next<Value>()));
+        }
+
+        table.Flush();
+    }
 
     void Dispose() override { }
 
@@ -197,48 +241,6 @@ private:
         //Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
-
-        using ReduceTable
-                  = core::ReducePostTable<KeyExtractor,
-                                          ReduceFunction,
-                                          std::function<void(ValueType)>,
-                                          true>;
-
-        size_t min_local_index =
-            std::ceil(static_cast<double>(max_index_ + 1)
-                      * static_cast<double>(context_.rank())
-                      / static_cast<double>(context_.number_worker()));
-        size_t max_local_index =
-            std::ceil(static_cast<double>(max_index_ + 1)
-                      * static_cast<double>(context_.rank() + 1)
-                      / static_cast<double>(context_.number_worker())) - 1;
-
-        if (context_.rank() == context_.number_worker() - 1) {
-            max_local_index = max_index_;
-        }
-        if (context_.rank() == 0) {
-            min_local_index = 0;
-        }
-
-        ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<ValueType>::callbacks(),
-                          [=](Key key, ReduceTable* ht) {
-                              return (key - min_local_index) *
-                              (ht->NumBuckets() - 1) /
-                              (max_local_index - min_local_index + 1);
-                          },
-                          min_local_index,
-                          max_local_index,
-                          neutral_element_);
-
-        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
-        auto reader = channel_->OpenReader();
-        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
-        while (reader.HasNext()) {
-            table.Insert(std::move(reader.template Next<Value>()));
-        }
-
-        table.Flush();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
