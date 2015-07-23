@@ -81,6 +81,7 @@ public:
 
     static const bool debug = false;
 };
+
 } // namespace core
 } // namespace c7a
 

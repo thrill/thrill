@@ -46,6 +46,7 @@ public:
             const std::vector<std::shared_ptr<DIABase> >& parents)
         : DIANode<ValueType>(ctx, parents) { }
 };
+
 } // namespace api
 } // namespace c7a
 

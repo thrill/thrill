@@ -160,6 +160,7 @@ protected:
 };
 
 //! \}
+
 } // namespace api
 } // namespace c7a
 

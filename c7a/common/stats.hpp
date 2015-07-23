@@ -154,6 +154,7 @@ private:
         return std::chrono::duration_cast<std::chrono::milliseconds>(time_point - program_start_).count();
     }
 };
+
 } // namespace common
 } // namespace c7a
 

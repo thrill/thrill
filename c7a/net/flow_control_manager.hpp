@@ -71,6 +71,7 @@ public:
         return channels[threadId];
     }
 };
+
 } // namespace net
 } // namespace c7a
 

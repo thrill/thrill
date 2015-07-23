@@ -142,6 +142,7 @@ protected:
         return source_.NextBlock(&current_, &end_);
     }
 };
+
 } // namespace data
 } // namespace c7a
 

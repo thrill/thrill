@@ -38,6 +38,7 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
     // the i-th argument is equivalent to the i-th tuple element of a tuple
     // composed of those arguments.
 };
+
 } // namespace common
 } // namespace c7a
 

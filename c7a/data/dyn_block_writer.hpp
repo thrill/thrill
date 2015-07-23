@@ -102,6 +102,7 @@ protected:
 //! Typedef of a dynamic block writer, writing to a DynBlockSink.
 template <size_t BlockSize>
 using DynBlockWriter = BlockWriter<DynBlockSink<BlockSize> >;
+
 } // namespace data
 } // namespace c7a
 

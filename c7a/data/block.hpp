@@ -101,6 +101,7 @@ struct VirtualBlock
         first = 0;
     }
 };
+
 } // namespace data
 } // namespace c7a
 

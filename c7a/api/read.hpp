@@ -142,6 +142,7 @@ auto ReadLines(Context & ctx, std::string filepath,
     return DIARef<ReadResult, decltype(read_stack)>
                (shared_node, read_stack);
 }
+
 } // namespace api
 } // namespace c7a
 

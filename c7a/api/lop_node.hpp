@@ -51,7 +51,7 @@ public:
         : DIANode<ValueType>(ctx, { parent })
     {
         auto save_fn =
-            [ = ](ValueType input) {
+            [=](ValueType input) {
                 for (const std::function<void(ValueType)>& func : this->callbacks_)
                     func(input);
             };
@@ -78,6 +78,7 @@ public:
 
 private:
 };
+
 } // namespace api
 } // namespace c7a
 

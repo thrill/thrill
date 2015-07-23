@@ -71,7 +71,8 @@ ParseArgs(int argc, char* const* argv) {
     }
     return std::make_tuple(0, my_rank, endpoints);
 }
-}       // namespace
+
+} // namespace
 
 //! Executes the given job startpoint with a context instance.
 //! Startpoint may be called multiple times with concurrent threads and
@@ -182,7 +183,7 @@ ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
             };
 
         threads[i] = std::thread(
-            [ = ]() {
+            [=]() {
                 Execute(strargs[i].size(), args[i].data(),
                         intReturningFunction, 1, "worker " + std::to_string(i));
             });
@@ -272,6 +273,7 @@ ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
             });
     }
 }
+
 } // namespace api
 } // namespace c7a
 

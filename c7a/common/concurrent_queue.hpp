@@ -108,6 +108,7 @@ public:
 };
 
 #endif // !HAVE_INTELTBB
+
 } // namespace common
 } // namespace c7a
 

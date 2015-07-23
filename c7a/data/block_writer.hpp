@@ -190,6 +190,7 @@ protected:
     //! Flag if Close was called explicitly
     bool closed_ = false;
 };
+
 } // namespace data
 } // namespace c7a
 

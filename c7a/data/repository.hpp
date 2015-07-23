@@ -85,6 +85,7 @@ private:
     std::mutex mutex_;
     std::mutex allocate_next_mutex_;
 };
+
 } // namespace data
 } // namespace c7a
 

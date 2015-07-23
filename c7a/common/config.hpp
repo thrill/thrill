@@ -20,6 +20,7 @@ namespace common {
 //! global flag to enable code parts doing self-verification. Later this may be
 //! set false if NDEBUG is set in production mode.
 static const bool g_self_verify = true;
+
 } // namespace common
 } // namespace c7a
 

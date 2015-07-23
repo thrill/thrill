@@ -107,6 +107,7 @@ void ThreadPool::Worker() {
         }
     }
 }
+
 } // namespace common
 } // namespace c7a
 

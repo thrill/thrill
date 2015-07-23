@@ -87,7 +87,7 @@ public:
     template <class Rep, class Period>
     void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
                             const TimerCallback& cb) {
-        Enqueue([ = ]() {
+        Enqueue([=]() {
                     dispatcher_.AddRelativeTimeout(timeout, cb);
                 });
         WakeUpThread();
@@ -238,6 +238,7 @@ private:
 };
 
 //! \}
+
 } // namespace net
 } // namespace c7a
 

@@ -44,7 +44,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_function = [ = ](ValueType input) {
+        auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
                                };
         // close the function stack with our pre op and register it at parent
@@ -119,6 +119,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
 
     core::StageBuilder().RunScope(shared_node.get());
 }
+
 } // namespace api
 } // namespace c7a
 
