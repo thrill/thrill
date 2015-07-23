@@ -28,10 +28,9 @@ namespace c7a {
 namespace core {
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
-          size_t TargetBlockSize = 1024* 1024>
+          size_t TargetBlockSize = 1024*1024>
 class ReducePreTable
 {
-
     static const bool debug = false;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
@@ -343,7 +342,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](std::move(*bi));
+                    emit_[partition_id](bi->second);
                 }
 
                 // destroy block and advance to next
@@ -590,7 +589,6 @@ private:
 
     HashFunction hash_function_;
 };
-
 } // namespace core
 } // namespace c7a
 

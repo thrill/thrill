@@ -62,9 +62,9 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    typedef std::pair<Key, Value> KeyValuePair;
-
     using ParentInput = typename ParentStack::Input;
+
+    typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
     using Super::result_file_;
@@ -182,7 +182,7 @@ public:
         auto reader = channel_->OpenReader();
         sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
         while (reader.HasNext()) {
-            table.Insert(std::move(reader.template Next<KeyValuePair>()));
+            table.Insert(std::move(reader.template Next<Value>()));
         }
 
         table.Flush();
