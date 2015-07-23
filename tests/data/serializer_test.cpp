@@ -208,4 +208,24 @@ TEST(Serializer, Cereal_Archive_Test) {
     sLOG << res.x_ << res.y_ << res.z_;
 }
 
+TEST(Serializer, Tuple_Archive_Test) {
+    c7a::data::File f;
+    auto t = std::make_tuple(1, 2, 3, std::string("blaaaa"));
+
+    {
+        auto w = f.GetWriter();
+        w(t);
+        auto b = serializers::Impl<decltype(w), decltype(t)>::fixed_size;
+        LOG << "File is of fixed size: " << b;
+    }
+
+    auto r = f.GetReader();
+    auto res = Deserialize<decltype(r), decltype(t)>(r);
+
+    ASSERT_EQ(std::get<0>(res), std::get<0>(t));
+    ASSERT_EQ(std::get<1>(res), std::get<1>(t));
+    ASSERT_EQ(std::get<2>(res), std::get<2>(t));
+    ASSERT_EQ(std::get<3>(res), std::get<3>(t));
+}
+
 /******************************************************************************/
