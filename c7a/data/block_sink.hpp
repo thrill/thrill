@@ -37,12 +37,12 @@ public:
     virtual void Close() = 0;
 
     //! Appends the VirtualBlock, moving it out.
-    virtual void Append(VirtualBlock&& vb) = 0;
+    virtual void AppendBlock(const VirtualBlock& vb) = 0;
 
     //! Appends the VirtualBlock and detaches it afterwards.
-    void Append(const BlockPtr& block, size_t block_used,
-                size_t nitems, size_t first) {
-        return Append(VirtualBlock(block, block_used, nitems, first));
+    void AppendBlock(const BlockPtr& block, size_t block_used,
+                     size_t nitems, size_t first) {
+        return AppendBlock(VirtualBlock(block, block_used, nitems, first));
     }
 };
 

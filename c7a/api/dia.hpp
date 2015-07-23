@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -17,7 +18,6 @@
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_node.hpp>
 #include <c7a/api/function_stack.hpp>
-#include <c7a/api/lop_node.hpp>
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/functional.hpp>
 
@@ -37,6 +37,9 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+template <typename T>
+class DIANode;
+
 /*!
  * DIARef is the interface between the user and the c7a framework. A DIARef can
  * be imagined as an immutable array, even though the data does not need to be
@@ -49,7 +52,7 @@ namespace api {
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType, typename Stack = FunctionStack<ValueType> >
+template <typename _ValueType, typename _Stack = FunctionStack<_ValueType> >
 class DIARef
 {
     friend class Context;
@@ -58,6 +61,9 @@ class DIARef
     using FunctionTraits = common::FunctionTraits<Function>;
 
 public:
+    //! Type of this function stack
+    using Stack = _Stack;
+
     //! type of the items delivered by the DOp, and pushed down the function
     //! stack towards the next nodes. If the function stack contains LOps nodes,
     //! these may transform the type.
@@ -65,7 +71,7 @@ public:
 
     //! type of the items virtually in the DIA, which is the type emitted by the
     //! current LOp stack.
-    using ItemType = ValueType;
+    using ValueType = _ValueType;
 
     //! type of pointer to the real node object implementation. This object has
     //! base item type StackInput which is transformed by the function stack
@@ -165,7 +171,7 @@ public:
                                  };
 
         static_assert(
-            std::is_same<MapArgument, ValueType>::value,
+            std::is_convertible<ValueType, MapArgument>::value,
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
@@ -194,7 +200,7 @@ public:
                                     };
 
         static_assert(
-            std::is_same<FilterArgument, ValueType>::value,
+            std::is_convertible<ValueType, FilterArgument>::value,
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
@@ -307,7 +313,7 @@ public:
      * DIARef.
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const ZipFunction &zip_function, SecondDIA second_dia) const;
+    auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
@@ -322,6 +328,18 @@ public:
     template <typename SumFunction = common::SumOp<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    ValueType neutral_element = ValueType()) const;
+
+    /*!
+     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function.
+     *  Should be (ValueType,ValueType)->bool
+     *
+     * \param compare_function Function, which compares two elements. Returns true, if
+     * first element is smaller than second. False otherwise.
+     */
+    template <typename CompareFunction = std::less<ValueType> >
+    auto Sort(const CompareFunction& compare_function = std::less<ValueType>()) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
@@ -343,19 +361,14 @@ public:
 
     /*!
      * WriteToFileSystem is an Action, which writes elements to an output file.
-     * A provided function is used prepare the elements before written.
-     *
-     * \tparam WriteFunction Type of the write_function. This is a function with
-     * one input element of the local type.
-     *
-     * \param write_function Write function, which prepares an element to be
-     * written to disk.
+     * Items are written using ostream formatting / serialization, with NO
+     * delimiters like newline, etc. So either add operator << for your
+     * structs, or prefix the WriteToFileSystem() call with Map() to
+     * std::string.
      *
      * \param filepath Destination of the output file.
      */
-    template <typename WriteFunction>
-    void WriteToFileSystem(const std::string& filepath,
-                           const WriteFunction& write_function) const;
+    void WriteToFileSystem(const std::string& filepath) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
@@ -371,20 +384,7 @@ public:
      */
     std::vector<ValueType> AllGather() const;
 
-    auto Collapse() {
-        // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-        // DIARef with empty stack and LOpNode
-        using LOpChainNode = LOpNode<ValueType, Stack>;
-
-        auto shared_node
-            = std::make_shared<LOpChainNode>(node_->context(),
-                                             node_,
-                                             stack_, "");
-        auto lop_stack = FunctionStack<ValueType>();
-
-        return DIARef<ValueType, decltype(lop_stack)>
-                    (shared_node, lop_stack);
-    }
+    auto Collapse() const;
 
     /*!
      * Returns the string which defines the DIANode node_.
@@ -404,23 +404,6 @@ private:
     //! the last DIANode to this DIARef.
     Stack stack_;
 };
-
-template <typename ValueType, typename Stack>
-template <typename AnyStack>
-DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
-    // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
-    // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, AnyStack>;
-
-    LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
-    LOG0 << "Consider whether you can use auto instead of DIARef.";
-
-    auto shared_node
-        = std::make_shared<LOpChainNode>(rhs.node()->context(),
-                                         rhs.node(),
-                                         rhs.stack(), "");
-    node_ = std::move(shared_node);
-}
 
 /*!
  * ReadLines is a DOp, which reads a file from the file system and

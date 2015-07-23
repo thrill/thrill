@@ -16,12 +16,13 @@
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/data/manager.hpp>
 
 #include <algorithm>
+#include <cassert>
 #include <string>
 #include <utility>
 #include <vector>
+#include "limits.h"
 
 namespace c7a {
 namespace core {
@@ -36,9 +37,10 @@ class ReducePreProbingTable
 
     typedef std::pair<Key, Value> KeyValuePair;
 
-protected:
+public:
     struct hash_result
     {
+    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the partition's sub-hashtable of this item
@@ -53,8 +55,10 @@ protected:
         }
     };
 
+    // REVIEW(ms): remove the probing_result stuff, no other policy than linear is needed.
     struct probing_result
     {
+    public:
         //! the offset relativ to provided pos.
         int probing_offset;
 
@@ -71,44 +75,42 @@ public:
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
                           size_t num_items_resize_scale,
-                          size_t stepsize,
-                          size_t max_stepsize,
+                          size_t num_collisions_to_resize,
                           double max_partition_fill_ratio,
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
                           std::vector<EmitterFunction>& emit,
                           std::pair<Key, Value> sentinel,
                           HashFunction hash_function
-                              = [](Key v, ReducePreProbingTable* ht) {
-                                    size_t hashed = std::hash<Key>() (v);
+                          = [](Key v, ReducePreProbingTable* ht) {
+                              size_t hashed = std::hash<Key>() (v);
 
-                                    size_t partition_offset = hashed %
-                                                              ht->num_items_per_partition_;
-                                    size_t partition_id = hashed % ht->num_partitions_;
-                                    size_t global_index = partition_id *
-                                                          ht->num_items_per_partition_ +
-                                                          partition_offset;
-                                    hash_result hr(partition_id, partition_offset, global_index);
-                                    return hr;
-                                },
+                              size_t partition_offset = hashed %
+                                                        ht->num_items_per_partition_;
+                              size_t partition_id = hashed % ht->num_partitions_;
+                              size_t global_index = partition_id *
+                                                    ht->num_items_per_partition_ +
+                                                    partition_offset;
+                              hash_result hr(partition_id, partition_offset, global_index);
+                              return hr;
+                          },
                           ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable*) {
-                                    int probing_offset = pos + 1;
-                                    probing_result pr(probing_offset);
-                                    return pr;
-                                })
-        : num_partitions_(num_partitions),
-          num_items_init_scale_(num_items_init_scale),
-          num_items_resize_scale_(num_items_resize_scale),
-          stepsize_(stepsize),
-          max_stepsize_(max_stepsize),
-          max_partition_fill_ratio_(max_partition_fill_ratio),
-          max_num_items_table_(max_num_items_table),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)),
-          hash_function_(hash_function),
-          probing_function_(probing_function) {
+                          = [](int pos, ReducePreProbingTable*) {
+                              probing_result pr(1);
+                              return pr;
+                          })
+            : num_partitions_(num_partitions),
+              num_items_init_scale_(num_items_init_scale),
+              num_items_resize_scale_(num_items_resize_scale),
+              num_collisions_to_resize_(num_collisions_to_resize),
+              max_partition_fill_ratio_(max_partition_fill_ratio),
+              max_num_items_table_(max_num_items_table),
+              key_extractor_(key_extractor),
+              reduce_function_(reduce_function),
+              emit_(std::move(emit)),
+              hash_function_(hash_function),
+              probing_function_(probing_function)
+    {
         init(sentinel);
     }
 
@@ -130,8 +132,7 @@ public:
                                 },
                           ProbingFunction probing_function
                               = [](int pos, ReducePreProbingTable*) {
-                                    int probing_offset = pos + 1;
-                                    probing_result pr(probing_offset);
+                                    probing_result pr(1);
                                     return pr;
                                 })
         : num_partitions_(num_partitions),
@@ -139,7 +140,8 @@ public:
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-          probing_function_(probing_function) {
+          probing_function_(probing_function)
+    {
         init(sentinel);
     }
 
@@ -175,14 +177,18 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(Value&& p) {
+    void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
         hash_result h = hash_function_(key, this);
 
         int pos = h.global_index;
-        size_t count = 0;
+        size_t pos_offset = 0;
+        size_t num_collisions = 0;
 
+        // REVIEW(ms): try to make the loop tighter, remove extra variables and
+        // try to reduce the number of +/-/< operations, have only current + end
+        // iterators.
         KeyValuePair* current = &vector_[pos];
 
         while (current->first != sentinel_.first)
@@ -198,29 +204,29 @@ public:
                 return;
             }
 
-            //++count;
+            ++num_collisions;
             probing_result pr = probing_function_(pos, this);
-            count += pr.probing_offset;
+            pos_offset += pr.probing_offset;
 
-            if (count > max_stepsize_ || count > num_items_per_partition_)
+            if (num_collisions > num_collisions_to_resize_ || pos_offset > num_items_per_partition_)
             {
                 ResizeUp();
                 Insert(std::move(p));
                 return;
             }
 
-            if (h.partition_offset + count >= num_items_per_partition_)
+            if (h.partition_offset + pos_offset >= num_items_per_partition_)
             {
-                pos -= (h.partition_offset + count);
+                pos -= (h.partition_offset + pos_offset);
             }
 
-            current = &vector_[pos + count];
+            current = &vector_[pos + pos_offset];
         }
 
         // insert new pair
         if (current->first == sentinel_.first)
         {
-            vector_[pos + count] = KeyValuePair(key, p);
+            vector_[pos + pos_offset] = KeyValuePair(key, p);
 
             // increase total counter
             table_size_++;
@@ -467,6 +473,8 @@ public:
             log += " (";
             log += vector_[i].first;
             log += ", ";
+            // REVIEW(ms): about Value -> String: you cannot in general.
+
             //log += vector_[i].second; // TODO(ms): How to convert Value to a string?
             log += ")\n";
         }
@@ -477,6 +485,9 @@ public:
     }
 
 private:
+    // REVIEW(ms): use doxygen format like everyone else! which of these are
+    // static const?
+
     size_t num_partitions_;                         // partition size
 
     size_t num_items_init_scale_ = 10;              // set number of items per partition based on num_partitions
@@ -484,11 +495,9 @@ private:
 
     size_t num_items_resize_scale_ = 2;             // resize scale on max_num_items_per_bucket_
 
-    size_t stepsize_ = 1;                           // stepsize in case of collision
+    size_t num_collisions_to_resize_ = UINT_MAX;    // max stepsize before resize
 
-    size_t max_stepsize_ = 10;                      // max stepsize before resize
-
-    double max_partition_fill_ratio_ = 0.9;         // max partition fill ratio before resize
+    double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
 
     size_t max_num_items_table_ = 1048576;          // max num of items before spilling of largest partition
 

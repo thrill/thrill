@@ -19,14 +19,16 @@
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
+#include <c7a/api/lop_node.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/size.hpp>
+#include <c7a/api/sort.hpp>
 #include <c7a/api/sum.hpp>
 #include <c7a/api/write.hpp>
-//-tb: #include <c7a/api/zip.hpp>
+#include <c7a/api/zip.hpp>
 
 namespace c7a {
 

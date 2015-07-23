@@ -13,9 +13,7 @@
 #define C7A_API_ALLGATHER_HEADER
 
 #include <c7a/api/action_node.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dia_node.hpp>
-#include <c7a/api/function_stack.hpp>
+#include <c7a/core/stage_builder.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/collective_communication.hpp>
 
@@ -46,8 +44,7 @@ public:
         : ActionNode(ctx, { parent }, "AllGather"),
           out_vector_(out_vector),
           channel_(ctx.data_manager().GetNewChannel()),
-          emitters_(channel_->OpenWriters()),
-          parent_(parent)
+          emitters_(channel_->OpenWriters())
     {
         auto pre_op_function = [=](ValueType input) {
                                    PreOp(input);
@@ -55,18 +52,14 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        lop_chain_ = parent_stack.push(pre_op_function).emit();
-        parent_->RegisterChild(lop_chain_);
+        auto lop_chain = parent_stack.push(pre_op_function).emit();
+        parent->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType element) {
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i](element);
         }
-    }
-
-    virtual ~AllGatherNode() { 
-        parent_->UnregisterChild(lop_chain_);
     }
 
     //! Closes the output file
@@ -85,6 +78,8 @@ public:
         this->StopExecutionTimer();
     }
 
+    void Dispose() override { }
+
     /*!
      * Returns "[AllGatherNode]" and its id as a string.
      * \return "[AllGatherNode]"
@@ -97,11 +92,8 @@ private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
-    data::ChannelSPtr channel_;
+    data::ChannelPtr channel_;
     std::vector<data::BlockWriter> emitters_;
-
-    std::shared_ptr<DIANode<ParentInput>> parent_; 
-    common::delegate<void(ParentInput)> lop_chain_; 
 
     static const bool debug = false;
 };

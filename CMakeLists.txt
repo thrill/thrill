@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 2.8)
 project(c7a)
 
 # custom cmake scripts
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -88,10 +88,19 @@ if(USE_IWYU)
   endif()
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  # Clang does not support debug output for auto return types yet
-  string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-  string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} --version
+    OUTPUT_VARIABLE clang_full_version_string)
+
+  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
+    CLANG_VERSION_STRING ${clang_full_version_string})
+
+  if (CLANG_VERSION_STRING VERSION_LESS 3.6)
+    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  endif()
 endif()
 
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
@@ -157,9 +166,8 @@ endif(USE_GCOV)
 enable_testing()
 
 # google test + mock - enable "make test" and add_test()
-add_subdirectory(extlib/gmock) # note: gmock includes gtest
+add_subdirectory(extlib/gtest)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
 set(C7A_VALGRIND_OPTS

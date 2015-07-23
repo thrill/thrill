@@ -13,7 +13,6 @@
 #ifndef C7A_API_PREFIXSUM_HEADER
 #define C7A_API_PREFIXSUM_HEADER
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/file.hpp>
@@ -49,21 +48,18 @@ public:
         : DOpNode<ValueType>(ctx, { parent }, "PrefixSum"),
           sum_function_(sum_function),
           local_sum_(neutral_element),
-          neutral_element_(neutral_element),
-          parent_(parent)
+          neutral_element_(neutral_element)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
 
-        lop_chain_ = parent_stack.push(pre_op_fn).emit();
-        parent_->RegisterChild(lop_chain_);
+        auto lop_chain = parent_stack.push(pre_op_fn).emit();
+        parent->RegisterChild(lop_chain);
     }
 
-    virtual ~PrefixSumNode() { 
-        parent_->UnregisterChild(lop_chain_);
-    }
+    virtual ~PrefixSumNode() { }
 
     //! Executes the sum operation.
     void Execute() override {
@@ -71,6 +67,10 @@ public:
         MainOp();
         this->StopExecutionTimer();
     }
+
+    void PushData() override { }
+
+    void Dispose() override { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -102,9 +102,6 @@ private:
     data::File file_;
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
-
-    std::shared_ptr<DIANode<ParentInput>> parent_;
-    common::delegate<void(ParentInput)> lop_chain_;
 
     //! PreOp: compute local prefixsum and store items.
     void PreOp(const ValueType& input) {
@@ -176,8 +173,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
 
     auto sum_stack = shared_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(sum_stack)>
-               (shared_node, sum_stack);
+    return DIARef<ValueType, decltype(sum_stack)>(shared_node, sum_stack);
 }
 
 //! \}

@@ -141,18 +141,6 @@ static void ThreadInitializeSendReceive(Group* net) {
     }
 }
 
-static void ThreadInitializeSendReceiveALot(Group* net) {
-    for (int i = 0; i < 100; i++) {
-        ThreadInitializeSendReceive(net);
-    }
-}
-
-static void ThreadInitializeSendReceiveAsyncALot(Group* net) {
-    for (int i = 0; i < 100; i++) {
-        ThreadInitializeAsyncRead(net);
-    }
-}
-
 static void RealGroupConstructAndCall(
     std::function<void(Group*)> thread_function) {
     // randomize base port number for test

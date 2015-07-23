@@ -14,7 +14,6 @@
 #ifndef C7A_API_GENERATE_HEADER
 #define C7A_API_GENERATE_HEADER
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -73,8 +72,8 @@ public:
         using InputArgument
                   = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
 
-        static_assert(std::is_same<InputArgument, const size_t&>::value,
-                      "The GeneratorFunction needs an unsigned integer as input parameter");
+        static_assert(std::is_convertible<size_t, InputArgument>::value,
+                      "The GeneratorFunction needs a size_t as input parameter");
 
         size_t offset = (size_ / context_.number_worker()) * context_.rank();
         size_t local_elements;
@@ -96,6 +95,10 @@ public:
         }
         this->StopExecutionTimer();
     }
+
+    void PushData() override { }
+
+    void Dispose() override { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity emitter function.
@@ -134,9 +137,10 @@ auto Generate(Context & ctx,
               GenerateNode<GeneratorResult, GeneratorFunction>;
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<GeneratorFunction>::template arg<0>,
-            const size_t&>::value,
+        std::is_convertible<
+            size_t,
+            typename common::FunctionTraits<GeneratorFunction>::template arg<0>
+            >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
     auto shared_node =

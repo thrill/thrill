@@ -36,6 +36,7 @@ public:
 
     using Block = typename BlockSource::Block;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = typename BlockSource::VirtualBlock;
 
     //! Construct a BlockSource which concatenates many other BlockSources.
     explicit ConcatBlockSource(const std::vector<BlockSource>& sources)
@@ -43,12 +44,12 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    bool NextBlock(const Byte** out_current, const Byte** out_end) {
+    VirtualBlock NextBlock() {
         for ( ; current_ < sources_.size(); ++current_) {
-            if (sources_[current_].NextBlock(out_current, out_end))
-                return true;
+            VirtualBlock vb = sources_[current_].NextBlock();
+            if (vb.IsValid()) return vb;
         }
-        return false;
+        return VirtualBlock();
     }
 
 protected:

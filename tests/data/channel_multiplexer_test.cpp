@@ -20,42 +20,43 @@
 #include <string>
 
 using namespace c7a;
-using namespace c7a::common;
-using namespace c7a::net;
-using c7a::net::Group;
 
 static const bool debug = false;
 
-struct ChannelMultiplexerTest : public::testing::Test {
+struct ChannelMultiplexer : public::testing::Test {
 
     using WorkerThread = std::function<void(data::Manager&)>;
 
-    void FunctionSelect(
-        Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
+    static void FunctionSelect(
+        net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         net::DispatcherThread dispatcher("dp");
         data::Manager manager(dispatcher);
         manager.Connect(group);
         switch (group->MyRank()) {
         case 0:
-            GetThreadDirectory().NameThisThread("t0");
-            f1(manager);
+            common::GetThreadDirectory().NameThisThread("t0");
+            if (f1) f1(manager);
             break;
         case 1:
-            GetThreadDirectory().NameThisThread("t1");
-            f2(manager);
+            common::GetThreadDirectory().NameThisThread("t1");
+            if (f2) f2(manager);
             break;
         case 2:
-            GetThreadDirectory().NameThisThread("t2");
-            f3(manager);
+            common::GetThreadDirectory().NameThisThread("t2");
+            if (f3) f3(manager);
             break;
         }
     }
 
-    void Execute(WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        Group::ExecuteLocalMock(3,
-                                [=](Group* g) {
-                                    FunctionSelect(g, f1, f2, f3);
-                                });
+    static void Execute(WorkerThread f1 = nullptr,
+                        WorkerThread f2 = nullptr,
+                        WorkerThread f3 = nullptr) {
+        net::Group::ExecuteLocalMock(
+            // calculate number of threads
+            (f1 ? 1 : 0) + (f2 ? 1 : 0) + (f3 ? 1 : 0),
+            [=](net::Group* g) {
+                FunctionSelect(g, f1, f2, f3);
+            });
     }
 };
 
@@ -123,7 +124,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
     }
 }
 
-TEST(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
+TEST_F(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 16:
     net::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
     net::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
@@ -131,9 +132,8 @@ TEST(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     net::Group::ExecuteLocalMock(16, TalkAllToAllViaChannel);
 }
 
-TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
-    Barrier sync(3);
-    auto w0 = [&sync](data::Manager& manager) {
+TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
+    auto w0 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
                   auto writers = c->OpenWriters();
                   std::string msg1 = "I came from worker 0";
@@ -146,7 +146,7 @@ TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
                       w.Close();
                   }
               };
-    auto w1 = [&sync](data::Manager& manager) {
+    auto w1 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
                   auto writers = c->OpenWriters();
                   std::string msg1 = "I came from worker 1";
@@ -156,7 +156,7 @@ TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
                       w.Close();
                   }
               };
-    auto w2 = [&sync](data::Manager& manager) {
+    auto w2 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
                   auto writers = c->OpenWriters();
                   for (auto& w : writers) {
@@ -168,6 +168,166 @@ TEST_F(ChannelMultiplexerTest, ReadCompleteChannel) {
                   ASSERT_EQ("I came from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I am another message from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I came from worker 1", reader.Next<std::string>());
+              };
+    Execute(w0, w1, w2);
+}
+
+TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
+    auto w0 =
+        [](data::Manager& manager) {
+            // produce a File containing some items
+            data::File file;
+            {
+                auto writer = file.GetWriter();
+                writer(std::string("foo"));
+                writer(std::string("bar"));
+                writer.Flush();
+                writer(std::string("breakfast is the most important meal of the day."));
+            }
+
+            // scatter File contents via channel: only items [0,3) are sent
+            auto ch = manager.GetNewChannel();
+            ch->Scatter<std::string>(file, { 2 });
+
+            // check that got items
+            auto reader = ch->OpenReader();
+            ASSERT_TRUE(reader.HasNext());
+            ASSERT_EQ(reader.Next<std::string>(), "foo");
+            ASSERT_TRUE(reader.HasNext());
+            ASSERT_EQ(reader.Next<std::string>(), "bar");
+            ASSERT_FALSE(reader.HasNext());
+        };
+    Execute(w0);
+}
+
+TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
+    auto w0 =
+        [](data::Manager& manager) {
+            // produce a File containing some items
+            data::File file;
+            {
+                auto writer = file.GetWriter();
+                writer(std::string("foo"));
+                writer(std::string("bar"));
+            }
+
+            // scatter File contents via channel: only items [0,2) are to local worker
+            auto ch = manager.GetNewChannel();
+            ch->Scatter<std::string>(file, { 2, 2 });
+
+            // check that got items
+            auto res = ch->OpenReader().ReadComplete<std::string>();
+            ASSERT_EQ(res, (std::vector<std::string>{ "foo", "bar" }));
+        };
+    auto w1 =
+        [](data::Manager& manager) {
+            // produce a File containing some items
+            data::File file;
+            {
+                auto writer = file.GetWriter();
+                writer(std::string("hello"));
+                writer(std::string("world"));
+                writer(std::string("."));
+            }
+
+            // scatter File contents via channel: only items [0,3) are to local worker
+            auto ch = manager.GetNewChannel();
+            ch->Scatter<std::string>(file, { 0, 3 });
+
+            // check that got items
+            auto res = ch->OpenReader().ReadComplete<std::string>();
+            ASSERT_EQ(res, (std::vector<std::string>{ "hello", "world", "." }));
+        };
+    Execute(w0, w1);
+}
+
+TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
+    auto w0 = [](data::Manager& manager) {
+                  // produce a File containing some items
+                  data::File file;
+                  {
+                      auto writer = file.GetWriter();
+                      writer(std::string("foo"));
+                      writer(std::string("bar"));
+                  }
+
+                  // scatter File contents via channel.
+                  auto ch = manager.GetNewChannel();
+                  ch->Scatter<std::string>(file, { 1, 2 });
+
+                  // check that got items
+                  auto res = ch->OpenReader().ReadComplete<std::string>();
+                  ASSERT_EQ(res, (std::vector<std::string>{ "foo", "hello" }));
+              };
+    auto w1 = [](data::Manager& manager) {
+                  // produce a File containing some items
+                  data::File file;
+                  {
+                      auto writer = file.GetWriter();
+                      writer(std::string("hello"));
+                      writer(std::string("world"));
+                      writer(std::string("."));
+                  }
+
+                  // scatter File contents via channel.
+                  auto ch = manager.GetNewChannel();
+                  ch->Scatter<std::string>(file, { 1, 2 });
+
+                  // check that got items
+                  auto res = ch->OpenReader().ReadComplete<std::string>();
+                  ASSERT_EQ(res, (std::vector<std::string>{ "bar", "world" }));
+              };
+    Execute(w0, w1);
+}
+
+TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
+    auto w0 = [](data::Manager& manager) {
+                  // produce a File containing some items
+                  data::File file;
+                  {
+                      auto writer = file.GetWriter();
+                      writer(1);
+                      writer(2);
+                  }
+
+                  // scatter File contents via channel.
+                  auto ch = manager.GetNewChannel();
+                  ch->Scatter<int>(file, { 2, 2, 2 });
+
+                  // check that got items
+                  auto res = ch->OpenReader().ReadComplete<int>();
+                  ASSERT_EQ(res, (std::vector<int>{ 1, 2 }));
+              };
+    auto w1 = [](data::Manager& manager) {
+                  // produce a File containing some items
+                  data::File file;
+                  {
+                      auto writer = file.GetWriter();
+                      writer(3);
+                      writer(4);
+                      writer(5);
+                      writer(6);
+                  }
+
+                  // scatter File contents via channel.
+                  auto ch = manager.GetNewChannel();
+                  ch->Scatter<int>(file, { 0, 2, 4 });
+
+                  // check that got items
+                  auto res = ch->OpenReader().ReadComplete<int>();
+                  ASSERT_EQ(res, (std::vector<int>{ 3, 4 }));
+              };
+    auto w2 = [](data::Manager& manager) {
+                  // empty File :...(
+                  data::File file;
+
+                  // scatter File contents via channel.
+                  auto ch = manager.GetNewChannel();
+                  ch->Scatter<int>(file, { 0, 0, 0 });
+
+                  // check that got items
+                  auto res = ch->OpenReader().ReadComplete<int>();
+                  ASSERT_EQ(res, (std::vector<int>{ 5, 6 }));
               };
     Execute(w0, w1, w2);
 }
