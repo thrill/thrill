@@ -33,8 +33,9 @@ namespace data {
 //! A StreamBlockHeader with num_elements = 0 marks the end of a stream
 struct StreamBlockHeader {
     size_t      channel_id;
-    size_t      expected_bytes;
-    size_t      expected_elements;
+    size_t      size;
+    size_t      first_item;
+    size_t      nitems;
     size_t      sender_rank;
 
     //! Reads the channel id and the number of elements in this block
@@ -42,8 +43,9 @@ struct StreamBlockHeader {
         assert(buffer.size() == sizeof(StreamBlockHeader));
         net::BufferReader br(buffer);
         channel_id = br.Get<size_t>();
-        expected_bytes = br.Get<size_t>();
-        expected_elements = br.Get<size_t>();
+        size = br.Get<size_t>();
+        first_item = br.Get<size_t>();
+        nitems = br.Get<size_t>();
         sender_rank = br.Get<size_t>();
     }
 
@@ -52,27 +54,16 @@ struct StreamBlockHeader {
         net::BufferBuilder bb;
         bb.Reserve(4 * sizeof(size_t));
         bb.Put<size_t>(channel_id);
-        bb.Put<size_t>(expected_bytes);
-        bb.Put<size_t>(expected_elements);
+        bb.Put<size_t>(size);
+        bb.Put<size_t>(first_item);
+        bb.Put<size_t>(nitems);
         bb.Put<size_t>(sender_rank);
         return bb.ToBuffer();
     }
 
-    //! resets to a End-of-Stream block header
-    void        Reset() {
-        expected_bytes = 0;
-        expected_elements = 0;
-        sender_rank = 0;
-    }
-
     //! Indicates if this is the end-of-stream block header
     bool        IsStreamEnd() const {
-        return expected_bytes == 0;
-    }
-
-    //! Frees all memory of the block struct
-    ~StreamBlockHeader() {
-        Reset();
+        return size == 0;
     }
 };
 

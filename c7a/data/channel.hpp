@@ -268,7 +268,7 @@ protected:
 
         if (debug) {
             sLOG << "channel" << id_ << "receive from" << from << ":"
-                 << common::hexdump(vb.block->data(), vb.bytes_used);
+                 << common::hexdump(vb.ToString());
         }
 
         queues_[from].AppendBlock(vb);

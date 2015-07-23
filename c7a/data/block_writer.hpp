@@ -99,6 +99,9 @@ public:
 
     //! Mark beginning of an item.
     BlockWriterBase & MarkItem() {
+        if (current_ == end_)
+            Flush();
+
         if (nitems_ == 0)
             first_offset_ = current_ - block_->begin();
 
@@ -140,8 +143,7 @@ public:
             size -= partial_size;
             current_ += partial_size;
 
-            FlushBlock();
-            AllocateBlock();
+            Flush();
         }
 
         // copy remaining bytes.
@@ -159,8 +161,7 @@ public:
             *current_++ = data;
         }
         else {
-            FlushBlock();
-            AllocateBlock();
+            Flush();
             *current_++ = data;
         }
         return *this;
@@ -196,8 +197,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_->AppendBlock(block_, current_ - block_->begin(),
-                           nitems_, first_offset_);
+        sink_->AppendBlock(block_, 0, current_ - block_->begin(),
+                           first_offset_, nitems_);
     }
 
     //! current block, already allocated as shared ptr, since we want to use

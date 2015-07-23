@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/common/string.hpp>
+#include <c7a/data/block_queue.hpp>
 #include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
 
@@ -43,12 +44,12 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.NumItems(), 5u);
     ASSERT_EQ(file.TotalBytes(), 6u * 16u);
 
-    ASSERT_EQ(file.used(0), 16u);
-    ASSERT_EQ(file.used(1), 16u);
-    ASSERT_EQ(file.used(2), 16u);
-    ASSERT_EQ(file.used(3), 16u);
-    ASSERT_EQ(file.used(4), 16u);
-    ASSERT_EQ(file.used(5), 14u);
+    ASSERT_EQ(file.virtual_block(0).size(), 16u);
+    ASSERT_EQ(file.virtual_block(1).size(), 16u);
+    ASSERT_EQ(file.virtual_block(2).size(), 16u);
+    ASSERT_EQ(file.virtual_block(3).size(), 16u);
+    ASSERT_EQ(file.virtual_block(4).size(), 16u);
+    ASSERT_EQ(file.virtual_block(5).size(), 14u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
@@ -75,7 +76,7 @@ TEST(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.NumBlocks(); ++i) {
-            std::cout << common::hexdump(file.BlockAsString(i))
+            std::cout << common::hexdump(file.virtual_block(i).ToString())
                       << std::endl;
         }
     }
@@ -89,13 +90,14 @@ TEST(File, PutSomeItemsGetItems) {
         ASSERT_EQ(
             block_data.substr(
                 i * File::block_size,
-                std::min<size_t>(File::block_size, file.used(i))),
-            file.BlockAsString(i));
+                std::min<size_t>(File::block_size,
+                                 file.virtual_block(i).size())),
+            file.virtual_block(i).ToString());
     }
 
     // check size of Block.
     {
-        File::BlockCPtr block = file.block(0);
+        File::BlockCPtr block = file.virtual_block(0).block();
         static_assert(sizeof(*block) == 16, "Block size does not match");
     }
 
@@ -142,6 +144,69 @@ TEST(File, SerializeSomeItems) {
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
     }
+}
+
+TEST(File, SeekReadSlicesOfFiles) {
+
+    // yes, this is a prime number as block size. -tb
+    using File = data::FileBase<53>;
+    using VirtualBlock = File::VirtualBlock;
+
+    // construct a small-block File with lots of items.
+    File file;
+
+    File::Writer fw = file.GetWriter();
+    for (size_t i = 0; i < 1000; ++i) {
+        fw(i);
+    }
+    fw.Close();
+
+    ASSERT_EQ(1000u, file.NumItems());
+
+    // read complete File
+    File::Reader fr = file.GetReader();
+    for (size_t i = 0; i < 1000; ++i) {
+        ASSERT_TRUE(fr.HasNext());
+        ASSERT_EQ(i, fr.Next<size_t>());
+    }
+    ASSERT_FALSE(fr.HasNext());
+
+    // read items 95-144
+    auto check_range =
+        [&](size_t begin, size_t end) {
+            std::vector<VirtualBlock> blocks =
+                file.GetItemRange<size_t>(begin, end);
+
+            using MyQueue = data::BlockQueue<53>;
+            MyQueue queue;
+
+            for (VirtualBlock& vb : blocks)
+                queue.AppendBlock(vb);
+            queue.Close();
+
+            MyQueue::Reader qr = queue.GetReader();
+
+            for (size_t i = begin; i < end; ++i) {
+                ASSERT_TRUE(qr.HasNext());
+                ASSERT_EQ(i, qr.Next<size_t>());
+            }
+            ASSERT_FALSE(qr.HasNext());
+        };
+
+    // read some item ranges.
+    for (size_t i = 90; i != 100; ++i) {
+        check_range(i, 144);
+    }
+    for (size_t i = 140; i != 150; ++i) {
+        check_range(96, i);
+    }
+
+    // some special cases.
+    check_range(0, 0);
+    check_range(0, 1);
+    check_range(1, 2);
+    check_range(990, 1000);
+    check_range(1000, 1000);
 }
 
 // forced instantiation

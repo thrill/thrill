@@ -56,21 +56,21 @@ public:
 
     //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
     void AppendBlock(const VirtualBlock& vb) override {
-        if (vb.bytes_used == 0) return;
+        if (vb.size() == 0) return;
 
         StreamBlockHeader header;
         header.channel_id = id_;
-        header.expected_bytes = vb.bytes_used;
-        header.expected_elements = vb.nitems;
+        header.size = vb.size();
+        header.first_item = vb.first_item_relative();
+        header.nitems = vb.nitems();
         header.sender_rank = own_rank_;
 
         if (debug) {
-            sLOG << "sending block"
-                 << common::hexdump(vb.block->begin(), vb.bytes_used);
+            sLOG << "sending block" << common::hexdump(vb.ToString());
         }
 
         // TODO(tb): this copies data!
-        net::Buffer payload_buf(vb.block->begin(), vb.bytes_used);
+        net::Buffer payload_buf(vb.data_begin(), vb.size());
 
         dispatcher_->AsyncWrite(
             *connection_,
@@ -102,8 +102,9 @@ public:
 
         StreamBlockHeader header;
         header.channel_id = id_;
-        header.expected_bytes = 0;
-        header.expected_elements = 0;
+        header.size = 0;
+        header.first_item = 0;
+        header.nitems = 0;
         header.sender_rank = own_rank_;
         dispatcher_->AsyncWrite(*connection_, header.Serialize());
     }

@@ -16,8 +16,8 @@ using namespace c7a::data;
 struct StreamTest : public::testing::Test {
     StreamTest() {
         candidate.channel_id = 2;
-        candidate.expected_bytes = 4;
-        candidate.expected_elements = 5;
+        candidate.size = 4;
+        candidate.nitems = 5;
         candidate.sender_rank = 6;
     }
 
@@ -30,14 +30,14 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesHeader) {
     result.ParseHeader(seri);
 
     ASSERT_EQ(candidate.channel_id, result.channel_id);
-    ASSERT_EQ(candidate.expected_bytes, result.expected_bytes);
-    ASSERT_EQ(candidate.expected_elements, result.expected_elements);
+    ASSERT_EQ(candidate.size, result.size);
+    ASSERT_EQ(candidate.nitems, result.nitems);
     ASSERT_EQ(candidate.sender_rank, result.sender_rank);
 }
 
 TEST_F(StreamTest, StreamBlockHeaderIsStreamEnd) {
     ASSERT_FALSE(candidate.IsStreamEnd());
-    candidate.expected_bytes = 0;
+    candidate.size = 0;
     ASSERT_TRUE(candidate.IsStreamEnd());
 }
 
