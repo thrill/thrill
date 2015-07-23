@@ -12,11 +12,11 @@
 #ifndef C7A_API_GRAPH_HEADER
 #define C7A_API_GRAPH_HEADER
 
-#include <c7a/api/dia_base.hpp>
 #include <c7a/common/logger.hpp>
 
 #include <string>
-#include <ostream>
+#include <vector>
+#include <fstream>
 
 namespace c7a {
 namespace api {

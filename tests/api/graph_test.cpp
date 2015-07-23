@@ -15,11 +15,11 @@
 #include <string>
 #include <vector>
 
-TEST(API, SimpleGraphTest) {
-    using c7a::api::StatsGraph;
-    using c7a::api::StatsNode;
+using namespace c7a;
+using c7a::api::StatsGraph;
+using c7a::api::StatsNode;
 
-    static const bool debug = false;
+TEST(API, SimpleGraphTest) {
 
     StatsGraph g("graph_test.out");
     StatsNode* a = new StatsNode("LOp1");
