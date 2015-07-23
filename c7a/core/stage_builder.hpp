@@ -37,7 +37,6 @@ public:
         LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
         node_->Execute();
         node_->PushData();
-        node_->UnregisterChilds();
         node_->set_state(c7a::api::EXECUTED);
     }
 
@@ -102,6 +101,7 @@ public:
         {
             if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
             if (s.node()->state() == c7a::api::NEW) s.Execute();
+            s.node()->UnregisterChilds();
         }
     }
 

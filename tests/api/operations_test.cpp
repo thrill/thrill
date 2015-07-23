@@ -333,7 +333,7 @@ TEST(Operations, ForLoop) {
     api::ExecuteLocalTests(start_func);
 }
 
-TEST(Operations, DISABLED_WhileLoop) {
+TEST(Operations, WhileLoop) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -374,7 +374,8 @@ TEST(Operations, DISABLED_WhileLoop) {
             ASSERT_EQ(256u, squares.Size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    // api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalThreadsTCP(1, 8080, start_func);
 }
 
 /******************************************************************************/
