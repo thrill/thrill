@@ -37,7 +37,12 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
               decltype(key_ex), decltype(red_fn), File::Writer>;
 
     auto hash_function = [](int key, HashTable*) {
-        return HashTable::hash_result(0, 0, 0);
+
+        size_t global_index = 0;
+        size_t partition_id = 0;
+        size_t partition_offset = 0;
+
+        return HashTable::hash_result(partition_id, partition_offset, global_index);
     };
 
     File output;
