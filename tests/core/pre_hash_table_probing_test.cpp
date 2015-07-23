@@ -49,10 +49,10 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    HashTable table(1, key_ex, red_fn, writers, std::make_pair(-1, -1), hash_function);
+    HashTable table(1, key_ex, red_fn, writers, std::make_pair(20, 20), hash_function);
 
     for (int i = 0; i < 16; i++) {
-        table.Insert(std::move(i));
+        table.Insert(i);
     }
 
     table.Flush();
