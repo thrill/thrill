@@ -67,6 +67,10 @@ public:
     //! duplicated).
     void Execute() override {
         this->StartExecutionTimer();
+        this->StopExecutionTimer();
+    }
+
+    void PushData() override {
         LOG << "GENERATING data with id " << this->result_file_;
 
         using InputArgument
@@ -93,10 +97,7 @@ public:
                 func(generator_function_(i + offset));
             }
         }
-        this->StopExecutionTimer();
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 

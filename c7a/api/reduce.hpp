@@ -56,9 +56,13 @@ class ReduceNode : public DOpNode<ValueType>
 
     using ReduceArg = typename common::FunctionTraits<ReduceFunction>::template arg<0>;
 
-    using ReduceResult = typename common::FunctionTraits<ReduceFunction>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using ParentInput = typename ParentStack::Input;
+
+    typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
     using Super::result_file_;
@@ -113,7 +117,26 @@ public:
         this->StopExecutionTimer();
     }
 
-    void PushData() override { }
+    void PushData() override {
+        // TODO(ms): this is not what should happen: every thing is reduced again:
+
+        using ReduceTable
+                  = core::ReducePostTable<KeyExtractor,
+                                          ReduceFunction,
+                                          std::function<void(ValueType)> >;
+
+        ReduceTable table(key_extractor_, reduce_function_,
+                          DIANode<ValueType>::callbacks());
+
+        //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+        auto reader = channel_->OpenReader();
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+        while (reader.HasNext()) {
+            table.Insert(reader.template Next<Value>());
+        }
+
+        table.Flush();
+    }
 
     void Dispose() override { }
 
@@ -165,23 +188,6 @@ private:
         //Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
-
-        using ReduceTable
-                  = core::ReducePostTable<KeyExtractor,
-                                          ReduceFunction,
-                                          std::function<void(ValueType)> >;
-
-        ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<ValueType>::callbacks());
-
-        //we actually want to wire up callbacks in the ctor and NOT use this blocking method
-        auto reader = channel_->OpenReader();
-        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
-        while (reader.HasNext()) {
-            table.Insert(reader.template Next<ReduceResult>());
-        }
-
-        table.Flush();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.

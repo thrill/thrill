@@ -69,13 +69,14 @@ public:
     void Execute() override {
         // Push local elements to children
         writer_.Close();
+    }
+
+    void PushData() override {
         data::File::Reader reader = file_.GetReader();
         for (size_t i = 0; i < file_.NumItems(); ++i) {
             this->PushElement(reader.Next<ValueType>());
         }
     }
-
-    void PushData() override { }
 
     void Dispose() override { }
 
