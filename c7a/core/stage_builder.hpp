@@ -44,6 +44,7 @@ public:
     void PushData() {
         LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
         node_->PushData();
+        node_->set_state(c7a::api::EXECUTED);
     }
 
     void Dispose() {
@@ -66,28 +67,31 @@ class StageBuilder
 public:
     void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
         LOG << "FINDING stages:";
-        // std::set<const DIABase*> stages_found;
-        std::vector<DIABase*> stages_found;
+        std::set<const DIABase*> stages_found;
         // Do a reverse DFS and find all stages
         std::stack<DIABase*> dia_stack;
         dia_stack.push(action);
-        // stages_found.insert(action);
-        stages_found.push_back(action);
+        stages_found.insert(action);
+        stages_result.push_back(Stage(action));
         while (!dia_stack.empty()) {
             DIABase* curr = dia_stack.top();
             dia_stack.pop();
             const auto parents = curr->parents();
             for (size_t i = 0; i < parents.size(); ++i) {
+                // Check if parent was already added
                 auto p = parents[i].get();
-                stages_found.push_back(p);
-                if (p->state() != c7a::api::EXECUTED) {
-                    dia_stack.push(p);
+                if (p && (stages_found.find(p) == stages_found.end())) {
+                    // If not add parent to stages found and result stages
+                    stages_found.insert(p);
+                    stages_result.push_back(Stage(p));
+                    // If parent was not executed push it to the DFS
+                    if (p->state() != c7a::api::EXECUTED) {
+                        dia_stack.push(p);
+                    }
                 }
             }
         }
-        for (auto stage : stages_found) {
-            stages_result.emplace_back(stage);
-        }
+        // Reverse the execution order
         std::reverse(stages_result.begin(), stages_result.end());
     }
 
@@ -96,7 +100,6 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            // TODO(sl): This is nonsense -tb, fix it:
             if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
             if (s.node()->state() == c7a::api::NEW) s.Execute();
         }
