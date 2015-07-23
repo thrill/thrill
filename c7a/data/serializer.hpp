@@ -35,10 +35,13 @@ namespace data {
 //! \namespace namespace to hide the implementations of serializers
 namespace serializers {
 
+static const bool debug = true;
+
 template <typename Archive, typename T, class Enable = void>
 struct Impl
 { };
 
+/*************** Serialization of plain old data types *****************/
 template <typename Archive, typename T>
 struct Impl<Archive, T,
             typename std::enable_if<std::is_pod<T>::value>::type>
@@ -53,6 +56,7 @@ struct Impl<Archive, T,
     static const bool fixed_size = true;
 };
 
+/******************* Serialization strings *********************/
 template <typename Archive>
 struct Impl<Archive, std::string>
 {
@@ -65,6 +69,7 @@ struct Impl<Archive, std::string>
     static const bool fixed_size = false;
 };
 
+/***************** Serialization of pairs *************************/
 template <typename Archive, typename U, typename V>
 struct Impl<Archive, std::pair<U, V> >
 {
@@ -81,6 +86,61 @@ struct Impl<Archive, std::pair<U, V> >
                                     Impl<Archive, V>::fixed_size);
 };
 
+/****************** Serialization of tuples **************************/
+template <typename Archive, int N, typename ... Args>
+struct TupleSerializer {
+    using ThisElemType = typename std::tuple_element<N, std::tuple<Args ...> >::type;
+    static void       Serialize(const std::tuple<Args ...>& x, Archive& a) {
+        sLOG << "Now serializing" << std::get<N>(x);
+        Impl<Archive, ThisElemType>::Serialize(std::get<N>(x), a);
+        TupleSerializer<Archive, N + 1, Args ...>::Serialize(x, a);
+    }
+    static const bool fixed_size = Impl<Archive, ThisElemType>::fixed_size && TupleSerializer<Archive, N + 1, Args ...>::fixed_size;
+};
+
+// Base case
+template <typename Archive, typename ... Args>
+struct TupleSerializer<Archive, sizeof ... (Args), Args ...>{
+    static void Serialize(const std::tuple<Args ...>&, Archive&) {
+        // Doesn't do anything
+    }
+    static const bool fixed_size = true;
+};
+
+template <typename Archive, int N, typename ... Args>
+struct TupleDeserializer {
+    using ThisElemType = typename std::tuple_element<N, std::tuple<Args ...> >::type;
+    static void Deserialize(std::tuple<Args ...>& t, Archive& a) {
+        // deserialize and fill the result tuple
+        std::get<N>(t) = Impl<Archive, ThisElemType>::Deserialize(a);
+        TupleDeserializer<Archive, N + 1, Args ...>::Deserialize(t, a);
+    }
+};
+
+// Base Case
+template <typename Archive, typename ... Args>
+struct TupleDeserializer<Archive, sizeof ... (Args), Args ...>{
+    static void Deserialize(std::tuple<Args ...>&, Archive&) {
+        // Doesn't do anything
+    }
+};
+
+template <typename Archive, typename ... Args>
+struct Impl<Archive, std::tuple<Args ...> >
+{
+    static void Serialize(const std::tuple<Args ...>& x, Archive& a) {
+        TupleSerializer<Archive, 0, Args ...>::Serialize(x, a);
+    }
+    static std::tuple<Args ...> Deserialize(Archive& a) {
+        std::tuple<Args ...> r;
+        TupleDeserializer<Archive, 0, Args ...>::Deserialize(r, a);
+        return r;
+    }
+
+    static const bool fixed_size = TupleSerializer<Archive, 0, Args ...>::fixed_size;
+};
+
+/******************** Test Serialization of an object using cereal **********************/
 template <typename Archive>
 struct Impl<Archive, struct TestCerealObject2>
 {
@@ -98,6 +158,8 @@ struct Impl<Archive, struct TestCerealObject2>
     static const bool fixed_size = false;
 };
 }       // namespace serializers
+
+/***************** Call Serialize/Deserialize *************************/
 
 //! Serialize the type to std::string
 template <typename Archive, typename T>

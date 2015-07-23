@@ -68,7 +68,6 @@ public:
 
     //! Writes size bytes of data to the output stream
     void saveBinary(const void* data, std::size_t size) {
-        std::cout << c7a::common::hexdump(data, size) << std::endl;
         a_.Append(data, size);
     }
 
@@ -100,7 +99,6 @@ public:
 
     //! Reads size bytes of data from the input stream
     void loadBinary(void* const data, std::size_t size) {
-        std::cout << "loading binary" << std::endl;
         a_.Read(data, size);
     }
 
