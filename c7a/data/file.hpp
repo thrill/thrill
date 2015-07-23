@@ -128,6 +128,15 @@ public:
     template <typename ItemType>
     std::vector<VirtualBlock> GetItemRange(size_t begin, size_t end) const;
 
+    //! Output the Block objects contained in this File.
+    friend std::ostream& operator << (std::ostream& os, const FileBase& f) {
+        os << "[File " << std::hex << &f << std::dec
+           << " Blocks=[";
+        for (const VirtualBlock& vb : f.virtual_blocks_)
+            os << "\n    " << vb;
+        return os << "]]";
+    }
+
 protected:
     //! the container holding virtual blocks and thus shared pointers to all
     //! blocks.
@@ -176,7 +185,8 @@ public:
         if (current_block_ == first_block_) {
             // construct first block differently, in case we want to shorten it.
             VirtualBlock vb = file_.virtual_block(current_block_);
-            vb.set_begin(first_offset_);
+            if (first_item_ != keep_first_item)
+                vb.set_begin(first_item_);
             return vb;
         }
         else {
@@ -191,14 +201,17 @@ public:
 protected:
     //! Start reading a File
     FileBlockSource(const FileBase& file,
-                    size_t first_block = 0, size_t first_offset = 0)
-        : file_(file), first_block_(first_block), first_offset_(first_offset) {
+                    size_t first_block = 0, size_t first_item = keep_first_item)
+        : file_(file), first_block_(first_block), first_item_(first_item) {
         current_block_ = first_block_ - 1;
     }
 
     //! for calling the protected constructor
     friend class data::FileBase<BlockSize>;
     friend class data::CachingBlockQueueSource<BlockSize>;
+
+    //! sentinel value for not changing the first_item item
+    static const size_t keep_first_item = size_t(-1);
 
     //! file to read blocks from
     const FileBase& file_;
@@ -210,7 +223,7 @@ protected:
     size_t first_block_;
 
     //! offset of first item in first block read
-    size_t first_offset_;
+    size_t first_item_;
 };
 
 //! Get BlockReader for beginning of File
