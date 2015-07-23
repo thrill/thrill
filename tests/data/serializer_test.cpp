@@ -20,7 +20,7 @@
 
 using namespace c7a::data;
 
-static const bool debug = true;
+static const bool debug = false;
 
 // TEST(Serializer, StringSerializeDeserialize) {
 //     std::string foo = "foo";
@@ -193,12 +193,10 @@ static const bool debug = true;
 TEST(Serializer, Cereal_Archive_Test) {
     c7a::data::File f;
     serializers::TestCerealObject2 t(1, 2, 3);
-
     {
         auto w = f.GetWriter();
         Serialize<decltype(w), serializers::TestCerealObject2>(t, w);
     }
-
     auto r = f.GetReader();
     auto res = Deserialize<decltype(r), serializers::TestCerealObject2>(r);
     ASSERT_EQ(t.x_, res.x_);
@@ -211,14 +209,12 @@ TEST(Serializer, Cereal_Archive_Test) {
 TEST(Serializer, Tuple_Archive_Test) {
     c7a::data::File f;
     auto t = std::make_tuple(1, 2, 3, std::string("blaaaa"));
-
     {
         auto w = f.GetWriter();
         w(t);
         auto b = serializers::Impl<decltype(w), decltype(t)>::fixed_size;
         LOG << "File is of fixed size: " << b;
     }
-
     auto r = f.GetReader();
     auto res = Deserialize<decltype(r), decltype(t)>(r);
 
