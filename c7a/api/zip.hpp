@@ -151,9 +151,18 @@ public:
                 }
                 ++result_count;
             }
+
+            // Empty out readers. If they have additional items, this is
+            // necessary for the CachingBlockQueueSource, as it has to cache the
+            // additional blocks -tb. TODO(tb): this is weird behaviour.
+            while (readers[0].HasNext())
+                readers[0].Next<ZipArg0>();
+
+            while (readers[1].HasNext())
+                readers[1].Next<ZipArg1>();
         }
 
-        sLOG1 << "Zip: result_count" << result_count;
+        sLOG << "Zip: result_count" << result_count;
     }
 
     void Dispose() override { }
