@@ -31,6 +31,9 @@ namespace data {
 template <size_t BlockSize>
 class FileBlockSource;
 
+template <size_t BlockSize>
+class CachingBlockQueueSource;
+
 /*!
  * A File or generally FileBase<BlockSize> is an ordered sequence of
  * VirtualBlock objects for storing items. By using the VirtualBlock
@@ -212,6 +215,7 @@ protected:
 
     //! for calling the protected constructor
     friend class data::FileBase<BlockSize>;
+    friend class data::CachingBlockQueueSource<BlockSize>;
 
     //! file to read blocks from
     const FileBase& file_;

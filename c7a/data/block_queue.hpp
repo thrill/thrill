@@ -148,7 +148,6 @@ typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
  */
 template <size_t BlockSize>
 class CachingBlockQueueSource
-    : public data::BlockQueueSource<BlockSize>, data::FileBlockSource<BlockSize>
 {
 public:
     using Byte = unsigned char;
@@ -161,33 +160,38 @@ public:
 
     //! Start reading from a BlockQueue
     CachingBlockQueueSource(BlockQueue& queue, File& file)
-        : BlockQueueSource(queue), FileBlockSource(file), file_(file) {
+        : queue_src_(queue), file_src_(file), file_(file) {
         // determinate whether we read from the Queue or from the File.
-        from_queue_ = !BlockQueueSource::closed();
+        from_queue_ = !queue_src_.closed();
     }
 
     //! Return next virtual block for BlockReader.
     VirtualBlock NextBlock() {
         if (from_queue_) {
-            VirtualBlock vb = BlockQueueSource::NextBlock();
+            VirtualBlock vb = queue_src_.NextBlock();
             // cache block in file_
             if (vb.IsValid())
                 file_.AppendBlock(vb);
             return vb;
         }
         else {
-            return FileBlockSource::NextBlock();
+            return file_src_.NextBlock();
         }
     }
 
     bool closed() const {
-        return from_queue_ ?
-               BlockQueueSource::closed() : FileBlockSource::closed();
+        return from_queue_ ? queue_src_.closed() : file_src_.closed();
     }
 
 protected:
     //! whether we read from BlockQueue or from the File.
     bool from_queue_;
+
+    //! BlockQueueSource
+    BlockQueueSource queue_src_;
+
+    //! FileBlockSource if the queue was already read.
+    FileBlockSource file_src_;
 
     //! Reference to file for caching Blocks
     File& file_;
