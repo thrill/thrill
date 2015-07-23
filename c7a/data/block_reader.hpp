@@ -98,7 +98,7 @@ public:
     //! vector of VirtualBlock objects. This is used to take out a range of
     //! items, the internal item cursor is advanced by n.
     template <typename ItemType>
-    std::vector<VirtualBlock> GetItemRange(size_t n) {
+    std::vector<VirtualBlock> GetItemBatch(size_t n) {
         static const bool debug = false;
 
         std::vector<VirtualBlock> out;
@@ -167,21 +167,26 @@ public:
             current_ = block_->begin() + first_item_;
         }
 
-        // skip over remaining items in this block
-        BlockCPtr b = block_;
-        size_t last_items = n;
-
-        while (n > 0) {
-            Next<ItemType>();
-            --n;
-        }
-        assert(b == block_); // must still be in the same block.
+        // put prospective last block into vector.
 
         out.emplace_back(
             block_,
             // full range is valid.
-            begin_output - block_->begin(), current_ - block_->begin(),
-            first_output, last_items);
+            begin_output - block_->begin(), end_ - block_->begin(),
+            first_output, n);
+
+        // skip over remaining items in this block, there while collect all
+        // blocks needed for those items via block_collect_. There can be more
+        // than one block necessary for Next if an item is large!
+
+        block_collect_ = &out;
+        while (n > 0) {
+            Next<ItemType>();
+            --n;
+        }
+        block_collect_ = nullptr;
+
+        out.back().set_end(current_ - block_->begin());
 
         sLOG << "partial last:" << out.back();
 
@@ -271,11 +276,19 @@ protected:
     //! remaining number of items starting in this block
     size_t nitems_;
 
+    //! pointer to vector to collect blocks in GetItemRange.
+    std::vector<VirtualBlock>* block_collect_ = nullptr;
+
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
         VirtualBlock vb = source_.NextBlock();
+
         block_ = vb.block();
         if (!vb.IsValid()) return false;
+
+        if (block_collect_)
+            block_collect_->emplace_back(vb);
+
         current_ = vb.data_begin();
         end_ = vb.data_end();
         first_item_ = vb.first_item();

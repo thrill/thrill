@@ -147,9 +147,12 @@ TEST(File, SerializeSomeItems) {
 }
 
 TEST(File, SeekReadSlicesOfFiles) {
+    static const bool debug = false;
 
     // yes, this is a prime number as block size. -tb
-    using File = data::FileBase<53>;
+    static const size_t block_size = 53;
+
+    using File = data::FileBase<block_size>;
     using VirtualBlock = File::VirtualBlock;
 
     // construct a small-block File with lots of items.
@@ -173,24 +176,58 @@ TEST(File, SeekReadSlicesOfFiles) {
 
     // read items 95-144
     auto check_range =
-        [&](size_t begin, size_t end) {
-            std::vector<VirtualBlock> blocks =
-                file.GetItemRange<size_t>(begin, end);
+        [&](size_t begin, size_t end, bool do_more = true) {
+            sLOG << "Test range [" << begin << "," << end << ")";
 
-            using MyQueue = data::BlockQueue<53>;
-            MyQueue queue;
+            // seek in File to begin.
+            File::Reader fr = file.GetReaderAt<size_t>(begin);
 
-            for (VirtualBlock& vb : blocks)
-                queue.AppendBlock(vb);
-            queue.Close();
+            // read the items [begin,end)
+            {
+                std::vector<VirtualBlock> blocks
+                    = fr.GetItemBatch<size_t>(end - begin);
 
-            MyQueue::Reader qr = queue.GetReader();
+                using MyQueue = data::BlockQueue<block_size>;
+                MyQueue queue;
 
-            for (size_t i = begin; i < end; ++i) {
-                ASSERT_TRUE(qr.HasNext());
-                ASSERT_EQ(i, qr.Next<size_t>());
+                for (VirtualBlock& vb : blocks)
+                    queue.AppendBlock(vb);
+                queue.Close();
+
+                MyQueue::Reader qr = queue.GetReader();
+
+                for (size_t i = begin; i < end; ++i) {
+                    ASSERT_TRUE(qr.HasNext());
+                    ASSERT_EQ(i, qr.Next<size_t>());
+                }
+                ASSERT_FALSE(qr.HasNext());
             }
-            ASSERT_FALSE(qr.HasNext());
+
+            if (!do_more) return;
+
+            sLOG << "read more";
+            static const size_t more = 100;
+
+            // read the items [end, end + more)
+            {
+                std::vector<VirtualBlock> blocks
+                    = fr.GetItemBatch<size_t>(more);
+
+                using MyQueue = data::BlockQueue<block_size>;
+                MyQueue queue;
+
+                for (VirtualBlock& vb : blocks)
+                    queue.AppendBlock(vb);
+                queue.Close();
+
+                MyQueue::Reader qr = queue.GetReader();
+
+                for (size_t i = end; i < end + more; ++i) {
+                    ASSERT_TRUE(qr.HasNext());
+                    ASSERT_EQ(i, qr.Next<size_t>());
+                }
+                ASSERT_FALSE(qr.HasNext());
+            }
         };
 
     // read some item ranges.
@@ -205,8 +242,8 @@ TEST(File, SeekReadSlicesOfFiles) {
     check_range(0, 0);
     check_range(0, 1);
     check_range(1, 2);
-    check_range(990, 1000);
-    check_range(1000, 1000);
+    check_range(990, 1000, false);
+    check_range(1000, 1000, false);
 }
 
 // forced instantiation

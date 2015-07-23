@@ -127,6 +127,9 @@ public:
     //! accessor to begin_
     void set_begin(size_t i) { begin_ = i; }
 
+    //! accessor to end_
+    void set_end(size_t i) { end_ = i; }
+
     //! return pointer to beginning of valid data
     const Byte * data_begin() const {
         assert(block_);

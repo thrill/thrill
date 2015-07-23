@@ -119,6 +119,10 @@ public:
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
 
+    //! Get BlockReader seeked to the corresponding item index
+    template <typename ItemType>
+    Reader GetReaderAt(size_t index) const;
+
     //! Seek in File: return a VirtualBlock range containing items begin, end of
     //! given type.
     template <typename ItemType>
@@ -215,26 +219,24 @@ typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
 }
 
-//! Seek in File: return a VirtualBlock range containing items begin, end of
-//! given type.
+//! Get BlockReader seeked to the corresponding item index
 template <size_t BlockSize>
 template <typename ItemType>
-std::vector<typename FileBase<BlockSize>::VirtualBlock>
-FileBase<BlockSize>::GetItemRange(size_t begin, size_t end) const {
+typename FileBase<BlockSize>::Reader
+FileBase<BlockSize>::GetReaderAt(size_t index) const {
     static const bool debug = false;
-    assert(begin <= end);
 
     // perform binary search for item block with largest exclusive size
-    // prefixsum less or equal to begin.
+    // prefixsum less or equal to index.
     auto it =
-        std::lower_bound(nitems_sum_.begin(), nitems_sum_.end(), begin);
+        std::lower_bound(nitems_sum_.begin(), nitems_sum_.end(), index);
 
     if (it == nitems_sum_.end())
-        return std::vector<VirtualBlock>();
+        die("Access beyond end of File?");
 
     size_t begin_block = it - nitems_sum_.begin();
 
-    sLOG << "item" << begin << "in block" << begin_block
+    sLOG << "item" << index << "in block" << begin_block
          << "psum" << nitems_sum_[begin_block]
          << "first_item" << virtual_blocks_[begin_block].first_item();
 
@@ -248,14 +250,26 @@ FileBase<BlockSize>::GetItemRange(size_t begin, size_t end) const {
 
     sLOG << "items_before" << items_before;
 
-    for (size_t i = items_before; i < begin; ++i) {
+    // TODO(tb): use fixed_size information to accelerate jump.
+    for (size_t i = items_before; i < index; ++i) {
         if (!fr.HasNext())
             die("Underflow in GetItemRange()");
         fr.template Next<ItemType>();
     }
 
+    return fr;
+}
+
+//! Seek in File: return a VirtualBlock range containing items begin, end of
+//! given type.
+template <size_t BlockSize>
+template <typename ItemType>
+std::vector<typename FileBase<BlockSize>::VirtualBlock>
+FileBase<BlockSize>::GetItemRange(size_t begin, size_t end) const {
+    assert(begin <= end);
     // deliver array of remaining virtual blocks
-    return fr.GetItemRange<ItemType>(end - begin);
+    return GetReaderAt<ItemType>(begin)
+           .template GetItemBatch<ItemType>(end - begin);
 }
 
 //! \}
