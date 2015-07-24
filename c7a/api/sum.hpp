@@ -143,6 +143,7 @@ auto DIARef<ValueType, Stack>::Sum(
                                           sum_function,
                                           initial_value);
 
+    AddChildStatsNode("Sum");
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
