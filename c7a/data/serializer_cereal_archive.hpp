@@ -172,6 +172,6 @@ void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, BinaryData<T>
 
 } // namespace cereal
 
-#endif // CEREAL_ARCHIVES_C7A_HPP_
+#endif // !C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
 
 /******************************************************************************/
