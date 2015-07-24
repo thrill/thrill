@@ -224,10 +224,10 @@ public:
             FlushLargestPartition();
         }
 
-        if ((float)items_per_partition_[h.partition_id]
-            / (float)num_items_per_partition_ > max_partition_fill_ratio_)
+        if ((float)items_per_partition_[h.partition_id] / (float)num_items_per_partition_
+            > max_partition_fill_ratio_)
         {
-            std::cout << "resize" << std::endl;
+            LOG << "resize";
             ResizeUp();
         }
     }

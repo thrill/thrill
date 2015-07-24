@@ -419,6 +419,7 @@ TEST_F(ReducePreProbingTable, ResizeOnePartition) {
     ASSERT_EQ(3u, table.NumItems());
 
     table.Flush();
+    table.CloseEmitter();
 
     auto it1 = output.GetReader();
     int c = 0;
@@ -476,7 +477,7 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
     ASSERT_EQ(4u, table.PartitionSize(0) + table.PartitionSize(1));
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
+TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
     auto key_ex = [](const IntPair in) {
                       return in.first;
                   };
@@ -485,23 +486,21 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
                       return IntPair(in1.first, in1.second + in2.second);
                   };
 
-    size_t num_partitions = 3;
-    size_t num_items_init_scale = 2;
+    size_t num_partitions = 100;
+    size_t num_items_init_scale = 1024 * 2;
     size_t nitems = num_partitions * num_items_init_scale;
 
     std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
 
-    std::vector<File> outputs;
+    std::vector<File> files(num_partitions);
     std::vector<File::Writer> writers;
-
     for (size_t i = 0; i != num_partitions; ++i) {
-        File output;
-        outputs.push_back(output);
-        writers.push_back(output.GetWriter());
+        writers.emplace_back(files[i].GetWriter());
     }
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(num_partitions, num_items_init_scale, 10, 1.0f,
+    table(num_partitions, num_items_init_scale,
+          10, 1.0f,
           nitems, key_ex, red_fn, writers, -1);
 
     for (size_t i = 0; i != num_partitions; ++i) {
@@ -521,7 +520,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = outputs[i].GetReader();
+        auto it = files[i].GetReader();
         while (it.HasNext()) {
             auto n = it.Next<IntPair>();
             keys[i].push_back(n.first);
@@ -557,7 +556,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     ASSERT_EQ(0u, table.NumItems());
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        auto it = outputs[i].GetReader();
+        auto it = files[i].GetReader();
         while (it.HasNext()) {
             auto n = it.Next<IntPair>();
             if (n.second == 0) {
