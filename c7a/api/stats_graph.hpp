@@ -57,9 +57,7 @@ private:
 class StatsGraph
 {
 public:
-    StatsGraph(const std::string& path_out)
-        : path_out_(path_out),
-          file_(path_out_) { }
+    StatsGraph() : nodes_id_(0) { }
 
     StatsGraph(const StatsGraph& other) = delete;
 
@@ -70,8 +68,10 @@ public:
         }
     }
 
-    void AddNode(StatsNode* const node) {
+    StatsNode* AddNode(const std::string& label) {
+        StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++));
         nodes_.push_back(node);
+        return node;
     }
 
     void AddEdge(StatsNode* const source, StatsNode* const target) {
@@ -80,26 +80,23 @@ public:
         }
     }
 
-    void BuildLayout() {
-        file_ << "digraph {\n";
+    void BuildLayout(const std::string& path) {
+        std::ofstream file(path);
+        file << "digraph {\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
-                file_ << "\t" << *node << " -> " << *neighbor << ";\n";
+                file << "\t" << *node << " -> " << *neighbor << ";\n";
             }
         }
-        file_ << "}";
-        file_.close();
+        file << "}";
+        file.close();
     }
 
 private:
     //! Nodes of the graph.
     std::vector<StatsNode*> nodes_;
 
-    //! Path of the output file.
-    std::string path_out_;
-
-    //! File to write to
-    std::ofstream file_;
+    size_t nodes_id_;
 };
 
 } // namespace api

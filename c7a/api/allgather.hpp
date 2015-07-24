@@ -124,6 +124,7 @@ void DIARef<ValueType, Stack>::AllGather(
         std::make_shared<AllGatherResultNode>(
             node_->context(), node_, stack_, out_vector);
 
+    AddChildStatsNode("AllGather");
     core::StageBuilder().RunScope(shared_node.get());
 }
 
