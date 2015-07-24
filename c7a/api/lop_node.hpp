@@ -30,33 +30,29 @@ namespace api {
  * \tparam ParentStack Function chain, which contains the chained lambdas between
  * the last and this DIANode.
  */
-template <typename ValueType, typename ParentStack>
+template <typename ValueType, typename ParentDIARef>
 class LOpNode : public DIANode<ValueType>
 {
 public:
     using Super = DIANode<ValueType>;
     using Super::context_;
     using Super::result_file_;
-    using ParentInput = typename ParentStack::Input;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
      *
-     * \param ctx Reference to Context, which holds references to data and network.
-     * \param parent Parent DIANode.
-     * \param lop_stack Function chain with all lambdas between the parent and this node
+     * \param parent Parent DIARef.
      */
-    LOpNode(Context& ctx,
-            const std::shared_ptr<DIANode<ParentInput> >& parent,
-            const ParentStack& lop_stack, const std::string& stats_tag)
-        : DIANode<ValueType>(ctx, { parent }, stats_tag)
+    LOpNode(const ParentDIARef* parent,
+            const std::string& stats_tag)
+        : DIANode<ValueType>(parent->ctx(), { parent->node() }, stats_tag)
     {
         auto save_fn =
             [=](ValueType input) {
                 writer_(input);
             };
-        auto lop_chain = lop_stack.push(save_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent->stack().push(save_fn).emit();
+        parent->node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a LOpNode.
@@ -100,15 +96,13 @@ template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, AnyStack>;
+    using LOpChainNode = LOpNode<ValueType, DIARef>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
 
     auto shared_node
-        = std::make_shared<LOpChainNode>(rhs.node()->context(),
-                                         rhs.node(),
-                                         rhs.stack(), "");
+        = std::make_shared<LOpChainNode>(rhs, "");
     node_ = std::move(shared_node);
 }
 
@@ -116,12 +110,10 @@ template <typename ValueType, typename Stack>
 auto DIARef<ValueType, Stack>::Collapse() const {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, Stack>;
+    using LOpChainNode = LOpNode<ValueType, DIARef>;
 
     auto shared_node
-        = std::make_shared<LOpChainNode>(node_->context(),
-                                         node_,
-                                         stack_, "");
+        = std::make_shared<LOpChainNode>(this, "");
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>

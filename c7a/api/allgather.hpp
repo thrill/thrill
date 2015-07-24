@@ -26,7 +26,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentStack>
+template <typename ValueType, typename ParentDIARef>
 class AllGatherNode : public ActionNode
 {
 public:
@@ -34,16 +34,12 @@ public:
     using Super::context_;
     using Super::result_file_;
 
-    using ParentInput = typename ParentStack::Input;
-
-    AllGatherNode(Context& ctx,
-                  const std::shared_ptr<DIANode<ParentInput> >& parent,
-                  const ParentStack& parent_stack,
+    AllGatherNode(const ParentDIARef* parent,
                   std::vector<ValueType>* out_vector
                   )
-        : ActionNode(ctx, { parent }, "AllGather"),
+        : ActionNode(parent->ctx(), { parent->node() }, "AllGather"),
           out_vector_(out_vector),
-          channel_(ctx.data_manager().GetNewChannel()),
+          channel_(parent->ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
         auto pre_op_function = [=](ValueType input) {
@@ -52,8 +48,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_function).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent->stack().push(pre_op_function).emit();
+        parent->node()->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType element) {
@@ -101,13 +97,12 @@ private:
 template <typename ValueType, typename Stack>
 std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 
-    using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
+    using AllGatherResultNode = AllGatherNode<ValueType, DIARef>;
 
     std::vector<ValueType> output;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(
-            node_->context(), node_, stack_, &output);
+        std::make_shared<AllGatherResultNode>(this, &output);
 
     core::StageBuilder().RunScope(shared_node.get());
 
@@ -118,11 +113,10 @@ template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
 
-    using AllGatherResultNode = AllGatherNode<ValueType, Stack>;
+    using AllGatherResultNode = AllGatherNode<ValueType, DIARef>;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(
-            node_->context(), node_, stack_, out_vector);
+        std::make_shared<AllGatherResultNode>(this, out_vector);
 
     AddChildStatsNode("AllGather", "Action");
     core::StageBuilder().RunScope(shared_node.get());

@@ -27,7 +27,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentStack>
+template <typename ValueType, typename ParentDIARef>
 class SizeNode : public ActionNode
 {
     static const bool debug = false;
@@ -37,19 +37,15 @@ class SizeNode : public ActionNode
     using Super::parents;
     using Super::result_file_;
 
-    using ParentInput = typename ParentStack::Input;
-
 public:
-    SizeNode(Context& ctx,
-             const std::shared_ptr<DIANode<ParentInput> >& parent,
-             const ParentStack& parent_stack)
-        : ActionNode(ctx, { parent }, "Size")
+    SizeNode(const ParentDIARef* parent)
+        : ActionNode(parent->ctx(), { parent->node() }, "Size")
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent->stack().push(pre_op_fn).emit();
+        parent->node()->RegisterChild(lop_chain);
     }
 
     //! Executes the size operation.
@@ -100,10 +96,10 @@ private:
 template <typename ValueType, typename Stack>
 size_t DIARef<ValueType, Stack>::Size() const {
 
-    using SizeResultNode = SizeNode<ValueType, Stack>;
+    using SizeResultNode = SizeNode<ValueType, DIARef>;
 
     auto shared_node
-        = std::make_shared<SizeResultNode>(node_->context(), node_, stack_);
+        = std::make_shared<SizeResultNode>(this);
 
     AddChildStatsNode("Size", "Action");
     core::StageBuilder().RunScope(shared_node.get());
