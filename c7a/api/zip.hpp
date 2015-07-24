@@ -95,10 +95,10 @@ public:
      * \param parent_stack1 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
      */
-    TwoZipNode(const ParentDIARef0* parent0,
-               const ParentDIARef1* parent1,
+    TwoZipNode(const ParentDIARef0& parent0,
+               const ParentDIARef1& parent1,
                ZipFunction zip_function)
-        : DOpNode<ValueType>(parent0->ctx(), { parent0->node(), parent1->node() }, "ZipNode"),
+        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode"),
           zip_function_(zip_function)
     {
         // // Hook PreOp(s)
@@ -111,11 +111,11 @@ public:
 
         // close the function stacks with our pre ops and register it at parent
         // nodes for output
-        auto lop_chain0 = parent0->stack().push(pre_op0_fn).emit();
-        auto lop_chain1 = parent1->stack().push(pre_op1_fn).emit();
+        auto lop_chain0 = parent0.stack().push(pre_op0_fn).emit();
+        auto lop_chain1 = parent1.stack().push(pre_op1_fn).emit();
 
-        parent0->node()->RegisterChild(lop_chain0);
-        parent1->node()->RegisterChild(lop_chain1);
+        parent0.node()->RegisterChild(lop_chain0);
+        parent1.node()->RegisterChild(lop_chain1);
     }
 
     ~TwoZipNode() { }
@@ -330,8 +330,8 @@ auto DIARef<ValueType, Stack>::Zip(
         "ZipFunction has the wrong input type in DIA 1");
 
     auto zip_node
-        = std::make_shared<ZipResultNode>(this,
-                                          &second_dia,
+        = std::make_shared<ZipResultNode>(*this,
+                                          second_dia,
                                           zip_function);
 
     auto zip_stack = zip_node->ProduceStack();
