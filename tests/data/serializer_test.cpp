@@ -190,7 +190,7 @@ static const bool debug = false;
 //     LOG << "Z: " << result.z_;
 // }
 
-TEST(Serializer, Cereal_Archive_Test) {
+TEST(Serializer, CerealObject_Archive_Test) {
     c7a::data::File f;
     serializers::TestCerealObject2 t(1, 2, 3);
     {
@@ -211,9 +211,7 @@ TEST(Serializer, Tuple_Archive_Test) {
     auto t = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     {
         auto w = f.GetWriter();
-        w(t);
-        auto b = serializers::Impl<decltype(w), decltype(t)>::fixed_size;
-        LOG << "File is of fixed size: " << b;
+        w(t); //gets serialized
     }
     auto r = f.GetReader();
     auto res = Deserialize<decltype(r), decltype(t)>(r);
@@ -222,6 +220,35 @@ TEST(Serializer, Tuple_Archive_Test) {
     ASSERT_EQ(std::get<1>(res), std::get<1>(t));
     ASSERT_EQ(std::get<2>(res), std::get<2>(t));
     ASSERT_EQ(std::get<3>(res), std::get<3>(t));
+}
+
+TEST(Serializer, Tuple_Size_Archive_Test) {
+    c7a::data::File f;
+    auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
+    auto y = std::make_tuple(1, 2, 3, "4");
+    auto w = f.GetWriter();
+    auto no = serializers::Impl<decltype(w), decltype(n)>::fixed_size;
+    auto yes = serializers::Impl<decltype(w), decltype(y)>::fixed_size;
+
+    ASSERT_EQ(no, false);
+    ASSERT_EQ(yes, true);
+}
+
+TEST(Serializer, Has_Cereal_Imp_Archive_Test) {
+    c7a::data::File f1;
+    c7a::data::File f2;
+    serializers::CerealMyRecord mr;
+    mr.x = 23;
+    mr.y = 33;
+    mr.z = -23.2;
+    serializers::CerealSomeData sd;
+    sd.id = 2;
+    {
+        auto w1 = f1.GetWriter();
+        auto w2 = f2.GetWriter();
+        w1(mr); //gets serialized
+        // w2(sd); //gets serialized
+    }
 }
 
 /******************************************************************************/

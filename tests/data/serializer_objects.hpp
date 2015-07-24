@@ -11,6 +11,7 @@
 #ifndef C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #define C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #include <c7a/data/serializer_cereal_archive.hpp>
+#include <string>
 
 namespace c7a {
 namespace data {
@@ -49,9 +50,39 @@ struct TestCerealObject2 {
         archive(x_, y_, z_, tco);   // serialize things by passing them to the archive
     }
 };
+
+struct CerealMyRecord
+{
+    uint8_t x, y;
+    float   z;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(x, y, z);
+    }
+};
+
+struct CerealSomeData
+{
+    int32_t                                                        id;
+    std::shared_ptr<std::unordered_map<uint32_t, CerealMyRecord> > data;
+
+    template <class Archive>
+    void save(Archive& ar) const {
+        ar(data);
+    }
+
+    template <class Archive>
+    void load(Archive& ar) {
+        static int32_t idGen = 0;
+        id = idGen++;
+        ar(data);
+    }
+};
+}
+}
+#endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 }
-}
-}
-
+#endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 /******************************************************************************/
