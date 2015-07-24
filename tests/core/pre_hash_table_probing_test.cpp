@@ -38,12 +38,12 @@ TEST_F(ReducePreProbingTable, DISABLED_CustomHashFunction) {
 
     auto hash_function = [](int key, HashTable*) {
 
-        size_t global_index = key / 2;
-        size_t partition_id = 0;
-        size_t partition_offset = key / 2;
+                             size_t global_index = key / 2;
+                             size_t partition_id = 0;
+                             size_t partition_offset = key / 2;
 
-        return HashTable::hash_result(partition_id, partition_offset, global_index);
-    };
+                             return HashTable::hash_result(partition_id, partition_offset, global_index);
+                         };
 
     File output;
     std::vector<File::Writer> writers;

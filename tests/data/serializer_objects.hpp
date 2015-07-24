@@ -79,7 +79,6 @@ struct CerealSomeData
         ar(data);
     }
 };
-
 }
 }
 }
