@@ -252,10 +252,14 @@ public:
      * \param reduce_function Reduce function, which defines how the key buckets
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
+	 *
+	 * \param preserves_key Boolean, which is true when the reduce_function
+	 * preserves the key of the elements.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceBy(const KeyExtractor &key_extractor,
-                  const ReduceFunction &reduce_function) const;
+                  const ReduceFunction &reduce_function,
+		          const bool preserves_key = false) const;
 
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
@@ -290,12 +294,16 @@ public:
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
+	 *
+	 * \param preserves_key Boolean, which is true when the reduce_function
+	 * preserves the key of the elements.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
                        size_t max_index,
-                       ValueType neutral_element = ValueType()) const;
+                       ValueType neutral_element = ValueType(),
+		               const bool preserves_key = false) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The

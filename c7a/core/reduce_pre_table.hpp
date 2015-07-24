@@ -17,6 +17,7 @@
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/block_writer.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -27,7 +28,7 @@
 namespace c7a {
 namespace core {
 
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
+template <typename KeyExtractor, typename ReduceFunction,
           size_t TargetBlockSize = 1024*1024>
 class ReducePreTable
 {
@@ -96,7 +97,8 @@ public:
                    size_t num_buckets_resize_scale,
                    size_t max_num_items_per_bucket, size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
-                   std::vector<EmitterFunction>& emit,
+                   std::vector<data::BlockWriter>& emit,
+				   const bool preserves_key,
                    HashFunction hash_function
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
@@ -119,6 +121,7 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
+		  preserves_key_(preserves_key),
           hash_function_(hash_function)
     {
         init();
@@ -127,7 +130,8 @@ public:
     ReducePreTable(size_t partition_size,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
-                   std::vector<EmitterFunction>& emit,
+                   std::vector<data::BlockWriter>& emit,
+				   const bool preserves_key,
                    HashFunction hash_function
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
@@ -146,6 +150,7 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
+		  preserves_key_(preserves_key),
           hash_function_(hash_function)
     {
         init();
@@ -173,7 +178,8 @@ public:
     }
 
     void init() {
-        sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
+        sLOG << "creating reducePreTable with" << emit_.size() << "output emitters";
+
         assert(emit_.size() == num_partitions_);
 
         for (size_t i = 0; i < emit_.size(); i++)
@@ -342,7 +348,11 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](bi->second);
+					if (preserves_key_) {
+						emit_[partition_id](bi->second);
+					} else {
+						emit_[partition_id](*bi);
+					}
                 }
 
                 // destroy block and advance to next
@@ -582,10 +592,12 @@ private:
     KeyExtractor key_extractor_;
 
     ReduceFunction reduce_function_;
-    std::vector<EmitterFunction>& emit_;
+    std::vector<data::BlockWriter>& emit_;
     std::vector<int> emit_stats_;
 
     std::vector<BucketBlock*> vector_;
+
+	const bool preserves_key_;
 
     HashFunction hash_function_;
 };

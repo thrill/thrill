@@ -78,9 +78,9 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(&sink);
     }
 
-    core::ReducePreTable<decltype(key_ex), decltype(red_fn), data::BlockWriter>
+    core::ReducePreTable<decltype(key_ex), decltype(red_fn)>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale, max_num_items_per_bucket,
-          max_num_items_table, key_ex, red_fn, writers);
+          max_num_items_table, key_ex, red_fn, writers, true);
 
     common::StatsTimer<true> timer(true);
 
