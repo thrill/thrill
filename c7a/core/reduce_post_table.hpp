@@ -90,7 +90,7 @@ public:
 
 	using KeyValuePair = std::pair<Key, Value>;
 
-	using EmitterFunction = std::function<void(Value)>;
+	using EmitterFunction = std::function<void(const Value&)>;
 
 protected:
     template <typename Key, typename Value>
