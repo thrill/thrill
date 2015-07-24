@@ -17,6 +17,7 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_node.hpp>
+#include <c7a/api/stats_graph.hpp>
 #include <c7a/api/function_stack.hpp>
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/functional.hpp>
@@ -89,9 +90,10 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack)
+    DIARef(const DIANodePtr& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
         : node_(node),
-          stack_(stack)
+          stack_(stack),
+          stats_parents_(stats_parents)
     { }
 
     /*!
@@ -103,9 +105,10 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, const Stack& stack)
+    DIARef(DIANodePtr&& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
         : node_(std::move(node)),
-          stack_(stack)
+          stack_(stack),
+          stats_parents_(stats_parents)
     { }
 
     /*!
@@ -149,6 +152,16 @@ public:
         return stack_;
     }
 
+    StatsNode* AddChildStatsNode(const std::string& label, const std::string& type) const {
+        StatsNode* node = node_->context().stats_graph().AddNode(label, type);
+        for (auto parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        return node;
+    }
+
+    void AppendChildStatsNode(StatsNode* stats_node) const {
+        for (auto parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+    }
+
     Context & ctx() const {
         return node_->context();
     }
@@ -179,7 +192,7 @@ public:
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
-        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack);
+        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", "Lambda") });
     }
 
     /*!
@@ -208,7 +221,7 @@ public:
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
-        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack);
+        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", "Lambda") });
     }
 
     /*!
@@ -230,7 +243,7 @@ public:
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
         auto new_stack = stack_.push(flatmap_function);
-        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack);
+        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", "Lambda") });
     }
 
     /*!
@@ -407,6 +420,8 @@ private:
     //! The local function chain, which stores the chained lambda function from
     //! the last DIANode to this DIARef.
     Stack stack_;
+
+    std::vector<StatsNode*> stats_parents_;
 };
 
 /*!
