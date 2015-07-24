@@ -139,6 +139,7 @@ public:
     ~ReducePreProbingTable() { }
 
     void init(Key sentinel) {
+
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -230,10 +231,14 @@ public:
             FlushLargestPartition();
         }
 
+        std::cout << key << std::endl;
+        std::cout << items_per_partition_[h.partition_id] / num_items_per_partition_ << std::endl;
+        std::cout << max_partition_fill_ratio_ << std::endl;
+
         if (items_per_partition_[h.partition_id]
             / num_items_per_partition_ > max_partition_fill_ratio_)
         {
-            LOG << "resize";
+            std::cout << "resize" << std::endl;
             ResizeUp();
         }
     }
@@ -379,7 +384,7 @@ public:
      * resize scale factor. All items are rehashed as part of the operation.
      */
     void ResizeUp() {
-        LOG << "Resizing";
+        std::cout << "Resizing" << std::endl;
         table_size_ *= num_items_resize_scale_;
         num_items_per_partition_ = table_size_ / num_partitions_;
         // reset items_per_partition and table_size
@@ -402,7 +407,7 @@ public:
                 Insert(std::move(current.second));
             }
         }
-        LOG << "Resized";
+        std::cout << "Resized" << std::endl;
     }
 
     /*!
