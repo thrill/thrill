@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <iomanip>
 
 namespace c7a {
 namespace common {
@@ -33,15 +34,25 @@ public:
     //! previously
     void NameThisThread(const std::string& name) {
         std::lock_guard<std::mutex> lock(mutex_);
-        thread_names_[std::this_thread::get_id()] = name;
+        threads_[std::this_thread::get_id()] = StringCount(name, 0);
     }
 
     //! Returns the name of the current thread or 'unknown [id]'
     std::string NameForThisThread() {
         std::lock_guard<std::mutex> lock(mutex_);
-        auto it = thread_names_.find(std::this_thread::get_id());
-        if (it != thread_names_.end()) {
-            return it->second;
+        auto it = threads_.find(std::this_thread::get_id());
+        if (it != threads_.end()) {
+            StringCount& sc = it->second;
+            if (true) {
+                std::ostringstream ss;
+                // print "name #msg";
+                ss << sc.first << ' '
+                   << std::setfill('0') << std::setw(6) << sc.second++;
+                return ss.str();
+            }
+            else {
+                return sc.first;
+            }
         }
         std::ostringstream ss;
         ss << "unknown " << std::this_thread::get_id();
@@ -49,7 +60,9 @@ public:
     }
 
 private:
-    std::map<std::thread::id, std::string> thread_names_;
+    using StringCount = std::pair<std::string, size_t>;
+    //! map thread id -> (name, message counter)
+    std::map<std::thread::id, StringCount> threads_;
     std::mutex mutex_;
 };
 

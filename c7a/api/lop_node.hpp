@@ -43,16 +43,16 @@ public:
      *
      * \param parent Parent DIARef.
      */
-    LOpNode(const ParentDIARef* parent,
+    LOpNode(const ParentDIARef& parent,
             const std::string& stats_tag)
-        : DIANode<ValueType>(parent->ctx(), { parent->node() }, stats_tag)
+        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag)
     {
         auto save_fn =
             [=](ValueType input) {
                 writer_(input);
             };
-        auto lop_chain = parent->stack().push(save_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(save_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a LOpNode.
@@ -113,7 +113,7 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     using LOpChainNode = LOpNode<ValueType, DIARef>;
 
     auto shared_node
-        = std::make_shared<LOpChainNode>(this, "");
+        = std::make_shared<LOpChainNode>(*this, "");
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>

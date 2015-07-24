@@ -75,15 +75,15 @@ public:
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    ReduceNode(const ParentDIARef* parent,
+    ReduceNode(const ParentDIARef& parent,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function)
-        : DOpNode<ValueType>(parent->ctx(), { parent->node() }, "Reduce"),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent->ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent->ctx().number_worker(), key_extractor,
+          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_)
     {
         // Hook PreOp
@@ -93,8 +93,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent->stack().push(pre_op_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a ReduceNode.
@@ -116,7 +116,7 @@ public:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)> >;
+                                          std::function<void(const ValueType&)> >;
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
@@ -229,7 +229,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
         "KeyExtractor has the wrong input type");
 
     auto shared_node
-        = std::make_shared<ReduceResultNode>(this,
+        = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function);
 

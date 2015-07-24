@@ -83,17 +83,17 @@ public:
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
-    ReduceToIndexNode(const ParentDIARef* parent,
+    ReduceToIndexNode(const ParentDIARef& parent,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
                       Value neutral_element)
-        : DOpNode<ValueType>(parent->ctx(), { parent->node() }, "ReduceToIndex"),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent->ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent->ctx().number_worker(), key_extractor,
+          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_,
                             [=](size_t key, PreHashTable* ht) {
                                 size_t global_index = key * ht->NumBuckets() /
@@ -116,8 +116,8 @@ public:
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent->stack().push(pre_op_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a ReduceToIndexNode.
@@ -139,7 +139,7 @@ public:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)>,
+                                          std::function<void(const ValueType&)>,
                                           true>;
 
         size_t min_local_index =
@@ -289,7 +289,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction>;
 
     auto shared_node
-        = std::make_shared<ReduceResultNode>(this,
+        = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function,
                                              max_index,

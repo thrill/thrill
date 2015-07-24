@@ -31,12 +31,14 @@ namespace api {
  * of a DIANode is the type, in which the DIA is after the last global barrier
  * in the operation (between MainOp and PostOp).
  *
- * \tparam T Type of the DIA between MainOp and PostOp
+ * \tparam ValueType Type of the DIA between MainOp and PostOp
  */
-template <typename T>
+template <typename ValueType>
 class DIANode : public DIABase
 {
 public:
+    using ChildFunction = std::function<void(const ValueType&)>;
+
     /*!
      * Default constructor for a DIANode.
      */
@@ -53,7 +55,8 @@ public:
      * computed previously
      */
     DIANode(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents, const std::string stats_tag)
+            const std::vector<std::shared_ptr<DIABase> >& parents,
+            const std::string stats_tag)
         : DIABase(ctx, parents, stats_tag)
     { }
 
@@ -73,7 +76,7 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(std::function<void(T)> callback) {
+    void RegisterChild(const ChildFunction& callback) {
         this->callbacks_.push_back(callback);
     }
 
@@ -81,11 +84,11 @@ public:
         this->callbacks_.clear();
     }
 
-    std::vector<std::function<void(T)> > & callbacks() {
+    std::vector<ChildFunction> & callbacks() {
         return callbacks_;
     }
 
-    void PushElement(T elem) {
+    void PushElement(const ValueType& elem) {
         for (auto callback : this->callbacks_) {
             callback(elem);
         }
@@ -96,7 +99,7 @@ protected:
     kState state_ = NEW;
 
     //! Callback functions from the child nodes.
-    std::vector<std::function<void(T)> > callbacks_;
+    std::vector<ChildFunction> callbacks_;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {

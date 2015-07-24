@@ -89,7 +89,7 @@ public:
         // If a parent loses all its childs
         // its reference count should be zero and he
         // should be removed
-        // parent->remove_child(this);
+        // parent.remove_child(this);
         STOP_TIMER(lifetime_)
     }
 
