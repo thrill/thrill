@@ -67,7 +67,7 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
     ASSERT_EQ(16, c);
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_AddIntegers) {
+TEST_F(ReducePreProbingTable, AddIntegers) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -94,7 +94,7 @@ TEST_F(ReducePreProbingTable, DISABLED_AddIntegers) {
     ASSERT_EQ(3u, table.NumItems());
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_CreateEmptyTable) {
+TEST_F(ReducePreProbingTable, CreateEmptyTable) {
     auto key_ex = [](int in) { return in; };
 
     auto red_fn = [](int in1, int in2) {
@@ -119,7 +119,7 @@ TEST_F(ReducePreProbingTable, DISABLED_CreateEmptyTable) {
     ASSERT_EQ(3u, table.NumItems());
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
+TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
                   };
@@ -149,7 +149,7 @@ TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
 
 // Manually flush all items in table,
 // no size constraint, one partition
-TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersManuallyOnePartition) {
+TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -188,7 +188,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersManuallyOnePartition) {
 
 // Manually flush all items in table,
 // no size constraint, two partitions
-TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
+TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -203,7 +203,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(2, 5, 2, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
+    table(2, 5, 2, 1.0f, 10, key_ex, red_fn, writers, -1);
 
     table.Insert(0);
     table.Insert(1);
@@ -237,7 +237,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersManuallyTwoPartitions) {
 
 // Partial flush of items in table due to
 // max table size constraint, one partition
-TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersPartiallyOnePartition) {
+TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -251,7 +251,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersPartiallyOnePartition) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(1, 10, 2, 10, 1.0f, 4, key_ex, red_fn, writers, -1);
+    table(1, 10, 2, 1.0f, 4, key_ex, red_fn, writers, -1);
 
     table.Insert(0);
     table.Insert(1);
@@ -275,7 +275,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
 //// Partial flush of items in table due to
 //// max table size constraint, two partitions
-TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
+TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -290,7 +290,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(2, 5, 2, 10, 1.0f, 4, key_ex, red_fn, writers, -1);
+    table(2, 5, 2, 1.0f, 4, key_ex, red_fn, writers, -1);
 
     table.Insert(0);
     table.Insert(1);
@@ -323,7 +323,7 @@ TEST_F(ReducePreProbingTable, DISABLED_FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(0u, table.NumItems());
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_ComplexType) {
+TEST_F(ReducePreProbingTable, ComplexType) {
     auto key_ex = [](StringPair in) {
                       return in.first;
                   };
@@ -337,7 +337,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ComplexType) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(1, 10, 2, 10, 1.0f, 3, key_ex, red_fn, writers, "");
+    table(1, 10, 2, 1.0f, 3, key_ex, red_fn, writers, "");
 
     table.Insert(StringPair("hallo", 1));
     table.Insert(StringPair("hello", 1));
@@ -354,7 +354,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ComplexType) {
     ASSERT_EQ(0u, table.NumItems());
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_MultipleWorkers) {
+TEST_F(ReducePreProbingTable, MultipleWorkers) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -384,7 +384,7 @@ TEST_F(ReducePreProbingTable, DISABLED_MultipleWorkers) {
 
 // Resize due to max partition fill ratio reached. Set max partition fill ratio to 1.0f,
 // then add 2 items with different key, but having same hash value, one partition
-TEST_F(ReducePreProbingTable, DISABLED_ResizeOnePartition) {
+TEST_F(ReducePreProbingTable, ResizeOnePartition) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -398,7 +398,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeOnePartition) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(1, 2, 10, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
+    table(1, 2, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
 
     table.Insert(0);
 
@@ -433,7 +433,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeOnePartition) {
 // Resize due to max partition fill ratio reached. Set max partition fill ratio to 1.0f,
 // then add 2 items with different key, but having same hash value, two partitions
 // Check that same items are in same partition after resize
-TEST_F(ReducePreProbingTable, DISABLED_ResizeTwoPartitions) {
+TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -447,7 +447,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeTwoPartitions) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(2, 2, 10, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
+    table(2, 2, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
 
     ASSERT_EQ(0u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
@@ -501,7 +501,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), File::Writer>
-    table(num_partitions, num_items_init_scale, 10, 10, 1.0f,
+    table(num_partitions, num_items_init_scale, 10, 1.0f,
           nitems, key_ex, red_fn, writers, -1);
 
     for (size_t i = 0; i != num_partitions; ++i) {
@@ -568,7 +568,7 @@ TEST_F(ReducePreProbingTable, DISABLED_ResizeAndTestPartitionsHaveSameKeys) {
 }
 
 // Insert several items with same key and test application of local reduce
-TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce1) {
+TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
     auto key_ex = [](const IntPair in) {
                       return in.first % 500;
                   };
@@ -588,7 +588,7 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce1) {
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
                                      File::Writer>
-    table(1, 2, 2, nitems, 1.0f, nitems, key_ex, red_fn, writers, -1);
+    table(1, 2, 2, 1.0f, nitems, key_ex, red_fn, writers, -1);
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
@@ -609,7 +609,7 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce1) {
     ASSERT_EQ(nitems, total_sum);
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce2) {
+TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     auto key_ex = [](const IntPair in) {
                       return in.first;
                   };
@@ -628,7 +628,7 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyIntsAndTestReduce2) {
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
                                      File::Writer>
-    table(1, 2, 2, nitems, 1.0f, nitems, key_ex, red_fn, writers, -1);
+    table(1, 2, 2, 1.0f, nitems, key_ex, red_fn, writers, -1);
 
     // insert lots of items
     int sum = 0;
@@ -664,7 +664,7 @@ void randomStr(std::string& s, const int len) {
     s[len] = 0;
 }
 
-TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
+TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
     auto key_ex = [](StringPair in) { return in.first; };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
@@ -680,7 +680,7 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
 
     c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn),
                                      File::Writer>
-    table(1, nitems, 2, nitems, 1.0f, nitems * 2, key_ex, red_fn, writers, "");
+    table(1, nitems, 2, 1.0f, nitems * 2, key_ex, red_fn, writers, "");
 
     // insert lots of items
     int sum = 0;
@@ -694,11 +694,11 @@ TEST_F(ReducePreProbingTable, DISABLED_InsertManyStringItemsAndTestReduce) {
         }
     }
 
-    ASSERT_EQ(nitems, table.Size());
+    ASSERT_EQ(nitems, table.NumItems());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {

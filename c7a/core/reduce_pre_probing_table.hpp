@@ -29,7 +29,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreProbingTable
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
@@ -63,7 +63,6 @@ public:
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
                           size_t num_items_resize_scale,
-                          size_t num_collisions_to_resize,
                           double max_partition_fill_ratio,
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
@@ -89,7 +88,6 @@ public:
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
-          num_collisions_to_resize_(num_collisions_to_resize),
           max_partition_fill_ratio_(max_partition_fill_ratio),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
@@ -173,15 +171,10 @@ public:
         assert(h.partition_offset >= 0 && h.partition_offset < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
-        //std::cout << key << " " << h.partition_id << " " << h.partition_offset << " " << h.global_index << std::endl;
+        size_t current_pos = h.global_index;
+        size_t next_partition = (h.global_index / num_items_per_partition_ + 1) * num_items_per_partition_;
 
-        int pos = h.global_index;
-        size_t pos_offset = 0;
-
-        // REVIEW(ms): try to make the loop tighter, remove extra variables and
-        // try to reduce the number of +/-/< operations, have only current + end
-        // iterators.
-        KeyValuePair* current = &vector_[pos];
+        KeyValuePair* current = &vector_[current_pos];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -196,30 +189,27 @@ public:
                 return;
             }
 
-            ++pos_offset;
+            ++current_pos;
 
-            if (pos_offset > num_collisions_to_resize_ || pos_offset >= num_items_per_partition_)
+            if (current_pos == next_partition)
+            {
+                current_pos = h.global_index - (h.global_index % num_items_per_partition_);
+            }
+
+            if (current_pos == h.global_index)
             {
                 ResizeUp();
                 Insert(std::move(p));
                 return;
             }
 
-            if (h.partition_offset + pos_offset >= num_items_per_partition_)
-            {
-                pos -= (h.partition_offset + pos_offset);
-            }
-
-            //std::cout << "7" << std::endl;
-            //std::cout << pos + pos_offset << std::endl;
-
-            current = &vector_[pos + pos_offset];
+            current = &vector_[current_pos];
         }
 
         // insert new pair
         if (current->first == sentinel_.first)
         {
-            vector_[pos + pos_offset] = KeyValuePair(key, p);
+            vector_[current_pos] = KeyValuePair(key, p);
 
             // increase total counter
             num_items_++;
@@ -233,10 +223,6 @@ public:
             LOG << "flush";
             FlushLargestPartition();
         }
-
-        //std::cout << key << std::endl;
-        //std::cout << items_per_partition_[h.partition_id] / num_items_per_partition_ << std::endl;
-        //std::cout << max_partition_fill_ratio_ << std::endl;
 
         if ((float)items_per_partition_[h.partition_id]
             / (float)num_items_per_partition_ > max_partition_fill_ratio_)
@@ -387,7 +373,7 @@ public:
      * resize scale factor. All items are rehashed as part of the operation.
      */
     void ResizeUp() {
-        std::cout << "Resizing" << std::endl;
+        LOG << "Resizing";
         table_size_ *= num_items_resize_scale_;
         num_items_per_partition_ = table_size_ / num_partitions_;
         // reset items_per_partition and table_size
@@ -410,7 +396,7 @@ public:
                 Insert(std::move(current.second));
             }
         }
-        std::cout << "Resized" << std::endl;
+        LOG << "Resized";
     }
 
     /*!
@@ -491,8 +477,6 @@ private:
     // multiplied with some scaling factor, must be equal to or greater than 1
 
     size_t num_items_resize_scale_ = 2;             // resize scale triggered by max_partition_fill_ratio_
-
-    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max();    // max num of collisions before resize
 
     double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
 
