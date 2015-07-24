@@ -12,10 +12,11 @@
 #ifndef C7A_COMMON_FUTURE_HEADER
 #define C7A_COMMON_FUTURE_HEADER
 
+#include <atomic>
+#include <cassert>
 #include <condition_variable>
 #include <mutex>
-#include <cassert>
-#include <atomic>
+#include <tuple>
 
 namespace c7a {
 namespace common {

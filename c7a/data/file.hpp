@@ -12,52 +12,75 @@
 #ifndef C7A_DATA_FILE_HEADER
 #define C7A_DATA_FILE_HEADER
 
-#include <memory>
-#include <vector>
-#include <string>
-#include <cassert>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
+#include <c7a/data/block_sink.hpp>
 #include <c7a/data/block_writer.hpp>
-#include <c7a/data/serializer.hpp>
+
+#include <cassert>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace data {
+
+//! \addtogroup data Data Subsystem
+//! \{
 
 template <size_t BlockSize>
 class FileBlockSource;
 
 template <size_t BlockSize>
-class DynBlockSink;
+class CachingBlockQueueSource;
 
+/*!
+ * A File or generally FileBase<BlockSize> is an ordered sequence of
+ * VirtualBlock objects for storing items. By using the VirtualBlock
+ * indirection, the File can be composed using existing Block objects (via
+ * reference counting), but only contain a subset of the items in those
+ * Blocks. This may be used for Zip() and Repartition().
+ *
+ * A File can be written using a BlockWriter instance, which is delivered by
+ * GetWriter(). Thereafter it can be read (multiple times) using a BlockReader,
+ * delivered by GetReader().
+ *
+ * Using a prefixsum over the number of items in a Block, one can seek to the
+ * block contained any item offset in log_2(Blocks) time, though seeking within
+ * the Block goes sequentially.
+ */
 template <size_t BlockSize>
-class FileBase
+class FileBase : public BlockSink<BlockSize>
 {
 public:
     enum { block_size = BlockSize };
 
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
 
-    using Writer = BlockWriter<FileBase&>;
+    using Writer = BlockWriterBase<BlockSize>;
     using Reader = BlockReader<FileBlockSource<BlockSize> >;
-
-    using DynWriter = BlockWriter<DynBlockSink<BlockSize> >;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void Append(const BlockCPtr& block, size_t block_used,
-                size_t nitems, size_t first) {
+    void AppendBlock(const VirtualBlock& vb) {
         assert(!closed_);
-        blocks_.push_back(block);
-        nitems_sum_.push_back(NumItems() + nitems);
-        used_.push_back(block_used);
-        offset_of_first_.push_back(first);
+        if (vb.bytes_used == 0) return;
+        blocks_.push_back(vb.block);
+        nitems_sum_.push_back(NumItems() + vb.nitems);
+        used_.push_back(vb.bytes_used);
+        offset_of_first_.push_back(vb.first);
     }
 
     void Close() {
         assert(!closed_);
         closed_ = true;
+    }
+
+    // returns a string that identifies this string instance
+    std::string ToString() {
+        return "File@" + std::to_string((size_t) this);
     }
 
     bool closed() const {
@@ -106,16 +129,11 @@ public:
 
     //! Get BlockWriter.
     Writer GetWriter() {
-        return Writer(*this);
+        return Writer(this);
     }
 
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
-
-    //! Get polymorphic BlockWriter for beginning of File
-    DynWriter GetDynWriter() {
-        return DynWriter(DynBlockSink<BlockSize>(this));
-    }
 
 protected:
     //! the container holding shared pointers to all blocks.
@@ -140,9 +158,14 @@ protected:
     bool closed_ = false;
 };
 
+//! Default File class, using the default block size.
 using File = FileBase<default_block_size>;
 
-//! A BlockSource to read Blocks from a File.
+/*!
+ * A BlockSource to read Blocks from a File. The FileBlockSource mainly contains
+ * an index to the current block, which is incremented when the NextBlock() must
+ * be delivered.
+ */
 template <size_t BlockSize>
 class FileBlockSource
 {
@@ -153,34 +176,29 @@ public:
 
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
-
-    //! Initialize the first block to be read by BlockReader
-    void Initialize(const Byte** out_current, const Byte** out_end) {
-        // set up reader for the (block,offset) pair
-        if (current_block_ >= file_.NumBlocks()) {
-            *out_current = *out_end = nullptr;
-        }
-        else {
-            const BlockCPtr& block = file_.blocks_[current_block_];
-            *out_current = block->begin() + first_offset_;
-            *out_end = block->begin() + file_.used_[current_block_];
-            assert(*out_current < *out_end);
-        }
-    }
+    using VirtualBlock = typename data::VirtualBlock<BlockSize>;
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
-    bool NextBlock(const Byte** out_current, const Byte** out_end) {
+    VirtualBlock NextBlock() {
         ++current_block_;
 
         if (current_block_ >= file_.NumBlocks())
-            return false;
+            return VirtualBlock();
 
         const BlockCPtr& block = file_.blocks_[current_block_];
-        *out_current = block->begin();
-        *out_end = block->begin() + file_.used_[current_block_];
-
-        return true;
+        if (current_block_ == first_block_) {
+            return VirtualBlock(block,
+                                file_.used_[current_block_],
+                                file_.ItemsStartIn(current_block_),
+                                file_.offset_of_first(current_block_));
+        }
+        else {
+            return VirtualBlock(block,
+                                file_.used_[current_block_],
+                                file_.ItemsStartIn(current_block_),
+                                0);
+        }
     }
 
     bool closed() const {
@@ -190,19 +208,23 @@ public:
 protected:
     //! Start reading a File
     FileBlockSource(const FileBase& file,
-                    size_t current_block = 0, size_t first_offset = 0)
-        : file_(file), current_block_(current_block),
-          first_offset_(first_offset)
-    { }
+                    size_t first_block = 0, size_t first_offset = 0)
+        : file_(file), first_block_(first_block), first_offset_(first_offset) {
+        current_block_ = first_block_ - 1;
+    }
 
     //! for calling the protected constructor
     friend class data::FileBase<BlockSize>;
+    friend class data::CachingBlockQueueSource<BlockSize>;
 
     //! file to read blocks from
     const FileBase& file_;
 
     //! index of current block.
-    size_t current_block_;
+    size_t current_block_ = -1;
+
+    //! number of the first block
+    size_t first_block_;
 
     //! offset of first item in first block read
     size_t first_offset_;
@@ -213,6 +235,8 @@ template <size_t BlockSize>
 typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
     return Reader(FileBlockSource<BlockSize>(*this, 0, 0));
 }
+
+//! \}
 
 } // namespace data
 } // namespace c7a

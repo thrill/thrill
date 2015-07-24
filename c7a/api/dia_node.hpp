@@ -11,8 +11,9 @@
 #ifndef C7A_API_DIA_NODE_HEADER
 #define C7A_API_DIA_NODE_HEADER
 
-#include <c7a/api/dia_base.hpp>
 #include <c7a/api/context.hpp>
+#include <c7a/api/dia_base.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 
 #include <string>
@@ -52,8 +53,8 @@ public:
      * computed previously
      */
     DIANode(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents)
-        : DIABase(ctx, parents)
+            const std::vector<std::shared_ptr<DIABase> >& parents, const std::string stats_tag)
+        : DIABase(ctx, parents, stats_tag)
     { }
 
     //! Virtual destructor for a DIANode.
@@ -73,11 +74,21 @@ public:
      * locally processable operations between the parent and child.
      */
     void RegisterChild(std::function<void(T)> callback) {
-        callbacks_.push_back(callback);
+        this->callbacks_.push_back(callback);
+    }
+
+    void UnregisterChilds() override {
+        this->callbacks_.clear();
     }
 
     std::vector<std::function<void(T)> > & callbacks() {
         return callbacks_;
+    }
+
+    void PushElement(T elem) {
+        for (auto callback : this->callbacks_) {
+            callback(elem);
+        }
     }
 
 protected:
@@ -92,10 +103,8 @@ protected:
         switch (state_) {
         case NEW:
             return "NEW";
-        case CALCULATED:
-            return "CALCULATED";
-        case CACHED:
-            return "CACHED";
+        case EXECUTED:
+            return "EXECUTED";
         case DISPOSED:
             return "DISPOSED";
         default:

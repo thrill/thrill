@@ -13,18 +13,20 @@
 #ifndef C7A_API_PREFIXSUM_HEADER
 #define C7A_API_PREFIXSUM_HEADER
 
-#include <c7a/api/function_stack.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/api/dop_node.hpp>
+#include <c7a/common/logger.hpp>
+#include <c7a/data/file.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/common/logger.hpp>
+
+#include <string>
 
 namespace c7a {
 namespace api {
+
+//! \addtogroup api Interface
+//! \{
 
 template <typename ValueType, typename ParentStack, typename SumFunction>
 class PrefixSumNode : public DOpNode<ValueType>
@@ -33,7 +35,7 @@ class PrefixSumNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
     using ParentInput = typename ParentStack::Input;
 
@@ -43,7 +45,7 @@ public:
                   const ParentStack& parent_stack,
                   SumFunction sum_function,
                   ValueType neutral_element)
-        : DOpNode<ValueType>(ctx, { parent }),
+        : DOpNode<ValueType>(ctx, { parent }, "PrefixSum"),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -54,7 +56,6 @@ public:
                          };
 
         auto lop_chain = parent_stack.push(pre_op_fn).emit();
-
         parent->RegisterChild(lop_chain);
     }
 
@@ -62,8 +63,25 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
+
+    void PushData() override {
+        data::File::Reader reader = file_.GetReader();
+
+        ValueType sum = local_sum_;
+
+        for (size_t i = 0; i < file_.NumItems(); ++i) {
+            sum = sum_function_(sum, reader.Next<ValueType>());
+            for (auto func : DIANode<ValueType>::callbacks_) {
+                func(sum);
+            }
+        }
+    }
+
+    void Dispose() override { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -72,12 +90,7 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        // Hook Identity
-        auto id_fn = [=](ValueType t, auto emit_func) {
-                         return emit_func(t);
-                     };
-
-        return MakeFunctionStack<ValueType>(id_fn);
+        return FunctionStack<ValueType>();
     }
 
     /*!
@@ -85,7 +98,7 @@ public:
      * \return "[PrefixSumNode]"
      */
     std::string ToString() override {
-        return "[PrefixSumNode] Id:" + data_id_.ToString();
+        return "[PrefixSumNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -97,9 +110,9 @@ private:
     ValueType neutral_element_;
 
     //! Local data file
-    data::File file_ { context_.data_manager().GetFile() };
+    data::File file_;
     //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ { file_ };
+    data::File::Writer writer_ = file_.GetWriter();
 
     //! PreOp: compute local prefixsum and store items.
     void PreOp(const ValueType& input) {
@@ -120,14 +133,7 @@ private:
             sum = neutral_element_;
         }
 
-        data::File::Reader reader = file_.GetReader();
-
-        for (size_t i = 0; i < file_.NumItems(); ++i) {
-            sum = sum_function_(sum, reader.Next<ValueType>());
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(sum);
-            }
-        }
+        local_sum_ = sum;
     }
 
     void PostOp() { }
@@ -171,9 +177,10 @@ auto DIARef<ValueType, Stack>::PrefixSum(
 
     auto sum_stack = shared_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(sum_stack)>
-               (shared_node, sum_stack);
+    return DIARef<ValueType, decltype(sum_stack)>(shared_node, sum_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

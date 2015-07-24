@@ -14,18 +14,15 @@
 #ifndef C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 #define C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 
-#include <c7a/api/function_traits.hpp>
-#include <c7a/data/manager.hpp>
-
-#include <map>
-#include <iostream>
+#include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
+
+#include <limits>
+#include <algorithm>
+#include <cassert>
 #include <string>
-#include <vector>
-#include <stdexcept>
-#include <array>
-#include <deque>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace core {
@@ -34,15 +31,16 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
-    using Key = typename FunctionTraits<KeyExtractor>::result_type;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
-    using Value = typename FunctionTraits<ReduceFunction>::result_type;
+    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
-protected:
+public:
     struct hash_result
     {
+    public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the partition's sub-hashtable of this item
@@ -57,26 +55,13 @@ protected:
         }
     };
 
-    struct probing_result
-    {
-        //! the offset relativ to provided pos.
-        int probing_offset;
-
-        probing_result(int o) {
-            probing_offset = o;
-        }
-    };
-
 public:
     typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
-
-    typedef std::function<probing_result(int, ReducePreProbingTable*)> ProbingFunction;
 
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
                           size_t num_items_resize_scale,
-                          size_t stepsize,
-                          size_t max_stepsize,
+                          size_t num_collisions_to_resize,
                           double max_partition_fill_ratio,
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
@@ -94,25 +79,18 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                },
-                          ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable*) {
-                                    int probing_offset = pos + 1;
-                                    probing_result pr(probing_offset);
-                                    return pr;
                                 })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
-          stepsize_(stepsize),
-          max_stepsize_(max_stepsize),
+          num_collisions_to_resize_(num_collisions_to_resize),
           max_partition_fill_ratio_(max_partition_fill_ratio),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function),
-          probing_function_(probing_function) {
+          hash_function_(hash_function)
+    {
         init(sentinel);
     }
 
@@ -131,19 +109,13 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                },
-                          ProbingFunction probing_function
-                              = [](int pos, ReducePreProbingTable*) {
-                                    int probing_offset = pos + 1;
-                                    probing_result pr(probing_offset);
-                                    return pr;
                                 })
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function),
-          probing_function_(probing_function) {
+          hash_function_(hash_function)
+    {
         init(sentinel);
     }
 
@@ -159,17 +131,17 @@ public:
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
 
-        num_items_ = num_partitions_ * num_items_init_scale_;
-        if (num_partitions_ > num_items_ &&
-            num_items_ % num_partitions_ != 0) {
+        table_size_ = num_partitions_ * num_items_init_scale_;
+        if (num_partitions_ > table_size_ &&
+                table_size_ % num_partitions_ != 0) {
             throw std::invalid_argument("partition_size must be less than or equal to num_items "
                                         "AND partition_size a divider of num_items");
         }
-        num_items_per_partition_ = num_items_ / num_partitions_;
+        num_items_per_partition_ = table_size_ / num_partitions_;
 
         // set the key to initial key
         sentinel_ = KeyValuePair(sentinel.first, sentinel.second);
-        vector_.resize(num_items_, sentinel_);
+        vector_.resize(table_size_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
     }
 
@@ -179,14 +151,21 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(Value&& p) {
+    void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
         hash_result h = hash_function_(key, this);
 
-        int pos = h.global_index;
-        size_t count = 0;
+        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
+        assert(h.partition_offset >= 0 && h.partition_offset < num_items_per_partition_);
+        assert(h.global_index >= 0 && h.global_index < table_size_);
 
+        int pos = h.global_index;
+        size_t pos_offset = 0;
+
+        // REVIEW(ms): try to make the loop tighter, remove extra variables and
+        // try to reduce the number of +/-/< operations, have only current + end
+        // iterators.
         KeyValuePair* current = &vector_[pos];
 
         while (current->first != sentinel_.first)
@@ -202,38 +181,36 @@ public:
                 return;
             }
 
-            //++count;
-            probing_result pr = probing_function_(pos, this);
-            count += pr.probing_offset;
+            ++pos_offset;
 
-            if (count > max_stepsize_ || count > num_items_per_partition_)
+            if (pos_offset > num_collisions_to_resize_ || pos_offset >= num_items_per_partition_)
             {
                 ResizeUp();
                 Insert(std::move(p));
                 return;
             }
 
-            if (h.partition_offset + count >= num_items_per_partition_)
+            if (h.partition_offset + pos_offset >= num_items_per_partition_)
             {
-                pos -= (h.partition_offset + count);
+                pos -= (h.partition_offset + pos_offset);
             }
 
-            current = &vector_[pos + count];
+            current = &vector_[pos + pos_offset];
         }
 
         // insert new pair
         if (current->first == sentinel_.first)
         {
-            vector_[pos + count] = KeyValuePair(key, p);
+            vector_[pos + pos_offset] = KeyValuePair(key, p);
 
             // increase total counter
-            table_size_++;
+            num_items_++;
 
             // increase counter for partition
             items_per_partition_[h.partition_id]++;
         }
 
-        if (table_size_ > max_num_items_table_)
+        if (num_items_ > max_num_items_table_)
         {
             LOG << "flush";
             FlushLargestPartition();
@@ -318,7 +295,7 @@ public:
         }
 
         // reset total counter
-        table_size_ -= items_per_partition_[partition_id];
+        num_items_ -= items_per_partition_[partition_id];
         // reset partition specific counter
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
@@ -329,14 +306,14 @@ public:
     }
 
     /*!
-     * Returns the total num of items.
+     * Returns the size of the table.
      */
     size_t Size() {
         return table_size_;
     }
 
     /*!
-     * Returns the total num of items.
+     * Returns the total num of items in table in all partitions.
      */
     size_t NumItems() {
         return num_items_;
@@ -389,18 +366,18 @@ public:
      */
     void ResizeUp() {
         LOG << "Resizing";
-        num_items_ *= num_items_resize_scale_;
-        num_items_per_partition_ = num_items_ / num_partitions_;
+        table_size_ *= num_items_resize_scale_;
+        num_items_per_partition_ = table_size_ / num_partitions_;
         // reset items_per_partition and table_size
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
-        table_size_ = 0;
+        num_items_ = 0;
 
         // move old hash array
         std::vector<KeyValuePair> vector_old;
         std::swap(vector_old, vector_);
 
         // init new hash array
-        vector_.resize(num_items_, sentinel_);
+        vector_.resize(table_size_, sentinel_);
 
         // rehash all items in old array
         for (KeyValuePair k_v_pair : vector_old)
@@ -426,7 +403,7 @@ public:
         }
 
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
-        table_size_ = 0;
+        num_items_ = 0;
         LOG << "Cleared";
     }
 
@@ -435,17 +412,17 @@ public:
      */
     void Reset() {
         LOG << "Resetting";
-        num_items_ = num_partitions_ * num_items_init_scale_;
-        num_items_per_partition_ = num_items_ / num_partitions_;
+        table_size_ = num_partitions_ * num_items_init_scale_;
+        num_items_per_partition_ = table_size_ / num_partitions_;
 
         for (KeyValuePair k_v_pair : vector_)
         {
             k_v_pair = sentinel_; // TODO(ms): fix, doesnt work
         }
 
-        vector_.resize(num_items_, sentinel_);
+        vector_.resize(table_size_, sentinel_);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
-        table_size_ = 0;
+        num_items_ = 0;
         LOG << "Resetted";
     }
 
@@ -456,7 +433,7 @@ public:
 
         std::string log = "Printing\n";
 
-        for (size_t i = 0; i < num_items_; i++)
+        for (size_t i = 0; i < table_size_; i++)
         {
             if (vector_[i].first == sentinel_.first)
             {
@@ -471,6 +448,8 @@ public:
             log += " (";
             log += vector_[i].first;
             log += ", ";
+            // REVIEW(ms): about Value -> String: you cannot in general.
+
             //log += vector_[i].second; // TODO(ms): How to convert Value to a string?
             log += ")\n";
         }
@@ -481,28 +460,29 @@ public:
     }
 
 private:
+    // REVIEW(ms): use doxygen format like everyone else! which of these are
+    // static const?
+
     size_t num_partitions_;                         // partition size
 
     size_t num_items_init_scale_ = 10;              // set number of items per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_items_resize_scale_ = 2;             // resize scale on max_num_items_per_bucket_
+    size_t num_items_resize_scale_ = 2;             // resize scale triggered by max_partition_fill_ratio_
 
-    size_t stepsize_ = 1;                           // stepsize in case of collision
+    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max();    // max num of collisions before resize
 
-    size_t max_stepsize_ = 10;                      // max stepsize before resize
-
-    double max_partition_fill_ratio_ = 0.9;         // max partition fill ratio before resize
+    double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
 
     size_t max_num_items_table_ = 1048576;          // max num of items before spilling of largest partition
 
-    size_t num_items_;                              // num items
+    size_t num_items_ = 0;                          // num items in the table
 
     size_t num_items_per_partition_;                // num items per partition
 
-    std::vector<size_t> items_per_partition_;       // num items per partition
+    std::vector<size_t> items_per_partition_;       // current number of items per partition
 
-    size_t table_size_ = 0;                         // total number of items
+    size_t table_size_ = 0;                         // number of slots
 
     KeyExtractor key_extractor_;
 
@@ -516,7 +496,6 @@ private:
     KeyValuePair sentinel_;
 
     HashFunction hash_function_;
-    ProbingFunction probing_function_;
 };
 
 } // namespace core

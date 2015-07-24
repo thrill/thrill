@@ -8,21 +8,21 @@
  ******************************************************************************/
 
 #include <c7a/common/cyclic_barrier.hpp>
+#include <gtest/gtest.h>
 
-#include <string>
-#include <numeric>
-#include <thread>
-#include <atomic>
-#include <stdlib.h>
-#include <time.h>
 #include <unistd.h>
 
-#include "gtest/gtest.h"
+#include <atomic>
+#include <cstdlib>
+#include <ctime>
+#include <thread>
+#include <vector>
 
 using namespace c7a::common;
 
 static void TestWaitFor(int count, int slowThread = -1) {
 
+    // TODO(ej): use new C++11 random things instead.
     srand(time(NULL));
     int maxWaitTime = 100000;
 

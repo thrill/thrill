@@ -9,11 +9,9 @@
 
 #include <c7a/common/future.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/net/dispatcher.hpp>
+#include <gtest/gtest.h>
 
 #include <string>
-
-#include "gtest/gtest.h"
 
 using namespace c7a::common;
 using namespace std::literals;

@@ -12,9 +12,9 @@
 #ifndef C7A_COMMON_CYCLIC_BARRIER_HEADER
 #define C7A_COMMON_CYCLIC_BARRIER_HEADER
 
-#include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
 
 namespace c7a {
 namespace common {
@@ -38,7 +38,7 @@ public:
      *
      * @param n The count of threads to wait for.
      */
-    Barrier(int n) : threadCount(n), current(0) {
+    explicit Barrier(int n) : threadCount(n), current(0) {
         counts[0] = 0;
         counts[1] = 0;
     }

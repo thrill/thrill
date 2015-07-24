@@ -12,39 +12,60 @@
 #ifndef C7A_DATA_BLOCK_WRITER_HEADER
 #define C7A_DATA_BLOCK_WRITER_HEADER
 
-#include <c7a/data/block.hpp>
-#include <c7a/data/serializer.hpp>
+#include <c7a/common/config.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
+#include <c7a/data/block.hpp>
+#include <c7a/data/block_sink.hpp>
+#include <c7a/data/serializer.hpp>
+
+#include <algorithm>
+#include <string>
 
 namespace c7a {
 namespace data {
 
-template <typename BlockSink>
-class BlockWriter : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >
+//! \addtogroup data Data Subsystem
+//! \{
+
+/*!
+ * BlockWriter contains a temporary Block object into which a) any serializable
+ * item can be stored or b) any arbitrary integral data can be appended. It
+ * counts how many serializable items are stored and the offset of the first new
+ * item. When a Block is full it is emitted to an attached BlockSink, like a
+ * File, a ChannelSink, etc. for further delivery. The BlockWriter takes care of
+ * segmenting items when a Block is full.
+ */
+template <size_t BlockSize>
+class BlockWriterBase
+    : public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
 {
 public:
+    static const bool self_verify = common::g_self_verify;
+
     using Byte = unsigned char;
-    using Block = typename std::decay<BlockSink>::type::Block;
+    using Block = data::Block<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
 
+    using BlockSink = data::BlockSink<BlockSize>;
+
     //! Start build (appending blocks) to a File
-    explicit BlockWriter(BlockSink sink)
-        : sink_(std::forward<BlockSink>(sink)) {
+    explicit BlockWriterBase(BlockSink* sink)
+        : sink_(sink) {
         AllocateBlock();
     }
 
     //! non-copyable: delete copy-constructor
-    BlockWriter(const BlockWriter&) = delete;
+    BlockWriterBase(const BlockWriterBase&) = delete;
     //! non-copyable: delete assignment operator
-    BlockWriter& operator = (const BlockWriter&) = delete;
+    BlockWriterBase& operator = (const BlockWriterBase&) = delete;
 
     //! move-constructor
-    BlockWriter(BlockWriter&&) = default;
+    BlockWriterBase(BlockWriterBase&&) = default;
     //! move-assignment
-    BlockWriter& operator = (BlockWriter&&) = delete;
+    BlockWriterBase& operator = (BlockWriterBase&&) = default;
 
     //! On destruction, the last partial block is flushed.
-    ~BlockWriter() {
+    ~BlockWriterBase() {
         if (block_)
             Close();
     }
@@ -59,7 +80,8 @@ public:
                 block_ = BlockPtr();
                 current_ = nullptr;
             }
-            sink_.Close();
+            if (sink_)
+                sink_->Close();
         }
     }
 
@@ -69,11 +91,14 @@ public:
         AllocateBlock();
     }
 
-    //! \name Appending (Generic) Items
+    //! Return whether an actual BlockSink is attached.
+    bool IsValid() const { return sink_ != nullptr; }
+
+    //! \name Appending (Generic) Serializable Items
     //! \{
 
     //! Mark beginning of an item.
-    BlockWriter & MarkItem() {
+    BlockWriterBase & MarkItem() {
         if (nitems_ == 0)
             first_offset_ = current_ - block_->begin();
 
@@ -84,9 +109,14 @@ public:
 
     //! operator() appends a complete item
     template <typename T>
-    BlockWriter& operator () (const T& x) {
+    BlockWriterBase& operator () (const T& x) {
+        assert(!closed_);
         MarkItem();
-        Serialize<BlockWriter, T>(x, *this);
+        if (self_verify) {
+            // for self-verification, prefix T with its hash code
+            Put(typeid(T).hash_code());
+        }
+        Serialize<BlockWriterBase, T>(x, *this);
         return *this;
     }
 
@@ -96,7 +126,8 @@ public:
     //! \{
 
     //! Append a memory range to the block
-    BlockWriter & Append(const void* data, size_t size) {
+    BlockWriterBase & Append(const void* data, size_t size) {
+        assert(!closed_);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
@@ -121,7 +152,9 @@ public:
     }
 
     //! Append a single byte to the block
-    BlockWriter & PutByte(Byte data) {
+    BlockWriterBase & PutByte(Byte data) {
+        assert(!closed_);
+
         if (current_ < end_) {
             *current_++ = data;
         }
@@ -135,14 +168,14 @@ public:
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    BlockWriter & Append(const std::string& str) {
+    BlockWriterBase & Append(const std::string& str) {
         return Append(str.data(), str.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BlockWriter & Put(const Type& item) {
+    BlockWriterBase & Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -163,8 +196,8 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_.Append(block_, current_ - block_->begin(),
-                     nitems_, first_offset_);
+        sink_->AppendBlock(block_, current_ - block_->begin(),
+                           nitems_, first_offset_);
     }
 
     //! current block, already allocated as shared ptr, since we want to use
@@ -185,11 +218,16 @@ protected:
     size_t first_offset_;
 
     //! file or stream sink to output blocks to.
-    BlockSink sink_;
+    BlockSink* sink_;
 
     //! Flag if Close was called explicitly
     bool closed_ = false;
 };
+
+//! BlockWriter with defaut block size.
+using BlockWriter = BlockWriterBase<data::default_block_size>;
+
+//! \}
 
 } // namespace data
 } // namespace c7a

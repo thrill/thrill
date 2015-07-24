@@ -12,21 +12,24 @@
 #ifndef C7A_CORE_JOB_MANAGER_HEADER
 #define C7A_CORE_JOB_MANAGER_HEADER
 
-#include <c7a/data/manager.hpp>
-#include <c7a/net/manager.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/manager.hpp>
+#include <c7a/net/dispatcher_thread.hpp>
+#include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/manager.hpp>
+
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace core {
 
 class JobManager
 {
-    const static bool debug = false;
+    static const bool debug = false;
 
 public:
-    JobManager(const std::string& log_prefix = "")
+    explicit JobManager(const std::string& log_prefix = std::string())
         : flow_manager_(NULL),
           net_dispatcher_(log_prefix + " dm-disp"),
           data_manager_(net_dispatcher_)

@@ -7,16 +7,15 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/bootstrap.hpp>
-#include <c7a/net/endpoint.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/c7a.hpp>
+#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <random>
 #include <string>
-
-#include "gtest/gtest.h"
+#include <vector>
 
 using namespace c7a;
 using c7a::DIARef;
@@ -30,7 +29,7 @@ TEST(Stage, CountReferencesSimple) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -55,15 +54,14 @@ TEST(Stage, CountReferencesSimple) {
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            reduced.AllGather(&out_vec);
+            std::vector<int> out_vec = reduced.AllGather();
 
             // 3x DIA reference + 1x child reference
             ASSERT_EQ(integers.node_refcount(), 4u);
-            ASSERT_EQ(doubles.node_refcount(), 4);
-            ASSERT_EQ(quadruples.node_refcount(), 4);
+            ASSERT_EQ(doubles.node_refcount(), 4u);
+            ASSERT_EQ(quadruples.node_refcount(), 4u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1);
+            ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -77,7 +75,7 @@ TEST(Stage, CountReferencesLOpNode) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -99,22 +97,21 @@ TEST(Stage, CountReferencesLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Create new child reference to LOpNode
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
 
             // Trigger execution
-            std::vector<int> out_vec;
-            reduced.AllGather(&out_vec);
+            std::vector<int> out_vec = reduced.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 1x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 2);
+            ASSERT_EQ(quadruples.node_refcount(), 2u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(reduced.node_refcount(), 1);
+            ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -128,7 +125,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -150,20 +147,19 @@ TEST(Stage, OverwriteReferenceLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Overwrite reference to LOpNode
-            quadruples = quadruples.ReduceBy(modulo_two, add_function);
+            quadruples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
 
             // Trigger execution
-            std::vector<int> out_vec;
-            quadruples.AllGather(&out_vec);
+            std::vector<int> out_vec = quadruples.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 1);
+            ASSERT_EQ(quadruples.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -177,7 +173,7 @@ TEST(Stage, AdditionalChildReferences) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return static_cast<int>(index) + 1;
                 },
                 16);
 
@@ -199,26 +195,25 @@ TEST(Stage, AdditionalChildReferences) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements);
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
 
             // Create a child reference to LOpNode
-            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function);
+            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
             // Create a child reference to LOpNode
-            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function);
+            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function).Collapse();
 
             // Trigger execution
-            std::vector<int> out_vec;
-            octuples.AllGather(&out_vec);
+            std::vector<int> out_vec = octuples.AllGather();
 
             // 2x DIA reference + 1x child reference
-            ASSERT_EQ(integers.node_refcount(), 3);
-            ASSERT_EQ(doubles.node_refcount(), 3);
+            ASSERT_EQ(integers.node_refcount(), 3u);
+            ASSERT_EQ(doubles.node_refcount(), 3u);
             // 1x DIA reference + 2x child reference
-            ASSERT_EQ(quadruples.node_refcount(), 3);
+            ASSERT_EQ(quadruples.node_refcount(), 3u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples.node_refcount(), 1);
+            ASSERT_EQ(octuples.node_refcount(), 1u);
             // 1x DIA reference + 0x child reference
-            ASSERT_EQ(octuples_second.node_refcount(), 1);
+            ASSERT_EQ(octuples_second.node_refcount(), 1u);
         };
 
     api::ExecuteLocalTests(start_func);

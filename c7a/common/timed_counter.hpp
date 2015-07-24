@@ -33,7 +33,7 @@ public:
         occurences_ = rhs.occurences_;
     }
 
-    explicit TimedCounter() { }
+    TimedCounter() { }
 
     //! Adds the occurences of another TimedCounter to this instance.
     //! Occurences will be sorted to be ascending

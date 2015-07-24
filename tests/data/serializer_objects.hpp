@@ -79,10 +79,11 @@ struct CerealSomeData
         ar(data);
     }
 };
+
 }
 }
-#endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
-#endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 }
+
 #endif // !C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
+
 /******************************************************************************/
