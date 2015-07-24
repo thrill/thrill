@@ -149,6 +149,10 @@ public:
         return stack_;
     }
 
+    Context & ctx() const {
+        return node_->context();
+    }
+
     /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
