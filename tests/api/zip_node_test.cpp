@@ -12,12 +12,13 @@
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/lop_node.hpp>
+#include <c7a/api/size.hpp>
 #include <c7a/api/zip.hpp>
-#include <c7a/c7a.hpp>
-
+#include <c7a/common/string.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <random>
 #include <string>
 
 using namespace c7a;
@@ -166,6 +167,81 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
     // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
     c7a::api::ExecuteLocalTests(start_func);
+}
+
+TEST(ZipNode, DISABLED_TwoDisbalancedStringArrays) {
+
+    // first DIA is heavily balanced to the first workers, second DIA is
+    // balanced to the last workers.
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // generate random strings with 10..20 characters
+            auto input_gen = Generate(
+                ctx,
+                [](size_t index) -> std::string {
+                    std::default_random_engine rng(123456 + index);
+                    std::uniform_int_distribution<int> length(10, 20);
+                    rng(); // skip one number
+
+                    return common::RandomString(
+                        length(rng), rng, "abcdefghijklmnopqrstuvwxyz")
+                    + std::to_string(index);
+                },
+                test_size);
+
+            DIARef<std::string> input = input_gen.Collapse();
+
+            std::vector<std::string> vinput = input.AllGather();
+            ASSERT_EQ(test_size, vinput.size());
+
+            // Filter out strings that start with a-e
+            auto input1 = input.Filter(
+                [](const std::string& str) { return str[0] <= 'e'; });
+
+            // Filter out strings that start with w-z
+            auto input2 = input.Filter(
+                [](const std::string& str) { return str[0] >= 'w'; });
+
+            // zip
+            auto zip_result = input1.Zip(
+                input2, [](const std::string& a, const std::string& b) {
+                    return a + b;
+                });
+
+            // check result
+            std::vector<std::string> res = zip_result.AllGather();
+
+            // recalculate result locally
+            std::vector<std::string> check;
+            {
+                std::vector<std::string> v1, v2;
+
+                for (size_t index = 0; index < vinput.size(); ++index) {
+                    const std::string& s1 = vinput[index];
+                    if (s1[0] <= 'e') v1.push_back(s1);
+                    if (s1[0] >= 'w') v2.push_back(s1);
+                }
+
+                ASSERT_EQ(v1, input1.AllGather());
+                ASSERT_EQ(v2, input2.AllGather());
+
+                for (size_t i = 0; i < std::min(v1.size(), v2.size()); ++i) {
+                    check.push_back(v1[i] + v2[i]);
+                    //sLOG1 << check.back();
+                }
+            }
+
+            for (size_t i = 0; i != res.size(); ++i) {
+                sLOG1 << res[i] << " " << check[i] << (res[i] == check[i]);
+            }
+
+            ASSERT_EQ(check.size(), res.size());
+            ASSERT_EQ(check, res);
+        };
+
+    c7a::api::ExecuteLocalThreadsTCP(2, 8080, start_func);
+    //c7a::api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/

@@ -14,6 +14,7 @@
 #ifndef C7A_COMMON_STRING_HEADER
 #define C7A_COMMON_STRING_HEADER
 
+#include <random>
 #include <string>
 #include <vector>
 
@@ -197,6 +198,32 @@ template <typename Container>
 static inline
 std::string join(const std::string& glue, const Container& parts) {
     return join(glue, parts.begin(), parts.end());
+}
+
+/**
+ * Generate a random string of given length. The set of available
+ * bytes/characters is given as the second argument. Each byte is equally
+ * probable. Uses the pseudo-random number generator from stdlib; take care to
+ * seed it using srand() before calling this function.
+ *
+ * @param size     length of result
+ * @param letters  character set to choose from
+ * @return         random string of given length
+ */
+template <typename RandomEngine = std::default_random_engine>
+static inline std::string
+RandomString(std::string::size_type size, RandomEngine rng,
+             const std::string& letters
+                 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz") {
+    std::string out;
+    out.resize(size);
+
+    std::uniform_int_distribution<size_t> distribution(0, letters.size() - 1);
+
+    for (size_t i = 0; i < size; ++i)
+        out[i] = letters[distribution(rng)];
+
+    return out;
 }
 
 } // namespace common

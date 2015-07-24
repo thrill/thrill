@@ -94,6 +94,30 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     api::ExecuteLocalTests(start_func);
 }
 
+TEST(Operations, GenerateIntegers) {
+
+    static const size_t test_size = 1000;
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) { return index; },
+                test_size);
+
+            std::vector<size_t> out_vec = integers.AllGather();
+
+            ASSERT_EQ(test_size, out_vec.size());
+
+            for (size_t i = 0; i < test_size; ++i) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::ExecuteLocalTests(start_func);
+}
+
 TEST(Operations, MapResultsCorrectChangingType) {
 
     std::function<void(Context&)> start_func =

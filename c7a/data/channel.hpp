@@ -187,7 +187,7 @@ public:
      *
      * /param offsets - as described above. offsets.size must be equal to group.size
      */
-    template <typename Type>
+    template <typename ItemType>
     void Scatter(const File& source, const std::vector<size_t>& offsets) {
         assert(offsets.size() == group_.Size());
 
@@ -200,11 +200,21 @@ public:
         for (size_t worker_id = 0; worker_id < offsets.size(); ++worker_id) {
             // write [current,limit) to this worker
             size_t limit = offsets[worker_id];
+            assert(current <= limit);
+#if 0
             for ( ; current < limit; ++current) {
                 assert(reader.HasNext());
                 // move over one item (with deserialization and serialization)
-                writers[worker_id](reader.template Next<Type>());
+                writers[worker_id](reader.template Next<ItemType>());
             }
+#else
+            if (current != limit) {
+                writers[worker_id].AppendBlocks(
+                    reader.template GetItemBatch<ItemType>(limit - current)
+                    );
+                current = limit;
+            }
+#endif
             writers[worker_id].Close();
         }
     }
@@ -266,9 +276,11 @@ protected:
     void OnStreamBlock(size_t from, VirtualBlock&& vb) {
         assert(from < queues_.size());
 
+        sLOG << "OnStreamBlock" << vb;
+
         if (debug) {
             sLOG << "channel" << id_ << "receive from" << from << ":"
-                 << common::hexdump(vb.block->data(), vb.bytes_used);
+                 << common::hexdump(vb.ToString());
         }
 
         queues_[from].AppendBlock(vb);

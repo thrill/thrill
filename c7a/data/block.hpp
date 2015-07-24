@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <memory>
+#include <ostream>
 #include <string>
 
 namespace c7a {
@@ -81,57 +82,106 @@ public:
  *     +--+---------+---------+-------------+---------+-----+
  *     |  |Item1    |Item2    |Item3        |Item4    |Item5|(partial)
  *     +--+---------+---------+-------------+---------+-----+
- *                  ^                                       ^
- *                  first         nitems=4                  end
+ *        ^         ^                                       ^
+ *        begin     first_item    nitems=5                  end
  * </pre>
  */
 template <size_t BlockSize = default_block_size>
-struct VirtualBlock
+class VirtualBlock
 {
+public:
+    using Byte = unsigned char;
+
     using Block = data::Block<BlockSize>;
     using BlockCPtr = std::shared_ptr<const Block>;
 
     VirtualBlock() { }
 
     VirtualBlock(const BlockCPtr& block,
-                 size_t bytes_used, size_t nitems, size_t first)
-        : block(block),
-          bytes_used(bytes_used),
-          nitems(nitems),
-          first(first) { }
-
-    //! referenced block
-    BlockCPtr   block;
-
-    //! number of valid bytes in the block (can be used to virtually shorten
-    //! a block)
-    size_t      bytes_used = 0;
-
-    //! number of valid items that _start_ in this block (includes cut-off
-    //! element at the end)
-    size_t      nitems = 0;
-
-    //! offset of first valid element in the block
-    size_t      first = 0;
+                 size_t begin, size_t end, size_t first_item, size_t nitems)
+        : block_(block),
+          begin_(begin), end_(end), first_item_(first_item), nitems_(nitems)
+    { }
 
     //! Return whether the enclosed block is valid.
-    bool        IsValid() const { return block != nullptr; }
+    bool IsValid() const { return block_ != nullptr; }
 
     //! Releases the reference to the block and resets book-keeping info
-    void        Release() {
-        block = BlockCPtr();
-        bytes_used = 0;
-        nitems = 0;
-        first = 0;
+    void Release() {
+        block_ = BlockCPtr();
     }
 
     // Return virtual block as std::string (for debugging), includes eventually
     // cut off elements form the beginning included
     std::string ToString() const {
         return std::string(
-            reinterpret_cast<const char*>(block->data() + first),
-            bytes_used - first);
+            reinterpret_cast<const char*>(data_begin()), size());
     }
+
+    //! access to block_
+    const BlockCPtr & block() const { return block_; }
+
+    //! return number of items beginning in this block
+    size_t nitems() const { return nitems_; }
+
+    //! accessor to begin_
+    void set_begin(size_t i) { begin_ = i; }
+
+    //! accessor to end_
+    void set_end(size_t i) { end_ = i; }
+
+    //! return pointer to beginning of valid data
+    const Byte * data_begin() const {
+        assert(block_);
+        return block_->begin() + begin_;
+    }
+
+    //! return pointer to end of valid data
+    const Byte * data_end() const {
+        assert(block_);
+        return block_->begin() + end_;
+    }
+
+    //! return length of valid data in bytes.
+    size_t size() const { return end_ - begin_; }
+
+    //! accessor to first_item_ (absolute in block)
+    size_t first_item() const { return first_item_; }
+
+    //! return the first_item_offset relative to data_begin().
+    size_t first_item_relative() const { return first_item_ - begin_; }
+
+    friend std::ostream&
+    operator << (std::ostream& os, const VirtualBlock& c) {
+        os << "[VirtualBlock " << std::hex << &c << std::dec
+           << " block_=" << std::hex << c.block_.get() << std::dec;
+        if (c.IsValid()) {
+            os << " begin_=" << c.begin_
+               << " end_=" << c.end_
+               << " first_item_=" << c.first_item_
+               << " nitems_=" << c.nitems_;
+        }
+        return os << "]";
+    }
+
+protected:
+    //! referenced block
+    BlockCPtr block_;
+
+    //! beginning offset of valid bytes to read
+    size_t begin_;
+
+    //! one byte beyond the end of the valid bytes in the block (can be used to
+    //! virtually shorten a block)
+    size_t end_;
+
+    //! offset of first valid element in the block in absolute bytes from
+    //! block_->begin().
+    size_t first_item_;
+
+    //! number of valid items that _start_ in this block (includes cut-off
+    //! element at the end)
+    size_t nitems_;
 };
 
 //! \}

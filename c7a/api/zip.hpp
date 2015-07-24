@@ -74,12 +74,15 @@ class TwoZipNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
+    template <typename T>
+    using FunctionTraits = common::FunctionTraits<T>;
+
     using ZipArg0 =
-              typename common::FunctionTraits<ZipFunction>::template arg<0>;
+              typename FunctionTraits<ZipFunction>::template arg_plain<0>;
     using ZipArg1 =
-              typename common::FunctionTraits<ZipFunction>::template arg<1>;
+              typename FunctionTraits<ZipFunction>::template arg_plain<1>;
     using ZipResult =
-              typename common::FunctionTraits<ZipFunction>::result_type;
+              typename FunctionTraits<ZipFunction>::result_type;
 
     using ParentInput0 = typename ParentStack0::Input;
     using ParentInput1 = typename ParentStack1::Input;
@@ -309,7 +312,7 @@ auto DIARef<ValueType, Stack>::Zip(
     SecondDIA second_dia, const ZipFunction &zip_function) const {
 
     using ZipResult
-              = typename common::FunctionTraits<ZipFunction>::result_type;
+              = typename FunctionTraits<ZipFunction>::result_type;
 
     using ZipResultNode
               = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,
@@ -318,14 +321,14 @@ auto DIARef<ValueType, Stack>::Zip(
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<ZipFunction>::template arg<0>
+            typename FunctionTraits<ZipFunction>::template arg<0>
             >::value,
         "ZipFunction has the wrong input type in DIA 0");
 
     static_assert(
         std::is_convertible<
             typename SecondDIA::ValueType,
-            typename common::FunctionTraits<ZipFunction>::template arg<1>
+            typename FunctionTraits<ZipFunction>::template arg<1>
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
