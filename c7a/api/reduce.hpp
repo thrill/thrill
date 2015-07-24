@@ -46,7 +46,7 @@ namespace api {
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename ValueType, typename ParentStack,
+template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<ValueType>
 {
@@ -60,8 +60,6 @@ class ReduceNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    using ParentInput = typename ParentStack::Input;
-
     typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
@@ -72,26 +70,21 @@ public:
      * Constructor for a ReduceNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param ctx Reference to Context, which holds references to data and
-     * network.
-     * \param parent Parent DIANode.
-     * \param parent_stack Function chain with all lambdas between the parent
+     * \param parent Parent DIARef.
      * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    ReduceNode(Context& ctx,
-               const std::shared_ptr<DIANode<ParentInput> >& parent,
-               const ParentStack& parent_stack,
+    ReduceNode(const ParentDIARef& parent,
                KeyExtractor key_extractor,
                ReduceFunction reduce_function,
 		       const bool preserves_key)
-        : DOpNode<ValueType>(ctx, { parent }, "Reduce"),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(ctx.data_manager().GetNewChannel()),
+          channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(ctx.number_worker(), key_extractor,
+          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_, preserves_key),
 		  preserves_key_(preserves_key)
     {
@@ -102,8 +95,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a ReduceNode.
@@ -219,7 +212,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using ReduceResultNode
-              = ReduceNode<DOpResult, Stack, KeyExtractor, ReduceFunction>;
+              = ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction>;
 
     static_assert(
         std::is_convertible<
@@ -248,9 +241,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
         "KeyExtractor has the wrong input type");
 
     auto shared_node
-        = std::make_shared<ReduceResultNode>(node_->context(),
-                                             node_,
-                                             stack_,
+        = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function,
 			                                 preserves_key);

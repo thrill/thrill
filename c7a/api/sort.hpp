@@ -39,7 +39,7 @@ namespace api {
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam CompareFunction Type of the compare function
  */
-template <typename ValueType, typename ParentStack, typename CompareFunction>
+template <typename ValueType, typename ParentDIARef, typename CompareFunction>
 class SortNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -48,26 +48,21 @@ class SortNode : public DOpNode<ValueType>
     using Super::context_;
     using Super::result_file_;
 
-    using ParentInput = typename ParentStack::Input;
-
 public:
     /*!
      * Constructor for a sort node.
      *
-     * \param ctx Context for this operation
-     * \param parent Previous DIANode in the computation chain
+     * \param parent DIARef.
      * \param parent_stack Stack of lambda functions between parent and this node
      * \param compare_function Function comparing two elements.
      */
-    SortNode(Context& ctx,
-             const std::shared_ptr<DIANode<ParentInput> >& parent,
-             const ParentStack& parent_stack,
+    SortNode(const ParentDIARef& parent,
              CompareFunction compare_function)
-        : DOpNode<ValueType>(ctx, { parent }, "Sort"),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort"),
           compare_function_(compare_function),
-          channel_id_samples_(ctx.data_manager().GetNewChannel()),
+          channel_id_samples_(parent.ctx().data_manager().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(ctx.data_manager().GetNewChannel()),
+          channel_id_data_(parent.ctx().data_manager().GetNewChannel()),
           emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
@@ -75,9 +70,8 @@ public:
                              PreOp(input);
                          };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     virtual ~SortNode() { }
@@ -396,12 +390,12 @@ template <typename CompareFunction>
 auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
 
     using SortResultNode
-              = SortNode<ValueType, Stack, CompareFunction>;
+              = SortNode<ValueType, DIARef, CompareFunction>;
 
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<CompareFunction>::template arg<0>
+            typename FunctionTraits<CompareFunction>::template arg<0>
             >::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
@@ -409,21 +403,18 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<CompareFunction>::template arg<1> >::value ||
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
         std::is_convertible<
-            typename common::FunctionTraits<CompareFunction>::result_type,
+            typename FunctionTraits<CompareFunction>::result_type,
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
     auto shared_node
-        = std::make_shared<SortResultNode>(node_->context(),
-                                           node_,
-                                           stack_,
-                                           compare_function);
+        = std::make_shared<SortResultNode>(*this, compare_function);
 
     auto sort_stack = shared_node->ProduceStack();
 
