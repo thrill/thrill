@@ -3,4 +3,4 @@
 	url = https://chromium.googlesource.com/external/googletest
 [submodule "extlib/cereal"]
 	path = extlib/cereal
-	url = git@github.com:USCiLab/cereal.git
+	url = https://github.com/USCiLab/cereal.git
