@@ -275,8 +275,11 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceBy(const KeyExtractor &key_extractor,
-                  const ReduceFunction &reduce_function,
-		          const bool preserves_key = false) const;
+                  const ReduceFunction &reduce_function) const;
+
+    template <typename KeyExtractor, typename ReduceFunction>
+	auto ReduceByKey(const KeyExtractor &key_extractor,
+					 const ReduceFunction &reduce_function) const;
 
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
@@ -319,8 +322,13 @@ public:
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
                        size_t max_index,
-                       ValueType neutral_element = ValueType(),
-		               const bool preserves_key = false) const;
+                       ValueType neutral_element = ValueType()) const;
+
+	template <typename KeyExtractor, typename ReduceFunction>
+    auto ReduceToIndexByKey(const KeyExtractor &key_extractor,
+                       const ReduceFunction &reduce_function,
+                       size_t max_index,
+                       ValueType neutral_element = ValueType()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The

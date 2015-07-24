@@ -29,7 +29,7 @@ namespace c7a {
 namespace core {
 
 template <typename KeyExtractor, typename ReduceFunction,
-          size_t TargetBlockSize = 1024*1024>
+          const bool PreservesKey = false, size_t TargetBlockSize = 1024*1024>
 class ReducePreTable
 {
     static const bool debug = false;
@@ -98,7 +98,6 @@ public:
                    size_t max_num_items_per_bucket, size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-				   const bool preserves_key,
                    HashFunction hash_function
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
@@ -121,7 +120,6 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-		  preserves_key_(preserves_key),
           hash_function_(hash_function)
     {
         init();
@@ -131,7 +129,6 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-				   const bool preserves_key,
                    HashFunction hash_function
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
@@ -150,7 +147,6 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-		  preserves_key_(preserves_key),
           hash_function_(hash_function)
     {
         init();
@@ -348,7 +344,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-					if (preserves_key_) {
+					if (PreservesKey) {
 						emit_[partition_id](bi->second);
 					} else {
 						emit_[partition_id](*bi);
@@ -596,8 +592,6 @@ private:
     std::vector<int> emit_stats_;
 
     std::vector<BucketBlock*> vector_;
-
-	const bool preserves_key_;
 
     HashFunction hash_function_;
 };

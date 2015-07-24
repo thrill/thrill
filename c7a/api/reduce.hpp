@@ -47,7 +47,8 @@ namespace api {
  * \tparam ReduceFunction Type of the reduce_function
  */
 template <typename ValueType, typename ParentDIARef,
-          typename KeyExtractor, typename ReduceFunction>
+          typename KeyExtractor, typename ReduceFunction,
+		  const bool PreservesKey>
 class ReduceNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -77,16 +78,14 @@ public:
      */
     ReduceNode(const ParentDIARef& parent,
                KeyExtractor key_extractor,
-               ReduceFunction reduce_function,
-		       const bool preserves_key)
+               ReduceFunction reduce_function)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
-                            reduce_function_, emitters_, preserves_key),
-		  preserves_key_(preserves_key)
+                            reduce_function_, emitters_)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ReduceArg& input) {
@@ -116,12 +115,12 @@ public:
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<KeyExtractor, ReduceFunction>;
+			= core::ReducePostTable<KeyExtractor, ReduceFunction, false>;
 
 		ReduceTable table(key_extractor_, reduce_function_,
 						  DIANode<ValueType>::callbacks());
 
-		if (preserves_key_) {
+		if (PreservesKey) {
 			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
 			auto reader = channel_->OpenReader();
 			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
@@ -174,10 +173,8 @@ private:
 
     std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction>
+    core::ReducePreTable<KeyExtractor, ReduceFunction, PreservesKey>
     reduce_pre_table_;
-
-	const bool preserves_key_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -205,14 +202,10 @@ template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceBy(
     const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-	const bool preserves_key) const {
+    const ReduceFunction &reduce_function) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    using ReduceResultNode
-              = ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction>;
 
     static_assert(
         std::is_convertible<
@@ -240,18 +233,73 @@ auto DIARef<ValueType, Stack>::ReduceBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    auto shared_node
-        = std::make_shared<ReduceResultNode>(*this,
-                                             key_extractor,
-                                             reduce_function,
-			                                 preserves_key);
+	using ReduceResultNode
+		= ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction, true>;
+	auto shared_node
+		= std::make_shared<ReduceResultNode>(*this,
+											 key_extractor,
+											 reduce_function);
 	
-    auto reduce_stack = shared_node->ProduceStack();
+	auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)> (
-            shared_node, 
-            reduce_stack,
-            { AddChildStatsNode("Reduce", "DOp") });
+	return DIARef<DOpResult, decltype(reduce_stack)> (
+		shared_node, 
+		reduce_stack,
+		{ AddChildStatsNode("Reduce", "DOp") });
+
+   
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction>
+auto DIARef<ValueType, Stack>::ReduceByKey(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function) const {
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+            ValueType>::value,
+        "ReduceFunction has the wrong output type");
+
+    static_assert(
+        std::is_same<
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::template arg<0> >::type,
+            ValueType>::value,
+        "KeyExtractor has the wrong input type");
+
+	using ReduceResultNode
+		= ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction, false>;
+	auto shared_node
+		= std::make_shared<ReduceResultNode>(*this,
+											 key_extractor,
+											 reduce_function);
+	
+	auto reduce_stack = shared_node->ProduceStack();
+
+	return DIARef<DOpResult, decltype(reduce_stack)> (
+		shared_node, 
+		reduce_stack,
+		{ AddChildStatsNode("Reduce", "DOp") });
+
+   
 }
 
 //! \}
