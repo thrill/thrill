@@ -18,6 +18,17 @@
 #include <typeinfo>
 #include <utility>
 
+#include <c7a/data/binary.hpp>
+#include <c7a/data/serializer_cereal_archive.hpp>
+
+// #include <c7a/data/binary_copy.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/vector.hpp>
+#include <fstream>
+
 using namespace c7a::data;
 
 static const bool debug = false;
@@ -280,73 +291,137 @@ TEST(Serializer, TuplePair_SerializeDeserialize_Test) {
 //     LOG << "Z: " << result.z_;
 // }
 
-TEST(Serializer, CerealObject_Archive_Test) {
+// TEST(Serializer, CerealObject_Archive_Test) {
+//     c7a::data::File f;
+//     serializers::TestCerealObject2 t(1, 2, 3);
+//     {
+//         auto w = f.GetWriter();
+//         w(t); //gets serialized
+//     }
+//     auto r = f.GetReader();
+//     auto res = r.Next<serializers::TestCerealObject2>();
+//     ASSERT_EQ(t.x_, res.x_);
+//     ASSERT_EQ(t.y_, res.y_);
+//     ASSERT_EQ(t.z_, res.z_);
+//     ASSERT_EQ(t.tco.z_, res.tco.z_);
+//     sLOG << res.x_ << res.y_ << res.z_;
+// }
+
+// TEST(Serializer, Tuple_Archive_Test) {
+//     c7a::data::File f;
+//     auto t = std::make_tuple(1, 2, 3, std::string("blaaaa"));
+//     {
+//         auto w = f.GetWriter();
+//         w(t); //gets serialized
+//     }
+//     auto r = f.GetReader();
+//     auto res = r.Next<decltype(t)>();
+
+//     ASSERT_EQ(std::get<0>(res), std::get<0>(t));
+//     ASSERT_EQ(std::get<1>(res), std::get<1>(t));
+//     ASSERT_EQ(std::get<2>(res), std::get<2>(t));
+//     ASSERT_EQ(std::get<3>(res), std::get<3>(t));
+// }
+
+// TEST(Serializer, Tuple_Size_Archive_Test) {
+//     c7a::data::File f;
+//     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
+//     auto y = std::make_tuple(1, 2, 3, "4");
+//     auto w = f.GetWriter();
+//     auto no = serializers::Impl<decltype(w), decltype(n)>::fixed_size;
+//     auto yes = serializers::Impl<decltype(w), decltype(y)>::fixed_size;
+
+//     ASSERT_EQ(no, false);
+//     ASSERT_EQ(yes, true);
+// }
+
+// TEST(Serializer, Has_Cereal_Imp_Archive_Test) {
+//     c7a::data::File f1;
+//     c7a::data::File f2;
+
+//     serializers::CerealMyRecord mr;
+//     mr.x = 23;
+//     mr.y = 33;
+//     mr.z = -23.2;
+
+//     serializers::CerealSomeData sd;
+//     sd.id = 2;
+//     {
+//         auto w1 = f1.GetWriter();
+//         auto w2 = f2.GetWriter();
+//         w1(mr); //gets serialized
+//         // w2(sd); //gets serialized
+//     }
+//     auto r1 = f1.GetReader();
+//     auto res1 = r1.Next<decltype(mr)>();
+
+//     ASSERT_EQ(mr.x, res1.x);
+//     ASSERT_EQ(mr.y, res1.y);
+//     ASSERT_EQ(mr.z, res1.z);
+// }
+
+struct MyRecord
+{
+    uint8_t                  x, y;
+    float                    z;
+    std::string              a;
+    std::vector<std::string> b;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(x, y, z, a, b);
+    }
+};
+
+// struct SomeData
+// {
+//   int32_t id;
+//   std::shared_ptr<std::unordered_map<uint32_t, MyRecord>> data;
+
+//   template <class Archive>
+//   void save( Archive & ar ) const
+//   {
+//     ar( data );
+//   }
+
+//   template <class Archive>
+//   void load( Archive & ar )
+//   {
+//     static int32_t idGen = 0;
+//     id = idGen++;
+//     ar( data );
+//   }
+// };
+
+TEST(Serializer, CEREAL_TEST)
+{
     c7a::data::File f;
-    serializers::TestCerealObject2 t(1, 2, 3);
+
     {
         auto w = f.GetWriter();
-        w(t); //gets serialized
+        std::ostringstream os;
+        c7aOutputArchive_cp archive(w);
+
+        MyRecord myData;
+        myData.a = "asdfasdf";
+        myData.b = { "asdf", "asdf" };
+
+        archive(myData);
+
+        LOG << os.str();
+
+        w.Close();
+
+        File::Reader r = f.GetReader();
+        std::istringstream os2(os.str());
+        MyRecord myData2;
+        c7aInputArchive_cp archive2(r);
+        archive2(myData2);
+
+        LOG << myData2.a;
+
+        ASSERT_EQ(myData2.a, myData.a);
     }
-    auto r = f.GetReader();
-    auto res = r.Next<serializers::TestCerealObject2>();
-    ASSERT_EQ(t.x_, res.x_);
-    ASSERT_EQ(t.y_, res.y_);
-    ASSERT_EQ(t.z_, res.z_);
-    ASSERT_EQ(t.tco.z_, res.tco.z_);
-    sLOG << res.x_ << res.y_ << res.z_;
-}
-
-TEST(Serializer, Tuple_Archive_Test) {
-    c7a::data::File f;
-    auto t = std::make_tuple(1, 2, 3, std::string("blaaaa"));
-    {
-        auto w = f.GetWriter();
-        w(t); //gets serialized
-    }
-    auto r = f.GetReader();
-    auto res = r.Next<decltype(t)>();
-
-    ASSERT_EQ(std::get<0>(res), std::get<0>(t));
-    ASSERT_EQ(std::get<1>(res), std::get<1>(t));
-    ASSERT_EQ(std::get<2>(res), std::get<2>(t));
-    ASSERT_EQ(std::get<3>(res), std::get<3>(t));
-}
-
-TEST(Serializer, Tuple_Size_Archive_Test) {
-    c7a::data::File f;
-    auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
-    auto y = std::make_tuple(1, 2, 3, "4");
-    auto w = f.GetWriter();
-    auto no = serializers::Impl<decltype(w), decltype(n)>::fixed_size;
-    auto yes = serializers::Impl<decltype(w), decltype(y)>::fixed_size;
-
-    ASSERT_EQ(no, false);
-    ASSERT_EQ(yes, true);
-}
-
-TEST(Serializer, Has_Cereal_Imp_Archive_Test) {
-    c7a::data::File f1;
-    c7a::data::File f2;
-
-    serializers::CerealMyRecord mr;
-    mr.x = 23;
-    mr.y = 33;
-    mr.z = -23.2;
-
-    serializers::CerealSomeData sd;
-    sd.id = 2;
-    {
-        auto w1 = f1.GetWriter();
-        auto w2 = f2.GetWriter();
-        w1(mr); //gets serialized
-        // w2(sd); //gets serialized
-    }
-    auto r1 = f1.GetReader();
-    auto res1 = r1.Next<decltype(mr)>();
-
-    ASSERT_EQ(mr.x, res1.x);
-    ASSERT_EQ(mr.y, res1.y);
-    ASSERT_EQ(mr.z, res1.z);
 }
 
 /******************************************************************************/

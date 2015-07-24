@@ -157,8 +157,6 @@ struct Impl<Archive, std::tuple<Args ...> >
 
 /******************** Use cereal if serialization function is given **********************/
 
-//?????
-
 template <typename Archive, typename T>
 struct Impl<Archive, T, typename std::enable_if<
                 cereal::traits::is_input_serializable<T, Archive>::value&&
