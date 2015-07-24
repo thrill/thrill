@@ -22,6 +22,9 @@
 
 #include <tests/data/serializer_objects.hpp>
 #include <c7a/data/serializer_cereal_archive.hpp>
+// #include <cereal/archives/binary.hpp>
+
+#include <cereal/details/traits.hpp>
 
 namespace c7a {
 namespace data {
@@ -41,7 +44,6 @@ struct Impl<Archive, T,
             typename std::enable_if<std::is_pod<T>::value>::type>
 {
     static void Serialize(const T& x, Archive& a) {
-        // LOG << "is_pod serialization";
         a.template Put<T>(x);
     }
     static T Deserialize(Archive& a) {
@@ -134,16 +136,23 @@ struct Impl<Archive, std::tuple<Args ...> >
     static const bool fixed_size = TupleSerializer<Archive, 0, Args ...>::fixed_size;
 };
 
-/******************** Test Serialization of an object using cereal **********************/
-template <typename Archive>
-struct Impl<Archive, struct TestCerealObject2>
+/******************** Use cereal if serialization function is given **********************/
+
+//?????
+
+template <typename Archive, typename T>
+struct Impl<Archive, T, typename std::enable_if<
+                cereal::traits::is_input_serializable<T, Archive>::value&&
+                !std::is_pod<T>::value
+                >::type>
 {
-    static void       Serialize(const struct TestCerealObject2& t, Archive& a) {
+    static void Serialize(const T& t, Archive& a) {
+        LOG << "Type T is " << typeid(T).name();
         cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
         oarchive(t);                                   // Write the data to the archive
     }
 
-    static TestCerealObject2 Deserialize(Archive& a) {
+    static T Deserialize(Archive& a) {
         cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
         TestCerealObject2 res;
         iarchive(res);                                 // Read the data from the archive
@@ -152,9 +161,9 @@ struct Impl<Archive, struct TestCerealObject2>
     static const bool fixed_size = false;
 };
 
-} // namespace serializers
-
 /***************** Call Serialize/Deserialize *************************/
+
+} // namespace serializers
 
 //! Serialize the type to std::string
 template <typename Archive, typename T>
