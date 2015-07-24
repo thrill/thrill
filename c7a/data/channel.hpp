@@ -205,7 +205,8 @@ public:
             for ( ; current < limit; ++current) {
                 assert(reader.HasNext());
                 // move over one item (with deserialization and serialization)
-                writers[worker_id](reader.template Next<Type>());
+                writers[worker_id](reader.template Next<ItemType>());
+            }
 #else
             if (current != limit) {
                 writers[worker_id].AppendBlocks(
