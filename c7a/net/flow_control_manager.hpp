@@ -3,7 +3,7 @@
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Emanuel Jbstl <emanuel.joebstl@gmail.com>
+ * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
