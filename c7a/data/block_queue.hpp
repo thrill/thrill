@@ -64,7 +64,7 @@ public:
         closed_ = true;
 
         // enqueue a closing VirtualBlock.
-        queue_.emplace(nullptr, 0, 0, 0);
+        queue_.emplace();
     }
 
     VirtualBlock Pop() {

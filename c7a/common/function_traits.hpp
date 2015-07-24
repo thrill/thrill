@@ -34,10 +34,20 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
 
     using result_type = ReturnType;
 
+    //! the i-th argument is equivalent to the i-th tuple element of a tuple
+    //! composed of those arguments.
     template <size_t i>
     using arg = typename std::tuple_element<i, std::tuple<Args ...> >::type;
-    // the i-th argument is equivalent to the i-th tuple element of a tuple
-    // composed of those arguments.
+
+    //! return i-th argument reduced to plain type: remove_cv and
+    //! remove_reference.
+    template <size_t i>
+    using arg_plain =
+              typename std::remove_cv<
+                  typename std::remove_reference<
+                      arg<i>
+                      >::type
+                  >::type;
 };
 
 } // namespace common

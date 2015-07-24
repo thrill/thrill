@@ -14,6 +14,7 @@
 
 #include <c7a/common/config.hpp>
 #include <c7a/common/item_serializer_tools.hpp>
+#include <c7a/common/logger.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/serializer.hpp>
 
@@ -58,6 +59,10 @@ public:
     //! Next() reads a complete item T
     template <typename T>
     T Next() {
+        assert(HasNext());
+        assert(nitems_ > 0);
+        --nitems_;
+
         if (self_verify) {
             // for self-verification, T is prefixed with its hash code
             size_t code = Get<size_t>();
@@ -81,10 +86,117 @@ public:
 
     //! Return complete contents until empty as a std::vector<T>. Use this only
     //! if you are sure that it will fit into memory, -> only use it for tests.
-    template <typename T>
-    std::vector<T> ReadComplete() {
-        std::vector<T> out;
-        while (HasNext()) out.emplace_back(Next<T>());
+    template <typename ItemType>
+    std::vector<ItemType> ReadComplete() {
+        std::vector<ItemType> out;
+        while (HasNext()) out.emplace_back(Next<ItemType>());
+        return out;
+    }
+
+    //! Read n items, however, do not deserialize them but deliver them as a
+    //! vector of VirtualBlock objects. This is used to take out a range of
+    //! items, the internal item cursor is advanced by n.
+    template <typename ItemType>
+    std::vector<VirtualBlock> GetItemBatch(size_t n) {
+        static const bool debug = false;
+
+        std::vector<VirtualBlock> out;
+        if (n == 0) return out;
+
+        die_unless(HasNext());
+        assert(block_);
+
+        const Byte* begin_output = current_;
+        size_t first_output = current_ - block_->begin();
+
+        // inside the if-clause the current_ may not point to a valid item
+        // boundary.
+        if (n >= nitems_)
+        {
+            // *** if the current block still contains items, push it partially
+
+            if (n >= nitems_) {
+                // construct first VirtualBlock using current_ pointer
+                out.emplace_back(
+                    block_,
+                    // valid range: excludes preceding items.
+                    current_ - block_->begin(), end_ - block_->begin(),
+                    // first item is at begin_ (we may have dropped some)
+                    current_ - block_->begin(),
+                    // remaining items in this block
+                    nitems_);
+
+                sLOG << "partial first:" << out.back();
+
+                n -= nitems_;
+
+                // get next block. if not possible -> may be okay since last
+                // item might just terminate the current block.
+                if (!NextBlock()) {
+                    assert(n == 0);
+                    sLOG << "exit1 after batch:"
+                         << "current_=" << current_ - block_->begin();
+                    return out;
+                }
+            }
+
+            // *** then append complete blocks without deserializing them
+
+            while (n >= nitems_) {
+                out.emplace_back(
+                    block_,
+                    // full range is valid.
+                    current_ - block_->begin(), end_ - block_->begin(),
+                    first_item_, nitems_);
+
+                sLOG << "middle:" << out.back();
+
+                n -= nitems_;
+
+                if (!NextBlock()) {
+                    assert(n == 0);
+                    sLOG << "exit2 after batch:"
+                         << "current_=" << current_ - block_->begin();
+                    return out;
+                }
+            }
+
+            // move current_ to the first valid item of the block we got (at
+            // least one NextBlock() has been called). But when constructing the
+            // last VirtualBlock, we have to include the partial item in the
+            // front.
+            begin_output = current_;
+            first_output = first_item_;
+
+            current_ = block_->begin() + first_item_;
+        }
+
+        // put prospective last block into vector.
+
+        out.emplace_back(
+            block_,
+            // full range is valid.
+            begin_output - block_->begin(), end_ - block_->begin(),
+            first_output, n);
+
+        // skip over remaining items in this block, there while collect all
+        // blocks needed for those items via block_collect_. There can be more
+        // than one block necessary for Next if an item is large!
+
+        block_collect_ = &out;
+        while (n > 0) {
+            Next<ItemType>();
+            --n;
+        }
+        block_collect_ = nullptr;
+
+        out.back().set_end(current_ - block_->begin());
+
+        sLOG << "partial last:" << out.back();
+
+        sLOG << "exit3 after batch:"
+             << "current_=" << current_ - block_->begin();
+
         return out;
     }
 
@@ -155,7 +267,7 @@ protected:
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;
 
-    //! The current block being read.
+    //! The current block being read, this holds a shared pointer reference.
     BlockCPtr block_;
 
     //! current read pointer into current block of file.
@@ -164,15 +276,31 @@ protected:
     //! pointer to end of current block.
     const Byte* end_ = nullptr;
 
+    //! offset of first valid item in block (needed only during direct copying
+    //! of VirtualBlocks).
+    size_t first_item_;
+
+    //! remaining number of items starting in this block
+    size_t nitems_;
+
+    //! pointer to vector to collect blocks in GetItemRange.
+    std::vector<VirtualBlock>* block_collect_ = nullptr;
+
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
         VirtualBlock vb = source_.NextBlock();
-        block_ = vb.block;
+        sLOG0 << "BlockReader::NextBlock" << vb;
+
+        block_ = vb.block();
         if (!vb.IsValid()) return false;
-        // TODO(tb): figure out how to make VirtualBlock/BlockReader work
-        // correctly when first item != 0.
-        current_ = vb.block->begin();
-        end_ = vb.block->begin() + vb.bytes_used;
+
+        if (block_collect_)
+            block_collect_->emplace_back(vb);
+
+        current_ = vb.data_begin();
+        end_ = vb.data_end();
+        first_item_ = vb.first_item();
+        nitems_ = vb.nitems();
         return true;
     }
 };

@@ -45,6 +45,7 @@ public:
     using Byte = unsigned char;
     using Block = data::Block<BlockSize>;
     using BlockPtr = std::shared_ptr<Block>;
+    using VirtualBlock = data::VirtualBlock<BlockSize>;
 
     using BlockSink = data::BlockSink<BlockSize>;
 
@@ -74,16 +75,14 @@ public:
     void Close() {
         if (!closed_) { //potential race condition
             closed_ = true;
-            if (current_ != block_->begin() || nitems_) {
-                FlushBlock();
-                nitems_ = 0;
-                block_ = BlockPtr();
-                current_ = nullptr;
-            }
+            MaybeFlushBlock();
             if (sink_)
                 sink_->Close();
         }
     }
+
+    //! Return whether an actual BlockSink is attached.
+    bool IsValid() const { return sink_ != nullptr; }
 
     //! Flush the current block (only really meaningful for a network sink).
     void Flush() {
@@ -91,14 +90,25 @@ public:
         AllocateBlock();
     }
 
-    //! Return whether an actual BlockSink is attached.
-    bool IsValid() const { return sink_ != nullptr; }
+    //! Directly write Blocks to the underlying BlockSink (after flushing the
+    //! current one if need be).
+    void AppendBlocks(const std::vector<VirtualBlock>& vblocks) {
+        MaybeFlushBlock();
+
+        for (const VirtualBlock& vb : vblocks)
+            sink_->AppendBlock(vb);
+
+        AllocateBlock();
+    }
 
     //! \name Appending (Generic) Serializable Items
     //! \{
 
     //! Mark beginning of an item.
     BlockWriterBase & MarkItem() {
+        if (current_ == end_)
+            Flush();
+
         if (nitems_ == 0)
             first_offset_ = current_ - block_->begin();
 
@@ -140,8 +150,7 @@ public:
             size -= partial_size;
             current_ += partial_size;
 
-            FlushBlock();
-            AllocateBlock();
+            Flush();
         }
 
         // copy remaining bytes.
@@ -159,8 +168,7 @@ public:
             *current_++ = data;
         }
         else {
-            FlushBlock();
-            AllocateBlock();
+            Flush();
             *current_++ = data;
         }
         return *this;
@@ -196,8 +204,18 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_->AppendBlock(block_, current_ - block_->begin(),
-                           nitems_, first_offset_);
+        sink_->AppendBlock(block_, 0, current_ - block_->begin(),
+                           first_offset_, nitems_);
+    }
+
+    //! Flush the currently created block if it contains at least one byte
+    void MaybeFlushBlock() {
+        if (current_ != block_->begin() || nitems_) {
+            FlushBlock();
+            nitems_ = 0;
+            block_ = BlockPtr();
+            current_ = nullptr;
+        }
     }
 
     //! current block, already allocated as shared ptr, since we want to use

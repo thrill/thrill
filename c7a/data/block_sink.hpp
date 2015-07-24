@@ -40,9 +40,9 @@ public:
     virtual void AppendBlock(const VirtualBlock& vb) = 0;
 
     //! Appends the VirtualBlock and detaches it afterwards.
-    void AppendBlock(const BlockPtr& block, size_t block_used,
-                     size_t nitems, size_t first) {
-        return AppendBlock(VirtualBlock(block, block_used, nitems, first));
+    void AppendBlock(const BlockPtr& block, size_t begin, size_t end,
+                     size_t first_item, size_t nitems) {
+        return AppendBlock(VirtualBlock(block, begin, end, first_item, nitems));
     }
 };
 
