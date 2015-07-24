@@ -25,7 +25,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentStack>
+template <typename ValueType, typename ParentDIARef>
 class WriteNode : public ActionNode
 {
     static const bool debug = false;
@@ -35,13 +35,9 @@ public:
     using Super::result_file_;
     using Super::context_;
 
-    using ParentInput = typename ParentStack::Input;
-
-    WriteNode(Context& ctx,
-              const std::shared_ptr<DIANode<ParentInput> >& parent,
-              const ParentStack& parent_stack,
+    WriteNode(const ParentDIARef& parent,
               const std::string& path_out)
-        : ActionNode(ctx, { parent }, "Write"),
+        : ActionNode(parent.ctx(), { parent.node() }, "Write"),
           path_out_(path_out),
           file_(path_out_),
           emit_(file_)
@@ -53,8 +49,8 @@ public:
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType input) {
@@ -129,12 +125,10 @@ template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteToFileSystem(
     const std::string& filepath) const {
 
-    using WriteResultNode = WriteNode<ValueType, Stack>;
+    using WriteResultNode = WriteNode<ValueType, DIARef>;
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(node_->context(),
-                                          node_,
-                                          stack_,
+        std::make_shared<WriteResultNode>(*this,
                                           filepath);
 
     core::StageBuilder().RunScope(shared_node.get());

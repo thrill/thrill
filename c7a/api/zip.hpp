@@ -65,7 +65,7 @@ namespace api {
  * \tparam ZipFunction Type of the ZipFunction.
  */
 template <typename ValueType,
-          typename ParentStack0, typename ParentStack1,
+          typename ParentDIARef0, typename ParentDIARef1,
           typename ZipFunction>
 class TwoZipNode : public DOpNode<ValueType>
 {
@@ -84,9 +84,6 @@ class TwoZipNode : public DOpNode<ValueType>
     using ZipResult =
               typename FunctionTraits<ZipFunction>::result_type;
 
-    using ParentInput0 = typename ParentStack0::Input;
-    using ParentInput1 = typename ParentStack1::Input;
-
 public:
     /*!
      * Constructor for a ZipNode.
@@ -98,13 +95,10 @@ public:
      * \param parent_stack1 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
      */
-    TwoZipNode(Context& ctx,
-               const std::shared_ptr<DIANode<ParentInput0> >& parent0,
-               const std::shared_ptr<DIANode<ParentInput1> >& parent1,
-               const ParentStack0& parent_stack0,
-               const ParentStack1& parent_stack1,
+    TwoZipNode(const ParentDIARef0* parent0,
+               const ParentDIARef1* parent1,
                ZipFunction zip_function)
-        : DOpNode<ValueType>(ctx, { parent0, parent1 }, "ZipNode"),
+        : DOpNode<ValueType>(parent0->ctx(), { parent0->node(), parent1->node() }, "ZipNode"),
           zip_function_(zip_function)
     {
         // // Hook PreOp(s)
@@ -117,11 +111,11 @@ public:
 
         // close the function stacks with our pre ops and register it at parent
         // nodes for output
-        auto lop_chain0 = parent_stack0.push(pre_op0_fn).emit();
-        auto lop_chain1 = parent_stack1.push(pre_op1_fn).emit();
+        auto lop_chain0 = parent0->stack().push(pre_op0_fn).emit();
+        auto lop_chain1 = parent1->stack().push(pre_op1_fn).emit();
 
-        parent0->RegisterChild(lop_chain0);
-        parent1->RegisterChild(lop_chain1);
+        parent0->node()->RegisterChild(lop_chain0);
+        parent1->node()->RegisterChild(lop_chain1);
     }
 
     ~TwoZipNode() { }
@@ -139,7 +133,7 @@ public:
     void PushData() override {
         size_t result_count = 0;
 
-        if (dia_min_size_ != 0) {
+        if (result_size_ != 0) {
             // get inbound readers from all Channels
             std::vector<data::Channel::CachingConcatReader> readers {
                 channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
@@ -210,11 +204,8 @@ private:
     //! prefix sum over the number of items in workers
     std::array<size_t, num_inputs_> dia_size_prefixsum_;
 
-    //! total number of items in dia over all workers
-    std::array<size_t, num_inputs_> dia_total_size_;
-
     //! minimum total size of Zipped inputs
-    size_t dia_min_size_;
+    size_t result_size_;
 
     //! \}
 
@@ -223,30 +214,35 @@ private:
     void DoScatter(size_t in) {
         const size_t workers = context_.number_worker();
 
-        size_t local_size = files_[in].NumItems();
-        size_t size_prefixsum = dia_size_prefixsum_[in];
-        const size_t& total_size = dia_total_size_[in];
+        size_t local_begin =
+            std::min(result_size_,
+                     dia_size_prefixsum_[in] - files_[in].NumItems());
+        size_t local_end = std::min(result_size_, dia_size_prefixsum_[in]);
+        size_t local_size = local_end - local_begin;
 
         //! number of elements per worker (rounded up)
-        size_t per_pe = (total_size + workers - 1) / workers;
+        size_t per_pe = (result_size_ + workers - 1) / workers;
         //! offsets for scattering
         std::vector<size_t> offsets(workers, 0);
 
-        sLOG << "input" << in << "dia_size_prefixsum" << size_prefixsum
-             << "dia_total_size" << total_size;
-
         size_t offset = 0;
-        size_t count = std::min(per_pe - size_prefixsum % per_pe, local_size);
-        size_t target = size_prefixsum / per_pe;
+        size_t count = std::min(per_pe - local_begin % per_pe, local_size);
+        size_t target = local_begin / per_pe;
+
+        sLOG << "input" << in
+             << "local_begin" << local_begin << "local_end" << local_end
+             << "local_size" << local_size
+             << "result_size_" << result_size_ << "pre_pe" << per_pe
+             << "count" << count << "target" << target;
 
         //! do as long as there are elements to be scattered, includes elements
         //! kept on this worker
         while (local_size > 0 && target < workers) {
             offsets[target] = offset + count;
-            size_prefixsum += count;
+            local_begin += count;
             local_size -= count;
             offset += count;
-            count = std::min(per_pe - size_prefixsum % per_pe, local_size);
+            count = std::min(per_pe - local_begin % per_pe, local_size);
             ++target;
         }
 
@@ -279,27 +275,29 @@ private:
 
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
+        //! total number of items in DIAs over all workers
+        std::array<size_t, num_inputs_> dia_total_size;
+
         for (size_t in = 0; in < num_inputs_; ++in) {
             //! number of elements of this worker
             size_t dia_local_size = files_[in].NumItems();
             sLOG << "input" << in << "dia_local_size" << dia_local_size;
 
-            //! exclusive prefixsum of number of elements
-            dia_size_prefixsum_[in] =
-                channel.PrefixSum(dia_local_size, common::SumOp<size_t>(), false);
+            //! inclusive prefixsum of number of elements: we have items from
+            //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
+            dia_size_prefixsum_[in] = channel.PrefixSum(dia_local_size);
 
             //! total number of elements, over all worker. TODO(tb): use a
             //! Broadcast from the last node instead.
-            dia_total_size_[in] = channel.AllReduce(dia_local_size);
+            dia_total_size[in] = channel.AllReduce(dia_local_size);
         }
 
-        // return only the minimum size of all DIAs
-        dia_min_size_ =
-            *std::min_element(dia_total_size_.begin(), dia_total_size_.end());
+        // return only the minimum size of all DIAs.
+        result_size_ =
+            *std::min_element(dia_total_size.begin(), dia_total_size.end());
 
         // perform scatters to exchange data, with different types.
-
-        if (dia_min_size_ != 0) {
+        if (result_size_ != 0) {
             DoScatter<ZipArg0>(0);
             DoScatter<ZipArg1>(1);
         }
@@ -315,8 +313,7 @@ auto DIARef<ValueType, Stack>::Zip(
               = typename FunctionTraits<ZipFunction>::result_type;
 
     using ZipResultNode
-              = TwoZipNode<ZipResult, Stack, typename SecondDIA::Stack,
-                           ZipFunction>;
+              = TwoZipNode<ZipResult, DIARef, SecondDIA, ZipFunction>;
 
     static_assert(
         std::is_convertible<
@@ -333,11 +330,8 @@ auto DIARef<ValueType, Stack>::Zip(
         "ZipFunction has the wrong input type in DIA 1");
 
     auto zip_node
-        = std::make_shared<ZipResultNode>(node_->context(),
-                                          node_,
-                                          second_dia.node(),
-                                          stack_,
-                                          second_dia.stack(),
+        = std::make_shared<ZipResultNode>(this,
+                                          &second_dia,
                                           zip_function);
 
     auto zip_stack = zip_node->ProduceStack();

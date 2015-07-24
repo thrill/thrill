@@ -149,6 +149,10 @@ public:
         return stack_;
     }
 
+    Context & ctx() const {
+        return node_->context();
+    }
+
     /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
@@ -165,7 +169,7 @@ public:
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
-                  = typename common::FunctionTraits<MapFunction>::result_type;
+                  = typename FunctionTraits<MapFunction>::result_type;
         auto conv_map_function = [=](MapArgument input, auto emit_func) {
                                      emit_func(map_function(input));
                                  };
@@ -194,7 +198,7 @@ public:
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
         using FilterArgument
-                  = typename common::FunctionTraits<FilterFunction>::template arg<0>;
+                  = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
                                         if (filter_function(input)) emit_func(input);
                                     };

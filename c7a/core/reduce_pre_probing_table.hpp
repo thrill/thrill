@@ -29,7 +29,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreProbingTable
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
@@ -58,6 +58,8 @@ public:
 public:
     typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
 
+    typedef std::function<bool(Key, Key)> EqualToFunction;
+
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
                           size_t num_items_resize_scale,
@@ -66,7 +68,7 @@ public:
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
                           std::vector<EmitterFunction>& emit,
-                          std::pair<Key, Value> sentinel,
+                          Key sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
@@ -79,7 +81,11 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                })
+                                },
+                          EqualToFunction equal_to_function
+                            = [](Key k1, Key k2) {
+                                return k1 == k2;
+                            })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -89,14 +95,15 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init(sentinel);
     }
 
     ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
                           ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
-                          std::pair<Key, Value> sentinel,
+                          Key sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
@@ -109,12 +116,17 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
+                                },
+                          EqualToFunction equal_to_function
+                                = [](Key k1, Key k2) {
+                                    return k1 == k2;
                                 })
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init(sentinel);
     }
@@ -126,7 +138,8 @@ public:
 
     ~ReducePreProbingTable() { }
 
-    void init(std::pair<Key, Value> sentinel) {
+    void init(Key sentinel) {
+
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -140,7 +153,7 @@ public:
         num_items_per_partition_ = table_size_ / num_partitions_;
 
         // set the key to initial key
-        sentinel_ = KeyValuePair(sentinel.first, sentinel.second);
+        sentinel_ = KeyValuePair(sentinel, Value());
         vector_.resize(table_size_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
     }
@@ -160,6 +173,8 @@ public:
         assert(h.partition_offset >= 0 && h.partition_offset < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
+        //std::cout << key << " " << h.partition_id << " " << h.partition_offset << " " << h.global_index << std::endl;
+
         int pos = h.global_index;
         size_t pos_offset = 0;
 
@@ -168,9 +183,9 @@ public:
         // iterators.
         KeyValuePair* current = &vector_[pos];
 
-        while (current->first != sentinel_.first)
+        while (!equal_to_function_(current->first, sentinel_.first))
         {
-            if (current->first == key)
+            if (equal_to_function_(current->first, key))
             {
                 LOG << "match of key: " << key
                     << " and " << current->first << " ... reducing...";
@@ -195,6 +210,9 @@ public:
                 pos -= (h.partition_offset + pos_offset);
             }
 
+            //std::cout << "7" << std::endl;
+            //std::cout << pos + pos_offset << std::endl;
+
             current = &vector_[pos + pos_offset];
         }
 
@@ -216,10 +234,14 @@ public:
             FlushLargestPartition();
         }
 
-        if (items_per_partition_[h.partition_id]
-            / num_items_per_partition_ > max_partition_fill_ratio_)
+        //std::cout << key << std::endl;
+        //std::cout << items_per_partition_[h.partition_id] / num_items_per_partition_ << std::endl;
+        //std::cout << max_partition_fill_ratio_ << std::endl;
+
+        if ((float)items_per_partition_[h.partition_id]
+            / (float)num_items_per_partition_ > max_partition_fill_ratio_)
         {
-            LOG << "resize";
+            std::cout << "resize" << std::endl;
             ResizeUp();
         }
     }
@@ -365,7 +387,7 @@ public:
      * resize scale factor. All items are rehashed as part of the operation.
      */
     void ResizeUp() {
-        LOG << "Resizing";
+        std::cout << "Resizing" << std::endl;
         table_size_ *= num_items_resize_scale_;
         num_items_per_partition_ = table_size_ / num_partitions_;
         // reset items_per_partition and table_size
@@ -388,7 +410,7 @@ public:
                 Insert(std::move(current.second));
             }
         }
-        LOG << "Resized";
+        std::cout << "Resized" << std::endl;
     }
 
     /*!
@@ -496,6 +518,8 @@ private:
     KeyValuePair sentinel_;
 
     HashFunction hash_function_;
+
+    EqualToFunction equal_to_function_;
 };
 
 } // namespace core
