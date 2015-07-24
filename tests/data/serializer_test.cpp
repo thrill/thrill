@@ -9,6 +9,7 @@
 
 #include <c7a/common/logger.hpp>
 #include <c7a/data/file.hpp>
+#include <c7a/data/block_queue.hpp>
 #include <c7a/data/serializer.hpp>
 #include <gtest/gtest.h>
 #include <tests/data/serializer_objects.hpp>
@@ -415,12 +416,37 @@ TEST(Serializer, CEREAL_TEST)
         File::Reader r = f.GetReader();
         std::istringstream os2(os.str());
         MyRecord myData2;
-        c7aInputArchive_cp archive2(r);
+        c7aInputArchive_cp<decltype(r)> archive2(r);
         archive2(myData2);
 
         LOG << myData2.a;
 
         ASSERT_EQ(myData2.a, myData.a);
+    }
+}
+
+TEST(Serializer, CerealTestWithBlockQueue)
+{
+    using MyQueue = BlockQueue<16>;
+    MyQueue q;
+
+    {
+        auto qw = q.GetWriter();
+
+        MyRecord myData;
+        myData.a = "asdfasdf";
+        myData.b = { "asdf", "asdf" };
+
+        qw(myData);
+    }
+    {
+        auto qr  = q.GetReader();
+
+        ASSERT_TRUE(qr.HasNext());
+        MyRecord myData2 = qr.Next<MyRecord>();
+
+        ASSERT_EQ("asdfasdf", myData2.a);
+        ASSERT_FALSE(qr.HasNext());
     }
 }
 

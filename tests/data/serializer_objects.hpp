@@ -11,7 +11,7 @@
 #ifndef C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #define C7A_TESTS_DATA_SERIALIZER_OBJECTS_HEADER
 #include <string>
-
+#include <unordered_map>
 namespace c7a {
 namespace data {
 namespace serializers {

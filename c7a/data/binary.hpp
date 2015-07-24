@@ -12,9 +12,6 @@
 #ifndef C7A_DATA_BINARY_HEADER
 #define C7A_DATA_BINARY_HEADER
 
-#include <c7a/data/block.hpp>
-#include <c7a/data/block_writer.hpp>
-#include <c7a/data/file.hpp>
 #include <cereal/cereal.hpp>
 #include <sstream>
 
@@ -94,12 +91,13 @@ private:
     inadvertently.
 
     \ingroup Archives */
-class c7aInputArchive_cp : public cereal::InputArchive<c7aInputArchive_cp, cereal::AllowEmptyClassElision>
+template <typename Reader>
+class c7aInputArchive_cp : public cereal::InputArchive<c7aInputArchive_cp<Reader>, cereal::AllowEmptyClassElision>
 {
 public:
     //! Construct, loading from the provided stream
-    c7aInputArchive_cp(c7a::data::File::Reader& reader) :
-        InputArchive<c7aInputArchive_cp, cereal::AllowEmptyClassElision>(this),
+    c7aInputArchive_cp(Reader& reader) :
+        cereal::InputArchive<c7aInputArchive_cp<Reader>, cereal::AllowEmptyClassElision>(this),
         reader_(reader)
     { }
 
@@ -109,7 +107,7 @@ public:
     }
 
 private:
-    c7a::data::File::Reader& reader_;
+    Reader& reader_;
 };
 
 // ######################################################################
@@ -124,27 +122,41 @@ CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp<Writer>& ar, T const& t) {
 }
 
 //! Loading for POD types from binary
-template <class T>
+template <class Reader, class T>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, T& t) {
+CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp<Reader>& ar, T& t) {
     ar.loadBinary(std::addressof(t), sizeof(t));
 }
 
 //! Serializing NVP types to binary
-template <class Archive, class T, typename Writer>
-inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp<Writer>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, cereal::NameValuePair<T>&t)
+template <class Writer, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aOutputArchive_cp<Writer> & ar, cereal::NameValuePair<T>&t)
+{
+    ar(t.value);
+}
+
+//! Serializing NVP types to binary
+template <class Reader, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aInputArchive_cp<Reader> & ar, cereal::NameValuePair<T>&t)
 {
     ar(t.value);
 }
 
 //! Serializing SizeTags to binary
-template <class Archive, class T, typename Writer>
-inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp<Writer>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, cereal::SizeTag<T>&t)
+template <class Writer, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aOutputArchive_cp<Writer> & ar, cereal::SizeTag<T>&t)
+{
+    ar(t.size);
+}
+
+//! Serializing SizeTags to binary
+template <class Reader, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aInputArchive_cp<Reader> & ar, cereal::SizeTag<T>&t)
 {
     ar(t.size);
 }
@@ -157,11 +169,12 @@ void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp<Writer>& ar, cereal::BinaryDa
 }
 
 //! Loading binary data
-template <class T>
+template <class Reader, class T>
 inline
-void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, cereal::BinaryData<T>& bd) {
+void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp<Reader>& ar, cereal::BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
+
 } //namespace data
 } //namespace c7a
 
@@ -172,25 +185,6 @@ void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, cereal::BinaryData<T>& bd
 // tie input and output archives together
 
 // CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive_cp, c7a::data::c7aOutputArchive_cp)
-namespace cereal {
-namespace traits {
-namespace detail {
-
-template <>
-struct get_output_from_input<c7a::data::c7aInputArchive_cp>
-{
-    using type = c7a::data::c7aOutputArchive_cp<c7a::data::BlockWriter>;
-};
-
-template <typename Writer>
-struct get_input_from_output<c7a::data::c7aOutputArchive_cp<Writer>>
-{
-    using type = c7a::data::c7aInputArchive_cp;
-};
-
-}
-}
-}     /* end namespaces */
 
 #endif // !C7A_DATA_BINARY_HEADER
 

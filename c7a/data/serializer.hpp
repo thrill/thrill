@@ -20,7 +20,7 @@
 
 #include <c7a/common/logger.hpp>
 
-#include <c7a/data/serializer_cereal_archive.hpp>
+#include <c7a/data/binary.hpp>
 #include <tests/data/serializer_objects.hpp>
 // #include <cereal/archives/binary.hpp>
 
@@ -165,13 +165,13 @@ struct Impl<Archive, T, typename std::enable_if<
 {
     static void Serialize(const T& t, Archive& a) {
         LOG << "Type T is " << typeid(T).name();
-        cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
+        c7aOutputArchive_cp<Archive> oarchive(a); // Create an output archive
         oarchive(t);                                   // Write the data to the archive
     }
 
     static T Deserialize(Archive& a) {
-        cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
-        TestCerealObject2 res;
+        c7aInputArchive_cp<Archive> iarchive(a);  // Create an output archive
+        T res;
         iarchive(res);                                 // Read the data from the archive
         return res;
     }
