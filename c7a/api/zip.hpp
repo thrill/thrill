@@ -133,7 +133,7 @@ public:
     void PushData() override {
         size_t result_count = 0;
 
-        if (dia_min_size_ != 0) {
+        if (result_size_ != 0) {
             // get inbound readers from all Channels
             std::vector<data::Channel::CachingConcatReader> readers {
                 channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
@@ -204,11 +204,8 @@ private:
     //! prefix sum over the number of items in workers
     std::array<size_t, num_inputs_> dia_size_prefixsum_;
 
-    //! total number of items in dia over all workers
-    std::array<size_t, num_inputs_> dia_total_size_;
-
     //! minimum total size of Zipped inputs
-    size_t dia_min_size_;
+    size_t result_size_;
 
     //! \}
 
@@ -217,30 +214,35 @@ private:
     void DoScatter(size_t in) {
         const size_t workers = context_.number_worker();
 
-        size_t local_size = files_[in].NumItems();
-        size_t size_prefixsum = dia_size_prefixsum_[in];
-        const size_t& total_size = dia_total_size_[in];
+        size_t local_begin =
+            std::min(result_size_,
+                     dia_size_prefixsum_[in] - files_[in].NumItems());
+        size_t local_end = std::min(result_size_, dia_size_prefixsum_[in]);
+        size_t local_size = local_end - local_begin;
 
         //! number of elements per worker (rounded up)
-        size_t per_pe = (total_size + workers - 1) / workers;
+        size_t per_pe = (result_size_ + workers - 1) / workers;
         //! offsets for scattering
         std::vector<size_t> offsets(workers, 0);
 
-        sLOG << "input" << in << "dia_size_prefixsum" << size_prefixsum
-             << "dia_total_size" << total_size;
-
         size_t offset = 0;
-        size_t count = std::min(per_pe - size_prefixsum % per_pe, local_size);
-        size_t target = size_prefixsum / per_pe;
+        size_t count = std::min(per_pe - local_begin % per_pe, local_size);
+        size_t target = local_begin / per_pe;
+
+        sLOG << "input" << in
+             << "local_begin" << local_begin << "local_end" << local_end
+             << "local_size" << local_size
+             << "result_size_" << result_size_ << "pre_pe" << per_pe
+             << "count" << count << "target" << target;
 
         //! do as long as there are elements to be scattered, includes elements
         //! kept on this worker
         while (local_size > 0 && target < workers) {
             offsets[target] = offset + count;
-            size_prefixsum += count;
+            local_begin += count;
             local_size -= count;
             offset += count;
-            count = std::min(per_pe - size_prefixsum % per_pe, local_size);
+            count = std::min(per_pe - local_begin % per_pe, local_size);
             ++target;
         }
 
@@ -273,27 +275,29 @@ private:
 
         net::FlowControlChannel& channel = context_.flow_control_channel();
 
+        //! total number of items in DIAs over all workers
+        std::array<size_t, num_inputs_> dia_total_size;
+
         for (size_t in = 0; in < num_inputs_; ++in) {
             //! number of elements of this worker
             size_t dia_local_size = files_[in].NumItems();
             sLOG << "input" << in << "dia_local_size" << dia_local_size;
 
-            //! exclusive prefixsum of number of elements
-            dia_size_prefixsum_[in] =
-                channel.PrefixSum(dia_local_size, common::SumOp<size_t>(), false);
+            //! inclusive prefixsum of number of elements: we have items from
+            //! [dia_size_prefixsum - local_size, dia_size_prefixsum).
+            dia_size_prefixsum_[in] = channel.PrefixSum(dia_local_size);
 
             //! total number of elements, over all worker. TODO(tb): use a
             //! Broadcast from the last node instead.
-            dia_total_size_[in] = channel.AllReduce(dia_local_size);
+            dia_total_size[in] = channel.AllReduce(dia_local_size);
         }
 
-        // return only the minimum size of all DIAs
-        dia_min_size_ =
-            *std::min_element(dia_total_size_.begin(), dia_total_size_.end());
+        // return only the minimum size of all DIAs.
+        result_size_ =
+            *std::min_element(dia_total_size.begin(), dia_total_size.end());
 
         // perform scatters to exchange data, with different types.
-
-        if (dia_min_size_ != 0) {
+        if (result_size_ != 0) {
             DoScatter<ZipArg0>(0);
             DoScatter<ZipArg1>(1);
         }
