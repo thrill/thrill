@@ -24,7 +24,7 @@ using IntPair = std::pair<int, int>;
 
 struct ReducePreProbingTable : public::testing::Test { };
 
-TEST_F(ReducePreProbingTable, CustomHashFunction) {
+TEST_F(ReducePreProbingTable, DISABLED_CustomHashFunction) {
     auto key_ex = [](int in) {
                       return in;
                   };
