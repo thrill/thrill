@@ -395,7 +395,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<CompareFunction>::template arg<0>
+            typename FunctionTraits<CompareFunction>::template arg<0>
             >::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
@@ -403,13 +403,13 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<CompareFunction>::template arg<1> >::value ||
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
         std::is_convertible<
-            typename common::FunctionTraits<CompareFunction>::result_type,
+            typename FunctionTraits<CompareFunction>::result_type,
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 

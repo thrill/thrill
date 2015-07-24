@@ -113,21 +113,21 @@ auto DIARef<ValueType, Stack>::Sum(
 
     static_assert(
         std::is_same<
-            typename common::FunctionTraits<SumFunction>::template arg<0>,
+            typename FunctionTraits<SumFunction>::template arg<0>,
             ValueType>::value ||
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
 
     static_assert(
         std::is_same<
-            typename common::FunctionTraits<SumFunction>::template arg<1>,
+            typename FunctionTraits<SumFunction>::template arg<1>,
             ValueType>::value ||
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
 
     static_assert(
         std::is_same<
-            typename common::FunctionTraits<SumFunction>::result_type,
+            typename FunctionTraits<SumFunction>::result_type,
             ValueType>::value ||
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
