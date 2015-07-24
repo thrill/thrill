@@ -28,7 +28,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentStack, typename SumFunction>
+template <typename ValueType, typename ParentDIARef, typename SumFunction>
 class PrefixSumNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -37,15 +37,11 @@ class PrefixSumNode : public DOpNode<ValueType>
     using Super::context_;
     using Super::result_file_;
 
-    using ParentInput = typename ParentStack::Input;
-
 public:
-    PrefixSumNode(Context& ctx,
-                  const std::shared_ptr<DIANode<ParentInput> >& parent,
-                  const ParentStack& parent_stack,
+    PrefixSumNode(const ParentDIARef* parent,
                   SumFunction sum_function,
                   ValueType neutral_element)
-        : DOpNode<ValueType>(ctx, { parent }, "PrefixSum"),
+        : DOpNode<ValueType>(parent->ctx(), { parent->node() }, "PrefixSum"),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -55,8 +51,8 @@ public:
                              PreOp(input);
                          };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent->stack().push(pre_op_fn).emit();
+        parent->node()->RegisterChild(lop_chain);
     }
 
     virtual ~PrefixSumNode() { }
@@ -145,7 +141,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, ValueType neutral_element) const {
 
     using SumResultNode
-              = PrefixSumNode<ValueType, Stack, SumFunction>;
+              = PrefixSumNode<ValueType, DIARef, SumFunction>;
 
     static_assert(
         std::is_same<
@@ -169,9 +165,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
         "SumFunction has the wrong input type");
 
     auto shared_node
-        = std::make_shared<SumResultNode>(node_->context(),
-                                          node_,
-                                          stack_,
+        = std::make_shared<SumResultNode>(this,
                                           sum_function,
                                           neutral_element);
 

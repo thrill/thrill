@@ -21,7 +21,7 @@ using c7a::api::StatsNode;
 
 TEST(API, SimpleGraphTest) {
 
-    StatsGraph g("graph_test.out");
+    StatsGraph g;
     StatsNode* a = new StatsNode("LOp1");
     StatsNode* b = new StatsNode("LOp2");
     StatsNode* c = new StatsNode("Sum");
@@ -33,7 +33,7 @@ TEST(API, SimpleGraphTest) {
     g.AddEdge(a, b);
     g.AddEdge(b, c);
     g.AddEdge(b, d);
-    g.BuildLayout();
+    g.BuildLayout("simple_graph.out");
 
     return;
 }
