@@ -78,7 +78,7 @@ struct FlushImpl<false, T, Value, Table>{
     }
 };
 
-template <typename KeyExtractor, typename ReduceFunction, const bool ToIndex = false>
+	template <typename KeyExtractor, typename ReduceFunction, const bool ToIndex = false>
 class ReducePostTable
 {
 public:

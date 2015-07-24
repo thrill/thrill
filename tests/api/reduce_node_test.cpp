@@ -45,7 +45,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                                     return in1 + in2;
                                 };
 
-            auto reduced = integers.ReduceBy(modulo_two, add_function);
+            auto reduced = integers.ReduceByKey(modulo_two, add_function);
 
             std::vector<size_t> out_vec = reduced.AllGather();
 
@@ -85,7 +85,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
             size_t max_index = 8;
 
-            auto reduced = integers.ReduceToIndex(key, add_function, max_index);
+            auto reduced = integers.ReduceToIndexByKey(key, add_function, max_index);
 
             std::vector<size_t> out_vec = reduced.AllGather();
 
