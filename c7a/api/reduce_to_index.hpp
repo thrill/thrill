@@ -139,7 +139,7 @@ public:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)>,
+                                          std::function<void(const ValueType&)>,
                                           true>;
 
         size_t min_local_index =

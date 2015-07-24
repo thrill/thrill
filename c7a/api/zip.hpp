@@ -74,8 +74,8 @@ class TwoZipNode : public DOpNode<ValueType>
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    template <typename T>
-    using FunctionTraits = common::FunctionTraits<T>;
+    template <typename Type>
+    using FunctionTraits = common::FunctionTraits<Type>;
 
     using ZipArg0 =
               typename FunctionTraits<ZipFunction>::template arg_plain<0>;
