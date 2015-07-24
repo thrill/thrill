@@ -144,9 +144,10 @@ auto ReadLines(Context & ctx, std::string filepath,
                                          filepath);
 
     auto read_stack = shared_node->ProduceStack();
-
     return DIARef<ReadResult, decltype(read_stack)>
-               (shared_node, read_stack);
+               (shared_node, 
+                read_stack, 
+                { ctx.stats_graph().AddNode("ReadLines", "DOp") });
 }
 
 //! \}

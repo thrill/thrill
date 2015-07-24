@@ -96,7 +96,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
     CLANG_VERSION_STRING ${clang_full_version_string})
 
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6)
+  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
     # Clang < 3.6 0 (?) does not support debug output for auto return types yet
     string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
     string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})

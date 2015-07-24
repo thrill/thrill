@@ -46,7 +46,7 @@ namespace api {
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename ValueType, typename ParentStack,
+template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction>
 class ReduceNode : public DOpNode<ValueType>
 {
@@ -60,8 +60,6 @@ class ReduceNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    using ParentInput = typename ParentStack::Input;
-
     typedef std::pair<Key, Value> KeyValuePair;
 
     using Super::context_;
@@ -72,26 +70,23 @@ public:
      * Constructor for a ReduceNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param ctx Reference to Context, which holds references to data and
-     * network.
-     * \param parent Parent DIANode.
-     * \param parent_stack Function chain with all lambdas between the parent
+     * \param parent Parent DIARef.
      * and this node
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      */
-    ReduceNode(Context& ctx,
-               const std::shared_ptr<DIANode<ParentInput> >& parent,
-               const ParentStack& parent_stack,
+    ReduceNode(const ParentDIARef& parent,
                KeyExtractor key_extractor,
-               ReduceFunction reduce_function)
-        : DOpNode<ValueType>(ctx, { parent }, "Reduce"),
+               ReduceFunction reduce_function,
+		       const bool preserves_key)
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(ctx.data_manager().GetNewChannel()),
+          channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(ctx.number_worker(), key_extractor,
-                            reduce_function_, emitters_)
+          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
+                            reduce_function_, emitters_, preserves_key),
+		  preserves_key_(preserves_key)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ReduceArg& input) {
@@ -100,8 +95,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a ReduceNode.
@@ -121,21 +116,29 @@ public:
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<KeyExtractor,
-                                          ReduceFunction,
-                                          std::function<void(ValueType)> >;
+                  = core::ReducePostTable<KeyExtractor, ReduceFunction>;
 
-        ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<ValueType>::callbacks());
+		ReduceTable table(key_extractor_, reduce_function_,
+						  DIANode<ValueType>::callbacks());
 
-        //we actually want to wire up callbacks in the ctor and NOT use this blocking method
-        auto reader = channel_->OpenReader();
-        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
-        while (reader.HasNext()) {
-            table.Insert(reader.template Next<Value>());
-        }
+		if (preserves_key_) {
+			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
+			auto reader = channel_->OpenReader();
+			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+			while (reader.HasNext()) {
+				table.Insert(reader.template Next<Value>());
+			}
 
-        table.Flush();
+			table.Flush();
+		} else {
+			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
+			auto reader = channel_->OpenReader();
+			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+			while (reader.HasNext()) {
+				table.Insert(reader.template Next<KeyValuePair>());
+			}
+			table.Flush();
+		}
     }
 
     void Dispose() override { }
@@ -169,11 +172,12 @@ private:
 
     data::ChannelPtr channel_;
 
-    using emitter = data::BlockWriter;
-    std::vector<emitter> emitters_;
+    std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, emitter>
+    core::ReducePreTable<KeyExtractor, ReduceFunction>
     reduce_pre_table_;
+
+	const bool preserves_key_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -201,13 +205,14 @@ template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceBy(
     const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function) const {
+    const ReduceFunction &reduce_function,
+	const bool preserves_key) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using ReduceResultNode
-              = ReduceNode<DOpResult, Stack, KeyExtractor, ReduceFunction>;
+              = ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction>;
 
     static_assert(
         std::is_convertible<
@@ -236,16 +241,17 @@ auto DIARef<ValueType, Stack>::ReduceBy(
         "KeyExtractor has the wrong input type");
 
     auto shared_node
-        = std::make_shared<ReduceResultNode>(node_->context(),
-                                             node_,
-                                             stack_,
+        = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
-                                             reduce_function);
-
+                                             reduce_function,
+			                                 preserves_key);
+	
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>
-               (shared_node, reduce_stack);
+    return DIARef<DOpResult, decltype(reduce_stack)> (
+            shared_node, 
+            reduce_stack,
+            { AddChildStatsNode("Reduce", "DOp") });
 }
 
 //! \}

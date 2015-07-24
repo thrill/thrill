@@ -78,7 +78,7 @@ struct FlushImpl<false, T, Value, Table>{
     }
 };
 
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction, const bool ToIndex = false>
+template <typename KeyExtractor, typename ReduceFunction, const bool ToIndex = false>
 class ReducePostTable
 {
 public:
@@ -87,6 +87,10 @@ public:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+	using KeyValuePair = std::pair<Key, Value>;
+
+	using EmitterFunction = std::function<void(const Value&)>;
 
 protected:
     template <typename Key, typename Value>
@@ -155,20 +159,27 @@ public:
         vector_.resize(num_buckets_, nullptr);
     }
 
+	void Insert (const Value& p) {
+		Key key = key_extractor_(p);
+		Insert(std::make_pair(key, p));
+	}
+
     /*!
      * Inserts a key/value pair.
      *
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const Value& p) {
+    void Insert(const KeyValuePair& p) {
 
-        Key key = key_extractor_(p);
+        //Key key = key_extractor_(p);
 
-        size_t hashed_key = hash_function_(key, this);
+		
+
+        size_t hashed_key = hash_function_(p.first, this);
 
         LOG << "key: "
-            << key
+            << p.first
             << " to idx: "
             << hashed_key;
 
@@ -180,8 +191,8 @@ public:
             LOG << "bucket empty, inserting...";
 
             node<Key, Value>* n = new node<Key, Value>;
-            n->key = key;
-            n->value = p;
+            n->key = p.first;
+            n->value = p.second;
             n->next = nullptr;
             vector_[hashed_key] = n;
 
@@ -194,14 +205,14 @@ public:
             // check if item with same key
             node<Key, Value>* curr_node = vector_[hashed_key];
             do {
-                if (key == curr_node->key) {
+                if (p.first == curr_node->key) {
                     LOG << "match of key: "
-                        << key
+                        << p.first
                         << " and "
                         << curr_node->key
                         << " ... reducing...";
 
-                    (*curr_node).value = reduce_function_(curr_node->value, p);
+                    (*curr_node).value = reduce_function_(curr_node->value, p.second);
 
                     LOG << "...finished reduce!";
 
@@ -217,8 +228,8 @@ public:
 
                 // insert at first pos
                 node<Key, Value>* n = new node<Key, Value>;
-                n->key = key;
-                n->value = p;
+                n->key = p.first;
+                n->value = p.second;
                 n->next = vector_[hashed_key];
                 vector_[hashed_key] = n;
 
@@ -249,8 +260,7 @@ public:
     void Flush() {
 
         FlushImpl<ToIndex, node<Key, Value>*, Value,
-                  ReducePostTable<KeyExtractor, ReduceFunction,
-                                  EmitterFunction, ToIndex> > flush_impl;
+                  ReducePostTable<KeyExtractor, ReduceFunction, ToIndex> > flush_impl;
         flush_impl.FlushToAll(&vector_, num_buckets_, min_local_index_,
                               max_local_index_, this, neutral_element_);
         table_size_ = 0;

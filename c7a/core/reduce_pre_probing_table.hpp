@@ -58,15 +58,16 @@ public:
 public:
     typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
 
+    typedef std::function<bool(Key, Key)> EqualToFunction;
+
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
                           size_t num_items_resize_scale,
-                          size_t num_collisions_to_resize,
                           double max_partition_fill_ratio,
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
                           std::vector<EmitterFunction>& emit,
-                          std::pair<Key, Value> sentinel,
+                          Key sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
@@ -79,24 +80,28 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
-                                })
+                                },
+                          EqualToFunction equal_to_function
+                            = [](Key k1, Key k2) {
+                                return k1 == k2;
+                            })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
-          num_collisions_to_resize_(num_collisions_to_resize),
           max_partition_fill_ratio_(max_partition_fill_ratio),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init(sentinel);
     }
 
     ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
                           ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
-                          std::pair<Key, Value> sentinel,
+                          Key sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
                                     size_t hashed = std::hash<Key>() (v);
@@ -109,12 +114,17 @@ public:
                                                           partition_offset;
                                     hash_result hr(partition_id, partition_offset, global_index);
                                     return hr;
+                                },
+                          EqualToFunction equal_to_function
+                                = [](Key k1, Key k2) {
+                                    return k1 == k2;
                                 })
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init(sentinel);
     }
@@ -126,7 +136,8 @@ public:
 
     ~ReducePreProbingTable() { }
 
-    void init(std::pair<Key, Value> sentinel) {
+    void init(Key sentinel) {
+
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -140,7 +151,7 @@ public:
         num_items_per_partition_ = table_size_ / num_partitions_;
 
         // set the key to initial key
-        sentinel_ = KeyValuePair(sentinel.first, sentinel.second);
+        sentinel_ = KeyValuePair(sentinel, Value());
         vector_.resize(table_size_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
     }
@@ -160,17 +171,14 @@ public:
         assert(h.partition_offset >= 0 && h.partition_offset < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
-        int pos = h.global_index;
-        size_t pos_offset = 0;
+        size_t current_pos = h.global_index;
+        size_t next_partition = (h.global_index / num_items_per_partition_ + 1) * num_items_per_partition_;
 
-        // REVIEW(ms): try to make the loop tighter, remove extra variables and
-        // try to reduce the number of +/-/< operations, have only current + end
-        // iterators.
-        KeyValuePair* current = &vector_[pos];
+        KeyValuePair* current = &vector_[current_pos];
 
-        while (current->first != sentinel_.first)
+        while (!equal_to_function_(current->first, sentinel_.first))
         {
-            if (current->first == key)
+            if (equal_to_function_(current->first, key))
             {
                 LOG << "match of key: " << key
                     << " and " << current->first << " ... reducing...";
@@ -181,27 +189,27 @@ public:
                 return;
             }
 
-            ++pos_offset;
+            ++current_pos;
 
-            if (pos_offset > num_collisions_to_resize_ || pos_offset >= num_items_per_partition_)
+            if (current_pos == next_partition)
+            {
+                current_pos = h.global_index - (h.global_index % num_items_per_partition_);
+            }
+
+            if (current_pos == h.global_index)
             {
                 ResizeUp();
                 Insert(std::move(p));
                 return;
             }
 
-            if (h.partition_offset + pos_offset >= num_items_per_partition_)
-            {
-                pos -= (h.partition_offset + pos_offset);
-            }
-
-            current = &vector_[pos + pos_offset];
+            current = &vector_[current_pos];
         }
 
         // insert new pair
         if (current->first == sentinel_.first)
         {
-            vector_[pos + pos_offset] = KeyValuePair(key, p);
+            vector_[current_pos] = KeyValuePair(key, p);
 
             // increase total counter
             num_items_++;
@@ -216,8 +224,8 @@ public:
             FlushLargestPartition();
         }
 
-        if (items_per_partition_[h.partition_id]
-            / num_items_per_partition_ > max_partition_fill_ratio_)
+        if ((float)items_per_partition_[h.partition_id] / (float)num_items_per_partition_
+            > max_partition_fill_ratio_)
         {
             LOG << "resize";
             ResizeUp();
@@ -470,9 +478,7 @@ private:
 
     size_t num_items_resize_scale_ = 2;                                    // resize scale triggered by max_partition_fill_ratio_
 
-    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max(); // max num of collisions before resize
-
-    double max_partition_fill_ratio_ = 1.0;                                // max partition fill ratio before resize
+    double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
 
     size_t max_num_items_table_ = 1048576;                                 // max num of items before spilling of largest partition
 
@@ -496,6 +502,8 @@ private:
     KeyValuePair sentinel_;
 
     HashFunction hash_function_;
+
+    EqualToFunction equal_to_function_;
 };
 
 } // namespace core
