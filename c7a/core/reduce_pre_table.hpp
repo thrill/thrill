@@ -547,11 +547,15 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    log += "(";
-                    log += bi->first;
+                    log += "item: ";
+                    log += std::to_string(i);
+                    log += " (";
+                    log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
+                           ? std::to_string(bi->first) : "_";
                     log += ", ";
-                    //log += bucket_item.second; // TODO(ms): How to convert Value to a string?
-                    log += ") ";
+                    log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
+                           ? std::to_string(bi->second) : "_";
+                    log += ")\n";
                 }
                 current = current->next;
             }
