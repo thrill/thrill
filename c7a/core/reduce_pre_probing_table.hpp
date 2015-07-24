@@ -257,6 +257,7 @@ public:
                     << " and " << current->first << " ... reducing...";
 
                 current->second = reduce_function_(current->second, p);
+                assert(key == key_extractor_(current->second));
 
                 LOG << "...finished reduce!";
                 return;
