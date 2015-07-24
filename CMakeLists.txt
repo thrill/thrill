@@ -217,8 +217,6 @@ endif()
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
 ################################################################################
-set(ALL_LIBRARIES protobuf ${ALL_LIBRARIES})
-################################################################################
 
 
 ### Descend into Subdirectories
