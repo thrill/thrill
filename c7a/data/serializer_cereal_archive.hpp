@@ -42,9 +42,9 @@
 #define CEREAL_ARCHIVES_C7A_HPP_
 
 #include "cereal/cereal.hpp"
-#include <sstream>
-#include <iostream>
 #include <c7a/common/string.hpp>
+#include <iostream>
+#include <sstream>
 
 // namespace c7a {
 // namespace data {

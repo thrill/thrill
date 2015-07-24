@@ -17,9 +17,9 @@
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <limits>
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -133,7 +133,7 @@ public:
 
         table_size_ = num_partitions_ * num_items_init_scale_;
         if (num_partitions_ > table_size_ &&
-                table_size_ % num_partitions_ != 0) {
+            table_size_ % num_partitions_ != 0) {
             throw std::invalid_argument("partition_size must be less than or equal to num_items "
                                         "AND partition_size a divider of num_items");
         }
@@ -463,26 +463,26 @@ private:
     // REVIEW(ms): use doxygen format like everyone else! which of these are
     // static const?
 
-    size_t num_partitions_;                         // partition size
+    size_t num_partitions_;                                                // partition size
 
-    size_t num_items_init_scale_ = 10;              // set number of items per partition based on num_partitions
+    size_t num_items_init_scale_ = 10;                                     // set number of items per partition based on num_partitions
     // multiplied with some scaling factor, must be equal to or greater than 1
 
-    size_t num_items_resize_scale_ = 2;             // resize scale triggered by max_partition_fill_ratio_
+    size_t num_items_resize_scale_ = 2;                                    // resize scale triggered by max_partition_fill_ratio_
 
-    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max();    // max num of collisions before resize
+    size_t num_collisions_to_resize_ = std::numeric_limits<size_t>::max(); // max num of collisions before resize
 
-    double max_partition_fill_ratio_ = 1.0;         // max partition fill ratio before resize
+    double max_partition_fill_ratio_ = 1.0;                                // max partition fill ratio before resize
 
-    size_t max_num_items_table_ = 1048576;          // max num of items before spilling of largest partition
+    size_t max_num_items_table_ = 1048576;                                 // max num of items before spilling of largest partition
 
-    size_t num_items_ = 0;                          // num items in the table
+    size_t num_items_ = 0;                                                 // num items in the table
 
-    size_t num_items_per_partition_;                // num items per partition
+    size_t num_items_per_partition_;                                       // num items per partition
 
-    std::vector<size_t> items_per_partition_;       // current number of items per partition
+    std::vector<size_t> items_per_partition_;                              // current number of items per partition
 
-    size_t table_size_ = 0;                         // number of slots
+    size_t table_size_ = 0;                                                // number of slots
 
     KeyExtractor key_extractor_;
 

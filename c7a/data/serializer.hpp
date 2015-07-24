@@ -20,8 +20,8 @@
 
 #include <c7a/common/logger.hpp>
 
-#include <tests/data/serializer_objects.hpp>
 #include <c7a/data/serializer_cereal_archive.hpp>
+#include <tests/data/serializer_objects.hpp>
 // #include <cereal/archives/binary.hpp>
 
 #include <cereal/details/traits.hpp>
@@ -88,12 +88,12 @@ template <typename Archive, size_t RevIndex, typename ... Args>
 struct TupleSerializer {
     static const size_t Index = sizeof ... (Args) - RevIndex;
     using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
-    static void       Serialize(const std::tuple<Args ...>& x, Archive& a) {
+    static void         Serialize(const std::tuple<Args ...>& x, Archive& a) {
         sLOG0 << "Now serializing" << (sizeof ... (Args) - RevIndex);
         Impl<Archive, ThisElemType>::Serialize(std::get<Index>(x), a);
         TupleSerializer<Archive, RevIndex - 1, Args ...>::Serialize(x, a);
     }
-    static const bool fixed_size = Impl<Archive, ThisElemType>::fixed_size && TupleSerializer<Archive, RevIndex - 1, Args ...>::fixed_size;
+    static const bool   fixed_size = Impl<Archive, ThisElemType>::fixed_size && TupleSerializer<Archive, RevIndex - 1, Args ...>::fixed_size;
 };
 
 // Base case
@@ -109,7 +109,7 @@ template <typename Archive, int RevIndex, typename ... Args>
 struct TupleDeserializer {
     static const size_t Index = sizeof ... (Args) - RevIndex;
     using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
-    static void Deserialize(std::tuple<Args ...>& t, Archive& a) {
+    static void         Deserialize(std::tuple<Args ...>& t, Archive& a) {
         // deserialize and fill the result tuple
         sLOG0 << "Now deserializing" << (sizeof ... (Args) - RevIndex);
         std::get<Index>(t) = Impl<Archive, ThisElemType>::Deserialize(a);
