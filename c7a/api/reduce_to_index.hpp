@@ -72,7 +72,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction, Emitter>;
+              KeyExtractor, ReduceFunction>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -96,7 +96,8 @@ public:
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
-                      Value neutral_element)
+                      Value neutral_element,
+		              const bool preserves_key)
         : DOpNode<ValueType>(ctx, { parent }, "ReduceToIndex"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -104,6 +105,7 @@ public:
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
+							preserves_key,
                             [=](size_t key, PreHashTable* ht) {
                                 size_t global_index = key * ht->NumBuckets() /
                                                       (max_index + 1);
@@ -117,7 +119,8 @@ public:
                                             global_index);
                             }),
           max_index_(max_index),
-          neutral_element_(neutral_element)
+          neutral_element_(neutral_element),
+		  preserves_key_(preserves_key)
     {
         // Hook PreOp
         auto pre_op_fn = [=](Value input) {
@@ -148,7 +151,6 @@ public:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)>,
                                           true>;
 
         size_t min_local_index =
@@ -178,14 +180,24 @@ public:
                           max_local_index,
                           neutral_element_);
 
-        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
-        auto reader = channel_->OpenReader();
-        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
-        while (reader.HasNext()) {
-            table.Insert(std::move(reader.template Next<Value>()));
-        }
+		if (preserves_key_) {
+			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
+			auto reader = channel_->OpenReader();
+			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+			while (reader.HasNext()) {
+				table.Insert(reader.template Next<Value>());
+			}
 
-        table.Flush();
+			table.Flush();
+		} else {
+			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
+			auto reader = channel_->OpenReader();
+			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+			while (reader.HasNext()) {
+				table.Insert(reader.template Next<KeyValuePair>());
+			}
+			table.Flush();
+		}
     }
 
     void Dispose() override { }
@@ -219,14 +231,16 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<Emitter> emitters_;
+    std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, Emitter>
+    core::ReducePreTable<KeyExtractor, ReduceFunction>
     reduce_pre_table_;
 
     size_t max_index_;
 
     Value neutral_element_;
+
+	const bool preserves_key_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -256,7 +270,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t max_index,
-    ValueType neutral_element) const {
+    ValueType neutral_element,
+	const bool preserves_key) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -304,7 +319,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                              key_extractor,
                                              reduce_function,
                                              max_index,
-                                             neutral_element);
+                                             neutral_element,
+			                                 preserves_key);
 
     auto reduce_stack = shared_node->ProduceStack();
 
