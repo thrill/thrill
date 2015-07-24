@@ -398,8 +398,7 @@ TEST(Operations, WhileLoop) {
             ASSERT_EQ(256u, squares.Size());
         };
 
-    // api::ExecuteLocalTests(start_func);
-    api::ExecuteLocalThreadsTCP(1, 8080, start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/

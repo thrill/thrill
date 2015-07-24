@@ -28,7 +28,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-template <typename ValueType, typename ParentStack, typename SumFunction>
+template <typename ValueType, typename ParentDIARef, typename SumFunction>
 class SumNode : public ActionNode
 {
     static const bool debug = false;
@@ -37,15 +37,11 @@ class SumNode : public ActionNode
     using Super::context_;
     using SumArg0 = ValueType;
 
-    using ParentInput = typename ParentStack::Input;
-
 public:
-    SumNode(Context& ctx,
-            const std::shared_ptr<DIANode<ParentInput> >& parent,
-            const ParentStack& parent_stack,
+    SumNode(const ParentDIARef& parent,
             SumFunction sum_function,
             ValueType initial_value)
-        : ActionNode(ctx, { parent }, "Sum"),
+        : ActionNode(parent.ctx(), { parent.node() }, "Sum"),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -54,8 +50,8 @@ public:
                              PreOp(input);
                          };
 
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Executes the sum operation.
@@ -113,36 +109,35 @@ auto DIARef<ValueType, Stack>::Sum(
     const SumFunction &sum_function, ValueType initial_value) const {
 
     using SumResultNode
-              = SumNode<ValueType, Stack, SumFunction>;
+              = SumNode<ValueType, DIARef, SumFunction>;
 
     static_assert(
         std::is_same<
-            typename common::FunctionTraits<SumFunction>::template arg<0>,
+            typename FunctionTraits<SumFunction>::template arg<0>,
             ValueType>::value ||
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
 
     static_assert(
         std::is_same<
-            typename common::FunctionTraits<SumFunction>::template arg<1>,
+            typename FunctionTraits<SumFunction>::template arg<1>,
             ValueType>::value ||
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
 
     static_assert(
         std::is_same<
-            typename common::FunctionTraits<SumFunction>::result_type,
+            typename FunctionTraits<SumFunction>::result_type,
             ValueType>::value ||
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
 
     auto shared_node
-        = std::make_shared<SumResultNode>(node_->context(),
-                                          node_,
-                                          stack_,
+        = std::make_shared<SumResultNode>(*this,
                                           sum_function,
                                           initial_value);
 
+    AddChildStatsNode("Sum", "Action");
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
