@@ -38,14 +38,14 @@ class SizeNode : public ActionNode
     using Super::result_file_;
 
 public:
-    SizeNode(const ParentDIARef* parent)
-        : ActionNode(parent->ctx(), { parent->node() }, "Size")
+    SizeNode(const ParentDIARef& parent)
+        : ActionNode(parent.ctx(), { parent.node() }, "Size")
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
 
-        auto lop_chain = parent->stack().push(pre_op_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Executes the size operation.
@@ -99,7 +99,7 @@ size_t DIARef<ValueType, Stack>::Size() const {
     using SizeResultNode = SizeNode<ValueType, DIARef>;
 
     auto shared_node
-        = std::make_shared<SizeResultNode>(this);
+        = std::make_shared<SizeResultNode>(*this);
 
     AddChildStatsNode("Size", "Action");
     core::StageBuilder().RunScope(shared_node.get());

@@ -214,6 +214,24 @@ public:
     }
 
     /**
+     * @brief Calculates the exclusive prefix sum over all workers, given a
+     * certain sum operation.
+     *
+     * @details This method blocks until the sum is caluclated. Values
+     * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
+     * are the values of workers 0, 2, 3.
+     *
+     * @param value The local value of this worker.
+     * @param sumOp The operation to use for
+     * calculating the prefix sum. The default operation is a normal addition.
+     * @return The prefix sum for the position of this worker.
+     */
+    template <typename T, typename BinarySumOp = common::SumOp<T> >
+    T ExPrefixSum(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
+        return PrefixSum(value, sumOp, false);
+    }
+
+    /**
      * @brief Broadcasts a value of an integral type T from the master
      * (the worker with id 0) to all other workers.
      * @details This method is blocking on all workers except the master.

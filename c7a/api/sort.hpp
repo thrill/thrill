@@ -56,13 +56,13 @@ public:
      * \param parent_stack Stack of lambda functions between parent and this node
      * \param compare_function Function comparing two elements.
      */
-    SortNode(const ParentDIARef* parent,
+    SortNode(const ParentDIARef& parent,
              CompareFunction compare_function)
-        : DOpNode<ValueType>(parent->ctx(), { parent->node() }, "Sort"),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort"),
           compare_function_(compare_function),
-          channel_id_samples_(parent->ctx().data_manager().GetNewChannel()),
+          channel_id_samples_(parent.ctx().data_manager().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(parent->ctx().data_manager().GetNewChannel()),
+          channel_id_data_(parent.ctx().data_manager().GetNewChannel()),
           emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)
@@ -70,8 +70,8 @@ public:
                              PreOp(input);
                          };
 
-        auto lop_chain = parent->stack().push(pre_op_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     virtual ~SortNode() { }
@@ -395,7 +395,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<CompareFunction>::template arg<0>
+            typename FunctionTraits<CompareFunction>::template arg<0>
             >::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
@@ -403,18 +403,18 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     static_assert(
         std::is_convertible<
             ValueType,
-            typename common::FunctionTraits<CompareFunction>::template arg<1> >::value ||
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value ||
         std::is_same<CompareFunction, std::less<ValueType> >::value,
         "CompareFunction has the wrong input type");
 
     static_assert(
         std::is_convertible<
-            typename common::FunctionTraits<CompareFunction>::result_type,
+            typename FunctionTraits<CompareFunction>::result_type,
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
     auto shared_node
-        = std::make_shared<SortResultNode>(this, compare_function);
+        = std::make_shared<SortResultNode>(*this, compare_function);
 
     auto sort_stack = shared_node->ProduceStack();
 

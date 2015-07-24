@@ -34,12 +34,12 @@ public:
     using Super::context_;
     using Super::result_file_;
 
-    AllGatherNode(const ParentDIARef* parent,
+    AllGatherNode(const ParentDIARef& parent,
                   std::vector<ValueType>* out_vector
                   )
-        : ActionNode(parent->ctx(), { parent->node() }, "AllGather"),
+        : ActionNode(parent.ctx(), { parent.node() }, "AllGather"),
           out_vector_(out_vector),
-          channel_(parent->ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
         auto pre_op_function = [=](ValueType input) {
@@ -48,8 +48,8 @@ public:
 
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent->stack().push(pre_op_function).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_function).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType element) {
@@ -102,7 +102,7 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
     std::vector<ValueType> output;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(this, &output);
+        std::make_shared<AllGatherResultNode>(*this, &output);
 
     core::StageBuilder().RunScope(shared_node.get());
 
@@ -116,7 +116,7 @@ void DIARef<ValueType, Stack>::AllGather(
     using AllGatherResultNode = AllGatherNode<ValueType, DIARef>;
 
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(this, out_vector);
+        std::make_shared<AllGatherResultNode>(*this, out_vector);
 
     AddChildStatsNode("AllGather", "Action");
     core::StageBuilder().RunScope(shared_node.get());
