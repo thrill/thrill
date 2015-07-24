@@ -11,6 +11,7 @@
 #include <c7a/data/serializer.hpp>
 #include <c7a/data/file.hpp>
 #include <tests/data/serializer_objects.hpp>
+#include <gtest/gtest.h>
 
 #include <string>
 #include <tuple>
@@ -194,10 +195,10 @@ TEST(Serializer, CerealObject_Archive_Test) {
     serializers::TestCerealObject2 t(1, 2, 3);
     {
         auto w = f.GetWriter();
-        Serialize<decltype(w), serializers::TestCerealObject2>(t, w);
+        w(t); //gets serialized
     }
     auto r = f.GetReader();
-    auto res = Deserialize<decltype(r), serializers::TestCerealObject2>(r);
+    auto res = r.Next<serializers::TestCerealObject2>();
     ASSERT_EQ(t.x_, res.x_);
     ASSERT_EQ(t.y_, res.y_);
     ASSERT_EQ(t.z_, res.z_);
@@ -213,7 +214,7 @@ TEST(Serializer, Tuple_Archive_Test) {
         w(t); //gets serialized
     }
     auto r = f.GetReader();
-    auto res = Deserialize<decltype(r), decltype(t)>(r);
+    auto res = r.Next<decltype(t)>();
 
     ASSERT_EQ(std::get<0>(res), std::get<0>(t));
     ASSERT_EQ(std::get<1>(res), std::get<1>(t));

@@ -84,39 +84,42 @@ struct Impl<Archive, std::pair<U, V> >
 
 /****************** Serialization of tuples **************************/
 
-template <typename Archive, int N, typename ... Args>
+template <typename Archive, size_t RevIndex, typename ... Args>
 struct TupleSerializer {
-    using ThisElemType = typename std::tuple_element<N, std::tuple<Args ...> >::type;
+    static const size_t Index = sizeof ... (Args) - RevIndex;
+    using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
     static void       Serialize(const std::tuple<Args ...>& x, Archive& a) {
-        sLOG << "Now serializing" << std::get<N>(x);
-        Impl<Archive, ThisElemType>::Serialize(std::get<N>(x), a);
-        TupleSerializer<Archive, N + 1, Args ...>::Serialize(x, a);
+        sLOG0 << "Now serializing" << (sizeof ... (Args) - RevIndex);
+        Impl<Archive, ThisElemType>::Serialize(std::get<Index>(x), a);
+        TupleSerializer<Archive, RevIndex - 1, Args ...>::Serialize(x, a);
     }
-    static const bool fixed_size = Impl<Archive, ThisElemType>::fixed_size && TupleSerializer<Archive, N + 1, Args ...>::fixed_size;
+    static const bool fixed_size = Impl<Archive, ThisElemType>::fixed_size && TupleSerializer<Archive, RevIndex - 1, Args ...>::fixed_size;
 };
 
 // Base case
 template <typename Archive, typename ... Args>
-struct TupleSerializer<Archive, sizeof ... (Args), Args ...>{
+struct TupleSerializer<Archive, 0, Args ...>{
     static void Serialize(const std::tuple<Args ...>&, Archive&) {
         // Doesn't do anything
     }
     static const bool fixed_size = true;
 };
 
-template <typename Archive, int N, typename ... Args>
+template <typename Archive, int RevIndex, typename ... Args>
 struct TupleDeserializer {
-    using ThisElemType = typename std::tuple_element<N, std::tuple<Args ...> >::type;
+    static const size_t Index = sizeof ... (Args) - RevIndex;
+    using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
     static void Deserialize(std::tuple<Args ...>& t, Archive& a) {
         // deserialize and fill the result tuple
-        std::get<N>(t) = Impl<Archive, ThisElemType>::Deserialize(a);
-        TupleDeserializer<Archive, N + 1, Args ...>::Deserialize(t, a);
+        sLOG0 << "Now deserializing" << (sizeof ... (Args) - RevIndex);
+        std::get<Index>(t) = Impl<Archive, ThisElemType>::Deserialize(a);
+        TupleDeserializer<Archive, RevIndex - 1, Args ...>::Deserialize(t, a);
     }
 };
 
 // Base Case
 template <typename Archive, typename ... Args>
-struct TupleDeserializer<Archive, sizeof ... (Args), Args ...>{
+struct TupleDeserializer<Archive, 0, Args ...>{
     static void Deserialize(std::tuple<Args ...>&, Archive&) {
         // Doesn't do anything
     }
@@ -126,15 +129,15 @@ template <typename Archive, typename ... Args>
 struct Impl<Archive, std::tuple<Args ...> >
 {
     static void Serialize(const std::tuple<Args ...>& x, Archive& a) {
-        TupleSerializer<Archive, 0, Args ...>::Serialize(x, a);
+        TupleSerializer<Archive, sizeof ... (Args), Args ...>::Serialize(x, a);
     }
     static std::tuple<Args ...> Deserialize(Archive& a) {
         std::tuple<Args ...> r;
-        TupleDeserializer<Archive, 0, Args ...>::Deserialize(r, a);
+        TupleDeserializer<Archive, sizeof ... (Args), Args ...>::Deserialize(r, a);
         return r;
     }
 
-    static const bool fixed_size = TupleSerializer<Archive, 0, Args ...>::fixed_size;
+    static const bool fixed_size = TupleSerializer<Archive, sizeof ... (Args), Args ...>::fixed_size;
 };
 
 /******************** Use cereal if serialization function is given **********************/
