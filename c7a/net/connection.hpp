@@ -15,10 +15,10 @@
 #ifndef C7A_NET_CONNECTION_HEADER
 #define C7A_NET_CONNECTION_HEADER
 
-#include <c7a/net/lowlevel/socket.hpp>
-#include <c7a/net/exception.hpp>
-#include <c7a/net/buffer.hpp>
 #include <c7a/common/config.hpp>
+#include <c7a/net/buffer.hpp>
+#include <c7a/net/exception.hpp>
+#include <c7a/net/lowlevel/socket.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -30,13 +30,13 @@
 namespace c7a {
 namespace net {
 
+//! \addtogroup net Network Communication
+//! \{
+
 enum ConnectionState {
     Invalid, Connecting, TransportConnected, HelloReceived,
     HelloSent, WaitingForHello, Connected, Disconnected
 };
-
-//! \addtogroup net Network Communication
-//! \{
 
 // Because Mac OSX does not know MSG_MORE.
 #ifndef MSG_MORE

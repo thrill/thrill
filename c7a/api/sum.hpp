@@ -13,17 +13,20 @@
 #define C7A_API_SUM_HEADER
 
 #include <c7a/api/action_node.hpp>
-#include <c7a/api/function_stack.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/net/group.hpp>
+#include <c7a/core/stage_builder.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/group.hpp>
 
+#include <string>
 #include <type_traits>
 
 namespace c7a {
 namespace api {
+
+//! \addtogroup api Interface
+//! \{
 
 template <typename ValueType, typename ParentStack, typename SumFunction>
 class SumNode : public ActionNode
@@ -32,18 +35,17 @@ class SumNode : public ActionNode
 
     using Super = ActionNode;
     using Super::context_;
-    using Super::data_id_;
     using SumArg0 = ValueType;
 
     using ParentInput = typename ParentStack::Input;
 
 public:
     SumNode(Context& ctx,
-            std::shared_ptr<DIANode<ParentInput> > parent,
+            const std::shared_ptr<DIANode<ParentInput> >& parent,
             const ParentStack& parent_stack,
             SumFunction sum_function,
             ValueType initial_value)
-        : ActionNode(ctx, { parent }),
+        : ActionNode(ctx, { parent }, "Sum"),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -56,12 +58,14 @@ public:
         parent->RegisterChild(lop_chain);
     }
 
-    virtual ~SumNode() { }
-
     //! Executes the sum operation.
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
+
+    void Dispose() override { }
 
     /*!
      * Returns result of global sum.
@@ -76,7 +80,7 @@ public:
      * \return "[SumNode]"
      */
     std::string ToString() override {
-        return "[SumNode] Id:" + data_id_.ToString();
+        return "[SumNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -142,6 +146,8 @@ auto DIARef<ValueType, Stack>::Sum(
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

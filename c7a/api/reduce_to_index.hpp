@@ -15,21 +15,20 @@
 #define C7A_API_REDUCE_TO_INDEX_HEADER
 
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/core/reduce_post_table.hpp>
-#include <c7a/data/emitter.hpp>
+#include <c7a/core/reduce_pre_table.hpp>
 
+#include <cmath>
 #include <functional>
 #include <string>
-#include <vector>
 #include <type_traits>
-#include <cmath>
+#include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {
+
 //! \addtogroup api Interface
 //! \{
 
@@ -63,16 +62,17 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    typedef std::pair<Key, Value> KeyValuePair;
-
     using ParentInput = typename ParentStack::Input;
 
+    typedef std::pair<Key, Value> KeyValuePair;
+
     using Super::context_;
-    using Super::data_id_;
+    using Super::result_file_;
 
 public:
+    using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction, data::Emitter>;
+              KeyExtractor, ReduceFunction, Emitter>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -91,20 +91,17 @@ public:
      * each array cell.
      */
     ReduceToIndexNode(Context& ctx,
-                      std::shared_ptr<DIANode<ParentInput> > parent,
+                      const std::shared_ptr<DIANode<ParentInput> >& parent,
                       const ParentStack& parent_stack,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
-                      Value neutral_element
-                      )
-        :
-          DOpNode<ValueType>(ctx, { parent }),
+                      Value neutral_element)
+        : DOpNode<ValueType>(ctx, { parent }, "ReduceToIndex"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_id_(ctx.data_manager().AllocateChannelId()),
-          emitters_(ctx.data_manager().
-                    template GetNetworkEmitters<KeyValuePair>(channel_id_)),
+          channel_(ctx.data_manager().GetNewChannel()),
+          emitters_(channel_->OpenWriters()),
           reduce_pre_table_(ctx.number_worker(), key_extractor,
                             reduce_function_, emitters_,
                             [=](size_t key, PreHashTable* ht) {
@@ -121,7 +118,6 @@ public:
                             }),
           max_index_(max_index),
           neutral_element_(neutral_element)
-
     {
         // Hook PreOp
         auto pre_op_fn = [=](Value input) {
@@ -141,60 +137,13 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
+        this->StartExecutionTimer();
         MainOp();
+        this->StopExecutionTimer();
     }
 
-    /*!
-     * Produces a function stack, which only contains the PostOp function.
-     * \return PostOp function stack
-     */
-    auto ProduceStack() {
-        // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
-                              return this->PostOp(elem, emit_func);
-                          };
-
-        return MakeFunctionStack<ValueType>(post_op_fn);
-    }
-
-    /*!
-     * Returns "[ReduceToIndexNode]" and its id as a string.
-     * \return "[ReduceToIndexNode]"
-     */
-    std::string ToString() override {
-        return "[ReduceToIndexNode] Id: " + data_id_.ToString();
-    }
-
-private:
-    //!Key extractor function
-    KeyExtractor key_extractor_;
-    //!Reduce function
-    ReduceFunction reduce_function_;
-
-    data::ChannelId channel_id_;
-
-    std::vector<data::Emitter> emitters_;
-
-    core::ReducePreTable<KeyExtractor, ReduceFunction, data::Emitter>
-    reduce_pre_table_;
-
-    size_t max_index_;
-
-    Value neutral_element_;
-
-    //! Locally hash elements of the current DIA onto buckets and reduce each
-    //! bucket to a single value, afterwards send data to another worker given
-    //! by the shuffle algorithm.
-    void PreOp(Value input) {
-        reduce_pre_table_.Insert(std::move(input));
-    }
-
-    //!Receive elements from other workers.
-    auto MainOp() {
-        LOG << ToString() << " running main op";
-        //Flush hash table before the postOp
-        reduce_pre_table_.Flush();
-        reduce_pre_table_.CloseEmitter();
+    void PushData() override {
+        // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
@@ -203,12 +152,13 @@ private:
                                           true>;
 
         size_t min_local_index =
-            std::ceil((double)(max_index_ + 1) * (double)context_.rank() /
-                      (double)context_.number_worker());
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank())
+                      / static_cast<double>(context_.number_worker()));
         size_t max_local_index =
-            std::ceil((double)(max_index_ + 1) *
-                      (double)(context_.rank() + 1) /
-                      (double)context_.number_worker()) - 1;
+            std::ceil(static_cast<double>(max_index_ + 1)
+                      * static_cast<double>(context_.rank() + 1)
+                      / static_cast<double>(context_.number_worker())) - 1;
 
         if (context_.rank() == context_.number_worker() - 1) {
             max_local_index = max_index_;
@@ -228,18 +178,69 @@ private:
                           max_local_index,
                           neutral_element_);
 
-        auto it = context_.data_manager().
-                  template GetIterator<KeyValuePair>(channel_id_);
-
-        sLOG << "reading data from" << channel_id_ << "to push into post table which flushes to" << data_id_;
-        do {
-            it.WaitForMore();
-            while (it.HasNext()) {
-                table.Insert(std::move(it.Next()));
-            }
-        } while (!it.IsFinished());
+        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
+        auto reader = channel_->OpenReader();
+        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
+        while (reader.HasNext()) {
+            table.Insert(std::move(reader.template Next<Value>()));
+        }
 
         table.Flush();
+    }
+
+    void Dispose() override { }
+
+    /*!
+     * Produces a function stack, which only contains the PostOp function.
+     * \return PostOp function stack
+     */
+    auto ProduceStack() {
+        // Hook PostOp
+        auto post_op_fn = [=](ValueType elem, auto emit_func) {
+                              return this->PostOp(elem, emit_func);
+                          };
+
+        return MakeFunctionStack<ValueType>(post_op_fn);
+    }
+
+    /*!
+     * Returns "[ReduceToIndexNode]" and its id as a string.
+     * \return "[ReduceToIndexNode]"
+     */
+    std::string ToString() override {
+        return "[ReduceToIndexNode] Id: " + result_file_.ToString();
+    }
+
+private:
+    //!Key extractor function
+    KeyExtractor key_extractor_;
+    //!Reduce function
+    ReduceFunction reduce_function_;
+
+    data::ChannelPtr channel_;
+
+    std::vector<Emitter> emitters_;
+
+    core::ReducePreTable<KeyExtractor, ReduceFunction, Emitter>
+    reduce_pre_table_;
+
+    size_t max_index_;
+
+    Value neutral_element_;
+
+    //! Locally hash elements of the current DIA onto buckets and reduce each
+    //! bucket to a single value, afterwards send data to another worker given
+    //! by the shuffle algorithm.
+    void PreOp(Value input) {
+        reduce_pre_table_.Insert(std::move(input));
+    }
+
+    //!Receive elements from other workers.
+    auto MainOp() {
+        LOG << ToString() << " running main op";
+        //Flush hash table before the postOp
+        reduce_pre_table_.Flush();
+        reduce_pre_table_.CloseEmitter();
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
@@ -249,14 +250,13 @@ private:
     }
 };
 
-//! \}
-
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
-auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
-                                             const ReduceFunction &reduce_function,
-                                             size_t max_index,
-                                             ValueType neutral_element) const {
+auto DIARef<ValueType, Stack>::ReduceToIndex(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    size_t max_index,
+    ValueType neutral_element) const {
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -304,14 +304,15 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(const KeyExtractor &key_extractor,
                                              key_extractor,
                                              reduce_function,
                                              max_index,
-                                             neutral_element
-                                             );
+                                             neutral_element);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>
                (shared_node, reduce_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

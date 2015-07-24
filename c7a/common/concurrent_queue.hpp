@@ -16,22 +16,13 @@
 
 #include <tbb/concurrent_queue.h>
 
-#else // !HAVE_INTELTBB
+#endif // HAVE_INTELTBB
 
-#include <queue>
 #include <mutex>
-
-#endif // !HAVE_INTELTBB
+#include <queue>
 
 namespace c7a {
 namespace common {
-
-#if HAVE_INTELTBB
-
-template <typename T>
-using ConcurrentQueue = tbb::concurrent_queue<T>;
-
-#else   // !HAVE_INTELTBB
 
 /*!
  * This is a queue, similar to std::queue and tbb::concurrent_queue, except that
@@ -41,10 +32,11 @@ using ConcurrentQueue = tbb::concurrent_queue<T>;
  * Not all methods of tbb:concurrent_queue<> are available here, please add them
  * if you need them. However, NEVER add any other methods that you might need.
  *
- * StyleGuide is violated, because signatures must match those in the TBB version
+ * StyleGuide is violated, because signatures MUST match those in the TBB
+ * version.
  */
 template <typename T>
-class ConcurrentQueue
+class OurConcurrentQueue
 {
 public:
     typedef T value_type;
@@ -106,6 +98,16 @@ public:
         queue_.clear();
     }
 };
+
+#if HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentQueue = tbb::concurrent_queue<T>;
+
+#else   // !HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentQueue = OurConcurrentQueue<T>;
 
 #endif // !HAVE_INTELTBB
 

@@ -9,7 +9,7 @@ macro(c7a_build TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
   target_link_libraries(${TARGETNAME}
-    c7a gtest gtest_main gmock ${ALL_LIBRARIES})
+    c7a gtest gtest_main ${ALL_LIBRARIES})
 
 endmacro(c7a_build)
 
@@ -87,42 +87,39 @@ build_test_group(common/tests
   common/timed_counter_test.cpp
   )
 
+build_test(net/binary_builder_test)
 build_test(net/buffer_test)
 build_test(net/dispatcher_thread_test)
 build_test(net/flow_control_test)
 build_test(net/group_test)
 
 build_test(data/block_queue_test)
+build_test(data/channel_multiplexer_test)
 build_test(data/file_test)
+build_test(data/serializer_test)
 build_test(data/stream_block_header_test)
 
-# this is the new Channel test.
-build_only(data/channel_multiplexer_test)
-build_test(data/serializer_test)
+build_test(core/job_manager_test)
+build_test(core/pre_hash_table_test)
+build_test(core/pre_hash_table_probing_test)
+build_test(core/stage_builder_test)
+
+build_test(api/function_stack_test)
+build_test(api/graph_test)
+build_test(api/operations_test)
+build_test(api/reduce_node_test)
+build_test(api/sort_node_test)
+build_test(api/sum_node_test)
+build_test(api/wordcount_test)
+build_test(api/zip_node_test)
 
 if (OFF)
-  build_test(api/function_stack_test)
-  build_test(api/operations_test)
-  build_test(api/reduce_node_test)
-  build_test(api/wordcount_test)
-  build_test(api/sum_node_test)
 
-  build_test(data/stream_test)
-  build_test(data/buffer_chain_test)
   build_only(data/manager_channels_test)
   build_test(data/iterator_test)
 
-  #-tb disabled trivial data manager/emitter tests
-  #build_test(data/manager_test)
-  #build_test(data/emitter_iterator_test)
-  #build_test(data/dia_allocate_test)
-  build_test(data/serializer_test)
-
-  #build_test(core/stage_builder_test)
-  #build_test(core/post_hash_table_test)
-  #build_test(core/pre_hash_table_probing_test)
-  build_test(core/pre_hash_table_test)
-  build_test(core/job_manager_test)
+  build_test(api/reduce_node_test)
+  build_test(core/post_hash_table_test)
 
 endif()
 

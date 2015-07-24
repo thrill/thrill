@@ -139,6 +139,8 @@ sub filter_program {
 sub process_cpp {
     my ($path) = @_;
 
+    #print "$path\n";
+
     # check permissions
     my $st = stat($path) or die("Cannot stat() file $path: $!");
     if ($st->mode & 0133) {
@@ -293,6 +295,7 @@ sub process_cpp {
         # change misformatted [ = ] of lambdas to [=]
         for(my $i = 0; $i < @data-1; ++$i) {
             $data[$i] =~ s/\[ = \]/[=]/g;
+            $data[$i] =~ s/\[ ([=&]),/[$1,/g;
         }
     }
 
@@ -397,12 +400,13 @@ foreach my $file (@filelist)
 {
     $file =~ s!./!! or die("File does not start ./");
 
-    if ($file =~ m!^b!) {
+    if ($file =~ m!^(b[0-9]*|build.*)(\/|$)!) {
+        # skip common build directory names
     }
     elsif ($file =~ m!^extlib/!) {
         # skip external libraries
     }
-    elsif ($file =~ /^(c7a|doc|tests|examples)\/.*\.(h|cpp|hpp|h.in|dox)$/) {
+    elsif ($file =~ /\.(h|cpp|hpp|h\.in|dox)$/) {
         process_cpp($file);
     }
     elsif ($file =~ /\.(pl|pro)$/) {

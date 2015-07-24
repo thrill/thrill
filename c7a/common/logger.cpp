@@ -17,6 +17,12 @@ namespace common {
 
 std::mutex Logger<true>::mutex_;
 
+//! access global singleton
+ThreadNameDirectory & GetThreadDirectory() {
+    static ThreadNameDirectory directory;
+    return directory;
+}
+
 } // namespace common
 } // namespace c7a
 

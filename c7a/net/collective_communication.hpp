@@ -14,14 +14,15 @@
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
+#include <c7a/common/functional.hpp>
 #include <c7a/net/group.hpp>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 namespace c7a {
 namespace net {
 
-//! \name Collective Operations
+//! \addtogroup net Network Communication
 //! \{
 
 //! @brief   Calculate for every worker his prefix sum. Works only for worker

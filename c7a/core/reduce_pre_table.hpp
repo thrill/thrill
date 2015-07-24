@@ -16,26 +16,21 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <map>
-#include <iostream>
+#include <algorithm>
+#include <cassert>
 #include <string>
-#include <vector>
-#include <stdexcept>
-#include <array>
-#include <deque>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace core {
 
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
-          size_t TargetBlockSize = 1024* 1024>
+          size_t TargetBlockSize = 1024*1024>
 class ReducePreTable
 {
-
     static const bool debug = false;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
@@ -347,7 +342,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](std::move(*bi));
+                    emit_[partition_id](bi->second);
                 }
 
                 // destroy block and advance to next

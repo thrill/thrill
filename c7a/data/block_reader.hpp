@@ -12,28 +12,45 @@
 #ifndef C7A_DATA_BLOCK_READER_HEADER
 #define C7A_DATA_BLOCK_READER_HEADER
 
+#include <c7a/common/config.hpp>
+#include <c7a/common/item_serializer_tools.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/serializer.hpp>
-#include <c7a/common/item_serializer_tools.hpp>
+
+#include <algorithm>
+#include <string>
 
 namespace c7a {
 namespace data {
 
+//! \addtogroup data Data Subsystem
+//! \{
+
+/*!
+ * BlockReader takes VirtualBlock objects from BlockSource and allows reading of
+ * a) serializable Items or b) arbitray data from the Block sequence. It takes
+ * care of fetching the next Block when the previous one underruns and also of
+ * data items split between two Blocks.
+ */
 template <typename BlockSource>
 class BlockReader
     : public common::ItemReaderToolsBase<BlockReader<BlockSource> >
 {
 public:
+    static const bool self_verify = common::g_self_verify;
+
     using Byte = unsigned char;
 
     using Block = typename BlockSource::Block;
     using BlockCPtr = std::shared_ptr<const Block>;
+    using VirtualBlock = typename BlockSource::VirtualBlock;
 
     //! Start reading a File
-    BlockReader(BlockSource&& source)
-        : source_(std::move(source)) {
-        source_.Initialize(&current_, &end_);
-    }
+    explicit BlockReader(BlockSource&& source)
+        : source_(std::move(source)) { }
+
+    //! Return reference to enclosed BlockSource
+    BlockSource & source() { return source_; }
 
     //! \name Reading (Generic) Items
     //! \{
@@ -41,6 +58,15 @@ public:
     //! Next() reads a complete item T
     template <typename T>
     T Next() {
+        if (self_verify) {
+            // for self-verification, T is prefixed with its hash code
+            size_t code = Get<size_t>();
+            if (code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "BlockReader::Next() attempted to retrieve item "
+                          "with different typeid!");
+            }
+        }
         return Deserialize<BlockReader, T>(*this);
     }
 
@@ -53,10 +79,13 @@ public:
         return true;
     }
 
-    //! AtEnd() returns true reader is at end of block source and source is closed.
-    bool AtEnd() {
-        //assumes that no block is empty
-        return current_ < end_ && !NextBlock() && source_.closed();
+    //! Return complete contents until empty as a std::vector<T>. Use this only
+    //! if you are sure that it will fit into memory, -> only use it for tests.
+    template <typename T>
+    std::vector<T> ReadComplete() {
+        std::vector<T> out;
+        while (HasNext()) out.emplace_back(Next<T>());
+        return out;
     }
 
     //! \}
@@ -99,17 +128,12 @@ public:
 
     //! Fetch a single byte from the current block, advancing the cursor.
     Byte GetByte() {
-        if (current_ < end_) {
-            return *current_++;
+        // loop, since blocks can actually be empty.
+        while (current_ == end_) {
+            if (!NextBlock())
+                throw std::runtime_error("Data underflow in BlockReader.");
         }
-        else {
-            // loop, since blocks can actually be empty.
-            while (current_ < end_) {
-                if (!NextBlock())
-                    throw std::runtime_error("Data underflow in BlockReader.");
-            }
-            return *current_++;
-        }
+        return *current_++;
     }
 
     //! Fetch a single item of the template type Type from the buffer,
@@ -131,17 +155,29 @@ protected:
     //! of FileBlockSource to compose classes into File::Reader.
     BlockSource source_;
 
+    //! The current block being read.
+    BlockCPtr block_;
+
     //! current read pointer into current block of file.
-    const Byte* current_;
+    const Byte* current_ = nullptr;
 
     //! pointer to end of current block.
-    const Byte* end_;
+    const Byte* end_ = nullptr;
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
-        return source_.NextBlock(&current_, &end_);
+        VirtualBlock vb = source_.NextBlock();
+        block_ = vb.block;
+        if (!vb.IsValid()) return false;
+        // TODO(tb): figure out how to make VirtualBlock/BlockReader work
+        // correctly when first item != 0.
+        current_ = vb.block->begin();
+        end_ = vb.block->begin() + vb.bytes_used;
+        return true;
     }
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

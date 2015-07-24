@@ -8,11 +8,10 @@
  ******************************************************************************/
 
 #include <c7a/data/iterator.hpp>
+#include <gtest/gtest.h>
 
-#include <vector>
 #include <string>
-
-#include "gtest/gtest.h"
+#include <vector>
 
 using namespace c7a::data;
 using namespace c7a::net;

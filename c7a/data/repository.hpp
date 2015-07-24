@@ -12,15 +12,18 @@
 #ifndef C7A_DATA_REPOSITORY_HEADER
 #define C7A_DATA_REPOSITORY_HEADER
 
+#include <c7a/common/logger.hpp>
+
 #include <cassert>
 #include <map>
 #include <memory>
 #include <mutex>
 
-#include <c7a/common/logger.hpp>
-
 namespace c7a {
 namespace data {
+
+//! \addtogroup data Data Subsystem
+//! \{
 
 using DataId = size_t;
 
@@ -85,6 +88,8 @@ private:
     std::mutex mutex_;
     std::mutex allocate_next_mutex_;
 };
+
+//! \}
 
 } // namespace data
 } // namespace c7a

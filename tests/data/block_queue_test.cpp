@@ -9,14 +9,18 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/dyn_block_writer.hpp>
 #include <c7a/common/thread_pool.hpp>
+#include <c7a/data/block_queue.hpp>
+#include <c7a/data/concat_block_source.hpp>
+#include <gtest/gtest.h>
+
+#include <string>
 
 using namespace c7a;
 
 using MyQueue = data::BlockQueue<16>;
+using MyBlockSource = MyQueue::BlockSource;
+using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
 struct BlockQueueTest : public::testing::Test {
     MyQueue q;
@@ -38,17 +42,18 @@ TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
 TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
     std::shared_ptr<data::Block<16> > block
         = std::make_shared<data::Block<16> >();
-    q.Append(block, 0, 0, 0);
+    q.AppendBlock(data::VirtualBlock<16>(block, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 
 TEST_F(BlockQueueTest, BlockWriterToQueue) {
     MyQueue::Writer bw = q.GetWriter();
-    bw(int(42));
+    bw(static_cast<int>(42));
     bw(std::string("hello there BlockQueue"));
     bw.Close();
     ASSERT_FALSE(q.empty());
-    ASSERT_EQ(q.size(), 3u); // two real block and one termination sentinel.
+    // two real block and one termination sentinel. with verify one more.
+    ASSERT_EQ(2u + (MyQueue::Writer::self_verify ? 1 : 0), q.size());
 }
 
 TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
@@ -58,7 +63,7 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.Enqueue(
         [&q]() {
             MyQueue::Writer bw = q.GetWriter();
-            bw(int(42));
+            bw(static_cast<int>(42));
             bw(std::string("hello there BlockQueue"));
         });
 
@@ -68,11 +73,11 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
 
             ASSERT_TRUE(br.HasNext());
             int i1 = br.Next<int>();
-            ASSERT_EQ(i1, 42);
+            ASSERT_EQ(42, i1);
 
             ASSERT_TRUE(br.HasNext());
             std::string i2 = br.Next<std::string>();
-            ASSERT_EQ(i2, "hello there BlockQueue");
+            ASSERT_EQ("hello there BlockQueue", i2);
 
             ASSERT_FALSE(br.HasNext());
         });
@@ -80,33 +85,35 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.LoopUntilEmpty();
 }
 
-TEST_F(BlockQueueTest, ThreadedParallelDynBlockWriterAndBlockReader) {
-    common::ThreadPool pool(2);
-    MyQueue q;
+TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
+    using namespace std::literals;
+    common::ThreadPool pool(3);
+    MyQueue q2;
 
-    pool.Enqueue(
-        [&q]() {
-            MyQueue::DynWriter bw = q.GetDynWriter();
-            bw(int(42));
-            bw(std::string("hello there BlockQueue"));
-        });
+    auto writer1 = q.GetWriter();
+    auto writer2 = q2.GetWriter();
 
-    pool.Enqueue(
-        [&q]() {
-            MyQueue::Reader br = q.GetReader();
-
-            ASSERT_TRUE(br.HasNext());
-            int i1 = br.Next<int>();
-            ASSERT_EQ(i1, 42);
-
-            ASSERT_TRUE(br.HasNext());
-            std::string i2 = br.Next<std::string>();
-            ASSERT_EQ(i2, "hello there BlockQueue");
-
-            ASSERT_FALSE(br.HasNext());
-        });
-
+    pool.Enqueue([&writer1]() {
+                     writer1(std::string("1.1"));
+                     std::this_thread::sleep_for(25ms);
+                     writer1(std::string("1.2"));
+                     writer1.Close();
+                 });
+    pool.Enqueue([&writer2]() {
+                     writer2(std::string("2.1"));
+                     writer2.Flush();
+                     writer2(std::string("2.2"));
+                     writer2.Close();
+                 });
+    pool.Enqueue([this, &q2]() {
+                     auto reader = data::BlockReader<ConcatBlockSource>(
+                         ConcatBlockSource(
+                             { MyBlockSource(q), MyBlockSource(q2) }));
+                     ASSERT_EQ("1.1", reader.Next<std::string>());
+                     ASSERT_EQ("1.2", reader.Next<std::string>());
+                     ASSERT_EQ("2.1", reader.Next<std::string>());
+                     ASSERT_EQ("2.2", reader.Next<std::string>());
+                 });
     pool.LoopUntilEmpty();
 }
-
 /******************************************************************************/

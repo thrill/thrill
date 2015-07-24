@@ -15,43 +15,46 @@
 #define C7A_COMMON_LOGGER_HEADER
 
 #include <iostream>
+#include <map>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
-#include <mutex>
+#include <string>
 #include <thread>
-#include <map>
 
 namespace c7a {
 namespace common {
 
 //! thread-id to name mapping for better multi-threaded log output
-struct ThreadNameDirectory {
-    std::map<std::thread::id, std::string> threadNames_;
-    std::mutex                             threadNamesMutex_;
-
-    //! Defines a name for the current thread, only if no name was set previously
-    void                                   NameThisThread(const std::string& name) {
-        std::lock_guard<std::mutex> lock(threadNamesMutex_);
-        if (!HasNameForThisThread())
-            threadNames_[std::this_thread::get_id()] = name;
-    }
-
-    //! True if name was defined for the current thread
-    bool                                   HasNameForThisThread() {
-        return threadNames_.find(std::this_thread::get_id()) != threadNames_.end();
+class ThreadNameDirectory
+{
+public:
+    //! Defines a name for the current thread, only if no name was set
+    //! previously
+    void NameThisThread(const std::string& name) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        thread_names_[std::this_thread::get_id()] = name;
     }
 
     //! Returns the name of the current thread or 'unknown [id]'
-    std::string                            NameForThisThread() {
-        std::lock_guard<std::mutex> lock(threadNamesMutex_);
-        if (HasNameForThisThread()) {
-            return threadNames_[std::this_thread::get_id()];
+    std::string NameForThisThread() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = thread_names_.find(std::this_thread::get_id());
+        if (it != thread_names_.end()) {
+            return it->second;
         }
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "unknown " << std::this_thread::get_id();
         return ss.str();
     }
-} static ThreadDirectory;
+
+private:
+    std::map<std::thread::id, std::string> thread_names_;
+    std::mutex mutex_;
+};
+
+//! access global singleton
+ThreadNameDirectory & GetThreadDirectory();
 
 /*!
  * A simple logging class which outputs a std::endl during destruction.
@@ -80,7 +83,7 @@ public:
     static const bool active = true;
 
     Logger() {
-        oss_ << "[" << ThreadDirectory.NameForThisThread() << "] ";
+        oss_ << "[" << GetThreadDirectory().NameForThisThread() << "] ";
     }
 
     //! output any type, including io manipulators
@@ -140,7 +143,7 @@ public:
     //! constructor: if real = false the output is suppressed.
     SpacingLogger()
         : first_(true) {
-        oss_ << "[" << ThreadDirectory.NameForThisThread() << "] ";
+        oss_ << "[" << GetThreadDirectory().NameForThisThread() << "] ";
     }
 
     //! output any type, including io manipulators

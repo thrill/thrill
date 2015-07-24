@@ -7,14 +7,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include <c7a/data/stream_block_header.hpp>
-
-using::testing::_;
-using::testing::InvokeArgument;
-using::testing::Return;
-using::testing::ByRef;
+#include <gtest/gtest.h>
 
 using namespace c7a;
 using namespace c7a::data;

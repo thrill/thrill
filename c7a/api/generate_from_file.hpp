@@ -14,14 +14,14 @@
 #ifndef C7A_API_GENERATE_FROM_FILE_HEADER
 #define C7A_API_GENERATE_FROM_FILE_HEADER
 
-#include <c7a/common/logger.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
 
-#include <string>
 #include <fstream>
 #include <random>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -45,21 +45,23 @@ class GenerateFileNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
+    using Super::result_file_;
+
     /*!
-    * Constructor for a GenerateFileNode. Sets the Context, parents, generator
-    * function and file path.
-    *
-    * \param ctx Reference to Context, which holds references to data and network.
-    * \param generator_function Generator function, which defines how each line
-    * of the file is read and used for generation of a DIA.
-    * \param path_in Path of the input file
-    * \param size Number of elements in the generated DIA
-    */
+     * Constructor for a GenerateFileNode. Sets the Context, parents, generator
+     * function and file path.
+     *
+     * \param ctx Reference to Context, which holds references to data and network.
+     * \param generator_function Generator function, which defines how each line
+     * of the file is read and used for generation of a DIA.
+     * \param path_in Path of the input file
+     * \param size Number of elements in the generated DIA
+     */
     GenerateFileNode(Context& ctx,
                      GeneratorFunction generator_function,
                      std::string path_in,
                      size_t size)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "GenerateFromFile"),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -71,8 +73,12 @@ public:
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
     void Execute() override {
+        this->StartExecutionTimer();
+        this->StopExecutionTimer();
+    }
 
-        LOG << "GENERATING data with id " << this->data_id_;
+    void PushData() override {
+        LOG << "GENERATING data to file " << result_file_.ToString();
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -109,6 +115,8 @@ public:
         }
     }
 
+    void Dispose() override { }
+
     /*!
      * Produces an 'empty' function stack, which only contains the identity
      * emitter function.
@@ -124,7 +132,7 @@ public:
      * \return Stringified node.
      */
     std::string ToString() override {
-        return "[GeneratorNode] Id: " + this->data_id_.ToString();
+        return "[GeneratorNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -139,8 +147,6 @@ private:
 
     static const bool debug = false;
 };
-
-//! \}
 
 template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
@@ -170,6 +176,8 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, generator_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

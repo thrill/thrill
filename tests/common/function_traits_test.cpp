@@ -9,9 +9,9 @@
  ******************************************************************************/
 
 #include <c7a/common/function_traits.hpp>
+#include <gtest/gtest.h>
 
 #include <string>
-#include <gtest/gtest.h>
 
 TEST(FunctionTraits, LambdaParametersTest) {
     using c7a::common::FunctionTraits;

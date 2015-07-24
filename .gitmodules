@@ -1,9 +1,6 @@
 [submodule "extlib/gtest"]
 	path = extlib/gtest
 	url = https://chromium.googlesource.com/external/googletest
-[submodule "extlib/gmock"]
-	path = extlib/gmock
-	url = https://chromium.googlesource.com/external/gmock
 [submodule "extlib/cereal"]
 	path = extlib/cereal
 	url = git@github.com:USCiLab/cereal.git

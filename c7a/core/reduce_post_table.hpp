@@ -16,16 +16,11 @@
 #define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
-#include <c7a/data/manager.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <map>
-#include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
-#include <stdexcept>
-#include <array>
-#include <type_traits>
 
 namespace c7a {
 namespace core {
@@ -92,8 +87,6 @@ public:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    using KeyValuePair = std::pair<Key, Value>;
 
 protected:
     template <typename Key, typename Value>
@@ -168,9 +161,9 @@ public:
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(KeyValuePair p) {
+    void Insert(const Value& p) {
 
-        Key key = p.first;
+        Key key = key_extractor_(p);
 
         size_t hashed_key = hash_function_(key, this);
 
@@ -188,7 +181,7 @@ public:
 
             node<Key, Value>* n = new node<Key, Value>;
             n->key = key;
-            n->value = p.second;
+            n->value = p;
             n->next = nullptr;
             vector_[hashed_key] = n;
 
@@ -208,7 +201,7 @@ public:
                         << curr_node->key
                         << " ... reducing...";
 
-                    (*curr_node).value = reduce_function_(curr_node->value, p.second);
+                    (*curr_node).value = reduce_function_(curr_node->value, p);
 
                     LOG << "...finished reduce!";
 
@@ -225,7 +218,7 @@ public:
                 // insert at first pos
                 node<Key, Value>* n = new node<Key, Value>;
                 n->key = key;
-                n->value = p.second;
+                n->value = p;
                 n->next = vector_[hashed_key];
                 vector_[hashed_key] = n;
 

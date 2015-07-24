@@ -12,11 +12,10 @@
 #include <c7a/data/file.hpp>
 #include <tests/data/serializer_objects.hpp>
 
-#include <utility>
 #include <string>
+#include <tuple>
 #include <typeinfo>
-
-#include "gtest/gtest.h"
+#include <utility>
 
 using namespace c7a::data;
 

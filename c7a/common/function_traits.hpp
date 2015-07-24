@@ -11,6 +11,7 @@
 #ifndef C7A_COMMON_FUNCTION_TRAITS_HEADER
 #define C7A_COMMON_FUNCTION_TRAITS_HEADER
 
+#include <cstddef>
 #include <tuple>
 
 namespace c7a {

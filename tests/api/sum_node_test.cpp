@@ -9,12 +9,16 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/sum.hpp>
+#include <c7a/api/bootstrap.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/read.hpp>
-#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/sum.hpp>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
+#include <algorithm>
+#include <random>
+#include <string>
 
 using namespace c7a::core;
 using namespace c7a::net;
