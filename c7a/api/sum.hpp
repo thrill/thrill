@@ -38,10 +38,10 @@ class SumNode : public ActionNode
     using SumArg0 = ValueType;
 
 public:
-    SumNode(const ParentDIARef* parent,
+    SumNode(const ParentDIARef& parent,
             SumFunction sum_function,
             ValueType initial_value)
-        : ActionNode(parent->ctx(), { parent->node() }, "Sum"),
+        : ActionNode(parent.ctx(), { parent.node() }, "Sum"),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -50,8 +50,8 @@ public:
                              PreOp(input);
                          };
 
-        auto lop_chain = parent->stack().push(pre_op_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     //! Executes the sum operation.
@@ -133,7 +133,7 @@ auto DIARef<ValueType, Stack>::Sum(
         "SumFunction has the wrong input type");
 
     auto shared_node
-        = std::make_shared<SumResultNode>(this,
+        = std::make_shared<SumResultNode>(*this,
                                           sum_function,
                                           initial_value);
 

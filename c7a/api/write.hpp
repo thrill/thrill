@@ -35,9 +35,9 @@ public:
     using Super::result_file_;
     using Super::context_;
 
-    WriteNode(const ParentDIARef* parent,
+    WriteNode(const ParentDIARef& parent,
               const std::string& path_out)
-        : ActionNode(parent->ctx(), { parent->node() }, "Write"),
+        : ActionNode(parent.ctx(), { parent.node() }, "Write"),
           path_out_(path_out),
           file_(path_out_),
           emit_(file_)
@@ -49,8 +49,8 @@ public:
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent->stack().push(pre_op_fn).emit();
-        parent->node()->RegisterChild(lop_chain);
+        auto lop_chain = parent.stack().push(pre_op_fn).emit();
+        parent.node()->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType input) {
@@ -128,7 +128,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
     using WriteResultNode = WriteNode<ValueType, DIARef>;
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(this,
+        std::make_shared<WriteResultNode>(*this,
                                           filepath);
 
     core::StageBuilder().RunScope(shared_node.get());
