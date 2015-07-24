@@ -176,7 +176,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, 
                 generator_stack,
-                { ctx.stats_graph().AddNode("GenerateFromFile") });
+                { ctx.stats_graph().AddNode("GenerateFromFile", "DOp") });
 }
 
 //! \}

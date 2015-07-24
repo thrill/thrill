@@ -311,7 +311,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     return DIARef<DOpResult, decltype(reduce_stack)> (
             shared_node, 
             reduce_stack,
-            { AddChildStatsNode("ReduceToIndex") });
+            { AddChildStatsNode("ReduceToIndex", "DOp") });
 }
 
 //! \}

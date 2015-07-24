@@ -137,7 +137,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
                                           stack_,
                                           filepath);
 
-    AddChildStatsNode("Write");
+    AddChildStatsNode("Write", "Action");
     core::StageBuilder().RunScope(shared_node.get());
 }
 

@@ -25,8 +25,10 @@ namespace api {
 class StatsNode
 {
 public:
-    StatsNode(const std::string& type)
-        : type_(type) { }
+    StatsNode(const std::string& label, const std::string& type)
+        : label_(label),
+          type_(type)
+    { }
 
     StatsNode(const StatsNode& other) = delete;
 
@@ -42,13 +44,32 @@ public:
         return type_;
     }
 
+    std::string label() const {
+        return label_;
+    }
+
     friend std::ostream& operator << (std::ostream& os, const StatsNode& c) {
-        return os << c.type_;
+        return os << c.label_;
+    }
+
+    std::string NodeStyle() {
+        if (type_.compare("DOp") == 0) {
+            return label_ + " [style=filled, fillcolor=red, shape=box]";
+        } else if (type_.compare("Action") == 0) {
+            return label_ + " [style=filled, fillcolor=yellow, shape=diamond]";
+        } else if (type_.compare("LOp") == 0) {
+            return label_ + " [style=filled, fillcolor=blue, shape=hexagon]";
+        } else {
+            return label_;
+        }
     }
 
 private:
     //! Adjacent nodes
     std::vector<StatsNode*> adjacent_nodes_;
+
+    //! Label of node
+    std::string label_;
 
     //! Type of node
     std::string type_;
@@ -68,8 +89,8 @@ public:
         }
     }
 
-    StatsNode* AddNode(const std::string& label) {
-        StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++));
+    StatsNode* AddNode(const std::string& label, const std::string& type) {
+        StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
         nodes_.push_back(node);
         return node;
     }
@@ -83,6 +104,10 @@ public:
     void BuildLayout(const std::string& path) {
         std::ofstream file(path);
         file << "digraph {\n";
+        for (const auto& node : nodes_) {
+            file << "\t" << node->NodeStyle() << ";\n"; 
+        }
+        file << "\n";
         for (const auto& node : nodes_) {
             for (const auto& neighbor : node->adjacent_nodes()) {
                 file << "\t" << *node << " -> " << *neighbor << ";\n";

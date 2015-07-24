@@ -180,7 +180,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
     return DIARef<ValueType, decltype(sum_stack)> (
             shared_node, 
             sum_stack, 
-            { AddChildStatsNode("PrefixSum") });
+            { AddChildStatsNode("PrefixSum", "DOp") });
 }
 
 //! \}

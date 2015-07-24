@@ -154,7 +154,7 @@ auto Generate(Context & ctx,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, 
                 generator_stack,
-                { ctx.stats_graph().AddNode("Generate") });
+                { ctx.stats_graph().AddNode("Generate", "DOp") });
 }
 
 //! \}
