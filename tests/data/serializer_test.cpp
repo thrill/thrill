@@ -400,7 +400,7 @@ TEST(Serializer, CEREAL_TEST)
     {
         auto w = f.GetWriter();
         std::ostringstream os;
-        c7aOutputArchive_cp archive(w);
+        c7aOutputArchive_cp<decltype(w)> archive(w);
 
         MyRecord myData;
         myData.a = "asdfasdf";

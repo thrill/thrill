@@ -62,15 +62,15 @@ namespace data {
     inadvertently.
 
     \ingroup Archives */
-class c7aOutputArchive_cp : public cereal::OutputArchive<c7aOutputArchive_cp, cereal::AllowEmptyClassElision>
+template <typename Writer>
+class c7aOutputArchive_cp : public cereal::OutputArchive<c7aOutputArchive_cp<Writer>, cereal::AllowEmptyClassElision>
 {
 public:
     //! Construct, outputting to the provided stream
     /*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
                       even cout! */
-    c7aOutputArchive_cp(c7a::data::BlockWriterBase<2097152>& writer) :
-        // c7aOutputArchive_cp(std::ostream & stream) :
-        OutputArchive<c7aOutputArchive_cp, cereal::AllowEmptyClassElision>(this),
+    c7aOutputArchive_cp(Writer& writer) :
+        cereal::OutputArchive<c7aOutputArchive_cp<Writer>, cereal::AllowEmptyClassElision>(this),
         writer_(writer)
     { }
 
@@ -80,7 +80,7 @@ public:
     }
 
 private:
-    c7a::data::BlockWriterBase<2097152>& writer_;
+    Writer& writer_;
 };
 
 // ######################################################################
@@ -116,10 +116,10 @@ private:
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to binary
-template <class T>
+template <class T, typename Writer>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp& ar, T const& t) {
+CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp<Writer>& ar, T const& t) {
     ar.saveBinary(std::addressof(t), sizeof(t));
 }
 
@@ -132,27 +132,27 @@ CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, T& t) {
 }
 
 //! Serializing NVP types to binary
-template <class Archive, class T>
+template <class Archive, class T, typename Writer>
 inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp)
+CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp<Writer>)
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, cereal::NameValuePair<T>&t)
 {
     ar(t.value);
 }
 
 //! Serializing SizeTags to binary
-template <class Archive, class T>
+template <class Archive, class T, typename Writer>
 inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp)
+CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp<Writer>)
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, cereal::SizeTag<T>&t)
 {
     ar(t.size);
 }
 
 //! Saving binary data
-template <class T>
+template <class T, typename Writer>
 inline
-void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp& ar, cereal::BinaryData<T> const& bd) {
+void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp<Writer>& ar, cereal::BinaryData<T> const& bd) {
     ar.saveBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
@@ -166,12 +166,31 @@ void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, cereal::BinaryData<T>& bd
 } //namespace c7a
 
 // register archives for polymorphic support
-CEREAL_REGISTER_ARCHIVE(c7a::data::c7aOutputArchive_cp)
-CEREAL_REGISTER_ARCHIVE(c7a::data::c7aInputArchive_cp)
+// CEREAL_REGISTER_ARCHIVE(c7a::data::c7aOutputArchive_cp)
+// CEREAL_REGISTER_ARCHIVE(c7a::data::c7aInputArchive_cp)
 
 // tie input and output archives together
 
-CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive_cp, c7a::data::c7aOutputArchive_cp)
+// CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive_cp, c7a::data::c7aOutputArchive_cp)
+namespace cereal {
+namespace traits {
+namespace detail {
+
+template <>
+struct get_output_from_input<c7a::data::c7aInputArchive_cp>
+{
+    using type = c7a::data::c7aOutputArchive_cp<c7a::data::BlockWriter>;
+};
+
+template <typename Writer>
+struct get_input_from_output<c7a::data::c7aOutputArchive_cp<Writer>>
+{
+    using type = c7a::data::c7aInputArchive_cp;
+};
+
+}
+}
+}     /* end namespaces */
 
 #endif // !C7A_DATA_BINARY_HEADER
 
