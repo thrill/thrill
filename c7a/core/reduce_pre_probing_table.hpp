@@ -29,7 +29,7 @@ namespace core {
 template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
 class ReducePreProbingTable
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
@@ -58,7 +58,7 @@ public:
 public:
     typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
 
-    typedef std::function<bool(Key, Key, ReducePreProbingTable*)> EqualToFunction;
+    typedef std::function<bool(Key, Key)> EqualToFunction;
 
     ReducePreProbingTable(size_t num_partitions,
                           size_t num_items_init_scale,
@@ -83,7 +83,7 @@ public:
                                     return hr;
                                 },
                           EqualToFunction equal_to_function
-                            = [](Key k1, Key k2, ReducePreProbingTable* ht) {
+                            = [](Key k1, Key k2) {
                                 return k1 == k2;
                             })
         : num_partitions_(num_partitions),
@@ -118,7 +118,7 @@ public:
                                     return hr;
                                 },
                           EqualToFunction equal_to_function
-                                = [](Key k1, Key k2, ReducePreProbingTable* ht) {
+                                = [](Key k1, Key k2) {
                                     return k1 == k2;
                                 })
         : num_partitions_(num_partitions),
@@ -172,6 +172,8 @@ public:
         assert(h.partition_offset >= 0 && h.partition_offset < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
+        std::cout << key << " " << h.partition_id << " " << h.partition_offset << " " << h.global_index << std::endl;
+
         int pos = h.global_index;
         size_t pos_offset = 0;
 
@@ -180,9 +182,9 @@ public:
         // iterators.
         KeyValuePair* current = &vector_[pos];
 
-        while (!equal_to_function_(current->first, sentinel_.first, this))
+        while (!equal_to_function_(current->first, sentinel_.first))
         {
-            if (equal_to_function_(current->first, key, this))
+            if (equal_to_function_(current->first, key))
             {
                 LOG << "match of key: " << key
                     << " and " << current->first << " ... reducing...";
