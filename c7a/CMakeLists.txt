@@ -4,6 +4,7 @@
 # CMake file for c7a library
 ################################################################################
 
+if(OFF)
 ##### PROTOBUF STUFF #############################
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
@@ -26,7 +27,7 @@ set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR_OLD})
 
 #set(ALL_LIBRARIES ${PROTOBUF_LIBRARIES} ${ALL_LIBRARIES})
 #set(ALL_LIBRARIES protobuf ${ALL_LIBRARIES})
-
+endif()
 
 file(GLOB_RECURSE SRCS
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -40,8 +41,8 @@ file(GLOB_RECURSE SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/data/*.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/*.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/proto/*.pb.h
-  ${CMAKE_CURRENT_BINARY_DIR}/proto/*.pb.cc
+  # ${CMAKE_CURRENT_SOURCE_DIR}/proto/*.pb.h
+  # ${CMAKE_CURRENT_BINARY_DIR}/proto/*.pb.cc
 )
 
 add_library(c7a STATIC ${SRCS}
