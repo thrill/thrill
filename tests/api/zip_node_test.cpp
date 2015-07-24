@@ -169,7 +169,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
-TEST(ZipNode, DISABLED_TwoDisbalancedStringArrays) {
+TEST(ZipNode, TwoDisbalancedStringArrays) {
 
     // first DIA is heavily balanced to the first workers, second DIA is
     // balanced to the last workers.
@@ -233,15 +233,15 @@ TEST(ZipNode, DISABLED_TwoDisbalancedStringArrays) {
             }
 
             for (size_t i = 0; i != res.size(); ++i) {
-                sLOG1 << res[i] << " " << check[i] << (res[i] == check[i]);
+                sLOG0 << res[i] << " " << check[i] << (res[i] == check[i]);
             }
 
             ASSERT_EQ(check.size(), res.size());
             ASSERT_EQ(check, res);
         };
 
-    c7a::api::ExecuteLocalThreadsTCP(2, 8080, start_func);
-    //c7a::api::ExecuteLocalTests(start_func);
+    //c7a::api::ExecuteLocalThreadsTCP(2, 8080, start_func);
+    c7a::api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/
