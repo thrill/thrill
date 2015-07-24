@@ -90,11 +90,6 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack)
-        : node_(node),
-          stack_(stack)
-    { }
-
     DIARef(const DIANodePtr& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
         : node_(node),
           stack_(stack),
@@ -166,13 +161,6 @@ public:
     void AppendChildStatsNode(StatsNode* stats_node) const {
         for (auto parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
     }
-
-
-    std::string Address() const {
-        const void* address = static_cast<const void*>(this);
-        std::stringstream ss;
-        ss << address;  
-        return ss.str(); 
 
     Context & ctx() const {
         return node_->context();
