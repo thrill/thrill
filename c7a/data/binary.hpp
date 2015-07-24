@@ -1,17 +1,26 @@
 /*******************************************************************************
- * c7a/data/serializer_cereal_archive.hpp
+ * c7a/data/binary.hpp
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
-#define C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
-/*! \file binary.hpp
-    \brief Binary input and output archives */
+#ifndef C7A_DATA_BINARY_HEADER
+#define C7A_DATA_BINARY_HEADER
+
+#include <c7a/data/block.hpp>
+#include <c7a/data/block_writer.hpp>
+#include <c7a/data/file.hpp>
+#include <cereal/cereal.hpp>
+#include <sstream>
+
+namespace c7a {
+namespace data {
+
 /*
   Copyright (c) 2014, Randolph Voorhies, Shane Grant
   All rights reserved.
@@ -38,18 +47,6 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_ARCHIVES_C7A_HPP_
-#define CEREAL_ARCHIVES_C7A_HPP_
-
-#include "cereal/cereal.hpp"
-
-// namespace c7a {
-// namespace data {
-//   template <typename BlockSink>
-//   class BlockWriter : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >;
-// }}
-
-namespace cereal {
 
 // ######################################################################
 //! An output archive designed to save data in a compact binary representation
@@ -57,117 +54,125 @@ namespace cereal {
     representation with as little extra metadata as possible.
 
     This archive does nothing to ensure that the endianness of the saved
-    and loaded data is the same
+    and loaded data is the same.  If you need to have portability over
+    architectures with different endianness, use Portablec7aOutputArchive_cp.
 
     When using a binary archive and a file stream, you must use the
     std::ios::binary format flag to avoid having your data altered
     inadvertently.
 
     \ingroup Archives */
-template <typename WriterArchive>
-class c7aOutputArchive : public OutputArchive<c7aOutputArchive<WriterArchive>, AllowEmptyClassElision>
+class c7aOutputArchive_cp : public cereal::OutputArchive<c7aOutputArchive_cp, cereal::AllowEmptyClassElision>
 {
 public:
     //! Construct, outputting to the provided stream
     /*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
                       even cout! */
-    c7aOutputArchive(WriterArchive& a) :
-        OutputArchive<c7aOutputArchive, AllowEmptyClassElision>(this), a_(a)
+    c7aOutputArchive_cp(c7a::data::BlockWriterBase<2097152>& writer) :
+        // c7aOutputArchive_cp(std::ostream & stream) :
+        OutputArchive<c7aOutputArchive_cp, cereal::AllowEmptyClassElision>(this),
+        writer_(writer)
     { }
 
     //! Writes size bytes of data to the output stream
     void saveBinary(const void* data, std::size_t size) {
-        a_.Append(data, size);
+        writer_.Append(data, size);
     }
 
 private:
-    WriterArchive& a_;
+    c7a::data::BlockWriterBase<2097152>& writer_;
 };
 
 // ######################################################################
-//! An in
-// put archive designed to load data saved using c7aOutputArchive
-// This archive does nothing to ensure that the endianness of the saved
-//   and loaded data is the same.  If you need to have portability over
-//   architectures with different endianness, use Portablec7aOutputArchive.
+//! An input archive designed to load data saved using c7aOutputArchive_cp
+/*  This archive does nothing to ensure that the endianness of the saved
+    and loaded data is the same.  If you need to have portability over
+    architectures with different endianness, use Portablec7aOutputArchive_cp.
 
-//   When using a binary archive and a file stream, you must use the
-//   std::ios::binary format flag to avoid having your data altered
-//   inadvertently.
+    When using a binary archive and a file stream, you must use the
+    std::ios::binary format flag to avoid having your data altered
+    inadvertently.
 
-//   \ingroup Archives
-
-template <typename ReaderArchive>
-class c7aInputArchive : public InputArchive<c7aInputArchive<ReaderArchive>, AllowEmptyClassElision>
+    \ingroup Archives */
+class c7aInputArchive_cp : public cereal::InputArchive<c7aInputArchive_cp, cereal::AllowEmptyClassElision>
 {
 public:
     //! Construct, loading from the provided stream
-    c7aInputArchive(ReaderArchive& a) :
-        InputArchive<c7aInputArchive, AllowEmptyClassElision>(this), a_(a)
+    c7aInputArchive_cp(c7a::data::File::Reader& reader) :
+        InputArchive<c7aInputArchive_cp, cereal::AllowEmptyClassElision>(this),
+        reader_(reader)
     { }
 
     //! Reads size bytes of data from the input stream
     void loadBinary(void* const data, std::size_t size) {
-        a_.Read(data, size);
+        reader_.Read(data, size);
     }
 
 private:
-    ReaderArchive& a_;
+    c7a::data::File::Reader& reader_;
 };
 
 // ######################################################################
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to binary
-template <class T, typename WriterArchive>
+template <class T>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<WriterArchive>& ar, T const& t) {
+CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp& ar, T const& t) {
     ar.saveBinary(std::addressof(t), sizeof(t));
 }
 
 //! Loading for POD types from binary
-template <class T, typename ReaderArchive>
+template <class T>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, T& t) {
+CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, T& t) {
     ar.loadBinary(std::addressof(t), sizeof(t));
 }
 
 //! Serializing NVP types to binary
-template <class Archive, class T, typename ReaderArchive, typename WriterArchive>
+template <class Archive, class T>
 inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive<ReaderArchive>, c7aOutputArchive<WriterArchive>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, NameValuePair<T>&t)
+CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp)
+CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, cereal::NameValuePair<T>&t)
 {
     ar(t.value);
 }
 
 //! Serializing SizeTags to binary
-template <class Archive, class T, typename ReaderArchive, typename WriterArchive>
+template <class Archive, class T>
 inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive<ReaderArchive>, c7aOutputArchive<WriterArchive>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, SizeTag<T>&t)
+CEREAL_ARCHIVE_RESTRICT(c7aInputArchive_cp, c7aOutputArchive_cp)
+CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, cereal::SizeTag<T>&t)
 {
     ar(t.size);
 }
 
 //! Saving binary data
-template <class T, typename WriterArchive>
+template <class T>
 inline
-void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<WriterArchive>& ar, BinaryData<T> const& bd) {
+void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive_cp& ar, cereal::BinaryData<T> const& bd) {
     ar.saveBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
 //! Loading binary data
-template <class T, typename ReaderArchive>
+template <class T>
 inline
-void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, BinaryData<T>& bd) {
+void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive_cp& ar, cereal::BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
+} //namespace data
+} //namespace c7a
 
-} // namespace cereal
-#endif // CEREAL_ARCHIVES_C7A_HPP_
-#endif // !C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
+// register archives for polymorphic support
+CEREAL_REGISTER_ARCHIVE(c7a::data::c7aOutputArchive_cp)
+CEREAL_REGISTER_ARCHIVE(c7a::data::c7aInputArchive_cp)
+
+// tie input and output archives together
+
+CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive_cp, c7a::data::c7aOutputArchive_cp)
+
+#endif // !C7A_DATA_BINARY_HEADER
 
 /******************************************************************************/
