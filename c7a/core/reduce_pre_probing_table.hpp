@@ -185,8 +185,12 @@ public:
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
+            std::cout << "1" << std::endl;
+
             if (equal_to_function_(current->first, key))
             {
+                std::cout << "2" << std::endl;
+
                 LOG << "match of key: " << key
                     << " and " << current->first << " ... reducing...";
 
@@ -196,26 +200,40 @@ public:
                 return;
             }
 
+            std::cout << "3" << std::endl;
+
             ++pos_offset;
 
             if (pos_offset > num_collisions_to_resize_ || pos_offset >= num_items_per_partition_)
             {
+                std::cout << "4" << std::endl;
+
                 ResizeUp();
                 Insert(std::move(p));
                 return;
             }
 
+            std::cout << "5" << std::endl;
+
             if (h.partition_offset + pos_offset >= num_items_per_partition_)
             {
+                std::cout << "6" << std::endl;
+
                 pos -= (h.partition_offset + pos_offset);
             }
+
+            std::cout << "7" << std::endl;
 
             current = &vector_[pos + pos_offset];
         }
 
+        std::cout << "8" << std::endl;
+
         // insert new pair
         if (current->first == sentinel_.first)
         {
+            std::cout << "9" << std::endl;
+
             vector_[pos + pos_offset] = KeyValuePair(key, p);
 
             // increase total counter
@@ -225,22 +243,32 @@ public:
             items_per_partition_[h.partition_id]++;
         }
 
+        std::cout << "10" << std::endl;
+
         if (num_items_ > max_num_items_table_)
         {
+            std::cout << "11" << std::endl;
+
             LOG << "flush";
             FlushLargestPartition();
         }
+
+        std::cout << "12" << std::endl;
 
         std::cout << key << std::endl;
         std::cout << items_per_partition_[h.partition_id] / num_items_per_partition_ << std::endl;
         std::cout << max_partition_fill_ratio_ << std::endl;
 
-        if (items_per_partition_[h.partition_id]
-            / num_items_per_partition_ > max_partition_fill_ratio_)
+        if ((float)items_per_partition_[h.partition_id]
+            / (float)num_items_per_partition_ > max_partition_fill_ratio_)
         {
+            std::cout << "13" << std::endl;
+
             std::cout << "resize" << std::endl;
             ResizeUp();
         }
+
+        std::cout << "14" << std::endl;
     }
 
     /*!
