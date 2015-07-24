@@ -3,7 +3,7 @@
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Tobias Sturm <tobias.sturm@student.kit.edu>
+ * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -25,7 +25,7 @@ int main(int argc, const char** argv) {
 
     common::CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");
-    clp.SetAuthor("Tobias Sturm <tobias.sturm@student.kit.edu>");
+    clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     std::string input_file, output_file;
     clp.AddParamString("i", input_file, "Input file");
     clp.AddParamString("o", output_file, "Output file");
