@@ -13,13 +13,13 @@
 
 #include <c7a/common/function_traits.hpp>
 
+#include <array>
 #include <cassert>
 #include <string>
-#include <vector>
 #include <tuple>
 #include <type_traits>
-#include <array>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -177,6 +177,8 @@ template <typename Input, typename Lambda>
 static inline auto MakeFunctionStack(Lambda lambda) {
     return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

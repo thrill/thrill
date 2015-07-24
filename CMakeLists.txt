@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 2.8)
 project(c7a)
 
 # custom cmake scripts
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -28,17 +28,34 @@ option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 
+option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
+
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+
+option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
+
+option(ENABLE_STATS "enable stats" OFF)
+if(ENABLE_STATS)
+    message(STATUS "Add Stats support")
+    add_definitions(-DENABLE_STATS=1)
+else()
+    add_definitions(-DENABLE_STATS=0)
+endif()
 
 # enable warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
 
+# enable AddressSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+# enable ThreadSanitizer
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+
+# enable UndefinedBehaviorSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
-  # does not work with TBB version on our build servers
-  set(USE_TBB OFF)
 
   if(NOT USE_VALGRIND)
     # enable AddressSanitizer
@@ -56,10 +73,34 @@ if(JENKINS_BUILD)
   endif()
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  # Clang does not support debug output for auto return types yet
-  string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-  string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+if(USE_IWYU)
+  # Generate clang compilation database
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+  find_package(PythonInterp)
+  find_program(iwyu_tool_path NAMES iwyu_tool.py)
+  if (iwyu_tool_path AND PYTHONINTERP_FOUND)
+    add_custom_target(iwyu
+      ALL      # Remove ALL if you don't iwyu to be run by default.
+      COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
+      COMMENT "Running include-what-you-use tool"
+      VERBATIM)
+  endif()
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} --version
+    OUTPUT_VARIABLE clang_full_version_string)
+
+  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
+    CLANG_VERSION_STRING ${clang_full_version_string})
+
+  if (CLANG_VERSION_STRING VERSION_LESS 3.6)
+    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  endif()
 endif()
 
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
@@ -125,9 +166,8 @@ endif(USE_GCOV)
 enable_testing()
 
 # google test + mock - enable "make test" and add_test()
-add_subdirectory(extlib/gmock) # note: gmock includes gtest
+add_subdirectory(extlib/gtest)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
 set(C7A_VALGRIND_OPTS
@@ -157,6 +197,10 @@ endif()
 
 if(NOT TBB_FOUND)
   message(STATUS "Intel TBB not found. No problem, using slower replacements.")
+  add_definitions(-DHAVE_INTELTBB=0)
+elseif(TBB_INTERFACE_VERSION LESS 8000)
+  message(STATUS "Intel TBB ${TBB_INTERFACE_VERSION} is too old. "
+    "No problem, using slower replacements.")
   add_definitions(-DHAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
   include_directories(${TBB_INCLUDE_DIRS})
@@ -191,6 +235,35 @@ add_subdirectory(tests)
 add_subdirectory(examples)
 
 add_subdirectory(benchmarks)
+
+###############################################################################
+# cmake script TRY_COMPILE all stxxl header files
+
+if(TRY_COMPILE_HEADERS)
+
+  include(CheckCXXSourceCompiles)
+  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR})
+  set(CMAKE_REQUIRED_LIBRARIES
+    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${CMAKE_THREAD_LIBS_INIT})
+
+  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
+  list(SORT header_files)
+
+  foreach(file ${header_files})
+    string(REPLACE "/" "_" compilename "${file}") # replace / to _ to fix warnings
+    string(REPLACE "." "_" compilename "${compilename}")
+
+    check_cxx_source_compiles(
+      "#include \"${file}\"
+      int main() { return 0; }" IsSelfContained${compilename})
+
+    if(NOT IsSelfContained${compilename})
+      message(SEND_ERROR
+        "Compilation FAILED for ${file}\n\nCompiler output:\n${OUTPUT}")
+    endif()
+  endforeach()
+
+endif(TRY_COMPILE_HEADERS)
 
 ################################################################################
 

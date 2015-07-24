@@ -11,12 +11,12 @@
 #ifndef C7A_DATA_SERIALIZER_HEADER
 #define C7A_DATA_SERIALIZER_HEADER
 
-#include <string>
-#include <cstring>
-#include <utility>
 #include <cassert>
+#include <cstring>
+#include <string>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include <c7a/common/logger.hpp>
 
@@ -83,6 +83,7 @@ struct Impl<Archive, std::pair<U, V> >
 };
 
 /****************** Serialization of tuples **************************/
+
 template <typename Archive, int N, typename ... Args>
 struct TupleSerializer {
     using ThisElemType = typename std::tuple_element<N, std::tuple<Args ...> >::type;
@@ -176,6 +177,8 @@ template <typename Archive, typename T>
 inline T Deserialize(Archive& a) {
     return serializers::Impl<Archive, T>::Deserialize(a);
 }
+
+//! \}
 
 } // namespace data
 } // namespace c7a

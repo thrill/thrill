@@ -14,13 +14,12 @@
 #ifndef C7A_API_GENERATE_HEADER
 #define C7A_API_GENERATE_HEADER
 
-#include <c7a/common/logger.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/function_stack.hpp>
+#include <c7a/common/logger.hpp>
 
-#include <string>
 #include <fstream>
 #include <random>
+#include <string>
 #include <type_traits>
 
 namespace c7a {
@@ -56,7 +55,7 @@ public:
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size)
-        : DOpNode<ValueType>(ctx, { }),
+        : DOpNode<ValueType>(ctx, { }, "Generate"),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -67,13 +66,18 @@ public:
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
     void Execute() override {
+        this->StartExecutionTimer();
+        this->StopExecutionTimer();
+    }
 
-        LOG << "GENERATING data with id " << this->data_id_;
+    void PushData() override {
+        LOG << "GENERATING data with id " << this->result_file_;
 
         using InputArgument
                   = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
 
-        static_assert(std::is_same<InputArgument, const size_t&>::value, "The GeneratorFunction needs an unsigned integer as input parameter");
+        static_assert(std::is_convertible<size_t, InputArgument>::value,
+                      "The GeneratorFunction needs a size_t as input parameter");
 
         size_t offset = (size_ / context_.number_worker()) * context_.rank();
         size_t local_elements;
@@ -95,6 +99,8 @@ public:
         }
     }
 
+    void Dispose() override { }
+
     /*!
      * Produces an 'empty' function stack, which only contains the identity emitter function.
      * \return Empty function stack
@@ -108,7 +114,7 @@ public:
      * \return Stringified node.
      */
     std::string ToString() override {
-        return "[GeneratorNode] Id: " + this->data_id_.ToString();
+        return "[GeneratorNode] Id: " + this->result_file_.ToString();
     }
 
 private:
@@ -119,8 +125,6 @@ private:
 
     static const bool debug = false;
 };
-
-//! \}
 
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
@@ -134,9 +138,10 @@ auto Generate(Context & ctx,
               GenerateNode<GeneratorResult, GeneratorFunction>;
 
     static_assert(
-        std::is_same<
-            typename common::FunctionTraits<GeneratorFunction>::template arg<0>,
-            const size_t&>::value,
+        std::is_convertible<
+            size_t,
+            typename common::FunctionTraits<GeneratorFunction>::template arg<0>
+            >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
     auto shared_node =
@@ -149,6 +154,8 @@ auto Generate(Context & ctx,
     return DIARef<GeneratorResult, decltype(generator_stack)>
                (shared_node, generator_stack);
 }
+
+//! \}
 
 } // namespace api
 } // namespace c7a

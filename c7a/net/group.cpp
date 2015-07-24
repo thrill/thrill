@@ -12,10 +12,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/common/logger.hpp>
 #include <c7a/net/group.hpp>
-#include <c7a/net/dispatcher.hpp>
 
-#include <deque>
 #include <string>
 #include <thread>
 #include <utility>
@@ -23,52 +22,6 @@
 
 namespace c7a {
 namespace net {
-
-/**
- * @brief Auxiallary class for buffered reads.
- */
-template <typename Functional, size_t BufferSize = 0>
-class ReadBuffer
-{
-public:
-    //! Construct buffered reader with callback
-    ReadBuffer(lowlevel::Socket& socket, size_t buffer_size = BufferSize,
-               const Functional& functional = Functional())
-        : functional_(functional),
-          buffer_(buffer_size, 0) {
-        if (buffer_size == 0)
-            functional_(socket, buffer_);
-    }
-
-    //! Should be called when the socket is readable
-    bool operator () (lowlevel::Socket& s) {
-        int r = s.recv_one(const_cast<char*>(buffer_.data() + size_),
-                           buffer_.size() - size_);
-
-        if (r < 0)
-            throw Exception("ReadBuffer() error in recv", errno);
-
-        size_ += r;
-
-        if (size_ == buffer_.size()) {
-            functional_(s, buffer_);
-            return false;
-        }
-        else {
-            return true;
-        }
-    }
-
-private:
-    //! total size currently read
-    size_t size_ = 0;
-
-    //! functional object to call once data is complete
-    Functional functional_;
-
-    //! Receive buffer
-    std::string buffer_;
-};
 
 std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
     using lowlevel::Socket;
@@ -86,6 +39,9 @@ std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
             LOG << "doing Socket::CreatePair() for i=" << i << " j=" << j;
 
             std::pair<Socket, Socket> sp = Socket::CreatePair();
+
+            sp.first.SetNonBlocking(true);
+            sp.second.SetNonBlocking(true);
 
             group[i].connections_[j] = std::move(Connection(sp.first));
             group[j].connections_[i] = std::move(Connection(sp.second));

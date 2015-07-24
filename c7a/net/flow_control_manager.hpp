@@ -12,14 +12,17 @@
 #ifndef C7A_NET_FLOW_CONTROL_MANAGER_HEADER
 #define C7A_NET_FLOW_CONTROL_MANAGER_HEADER
 
+#include <c7a/common/cyclic_barrier.hpp>
+#include <c7a/net/flow_control_channel.hpp>
+#include <c7a/net/group.hpp>
 #include <string>
 #include <vector>
-#include <c7a/net/group.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/common/cyclic_barrier.hpp>
 
 namespace c7a {
 namespace net {
+
+//! \addtogroup net Network Communication
+//! \{
 
 class FlowControlChannelManager
 {
@@ -71,6 +74,8 @@ public:
         return channels[threadId];
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

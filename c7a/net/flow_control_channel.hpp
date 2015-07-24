@@ -12,13 +12,18 @@
 #ifndef C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 #define C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 
+#include <c7a/common/cyclic_barrier.hpp>
+#include <c7a/common/functional.hpp>
+#include <c7a/net/group.hpp>
+
 #include <string>
 #include <vector>
-#include <c7a/net/group.hpp>
-#include <c7a/common/cyclic_barrier.hpp>
 
 namespace c7a {
 namespace net {
+
+//! \addtogroup net Network Communication
+//! \{
 
 /**
  * @brief Provides a blocking collection for communication.
@@ -145,7 +150,7 @@ public:
 
         T res = value;
         //return value when computing non-exclusive prefix sum
-        T exclusiveRes;
+        T exclusiveRes = T();
         std::vector<T> localPrefixBuffer(threadCount);
 
         //Local Reduce
@@ -265,7 +270,7 @@ public:
      * @return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T AllReduce(T& value, BinarySumOp sumOp = common::SumOp<T>()) {
+    T AllReduce(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
 
@@ -334,6 +339,8 @@ public:
         i = AllReduce(i);
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

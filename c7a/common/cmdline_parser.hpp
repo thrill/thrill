@@ -12,12 +12,9 @@
 #ifndef C7A_COMMON_CMDLINE_PARSER_HEADER
 #define C7A_COMMON_CMDLINE_PARSER_HEADER
 
-#include <cstddef>
-#include <cstdio>
 #include <iostream>
-#include <vector>
 #include <string>
-#include <algorithm>
+#include <vector>
 
 namespace c7a {
 namespace common {

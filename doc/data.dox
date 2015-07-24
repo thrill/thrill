@@ -17,47 +17,53 @@ namespace data {
 
 The \ref data::Manager is a facade for the subsystem access to remote and local data.
 
+## Block, and BlockWriter and BlockReader
+
+Serialized data is stored in Block objects, which are equally sized chunks of memory. Much of the other classes are needed to correctly handle splitting and combining of small and huge items and data types into Block chunks. This is what BlockWriter and BlockReader do: serialize and deserialize items (or arbitrary datatypes) into Blocks.
+
+A BlockWriter fills a Block and delivers full Blocks to a BlockSink. See the inheritance diagram of BlockSink for available sinks; there are at least: File, BlockQueue, and ChannelSink.
+
+A BlockReader is parameterized by a BlockSource concept class, which delivers Blocks to the Reader. The reader then deserializes items and arbitrary data types from the Blocks, and reads new a Block if a large item extends to it.
+
+A BlockWriter has two additional signaling methods: \ref BlockWriter::Flush Flush() and \ref BlockWriter::Close Close() . Flush() is only needed when the buffering block should immediately be written to the BlockSink. Close() flushes the last block and no more items may be written.
+
+The standard loop of a BlockReader consists of testing whether another item can be read via BlockReader::HasNext() and then fetching an item Using BlockReader::Next(). The method Next() must be parameterized with the serializable item to get. Beware that any items can be mixed together, and that they deserialization *must* match the serialization done by BlockWriter.
+
+
+## Data Channels
+
+Workers may need to exchange many data elements between each other in an asynchronous fashion. A Channel is a communication context to exchange large amounts of items between workers. Channels may be used by DOps to implemented distributed operations.
+
+Multiple Channels of different distributed operations can exist concurrently. Therefore the Channel objects have to be allocated in a deterministic order via Manager::GetNewChannel().
+
+See the documentation of Channel and ChannelMultiplexer on how to read and write to Channels.
+
+
+# OLD DOC BY TOBI
+
 ## DIAs-Partitions
-\ref c7a::api::DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
+DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
 DIAs can be materialized (data elements are held in external or internal memory) or not (DIA refers internally to upstream DIAs and how to transform elements).
 Each worker holds a partition of each DIA.
 Partitions are most likely not balanced across workers and some partitions might be even empty.
-These partitions are addressed via a \ref c7a::data::DIAId "DIAId" that is generated in a deterministic manner, such that each worker generates the same sequence of DIAIds.
-Access to elements of DIA partitions via their DIAId is provided via the \ref data::Manager.
-
-## Data Channels
-Workers may need to exchange many data elements between each other in an asynchronous fashion.
-Data exchanges are triggered by distributed operations.
-\todo refer to list of distributed operations.
-
-Multiple data exchanges of different distributed operations can happen concurrently.
-Therefore an address-schema is required to distinguish \ref c7a::data::Channel "data channels".
-We use the same approach as for the DIAs by using a \ref c7a::data::ChannelId "ChannelId" that is generated in a determistic fashion.
-Access to these channels is provided through the \ref data::Manager.
-
-## Buffers and BufferChains
-Data is stored in \ref BinaryBuffer instances which are blobs of memory (preferably allocated to a reasonable size).
-\ref c7a::data::BinaryBufferBuilder "Builders" and \ref c7a::data::BinaryBufferReader "Readers" provide a convenient interface to store and retrieve primitive data types (int, long, string, ...).
-Buffers can be chained together by using the \ref BufferChain.
-Incoming data of data channels as well as the materialized DIA data elements are stored in BufferChains.
-The \ref c7a::data::BufferChainManager is used to manage the mapping from ID (DIAId and ChannelId) to BufferChain.
-BufferChains can append BinaryBuffers or can be closed.
+These partitions are addressed via a DIAId that is generated in a deterministic manner, such that each worker generates the same sequence of DIAIds.
+Access to elements of DIA partitions via their DIAId is provided via the Manager.
 
 ## Address Schema
-DIAs and Channels are addressed by unique IDs, which are allocated via the data::Manager by calling \ref c7a::data::Manager::AllocateDIA() "AllocateDIA" and \ref c7a::data::Manager::AllocateNetworkChannel() "AllocateNetworkChannel".
-Each call of these methods alters the state of the \ref c7a::data::Manager, thus the order in which these calls happen matters.
-All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref c7a::data::Channel "NetworkChannels".
+DIAs and Channels are addressed by unique IDs, which are allocated via the data::Manager by calling "AllocateDIA" and "AllocateNetworkChannel".
+Each call of these methods alters the state of the Manager, thus the order in which these calls happen matters.
+All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref Channel "NetworkChannels".
 
 ## Iterators and Emitters
-The central interface to access data consists of the \ref Iterator and the \ref Emitter class.
-Both instances can be retrieved by passing an id to the \ref data::Manager.
+The central interface to access data consists of the Iterator and the Emitter class.
+Both instances can be retrieved by passing an id to the Manager.
 When data is pushed / pulled via these classes, data elements are serialized if necessary.
-Emitters and Iterators can access locally stored data and channel data by accessing \ref BufferChain instances.
-Both types of emitters may buffer pushed elements until \ref Emitter::Flush() "flush" or \ref Emitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
+Emitters and Iterators can access locally stored data and channel data by accessing BufferChain instances.
+Both types of emitters may buffer pushed elements until Emitter::Flush() "flush" or Emitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
 Emitters and Iterators can operate concurrently - emitters can push data even after an iterator was created.
-Emitters can close a BufferChain and Iterators provide a \ref Iterator::IsFinished() "IsFinished() method".
-If multiple emitters exist, multiple calls to \ref Emitter::Close() "close" lead to undefined behaviour.
-Iterators offer \ref Iterator::HasNext() and \ref Iterator::Next() as most ocmmon interface to read data sequentially. \ref Iterator::Seek() can be used for internal use. Seek returns a base address and byte-length of the elements that where seeked. Seek always returns continuous memory and thus only operats on a single BinaryBufer. \ref Iterator::Seek() can be called multiple times to return multiple memory ranges until all elements have been reached, as shown in the example below.
+Emitters can close a BufferChain and Iterators provide a Iterator::IsFinished() "IsFinished() method".
+If multiple emitters exist, multiple calls to Emitter::Close() "close" lead to undefined behaviour.
+Iterators offer Iterator::HasNext() and Iterator::Next() as most ocmmon interface to read data sequentially. Iterator::Seek() can be used for internal use. Seek returns a base address and byte-length of the elements that where seeked. Seek always returns continuous memory and thus only operats on a single BinaryBufer. Iterator::Seek() can be called multiple times to return multiple memory ranges until all elements have been reached, as shown in the example below.
 
 ## Examples
 To write into the local storage and then read from it use:

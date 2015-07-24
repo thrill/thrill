@@ -10,6 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
 
 namespace c7a {

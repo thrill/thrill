@@ -9,10 +9,9 @@
  ******************************************************************************/
 
 #include <c7a/common/stats_timer.hpp>
+#include <gtest/gtest.h>
 
 #include <thread>
-
-#include "gtest/gtest.h"
 
 using namespace c7a::common;
 

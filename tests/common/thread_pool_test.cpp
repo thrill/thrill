@@ -8,13 +8,14 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/thread_pool.hpp>
+#include <c7a/common/logger.hpp>
 #include <c7a/common/stats_timer.hpp>
+#include <c7a/common/thread_pool.hpp>
+#include <gtest/gtest.h>
 
-#include <string>
 #include <numeric>
-
-#include "gtest/gtest.h"
+#include <string>
+#include <vector>
 
 using namespace c7a::common;
 

@@ -15,13 +15,17 @@
 #define C7A_API_DIA_BASE_HEADER
 
 #include <c7a/api/context.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/data/manager.hpp>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace c7a {
 namespace api {
+
+//! \addtogroup api Interface
+//! \{
 
 /*!
  * Possible states a DIABase can be in.
@@ -33,16 +37,11 @@ enum kState {
     NEW,
     //! The DIABase has been calculated but not explicitly cached.  Data might
     //! be available or has to be recalculated when needed
-    CALCULATED,
-    //! The DIABase is cached and it's data can be accessed
-    CACHED,
+    EXECUTED,
     //! The DIABase is disposed by the user, needs to be recomputed when
     //! accessed.
     DISPOSED
 };
-
-//! \addtogroup api Interface
-//! \{
 
 /*!
  * The DIABase is the untyped super class of DIANode. DIABases are used to build
@@ -59,7 +58,7 @@ class DIABase
 public:
     /*!
      * The constructor for a DIABase. Sets the data::Manager and the
-     * associated DIAId.
+     * associated \ref data::File 'result_file'.
      *
      * Sets the parents for this node and adds this node as a child for
      * each parent.
@@ -69,13 +68,20 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents)
+            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag)
         : context_(ctx), parents_(parents),
-          data_id_(ctx.data_manager().AllocateDIA()) {
+          result_file_(ctx.data_manager().GetFile()),
+          execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
+          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
     }
+
+    //! non-copyable: delete copy-constructor
+    DIABase(const DIABase&) = delete;
+    //! non-copyable: delete assignment operator
+    DIABase& operator = (const DIABase&) = delete;
 
     //! Virtual destructor for a DIABase.
     virtual ~DIABase() {
@@ -84,10 +90,20 @@ public:
         // its reference count should be zero and he
         // should be removed
         // parent->remove_child(this);
+        STOP_TIMER(lifetime_)
     }
 
     //! Virtual execution method. Triggers actual computation in sub-classes.
     virtual void Execute() = 0;
+
+    //! Virtual method for pushing data. Triggers actual pushing in sub-classes.
+    virtual void PushData() = 0;
+
+    //! Virtual clear method. Triggers actual disposing in sub-classes.
+    virtual void Dispose() = 0;
+
+    //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
+    virtual void UnregisterChilds() = 0;
 
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
@@ -118,8 +134,8 @@ public:
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::DIAId data_id() {
-        return data_id_;
+    data::File result_file() {
+        return result_file_;
     }
 
     kState state() const {
@@ -139,10 +155,8 @@ protected:
         switch (state_) {
         case NEW:
             return "NEW";
-        case CALCULATED:
-            return "CALCULATED";
-        case CACHED:
-            return "CACHED";
+        case EXECUTED:
+            return "EXECUTED";
         case DISPOSED:
             return "DISPOSED";
         default:
@@ -150,13 +164,31 @@ protected:
         }
     }
 
+    //Why are these stupid functions here?
+    //Because we do not want to include the stats.hpp into every
+    //single node class
+    inline void StartExecutionTimer() {
+        START_TIMER(execution_timer_)
+    }
+    inline void StopExecutionTimer() {
+        STOP_TIMER(execution_timer_)
+    }
+
     //! Context, which can give iterators to data.
     Context& context_;
+
     //! Children and parents of this DIABase.
     std::vector<DIABase*> children_;
     std::vector<std::shared_ptr<DIABase> > parents_;
+
     //! Unique ID of this DIABase. Used by the data::Manager.
-    data::DIAId data_id_;
+    data::File result_file_;
+
+    //! Timer that tracks execution of this node
+    common::TimerPtr execution_timer_;
+
+    //! Timer that tracks the lifetime of this object
+    common::TimerPtr lifetime_;
 };
 
 //! \}

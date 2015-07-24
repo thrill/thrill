@@ -14,11 +14,11 @@
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/logger.hpp>
 
+#include <algorithm>
+#include <set>
 #include <stack>
 #include <string>
 #include <utility>
-#include <algorithm>
-#include <set>
 #include <vector>
 
 namespace c7a {
@@ -32,9 +32,28 @@ public:
     explicit Stage(DIABase* node) : node_(node) {
         LOG << "CREATING stage" << node_->ToString() << "node" << node_;
     }
-    void Run() {
-        LOG << "RUNNING stage " << node_->ToString() << "node" << node_;
+
+    void Execute() {
+        LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
         node_->Execute();
+        node_->PushData();
+        node_->set_state(c7a::api::EXECUTED);
+    }
+
+    void PushData() {
+        LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
+        node_->PushData();
+        node_->set_state(c7a::api::EXECUTED);
+    }
+
+    void Dispose() {
+        LOG << "DISPOSING stage " << node_->ToString() << "node" << node_;
+        node_->Dispose();
+        node_->set_state(c7a::api::DISPOSED);
+    }
+
+    DIABase * node() {
+        return node_;
     }
 
 private:
@@ -52,21 +71,26 @@ public:
         std::stack<DIABase*> dia_stack;
         dia_stack.push(action);
         stages_found.insert(action);
+        stages_result.push_back(Stage(action));
         while (!dia_stack.empty()) {
             DIABase* curr = dia_stack.top();
             dia_stack.pop();
-            stages_result.emplace_back(Stage(curr));
             const auto parents = curr->parents();
             for (size_t i = 0; i < parents.size(); ++i) {
+                // Check if parent was already added
                 auto p = parents[i].get();
-                // if p is not a nullpointer and p is not cached mark it and save stage
-                if (p && (stages_found.find(p) == stages_found.end()) && p->state() != c7a::api::CACHED) {
-                    dia_stack.push(p);
+                if (p && (stages_found.find(p) == stages_found.end())) {
+                    // If not add parent to stages found and result stages
                     stages_found.insert(p);
+                    stages_result.push_back(Stage(p));
+                    // If parent was not executed push it to the DFS
+                    if (p->state() != c7a::api::EXECUTED) {
+                        dia_stack.push(p);
+                    }
                 }
-                else LOG1 << "OMG NULLPTR";
             }
         }
+        // Reverse the execution order
         std::reverse(stages_result.begin(), stages_result.end());
     }
 
@@ -75,7 +99,9 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            s.Run();
+            if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
+            if (s.node()->state() == c7a::api::NEW) s.Execute();
+            s.node()->UnregisterChilds();
         }
     }
 

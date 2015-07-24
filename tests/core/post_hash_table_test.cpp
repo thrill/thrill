@@ -8,15 +8,18 @@
  ******************************************************************************/
 
 #include <c7a/core/reduce_post_table.hpp>
+#include <gtest/gtest.h>
 
-#include "gtest/gtest.h"
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace c7a::data;
 using namespace c7a::net;
 
 struct PostTable : public::testing::Test {
     PostTable()
-        : dispatcher(),
+        : dispatcher("dispatcher"),
           manager(dispatcher),
           id(manager.AllocateDIA()),
           iterator(manager.GetIterator<int>(id)),

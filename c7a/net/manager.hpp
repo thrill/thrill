@@ -13,16 +13,21 @@
 #ifndef C7A_NET_MANAGER_HEADER
 #define C7A_NET_MANAGER_HEADER
 
-#include <c7a/net/endpoint.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/dispatcher.hpp>
+#include <c7a/net/endpoint.hpp>
 #include <c7a/net/group.hpp>
 
+#include <deque>
+#include <string>
+#include <type_traits>
 #include <vector>
-#include <functional>
 
 namespace c7a {
 namespace net {
+
+//! \addtogroup net Network Communication
+//! \{
 
 /**
  * @brief Initializes communication channels, manages communication c
@@ -49,6 +54,18 @@ public:
     ClientId Size() {
         return GetSystemGroup().Size();
     }
+
+    //! default constructor
+    Manager() { }
+
+    //! non-copyable: delete copy-constructor
+    Manager(const Manager&) = delete;
+    //! non-copyable: delete assignment operator
+    Manager& operator = (const Manager&) = delete;
+    //! move-constructor
+    Manager(Manager&&) = default;
+    //! move-assignment
+    Manager& operator = (Manager&&) = default;
 
 private:
     /**
@@ -181,7 +198,7 @@ private:
         }
         else if (errno == EINPROGRESS) {
             // connect is in progress, will wait for completion.
-            dispatcher_.AddWrite(nc, [this, &address](Connection& nc) {
+            dispatcher_.AddWrite(nc, [this, &address, &nc]() {
                                      return OnConnected(nc, address);
                                  });
         }
@@ -511,8 +528,8 @@ public:
 
         //Add reads to the dispatcher to accept new connections.
         dispatcher_.AddRead(listener_,
-                            [=](Connection& nc) {
-                                return OnIncomingConnection(nc);
+                            [=]() {
+                                return OnIncomingConnection(listener_);
                             });
 
         //Dispatch until everything is connected.
@@ -534,11 +551,7 @@ public:
                 LOG << "Group " << j << " link " << my_rank_ << " -> " << i << " = fd "
                     << groups_[j].connection(i).GetSocket().fd();
 
-                // TODO(tb): temporarily turn all fds back to blocking, till the
-                // whole asio schema works.
-                // NOTE(ej): This should be correct? Distpatch is not going to work
-                // correctly with non-blocking sockets and will default to busy waiting?
-                groups_[j].connection(i).GetSocket().SetNonBlocking(false);
+                groups_[j].connection(i).GetSocket().SetNonBlocking(true);
             }
         }
     }
@@ -569,6 +582,8 @@ public:
         }
     }
 };
+
+//! \}
 
 } // namespace net
 } // namespace c7a

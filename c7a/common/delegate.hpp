@@ -15,9 +15,10 @@
 #ifndef C7A_COMMON_DELEGATE_HEADER
 #define C7A_COMMON_DELEGATE_HEADER
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <memory>
-#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -252,8 +253,8 @@ private:
 
     deleter_type deleter_;
 
-    std::shared_ptr<void> store_;
-    std::size_t store_size_;
+    std::shared_ptr<void> store_ = nullptr;
+    std::size_t store_size_ = 0;
 
     template <class T>
     static void functor_deleter(void* const p) {
