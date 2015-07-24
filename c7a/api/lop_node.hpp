@@ -117,7 +117,9 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>
-               (shared_node, lop_stack);
+               (shared_node, 
+                lop_stack, 
+                { AddChildStatsNode("LOp", "LOp") });
 }
 
 //! \}

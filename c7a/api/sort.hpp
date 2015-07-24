@@ -419,7 +419,9 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     auto sort_stack = shared_node->ProduceStack();
 
     return DIARef<ValueType, decltype(sort_stack)>(
-        std::move(shared_node), sort_stack);
+        shared_node, 
+        sort_stack,
+        { AddChildStatsNode("Sort", "DOp") });
 }
 
 //! \}

@@ -131,6 +131,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
         std::make_shared<WriteResultNode>(*this,
                                           filepath);
 
+    AddChildStatsNode("Write", "Action");
     core::StageBuilder().RunScope(shared_node.get());
 }
 
