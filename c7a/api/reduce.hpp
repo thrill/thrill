@@ -247,7 +247,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     return DIARef<DOpResult, decltype(reduce_stack)> (
             shared_node, 
             reduce_stack,
-            { AddChildStatsNode("Reduce") });
+            { AddChildStatsNode("Reduce", "DOp") });
 }
 
 //! \}

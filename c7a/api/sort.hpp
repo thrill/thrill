@@ -430,7 +430,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     return DIARef<ValueType, decltype(sort_stack)>(
         shared_node, 
         sort_stack,
-        { AddChildStatsNode("Sort") });
+        { AddChildStatsNode("Sort", "DOp") });
 }
 
 //! \}

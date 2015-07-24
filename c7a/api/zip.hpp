@@ -342,7 +342,7 @@ auto DIARef<ValueType, Stack>::Zip(
 
     auto zip_stack = zip_node->ProduceStack();
 
-    StatsNode* stats_node = AddChildStatsNode("Zip");
+    StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
     second_dia.AppendChildStatsNode(stats_node);
     return DIARef<ZipResult, decltype(zip_stack)> (
             zip_node, 
