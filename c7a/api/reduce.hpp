@@ -116,7 +116,7 @@ public:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(ValueType)> >;
+                                          std::function<void(const ValueType&)> >;
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
