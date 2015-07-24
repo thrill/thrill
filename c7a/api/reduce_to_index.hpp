@@ -47,7 +47,7 @@ namespace api {
  * \tparam KeyExtractor Type of the key_extractor function.
  * \tparam ReduceFunction Type of the reduce_function
  */
-template <typename ValueType, typename ParentStack,
+template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
@@ -61,8 +61,6 @@ class ReduceToIndexNode : public DOpNode<ValueType>
                   "Key must be an unsigned integer");
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    using ParentInput = typename ParentStack::Input;
 
     typedef std::pair<Key, Value> KeyValuePair;
 
@@ -78,31 +76,24 @@ public:
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
      * key_extractor and reduce_function.
      *
-     * \param ctx Reference to Context, which holds references to data and
-     * network.
-     * \param parent Parent DIANode.
-     * \param parent_stack Function chain with all lambdas between the parent
-     * and this node
+     * \param parent Parent DIARef.
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
      * \param max_index maximum index returned by reduce_function.
-     *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
-    ReduceToIndexNode(Context& ctx,
-                      const std::shared_ptr<DIANode<ParentInput> >& parent,
-                      const ParentStack& parent_stack,
+    ReduceToIndexNode(const ParentDIARef* parent,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
                       Value neutral_element)
-        : DOpNode<ValueType>(ctx, { parent }, "ReduceToIndex"),
+        : DOpNode<ValueType>(parent->ctx(), { parent->node() }, "ReduceToIndex"),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(ctx.data_manager().GetNewChannel()),
+          channel_(parent->ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(ctx.number_worker(), key_extractor,
+          reduce_pre_table_(parent->ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_,
                             [=](size_t key, PreHashTable* ht) {
                                 size_t global_index = key * ht->NumBuckets() /
@@ -125,8 +116,8 @@ public:
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
-        auto lop_chain = parent_stack.push(pre_op_fn).emit();
-        parent->RegisterChild(lop_chain);
+        auto lop_chain = parent->stack().push(pre_op_fn).emit();
+        parent->node()->RegisterChild(lop_chain);
     }
 
     //! Virtual destructor for a ReduceToIndexNode.
@@ -294,13 +285,11 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
         "The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceResultNode
-              = ReduceToIndexNode<DOpResult, Stack,
+              = ReduceToIndexNode<DOpResult, DIARef,
                                   KeyExtractor, ReduceFunction>;
 
     auto shared_node
-        = std::make_shared<ReduceResultNode>(node_->context(),
-                                             node_,
-                                             stack_,
+        = std::make_shared<ReduceResultNode>(this,
                                              key_extractor,
                                              reduce_function,
                                              max_index,

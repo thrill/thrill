@@ -173,6 +173,9 @@ public:
         std::stringstream ss;
         ss << address;  
         return ss.str(); 
+
+    Context & ctx() const {
+        return node_->context();
     }
 
     /*!
