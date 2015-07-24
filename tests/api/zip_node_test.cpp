@@ -32,23 +32,25 @@ struct MyStruct {
 
 namespace c7a {
 namespace data {
+namespace serializers {
 
 template <typename Archive>
-struct Serializer<Archive, MyStruct>
+struct Impl<Archive, MyStruct>
 {
-    static void serialize(const MyStruct& x, Archive& ar) {
-        Serializer<Archive, int>::serialize(x.a, ar);
-        Serializer<Archive, int>::serialize(x.b, ar);
+    static void Serialize(const MyStruct& x, Archive& ar) {
+        Impl<Archive, int>::Serialize(x.a, ar);
+        Impl<Archive, int>::Serialize(x.b, ar);
     }
-    static MyStruct deserialize(Archive& ar) {
-        int a = Serializer<Archive, int>::deserialize(ar);
-        int b = Serializer<Archive, int>::deserialize(ar);
+    static MyStruct Deserialize(Archive& ar) {
+        int a = Impl<Archive, int>::Deserialize(ar);
+        int b = Impl<Archive, int>::Deserialize(ar);
         return MyStruct(a, b);
     }
-    static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
-                                    Serializer<Archive, int>::fixed_size);
+    static const bool fixed_size = (Impl<Archive, int>::fixed_size &&
+                                    Impl<Archive, int>::fixed_size);
 };
 
+} // namespace serializers
 } // namespace data
 } // namespace c7a
 

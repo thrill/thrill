@@ -40,42 +40,23 @@ namespace c7a {
 namespace data {
 namespace serializers {
 
-template <>
-struct Impl<MyStruct>{
-    static std::string Serialize(const MyStruct& s) {
-        std::size_t len = 2 * sizeof(int);
-        char result[len];
-        std::memcpy(result, &(s.key), sizeof(int));
-        std::memcpy(result + sizeof(int), &(s.count), sizeof(int));
-        return std::string(result, len);
+template <typename Archive>
+struct Impl<Archive, MyStruct>
+{
+    static void Serialize(const MyStruct& x, Archive& a) {
+        Impl<Archive, int>::Serialize(x.key, a);
+        Impl<Archive, int>::Serialize(x.count, a);
     }
-
-    static MyStruct Deserialize(const std::string& x) {
-        int i, j;
-        std::memcpy(&i, x.c_str(), sizeof(int));
-        std::memcpy(&j, x.substr(sizeof(int), 2 * sizeof(int)).c_str(), sizeof(int));
-        return MyStruct(i, j);
+    static MyStruct Deserialize(Archive& a) {
+        int key = Impl<Archive, int>::Deserialize(a);
+        int count = Impl<Archive, int>::Deserialize(a);
+        return MyStruct(key, count);
     }
+    static const bool fixed_size = (Impl<Archive, int>::fixed_size &&
+                                    Impl<Archive, int>::fixed_size);
 };
 
 } // namespace serializers
-
-template <typename Archive>
-struct Serializer<Archive, MyStruct>
-{
-    static void serialize(const MyStruct& x, Archive& a) {
-        Serializer<Archive, int>::serialize(x.key, a);
-        Serializer<Archive, int>::serialize(x.count, a);
-    }
-    static MyStruct deserialize(Archive& a) {
-        int key = Serializer<Archive, int>::deserialize(a);
-        int count = Serializer<Archive, int>::deserialize(a);
-        return MyStruct(key, count);
-    }
-    static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
-                                    Serializer<Archive, int>::fixed_size);
-};
-
 } // namespace data
 } // namespace c7a
 
