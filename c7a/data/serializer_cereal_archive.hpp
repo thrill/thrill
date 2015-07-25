@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -10,8 +11,13 @@
 #pragma once
 #ifndef C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
 #define C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
-/*! \file binary.hpp
-    \brief Binary input and output archives */
+
+#include <cereal/cereal.hpp>
+#include <sstream>
+
+namespace c7a {
+namespace data {
+
 /*
   Copyright (c) 2014, Randolph Voorhies, Shane Grant
   All rights reserved.
@@ -38,136 +44,145 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_ARCHIVES_C7A_HPP_
-#define CEREAL_ARCHIVES_C7A_HPP_
-
-#include "cereal/cereal.hpp"
-
-// namespace c7a {
-// namespace data {
-//   template <typename BlockSink>
-//   class BlockWriter : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >;
-// }}
-
-namespace cereal {
 
 // ######################################################################
 //! An output archive designed to save data in a compact binary representation
-/*! This archive outputs data to a stream in an extremely compact binary
-    representation with as little extra metadata as possible.
+/*! This archive outputs data to a reader of writer of c7a directly in an
+    extremely compact binary representation with as little extra metadata as
+    possible.
 
     This archive does nothing to ensure that the endianness of the saved
-    and loaded data is the same
+    and loaded data is the same.  If you need to have portability over
+    architectures with different endianness, use Portablec7aOutputArchive.
 
     When using a binary archive and a file stream, you must use the
     std::ios::binary format flag to avoid having your data altered
     inadvertently.
 
     \ingroup Archives */
-template <typename WriterArchive>
-class c7aOutputArchive : public OutputArchive<c7aOutputArchive<WriterArchive>, AllowEmptyClassElision>
+
+template <typename Writer>
+class c7aOutputArchive : public cereal::OutputArchive<c7aOutputArchive<Writer>, cereal::AllowEmptyClassElision>
 {
 public:
-    //! Construct, outputting to the provided stream
+    //! Construct, outputting to the provided c7a writer
     /*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
                       even cout! */
-    c7aOutputArchive(WriterArchive& a) :
-        OutputArchive<c7aOutputArchive, AllowEmptyClassElision>(this), a_(a)
+    c7aOutputArchive(Writer& writer) :
+        cereal::OutputArchive<c7aOutputArchive<Writer>, cereal::AllowEmptyClassElision>(this),
+        writer_(writer)
     { }
 
-    //! Writes size bytes of data to the output stream
+    //! Writes size bytes of data to the c7a writer
     void saveBinary(const void* data, std::size_t size) {
-        a_.Append(data, size);
+        writer_.Append(data, size);
     }
 
 private:
-    WriterArchive& a_;
+    Writer& writer_;
 };
 
 // ######################################################################
-//! An in
-// put archive designed to load data saved using c7aOutputArchive
-// This archive does nothing to ensure that the endianness of the saved
-//   and loaded data is the same.  If you need to have portability over
-//   architectures with different endianness, use Portablec7aOutputArchive.
+//! An input archive designed to load data saved using c7aOutputArchive
+/*  This archive does nothing to ensure that the endianness of the saved
+    and loaded data is the same.  If you need to have portability over
+    architectures with different endianness, use Portablec7aOutputArchive.
 
-//   When using a binary archive and a file stream, you must use the
-//   std::ios::binary format flag to avoid having your data altered
-//   inadvertently.
+    When using a binary archive and a file stream, you must use the
+    std::ios::binary format flag to avoid having your data altered
+    inadvertently.
 
-//   \ingroup Archives
-
-template <typename ReaderArchive>
-class c7aInputArchive : public InputArchive<c7aInputArchive<ReaderArchive>, AllowEmptyClassElision>
+    \ingroup Archives */
+template <typename Reader>
+class c7aInputArchive : public cereal::InputArchive<c7aInputArchive<Reader>, cereal::AllowEmptyClassElision>
 {
 public:
-    //! Construct, loading from the provided stream
-    c7aInputArchive(ReaderArchive& a) :
-        InputArchive<c7aInputArchive, AllowEmptyClassElision>(this), a_(a)
+    //! Construct, loading from the provided c7a reader
+    c7aInputArchive(Reader& reader) :
+        cereal::InputArchive<c7aInputArchive<Reader>, cereal::AllowEmptyClassElision>(this),
+        reader_(reader)
     { }
 
-    //! Reads size bytes of data from the input stream
+    //! Reads size bytes of data from the input c7a reader
     void loadBinary(void* const data, std::size_t size) {
-        a_.Read(data, size);
+        reader_.Read(data, size);
     }
 
 private:
-    ReaderArchive& a_;
+    Reader& reader_;
 };
 
 // ######################################################################
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to binary
-template <class T, typename WriterArchive>
+template <class T, typename Writer>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<WriterArchive>& ar, T const& t) {
+CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<Writer>& ar, T const& t) {
     ar.saveBinary(std::addressof(t), sizeof(t));
 }
 
 //! Loading for POD types from binary
-template <class T, typename ReaderArchive>
+template <class Reader, class T>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, T& t) {
+CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<Reader>& ar, T& t) {
     ar.loadBinary(std::addressof(t), sizeof(t));
 }
 
 //! Serializing NVP types to binary
-template <class Archive, class T, typename ReaderArchive, typename WriterArchive>
-inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive<ReaderArchive>, c7aOutputArchive<WriterArchive>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, NameValuePair<T>&t)
-{
+template <class Writer, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aOutputArchive<Writer>& ar, cereal::NameValuePair<T>& t) {
+    ar(t.value);
+}
+
+//! Serializing NVP types to binary
+template <class Reader, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aInputArchive<Reader>& ar, cereal::NameValuePair<T>& t) {
     ar(t.value);
 }
 
 //! Serializing SizeTags to binary
-template <class Archive, class T, typename ReaderArchive, typename WriterArchive>
-inline
-CEREAL_ARCHIVE_RESTRICT(c7aInputArchive<ReaderArchive>, c7aOutputArchive<WriterArchive>)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive & ar, SizeTag<T>&t)
-{
+template <class Writer, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aOutputArchive<Writer>& ar, cereal::SizeTag<T>& t) {
+    ar(t.size);
+}
+
+//! Serializing SizeTags to binary
+template <class Reader, class T>
+inline void
+CEREAL_SERIALIZE_FUNCTION_NAME(c7aInputArchive<Reader>& ar, cereal::SizeTag<T>& t) {
     ar(t.size);
 }
 
 //! Saving binary data
-template <class T, typename WriterArchive>
+template <class T, typename Writer>
 inline
-void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<WriterArchive>& ar, BinaryData<T> const& bd) {
+void CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<Writer>& ar, cereal::BinaryData<T> const& bd) {
     ar.saveBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
 //! Loading binary data
-template <class T, typename ReaderArchive>
+template <class Reader, class T>
 inline
-void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<ReaderArchive>& ar, BinaryData<T>& bd) {
+void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<Reader>& ar, cereal::BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
+} //namespace data
+} //namespace c7a
 
-} // namespace cereal
-#endif // CEREAL_ARCHIVES_C7A_HPP_
+// register archives for polymorphic support
+// CEREAL_REGISTER_ARCHIVE(c7a::data::c7aOutputArchive)
+// CEREAL_REGISTER_ARCHIVE(c7a::data::c7aInputArchive)
+
+// tie input and output archives together
+
+// CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive, c7a::data::c7aOutputArchive)
+
 #endif // !C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
 
 /******************************************************************************/
