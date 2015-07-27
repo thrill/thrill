@@ -73,7 +73,7 @@ public:
                           "with different typeid!");
             }
         }
-        return Deserialize<BlockReader, T>(*this);
+        return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
     //! HasNext() returns true if at least one more byte is available.

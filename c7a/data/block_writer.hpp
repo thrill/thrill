@@ -127,7 +127,7 @@ public:
             // for self-verification, prefix T with its hash code
             Put(typeid(T).hash_code());
         }
-        Serialize<BlockWriterBase, T>(x, *this);
+        Serialization<BlockWriterBase, T>::Serialize(x, *this);
         return *this;
     }
 

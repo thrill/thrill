@@ -31,18 +31,6 @@ template <typename Archive, typename T, class Enable = void>
 struct Serialization
 { };
 
-//! Serialize the type to std::string
-template <typename Archive, typename T>
-inline void Serialize(const T& x, Archive& ar) {
-    Serialization<Archive, T>::Serialize(x, ar);
-}
-
-//! Deserialize the std::string to the given type
-template <typename Archive, typename T>
-inline T Deserialize(Archive& ar) {
-    return Serialization<Archive, T>::Deserialize(ar);
-}
-
 /******************* Serialization of plain old data types ********************/
 template <typename Archive, typename T>
 struct Serialization<Archive, T,
