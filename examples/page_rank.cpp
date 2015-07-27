@@ -7,8 +7,6 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/bootstrap.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/c7a.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/string.hpp>
@@ -31,7 +29,7 @@ int main(int argc, char* argv[]) {
 //! The PageRank user program
 int page_rank(Context& ctx) {
 
-    double s = 0.85;
+    static const double s = 0.85;
 
     using PageWithLinks = std::tuple<int, std::vector<int> >;
     using PageWithRank = std::tuple<int, double>;
@@ -67,9 +65,11 @@ int page_rank(Context& ctx) {
                  return std::make_tuple(std::get<0>(input), 1.0);
              });
 
-    for (std::size_t i = 1; i <= 10; ++i) {
+    size_t i = 1;
+    //for (size_t i = 1; i <= 10; ++i) {
         std::cout << "Iteration: " << i << std::endl;
 
+#if 0
         auto pages =
             links
             .Zip(ranks, [](PageWithLinks first, PageWithRank second) {
@@ -118,6 +118,7 @@ int page_rank(Context& ctx) {
                   return std::to_string(std::get<0>(item)) + ": " + std::to_string(std::get<1>(item));
               }).
     WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
+#endif
 
     return 0;
 }

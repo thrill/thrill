@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -11,92 +12,111 @@
 #ifndef C7A_DATA_SERIALIZER_HEADER
 #define C7A_DATA_SERIALIZER_HEADER
 
-#include <cassert>
-#include <cstring>
+#include <array>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include <c7a/common/logger.hpp>
-
-#include <tests/data/serializer_objects.hpp>
-#include <c7a/data/serializer_cereal_archive.hpp>
-// #include <cereal/archives/binary.hpp>
-
-#include <cereal/details/traits.hpp>
+#include <vector>
 
 namespace c7a {
 namespace data {
 
-//! \namespace namespace to hide the implementations of serializers
-namespace serializers {
+//! \addtogroup data Data Subsystem
+//! \{
 
-static const bool debug = false;
+/*************** Base Template and Callable Serialize/Deserialize *************/
 
 template <typename Archive, typename T, class Enable = void>
-struct Impl
+struct Serializer
 { };
 
-/*************** Serialization of plain old data types *****************/
+//! Serialize the type to std::string
 template <typename Archive, typename T>
-struct Impl<Archive, T,
-            typename std::enable_if<std::is_pod<T>::value>::type>
+inline void Serialize(const T& x, Archive& ar) {
+    Serializer<Archive, T>::Serialize(x, ar);
+}
+
+//! Deserialize the std::string to the given type
+template <typename Archive, typename T>
+inline T Deserialize(Archive& ar) {
+    return Serializer<Archive, T>::Deserialize(ar);
+}
+
+/******************* Serialization of plain old data types ********************/
+template <typename Archive, typename T>
+struct Serializer<Archive, T,
+                  typename std::enable_if<std::is_pod<T>::value>::type>
 {
-    static void Serialize(const T& x, Archive& a) {
-        a.template Put<T>(x);
+    static void Serialize(const T& x, Archive& ar) {
+        ar.template Put<T>(x);
     }
-    static T Deserialize(Archive& a) {
-        return a.template Get<T>();
+    static T Deserialize(Archive& ar) {
+        return ar.template Get<T>();
     }
     static const bool fixed_size = true;
 };
 
-/******************* Serialization strings *********************/
+/********************** Serialization of strings ******************************/
 template <typename Archive>
-struct Impl<Archive, std::string>
+struct Serializer<Archive, std::string>
 {
-    static void Serialize(const std::string& x, Archive& a) {
-        a.PutString(x);
+    static void Serialize(const std::string& x, Archive& ar) {
+        ar.PutString(x);
     }
-    static std::string Deserialize(Archive& a) {
-        return a.GetString();
+    static std::string Deserialize(Archive& ar) {
+        return ar.GetString();
     }
     static const bool fixed_size = false;
 };
 
-/***************** Serialization of pairs *************************/
+/*********************** Serialization of pairs *******************************/
 template <typename Archive, typename U, typename V>
-struct Impl<Archive, std::pair<U, V> >
+struct Serializer<Archive, std::pair<U, V> >
 {
-    static void Serialize(const std::pair<U, V>& x, Archive& a) {
-        Impl<Archive, U>::Serialize(x.first, a);
-        Impl<Archive, V>::Serialize(x.second, a);
+    static void Serialize(const std::pair<U, V>& x, Archive& ar) {
+        Serializer<Archive, U>::Serialize(x.first, ar);
+        Serializer<Archive, V>::Serialize(x.second, ar);
     }
-    static std::pair<U, V> Deserialize(Archive& a) {
-        U u = Impl<Archive, U>::Deserialize(a);
-        V v = Impl<Archive, V>::Deserialize(a);
+    static std::pair<U, V> Deserialize(Archive& ar) {
+        U u = Serializer<Archive, U>::Deserialize(ar);
+        V v = Serializer<Archive, V>::Deserialize(ar);
         return std::pair<U, V>(std::move(u), std::move(v));
     }
-    static const bool fixed_size = (Impl<Archive, U>::fixed_size &&
-                                    Impl<Archive, V>::fixed_size);
+    static const bool fixed_size = (Serializer<Archive, U>::fixed_size &&
+                                    Serializer<Archive, V>::fixed_size);
 };
 
-/****************** Serialization of tuples **************************/
+/*********************** Serialization of tuples ******************************/
 
+namespace detail {
+
+//-------------------------- tuple serializer --------------------------------//
+// serialize the (|tuple| - RevIndex)-th element in the tuple
+// and call recursively to serialize the next element:
+// (|tuple| - (RevIndex - 1))
+// for simplicity we talk about the k-th element
 template <typename Archive, size_t RevIndex, typename ... Args>
 struct TupleSerializer {
+
     static const size_t Index = sizeof ... (Args) - RevIndex;
-    using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
-    static void       Serialize(const std::tuple<Args ...>& x, Archive& a) {
-        sLOG0 << "Now serializing" << (sizeof ... (Args) - RevIndex);
-        Impl<Archive, ThisElemType>::Serialize(std::get<Index>(x), a);
-        TupleSerializer<Archive, RevIndex - 1, Args ...>::Serialize(x, a);
+    // type of k-th element
+    using ThisElemType =
+              typename std::tuple_element<Index, std::tuple<Args ...> >::type;
+
+    static void         Serialize(const std::tuple<Args ...>& x, Archive& ar) {
+        // serialize k-th element
+        Serializer<Archive, ThisElemType>::Serialize(std::get<Index>(x), ar);
+        // recursively serialize (k+1)-th element
+        TupleSerializer<Archive, RevIndex - 1, Args ...>::Serialize(x, ar);
     }
-    static const bool fixed_size = Impl<Archive, ThisElemType>::fixed_size && TupleSerializer<Archive, RevIndex - 1, Args ...>::fixed_size;
+
+    static const bool   fixed_size
+        = Serializer<Archive, ThisElemType>::fixed_size
+          && TupleSerializer<Archive, RevIndex - 1, Args ...>::fixed_size;
 };
 
-// Base case
+// Base case when RevIndex == 0
 template <typename Archive, typename ... Args>
 struct TupleSerializer<Archive, 0, Args ...>{
     static void Serialize(const std::tuple<Args ...>&, Archive&) {
@@ -105,81 +125,91 @@ struct TupleSerializer<Archive, 0, Args ...>{
     static const bool fixed_size = true;
 };
 
-template <typename Archive, int RevIndex, typename ... Args>
-struct TupleDeserializer {
-    static const size_t Index = sizeof ... (Args) - RevIndex;
-    using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
-    static void Deserialize(std::tuple<Args ...>& t, Archive& a) {
-        // deserialize and fill the result tuple
-        sLOG0 << "Now deserializing" << (sizeof ... (Args) - RevIndex);
-        std::get<Index>(t) = Impl<Archive, ThisElemType>::Deserialize(a);
-        TupleDeserializer<Archive, RevIndex - 1, Args ...>::Deserialize(t, a);
+//-------------------------- tuple deserializer ------------------------------//
+template <typename Archive, int RevIndex, typename T, typename ... Args>
+struct TupleDeserializer { };
+
+// deserialize the (|tuple| - RevIndex)-th element in the tuple and call
+// recursively to serialize the next element: (|tuple| - (RevIndex - 1)) for
+// simplicity we talk about the k-th element
+template <typename Archive, int RevIndex, typename T, typename ... Args>
+struct TupleDeserializer<Archive, RevIndex, std::tuple<T, Args ...> >{
+    static std::tuple<T, Args ...> Deserialize(Archive& ar) {
+        // deserialize the k-th element and put it in a tuple
+        auto head = std::make_tuple(Serializer<Archive, T>::Deserialize(ar));
+        // deserialize all elements i, i > k and concat the tuples
+        return std::tuple_cat(
+            head, TupleDeserializer<
+                Archive, RevIndex - 1, std::tuple<Args ...> >::Deserialize(ar));
     }
 };
 
-// Base Case
-template <typename Archive, typename ... Args>
-struct TupleDeserializer<Archive, 0, Args ...>{
-    static void Deserialize(std::tuple<Args ...>&, Archive&) {
-        // Doesn't do anything
+// Base Case when RevIndex == 0
+template <typename Archive>
+struct TupleDeserializer<Archive, 0, std::tuple<> >{
+    static std::tuple<> Deserialize(Archive&) {
+        return std::make_tuple();
     }
 };
 
+} // namespace detail
+
+//--------------------- tuple de-/serializer interface -----------------------//
 template <typename Archive, typename ... Args>
-struct Impl<Archive, std::tuple<Args ...> >
+struct Serializer<Archive, std::tuple<Args ...> >
 {
-    static void Serialize(const std::tuple<Args ...>& x, Archive& a) {
-        TupleSerializer<Archive, sizeof ... (Args), Args ...>::Serialize(x, a);
+    static void Serialize(const std::tuple<Args ...>& x, Archive& ar) {
+        detail::TupleSerializer<
+            Archive, sizeof ... (Args), Args ...>::Serialize(x, ar);
     }
-    static std::tuple<Args ...> Deserialize(Archive& a) {
-        std::tuple<Args ...> r;
-        TupleDeserializer<Archive, sizeof ... (Args), Args ...>::Deserialize(r, a);
-        return r;
+    static std::tuple<Args ...> Deserialize(Archive& ar) {
+        return detail::TupleDeserializer<
+            Archive, sizeof ... (Args), std::tuple<Args ...> >::Deserialize(ar);
     }
 
-    static const bool fixed_size = TupleSerializer<Archive, sizeof ... (Args), Args ...>::fixed_size;
+    static const bool fixed_size = detail::TupleSerializer<
+        Archive, sizeof ... (Args), Args ...>::fixed_size;
 };
 
-/******************** Use cereal if serialization function is given **********************/
-
-//?????
+/*********************** Serialization of vector ******************************/
 
 template <typename Archive, typename T>
-struct Impl<Archive, T, typename std::enable_if<
-                cereal::traits::is_input_serializable<T, Archive>::value&&
-                !std::is_pod<T>::value
-                >::type>
+struct Serializer<Archive, std::vector<T> >
 {
-    static void Serialize(const T& t, Archive& a) {
-        LOG << "Type T is " << typeid(T).name();
-        cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
-        oarchive(t);                                   // Write the data to the archive
+    static void Serialize(const std::vector<T>& x, Archive& ar) {
+        ar.PutVarint(x.size());
+        for (typename std::vector<T>::const_iterator it = x.begin();
+             it != x.end(); ++it)
+            Serializer<Archive, T>::Serialize(*it, ar);
     }
-
-    static T Deserialize(Archive& a) {
-        cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
-        TestCerealObject2 res;
-        iarchive(res);                                 // Read the data from the archive
-        return res;
+    static std::vector<T> Deserialize(Archive& ar) {
+        size_t size = ar.GetVarint();
+        std::vector<T> out;
+        for (size_t i = 0; i != size; ++i)
+            out.emplace_back(Serializer<Archive, T>::Deserialize(ar));
+        return out;
     }
     static const bool fixed_size = false;
 };
 
-/***************** Call Serialize/Deserialize *************************/
+/*********************** Serialization of array *******************************/
 
-} // namespace serializers
-
-//! Serialize the type to std::string
-template <typename Archive, typename T>
-inline void Serialize(const T& x, Archive& a) {
-    serializers::Impl<Archive, T>::Serialize(x, a);
-}
-
-//! Deserialize the std::string to the given type
-template <typename Archive, typename T>
-inline T Deserialize(Archive& a) {
-    return serializers::Impl<Archive, T>::Deserialize(a);
-}
+template <typename Archive, typename T, size_t N>
+struct Serializer<Archive, std::array<T, N> >
+{
+    static void Serialize(const std::array<T, N>& x, Archive& ar) {
+        for (typename std::array<T, N>::const_iterator it = x.begin();
+             it != x.end(); ++it)
+            Serializer<Archive, T>::Serialize(*it, ar);
+    }
+    static std::array<T, N> Deserialize(Archive& ar) {
+        std::array<T, N> out;
+        for (size_t i = 0; i != N; ++i)
+            out[i] = std::move(Serializer<Archive, T>::Deserialize(ar));
+        return out;
+    }
+    static const bool fixed_size = Serializer<Archive, T>::fixed_size;
+};
 
 //! \}
 
