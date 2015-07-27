@@ -12,10 +12,12 @@
 #ifndef C7A_DATA_SERIALIZER_HEADER
 #define C7A_DATA_SERIALIZER_HEADER
 
+#include <array>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace data {
@@ -167,6 +169,46 @@ struct Serializer<Archive, std::tuple<Args ...> >
 
     static const bool fixed_size = detail::TupleSerializer<
         Archive, sizeof ... (Args), Args ...>::fixed_size;
+};
+
+/*********************** Serialization of vector ******************************/
+
+template <typename Archive, typename T>
+struct Serializer<Archive, std::vector<T> >
+{
+    static void Serialize(const std::vector<T>& x, Archive& ar) {
+        ar.PutVarint(x.size());
+        for (typename std::vector<T>::const_iterator it = x.begin();
+             it != x.end(); ++it)
+            Serializer<Archive, T>::Serialize(*it, ar);
+    }
+    static std::vector<T> Deserialize(Archive& ar) {
+        size_t size = ar.GetVarint();
+        std::vector<T> out;
+        for (size_t i = 0; i != size; ++i)
+            out.emplace_back(Serializer<Archive, T>::Deserialize(ar));
+        return out;
+    }
+    static const bool fixed_size = false;
+};
+
+/*********************** Serialization of array *******************************/
+
+template <typename Archive, typename T, size_t N>
+struct Serializer<Archive, std::array<T, N> >
+{
+    static void Serialize(const std::array<T, N>& x, Archive& ar) {
+        for (typename std::array<T, N>::const_iterator it = x.begin();
+             it != x.end(); ++it)
+            Serializer<Archive, T>::Serialize(*it, ar);
+    }
+    static std::array<T, N> Deserialize(Archive& ar) {
+        std::array<T, N> out;
+        for (size_t i = 0; i != N; ++i)
+            out[i] = std::move(Serializer<Archive, T>::Deserialize(ar));
+        return out;
+    }
+    static const bool fixed_size = Serializer<Archive, T>::fixed_size;
 };
 
 //! \}
