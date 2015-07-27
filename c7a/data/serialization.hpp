@@ -75,6 +75,9 @@ struct Serialization<Archive, std::pair<U, V> >
                                     Serialization<Archive, V>::fixed_size);
 };
 
+//! \addtogroup data_internal Data Internals
+//! \{
+
 /*********************** Serialization of tuples ******************************/
 
 namespace detail {
@@ -141,6 +144,8 @@ struct TupleDeserializer<Archive, 0, std::tuple<> >{
 };
 
 } // namespace detail
+
+//! \}
 
 //--------------------- tuple de-/serializer interface -----------------------//
 template <typename Archive, typename ... Args>

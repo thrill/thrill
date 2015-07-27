@@ -20,7 +20,8 @@
 namespace c7a {
 namespace data {
 
-//! \addtogroup data Data Subsystem
+//! \defgroup data_internal Data Internals
+//! \ingroup data
 //! \{
 
 namespace serialization_cereal {
@@ -174,7 +175,13 @@ void CEREAL_LOAD_FUNCTION_NAME(
 
 } // namespace serialization_cereal
 
+//! \}
+
+//! \addtogroup data Data Subsystem
+//! \{
+
 /************** Use cereal if serialization function is given *****************/
+
 template <typename Archive, typename T>
 struct Serialization<Archive, T, typename std::enable_if<
                          cereal::traits::is_input_serializable<T, Archive>::value&&
