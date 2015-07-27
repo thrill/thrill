@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/serializer_test.cpp
+ * tests/data/serializer_cereal_test.cpp
  *
  * Part of Project c7a.
  *
@@ -12,9 +12,9 @@
 #include <c7a/data/file.hpp>
 #include <c7a/data/serializer.hpp>
 #include <c7a/data/serializer_cereal.hpp>
-#include <gtest/gtest.h>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
+#include <gtest/gtest.h>
 
 #include <string>
 #include <tuple>
