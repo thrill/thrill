@@ -210,8 +210,7 @@ public:
 #else
             if (current != limit) {
                 writers[worker_id].AppendBlocks(
-                    reader.template GetItemBatch<ItemType>(limit - current)
-                    );
+                    reader.template GetItemBatch<ItemType>(limit - current));
                 current = limit;
             }
 #endif

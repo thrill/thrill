@@ -21,10 +21,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cstring>
 
 namespace c7a {
 namespace core {
@@ -345,11 +345,12 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-					if (PreservesKey) {
-						emit_[partition_id](bi->second);
-					} else {
-						emit_[partition_id](*bi);
-					}
+                    if (PreservesKey) {
+                        emit_[partition_id](bi->second);
+                    }
+                    else {
+                        emit_[partition_id](*bi);
+                    }
                 }
 
                 // destroy block and advance to next

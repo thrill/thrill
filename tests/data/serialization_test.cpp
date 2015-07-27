@@ -17,6 +17,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 using namespace c7a::data;
 

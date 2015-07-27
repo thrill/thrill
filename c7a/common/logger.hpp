@@ -14,6 +14,7 @@
 #ifndef C7A_COMMON_LOGGER_HEADER
 #define C7A_COMMON_LOGGER_HEADER
 
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <mutex>
@@ -21,7 +22,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <iomanip>
+#include <utility>
 
 namespace c7a {
 namespace common {

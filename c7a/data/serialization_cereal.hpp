@@ -67,7 +67,7 @@ class c7aOutputArchive
 {
 public:
     //! Construct, outputting to the provided c7a writer
-    c7aOutputArchive(Writer& writer)
+    explicit c7aOutputArchive(Writer& writer)
         : cereal::OutputArchive<c7aOutputArchive<Writer>,
                                 cereal::AllowEmptyClassElision>(this),
           writer_(writer)
@@ -90,7 +90,7 @@ class c7aInputArchive
 {
 public:
     //! Construct, loading from the provided c7a reader
-    c7aInputArchive(Reader& reader)
+    explicit c7aInputArchive(Reader& reader)
         : cereal::InputArchive<c7aInputArchive<Reader>,
                                cereal::AllowEmptyClassElision>(this),
           reader_(reader)
