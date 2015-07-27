@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstring>
 
 namespace c7a {
 namespace core {

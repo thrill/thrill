@@ -38,25 +38,23 @@ using MyPair = std::pair<int, MyStruct>;
 
 namespace c7a {
 namespace data {
-namespace serializers {
 
 template <typename Archive>
-struct Impl<Archive, MyStruct>
+struct Serializer<Archive, MyStruct>
 {
     static void Serialize(const MyStruct& x, Archive& a) {
-        Impl<Archive, int>::Serialize(x.key, a);
-        Impl<Archive, int>::Serialize(x.count, a);
+        Serializer<Archive, int>::Serialize(x.key, a);
+        Serializer<Archive, int>::Serialize(x.count, a);
     }
     static MyStruct Deserialize(Archive& a) {
-        int key = Impl<Archive, int>::Deserialize(a);
-        int count = Impl<Archive, int>::Deserialize(a);
+        int key = Serializer<Archive, int>::Deserialize(a);
+        int count = Serializer<Archive, int>::Deserialize(a);
         return MyStruct(key, count);
     }
-    static const bool fixed_size = (Impl<Archive, int>::fixed_size &&
-                                    Impl<Archive, int>::fixed_size);
+    static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
+                                    Serializer<Archive, int>::fixed_size);
 };
 
-} // namespace serializers
 } // namespace data
 } // namespace c7a
 

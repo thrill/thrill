@@ -15,9 +15,9 @@
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
 
-#include <limits>
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -205,7 +205,7 @@ public:
 
         table_size_ = num_partitions_ * num_items_init_scale_;
         if (num_partitions_ > table_size_ &&
-                table_size_ % num_partitions_ != 0) {
+            table_size_ % num_partitions_ != 0) {
             throw std::invalid_argument("partition_size must be less than or equal to num_items "
                                         "AND partition_size a divider of num_items");
         }
