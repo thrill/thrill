@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/serializer_cereal.hpp
+ * c7a/data/serialization_cereal.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_SERIALIZER_CEREAL_HEADER
-#define C7A_DATA_SERIALIZER_CEREAL_HEADER
+#ifndef C7A_DATA_SERIALIZATION_CEREAL_HEADER
+#define C7A_DATA_SERIALIZATION_CEREAL_HEADER
 
 #include <cereal/cereal.hpp>
 #include <cereal/details/traits.hpp>
@@ -23,7 +23,7 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-namespace serializer_cereal {
+namespace serialization_cereal {
 
 /*
   Original Archive Code from cereal library is
@@ -172,25 +172,25 @@ void CEREAL_LOAD_FUNCTION_NAME(
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
-} // namespace serializer_cereal
+} // namespace serialization_cereal
 
 /************** Use cereal if serialization function is given *****************/
 template <typename Archive, typename T>
-struct Serializer<Archive, T, typename std::enable_if<
-                      cereal::traits::is_input_serializable<T, Archive>::value&&
-                      !std::is_pod<T>::value
-                      >::type>
+struct Serialization<Archive, T, typename std::enable_if<
+                         cereal::traits::is_input_serializable<T, Archive>::value&&
+                         !std::is_pod<T>::value
+                         >::type>
 {
     static void Serialize(const T& t, Archive& ar) {
         // Create an output archive
-        serializer_cereal::c7aOutputArchive<Archive> oarchive(ar);
+        serialization_cereal::c7aOutputArchive<Archive> oarchive(ar);
         // Write the data to the archive
         oarchive(t);
     }
 
     static T Deserialize(Archive& ar) {
         // Create an output archive
-        serializer_cereal::c7aInputArchive<Archive> iarchive(ar);
+        serialization_cereal::c7aInputArchive<Archive> iarchive(ar);
         // Read the data from the archive
         T res;
         iarchive(res);
@@ -212,6 +212,6 @@ struct Serializer<Archive, T, typename std::enable_if<
 // CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive,
 //                             c7a::data::c7aOutputArchive)
 
-#endif // !C7A_DATA_SERIALIZER_CEREAL_HEADER
+#endif // !C7A_DATA_SERIALIZATION_CEREAL_HEADER
 
 /******************************************************************************/

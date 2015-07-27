@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/item_serializer_tools.hpp
+ * c7a/common/item_serialization_tools.hpp
  *
  * Abstract methods common to many serializer and deserializers: serialize
  * Varint (7-bit encoding), and Strings by prefixing them with their length.
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_ITEM_SERIALIZER_TOOLS_HEADER
-#define C7A_COMMON_ITEM_SERIALIZER_TOOLS_HEADER
+#ifndef C7A_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
+#define C7A_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
 
 #include <cstdint>
 #include <stdexcept>
@@ -239,6 +239,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_ITEM_SERIALIZER_TOOLS_HEADER
+#endif // !C7A_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
 
 /******************************************************************************/
