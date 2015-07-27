@@ -123,8 +123,8 @@ TEST(Serializer, tuple_check_fixed_size) {
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, "4");
     auto w = f.GetWriter();
-    auto no = serializers::Serializer<decltype(w), decltype(n)>::fixed_size;
-    auto yes = serializers::Serializer<decltype(w), decltype(y)>::fixed_size;
+    auto no = Serializer<decltype(w), decltype(n)>::fixed_size;
+    auto yes = Serializer<decltype(w), decltype(y)>::fixed_size;
 
     ASSERT_EQ(no, false);
     ASSERT_EQ(yes, true);
