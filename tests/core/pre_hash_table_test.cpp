@@ -40,19 +40,19 @@ namespace c7a {
 namespace data {
 
 template <typename Archive>
-struct Serializer<Archive, MyStruct>
+struct Serialization<Archive, MyStruct>
 {
     static void Serialize(const MyStruct& x, Archive& a) {
-        Serializer<Archive, int>::Serialize(x.key, a);
-        Serializer<Archive, int>::Serialize(x.count, a);
+        Serialization<Archive, int>::Serialize(x.key, a);
+        Serialization<Archive, int>::Serialize(x.count, a);
     }
     static MyStruct Deserialize(Archive& a) {
-        int key = Serializer<Archive, int>::Deserialize(a);
-        int count = Serializer<Archive, int>::Deserialize(a);
+        int key = Serialization<Archive, int>::Deserialize(a);
+        int count = Serialization<Archive, int>::Deserialize(a);
         return MyStruct(key, count);
     }
-    static const bool fixed_size = (Serializer<Archive, int>::fixed_size &&
-                                    Serializer<Archive, int>::fixed_size);
+    static const bool fixed_size = (Serialization<Archive, int>::fixed_size &&
+                                    Serialization<Archive, int>::fixed_size);
 };
 
 } // namespace data

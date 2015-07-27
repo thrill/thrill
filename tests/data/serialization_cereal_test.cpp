@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/serializer_cereal_test.cpp
+ * tests/data/serialization_cereal_test.cpp
  *
  * Part of Project c7a.
  *
@@ -10,8 +10,8 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_queue.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/data/serializer.hpp>
-#include <c7a/data/serializer_cereal.hpp>
+#include <c7a/data/serialization.hpp>
+#include <c7a/data/serialization_cereal.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 #include <gtest/gtest.h>
@@ -71,7 +71,7 @@ struct CerealObject
     }
 };
 
-TEST(SerializerCereal, cereal_w_FileWriter)
+TEST(SerializationCereal, cereal_w_FileWriter)
 {
     c7a::data::File f;
 
@@ -103,7 +103,7 @@ TEST(SerializerCereal, cereal_w_FileWriter)
     LOG << coserial.a;
 }
 
-TEST(SerializerCereal, cereal_w_BlockQueue)
+TEST(SerializationCereal, cereal_w_BlockQueue)
 {
     using MyQueue = BlockQueue<16>;
     MyQueue q;

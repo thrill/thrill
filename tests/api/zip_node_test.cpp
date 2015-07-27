@@ -15,7 +15,7 @@
 #include <c7a/api/size.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/data/serializer_cereal.hpp>
+#include <c7a/data/serialization_cereal.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -42,7 +42,6 @@ struct MyStruct {
 
 // namespace c7a {
 // namespace data {
-// namespace serializers {
 
 // template <typename Archive>
 // struct Impl<Archive, MyStruct>
@@ -60,7 +59,6 @@ struct MyStruct {
 //                                     Impl<Archive, int>::fixed_size);
 // };
 
-// } // namespace serializers
 // } // namespace data
 // } // namespace c7a
 

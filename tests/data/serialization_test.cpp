@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/serializer_test.cpp
+ * tests/data/serialization_test.cpp
  *
  * Part of Project c7a.
  *
@@ -10,7 +10,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_queue.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/data/serializer.hpp>
+#include <c7a/data/serialization.hpp>
 #include <gtest/gtest.h>
 
 #include <string>
@@ -22,7 +22,7 @@ using namespace c7a::data;
 
 static const bool debug = false;
 
-TEST(Serializer, string) {
+TEST(Serialization, string) {
     c7a::data::File f;
     std::string foo = "foo";
     {
@@ -35,7 +35,7 @@ TEST(Serializer, string) {
     ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
-TEST(Serializer, int) {
+TEST(Serialization, int) {
     int foo = -123;
     c7a::data::File f;
     {
@@ -48,7 +48,7 @@ TEST(Serializer, int) {
     ASSERT_EQ(typeid(foo).name(), typeid(fooserial).name());
 }
 
-TEST(Serializer, pair_string_int) {
+TEST(Serialization, pair_string_int) {
     auto foo = std::make_pair("foo", 123);
     c7a::data::File f;
     {
@@ -61,7 +61,7 @@ TEST(Serializer, pair_string_int) {
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
 }
 
-TEST(Serializer, pair_int_int) {
+TEST(Serialization, pair_int_int) {
     auto t1 = 3;
     auto t2 = 4;
     auto foo = std::make_pair(t1, t2);
@@ -76,7 +76,7 @@ TEST(Serializer, pair_int_int) {
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
 }
 
-TEST(Serializer, tuple) {
+TEST(Serialization, tuple) {
     auto foo = std::make_tuple(3, "foo", 5.5);
     c7a::data::File f;
     {
@@ -90,7 +90,7 @@ TEST(Serializer, tuple) {
     ASSERT_EQ(std::get<2>(foo), std::get<2>(fooserial));
 }
 
-TEST(Serializer, tuple_w_pair) {
+TEST(Serialization, tuple_w_pair) {
     auto p = std::make_pair(-4.673, "string");
     auto foo = std::make_tuple(3, "foo", 5.5, p);
     c7a::data::File f;
@@ -108,27 +108,19 @@ TEST(Serializer, tuple_w_pair) {
     ASSERT_EQ(std::get<3>(foo).second, std::get<3>(fooserial).second);
 }
 
-// TEST(Serializer, ProtoBuf_Test) {
-//     ProtobufObject t(1, 2);
-//     auto serialized = Serialize<ProtobufObject>(t);
-//     auto result = Deserialize<ProtobufObject>(serialized);
-//     ASSERT_EQ(t.bla_, result.bla_);
-//     ASSERT_EQ(t.blu_, result.blu_);
-// }
-
-TEST(Serializer, tuple_check_fixed_size) {
+TEST(Serialization, tuple_check_fixed_size) {
     c7a::data::File f;
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, "4");
     auto w = f.GetWriter();
-    auto no = Serializer<decltype(w), decltype(n)>::fixed_size;
-    auto yes = Serializer<decltype(w), decltype(y)>::fixed_size;
+    auto no = Serialization<decltype(w), decltype(n)>::fixed_size;
+    auto yes = Serialization<decltype(w), decltype(y)>::fixed_size;
 
     ASSERT_EQ(no, false);
     ASSERT_EQ(yes, true);
 }
 
-TEST(Serializer, StringVector) {
+TEST(Serialization, StringVector) {
     std::vector<std::string> vec1 = {
         "what", "a", "wonderful", "world", "this", "could", "be"
     };
@@ -148,7 +140,7 @@ TEST(Serializer, StringVector) {
     ASSERT_EQ(42, check42);
 }
 
-TEST(Serializer, StringArray) {
+TEST(Serialization, StringArray) {
     std::array<std::string, 7> vec1 = {
         "what", "a", "wonderful", "world", "this", "could", "be"
     };

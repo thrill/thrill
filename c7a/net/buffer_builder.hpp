@@ -17,7 +17,7 @@
 #ifndef C7A_NET_BUFFER_BUILDER_HEADER
 #define C7A_NET_BUFFER_BUILDER_HEADER
 
-#include <c7a/common/item_serializer_tools.hpp>
+#include <c7a/common/item_serialization_tools.hpp>
 #include <c7a/net/buffer.hpp>
 
 #include <algorithm>
