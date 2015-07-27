@@ -38,7 +38,6 @@ using MyPair = std::pair<int, MyStruct>;
 
 namespace c7a {
 namespace data {
-namespace serializers {
 
 template <typename Archive>
 struct Serializer<Archive, MyStruct>
@@ -56,7 +55,6 @@ struct Serializer<Archive, MyStruct>
                                     Serializer<Archive, int>::fixed_size);
 };
 
-} // namespace serializers
 } // namespace data
 } // namespace c7a
 

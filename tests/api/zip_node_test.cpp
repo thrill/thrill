@@ -15,6 +15,7 @@
 #include <c7a/api/size.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/common/string.hpp>
+#include <c7a/data/serializer_cereal_archive.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>

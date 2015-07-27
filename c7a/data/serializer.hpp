@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -11,25 +12,16 @@
 #ifndef C7A_DATA_SERIALIZER_HEADER
 #define C7A_DATA_SERIALIZER_HEADER
 
-#include <c7a/common/logger.hpp>
-#include <cassert>
-#include <cstring>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
-//cereal
-#include <c7a/data/serializer_cereal_archive.hpp>
-#include <cereal/details/traits.hpp>
-
 namespace c7a {
 namespace data {
 
-//! \namespace to hide the implementations of serializers
-namespace serializers {
-
-static const bool debug = false;
+//! \addtogroup data Data Subsystem
+//! \{
 
 template <typename Archive, typename T, class Enable = void>
 struct Serializer
@@ -80,6 +72,9 @@ struct Serializer<Archive, std::pair<U, V> >
 };
 
 /*********************** Serialization of tuples ******************************/
+
+namespace serializer {
+
 //-------------------------- tuple serializer --------------------------------//
 // serialize the (|tuple| - RevIndex)-th element in the tuple
 // and call recursively to serialize the next element:
@@ -93,7 +88,6 @@ struct TupleSerializer {
     using ThisElemType = typename std::tuple_element<Index, std::tuple<Args ...> >::type;
 
     static void         Serialize(const std::tuple<Args ...>& x, Archive& a) {
-        sLOG << "Now serializing" << (sizeof ... (Args) - RevIndex);
         // serialize k-th element
         Serializer<Archive, ThisElemType>::Serialize(std::get<Index>(x), a);
         // recursively serialize (k+1)-th element
@@ -138,57 +132,37 @@ struct TupleDeserializer<Archive, 0, std::tuple<> >{
     }
 };
 
+} // namespace serializer
+
 //--------------------- tuple de-/serializer interface -----------------------//
 template <typename Archive, typename ... Args>
 struct Serializer<Archive, std::tuple<Args ...> >
 {
     static void Serialize(const std::tuple<Args ...>& x, Archive& a) {
-        TupleSerializer<Archive, sizeof ... (Args), Args ...>::Serialize(x, a);
+        serializer::TupleSerializer<Archive, sizeof ... (Args), Args ...>::Serialize(x, a);
     }
     static std::tuple<Args ...> Deserialize(Archive& a) {
-        return TupleDeserializer<Archive, sizeof ... (Args), std::tuple<Args ...> >::Deserialize(a);
+        return serializer::TupleDeserializer<Archive, sizeof ... (Args), std::tuple<Args ...> >::Deserialize(a);
     }
 
-    static const bool fixed_size = TupleSerializer<Archive, sizeof ... (Args), Args ...>::fixed_size;
-};
-
-/************** Use cereal if serialization function is given *****************/
-template <typename Archive, typename T>
-struct Serializer<Archive, T, typename std::enable_if<
-                      cereal::traits::is_input_serializable<T, Archive>::value&&
-                      !std::is_pod<T>::value
-                      >::type>
-{
-    static void Serialize(const T& t, Archive& a) {
-        LOG << "Type T is " << typeid(T).name();
-        c7aOutputArchive<Archive> oarchive(a); // Create an output archive
-        oarchive(t);                           // Write the data to the archive
-    }
-
-    static T Deserialize(Archive& a) {
-        c7aInputArchive<Archive> iarchive(a);  // Create an output archive
-        T res;
-        iarchive(res);                         // Read the data from the archive
-        return res;
-    }
-    static const bool fixed_size = false;
+    static const bool fixed_size = serializer::TupleSerializer<Archive, sizeof ... (Args), Args ...>::fixed_size;
 };
 
 /*********************** Call Serialize/Deserialize ***************************/
 
-} // namespace serializers
-
 //! Serialize the type to std::string
 template <typename Archive, typename T>
 inline void Serialize(const T& x, Archive& a) {
-    serializers::Serializer<Archive, T>::Serialize(x, a);
+    Serializer<Archive, T>::Serialize(x, a);
 }
 
 //! Deserialize the std::string to the given type
 template <typename Archive, typename T>
 inline T Deserialize(Archive& a) {
-    return serializers::Serializer<Archive, T>::Deserialize(a);
+    return Serializer<Archive, T>::Deserialize(a);
 }
+
+//! \}
 
 } // namespace data
 } // namespace c7a

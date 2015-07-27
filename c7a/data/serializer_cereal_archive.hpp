@@ -13,10 +13,17 @@
 #define C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
 
 #include <cereal/cereal.hpp>
+#include <cereal/details/traits.hpp>
+
 #include <sstream>
 
 namespace c7a {
 namespace data {
+
+//! \addtogroup data Data Subsystem
+//! \{
+
+namespace serializer_cereal {
 
 /*
   Copyright (c) 2014, Randolph Voorhies, Shane Grant
@@ -172,16 +179,42 @@ inline
 void CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<Reader>& ar, cereal::BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
-} //namespace data
-} //namespace c7a
+
+} // namespace serializer_cereal
+
+/************** Use cereal if serialization function is given *****************/
+template <typename Archive, typename T>
+struct Serializer<Archive, T, typename std::enable_if<
+                      cereal::traits::is_input_serializable<T, Archive>::value&&
+                      !std::is_pod<T>::value
+                      >::type>
+{
+    static void Serialize(const T& t, Archive& a) {
+        serializer_cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
+        oarchive(t);                           // Write the data to the archive
+    }
+
+    static T Deserialize(Archive& a) {
+        serializer_cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
+        T res;
+        iarchive(res);                         // Read the data from the archive
+        return res;
+    }
+    static const bool fixed_size = false;
+};
+
+//! \}
+
+} // namespace data
+} // namespace c7a
 
 // register archives for polymorphic support
 // CEREAL_REGISTER_ARCHIVE(c7a::data::c7aOutputArchive)
 // CEREAL_REGISTER_ARCHIVE(c7a::data::c7aInputArchive)
 
 // tie input and output archives together
-
-// CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive, c7a::data::c7aOutputArchive)
+// CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive,
+//                             c7a::data::c7aOutputArchive)
 
 #endif // !C7A_DATA_SERIALIZER_CEREAL_ARCHIVE_HEADER
 
