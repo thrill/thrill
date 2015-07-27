@@ -128,4 +128,44 @@ TEST(Serializer, tuple_check_fixed_size) {
     ASSERT_EQ(yes, true);
 }
 
+TEST(Serializer, StringVector) {
+    std::vector<std::string> vec1 = {
+        "what", "a", "wonderful", "world", "this", "could", "be"
+    };
+    c7a::data::File f;
+    {
+        auto w = f.GetWriter();
+        w(vec1);
+        w(static_cast<int>(42));
+    }
+    ASSERT_EQ(2u, f.NumItems());
+    auto r = f.GetReader();
+    auto vec2 = r.Next<std::vector<std::string> >();
+    ASSERT_EQ(7u, vec1.size());
+    ASSERT_EQ(vec1, vec2);
+
+    auto check42 = r.Next<int>();
+    ASSERT_EQ(42, check42);
+}
+
+TEST(Serializer, StringArray) {
+    std::array<std::string, 7> vec1 = {
+        "what", "a", "wonderful", "world", "this", "could", "be"
+    };
+    c7a::data::File f;
+    {
+        auto w = f.GetWriter();
+        w(vec1);
+        w(static_cast<int>(42));
+    }
+    ASSERT_EQ(2u, f.NumItems());
+    auto r = f.GetReader();
+    auto vec2 = r.Next<std::array<std::string, 7> >();
+    ASSERT_EQ(7u, vec1.size());
+    ASSERT_EQ(vec1, vec2);
+
+    auto check42 = r.Next<int>();
+    ASSERT_EQ(42, check42);
+}
+
 /******************************************************************************/
