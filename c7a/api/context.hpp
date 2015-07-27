@@ -12,8 +12,8 @@
 #ifndef C7A_API_CONTEXT_HEADER
 #define C7A_API_CONTEXT_HEADER
 
-#include <c7a/common/stats.hpp>
 #include <c7a/api/stats_graph.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -43,9 +43,9 @@ class Context
 {
 public:
     Context(core::JobManager& job_manager, int local_worker_id)
-        : job_manager_(job_manager), 
+        : job_manager_(job_manager),
           local_worker_id_(local_worker_id)
-        { }
+    { }
 
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.

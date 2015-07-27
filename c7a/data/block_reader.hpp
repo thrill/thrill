@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 namespace c7a {
 namespace data {

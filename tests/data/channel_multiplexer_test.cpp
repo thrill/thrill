@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <vector>
 
 using namespace c7a;
 

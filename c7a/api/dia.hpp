@@ -17,8 +17,8 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia_node.hpp>
-#include <c7a/api/stats_graph.hpp>
 #include <c7a/api/function_stack.hpp>
+#include <c7a/api/stats_graph.hpp>
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/functional.hpp>
 
@@ -152,7 +152,7 @@ public:
         return stack_;
     }
 
-    StatsNode* AddChildStatsNode(const std::string& label, const std::string& type) const {
+    StatsNode * AddChildStatsNode(const std::string& label, const std::string& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
         for (auto parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
         return node;
@@ -269,17 +269,17 @@ public:
      * \param reduce_function Reduce function, which defines how the key buckets
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
-	 *
-	 * \param preserves_key Boolean, which is true when the reduce_function
-	 * preserves the key of the elements.
+         *
+         * \param preserves_key Boolean, which is true when the reduce_function
+         * preserves the key of the elements.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceBy(const KeyExtractor &key_extractor,
                   const ReduceFunction &reduce_function) const;
 
     template <typename KeyExtractor, typename ReduceFunction>
-	auto ReduceByKey(const KeyExtractor &key_extractor,
-					 const ReduceFunction &reduce_function) const;
+    auto ReduceByKey(const KeyExtractor &key_extractor,
+                     const ReduceFunction &reduce_function) const;
 
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
@@ -314,9 +314,9 @@ public:
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
-	 *
-	 * \param preserves_key Boolean, which is true when the reduce_function
-	 * preserves the key of the elements.
+         *
+         * \param preserves_key Boolean, which is true when the reduce_function
+         * preserves the key of the elements.
      */
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
@@ -324,11 +324,11 @@ public:
                        size_t max_index,
                        ValueType neutral_element = ValueType()) const;
 
-	template <typename KeyExtractor, typename ReduceFunction>
+    template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndexByKey(const KeyExtractor &key_extractor,
-                       const ReduceFunction &reduce_function,
-                       size_t max_index,
-                       ValueType neutral_element = ValueType()) const;
+                            const ReduceFunction &reduce_function,
+                            size_t max_index,
+                            ValueType neutral_element = ValueType()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The

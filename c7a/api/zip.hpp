@@ -338,10 +338,10 @@ auto DIARef<ValueType, Stack>::Zip(
 
     StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
     second_dia.AppendChildStatsNode(stats_node);
-    return DIARef<ZipResult, decltype(zip_stack)> (
-            zip_node, 
-            zip_stack,
-            { stats_node });
+    return DIARef<ZipResult, decltype(zip_stack)>(
+        zip_node,
+        zip_stack,
+        { stats_node });
 }
 
 //! \}

@@ -19,9 +19,9 @@
 #include <cassert>
 #include <limits>
 #include <string>
+#include <typeinfo>
 #include <utility>
 #include <vector>
-#include <typeinfo>
 
 namespace c7a {
 namespace core {
@@ -88,7 +88,7 @@ public:
     /**
      * A function to compare two keys
      */
-    typedef std::function<bool(Key, Key)> EqualToFunction;
+    typedef std::function<bool (Key, Key)> EqualToFunction;
 
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
@@ -126,7 +126,7 @@ public:
                                     size_t hashed = std::hash<Key>() (v);
 
                                     size_t local_index = hashed %
-                                                              ht->num_items_per_partition_;
+                                                         ht->num_items_per_partition_;
                                     size_t partition_id = hashed % ht->num_partitions_;
                                     size_t global_index = partition_id *
                                                           ht->num_items_per_partition_ +
@@ -135,9 +135,9 @@ public:
                                     return hr;
                                 },
                           EqualToFunction equal_to_function
-                            = [](Key k1, Key k2) {
-                                return k1 == k2;
-                            })
+                              = [](Key k1, Key k2) {
+                                    return k1 == k2;
+                                })
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -163,7 +163,7 @@ public:
                                     size_t hashed = std::hash<Key>() (v);
 
                                     size_t local_index = hashed %
-                                                              ht->num_items_per_partition_;
+                                                         ht->num_items_per_partition_;
                                     size_t partition_id = hashed % ht->num_partitions_;
                                     size_t global_index = partition_id *
                                                           ht->num_items_per_partition_ +
@@ -172,7 +172,7 @@ public:
                                     return hr;
                                 },
                           EqualToFunction equal_to_function
-                                = [](Key k1, Key k2) {
+                              = [](Key k1, Key k2) {
                                     return k1 == k2;
                                 })
         : num_partitions_(num_partitions),
@@ -564,7 +564,6 @@ public:
     }
 
 private:
-
     //! Number of partitions
     size_t num_partitions_;
 

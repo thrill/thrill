@@ -7,19 +7,19 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/stats_graph.hpp>
-#include <c7a/common/logger.hpp>
+#include <c7a/api/allgather.hpp>
 #include <c7a/api/bootstrap.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/api/allgather.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/lop_node.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/size.hpp>
+#include <c7a/api/stats_graph.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/api/zip.hpp>
+#include <c7a/common/logger.hpp>
 
 #include <gtest/gtest.h>
 
@@ -47,14 +47,14 @@ TEST(Graph, SimpleGraph) {
                     return std::stoi(line);
                 });
 
-            auto doubled = integers.Map([] (int input) { return input * 2; });
-            auto filtered = doubled.Filter([] (int input) { return input % 2; });
-            auto emitted = filtered.FlatMap([] (int input, auto emit) { emit(input); });
+            auto doubled = integers.Map([](int input) { return input * 2; });
+            auto filtered = doubled.Filter([](int input) { return input % 2; });
+            auto emitted = filtered.FlatMap([](int input, auto emit) { emit(input); });
             auto prefixsums = filtered.PrefixSum();
 
             auto zip_result = prefixsums.Zip(emitted, [](int input1, int input2) {
-                        return input1 + input2;
-                    });
+                                                 return input1 + input2;
+                                             });
 
             ctx.stats_graph().BuildLayout("simple.out");
         };

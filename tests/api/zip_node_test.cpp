@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <random>
 #include <string>
+#include <vector>
 
 using namespace c7a;
 

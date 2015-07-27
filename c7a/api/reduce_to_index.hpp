@@ -49,7 +49,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-		  bool PreservesKey>
+          bool PreservesKey>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -169,24 +169,25 @@ public:
                           max_local_index,
                           neutral_element_);
 
-		if (PreservesKey) {
-			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
-			auto reader = channel_->OpenReader();
-			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
-			while (reader.HasNext()) {
-				table.Insert(reader.template Next<Value>());
-			}
+        if (PreservesKey) {
+            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            auto reader = channel_->OpenReader();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            while (reader.HasNext()) {
+                table.Insert(reader.template Next<Value>());
+            }
 
-			table.Flush();
-		} else {
-			//we actually want to wire up callbacks in the ctor and NOT use this blocking method
-			auto reader = channel_->OpenReader();
-			sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
-			while (reader.HasNext()) {
-				table.Insert(reader.template Next<KeyValuePair>());
-			}
-			table.Flush();
-		}
+            table.Flush();
+        }
+        else {
+            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            auto reader = channel_->OpenReader();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            while (reader.HasNext()) {
+                table.Insert(reader.template Next<KeyValuePair>());
+            }
+            table.Flush();
+        }
     }
 
     void Dispose() override { }
@@ -294,23 +295,23 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-	using ReduceResultNode
-		= ReduceToIndexNode<DOpResult, DIARef,
-							KeyExtractor, ReduceFunction, false>;
+    using ReduceResultNode
+              = ReduceToIndexNode<DOpResult, DIARef,
+                                  KeyExtractor, ReduceFunction, false>;
 
-	auto shared_node
-		= std::make_shared<ReduceResultNode>(*this,
-											 key_extractor,
-											 reduce_function,
-											 max_index,
-											 neutral_element);
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(*this,
+                                             key_extractor,
+                                             reduce_function,
+                                             max_index,
+                                             neutral_element);
 
-	auto reduce_stack = shared_node->ProduceStack();
+    auto reduce_stack = shared_node->ProduceStack();
 
-	return DIARef<DOpResult, decltype(reduce_stack)> (
-		shared_node, 
-		reduce_stack,
-		{ AddChildStatsNode("ReduceToIndex", "DOp") });
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { AddChildStatsNode("ReduceToIndex", "DOp") });
 }
 
 template <typename ValueType, typename Stack>
@@ -356,23 +357,23 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-	using ReduceResultNode
-		= ReduceToIndexNode<DOpResult, DIARef,
-							KeyExtractor, ReduceFunction, true>;
+    using ReduceResultNode
+              = ReduceToIndexNode<DOpResult, DIARef,
+                                  KeyExtractor, ReduceFunction, true>;
 
-	auto shared_node
-		= std::make_shared<ReduceResultNode>(*this,
-											 key_extractor,
-											 reduce_function,
-											 max_index,
-											 neutral_element);
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(*this,
+                                             key_extractor,
+                                             reduce_function,
+                                             max_index,
+                                             neutral_element);
 
-	auto reduce_stack = shared_node->ProduceStack();
+    auto reduce_stack = shared_node->ProduceStack();
 
-	return DIARef<DOpResult, decltype(reduce_stack)> (
-		shared_node, 
-		reduce_stack,
-		{ AddChildStatsNode("ReduceToIndex", "DOp") });
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { AddChildStatsNode("ReduceToIndex", "DOp") });
 }
 
 //! \}

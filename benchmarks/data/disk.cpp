@@ -13,8 +13,9 @@
 #include <c7a/common/cmdline_parser.hpp>
 
 #include <iostream>
+#include <string>
 
-using namespace c7a;
+using namespace c7a; // NOLINT
 
 int main(int argc, const char** argv) {
     core::JobManager jobMan;

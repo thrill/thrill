@@ -38,7 +38,7 @@ class SizeNode : public ActionNode
     using Super::result_file_;
 
 public:
-    SizeNode(const ParentDIARef& parent)
+    explicit SizeNode(const ParentDIARef& parent)
         : ActionNode(parent.ctx(), { parent.node() }, "Size")
     {
         // Hook PreOp(s)
