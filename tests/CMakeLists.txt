@@ -97,6 +97,7 @@ build_test(data/block_queue_test)
 build_test(data/channel_multiplexer_test)
 build_test(data/file_test)
 build_test(data/serializer_test)
+build_test(data/serializer_cereal_test)
 build_test(data/stream_block_header_test)
 
 build_test(core/job_manager_test)

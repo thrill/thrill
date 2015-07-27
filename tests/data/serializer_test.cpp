@@ -12,14 +12,11 @@
 #include <c7a/data/file.hpp>
 #include <c7a/data/serializer.hpp>
 #include <gtest/gtest.h>
-#include <tests/data/serializer_objects.hpp>
 
 #include <string>
 #include <tuple>
 #include <typeinfo>
 #include <utility>
-
-#include <c7a/data/serializer_cereal_archive.hpp>
 
 using namespace c7a::data;
 
@@ -101,6 +98,7 @@ TEST(Serializer, tuple_w_pair) {
         auto w = f.GetWriter();
         w(foo); //gets serialized
     }
+    ASSERT_EQ(1u, f.NumItems());
     auto r = f.GetReader();
     auto fooserial = r.Next<decltype(foo)>();
     ASSERT_EQ(std::get<0>(foo), std::get<0>(fooserial));
@@ -128,62 +126,6 @@ TEST(Serializer, tuple_check_fixed_size) {
 
     ASSERT_EQ(no, false);
     ASSERT_EQ(yes, true);
-}
-
-TEST(Serializer, cereal_w_FileWriter)
-{
-    c7a::data::File f;
-
-    auto w = f.GetWriter();
-
-    CerealObject co;
-    co.a = "asdfasdf";
-    co.b = { "asdf", "asdf" };
-
-    CerealObject2 co2(1, 2, 3);
-
-    w(co);
-    w(co2);
-    w.Close();
-
-    File::Reader r = f.GetReader();
-
-    ASSERT_TRUE(r.HasNext());
-    CerealObject coserial = r.Next<CerealObject>();
-    ASSERT_TRUE(r.HasNext());
-    CerealObject2 coserial2 = r.Next<CerealObject2>();
-
-    ASSERT_EQ(coserial.a, co.a);
-    ASSERT_EQ(coserial.b, co.b);
-    ASSERT_EQ(coserial2.x_, co2.x_);
-    ASSERT_EQ(coserial2.tco.x_, co2.tco.x_);
-    ASSERT_FALSE(r.HasNext());
-
-    LOG << coserial.a;
-}
-
-TEST(Serializer, cereal_w_BlockQueue)
-{
-    using MyQueue = BlockQueue<16>;
-    MyQueue q;
-    {
-        auto qw = q.GetWriter();
-        CerealObject myData;
-        myData.a = "asdfasdf";
-        myData.b = { "asdf", "asdf" };
-        qw(myData);
-    }
-    {
-        auto qr = q.GetReader();
-
-        ASSERT_TRUE(qr.HasNext());
-        CerealObject myData2 = qr.Next<CerealObject>();
-
-        ASSERT_EQ("asdfasdf", myData2.a);
-        ASSERT_EQ("asdf", myData2.b[0]);
-        ASSERT_EQ("asdf", myData2.b[1]);
-        ASSERT_FALSE(qr.HasNext());
-    }
 }
 
 /******************************************************************************/
