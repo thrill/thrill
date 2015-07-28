@@ -20,7 +20,6 @@ using namespace c7a; // NOLINT
 int main(int argc, const char** argv) {
     core::JobManager jobMan;
     jobMan.Connect(0, net::Endpoint::ParseEndpointList("127.0.0.1:8000"), 1);
-    //data::Manager& manager = jobMan.data_manager();
     api::Context ctx(jobMan, 0);
     common::GetThreadDirectory().NameThisThread("benchmark");
 
@@ -28,17 +27,21 @@ int main(int argc, const char** argv) {
     clp.SetDescription("c7a::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     std::string input_file, output_file;
-    clp.AddParamString("i", input_file, "Input file");
+    int iterations;
+    clp.AddParamString("i", input_file,  "Input file");
     clp.AddParamString("o", output_file, "Output file");
+    clp.AddParamInt(   "n", iterations,  "Iterations");
     if (!clp.Process(argc, argv)) return -1;
 
-    auto overall_timer = ctx.stats().CreateTimer("overall", "", true);
-
-    auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
-
-    lines.WriteToFileSystem(output_file);
-
+    auto overall_timer = ctx.stats().CreateTimer("all runs", "", true);
+    for (int i = 0; i < iterations; i++) {
+        auto timer = ctx.stats().CreateTimer("single run", "", true);
+        auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
+        lines.WriteToFileSystem(output_file);
+        timer->Stop();
+    }
     overall_timer->Stop();
+
 }
 
 /******************************************************************************/
