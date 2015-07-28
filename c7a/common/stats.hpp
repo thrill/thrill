@@ -41,9 +41,12 @@ namespace common {
 //!
 //! All Counters and such are held locally until the destructor is called.
 //! Depending on the configuration all Counters and such will be printed to sLOG
-//!
-//! Returns null pointers if built with ENABLE_STATS=off
+template <bool Active>
 class Stats
+{ };
+
+template <>
+class Stats<true>
 {
 public:
     using NamedTimedcounter = std::pair<std::string, TimedCounter>;
@@ -53,7 +56,6 @@ public:
     Stats(Stats&&) = delete;
     Stats& operator = (const Stats&) = delete;
 
-#if ENABLE_STATS
     Stats() :
         program_start_(std::chrono::high_resolution_clock::now()) { }
 
@@ -159,19 +161,32 @@ private:
     inline long Relative(const TimeStamp& time_point) {
         return std::chrono::duration_cast<std::chrono::milliseconds>(time_point - program_start_).count();
     }
-#else       //ENABLE_STATS
-    Stats() = default;
+};
 
-    TimedCounterPtr CreateTimedCounter(const std::string& /*group*/, const std::string& /*label*/) {
+template <>
+class Stats<false>
+{
+public:
+    Stats() = default;
+    Stats(const Stats& rhs) = delete;
+    Stats(Stats&&) = delete;
+    Stats& operator = (const Stats&) = delete;
+
+    TimedCounterPtr CreateTimedCounter(const std::string& /* group */, const std::string& /*label*/) {
         return TimedCounterPtr();
     }
-    TimerPtr CreateTimer(const std::string& /*group*/, const std::string& /*label*/, bool /*auto_start*/ = false) {
+
+    TimerPtr CreateTimer(const std::string& /*group*/, const std::string& /*label*/) {
         return TimerPtr();
     }
-    void AddReport(const std::string& /*group*/, const std::string& /*label*/, const std::string& /*content*/) {
-        //noop
+
+    TimerPtr CreateTimer(const std::string& /*group*/, const std::string& /*label*/, bool /*auto_start */) {
+        return TimerPtr();
     }
-#endif      //ENABLE_STATS
+
+    void AddReport(const std::string& /*group*/, const std::string& /*label*/, const std::string& /*content*/) {
+        //do nothing
+    }
 };
 
 } // namespace common
