@@ -1,11 +1,11 @@
-# Script for running data benchmarks
-# first parameter is input file size, second parameter is #runs
-# see 'man head' for the size parameter specs
+# runs the bench_data_file_read_write benchmark with different types and
+# different data types
 
-
-if [ $# -eq 0 ]
-  then
-    echo "No arguments supplied - use <amout> <runs>"
-fi
-./bench_data_disk $2 out_file $2
-rm out_file
+githash=$(eval "git rev-parse --short HEAD")
+for type in int string pair triple
+do
+  for size in 1K 100K 1M
+  do
+    ./bench_data_file_read_write -b ${size} $1 int | grep 'single run; ti' | sed -e "s/^/${githash}; ${size}; ${type}; /"
+ done
+done
