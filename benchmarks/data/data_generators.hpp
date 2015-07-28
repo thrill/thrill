@@ -7,6 +7,7 @@
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
+#include <limits>
 
 using Tuple  = std::pair<std::string, int>;
 using Triple = std::tuple<std::string, int, std::string>;
@@ -73,10 +74,16 @@ std::vector<Triple> generate(size_t bytes, size_t min_size, size_t max_size) {
     return result;
 }
 
+//! Generates random integers in the whole int-range
 template <>
 std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/) {
     assert(bytes % sizeof(int) == 0);
     std::vector<int> result;
+
+    //init randomness
+    std::random_device rd;
+    std::default_random_engine randomness(rd());
+    std::uniform_int_distribution<size_t> uniform_dist(std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 
     for (size_t current = 0; current < bytes; current += sizeof(int)) {
         result.emplace_back(42);
