@@ -7,9 +7,13 @@
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
+
+#pragma once
+#ifndef C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#define C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 #include <limits>
 
-using Tuple  = std::pair<std::string, int>;
+using Tuple = std::pair<std::string, int>;
 using Triple = std::tuple<std::string, int, std::string>;
 
 template <typename Type>
@@ -87,6 +91,9 @@ std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/
 
     for (size_t current = 0; current < bytes; current += sizeof(int)) {
         result.emplace_back(42);
-    }
-    return result;
+#endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 }
+return result;
+}
+
+/******************************************************************************/

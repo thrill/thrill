@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/file_writer.cpp
+ * benchmarks/data/file_read_write.cpp
  *
  * Part of Project c7a.
  *
@@ -8,22 +8,21 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/api/context.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/core/job_manager.hpp>
-#include <c7a/api/context.hpp>
 #include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
-#include <random>
 #include <iostream>
+#include <random>
 #include <string>
 
 using namespace c7a; // NOLINT
 
-
-template<typename Type>
+template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx) {
     auto overall_timer = ctx.stats().CreateTimer("all runs", "", true);
     for (int i = 0; i < iterations; i++) {
@@ -34,7 +33,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx) {
 
         std::cout << "writing " << bytes << " bytes" << std::endl;
         auto write_timer = ctx.stats().CreateTimer("write single run", "", true);
-        for(auto& s : data) {
+        for (auto& s : data) {
             writer(s);
         }
         writer.Close();
@@ -43,7 +42,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx) {
         std::cout << "reading " << bytes << " bytes" << std::endl;
         auto reader = file.GetReader();
         auto read_timer = ctx.stats().CreateTimer("read single run", "", true);
-        while(reader.HasNext())
+        while (reader.HasNext())
             reader.Next<Type>();
         read_timer->Stop();
     }
@@ -62,10 +61,10 @@ int main(int argc, const char** argv) {
     int iterations;
     uint64_t bytes;
     std::string type;
-    clp.AddBytes(   'b', "bytes", bytes,  "number of bytes to process");
-    clp.AddParamInt(   "n", iterations,  "Iterations");
+    clp.AddBytes('b', "bytes", bytes, "number of bytes to process");
+    clp.AddParamInt("n", iterations, "Iterations");
     clp.AddParamString("type", type,
-                                  "data type (int, string, pair, triple)");
+                       "data type (int, string, pair, triple)");
     if (!clp.Process(argc, argv)) return -1;
 
     if (type == "int")
@@ -73,9 +72,9 @@ int main(int argc, const char** argv) {
     if (type == "string")
         ConductExperiment<std::string>(bytes, iterations, ctx);
     if (type == "pair")
-        ConductExperiment<std::pair<std::string, int>>(bytes, iterations, ctx);
+        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx);
     if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string>>(bytes, iterations, ctx);
+        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx);
 }
 
 /******************************************************************************/

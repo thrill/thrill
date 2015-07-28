@@ -28,9 +28,9 @@ int main(int argc, const char** argv) {
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     std::string input_file, output_file;
     int iterations;
-    clp.AddParamString("i", input_file,  "Input file");
+    clp.AddParamString("i", input_file, "Input file");
     clp.AddParamString("o", output_file, "Output file");
-    clp.AddParamInt(   "n", iterations,  "Iterations");
+    clp.AddParamInt("n", iterations, "Iterations");
     if (!clp.Process(argc, argv)) return -1;
 
     auto overall_timer = ctx.stats().CreateTimer("all runs", "", true);
@@ -41,7 +41,6 @@ int main(int argc, const char** argv) {
         timer->Stop();
     }
     overall_timer->Stop();
-
 }
 
 /******************************************************************************/
