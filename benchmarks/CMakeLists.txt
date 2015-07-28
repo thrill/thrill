@@ -11,6 +11,7 @@ target_link_libraries(bench_bucket_hashtable c7a ${ALL_LIBRARIES})
 target_link_libraries(bench_probing_hashtable c7a ${ALL_LIBRARIES})
 
 add_executable(bench_data_disk data/disk.cpp)
+file(COPY "data/run_data_benchmark.sh" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(bench_data_disk PRIVATE "-DENABLE_STATS=true")
 target_link_libraries(bench_data_disk c7a ${ALL_LIBRARIES})
 
