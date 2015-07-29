@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/common/stats_timer.hpp>
+#include <c7a/common/stats.hpp> //for forced instantiation below
 #include <gtest/gtest.h>
 
 #include <thread>
@@ -47,6 +48,8 @@ namespace common {
 // forced instantiations
 template class StatsTimer<true>;
 template class StatsTimer<false>;
+template class Stats<true>;
+template class Stats<false>;
 
 } // namespace common
 } // namespace c7a
