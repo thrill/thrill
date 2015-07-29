@@ -20,7 +20,6 @@
 #include <c7a/data/repository.hpp>
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
