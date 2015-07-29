@@ -36,38 +36,32 @@ namespace data {
  * File, a ChannelSink, etc. for further delivery. The BlockWriter takes care of
  * segmenting items when a Block is full.
  */
-template <size_t BlockSize>
-class BlockWriterBase
-    : public common::ItemWriterToolsBase<BlockWriterBase<BlockSize> >
+class BlockWriter
+    : public common::ItemWriterToolsBase<BlockWriter>
 {
 public:
     static const bool self_verify = common::g_self_verify;
 
-    using Byte = unsigned char;
-    using Block = data::Block<BlockSize>;
-    using BlockPtr = std::shared_ptr<Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-
-    using BlockSink = data::BlockSink<BlockSize>;
-
     //! Start build (appending blocks) to a File
-    explicit BlockWriterBase(BlockSink* sink)
-        : sink_(sink) {
+    explicit BlockWriter(BlockSink* sink,
+                         size_t block_size = default_block_size)
+        : sink_(sink),
+          block_size_(block_size) {
         AllocateBlock();
     }
 
     //! non-copyable: delete copy-constructor
-    BlockWriterBase(const BlockWriterBase&) = delete;
+    BlockWriter(const BlockWriter&) = delete;
     //! non-copyable: delete assignment operator
-    BlockWriterBase& operator = (const BlockWriterBase&) = delete;
+    BlockWriter& operator = (const BlockWriter&) = delete;
 
     //! move-constructor
-    BlockWriterBase(BlockWriterBase&&) = default;
+    BlockWriter(BlockWriter&&) = default;
     //! move-assignment
-    BlockWriterBase& operator = (BlockWriterBase&&) = default;
+    BlockWriter& operator = (BlockWriter&&) = default;
 
     //! On destruction, the last partial block is flushed.
-    ~BlockWriterBase() {
+    ~BlockWriter() {
         if (block_)
             Close();
     }
@@ -106,7 +100,7 @@ public:
     //! \{
 
     //! Mark beginning of an item.
-    BlockWriterBase & MarkItem() {
+    BlockWriter & MarkItem() {
         if (current_ == end_)
             Flush();
 
@@ -120,14 +114,14 @@ public:
 
     //! operator() appends a complete item
     template <typename T>
-    BlockWriterBase& operator () (const T& x) {
+    BlockWriter& operator () (const T& x) {
         assert(!closed_);
         MarkItem();
         if (self_verify) {
             // for self-verification, prefix T with its hash code
             Put(typeid(T).hash_code());
         }
-        Serialization<BlockWriterBase, T>::Serialize(x, *this);
+        Serialization<BlockWriter, T>::Serialize(x, *this);
         return *this;
     }
 
@@ -137,7 +131,7 @@ public:
     //! \{
 
     //! Append a memory range to the block
-    BlockWriterBase & Append(const void* data, size_t size) {
+    BlockWriter & Append(const void* data, size_t size) {
         assert(!closed_);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -162,7 +156,7 @@ public:
     }
 
     //! Append a single byte to the block
-    BlockWriterBase & PutByte(Byte data) {
+    BlockWriter & PutByte(Byte data) {
         assert(!closed_);
 
         if (current_ < end_) {
@@ -177,14 +171,14 @@ public:
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    BlockWriterBase & Append(const std::string& str) {
+    BlockWriter & Append(const std::string& str) {
         return Append(str.data(), str.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BlockWriterBase & Put(const Type& item) {
+    BlockWriter & Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -196,7 +190,7 @@ public:
 protected:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        block_ = std::make_shared<Block>();
+        block_ = Block::Allocate(block_size_);
         current_ = block_->begin();
         end_ = block_->end();
         nitems_ = 0;
@@ -239,12 +233,12 @@ protected:
     //! file or stream sink to output blocks to.
     BlockSink* sink_;
 
+    //! size of blocks to construct
+    size_t block_size_;
+
     //! Flag if Close was called explicitly
     bool closed_ = false;
 };
-
-//! BlockWriter with defaut block size.
-using BlockWriter = BlockWriterBase<data::default_block_size>;
 
 //! \}
 

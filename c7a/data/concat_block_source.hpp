@@ -32,12 +32,6 @@ template <typename BlockSource>
 class ConcatBlockSource
 {
 public:
-    using Byte = unsigned char;
-
-    using Block = typename BlockSource::Block;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = typename BlockSource::VirtualBlock;
-
     //! Construct a BlockSource which concatenates many other BlockSources.
     explicit ConcatBlockSource(const std::vector<BlockSource>& sources)
         : sources_(sources) { }

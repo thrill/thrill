@@ -41,12 +41,6 @@ class BlockReader
 public:
     static const bool self_verify = common::g_self_verify;
 
-    using Byte = unsigned char;
-
-    using Block = typename BlockSource::Block;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = typename BlockSource::VirtualBlock;
-
     //! Start reading a File
     explicit BlockReader(BlockSource&& source)
         : source_(std::move(source)) { }

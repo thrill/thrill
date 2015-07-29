@@ -23,6 +23,7 @@
 using namespace c7a;
 
 static const bool debug = false;
+static const size_t test_block_size = 1024;
 
 struct ChannelMultiplexer : public::testing::Test {
 
@@ -76,14 +77,14 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     static const size_t iterations = 1000;
 
-    data::ChannelMultiplexer<1024> cmp(dispatcher);
+    data::ChannelMultiplexer cmp(dispatcher);
     cmp.Connect(net);
     {
         data::ChannelId id = cmp.AllocateNext();
 
         // open Writers and send a message to all workers
 
-        auto writer = cmp.GetOrCreateChannel(id)->OpenWriters();
+        auto writer = cmp.GetOrCreateChannel(id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
             writer[tgt]("hello I am " + std::to_string(net->MyRank())
@@ -136,7 +137,7 @@ TEST_F(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
 TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
     auto w0 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
-                  auto writers = c->OpenWriters();
+                  auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2](msg1);
@@ -149,7 +150,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
               };
     auto w1 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
-                  auto writers = c->OpenWriters();
+                  auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
                   for (auto& w : writers) {
@@ -159,7 +160,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
               };
     auto w2 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
-                  auto writers = c->OpenWriters();
+                  auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -176,7 +177,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
 TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
     auto w0 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
-                  auto writers = c->OpenWriters();
+                  auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2](msg1);
@@ -189,7 +190,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
               };
     auto w1 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
-                  auto writers = c->OpenWriters();
+                  auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
                   for (auto& w : writers) {
@@ -199,7 +200,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
               };
     auto w2 = [](data::Manager& manager) {
                   auto c = manager.GetNewChannel();
-                  auto writers = c->OpenWriters();
+                  auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
                       w.Close();
@@ -235,7 +236,7 @@ TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
             // produce a File containing some items
             data::File file;
             {
-                auto writer = file.GetWriter();
+                auto writer = file.GetWriter(test_block_size);
                 writer(std::string("foo"));
                 writer(std::string("bar"));
                 writer.Flush();
@@ -263,7 +264,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             // produce a File containing some items
             data::File file;
             {
-                auto writer = file.GetWriter();
+                auto writer = file.GetWriter(test_block_size);
                 writer(std::string("foo"));
                 writer(std::string("bar"));
             }
@@ -281,7 +282,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             // produce a File containing some items
             data::File file;
             {
-                auto writer = file.GetWriter();
+                auto writer = file.GetWriter(test_block_size);
                 writer(std::string("hello"));
                 writer(std::string("world"));
                 writer(std::string("."));
@@ -303,7 +304,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   // produce a File containing some items
                   data::File file;
                   {
-                      auto writer = file.GetWriter();
+                      auto writer = file.GetWriter(test_block_size);
                       writer(std::string("foo"));
                       writer(std::string("bar"));
                   }
@@ -320,7 +321,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   // produce a File containing some items
                   data::File file;
                   {
-                      auto writer = file.GetWriter();
+                      auto writer = file.GetWriter(test_block_size);
                       writer(std::string("hello"));
                       writer(std::string("world"));
                       writer(std::string("."));
@@ -342,7 +343,7 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   // produce a File containing some items
                   data::File file;
                   {
-                      auto writer = file.GetWriter();
+                      auto writer = file.GetWriter(test_block_size);
                       writer(1);
                       writer(2);
                   }
@@ -359,7 +360,7 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   // produce a File containing some items
                   data::File file;
                   {
-                      auto writer = file.GetWriter();
+                      auto writer = file.GetWriter(test_block_size);
                       writer(3);
                       writer(4);
                       writer(5);
