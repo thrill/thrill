@@ -77,6 +77,30 @@ TEST(Serialization, pair_int_int) {
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
 }
 
+struct MyPodStruct
+{
+    int    i1;
+    double d2;
+};
+
+TEST(Serialization, pod_struct) {
+    MyPodStruct foo = { 6 * 9, 42 };
+    c7a::data::File f;
+    {
+        auto w = f.GetWriter();
+        w(foo); //gets serialized
+    }
+    auto r = f.GetReader();
+    auto fooserial = r.Next<MyPodStruct>();
+    ASSERT_EQ(foo.i1, fooserial.i1);
+    ASSERT_FLOAT_EQ(foo.d2, fooserial.d2);
+    static_assert(Serialization<BlockWriter, MyPodStruct>::is_fixed_size,
+                  "Serialization::is_fixed_size is wrong");
+    static_assert(Serialization<BlockWriter, MyPodStruct>::fixed_size
+                  == sizeof(MyPodStruct),
+                  "Serialization::fixed_size is wrong");
+}
+
 TEST(Serialization, tuple) {
     auto foo = std::make_tuple(3, std::string("foo"), 5.5);
     c7a::data::File f;
