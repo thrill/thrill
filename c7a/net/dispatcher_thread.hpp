@@ -19,6 +19,7 @@
 #include <c7a/common/delegate.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/net/dispatcher.hpp>
+#include <c7a/data/block.hpp>
 
 #include <unistd.h>
 
@@ -153,19 +154,6 @@ public:
         WakeUpThread();
     }
 
-    //! asynchronously write buffer and callback when delivered. The buffer is
-    //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer1, Buffer&& buffer2,
-                    AsyncWriteCallback done_cb = nullptr) {
-        // the following captures the move-only buffer in a lambda.
-        Enqueue([=, &c,
-                  b1 = std::move(buffer1), b2 = std::move(buffer2)]() mutable {
-                    dispatcher_.AsyncWrite(c, std::move(b1));
-                    dispatcher_.AsyncWrite(c, std::move(b2), done_cb);
-                });
-        WakeUpThread();
-    }
-
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
     //! header and a payload Buffers that are hereby guaranteed to be written in
@@ -175,6 +163,20 @@ public:
         // the following captures the move-only buffer in a lambda.
         Enqueue([=, &c, b = std::move(buffer)]() mutable {
                     dispatcher_.AsyncWrite(c, std::move(b), done_cb);
+                });
+        WakeUpThread();
+    }
+
+    //! asynchronously write buffer and callback when delivered. The buffer is
+    //! MOVED into the async writer.
+    void AsyncWrite(Connection& c, Buffer&& buffer,
+                    const data::VirtualBlock& block,
+                    AsyncWriteCallback done_cb = nullptr) {
+        // the following captures the move-only buffer in a lambda.
+        Enqueue([=, &c,
+                  b1 = std::move(buffer), b2 = block]() mutable {
+                    dispatcher_.AsyncWrite(c, std::move(b1));
+                    dispatcher_.AsyncWrite(c, b2, done_cb);
                 });
         WakeUpThread();
     }

@@ -67,13 +67,10 @@ public:
             sLOG << "sending block" << common::hexdump(vb.ToString());
         }
 
-        // TODO(tb): this copies data!
-        net::Buffer payload_buf(vb.data_begin(), vb.size());
-
         dispatcher_->AsyncWrite(
             *connection_,
-            // send out two Buffer, guaranteed to be successive
-            header.Serialize(), std::move(payload_buf));
+            // send out Buffer and VirtualBlock, guaranteed to be successive
+            header.Serialize(), vb);
     }
 
     //! Closes the connection
