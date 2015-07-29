@@ -249,10 +249,14 @@ public:
     BlockReader & Skip(size_t items, size_t bytes) {
         while (current_ + bytes > end_) {
             bytes -= end_ - current_;
+            // deduct number of remaining items in skipped block from item skip
+            // counter.
+            items -= nitems_;
             if (!NextBlock())
                 throw std::runtime_error("Data underflow in BlockReader.");
         }
         current_ += bytes;
+        // the last line skipped over the remaining "items" number of items.
         nitems_ -= items;
         return *this;
     }
@@ -300,7 +304,7 @@ protected:
     size_t first_item_;
 
     //! remaining number of items starting in this block
-    size_t nitems_;
+    size_t nitems_ = 0;
 
     //! pointer to vector to collect blocks in GetItemRange.
     std::vector<VirtualBlock>* block_collect_ = nullptr;
