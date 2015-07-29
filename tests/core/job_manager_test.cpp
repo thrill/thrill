@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/context.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <gtest/gtest.h>
 

@@ -16,7 +16,9 @@
 #include <iostream>
 #include <map>
 #include <mutex>
+#include <string>
 #include <thread>
+#include <utility>
 
 namespace c7a {
 namespace common {
