@@ -50,7 +50,7 @@ TEST(Serialization, int) {
 }
 
 TEST(Serialization, pair_string_int) {
-    auto foo = std::make_pair("foo", 123);
+    auto foo = std::make_pair(std::string("foo"), 123);
     c7a::data::File f;
     {
         auto w = f.GetWriter();
@@ -118,8 +118,8 @@ TEST(Serialization, tuple) {
 }
 
 TEST(Serialization, tuple_w_pair) {
-    auto p = std::make_pair(-4.673, "string");
-    auto foo = std::make_tuple(3, "foo", 5.5, p);
+    auto p = std::make_pair(-4.673, std::string("string"));
+    auto foo = std::make_tuple(3, std::string("foo"), 5.5, p);
     c7a::data::File f;
     {
         auto w = f.GetWriter();
