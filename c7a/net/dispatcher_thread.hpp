@@ -16,7 +16,6 @@
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
 #include <c7a/common/concurrent_queue.hpp>
-#include <c7a/common/delegate.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/net/connection.hpp>

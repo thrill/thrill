@@ -14,13 +14,9 @@
 #ifndef C7A_COMMON_LOGGER_HEADER
 #define C7A_COMMON_LOGGER_HEADER
 
-#include <iostream>
-#include <map>
-#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 
 namespace c7a {
@@ -49,9 +45,6 @@ protected:
     //! collector stream
     std::ostringstream oss_;
 
-    //! the global mutex of logger and spacing logger
-    static std::mutex mutex_;
-
     //! for access to mutex_
     template <bool Active>
     friend class SpacingLogger;
@@ -72,14 +65,7 @@ public:
     }
 
     //! destructor: output a newline
-    ~Logger() {
-        oss_ << "\n";
-        // lock the global mutex of logger for serialized output in
-        // multi-threaded programs.
-        std::unique_lock<std::mutex> lock;
-        std::cout << oss_.str();
-        std::cout.flush();
-    }
+    ~Logger();
 };
 
 template <>
@@ -109,7 +95,7 @@ class SpacingLogger<true>
 {
 protected:
     //! true until the first element it outputted.
-    bool first_;
+    bool first_ = true;
 
     //! collector stream
     std::ostringstream oss_;
@@ -119,8 +105,7 @@ public:
     static const bool active = true;
 
     //! constructor: if real = false the output is suppressed.
-    SpacingLogger()
-        : first_(true) {
+    SpacingLogger() {
         oss_ << "[" << GetNameForThisThread() << "] ";
     }
 
@@ -136,14 +121,7 @@ public:
     }
 
     //! destructor: output a newline
-    ~SpacingLogger() {
-        oss_ << "\n";
-        // lock the global mutex of logger for serialized output in
-        // multi-threaded programs.
-        std::unique_lock<std::mutex> lock;
-        std::cout << oss_.str();
-        std::cout.flush();
-    }
+    ~SpacingLogger();
 };
 
 template <>

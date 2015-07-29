@@ -13,11 +13,35 @@
 #include <c7a/common/logger.hpp>
 
 #include <iomanip>
+#include <iostream>
+#include <map>
+#include <mutex>
+#include <thread>
 
 namespace c7a {
 namespace common {
 
-std::mutex Logger<true>::mutex_;
+static std::mutex logger_mutex_;
+
+//! destructor: output a newline
+Logger<true>::~Logger() {
+    oss_ << "\n";
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(logger_mutex_);
+    std::cout << oss_.str();
+    std::cout.flush();
+}
+
+//! destructor: output a newline
+SpacingLogger<true>::~SpacingLogger() {
+    oss_ << "\n";
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(logger_mutex_);
+    std::cout << oss_.str();
+    std::cout.flush();
+}
 
 /******************************************************************************/
 
