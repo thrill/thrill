@@ -63,9 +63,9 @@ TEST(Serialization, pair_string_int) {
 }
 
 TEST(Serialization, pair_int_int) {
-    auto t1 = 3;
-    auto t2 = 4;
-    auto foo = std::make_pair(t1, t2);
+    int t1 = 3;
+    int t2 = 4;
+    std::pair<int, int> foo = std::make_pair(t1, t2);
     c7a::data::File f;
     {
         auto w = f.GetWriter();
@@ -78,7 +78,7 @@ TEST(Serialization, pair_int_int) {
 }
 
 TEST(Serialization, tuple) {
-    auto foo = std::make_tuple(3, "foo", 5.5);
+    auto foo = std::make_tuple(3, std::string("foo"), 5.5);
     c7a::data::File f;
     {
         auto w = f.GetWriter();
@@ -89,6 +89,8 @@ TEST(Serialization, tuple) {
     ASSERT_EQ(std::get<0>(foo), std::get<0>(fooserial));
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
     ASSERT_EQ(std::get<2>(foo), std::get<2>(fooserial));
+    static_assert(!Serialization<BlockWriter, decltype(foo)>::is_fixed_size,
+                  "Serialization::is_fixed_size is wrong");
 }
 
 TEST(Serialization, tuple_w_pair) {
@@ -112,10 +114,9 @@ TEST(Serialization, tuple_w_pair) {
 TEST(Serialization, tuple_check_fixed_size) {
     c7a::data::File f;
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
-    auto y = std::make_tuple(1, 2, 3, "4");
-    auto w = f.GetWriter();
-    auto no = Serialization<decltype(w), decltype(n)>::fixed_size;
-    auto yes = Serialization<decltype(w), decltype(y)>::fixed_size;
+    auto y = std::make_tuple(1, 2, 3, 42.0);
+    auto no = Serialization<BlockWriter, decltype(n)>::is_fixed_size;
+    auto yes = Serialization<BlockWriter, decltype(y)>::is_fixed_size;
 
     ASSERT_EQ(no, false);
     ASSERT_EQ(yes, true);
