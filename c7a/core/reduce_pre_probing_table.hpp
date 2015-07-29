@@ -17,10 +17,12 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <limits>
 #include <string>
 #include <typeinfo>
 #include <utility>
+#include <iostream>
 #include <vector>
 
 namespace c7a {
