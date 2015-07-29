@@ -15,10 +15,12 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
+#include <c7a/data/block.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
+
 //TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
 //#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
@@ -88,7 +90,8 @@ public:
           terminate_(d.terminate_.load()),
           timer_pq_(std::move(d.timer_pq_)),
           async_read_(std::move(d.async_read_)),
-          async_write_(std::move(d.async_write_))
+          async_write_(std::move(d.async_write_)),
+          async_write_vblock_(std::move(d.async_write_vblock_))
     { }
     //! move-assignment
     Dispatcher& operator = (Dispatcher&& d) {
@@ -97,6 +100,7 @@ public:
         timer_pq_ = std::move(d.timer_pq_);
         async_read_ = std::move(d.async_read_);
         async_write_ = std::move(d.async_write_);
+        async_write_vblock_ = std::move(d.async_write_vblock_);
         return *this;
     }
 
@@ -187,6 +191,25 @@ public:
         AddWrite(c, [&awb, &c]() { return awb(c); });
     }
 
+    //! asynchronously write buffer and callback when delivered. The buffer is
+    //! MOVED into the async writer.
+    void AsyncWrite(Connection& c, const data::VirtualBlock& block,
+                    AsyncWriteCallback done_cb = nullptr) {
+        assert(c.GetSocket().IsValid());
+
+        if (block.size() == 0) {
+            if (done_cb) done_cb(c);
+            return;
+        }
+
+        // add new async writer object
+        async_write_vblock_.emplace_back(block, done_cb);
+
+        // register write callback
+        AsyncWriteVirtualBlock& awvb = async_write_vblock_.back();
+        AddWrite(c, [&awvb, &c]() { return awvb(c); });
+    }
+
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
@@ -247,6 +270,10 @@ public:
         while (async_write_.size() && async_write_.front().IsDone()) {
             async_write_.pop_front();
         }
+
+        while (async_write_vblock_.size() && async_write_vblock_.front().IsDone()) {
+            async_write_vblock_.pop_front();
+        }
     }
 
     //! Loop over Dispatch() until terminate_ flag is set.
@@ -265,8 +292,7 @@ public:
 
     //! Check whether there are still AsyncWrite()s in the queue.
     bool HasAsyncWrites() const {
-        sLOG << "HasAsyncWrites()" << async_write_.size();
-        return (async_write_.size() != 0);
+        return (async_write_.size() != 0) || (async_write_vblock_.size() != 0);
     }
 
     //! \}
@@ -416,12 +442,72 @@ protected:
         //! functional object to call once data is complete
         AsyncWriteCallback callback_;
 
-        //! Receive buffer
+        //! Send buffer (owned by this writer)
         Buffer buffer_;
     };
 
     //! deque of asynchronous writers
     std::deque<AsyncWriteBuffer> async_write_;
+
+    /**************************************************************************/
+
+    class AsyncWriteVirtualBlock
+    {
+    public:
+        //! Construct buffered writer with callback
+        AsyncWriteVirtualBlock(const data::VirtualBlock& virtual_block,
+                               const AsyncWriteCallback& callback)
+
+            : callback_(callback),
+              virtual_block_(virtual_block)
+        { }
+
+        //! Should be called when the socket is writable
+        bool operator () (Connection& c) {
+            int r = c.GetSocket().send_one(
+                virtual_block_.data_begin() + size_,
+                virtual_block_.size() - size_);
+
+            if (r <= 0) {
+                if (errno == EINTR || errno == EAGAIN) return true;
+
+                // signal artificial IsDone, for clean up.
+                size_ = virtual_block_.size();
+
+                if (errno == EPIPE) {
+                    LOG1 << "AsyncWriteVirtualBlock() got SIGPIPE";
+                    if (callback_) callback_(c);
+                    return false;
+                }
+                throw Exception("AsyncWriteVirtualBlock() error in send", errno);
+            }
+
+            size_ += r;
+
+            if (size_ == virtual_block_.size()) {
+                if (callback_) callback_(c);
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
+
+        bool IsDone() const { return size_ == virtual_block_.size(); }
+
+    private:
+        //! total size currently written
+        size_t size_ = 0;
+
+        //! functional object to call once data is complete
+        AsyncWriteCallback callback_;
+
+        //! Send block (holds a reference count to the underlying Block)
+        data::VirtualBlock virtual_block_;
+    };
+
+    //! deque of asynchronous writers
+    std::deque<AsyncWriteVirtualBlock> async_write_vblock_;
 
     /**************************************************************************/
 
