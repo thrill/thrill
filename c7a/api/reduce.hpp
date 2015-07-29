@@ -48,7 +48,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          const bool PreservesKey>
+          const bool PreservesKey, const bool IsPair>
 class ReduceNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -86,17 +86,16 @@ public:
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_)
-    {
-        // Hook PreOp
-        auto pre_op_fn = [=](const ReduceArg& input) {
-                             PreOp(input);
-                         };
-
-        // close the function stack with our pre op and register it at parent
-        // node for output
-        auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain);
-    }
+	{
+        // Hook PreOp		
+		auto pre_op_fn = [=](const ReduceArg& input) {
+			PreOp(input);
+		};
+		// close the function stack with our pre op and register it at parent
+		// node for output
+		auto lop_chain = parent.stack().push(pre_op_fn).emit();
+		parent.node()->RegisterChild(lop_chain);
+	}
 
     //! Virtual destructor for a ReduceNode.
     virtual ~ReduceNode() { }
@@ -235,10 +234,52 @@ auto DIARef<ValueType, Stack>::ReduceBy(
         "KeyExtractor has the wrong input type");
 
     using ReduceResultNode
-              = ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction, true>;
+		= ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction, true, false>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
+                                             reduce_function);
+
+    auto reduce_stack = shared_node->ProduceStack();
+
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { AddChildStatsNode("Reduce", "DOp") });
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction>
+auto DIARef<ValueType, Stack>::ReducePair(const ReduceFunction &reduce_function) const {
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+            ValueType>::value,
+        "ReduceFunction has the wrong output type");
+
+    using ReduceResultNode
+		= ReduceNode<DOpResult, DIARef, void, ReduceFunction, false, true>;
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(*this,
+                                             reduce_function,
                                              reduce_function);
 
     auto reduce_stack = shared_node->ProduceStack();
@@ -285,7 +326,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
         "KeyExtractor has the wrong input type");
 
     using ReduceResultNode
-              = ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction, false>;
+	= ReduceNode<DOpResult, DIARef, KeyExtractor, ReduceFunction, false, false>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
