@@ -26,37 +26,11 @@ struct PreTable : public::testing::Test { };
 
 struct MyStruct
 {
-    int key;
-    int count;
-
-    // only initializing constructor, no default construction possible.
-    explicit MyStruct(int k, int c) : key(k), count(c)
-    { }
+    size_t key;
+    int    count;
 };
 
 using MyPair = std::pair<int, MyStruct>;
-
-namespace c7a {
-namespace data {
-
-template <typename Archive>
-struct Serialization<Archive, MyStruct>
-{
-    static void Serialize(const MyStruct& x, Archive& a) {
-        Serialization<Archive, int>::Serialize(x.key, a);
-        Serialization<Archive, int>::Serialize(x.count, a);
-    }
-    static MyStruct Deserialize(Archive& a) {
-        int key = Serialization<Archive, int>::Deserialize(a);
-        int count = Serialization<Archive, int>::Deserialize(a);
-        return MyStruct(key, count);
-    }
-    static const bool fixed_size = (Serialization<Archive, int>::fixed_size &&
-                                    Serialization<Archive, int>::fixed_size);
-};
-
-} // namespace data
-} // namespace c7a
 
 TEST_F(PreTable, CustomHashFunction) {
 
@@ -510,7 +484,9 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
                   };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-                      return MyStruct(in1.key, in1.count + in2.count);
+                      return MyStruct {
+                                 in1.key, in1.count + in2.count
+                      };
                   };
 
     size_t num_partitions = 3;
@@ -536,7 +512,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
 
     // insert as many items which DO NOT lead to bucket overflow
     for (size_t i = 0; i != bucket_size; ++i) {
-        table.Insert(MyStruct(i, 0));
+        table.Insert(MyStruct { i, 0 });
     }
 
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
@@ -563,7 +539,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     // insert as many items which DO NOT lead to bucket overflow
     // (need to insert again because of previous flush call needed to backup data)
     for (size_t i = 0; i != bucket_size; ++i) {
-        table.Insert(MyStruct(i, 0));
+        table.Insert(MyStruct { i, 0 });
     }
 
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
@@ -572,7 +548,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     // insert as many items guaranteed to DO lead to bucket overflow
     // resize happens here
     for (size_t i = 0; i != table.NumBuckets() * bucket_size; ++i) {
-        table.Insert(MyStruct((int)(i + bucket_size), 1));
+        table.Insert(MyStruct { i + bucket_size, 1 });
     }
 
     table.Flush();
@@ -600,7 +576,9 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
                   };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-                      return MyStruct(in1.key, in1.count + in2.count);
+                      return MyStruct {
+                                 in1.key, in1.count + in2.count
+                      };
                   };
 
     size_t total_sum = 0, total_count = 0;
@@ -617,7 +595,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     // insert lots of items
     size_t nitems = 1 * 1024 * 1024;
     for (size_t i = 0; i != nitems; ++i) {
-        table.Insert(MyStruct(i, 1));
+        table.Insert(MyStruct { i, 1 });
     }
 
     table.Flush();
@@ -640,7 +618,9 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                   };
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
-                      return MyStruct(in1.key, in1.count + in2.count);
+                      return MyStruct {
+                                 in1.key, in1.count + in2.count
+                      };
                   };
 
     File output;
@@ -659,7 +639,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     for (size_t i = 0; i != nitems_per_key; ++i) {
         sum += i;
         for (size_t j = 0; j != nitems; ++j) {
-            table.Insert(MyStruct(j, i));
+            table.Insert(MyStruct { j, static_cast<int>(i) });
         }
     }
 
