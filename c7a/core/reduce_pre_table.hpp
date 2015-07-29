@@ -194,18 +194,23 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
+	void Insert(const Value& p) {
+        Key key = key_extractor_(p);
+
+		Insert(std::make_pair(key, p));
+	}
+
     /*!
      * Inserts a key/value pair.
      *
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const Value& p) {
-        Key key = key_extractor_(p);
+    void Insert(const KeyValuePair& kv) {
+		
+        hash_result h = hash_function_(kv.first, this);
 
-        hash_result h = hash_function_(key, this);
-
-        LOG << "key: " << key << " to bucket id: " << h.global_index;
+        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
         size_t num_items_bucket = 0;
         BucketBlock* current = vector_[h.global_index];
@@ -217,12 +222,12 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                if (key == bi->first)
+                if (kv.first == bi->first)
                 {
-                    LOG << "match of key: " << key
+                    LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
-                    bi->second = reduce_function_(bi->second, p);
+                    bi->second = reduce_function_(bi->second, kv.second);
 
                     LOG << "...finished reduce!";
                     return;
@@ -253,7 +258,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(key, std::move(p));
+        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
 
         // increase counter for partition
         items_per_partition_[h.partition_id]++;

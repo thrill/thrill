@@ -281,6 +281,9 @@ public:
     auto ReduceByKey(const KeyExtractor &key_extractor,
                      const ReduceFunction &reduce_function) const;
 
+    template <typename ReduceFunction>
+    auto ReducePair(const ReduceFunction &reduce_function) const;
+
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIARef with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
