@@ -7,7 +7,15 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
+#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/context.hpp>
+#include <c7a/api/lop_node.hpp>
+#include <c7a/api/read.hpp>
+#include <c7a/api/reduce_to_index.hpp>
+#include <c7a/api/size.hpp>
+#include <c7a/api/sum.hpp>
+#include <c7a/api/write.hpp>
+#include <c7a/api/zip.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/string.hpp>
 
@@ -17,14 +25,8 @@
 #include <tuple>
 #include <vector>
 
-using c7a::Context;
 using c7a::DIARef;
-
-int page_rank(Context& context);
-
-int main(int argc, char* argv[]) {
-    return c7a::api::Execute(argc, argv, page_rank);
-}
+using c7a::Context;
 
 //! The PageRank user program
 int page_rank(Context& ctx) {
@@ -34,10 +36,6 @@ int page_rank(Context& ctx) {
     using PageWithLinks = std::tuple<int, std::vector<int> >;
     using PageWithRank = std::tuple<int, double>;
     using Page = std::tuple<int, double, std::vector<int> >;
-
-    auto key_page_with_links = [](PageWithLinks in) {
-                                   return std::get<0>(in);
-                               };
 
     auto key_page_with_rank = [](PageWithRank in) {
                                   return (size_t)std::get<0>(in);
@@ -128,6 +126,10 @@ int page_rank(Context& ctx) {
     WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
 
     return 0;
+}
+
+int main(int argc, char* argv[]) {
+    return c7a::api::Execute(argc, argv, page_rank);
 }
 
 /******************************************************************************/
