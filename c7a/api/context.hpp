@@ -110,6 +110,10 @@ private:
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using c7a::api::Context;
+
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER
