@@ -122,6 +122,7 @@ protected:
     BlockQueue& queue_;
 };
 
+inline
 typename BlockQueue::Reader BlockQueue::GetReader() {
     return BlockQueue::Reader(BlockQueueSource(*this));
 }

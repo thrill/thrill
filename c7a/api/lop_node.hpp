@@ -12,6 +12,7 @@
 #define C7A_API_LOP_NODE_HEADER
 
 #include <c7a/api/dia_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/data/file.hpp>
 
 #include <string>

@@ -213,7 +213,7 @@ protected:
 };
 
 //! Get BlockReader for beginning of File
-typename File::Reader File::GetReader() const {
+inline typename File::Reader File::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
 }
 
