@@ -168,7 +168,7 @@ TEST(Serialization, StringVector) {
 
 TEST(Serialization, StringArray) {
     std::array<std::string, 7> vec1 = {
-        "what", "a", "wonderful", "world", "this", "could", "be"
+        { "what", "a", "wonderful", "world", "this", "could", "be" }
     };
     c7a::data::File f;
     {

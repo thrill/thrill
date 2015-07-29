@@ -185,9 +185,15 @@ public:
         // than one block necessary for Next if an item is large!
 
         block_collect_ = &out;
-        while (n > 0) {
-            Next<ItemType>();
-            --n;
+        if (Serialization<BlockReader, ItemType>::is_fixed_size) {
+            Skip(n, n * ((self_verify ? sizeof(size_t) : 0) +
+                         Serialization<BlockReader, ItemType>::fixed_size));
+        }
+        else {
+            while (n > 0) {
+                Next<ItemType>();
+                --n;
+            }
         }
         block_collect_ = nullptr;
 
@@ -237,6 +243,18 @@ public:
         std::string out(datalen, 0);
         Read(const_cast<char*>(out.data()), out.size());
         return out;
+    }
+
+    //! Advance the cursor given number of bytes without reading them.
+    BlockReader & Skip(size_t items, size_t bytes) {
+        while (current_ + bytes > end_) {
+            bytes -= end_ - current_;
+            if (!NextBlock())
+                throw std::runtime_error("Data underflow in BlockReader.");
+        }
+        current_ += bytes;
+        nitems_ -= items;
+        return *this;
     }
 
     //! Fetch a single byte from the current block, advancing the cursor.

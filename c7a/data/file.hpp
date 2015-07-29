@@ -261,13 +261,25 @@ FileBase<BlockSize>::GetReaderAt(size_t index) const {
     // skip over extra items in beginning of block
     size_t items_before = it == nitems_sum_.begin() ? 0 : *(it - 1);
 
-    sLOG << "items_before" << items_before;
+    sLOG << "items_before" << items_before << "index" << index
+         << "delta" << (index - items_before);
+    assert(items_before <= index);
 
-    // TODO(tb): use fixed_size information to accelerate jump.
-    for (size_t i = items_before; i < index; ++i) {
-        if (!fr.HasNext())
-            die("Underflow in GetItemRange()");
-        fr.template Next<ItemType>();
+    // use fixed_size information to accelerate jump.
+    if (Serialization<Reader, ItemType>::is_fixed_size)
+    {
+        const size_t skip_items = index - items_before;
+        fr.Skip(skip_items,
+                skip_items * ((Reader::self_verify ? sizeof(size_t) : 0) +
+                              Serialization<Reader, ItemType>::fixed_size));
+    }
+    else
+    {
+        for (size_t i = items_before; i < index; ++i) {
+            if (!fr.HasNext())
+                die("Underflow in GetItemRange()");
+            fr.template Next<ItemType>();
+        }
     }
 
     return fr;
