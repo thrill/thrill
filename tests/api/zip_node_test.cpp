@@ -15,7 +15,6 @@
 #include <c7a/api/size.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/common/string.hpp>
-#include <c7a/data/serialization_cereal.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -30,38 +29,7 @@ using c7a::api::DIARef;
 
 struct MyStruct {
     int a, b;
-
-    MyStruct() { }
-    MyStruct(int _a, int _b) : a(_a), b(_b) { }
-
-    // This method lets cereal know which data members to serialize
-    template <class Archive>
-    void serialize(Archive& archive) {
-        archive(a, b);
-    }
 };
-
-// namespace c7a {
-// namespace data {
-
-// template <typename Archive>
-// struct Impl<Archive, MyStruct>
-// {
-//     static void Serialize(const MyStruct& x, Archive& ar) {
-//         Impl<Archive, int>::Serialize(x.a, ar);
-//         Impl<Archive, int>::Serialize(x.b, ar);
-//     }
-//     static MyStruct Deserialize(Archive& ar) {
-//         int a = Impl<Archive, int>::Deserialize(ar);
-//         int b = Impl<Archive, int>::Deserialize(ar);
-//         return MyStruct(a, b);
-//     }
-//     static const bool fixed_size = (Impl<Archive, int>::fixed_size &&
-//                                     Impl<Archive, int>::fixed_size);
-// };
-
-// } // namespace data
-// } // namespace c7a
 
 static const size_t test_size = 1000;
 
@@ -125,7 +93,9 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
             // zip
             auto zip_result = zip_input1.Zip(
-                zip_input2, [](size_t a, short b) -> MyStruct { return MyStruct(a, b); });
+                zip_input2, [](size_t a, short b) -> MyStruct {
+                    return { static_cast<int>(a), b };
+                });
 
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();
