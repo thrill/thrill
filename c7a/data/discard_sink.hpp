@@ -14,6 +14,7 @@
 
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
+#include <c7a/data/block_writer.hpp>
 
 namespace c7a {
 namespace data {
@@ -28,6 +29,8 @@ namespace data {
 class DiscardSink : public BlockSink
 {
 public:
+    using Writer = BlockWriter;
+
     //! Create discarding BlockSink.
     DiscardSink() { }
 
@@ -42,6 +45,11 @@ public:
 
     //! return close flag
     bool closed() const { return closed_; }
+
+    //! Return a BlockWriter delivering to this BlockSink.
+    Writer GetWriter(size_t block_size = default_block_size) {
+        return Writer(this, block_size);
+    }
 
 protected:
     bool closed_ = false;
