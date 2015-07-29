@@ -18,8 +18,8 @@
 #include <c7a/common/concurrent_queue.hpp>
 #include <c7a/common/delegate.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/net/dispatcher.hpp>
 #include <c7a/data/block.hpp>
+#include <c7a/net/dispatcher.hpp>
 
 #include <unistd.h>
 
