@@ -178,10 +178,19 @@ TEST(File, SeekReadSlicesOfFiles) {
     // read items 95-144
     auto check_range =
         [&](size_t begin, size_t end, bool do_more = true) {
-            sLOG << "Test range [" << begin << "," << end << ")";
+            LOG << "Test range [" << begin << "," << end << ")";
 
             // seek in File to begin.
             File::Reader fr = file.GetReaderAt<size_t>(begin);
+
+            // read a few items
+            if (end - begin > 5 && do_more) {
+                for (size_t i = 0; i < 5; ++i) {
+                    ASSERT_TRUE(fr.HasNext());
+                    ASSERT_EQ(begin, fr.Next<size_t>());
+                    ++begin;
+                }
+            }
 
             // read the items [begin,end)
             {
