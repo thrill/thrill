@@ -42,7 +42,8 @@ struct Serialization<Archive, T,
     static T Deserialize(Archive& ar) {
         return ar.template Get<T>();
     }
-    static const bool fixed_size = true;
+    static const bool   is_fixed_size = true;
+    static const size_t fixed_size = sizeof(T);
 };
 
 /********************** Serialization of strings ******************************/
@@ -55,7 +56,8 @@ struct Serialization<Archive, std::string>
     static std::string Deserialize(Archive& ar) {
         return ar.GetString();
     }
-    static const bool fixed_size = false;
+    static const bool   is_fixed_size = false;
+    static const size_t fixed_size = 0;
 };
 
 /*********************** Serialization of pairs *******************************/
@@ -71,8 +73,12 @@ struct Serialization<Archive, std::pair<U, V> >
         V v = Serialization<Archive, V>::Deserialize(ar);
         return std::pair<U, V>(std::move(u), std::move(v));
     }
-    static const bool fixed_size = (Serialization<Archive, U>::fixed_size &&
-                                    Serialization<Archive, V>::fixed_size);
+    static const bool   is_fixed_size =
+        (Serialization<Archive, U>::is_fixed_size &&
+         Serialization<Archive, V>::is_fixed_size);
+    static const size_t fixed_size =
+        (Serialization<Archive, U>::fixed_size +
+         Serialization<Archive, V>::fixed_size);
 };
 
 //! \addtogroup data_internal Data Internals
@@ -102,9 +108,13 @@ struct TupleSerialization {
         TupleSerialization<Archive, RevIndex - 1, Args ...>::Serialize(x, ar);
     }
 
-    static const bool   fixed_size
-        = Serialization<Archive, ThisElemType>::fixed_size
-          && TupleSerialization<Archive, RevIndex - 1, Args ...>::fixed_size;
+    static const bool   is_fixed_size
+        = Serialization<Archive, ThisElemType>::is_fixed_size
+          && TupleSerialization<Archive, RevIndex - 1, Args ...>::is_fixed_size;
+
+    static const size_t fixed_size =
+        Serialization<Archive, ThisElemType>::fixed_size
+        + TupleSerialization<Archive, RevIndex - 1, Args ...>::fixed_size;
 };
 
 // Base case when RevIndex == 0
@@ -113,7 +123,8 @@ struct TupleSerialization<Archive, 0, Args ...>{
     static void Serialize(const std::tuple<Args ...>&, Archive&) {
         // Doesn't do anything
     }
-    static const bool fixed_size = true;
+    static const bool   is_fixed_size = true;
+    static const size_t fixed_size = 0;
 };
 
 //-------------------------- tuple deserializer ------------------------------//
@@ -160,7 +171,9 @@ struct Serialization<Archive, std::tuple<Args ...> >
             Archive, sizeof ... (Args), std::tuple<Args ...> >::Deserialize(ar);
     }
 
-    static const bool fixed_size = detail::TupleSerialization<
+    static const bool   is_fixed_size = detail::TupleSerialization<
+        Archive, sizeof ... (Args), Args ...>::is_fixed_size;
+    static const size_t fixed_size = detail::TupleSerialization<
         Archive, sizeof ... (Args), Args ...>::fixed_size;
 };
 
@@ -182,7 +195,8 @@ struct Serialization<Archive, std::vector<T> >
             out.emplace_back(Serialization<Archive, T>::Deserialize(ar));
         return out;
     }
-    static const bool fixed_size = false;
+    static const bool   is_fixed_size = false;
+    static const size_t fixed_size = 0;
 };
 
 /*********************** Serialization of array *******************************/
@@ -201,7 +215,8 @@ struct Serialization<Archive, std::array<T, N> >
             out[i] = std::move(Serialization<Archive, T>::Deserialize(ar));
         return out;
     }
-    static const bool fixed_size = Serialization<Archive, T>::fixed_size;
+    static const bool   is_fixed_size = Serialization<Archive, T>::is_fixed_size;
+    static const size_t fixed_size = N * Serialization<Archive, T>::fixed_size;
 };
 
 //! \}
