@@ -34,7 +34,10 @@ struct Serialization
 /******************* Serialization of plain old data types ********************/
 template <typename Archive, typename T>
 struct Serialization<Archive, T,
-                     typename std::enable_if<std::is_pod<T>::value>::type>
+                     typename std::enable_if<
+                         // a POD, but not a pointer
+                         std::is_pod<T>::value&& !std::is_pointer<T>::value
+                         >::type>
 {
     static void Serialize(const T& x, Archive& ar) {
         ar.template Put<T>(x);
