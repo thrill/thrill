@@ -35,9 +35,6 @@ namespace c7a {
 // our public interface classes and methods. all others should be in a
 // sub-namespace.
 
-using api::DIARef;
-using api::Context;
-
 } // namespace c7a
 
 #endif // !C7A_C7A_HEADER

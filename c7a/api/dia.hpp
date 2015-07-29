@@ -495,6 +495,10 @@ auto Generate(Context & ctx,
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using c7a::api::DIARef;
+
 } // namespace c7a
 
 #endif // !C7A_API_DIA_HEADER
