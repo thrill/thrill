@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
     data::DiscardSink sink;
     std::vector<data::BlockWriter> writers;
     for (size_t i = 0; i < workers; i++) {
-        writers.emplace_back(&sink);
+        writers.emplace_back(sink.GetWriter());
     }
 
     core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>

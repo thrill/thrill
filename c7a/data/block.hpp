@@ -47,7 +47,7 @@ protected:
 
     //! Constructor to initialize Block in a buffer of memory. Protected, use
     //! Allocate() for construction.
-    Block(size_t size) : size_(size) { }
+    explicit Block(size_t size) : size_(size) { }
 
 public:
     //! Construct a block of given size.
