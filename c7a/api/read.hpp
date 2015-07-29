@@ -15,6 +15,7 @@
 #define C7A_API_READ_HEADER
 
 #include <c7a/api/dop_node.hpp>
+#include <c7a/api/input_line_iterator.hpp>
 #include <c7a/common/logger.hpp>
 
 #include <fstream>
