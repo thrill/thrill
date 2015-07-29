@@ -17,7 +17,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 namespace c7a {
 namespace common {

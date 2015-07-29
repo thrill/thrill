@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/bootstrap.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/lop_node.hpp>
 #include <c7a/api/size.hpp>

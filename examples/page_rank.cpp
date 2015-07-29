@@ -7,8 +7,6 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/bootstrap.hpp>
-#include <c7a/api/context.hpp>
 #include <c7a/api/lop_node.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/reduce_to_index.hpp>
