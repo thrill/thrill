@@ -43,18 +43,9 @@ namespace data {
  * either attached to an existing channel or a new channel instance is
  * created.
  */
-template <size_t BlockSize = default_block_size>
 class ChannelMultiplexer
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockPtr = std::shared_ptr<Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-
-    using Channel = data::ChannelBase<BlockSize>;
-    using ChannelPtr = std::shared_ptr<Channel>;
-    using BlockWriter = data::BlockWriterBase<BlockSize>;
-
     explicit ChannelMultiplexer(net::DispatcherThread& dispatcher)
         : dispatcher_(dispatcher), next_id_(0) { }
 
@@ -188,10 +179,9 @@ private:
         sLOG << "got block on" << s << "in channel" << header.channel_id;
 
         die_unless(header.size == buffer.size());
-        assert(buffer.size() <= Block::block_size);
 
         // TODO(tb): don't copy data!
-        BlockPtr block = std::make_shared<Block>();
+        BlockPtr block = Block::Allocate(buffer.size());
         std::copy(buffer.data(), buffer.data() + buffer.size(), block->begin());
 
         channel->OnStreamBlock(

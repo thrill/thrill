@@ -25,17 +25,11 @@ namespace data {
  * DiscardSink is an BlockSink that discards all Blocks delivered to it. Use it
  * for benchmarking!
  */
-template <size_t BlockSize>
-class DiscardSinkBase : public BlockSink<BlockSize>
+class DiscardSink : public BlockSink
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-    using ChannelId = size_t;
-
     //! Create discarding BlockSink.
-    DiscardSinkBase() { }
+    DiscardSink() { }
 
     //! Discards VirtualBlock.
     void AppendBlock(const VirtualBlock&) override { }
@@ -52,9 +46,6 @@ public:
 protected:
     bool closed_ = false;
 };
-
-//! DiscardSinkBase with default block size.
-using DiscardSink = DiscardSinkBase<data::default_block_size>;
 
 //! \}
 

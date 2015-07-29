@@ -29,13 +29,9 @@ namespace data {
  * ChannelSink is an BlockSink that sends data via a network socket to the
  * Channel object on a different worker.
  */
-template <size_t BlockSize>
-class ChannelSink : public BlockSink<BlockSize>
+class ChannelSink : public BlockSink
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelId = size_t;
 
     //! Construct invalid ChannelSink, needed for placeholders in sinks arrays

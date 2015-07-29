@@ -52,17 +52,6 @@ public:
         cmp_.Connect(group);
     }
 
-#if FIXUP_LATER
-    //! Docu see net::ChannelMultiplexer::Scatter()
-    template <class T>
-    void Scatter(const ChainId& source, const ChainId& target, std::vector<size_t> offsets) {
-        assert(source.type == LOCAL);
-        assert(target.type == NETWORK);
-        assert(dias_.Contains(source));
-        cmp_.Scatter<T>(dias_.Chain(source), target, offsets);
-    }
-#endif      // FIXUP_LATER
-
     //! Returns a reference to an existing Channel.
     ChannelPtr GetChannel(const ChannelId id) {
         assert(cmp_.HasChannel(id));
@@ -84,7 +73,7 @@ public:
 
 private:
     static const bool debug = false;
-    ChannelMultiplexer<default_block_size> cmp_;
+    ChannelMultiplexer cmp_;
 
     Repository<File> files_;
 };
