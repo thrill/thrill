@@ -125,7 +125,7 @@ static inline int Execute(
         threads[i] = std::thread(
             [&jobMan, &results, &job_startpoint, i, log_prefix] {
                 Context ctx(jobMan, i);
-                common::GetThreadDirectory().NameThisThread(
+                common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 
                 LOG << "Starting job on worker " << ctx.rank();
@@ -265,7 +265,7 @@ ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
             [job_startpoint, log_prefix](core::JobManager& jm, size_t node_id) {
 
                 Context ctx(jm, 0);
-                common::GetThreadDirectory().NameThisThread(
+                common::NameThisThread(
                     log_prefix + " node " + std::to_string(node_id));
 
                 LOG << "Starting node " << node_id;

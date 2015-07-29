@@ -141,7 +141,7 @@ void DispatcherThread::Enqueue(Job&& job) {
 
 //! What happens in the dispatcher thread
 void DispatcherThread::Work() {
-    common::GetThreadDirectory().NameThisThread(name_);
+    common::NameThisThread(name_);
 
     // Ignore PIPE signals (received when writing to closed sockets)
     signal(SIGPIPE, SIG_IGN);

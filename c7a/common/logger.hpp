@@ -14,7 +14,6 @@
 #ifndef C7A_COMMON_LOGGER_HEADER
 #define C7A_COMMON_LOGGER_HEADER
 
-#include <iomanip>
 #include <iostream>
 #include <map>
 #include <mutex>
@@ -27,48 +26,13 @@
 namespace c7a {
 namespace common {
 
-//! thread-id to name mapping for better multi-threaded log output
-class ThreadNameDirectory
-{
-public:
-    //! Defines a name for the current thread, only if no name was set
-    //! previously
-    void NameThisThread(const std::string& name) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        threads_[std::this_thread::get_id()] = StringCount(name, 0);
-    }
+//! Defines a name for the current thread, only if no name was set previously
+void NameThisThread(const std::string& name);
 
-    //! Returns the name of the current thread or 'unknown [id]'
-    std::string NameForThisThread() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto it = threads_.find(std::this_thread::get_id());
-        if (it != threads_.end()) {
-            StringCount& sc = it->second;
-            if (true) {
-                std::ostringstream ss;
-                // print "name #msg";
-                ss << sc.first << ' '
-                   << std::setfill('0') << std::setw(6) << sc.second++;
-                return ss.str();
-            }
-            else {
-                return sc.first;
-            }
-        }
-        std::ostringstream ss;
-        ss << "unknown " << std::this_thread::get_id();
-        return ss.str();
-    }
+//! Returns the name of the current thread or 'unknown [id]'
+std::string GetNameForThisThread();
 
-private:
-    using StringCount = std::pair<std::string, size_t>;
-    //! map thread id -> (name, message counter)
-    std::map<std::thread::id, StringCount> threads_;
-    std::mutex mutex_;
-};
-
-//! access global singleton
-ThreadNameDirectory & GetThreadDirectory();
+/******************************************************************************/
 
 /*!
  * A simple logging class which outputs a std::endl during destruction.
@@ -97,7 +61,7 @@ public:
     static const bool active = true;
 
     Logger() {
-        oss_ << "[" << GetThreadDirectory().NameForThisThread() << "] ";
+        oss_ << "[" << GetNameForThisThread() << "] ";
     }
 
     //! output any type, including io manipulators
@@ -157,7 +121,7 @@ public:
     //! constructor: if real = false the output is suppressed.
     SpacingLogger()
         : first_(true) {
-        oss_ << "[" << GetThreadDirectory().NameForThisThread() << "] ";
+        oss_ << "[" << GetNameForThisThread() << "] ";
     }
 
     //! output any type, including io manipulators
