@@ -82,7 +82,7 @@ public:
         return job_manager_.net_manager().MyRank();
     }
 
-    common::Stats & stats() {
+    common::Stats<ENABLE_STATS> & stats() {
         return stats_;
     }
 
@@ -100,7 +100,7 @@ public:
 
 private:
     core::JobManager& job_manager_;
-    common::Stats stats_;
+    common::Stats<ENABLE_STATS> stats_;
     api::StatsGraph stats_graph_;
 
     //! number of this worker context, 0..p-1, within this compute node.
