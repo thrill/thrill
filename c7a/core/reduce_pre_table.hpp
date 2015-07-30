@@ -48,13 +48,13 @@ public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the partition's sub-hashtable of this item
-        size_t partition_offset;
+        size_t local_index;
         //! index within the whole hashtable
         size_t global_index;
 
         hash_result(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
-            partition_offset = p_off;
+            local_index = p_off;
             global_index = g_id;
         }
     };
@@ -94,6 +94,11 @@ protected:
 public:
     typedef std::function<hash_result(Key, ReducePreTable*)> HashFunction;
 
+    /**
+     * A function to compare two keys
+     */
+    typedef std::function<bool (Key, Key)> EqualToFunction;
+
     ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale,
                    size_t num_buckets_resize_scale,
                    size_t max_num_items_per_bucket, size_t max_num_items_table,
@@ -103,16 +108,19 @@ public:
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
 
-                             size_t partition_offset = hashed %
+                             size_t local_index = hashed %
                                                        ht->num_buckets_per_partition_;
                              size_t partition_id = hashed % ht->num_partitions_;
                              size_t global_index = partition_id *
                                                    ht->num_buckets_per_partition_ +
-                                                   partition_offset;
-                             hash_result hr(partition_id, partition_offset, global_index);
+                                                   local_index;
+                             hash_result hr(partition_id, local_index, global_index);
                              return hr;
-                         }
-                       )
+                         },
+                   EqualToFunction equal_to_function
+                   = [](Key k1, Key k2) {
+                       return k1 == k2;
+                   })
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -121,7 +129,8 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init();
     }
@@ -134,21 +143,25 @@ public:
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
 
-                             size_t partition_offset = hashed %
+                             size_t local_index = hashed %
                                                        ht->num_buckets_per_partition_;
                              size_t partition_id = hashed % ht->num_partitions_;
                              size_t global_index = partition_id *
                                                    ht->num_buckets_per_partition_ +
-                                                   partition_offset;
-                             hash_result hr(partition_id, partition_offset, global_index);
+                                                   local_index;
+                             hash_result hr(partition_id, local_index, global_index);
                              return hr;
-                         }
-                       )
+                         },
+                    EqualToFunction equal_to_function
+                        = [](Key k1, Key k2) {
+                        return k1 == k2;
+                    })
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init();
     }
@@ -201,11 +214,14 @@ public:
      * in case the key already exists.
      */
     void Insert(const Value& p) {
+
         Key key = key_extractor_(p);
 
         hash_result h = hash_function_(key, this);
 
-        LOG << "key: " << key << " to bucket id: " << h.global_index;
+        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
+        assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
+        assert(h.global_index >= 0 && h.global_index < num_buckets_);
 
         size_t num_items_bucket = 0;
         BucketBlock* current = vector_[h.global_index];
@@ -217,7 +233,7 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                if (key == bi->first)
+                if (equal_to_function_(bi->first, key))
                 {
                     LOG << "match of key: " << key
                         << " and " << bi->first << " ... reducing...";
@@ -599,7 +615,11 @@ private:
 
     std::vector<BucketBlock*> vector_;
 
+    //! Hash functions.
     HashFunction hash_function_;
+
+    //! Comparator function for keys.
+    EqualToFunction equal_to_function_;
 };
 
 } // namespace core

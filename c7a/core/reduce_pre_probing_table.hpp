@@ -248,10 +248,10 @@ public:
         assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
-        size_t current_pos = h.global_index;
-        size_t next_partition = (h.global_index / num_items_per_partition_ + 1) * num_items_per_partition_;
-
-        KeyValuePair* current = &vector_[current_pos];
+        KeyValuePair* initial = &vector_[h.global_index];
+        KeyValuePair* current = initial;
+        KeyValuePair* next_partition = &vector_[h.global_index -
+                (h.global_index % num_items_per_partition_) + num_items_per_partition_];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -261,33 +261,31 @@ public:
                     << " and " << current->first << " ... reducing...";
 
                 current->second = reduce_function_(current->second, p);
-                //assert(key == key_extractor_(current->second));
 
                 LOG << "...finished reduce!";
                 return;
             }
 
-            ++current_pos;
+            ++current;
 
-            if (current_pos == next_partition)
+            if (current == next_partition)
             {
-                current_pos = h.global_index - (h.global_index % num_items_per_partition_);
+                current -= num_items_per_partition_;
             }
 
-            if (current_pos == h.global_index)
+            if (current == initial)
             {
                 ResizeUp();
                 Insert(std::move(p));
                 return;
             }
-
-            current = &vector_[current_pos];
         }
 
         // insert new pair
         if (current->first == sentinel_.first)
         {
-            vector_[current_pos] = KeyValuePair(key, p);
+            current->first = key;
+            current->second = p;
 
             // increase total counter
             num_items_++;
