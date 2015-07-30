@@ -14,6 +14,7 @@
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/block_writer.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -55,7 +56,7 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction>
+template <typename KeyExtractor, typename ReduceFunction, const bool PreservesKey = false>
 class ReducePreProbingTable
 {
     static const bool debug = false;
@@ -121,7 +122,7 @@ public:
                           double max_partition_fill_ratio,
                           size_t max_num_items_table,
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
-                          std::vector<EmitterFunction>& emit,
+                          std::vector<data::BlockWriter>& emit,
                           Key sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
@@ -147,7 +148,7 @@ public:
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)),
+          emit_(emit),
           hash_function_(hash_function),
           equal_to_function_(equal_to_function)
     {
@@ -158,7 +159,8 @@ public:
      * Lightweight version.
      */
     ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
-                          ReduceFunction reduce_function, std::vector<EmitterFunction>& emit,
+                          ReduceFunction reduce_function,
+                          std::vector<data::BlockWriter>& emit,
                           Key sentinel,
                           HashFunction hash_function
                               = [](Key v, ReducePreProbingTable* ht) {
@@ -180,7 +182,7 @@ public:
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(std::move(emit)),
+          emit_(emit),
           hash_function_(hash_function),
           equal_to_function_(equal_to_function)
     {
@@ -375,7 +377,12 @@ public:
             KeyValuePair current = vector_[i];
             if (current.first != sentinel_.first)
             {
-                emit_[partition_id](std::move(current.second));
+                if (PreservesKey) {
+                    emit_[partition_id](std::move(current.second));
+                }
+                else {
+                    emit_[partition_id](std::move(current));
+                }
                 vector_[i] = sentinel_;
             }
         }
@@ -606,7 +613,7 @@ private:
     ReduceFunction reduce_function_;
 
     //! Set of emitters, one per partition.
-    std::vector<EmitterFunction> emit_;
+    std::vector<data::BlockWriter>& emit_;
 
     //! Emitter stats.
     std::vector<int> emit_stats_;
