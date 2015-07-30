@@ -12,6 +12,7 @@ function printVars {
   echo "SLURM_NNODES: $SLURM_NNODES"
   echo "SLURM_NTASKS: $SLURM_NTASKS"
   echo "SLURM_JOB_HOSTLIST: $SLURM_JOB_NODELIST"
+  echo "HOSTNAME: $(hostname)"
 }
 
 echo "Checking Environment:"
