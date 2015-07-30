@@ -97,7 +97,6 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
-
 TEST(ReduceNode, ReducePairToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
@@ -146,7 +145,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
                     break;
                 case 7:
                     ASSERT_EQ(29, element);
-                    break;                    
+                    break;
                 case 8:
                     ASSERT_EQ(16, element);
                     break;
