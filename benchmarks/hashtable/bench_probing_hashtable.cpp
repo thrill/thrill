@@ -50,15 +50,7 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('r', "num_buckets_resize_scale", "R", num_buckets_resize_scale,
                 "Open hashtable with num_buckets_resize_scale, default = 2.");
 
-    unsigned int stepsize = 1;
-    clp.AddUInt('p', "stepsize", "P", stepsize,
-                "Open hashtable with stepsize, default = 1.");
-
-    unsigned int max_stepsize = 10;
-    clp.AddUInt('z', "max_stepsize", "Z", max_stepsize,
-                "Open hashtable with max_stepsize, default = 10.");
-
-    double max_partition_fill_ratio = 0.9;
+    double max_partition_fill_ratio = 1.0;
     clp.AddDouble('f', "max_partition_fill_ratio", "F", max_partition_fill_ratio,
                   "Open hashtable with max_partition_fill_ratio, default = 0.9.");
 
@@ -86,7 +78,7 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(sink.GetWriter());
     }
 
-    core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), data::BlockWriter>
+    core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn)>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale,
           max_partition_fill_ratio, max_num_items_table, key_ex, red_fn, writers, -1);
 
@@ -96,6 +88,7 @@ int main(int argc, char* argv[]) {
         table.Insert(std::move(elements[i]));
     }
     table.Flush();
+    table.CloseEmitter();
 
     timer.Stop();
     std::cout << timer.Microseconds() << std::endl;
