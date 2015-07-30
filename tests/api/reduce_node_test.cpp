@@ -98,6 +98,69 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 }
 
 
+TEST(ReduceNode, ReducePairToIndexCorrectResults) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return std::make_pair((index + 1) / 2, index + 1);
+                },
+                16);
+
+            auto add_function = [](const size_t& in1, const size_t& in2) {
+                                    return in1 + in2;
+                                };
+
+            size_t max_index = 8;
+
+            auto reduced = integers.ReducePairToIndex(add_function, max_index);
+
+            std::vector<size_t> out_vec = reduced.AllGather();
+
+            int i = 0;
+            for (int element : out_vec) {
+                switch (i++) {
+                case 0:
+                    ASSERT_EQ(1, element);
+                    break;
+                case 1:
+                    ASSERT_EQ(5, element);
+                    break;
+                case 2:
+                    ASSERT_EQ(9, element);
+                    break;
+                case 3:
+                    ASSERT_EQ(13, element);
+                    break;
+                case 4:
+                    ASSERT_EQ(17, element);
+                    break;
+                case 5:
+                    ASSERT_EQ(21, element);
+                    break;
+                case 6:
+                    ASSERT_EQ(25, element);
+                    break;
+                case 7:
+                    ASSERT_EQ(29, element);
+                    break;                    
+                case 8:
+                    ASSERT_EQ(16, element);
+                    break;
+                default:
+                    ASSERT_EQ(42, 420);
+                }
+            }
+
+            ASSERT_EQ((size_t)9, out_vec.size());
+        };
+
+    c7a::api::ExecuteLocalTests(start_func);
+}
+
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
