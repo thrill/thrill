@@ -333,6 +333,15 @@ public:
                             size_t max_index,
                             ValueType neutral_element = ValueType()) const;
 
+    
+    template <typename ReduceFunction>
+    auto ReducePairToIndex(const ReduceFunction &reduce_function,
+                           size_t max_index,
+                           typename common::FunctionTraits<ReduceFunction>
+                           ::result_type neutral_element =
+                           typename common::FunctionTraits<ReduceFunction>
+                           ::result_type()) const;
+
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
      * zip_function is used to zip the i-th elements of both input DIAs together

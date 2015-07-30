@@ -49,7 +49,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          bool PreservesKey>
+          bool PreservesKey, typename InputType>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -112,7 +112,7 @@ public:
           neutral_element_(neutral_element)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](Value input) {
+        auto pre_op_fn = [=](InputType input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -233,7 +233,7 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(Value input) {
+    void PreOp(InputType input) {
         reduce_pre_table_.Insert(std::move(input));
     }
 
@@ -285,7 +285,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
 
     static_assert(
         std::is_same<
-            typename std::decay<typename common::FunctionTraits<KeyExtractor>::template arg<0> >::type,
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
+        template arg<0> >::type,
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
@@ -297,7 +298,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
 
     using ReduceResultNode
               = ReduceToIndexNode<DOpResult, DIARef,
-                                  KeyExtractor, ReduceFunction, false>;
+                                  KeyExtractor, ReduceFunction,
+                                  false, ValueType>;
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
@@ -312,6 +314,73 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
         shared_node,
         reduce_stack,
         { AddChildStatsNode("ReduceToIndex", "DOp") });
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction>
+auto DIARef<ValueType, Stack>::ReducePairToIndex(
+    const ReduceFunction &reduce_function,
+    size_t max_index,
+    typename common::FunctionTraits<ReduceFunction>::result_type
+    neutral_element) const {
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+        typename ValueType::second_type,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+        typename ValueType::second_type,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+        typename ValueType::second_type>::value,
+        "ReduceFunction has the wrong output type");
+
+    static_assert(
+        std::is_same<
+        typename ValueType::first_type,
+            size_t>::value,
+        "The key has to be an unsigned long int (aka. size_t).");
+
+    
+    using Key = typename ValueType::first_type;
+
+    using ReduceResultNode
+              = ReduceToIndexNode<DOpResult, DIARef,
+                                  std::function<Key(Key)>,
+                                  ReduceFunction, false, ValueType>;
+
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(*this,
+                                              [](Key key) {
+                                                 //This function should not be
+                                                 //called, it is only here to
+                                                 //give the key type to the
+                                                 //hashtables.
+                                                 assert(1 == 0);
+                                                 key = key;
+                                                 return Key();},
+                                             reduce_function,
+                                             max_index,
+                                             neutral_element);
+
+    auto reduce_stack = shared_node->ProduceStack();
+
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { AddChildStatsNode("ReducePairToIndex", "DOp") });
 }
 
 template <typename ValueType, typename Stack>
@@ -347,7 +416,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
 
     static_assert(
         std::is_same<
-            typename std::decay<typename common::FunctionTraits<KeyExtractor>::template arg<0> >::type,
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
+        template arg<0> >::type,
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
@@ -359,7 +429,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
 
     using ReduceResultNode
               = ReduceToIndexNode<DOpResult, DIARef,
-                                  KeyExtractor, ReduceFunction, true>;
+                                  KeyExtractor, ReduceFunction,
+                                  true, ValueType>;
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
@@ -373,7 +444,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("ReduceToIndex", "DOp") });
+        { AddChildStatsNode("ReduceToIndexByKey", "DOp") });
 }
 
 //! \}
