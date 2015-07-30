@@ -19,6 +19,8 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
+#include <c7a/common/types.hpp>
+
 
 #include <functional>
 #include <string>
@@ -265,6 +267,9 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(common::is_pair<ValueType>::value,
+                  "ValueType is not a pair");
 
     static_assert(
         std::is_convertible<
