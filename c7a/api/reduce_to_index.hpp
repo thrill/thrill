@@ -16,9 +16,9 @@
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/types.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
-#include <c7a/common/types.hpp>
 
 #include <cmath>
 #include <functional>
@@ -287,7 +287,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
     static_assert(
         std::is_same<
             typename std::decay<typename common::FunctionTraits<KeyExtractor>::
-        template arg<0> >::type,
+                                template arg<0> >::type,
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
@@ -333,14 +333,14 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
 
     static_assert(
         std::is_convertible<
-        typename ValueType::second_type,
+            typename ValueType::second_type,
             typename common::FunctionTraits<ReduceFunction>::template arg<0>
             >::value,
         "ReduceFunction has the wrong input type");
 
     static_assert(
         std::is_convertible<
-        typename ValueType::second_type,
+            typename ValueType::second_type,
             typename common::FunctionTraits<ReduceFunction>::template arg<1>
             >::value,
         "ReduceFunction has the wrong input type");
@@ -348,16 +348,15 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     static_assert(
         std::is_same<
             DOpResult,
-        typename ValueType::second_type>::value,
+            typename ValueType::second_type>::value,
         "ReduceFunction has the wrong output type");
 
     static_assert(
         std::is_same<
-        typename ValueType::first_type,
+            typename ValueType::first_type,
             size_t>::value,
         "The key has to be an unsigned long int (aka. size_t).");
 
-    
     using Key = typename ValueType::first_type;
 
     using ReduceResultNode
@@ -367,14 +366,15 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
 
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
-                                              [](Key key) {
+                                             [](Key key) {
                                                  //This function should not be
                                                  //called, it is only here to
                                                  //give the key type to the
                                                  //hashtables.
                                                  assert(1 == 0);
                                                  key = key;
-                                                 return Key();},
+                                                 return Key();
+                                             },
                                              reduce_function,
                                              max_index,
                                              neutral_element);
@@ -421,7 +421,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     static_assert(
         std::is_same<
             typename std::decay<typename common::FunctionTraits<KeyExtractor>::
-        template arg<0> >::type,
+                                template arg<0> >::type,
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 

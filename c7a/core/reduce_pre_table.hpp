@@ -194,11 +194,11 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
-	void Insert(const Value& p) {
+    void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
-		Insert(std::make_pair(key, p));
-	}
+        Insert(std::make_pair(key, p));
+    }
 
     /*!
      * Inserts a key/value pair.
@@ -207,7 +207,7 @@ public:
      * in case the key already exists.
      */
     void Insert(const KeyValuePair& kv) {
-		
+
         hash_result h = hash_function_(kv.first, this);
 
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;

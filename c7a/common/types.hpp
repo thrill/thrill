@@ -12,19 +12,18 @@
 #ifndef C7A_COMMON_TYPES_HEADER
 #define C7A_COMMON_TYPES_HEADER
 
-
 namespace c7a {
 namespace common {
 
 //thanks to http://stackoverflow.com/a/7127988
-template <typename T> struct is_pair : public std::false_type { };
-template <typename S, typename T> struct is_pair<std::pair<S,T>> :
-        public std::true_type { };
-
+template <typename T>
+struct is_pair : public std::false_type { };
+template <typename S, typename T>
+struct is_pair<std::pair<S, T> >
+    : public std::true_type { };
 } //namespace common
 } //namespace c7a
 
-
-#endif // !C7A_COMMON_FUNCTIONAL_HEADER
+#endif // !C7A_COMMON_TYPES_HEADER
 
 /******************************************************************************/
