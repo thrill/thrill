@@ -88,6 +88,7 @@ int main(int argc, char* argv[]) {
         table.Insert(std::move(elements[i]));
     }
     table.Flush();
+    table.CloseEmitter();
 
     timer.Stop();
     std::cout << timer.Microseconds() << std::endl;
