@@ -8,7 +8,7 @@ import numpy
 
 result_dir = "./bench_bucket_hashtable"
 
-amounts= [10,12,14,16,18,20,22,24,26,28]
+amounts= [10,12,14] #,16,18,20,22,24,26,28]
 
 workers = [10,100,1000]
 modulae = [1000,100000]

@@ -8,10 +8,10 @@ import numpy
 
 result_dir = "./bench_probing_hashtable"
 
-amounts= [10,12,14,16,18,20,22,24,26,28]
+amounts= [10,12,14] #,16,18,20,22,24,26,28]
 
-workers = [10] #,100,1000]
-modulae = [1000] #,100000]
+workers = [10,100,1000]
+modulae = [1000,100000]
 
 num_buckets_init_scale = 10
 num_buckets_resize_scale = 2
@@ -27,7 +27,7 @@ for worker in workers:
         with open(result_dir + "/" + str(worker) + "_" + str(modulo) + "_true", "w+") as file1:
             for amount in amounts:
                 results = []
-                for _ in range(1):
+                for _ in range(5):
                     process = subprocess.Popen(['../../build/benchmarks/bench_probing_hashtable', '-s', str(pow(2,amount)), '-w', str(worker), '-m', str(modulo), '-i', str(num_buckets_init_scale), '-r', str(num_buckets_resize_scale), '-f', str(max_partition_fill_ratio), '-t', str(max_num_items_table)], stdout=subprocess.PIPE)
                     process.wait()
                     time = process.communicate()[0]

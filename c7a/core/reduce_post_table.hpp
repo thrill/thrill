@@ -172,8 +172,6 @@ public:
      */
     void Insert(const KeyValuePair& p) {
 
-        //Key key = key_extractor_(p);
-
         size_t hashed_key = hash_function_(p.first, this);
 
         LOG << "key: "

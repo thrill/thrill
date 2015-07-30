@@ -41,10 +41,12 @@ namespace api {
  * ReduceNode has the type ValueType, which is the result type of the
  * reduce_function.
  *
- * \tparam ValueType Output type of the Reduce operation
+ * \tparam ValueType Output type of the Reduce operation.
  * \tparam Stack Function stack, which contains the chained lambdas between the last and this DIANode.
  * \tparam KeyExtractor Type of the key_extractor function.
- * \tparam ReduceFunction Type of the reduce_function
+ * \tparam ReduceFunction Type of the reduce_function.
+ * \tparam PreservesKey Whether to reuse the key once extracted in during pre reduce (false) or let
+ *         the post reduce extract the key again (true).
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
