@@ -187,8 +187,6 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
             std::vector<size_t> out_vec = reduced.AllGather();
 
-            std::sort(out_vec.begin(), out_vec.end());
-
             int i = 0;
             for (int element : out_vec) {
                 switch (i++) {
@@ -205,19 +203,19 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
                     ASSERT_EQ(13, element);
                     break;
                 case 4:
-                    ASSERT_EQ(16, element);
-                    break;
-                case 5:
                     ASSERT_EQ(17, element);
                     break;
-                case 6:
+                case 5:
                     ASSERT_EQ(21, element);
                     break;
-                case 7:
+                case 6:
                     ASSERT_EQ(25, element);
                     break;
-                case 8:
+                case 7:
                     ASSERT_EQ(29, element);
+                    break;
+                case 8:
+                    ASSERT_EQ(16, element);
                     break;
                 default:
                     ASSERT_EQ(42, 420);
