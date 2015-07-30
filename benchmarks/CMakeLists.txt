@@ -14,4 +14,7 @@ add_executable(bench_data_disk data/disk.cpp)
 target_compile_options(bench_data_disk PRIVATE "-DENABLE_STATS=true")
 target_link_libraries(bench_data_disk c7a ${ALL_LIBRARIES})
 
+add_executable(bench_serialization serialization/bench_serialization.cpp)
+target_link_libraries(bench_serialization c7a ${ALL_LIBRARIES})
+
 ################################################################################
