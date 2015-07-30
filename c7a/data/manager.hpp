@@ -12,7 +12,6 @@
 #ifndef C7A_DATA_MANAGER_HEADER
 #define C7A_DATA_MANAGER_HEADER
 
-#include <c7a/api/input_line_iterator.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/data/channel_multiplexer.hpp>
@@ -20,7 +19,6 @@
 #include <c7a/data/repository.hpp>
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>

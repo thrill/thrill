@@ -10,8 +10,6 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/bootstrap.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/reduce_to_index.hpp>
