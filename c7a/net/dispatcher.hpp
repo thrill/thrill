@@ -108,11 +108,10 @@ public:
     //! \{
 
     //! callback signature for timer events
-    typedef function<bool ()> TimerCallback;
+    using TimerCallback = function<bool()>;
 
     //! Register a relative timeout callback
-    template <class Rep, class Period>
-    void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
+    void AddRelativeTimeout(const std::chrono::milliseconds& timeout,
                             const TimerCallback& cb) {
         timer_pq_.emplace(steady_clock::now() + timeout,
                           std::chrono::duration_cast<milliseconds>(timeout),
@@ -125,7 +124,7 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    typedef function<bool ()> ConnectionCallback;
+    using ConnectionCallback = function<bool()>;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
@@ -148,8 +147,7 @@ public:
     //! \{
 
     //! callback signature for async read callbacks, they may acquire the buffer
-    typedef function<void (Connection& c,
-                           Buffer&& buffer)> AsyncReadCallback;
+    using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
@@ -170,7 +168,7 @@ public:
     }
 
     //! callback signature for async write callbacks
-    typedef function<void (Connection&)> AsyncWriteCallback;
+    using AsyncWriteCallback = function<void(Connection&)>;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.

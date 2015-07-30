@@ -36,15 +36,15 @@ struct ChannelMultiplexer : public::testing::Test {
         manager.Connect(group);
         switch (group->MyRank()) {
         case 0:
-            common::GetThreadDirectory().NameThisThread("t0");
+            common::NameThisThread("t0");
             if (f1) f1(manager);
             break;
         case 1:
-            common::GetThreadDirectory().NameThisThread("t1");
+            common::NameThisThread("t1");
             if (f2) f2(manager);
             break;
         case 2:
-            common::GetThreadDirectory().NameThisThread("t2");
+            common::NameThisThread("t2");
             if (f3) f3(manager);
             break;
         }
@@ -65,8 +65,7 @@ struct ChannelMultiplexer : public::testing::Test {
 // open a Channel via data::Manager, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaChannel(net::Group* net) {
-    common::GetThreadDirectory().NameThisThread(
-        "chmp" + std::to_string(net->MyRank()));
+    common::NameThisThread("chmp" + std::to_string(net->MyRank()));
 
     net::DispatcherThread dispatcher(
         "chmp" + std::to_string(net->MyRank()) + "-dp");

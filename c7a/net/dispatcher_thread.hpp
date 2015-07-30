@@ -16,14 +16,14 @@
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
 #include <c7a/common/concurrent_queue.hpp>
-#include <c7a/common/delegate.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/data/block.hpp>
-#include <c7a/net/dispatcher.hpp>
+#include <c7a/net/connection.hpp>
 
-#include <unistd.h>
+#if defined(_LIBCPP_VERSION) || defined(__clang__)
+#include <c7a/common/delegate.hpp>
+#endif
 
-#include <csignal>
 #include <string>
 
 namespace c7a {
@@ -44,17 +44,25 @@ public:
     //! \name Imported Typedefs
     //! \{
 
+#if defined(_LIBCPP_VERSION) || defined(__clang__)
+    template <typename Signature>
+    using function = common::delegate<Signature>;
+#else
+    template <typename Signature>
+    using function = std::function<Signature>;
+#endif
+
     //! Signature of timer callbacks.
-    using TimerCallback = Dispatcher::TimerCallback;
+    using TimerCallback = function<bool()>;
 
     //! Signature of async connection readability/writability callbacks.
-    using ConnectionCallback = Dispatcher::ConnectionCallback;
+    using ConnectionCallback = function<bool()>;
 
     //! Signature of async read callbacks.
-    using AsyncReadCallback = Dispatcher::AsyncReadCallback;
+    using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
 
     //! Signature of async write callbacks.
-    using AsyncWriteCallback = Dispatcher::AsyncWriteCallback;
+    using AsyncWriteCallback = function<void(Connection&)>;
 
     //! Signature of async jobs to be run by the dispatcher thread.
     using Job = common::ThreadPool::Job;
@@ -62,21 +70,8 @@ public:
     //! \}
 
 public:
-    explicit DispatcherThread(const std::string& thread_name)
-        : dispatcher_(), name_(thread_name) {
-        // allocate self-pipe
-        int r = ::pipe(self_pipe_);
-        die_unless(r == 0);
-        // start thread
-        thread_ = std::thread(&DispatcherThread::Work, this);
-    }
-
-    ~DispatcherThread() {
-        Terminate();
-
-        close(self_pipe_[0]);
-        close(self_pipe_[1]);
-    }
+    explicit DispatcherThread(const std::string& thread_name);
+    ~DispatcherThread();
 
     //! non-copyable: delete copy-constructor
     DispatcherThread(const DispatcherThread&) = delete;
@@ -87,29 +82,14 @@ public:
     //Dispatcher & dispatcher() { return dispatcher_; }
 
     //! Terminate the dispatcher thread (if now already done).
-    void Terminate() {
-        if (terminate_) return;
-
-        // set termination flags.
-        terminate_ = true;
-        // interrupt select().
-        WakeUpThread();
-        // wait for last round to finish.
-        thread_.join();
-    }
+    void Terminate();
 
     //! \name Timeout Callbacks
     //! \{
 
     //! Register a relative timeout callback
-    template <class Rep, class Period>
-    void AddRelativeTimeout(const std::chrono::duration<Rep, Period>& timeout,
-                            const TimerCallback& cb) {
-        Enqueue([=]() {
-                    dispatcher_.AddRelativeTimeout(timeout, cb);
-                });
-        WakeUpThread();
-    }
+    void AddRelativeTimeout(const std::chrono::milliseconds& timeout,
+                            const TimerCallback& cb);
 
     //! \}
 
@@ -117,29 +97,13 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const ConnectionCallback& read_cb) {
-        Enqueue([=, &c]() {
-                    dispatcher_.AddRead(c, read_cb);
-                });
-        WakeUpThread();
-    }
+    void AddRead(Connection& c, const ConnectionCallback& read_cb);
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
-        Enqueue([=, &c]() {
-                    dispatcher_.AddWrite(c, write_cb);
-                });
-        WakeUpThread();
-    }
+    void AddWrite(Connection& c, const ConnectionCallback& write_cb);
 
     //! Cancel all callbacks on a given connection.
-    void Cancel(Connection& c) {
-        int fd = c.GetSocket().fd();
-        Enqueue([this, fd]() {
-                    dispatcher_.Cancel(fd);
-                });
-        WakeUpThread();
-    }
+    void Cancel(Connection& c);
 
     //! \}
 
@@ -147,113 +111,42 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        Enqueue([=, &c]() {
-                    dispatcher_.AsyncRead(c, n, done_cb);
-                });
-        WakeUpThread();
-    }
+    void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb);
 
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
     void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr) {
-        // the following captures the move-only buffer in a lambda.
-        Enqueue([=, &c, b = std::move(buffer)]() mutable {
-                    dispatcher_.AsyncWrite(c, std::move(b), done_cb);
-                });
-        WakeUpThread();
-    }
+                    AsyncWriteCallback done_cb = nullptr);
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     const data::VirtualBlock& block,
-                    AsyncWriteCallback done_cb = nullptr) {
-        // the following captures the move-only buffer in a lambda.
-        Enqueue([=, &c,
-                  b1 = std::move(buffer), b2 = block]() mutable {
-                    dispatcher_.AsyncWrite(c, std::move(b1));
-                    dispatcher_.AsyncWrite(c, b2, done_cb);
-                });
-        WakeUpThread();
-    }
+                    AsyncWriteCallback done_cb = nullptr);
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = nullptr) {
-        return AsyncWrite(c, Buffer(buffer, size), done_cb);
-    }
+                        AsyncWriteCallback done_cb = nullptr);
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = nullptr) {
-        return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
-    }
+                        AsyncWriteCallback done_cb = nullptr);
 
     //! \}
 
 protected:
     //! Enqueue job in queue for dispatching thread to run at its discretion.
-    void Enqueue(Job&& job) {
-        return jobqueue_.push(std::move(job));
-    }
+    void Enqueue(Job&& job);
 
     //! What happens in the dispatcher thread
-    void Work() {
-        common::GetThreadDirectory().NameThisThread(name_);
-
-        // Ignore PIPE signals (received when writing to closed sockets)
-        signal(SIGPIPE, SIG_IGN);
-
-        // wait interrupts via self-pipe.
-        dispatcher_.dispatcher_.AddRead(
-            self_pipe_[0], [this]() {
-                ssize_t rb;
-                while ((rb = read(self_pipe_[0], &self_pipe_buffer_, 1)) == 0) {
-                    LOG1 << "Work: error reading from self-pipe: " << errno;
-                }
-                die_unless(rb == 1);
-                return true;
-            });
-
-        while (!terminate_ ||
-               dispatcher_.HasAsyncWrites() || !jobqueue_.empty())
-        {
-            // process jobs in jobqueue_
-            {
-                Job job;
-                while (jobqueue_.try_pop(job))
-                    job();
-            }
-
-            // run one dispatch
-            dispatcher_.Dispatch();
-        }
-    }
+    void Work();
 
     //! wake up select() in dispatching thread.
-    void WakeUpThread() {
-        // there are multiple very platform-dependent ways to do this. we'll try
-        // to use the self-pipe trick for now. The select() method waits on
-        // another fd, which we write one byte to when we need to interrupt the
-        // select().
-
-        // another method would be to send a signal() via pthread_kill() to the
-        // select thread, but that had a race condition for waking up the other
-        // thread. -tb
-
-        // send one byte to wake up the select() handler.
-        ssize_t wb;
-        while ((wb = write(self_pipe_[1], this, 1)) == 0) {
-            LOG1 << "WakeUp: error sending to self-pipe: " << errno;
-        }
-        die_unless(wb == 1);
-    }
+    void WakeUpThread();
 
 private:
     //! Queue of jobs to be run by dispatching thread at its discretion.
@@ -263,7 +156,7 @@ private:
     std::thread thread_;
 
     //! enclosed dispatcher.
-    Dispatcher dispatcher_;
+    class Dispatcher* dispatcher_;
 
     //! termination flag
     std::atomic<bool> terminate_ { false };
