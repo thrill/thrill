@@ -63,6 +63,41 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
     c7a::api::ExecuteLocalTests(start_func);
 }
 
+TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return std::make_pair((index + 1) % 2, index + 1);
+                },
+                16);
+
+            auto add_function = [](const size_t& in1, const size_t& in2) {
+                                    return in1 + in2;
+                                };
+
+            auto reduced = integers.ReducePair(add_function);
+
+            std::vector<size_t> out_vec = reduced.AllGather();
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            int i = 1;
+
+            for (int element : out_vec) {
+                ASSERT_EQ(element, 56 + (8 * i++));
+            }
+
+            ASSERT_EQ((size_t)2, out_vec.size());
+        };
+
+    c7a::api::ExecuteLocalTests(start_func);
+}
+
+
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
 
     std::function<void(Context&)> start_func =
