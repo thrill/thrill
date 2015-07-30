@@ -13,10 +13,12 @@
 #include <c7a/core/reduce_pre_probing_table.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/discard_sink.hpp>
+#include <c7a/data/file.hpp>
 
 using IntPair = std::pair<int, int>;
 
 using namespace c7a;
+using namespace c7a::data;
 
 int main(int argc, char* argv[]) {
 
@@ -72,10 +74,10 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    data::DiscardSink sink;
+    std::vector<data::DiscardSink> sinks(workers);
     std::vector<data::BlockWriter> writers;
-    for (size_t i = 0; i < workers; i++) {
-        writers.emplace_back(sink.GetWriter());
+    for (size_t i = 0; i != workers; ++i) {
+        writers.emplace_back(sinks[i].GetWriter());
     }
 
     core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
