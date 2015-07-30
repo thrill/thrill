@@ -111,7 +111,7 @@ public:
      *                  of the partition with the most items gets flushed.
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
-     * \param emit Emitter functions to flush items. One emitter per partition.
+     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
      * \param sentinel Sentinel element used to flag free slots.
      * \param hash_function Hash function to be used for hashing.
      * \param equal_to_function Function for checking equality fo two keys.
@@ -156,7 +156,7 @@ public:
     }
 
     /**
-     * Lightweight version.
+     * see above.
      */
     ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
                           ReduceFunction reduce_function,

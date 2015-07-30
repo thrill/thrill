@@ -6,6 +6,8 @@ import subprocess
 import random
 import numpy
 
+result_dir = "./bench_bucket_hashtable"
+
 amounts= [10,12,14,16,18,20,22,24,26,28]
 
 workers = [10,100,1000]
@@ -16,11 +18,13 @@ num_buckets_resize_scale = 2
 max_num_items_per_bucket = 256
 max_num_items_table = 1048576
 
+if not os.path.exists(result_dir): os.makedirs(result_dir)
+
 # Insert pow(2,n) random integer elements into hashtable with specific number of workers and keyspace. Perform 5 times and print median to file.
 for worker in workers:
     for modulo in modulae:
         print "Testing with " + str(worker) + " workers and integers modulo " + str(modulo)
-        with open("./bench_bucket_hashtable/" + str(worker) + "_" + str(modulo) + "_true", "w+") as file1:
+        with open(result_dir + "/" + str(worker) + "_" + str(modulo) + "_true", "w+") as file1:
             for amount in amounts:
                 results = []
                 for _ in range(5):
