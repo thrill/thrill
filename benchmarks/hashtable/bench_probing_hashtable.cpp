@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(sink.GetWriter());
     }
 
-    core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn)>
+    core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale,
           max_partition_fill_ratio, max_num_items_table, key_ex, red_fn, writers, -1);
 
@@ -88,7 +88,6 @@ int main(int argc, char* argv[]) {
         table.Insert(std::move(elements[i]));
     }
     table.Flush();
-    table.CloseEmitter();
 
     timer.Stop();
     std::cout << timer.Microseconds() << std::endl;
