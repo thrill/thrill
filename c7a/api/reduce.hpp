@@ -255,7 +255,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("Reduce", "DOp") });
+        { AddChildStatsNode("ReduceBy", "DOp") });
 }
 
 template <typename ValueType, typename Stack>
@@ -308,7 +308,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("Reduce", "DOp") });
+        { AddChildStatsNode("ReducePair", "DOp") });
 }
 
 template <typename ValueType, typename Stack>
@@ -360,7 +360,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("Reduce", "DOp") });
+        { AddChildStatsNode("ReduceByKey", "DOp") });
 }
 
 //! \}
