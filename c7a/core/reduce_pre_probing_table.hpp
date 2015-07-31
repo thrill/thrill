@@ -56,7 +56,7 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <typename KeyExtractor, typename ReduceFunction, const bool PreservesKey = false>
+template <typename KeyExtractor, typename ReduceFunction, const bool RobustKey = false>
 class ReducePreProbingTable
 {
     static const bool debug = false;
@@ -375,7 +375,7 @@ public:
             KeyValuePair current = vector_[i];
             if (current.first != sentinel_.first)
             {
-                if (PreservesKey) {
+                if (RobustKey) {
                     emit_[partition_id](std::move(current.second));
                 }
                 else {
