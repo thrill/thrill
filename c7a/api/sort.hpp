@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Michael Axtmann <michael.axtmann@kit.edu>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -61,8 +62,9 @@ public:
      * \param compare_function Function comparing two elements.
      */
     SortNode(const ParentDIARef& parent,
-             CompareFunction compare_function)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort"),
+             CompareFunction compare_function,
+             StatsNode* stats_node)
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort", stats_node),
           compare_function_(compare_function),
           channel_id_samples_(parent.ctx().data_manager().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
@@ -417,15 +419,16 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
+    StatsNode* stats_node = AddChildStatsNode("Sort", "DOp");
     auto shared_node
-        = std::make_shared<SortResultNode>(*this, compare_function);
+        = std::make_shared<SortResultNode>(*this, compare_function, stats_node);
 
     auto sort_stack = shared_node->ProduceStack();
 
     return DIARef<ValueType, decltype(sort_stack)>(
         shared_node,
         sort_stack,
-        { AddChildStatsNode("Sort", "DOp") });
+        { stats_node });
 }
 
 //! \}

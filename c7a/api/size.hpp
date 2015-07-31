@@ -38,8 +38,9 @@ class SizeNode : public ActionNode
     using Super::result_file_;
 
 public:
-    explicit SizeNode(const ParentDIARef& parent)
-        : ActionNode(parent.ctx(), { parent.node() }, "Size")
+    SizeNode(const ParentDIARef& parent,
+             StatsNode* stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, "Size", stats_node)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
@@ -98,10 +99,10 @@ size_t DIARef<ValueType, Stack>::Size() const {
 
     using SizeResultNode = SizeNode<ValueType, DIARef>;
 
+    StatsNode* stats_node = AddChildStatsNode("Size", "Action");
     auto shared_node
-        = std::make_shared<SizeResultNode>(*this);
+        = std::make_shared<SizeResultNode>(*this, stats_node);
 
-    AddChildStatsNode("Size", "Action");
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }

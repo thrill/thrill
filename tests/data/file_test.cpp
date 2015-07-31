@@ -23,11 +23,10 @@ using namespace c7a;
 TEST(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    using File = data::FileBase<16>;
-    File file;
+    data::File file;
 
     {
-        File::Writer fw = file.GetWriter();
+        data::File::Writer fw = file.GetWriter(16);
         fw.MarkItem();
         fw.Append("testtest");
         fw.MarkItem();
@@ -43,7 +42,6 @@ TEST(File, PutSomeItemsGetItems) {
 
     ASSERT_EQ(file.NumBlocks(), 6u);
     ASSERT_EQ(file.NumItems(), 5u);
-    ASSERT_EQ(file.TotalBytes(), 6u * 16u);
 
     ASSERT_EQ(file.virtual_block(0).size(), 16u);
     ASSERT_EQ(file.virtual_block(1).size(), 16u);
@@ -87,24 +85,17 @@ TEST(File, PutSomeItemsGetItems) {
 
     // compare frozen byte data with File contents
 
-    for (size_t i = 0; i != file.NumBlocks(); ++i) {
-        ASSERT_EQ(
-            block_data.substr(
-                i * File::block_size,
-                std::min<size_t>(File::block_size,
-                                 file.virtual_block(i).size())),
-            file.virtual_block(i).ToString());
-    }
+    ASSERT_EQ(block_data, file.ReadComplete());
 
     // check size of Block.
     {
-        File::BlockCPtr block = file.virtual_block(0).block();
-        static_assert(sizeof(*block) == 16, "Block size does not match");
+        data::BlockCPtr block = file.virtual_block(0).block();
+        ASSERT_EQ(16u, block->size());
     }
 
     // read File contents using BlockReader
     {
-        File::Reader fr = file.GetReader();
+        data::File::Reader fr = file.GetReader();
         ASSERT_EQ(fr.Read(8), "testtest");
         ASSERT_EQ(fr.GetVarint(), 123456u);
         ASSERT_EQ(fr.GetString(), "test1test2test3");
@@ -117,14 +108,14 @@ TEST(File, PutSomeItemsGetItems) {
 TEST(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    using File = data::FileBase<1024>;
-    File file;
+    data::File file;
 
     using MyPair = std::pair<int, std::string>;
 
     // put into File some items (all of different serialization bytes)
     {
-        File::Writer fw = file.GetWriter();
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(1024);
         fw(static_cast<unsigned>(5));
         fw(MyPair(5, "10abc"));
         fw(static_cast<double>(42.0));
@@ -135,7 +126,7 @@ TEST(File, SerializeSomeItems) {
 
     // get items back from file.
     {
-        File::Reader fr = file.GetReader();
+        data::File::Reader fr = file.GetReader();
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
         MyPair i2 = fr.Next<MyPair>();
@@ -150,16 +141,11 @@ TEST(File, SerializeSomeItems) {
 TEST(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
-    // yes, this is a prime number as block size. -tb
-    static const size_t block_size = 53;
-
-    using File = data::FileBase<block_size>;
-    using VirtualBlock = File::VirtualBlock;
-
     // construct a small-block File with lots of items.
-    File file;
+    data::File file;
 
-    File::Writer fw = file.GetWriter();
+    // yes, this is a prime number as block size. -tb
+    data::File::Writer fw = file.GetWriter(53);
     for (size_t i = 0; i < 1000; ++i) {
         fw(i);
     }
@@ -168,7 +154,7 @@ TEST(File, SeekReadSlicesOfFiles) {
     ASSERT_EQ(1000u, file.NumItems());
 
     // read complete File
-    File::Reader fr = file.GetReader();
+    data::File::Reader fr = file.GetReader();
     for (size_t i = 0; i < 1000; ++i) {
         ASSERT_TRUE(fr.HasNext());
         ASSERT_EQ(i, fr.Next<size_t>());
@@ -178,24 +164,32 @@ TEST(File, SeekReadSlicesOfFiles) {
     // read items 95-144
     auto check_range =
         [&](size_t begin, size_t end, bool do_more = true) {
-            sLOG << "Test range [" << begin << "," << end << ")";
+            LOG << "Test range [" << begin << "," << end << ")";
 
             // seek in File to begin.
-            File::Reader fr = file.GetReaderAt<size_t>(begin);
+            data::File::Reader fr = file.GetReaderAt<size_t>(begin);
+
+            // read a few items
+            if (end - begin > 5 && do_more) {
+                for (size_t i = 0; i < 5; ++i) {
+                    ASSERT_TRUE(fr.HasNext());
+                    ASSERT_EQ(begin, fr.Next<size_t>());
+                    ++begin;
+                }
+            }
 
             // read the items [begin,end)
             {
-                std::vector<VirtualBlock> blocks
+                std::vector<data::VirtualBlock> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
-                using MyQueue = data::BlockQueue<block_size>;
-                MyQueue queue;
+                data::BlockQueue queue;
 
-                for (VirtualBlock& vb : blocks)
+                for (data::VirtualBlock& vb : blocks)
                     queue.AppendBlock(vb);
                 queue.Close();
 
-                MyQueue::Reader qr = queue.GetReader();
+                data::BlockQueue::Reader qr = queue.GetReader();
 
                 for (size_t i = begin; i < end; ++i) {
                     ASSERT_TRUE(qr.HasNext());
@@ -211,17 +205,16 @@ TEST(File, SeekReadSlicesOfFiles) {
 
             // read the items [end, end + more)
             {
-                std::vector<VirtualBlock> blocks
+                std::vector<data::VirtualBlock> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                using MyQueue = data::BlockQueue<block_size>;
-                MyQueue queue;
+                data::BlockQueue queue;
 
-                for (VirtualBlock& vb : blocks)
+                for (data::VirtualBlock& vb : blocks)
                     queue.AppendBlock(vb);
                 queue.Close();
 
-                MyQueue::Reader qr = queue.GetReader();
+                data::BlockQueue::Reader qr = queue.GetReader();
 
                 for (size_t i = end; i < end + more; ++i) {
                     ASSERT_TRUE(qr.HasNext());
@@ -248,21 +241,23 @@ TEST(File, SeekReadSlicesOfFiles) {
 }
 
 // forced instantiation
-using MyBlock = data::Block<16>;
-template class data::FileBase<16>;
-template class data::BlockWriterBase<16>;
-template class data::BlockReader<data::FileBlockSource<16> >;
+template class data::BlockReader<data::FileBlockSource>;
 
 // fixed size serialization test
-using MyWriter = data::BlockWriterBase<16>;
-using MyReader = data::BlockReader<data::FileBlockSource<16> >;
-static_assert(data::Serialization<MyWriter, int>
-              ::fixed_size == true, "");
-static_assert(data::Serialization<MyWriter, std::string>
-              ::fixed_size == false, "");
-static_assert(data::Serialization<MyWriter, std::pair<int, short> >
-              ::fixed_size == true, "");
-static_assert(data::Serialization<MyWriter, std::pair<int, std::string> >
-              ::fixed_size == false, "");
+static_assert(data::Serialization<data::BlockWriter, int>
+              ::is_fixed_size == true, "");
+static_assert(data::Serialization<data::BlockWriter, int>
+              ::fixed_size == sizeof(int), "");
+
+static_assert(data::Serialization<data::BlockWriter, std::string>
+              ::is_fixed_size == false, "");
+
+static_assert(data::Serialization<data::BlockWriter, std::pair<int, short> >
+              ::is_fixed_size == true, "");
+static_assert(data::Serialization<data::BlockWriter, std::pair<int, short> >
+              ::fixed_size == sizeof(int) + sizeof(short), "");
+
+static_assert(data::Serialization<data::BlockWriter, std::pair<int, std::string> >
+              ::is_fixed_size == false, "");
 
 /******************************************************************************/

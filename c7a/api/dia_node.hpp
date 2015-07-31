@@ -11,7 +11,6 @@
 #ifndef C7A_API_DIA_NODE_HEADER
 #define C7A_API_DIA_NODE_HEADER
 
-#include <c7a/api/context.hpp>
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
@@ -56,8 +55,9 @@ public:
      */
     DIANode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string stats_tag)
-        : DIABase(ctx, parents, stats_tag)
+            const std::string stats_tag,
+            StatsNode* stats_node)
+        : DIABase(ctx, parents, stats_tag, stats_node)
     { }
 
     //! Virtual destructor for a DIANode.

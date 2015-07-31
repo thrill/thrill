@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include "word_count_user_program.cpp"
-#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
 
 int main(int argc, char* argv[]) {

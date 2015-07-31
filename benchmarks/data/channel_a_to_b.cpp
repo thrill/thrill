@@ -90,7 +90,7 @@ int main(int argc, const char** argv) {
 
     api::Context ctx1(jobMan1, 0);
     api::Context ctx2(jobMan2, 0);
-    common::GetThreadDirectory().NameThisThread("benchmark");
+    common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");

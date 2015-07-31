@@ -32,7 +32,7 @@ class ItemWriterToolsBase
 {
 public:
     //! Append a varint to the writer.
-    Writer & PutVarint(uint32_t v) {
+    Writer & PutVarint32(uint32_t v) {
         Writer& w = *static_cast<Writer*>(this);
 
         if (v < 128) {
@@ -62,11 +62,6 @@ public:
         }
 
         return w;
-    }
-
-    //! Append a varint to the writer.
-    Writer & PutVarint(int v) {
-        return PutVarint((uint32_t)v);
     }
 
     //! Append a varint to the writer.
@@ -179,7 +174,7 @@ class ItemReaderToolsBase
 {
 public:
     //! Fetch a varint with up to 32-bit from the reader at the cursor.
-    uint32_t GetVarint() {
+    uint32_t GetVarint32() {
         Reader& r = *static_cast<Reader*>(this);
 
         uint32_t u, v = r.GetByte();
@@ -199,7 +194,7 @@ public:
     }
 
     //! Fetch a 64-bit varint from the reader at the cursor.
-    uint64_t GetVarint64() {
+    uint64_t GetVarint() {
         Reader& r = *static_cast<Reader*>(this);
 
         uint64_t u, v = r.GetByte();
@@ -231,7 +226,7 @@ public:
     //! Fetch a string which was Put via Put_string().
     std::string GetString() {
         Reader& r = *static_cast<Reader*>(this);
-        uint32_t len = GetVarint();
+        size_t len = GetVarint();
         return r.Read(len);
     }
 };

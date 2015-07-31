@@ -40,8 +40,9 @@ class SumNode : public ActionNode
 public:
     SumNode(const ParentDIARef& parent,
             SumFunction sum_function,
-            ValueType initial_value)
-        : ActionNode(parent.ctx(), { parent.node() }, "Sum"),
+            ValueType initial_value,
+            StatsNode* stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, "Sum", stats_node),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -132,12 +133,12 @@ auto DIARef<ValueType, Stack>::Sum(
         std::is_same<SumFunction, common::SumOp<ValueType> >::value,
         "SumFunction has the wrong input type");
 
+    StatsNode* stats_node = AddChildStatsNode("Sum", "Action");
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,
-                                          initial_value);
-
-    AddChildStatsNode("Sum", "Action");
+                                          initial_value,
+                                          stats_node);
     core::StageBuilder().RunScope(shared_node.get());
     return shared_node.get()->result();
 }

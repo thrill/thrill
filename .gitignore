@@ -1,3 +1,8 @@
+# bechmarks
+
+benchmarks/hashtable/bench_bucket_hashtable/**
+benchmarks/hashtable/bench_probing_hashtable/**
+
 # build
 build/**
 docs/**
