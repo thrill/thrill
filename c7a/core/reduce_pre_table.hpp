@@ -69,21 +69,16 @@ public:
     }
 };
 
-template <typename KeyExtractor, typename ReduceFunction,
+template <typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           size_t TargetBlockSize = 16*1024,
           typename HashFunction = HashByKey,
-          typename EqualToFunction = std::equal_to<
-              typename common::FunctionTraits<KeyExtractor>::result_type
-              >
+          typename EqualToFunction = std::equal_to<Key>
           >
 class ReducePreTable
 {
     static const bool debug = false;
-
-    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     typedef std::pair<Key, Value> KeyValuePair;
 

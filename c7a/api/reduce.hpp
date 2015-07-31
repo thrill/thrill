@@ -183,7 +183,7 @@ private:
 
     std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, RobustKey>
+    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey>
     reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
