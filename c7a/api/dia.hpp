@@ -357,8 +357,8 @@ public:
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
      *
-     * \param max_index Largest index given by the key_extractor function for
-     * any element in the input DIA.
+     * \param size Resulting DIA size. Consequently, the key_extractor function
+     * but always return < size for any element in the input DIA.
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
@@ -366,7 +366,7 @@ public:
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndex(const KeyExtractor &key_extractor,
                        const ReduceFunction &reduce_function,
-                       size_t max_index,
+                       size_t size,
                        ValueType neutral_element = ValueType()) const;
 
     /*!
@@ -399,8 +399,8 @@ public:
      * are reduced to a single element. This function is applied associative but
      * not necessarily commutative.
      *
-     * \param max_index Largest index given by the key_extractor function for
-     * any element in the input DIA.
+     * \param size Resulting DIA size. Consequently, the key_extractor function
+     * but always return < size for any element in the input DIA.
      *
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
@@ -408,40 +408,40 @@ public:
     template <typename KeyExtractor, typename ReduceFunction>
     auto ReduceToIndexByKey(const KeyExtractor &key_extractor,
                             const ReduceFunction &reduce_function,
-                            size_t max_index,
+                            size_t size,
                             ValueType neutral_element = ValueType()) const;
 
     /*!
-    * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
-    * DIARef by their key, which has to be an unsigned integer. Each key-bucket
-    * is reduced to a single element using the associative reduce_function.
-    * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
-    * which has the reduced element with key i in position i.
-    * The reduce_function defines how two elements can be reduced to a single
-    * element of equal type. The reduce_function is allowed to change the key.
-    * Since ReduceToIndex is a DOp,
-    * it creates a new DIANode. The DIARef returned by ReduceToIndex links to
-    * this newly created DIANode. The stack_ of the returned DIARef consists
-    * of the PostOp of ReduceToIndex, as a reduced element can
-    * directly be chained to the following LOps.
-    *
-    * \tparam ReduceFunction Type of the reduce_function. This is a function
-    * reducing two elements of L's result type to a single element of equal
-    * type.
-    *
-    * \param reduce_function Reduce function, which defines how the key buckets
-    * are reduced to a single element. This function is applied associative but
-    * not necessarily commutative.
-    *
-    * \param max_index Largest index given by the key_extractor function for
-    * any element in the input DIA.
-    *
-    * \param neutral_element Item value with which to start the reduction in
-    * each array cell.
-    */
+     * ReducePairToIndex is a DOp, which groups key-value-pairs of the input
+     * DIARef by their key, which has to be an unsigned integer. Each key-bucket
+     * is reduced to a single element using the associative reduce_function.
+     * In contrast to Reduce, ReduceToIndex returns a DIA in a defined order,
+     * which has the reduced element with key i in position i.
+     * The reduce_function defines how two elements can be reduced to a single
+     * element of equal type. The reduce_function is allowed to change the key.
+     * Since ReduceToIndex is a DOp,
+     * it creates a new DIANode. The DIARef returned by ReduceToIndex links to
+     * this newly created DIANode. The stack_ of the returned DIARef consists
+     * of the PostOp of ReduceToIndex, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param size Resulting DIA size. Consequently, the key_extractor function
+     * but always return < size for any element in the input DIA.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
+     */
     template <typename ReduceFunction>
     auto ReducePairToIndex(const ReduceFunction &reduce_function,
-                           size_t max_index,
+                           size_t size,
                            typename common::FunctionTraits<ReduceFunction>
                            ::result_type neutral_element =
                                typename common::FunctionTraits<ReduceFunction>

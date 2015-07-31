@@ -25,7 +25,6 @@
 #include <c7a/net/group.hpp>
 
 #include <algorithm>
-#include <cmath>
 #include <functional>
 #include <string>
 #include <vector>
