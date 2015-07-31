@@ -1,0 +1,153 @@
+/*******************************************************************************
+ * benchmarks/serialization/bench_serialization.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+#ifndef C7A_BENCH_SERIALIZATION_HEADER
+#define C7A_BENCH_SERIALIZATION_HEADER
+
+#include "data.hpp"
+#include <c7a/common/stats_timer.hpp>
+#include <c7a/data/file.hpp>
+#include <c7a/data/serializer.hpp>
+
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
+// #include <random>
+#include <string>
+#include <vector>
+
+//! serializes a given object and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+template <typename T>
+int BenchmarkSerialization(T t, int iterations) {
+    c7a::common::StatsTimer<true> timer(false);
+    for (int i = 0; i < iterations; ++i) {
+        c7a::data::File f;
+        timer.Start();
+        {
+            auto w = f.GetWriter();
+            w(t);
+        }
+        auto r = f.GetReader();
+        r.Next<T>();
+        timer.Stop();
+    }
+    return timer.Microseconds() / iterations;
+}
+
+//! serializes the test string and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+int SerialString(int iterations) {
+    return BenchmarkSerialization(bench_string, iterations);
+}
+
+//! serializes the test vector and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+int SerialVector(int iterations) {
+    return BenchmarkSerialization(bench_vector, iterations);
+}
+
+//! serializes the test tuples and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+int SerialTuple(int iterations) {
+    return BenchmarkSerialization(bench_tuple, iterations);
+}
+
+//! generates an vector with random ints
+/*! @param res The vector that should be filled with random ints
+ *  @param n The number of ints in the vector
+ */
+void GetRandomIntVector(std::vector<int64_t>& res, int n) {
+    res.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        res.push_back(rand());
+    }
+}
+
+//! prints an output that is parsable by SQLPlotTools
+void PrintSQLPlotTool(std::string datatype, size_t size, int iterations, int time) {
+    std::cout << "RESULT"
+              << " datatype=" << datatype
+              << " size=" << size
+              << " repeats=" << iterations
+              << " time=" << time
+              << std::endl;
+}
+
+//! generates random chars and fills a vector
+/*! @param s The vector that should be filled with random chars
+ *  @param len The number of chars in the vector
+ */
+void GetRandomString(std::vector<char>& s, const int len) {
+    s.reserve(len);
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    for (int i = 0; i < len; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+}
+
+//! executes some serializations and times it to use as benchmark
+int main() {
+    int iterations = 50;
+    // string from cpp-serializer
+    PrintSQLPlotTool("std::string", bench_string.size(), iterations, SerialString(iterations));
+    // vector from cpp-serializer
+    PrintSQLPlotTool("std::vector<int64_t>", sizeof(int64_t) * bench_vector.bench_vector.size(), iterations, SerialVector(iterations));
+    // tuple-pair-construct from cpp-serializer
+    PrintSQLPlotTool("tuple_construct", 0, iterations, SerialTuple(iterations));
+
+    std::vector<int> size = { 99, 9999, 99999, 999999 };
+
+    // serialize some random strings
+    for (int s : size) {
+        std::vector<char> x;
+        GetRandomString(x, s);
+        std::string x_str(x.begin(), x.begin() + s);
+
+        PrintSQLPlotTool("std::string", s, iterations, BenchmarkSerialization(x_str, iterations));
+    }
+
+    // serialize some random ints
+    for (int s : size) {
+        int acc = 0;
+        for (int i = 0; i < s; ++i) {
+            int x = rand();
+            acc += BenchmarkSerialization(x, 1);
+        }
+        PrintSQLPlotTool("int", s, iterations, acc);
+    }
+
+    // serialize some random int vectors
+    for (int s : size) {
+        std::vector<int64_t> x;
+        GetRandomIntVector(x, s);
+        BenchVector x_struct = BenchVector(x);
+
+        PrintSQLPlotTool("std::vector<int64_t>", s, iterations, BenchmarkSerialization(x_struct, iterations));
+    }
+    return 1;
+}
+
+#endif
+/******************************************************************************/
