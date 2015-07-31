@@ -151,12 +151,12 @@ public:
 
     //! Put a string by saving it's length followed by the data itself.
     Writer & PutString(const char* data, size_t len) {
-        return PutVarint((uint32_t)len).Append(data, len);
+        return PutVarint(len).Append(data, len);
     }
 
     //! Put a string by saving it's length followed by the data itself.
     Writer & PutString(const uint8_t* data, size_t len) {
-        return PutVarint((uint32_t)len).Append(data, len);
+        return PutVarint(len).Append(data, len);
     }
 
     //! Put a string by saving it's length followed by the data itself.
@@ -226,8 +226,7 @@ public:
     //! Fetch a string which was Put via Put_string().
     std::string GetString() {
         Reader& r = *static_cast<Reader*>(this);
-        size_t len = GetVarint();
-        return r.Read(len);
+        return r.Read(GetVarint());
     }
 };
 
