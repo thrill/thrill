@@ -33,6 +33,7 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
     // arity is the number of arguments.
 
     using result_type = ReturnType;
+    using is_const = std::true_type;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -48,6 +49,13 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
                       arg<i>
                       >::type
                   >::type;
+};
+
+template <typename ClassType, typename ReturnType, typename ... Args>
+struct FunctionTraits<ReturnType (ClassType::*)(Args ...)>
+    : public FunctionTraits<ReturnType (ClassType::*)(Args ...) const>
+{
+    using is_const = std::false_type;
 };
 
 } // namespace common
