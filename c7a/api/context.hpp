@@ -52,7 +52,7 @@ public:
     data::Manager & data_manager() {
         if (local_worker_id_ != 0)
         {
-            //TODO (ts)
+            //TODO (ts) --> CA-194
             assert(false && "Data Manager does not support multi-threading at the moment.");
         }
         return job_manager_.data_manager();
