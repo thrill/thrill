@@ -10,7 +10,7 @@ do
   do
     for size in 1K 100K 1M 100M 2G
     do
-      eval ./${benchmark} -b ${size} $1 ${type}| grep 'single run; ti' | sed -e "s/^/${githash}; ${benchmark}; ${timestamp}; ${size}; ${type}; /"
+      eval ./${benchmark} -b ${size} $1 ${type}| grep 'RESULT' | sed -e "s/^/version=${githash}  benchmark=${benchmark} timestamp=${timestamp} /"
     done
   done
 done

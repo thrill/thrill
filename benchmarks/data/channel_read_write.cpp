@@ -24,37 +24,45 @@
 using namespace c7a; // NOLINT
 
 template <typename Type>
-void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx) {
-    auto overall_timer = ctx.stats().CreateTimer("all runs", "", true);
+void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
+    using namespace c7a::common;
+
     auto data = generate<Type>(bytes, 1, 100);
-    c7a::common::ThreadPool pool;
+    ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         auto channel = ctx.data_manager().GetNewChannel();
-        pool.Enqueue([&data, &channel, &ctx]() {
+        StatsTimer<true> write_timer;
+        pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
             auto writers = channel->OpenWriters();
             assert(writers.size() == 1);
             auto& writer = writers[0];
-            auto write_timer = ctx.stats().CreateTimer("write single run", "", true);
+            write_timer.Start();
             for (auto& s : data) {
                 writer(s);
             }
             writer.Close();
-            write_timer->Stop();
+            write_timer.Stop();
         });
 
-        pool.Enqueue([&channel, &ctx]() {
+        StatsTimer<true> read_timer;
+        pool.Enqueue([&channel, &ctx, &read_timer]() {
             auto readers = channel->OpenReaders();
             assert(readers.size() == 1);
             auto& reader = readers[0];
-            auto read_timer = ctx.stats().CreateTimer("read single run", "", true);
+            read_timer.Start();
             while (reader.HasNext()) {
                 reader.Next<Type>();
             }
-            read_timer->Stop();
+            read_timer.Stop();
         });
         pool.LoopUntilEmpty();
+        std::cout << "RESULT"
+                  << " datatype=" << type_as_string
+                  << " size=" << bytes
+                  << " write_time=" << write_timer
+                  << " read_time=" << read_timer
+                  << std::endl;
     }
-    overall_timer->Stop();
 }
 
 int main(int argc, const char** argv) {
@@ -76,13 +84,13 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     if (type == "int")
-        ConductExperiment<int>(bytes, iterations, ctx);
+        ConductExperiment<int>(bytes, iterations, ctx, type);
     if (type == "string")
-        ConductExperiment<std::string>(bytes, iterations, ctx);
+        ConductExperiment<std::string>(bytes, iterations, ctx, type);
     if (type == "pair")
-        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx);
+        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx, type);
     if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx);
+        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx, type);
 }
 
 /******************************************************************************/
