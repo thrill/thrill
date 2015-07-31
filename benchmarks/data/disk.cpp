@@ -18,6 +18,7 @@
 
 using namespace c7a; // NOLINT
 
+//! Reads and Writes random data from disk and measures time for whole process
 int main(int argc, const char** argv) {
     using namespace c7a::common;
     core::JobManager jobMan;

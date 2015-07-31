@@ -23,6 +23,12 @@
 
 using namespace c7a; // NOLINT
 
+//! Creates two threads (workers) that work with one context instance
+//! one worker sends elements to the other worker.
+//! Number of elements depends on the number of bytes.
+//! one RESULT line will be printed for each iteration
+//! All iterations use the same generated data.
+//! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
     using namespace c7a::common;
