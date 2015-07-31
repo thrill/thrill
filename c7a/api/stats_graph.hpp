@@ -111,7 +111,7 @@ public:
     std::string StatsLabels() const {
         std::string labels = "";
         for (const std::string& msg : stats_msg_) {
-            labels += ", xlabel=" + msg;
+            labels += ", xlabel=\"" + msg + "\"";
         }
         return labels;
     }
