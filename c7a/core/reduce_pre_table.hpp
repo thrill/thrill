@@ -30,7 +30,7 @@ namespace c7a {
 namespace core {
 
 template <typename KeyExtractor, typename ReduceFunction,
-          const bool PreservesKey = false, size_t TargetBlockSize = 16*1024>
+          const bool RobustKey = false, size_t TargetBlockSize = 16*1024>
 class ReducePreTable
 {
     static const bool debug = false;
@@ -209,21 +209,31 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
+	/*!
+	 * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+	 * inserts the pair into the hashtable.
+	 */
+    void Insert(const Value& p) {
+        Key key = key_extractor_(p);
+
+        Insert(std::make_pair(key, p));
+    }
+
     /*!
      * Inserts a key/value pair.
      *
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const Value& p) {
+    void Insert(const KeyValuePair& kv) {
 
-        Key key = key_extractor_(p);
-
-        hash_result h = hash_function_(key, this);
+        hash_result h = hash_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
         assert(h.global_index >= 0 && h.global_index < num_buckets_);
+
+        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
         size_t num_items_bucket = 0;
         BucketBlock* current = vector_[h.global_index];
@@ -235,12 +245,12 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                if (equal_to_function_(bi->first, key))
+				if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << key
+                    LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
-                    bi->second = reduce_function_(bi->second, p);
+                    bi->second = reduce_function_(bi->second, kv.second);
 
                     LOG << "...finished reduce!";
                     return;
@@ -271,7 +281,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(key, std::move(p));
+        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
 
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
@@ -363,7 +373,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    if (PreservesKey) {
+                    if (RobustKey) {
                         emit_[partition_id](bi->second);
                     }
                     else {
