@@ -145,8 +145,9 @@ public:
      * @param inclusive Whether the prefix sum is inclusive or exclusive.
      * @return The prefix sum for the position of this worker.
      */
-    template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T PrefixSum(const T& value, BinarySumOp sumOp = common::SumOp<T>(), bool inclusive = true) {
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T PrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp(),
+                bool inclusive = true) {
 
         T res = value;
         //return value when computing non-exclusive prefix sum
@@ -226,8 +227,8 @@ public:
      * calculating the prefix sum. The default operation is a normal addition.
      * @return The prefix sum for the position of this worker.
      */
-    template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T ExPrefixSum(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T ExPrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp()) {
         return PrefixSum(value, sumOp, false);
     }
 
@@ -287,8 +288,8 @@ public:
      * calculating the reduced value. The default operation is a normal addition.
      * @return The result of the reduce operation.
      */
-    template <typename T, typename BinarySumOp = common::SumOp<T> >
-    T AllReduce(const T& value, BinarySumOp sumOp = common::SumOp<T>()) {
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
 

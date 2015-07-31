@@ -475,7 +475,7 @@ public:
      *
      * \param neutral_element Neutral element of the sum function.
      */
-    template <typename SumFunction = common::SumOp<ValueType> >
+    template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    ValueType neutral_element = ValueType()) const;
 
@@ -501,7 +501,7 @@ public:
      * \param initial_value Initial value of the sum.
      */
     template <typename SumFunction>
-    auto Sum(const SumFunction& sum_function = common::SumOp<ValueType>(),
+    auto Sum(const SumFunction& sum_function = std::plus<ValueType>(),
              ValueType initial_value = ValueType()) const;
 
     /*!

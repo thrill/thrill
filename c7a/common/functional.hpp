@@ -26,15 +26,6 @@ struct Identity {
     }
 };
 
-//! Simple sum operator
-template <typename T>
-struct SumOp {
-    //! returns the sum of a and b
-    T operator () (const T& a, const T& b) const {
-        return a + b;
-    }
-};
-
 } // namespace common
 } // namespace c7a
 

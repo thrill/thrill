@@ -35,7 +35,7 @@ namespace net {
 //! @param   net The current worker onto which to apply the operation
 //! @param   value The value to be summed up
 //! @param   sumOp A custom summation operator
-template <typename T, typename BinarySumOp = common::SumOp<T> >
+template <typename T, typename BinarySumOp = std::plus<T> >
 static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     T total_sum = value;
 
@@ -76,7 +76,7 @@ static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = Bi
 //! @param   net The current worker onto which to apply the operation
 //! @param   value The value to be added to the aggregation
 //! @param   sumOp A custom summation operator
-template <typename T, typename BinarySumOp = common::SumOp<T> >
+template <typename T, typename BinarySumOp = std::plus<T> >
 void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     bool active = true;
     for (size_t d = 1; d < net.Size(); d <<= 1) {
@@ -118,7 +118,7 @@ void Broadcast(Group& net, T& value) {
 //! @param   net The current worker onto which to apply the operation
 //! @param   value The value to be added to the aggregation
 //! @param   sumOp A custom summation operator
-template <typename T, typename BinarySumOp = common::SumOp<T> >
+template <typename T, typename BinarySumOp = std::plus<T> >
 void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
@@ -153,7 +153,7 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
 //! @param   net The current worker onto which to apply the operation
 //! @param   value The value to be summed up
 //! @param   sumOp A custom summation operator
-template <typename T, typename BinarySumOp = common::SumOp<T> >
+template <typename T, typename BinarySumOp = std::plus<T> >
 static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     static const bool debug = false;
 
