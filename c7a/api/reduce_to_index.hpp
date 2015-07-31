@@ -89,8 +89,9 @@ public:
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
                       size_t max_index,
-                      Value neutral_element)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex"),
+                      Value neutral_element,
+                      StatsNode* stats_node)
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
@@ -302,19 +303,21 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, ValueType>;
 
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function,
                                              max_index,
-                                             neutral_element);
+                                             neutral_element,
+                                             stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("ReduceToIndex", "DOp") });
+        { stats_node });
 }
 
 template <typename ValueType, typename Stack>
@@ -364,6 +367,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, ValueType>;
 
+    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", "DOp");
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
@@ -377,14 +381,15 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                              },
                                              reduce_function,
                                              max_index,
-                                             neutral_element);
+                                             neutral_element,
+                                             stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("ReducePairToIndex", "DOp") });
+        { stats_node });
 }
 
 template <typename ValueType, typename Stack>
@@ -436,19 +441,21 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction,
                                   true, ValueType>;
 
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function,
                                              max_index,
-                                             neutral_element);
+                                             neutral_element,
+                                             stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>(
-        shared_node,
-        reduce_stack,
-        { AddChildStatsNode("ReduceToIndexByKey", "DOp") });
+    return DIARef<DOpResult, decltype(reduce_stack)> (
+            shared_node, 
+            reduce_stack,
+            { stats_node });
 }
 
 //! \}

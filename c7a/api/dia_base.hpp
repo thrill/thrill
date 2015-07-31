@@ -15,6 +15,8 @@
 #define C7A_API_DIA_BASE_HEADER
 
 #include <c7a/api/context.hpp>
+#include <c7a/api/dia.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 
 #include <string>
@@ -67,11 +69,12 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag)
+            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag, StatsNode* stats_node)
         : context_(ctx), parents_(parents),
           result_file_(ctx.data_manager().GetFile()),
           execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
-          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)) {
+          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
+          stats_node_(stats_node) {
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -171,6 +174,7 @@ protected:
     }
     inline void StopExecutionTimer() {
         STOP_TIMER(execution_timer_)
+        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()));
     }
 
     //! Context, which can give iterators to data.
@@ -188,6 +192,9 @@ protected:
 
     //! Timer that tracks the lifetime of this object
     common::TimerPtr lifetime_;
+
+    //! Timer that tracks the lifetime of this object
+    api::StatsNode* stats_node_;
 };
 
 //! \}

@@ -36,8 +36,9 @@ public:
     using Super::context_;
 
     WriteNode(const ParentDIARef& parent,
-              const std::string& path_out)
-        : ActionNode(parent.ctx(), { parent.node() }, "Write"),
+              const std::string& path_out,
+              StatsNode* stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           path_out_(path_out),
           file_(path_out_),
           emit_(file_)
@@ -127,11 +128,12 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
 
     using WriteResultNode = WriteNode<ValueType, DIARef>;
 
+    StatsNode* stats_node = AddChildStatsNode("Write", "Action");
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
-                                          filepath);
+                                          filepath,
+                                          stats_node);
 
-    AddChildStatsNode("Write", "Action");
     core::StageBuilder().RunScope(shared_node.get());
 }
 

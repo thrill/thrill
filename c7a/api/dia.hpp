@@ -154,12 +154,12 @@ public:
 
     StatsNode * AddChildStatsNode(const std::string& label, const std::string& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (auto parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
         return node;
     }
 
     void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (auto parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
     Context & ctx() const {

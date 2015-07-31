@@ -82,8 +82,9 @@ public:
      */
     ReduceNode(const ParentDIARef& parent,
                KeyExtractor key_extractor,
-               ReduceFunction reduce_function)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce"),
+               ReduceFunction reduce_function,
+               StatsNode* stats_node)
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce", stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
@@ -243,20 +244,22 @@ auto DIARef<ValueType, Stack>::ReduceBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
+    StatsNode* stats_node = AddChildStatsNode("ReduceBy", "DOp");
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, true, ValueType>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
-                                             reduce_function);
+                                             reduce_function,
+                                             stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("ReduceBy", "DOp") });
+        { stats_node });
 }
 
 template <typename ValueType, typename Stack>
@@ -292,6 +295,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     using Key = typename ValueType::first_type;
 
+    StatsNode* stats_node = AddChildStatsNode("ReducePair", "DOp");
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, std::function<Key(Key)>,
                            ReduceFunction, false, ValueType>;
@@ -306,14 +310,15 @@ auto DIARef<ValueType, Stack>::ReducePair(
                                                  key = key;
                                                  return Key();
                                              },
-                                             reduce_function);
+                                             reduce_function,
+                                             stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
     return DIARef<DOpResult, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
-        { AddChildStatsNode("ReducePair", "DOp") });
+        { stats_node });
 }
 
 template <typename ValueType, typename Stack>
@@ -352,20 +357,22 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
+    StatsNode* stats_node = AddChildStatsNode("Reduce", "DOp");
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, false, ValueType>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
-                                             reduce_function);
+                                             reduce_function,
+                                             stats_node);
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>(
-        shared_node,
-        reduce_stack,
-        { AddChildStatsNode("ReduceByKey", "DOp") });
+    return DIARef<DOpResult, decltype(reduce_stack)> (
+            shared_node, 
+            reduce_stack,
+            { stats_node });
 }
 
 //! \}
