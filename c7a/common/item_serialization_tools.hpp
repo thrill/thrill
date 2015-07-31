@@ -35,7 +35,7 @@ public:
     Writer & PutVarint(uint32_t v) {
         Writer& w = *static_cast<Writer*>(this);
 
-        if (v < 128) {
+        /*if (v < 128) {
             w.PutByte(uint8_t(v));
         }
         else if (v < 128 * 128) {
@@ -59,8 +59,8 @@ public:
             w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
             w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
             w.PutByte((uint8_t)((v >> 28) & 0x7F));
-        }
-
+        }*/
+        w.Put(v);
         return w;
     }
 
@@ -72,7 +72,8 @@ public:
     //! Append a varint to the writer.
     Writer & PutVarint(uint64_t v) {
         Writer& w = *static_cast<Writer*>(this);
-
+        w.Put(v);
+        /*
         if (v < 128) {
             w.PutByte(uint8_t(v));
         }
@@ -150,7 +151,7 @@ public:
             w.PutByte((uint8_t)(((v >> 56) & 0x7F) | 0x80));
             w.PutByte((uint8_t)((v >> 63) & 0x7F));
         }
-
+        */
         return w;
     }
 
@@ -181,7 +182,8 @@ public:
     //! Fetch a varint with up to 32-bit from the reader at the cursor.
     uint32_t GetVarint() {
         Reader& r = *static_cast<Reader*>(this);
-
+        return r.template Get<uint32_t>();
+        /*
         uint32_t u, v = r.GetByte();
         if (!(v & 0x80)) return v;
         v &= 0x7F;
@@ -195,14 +197,14 @@ public:
         if (u & 0xF0)
             throw std::overflow_error("Overflow during varint decoding.");
         v |= (u & 0x7F) << 28;
-        return v;
+        return v;*/
     }
 
     //! Fetch a 64-bit varint from the reader at the cursor.
     uint64_t GetVarint64() {
         Reader& r = *static_cast<Reader*>(this);
-
-        uint64_t u, v = r.GetByte();
+        return r.template Get<uint64_t>();
+        /*uint64_t u, v = r.GetByte();
         if (!(v & 0x80)) return v;
         v &= 0x7F;
         u = r.GetByte(), v |= (u & 0x7F) << 7;
@@ -225,7 +227,7 @@ public:
         if (u & 0xFE)
             throw std::overflow_error("Overflow during varint64 decoding.");
         v |= (u & 0x7F) << 63;
-        return v;
+        return v;*/
     }
 
     //! Fetch a string which was Put via Put_string().
