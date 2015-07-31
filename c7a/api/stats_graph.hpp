@@ -32,7 +32,7 @@ public:
 
     StatsNode(const StatsNode& other) = delete;
 
-    void AddNeighbor(StatsNode* const neighbor) {
+    void AddNeighbor(StatsNode* neighbor) {
         adjacent_nodes_.push_back(neighbor);
     }
 
@@ -48,11 +48,15 @@ public:
         return label_;
     }
 
+    void AddStatsMsg(const std::string& msg) {
+        stats_msg_.push_back(msg);
+    }
+
     friend std::ostream& operator << (std::ostream& os, const StatsNode& c) {
         return os << c.label_;
     }
 
-    std::string NodeStyle() {
+    std::string NodeStyle() const {
         if (type_.compare("DOp") == 0) {
             return label_ + " [style=filled, fillcolor=red, shape=box]";
         } else if (type_.compare("Action") == 0) {
@@ -73,6 +77,9 @@ private:
 
     //! Type of node
     std::string type_;
+
+    //! Stats messages
+    std::vector<std::string> stats_msg_;
 };
 
 class StatsGraph
@@ -82,12 +89,7 @@ public:
 
     StatsGraph(const StatsGraph& other) = delete;
 
-    virtual ~StatsGraph() {
-        for (auto node : nodes_) {
-            delete node;
-            node = NULL;
-        }
-    }
+    virtual ~StatsGraph() { }
 
     StatsNode* AddNode(const std::string& label, const std::string& type) {
         StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
@@ -95,8 +97,8 @@ public:
         return node;
     }
 
-    void AddEdge(StatsNode* const source, StatsNode* const target) {
-        for (auto& node : nodes_) {
+    void AddEdge(StatsNode* source, StatsNode* target) {
+        for (const auto& node : nodes_) {
             if (source == node) node->AddNeighbor(target);
         }
     }

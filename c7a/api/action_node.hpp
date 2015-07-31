@@ -27,8 +27,9 @@ class ActionNode : public DIABase
 public:
     ActionNode(Context& ctx,
                const std::vector<std::shared_ptr<DIABase> >& parents,
-               const std::string& stats_tag)
-        : DIABase(ctx, parents, stats_tag)
+               const std::string& stats_tag,
+               StatsNode* stats_node)
+        : DIABase(ctx, parents, stats_tag, stats_node)
     { }
 
     //! ActionNodes do not have children.
