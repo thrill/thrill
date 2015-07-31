@@ -1,18 +1,25 @@
+/*******************************************************************************
+ * benchmarks/serialization/bench_serialization.cpp
+ *
+ * Part of Project c7a.
+ *
+ *
+ * This file has no license. Only Chuck Norris can compile it.
+ ******************************************************************************/
 #ifndef C7A_BENCH_SERIALIZATION_HEADER
 #define C7A_BENCH_SERIALIZATION_HEADER
 
 #include "data.hpp"
 #include <c7a/common/stats_timer.hpp>
-#include <c7a/data/serializer.hpp>
 #include <c7a/data/file.hpp>
+#include <c7a/data/serializer.hpp>
 
-#include <iostream>
-#include <iomanip>
 #include <cstdlib>
+#include <iomanip>
+#include <iostream>
 // #include <random>
-#include <vector>
 #include <string>
-
+#include <vector>
 
 template <typename T>
 int BenchmarkSerialization(T t, int iterrations) {
@@ -28,7 +35,7 @@ int BenchmarkSerialization(T t, int iterrations) {
         r.Next<T>();
         timer.Stop();
     }
-    return timer.Microseconds()/iterrations;
+    return timer.Microseconds() / iterrations;
 }
 
 int SerialString(int iterrations) {
@@ -43,7 +50,7 @@ int SerialTuple(int iterrations) {
     return BenchmarkSerialization(bench_tuple, iterrations);
 }
 
-void GetRandomIntVector(std::vector<int64_t> & res, int n) {
+void GetRandomIntVector(std::vector<int64_t>& res, int n) {
     res.reserve(n);
     for (int i = 0; i < n; ++i) {
         res.push_back(rand());
@@ -60,7 +67,7 @@ void PrintSQLPlotTool(std::string datatype, size_t size, int iterations, int tim
 }
 
 // all glory to stackoverflow a/440240
-void gen_random(std::vector<char>& s, const int len) {
+void GetRandomString(std::vector<char>& s, const int len) {
     s.reserve(len);
     static const char alphanum[] =
         "0123456789"
@@ -72,7 +79,6 @@ void gen_random(std::vector<char>& s, const int len) {
     }
 }
 
-
 int main() {
     int iterations = 50;
     // string from cpp-serializer
@@ -82,13 +88,13 @@ int main() {
     // tuple-pair-construct from cpp-serializer
     PrintSQLPlotTool("???", 0, iterations, SerialTuple(iterations));
 
-    std::vector<int> size = {100, 8890, 121212, 999999};
+    std::vector<int> size = { 100, 8890, 121212, 999999 };
 
     // serialize some random strings
     for (int s : size) {
         std::vector<char> x;
-        gen_random(x, s);
-        std::string x_str(x.begin(), x.begin()+s);
+        GetRandomString(x, s);
+        std::string x_str(x.begin(), x.begin() + s);
 
         PrintSQLPlotTool("std::string", s, iterations, BenchmarkSerialization(x_str, iterations));
     }
@@ -114,6 +120,5 @@ int main() {
     return 1;
 }
 
-
-
 #endif
+/******************************************************************************/
