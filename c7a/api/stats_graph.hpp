@@ -1,7 +1,7 @@
 /*******************************************************************************
  * c7a/api/stats_graph.hpp
  *
- * Simple Graph to represent Execution Stages
+ * Simple Graph to represent execution stages.
  *
  * Part of Project c7a.
  *
@@ -22,40 +22,75 @@
 namespace c7a {
 namespace api {
 
+//! \addtogroup api Interface
+//! \{
+
 class StatsNode
 {
 public:
+    /*!
+     * Create a new stats node.
+     *
+     * \param label Label of the node in the graphical representation.
+     * \param type Switch for choosing the layout of the node.
+     */
     StatsNode(const std::string& label, const std::string& type)
         : label_(label),
           type_(type)
     { }
 
+    //! Delete copy-constructor
     StatsNode(const StatsNode& other) = delete;
 
+    /*!
+     * Add a new neighbor to the stats node.
+     *
+     * \param neighbor Neighboring node.
+     */
     void AddNeighbor(StatsNode* neighbor) {
         adjacent_nodes_.push_back(neighbor);
     }
 
+    /*!
+     * Returns the current neighbors.
+     */
     const std::vector<StatsNode*> & adjacent_nodes() const {
         return adjacent_nodes_;
     }
 
+    /*!
+     * Returns the type of the node.
+     */
     std::string type() const {
         return type_;
     }
 
+    /*!
+     * Returns the label of the node.
+     */
     std::string label() const {
         return label_;
     }
 
+    /*!
+     * Add a new message (label) to the graphical representation.
+     *
+     * \param msg Message to be displayed.
+     */
     void AddStatsMsg(const std::string& msg) {
         stats_msg_.push_back(msg);
     }
 
+    /*!
+     * Print the label of the node.
+     */
     friend std::ostream& operator << (std::ostream& os, const StatsNode& c) {
         return os << c.label_;
     }
 
+    /*!
+     * Set the node style according to the nodes type.
+     */
     std::string NodeStyle() const {
         if (type_.compare("DOp") == 0) {
             return label_ + " [style=filled, fillcolor=red, shape=box]";
@@ -88,24 +123,57 @@ private:
 class StatsGraph
 {
 public:
+    /*!
+     * Create a new stats graph.
+     * The node counter is initialized to zero.
+     */
     StatsGraph() : nodes_id_(0) { }
 
+    //! Delete copy-constructor
     StatsGraph(const StatsGraph& other) = delete;
 
-    virtual ~StatsGraph() { }
+    /*!
+     * Clear all nodes.
+     */
+    virtual ~StatsGraph() {
+        for (const auto& node : nodes_) {
+            delete node;
+            node = NULL;
+        }
+    }
 
-    StatsNode * AddNode(const std::string& label, const std::string& type) {
+    /*!
+     * Add a new node with a given label and type.
+     *
+     * \param label Label of the new node.
+     * \param type Type of the new node.
+     *
+     * \return Pointer to the new node.
+     */
+    StatsNode* AddNode(const std::string& label, const std::string& type) {
         StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
         nodes_.push_back(node);
         return node;
     }
 
+
+    /*!
+     * Add a new directed edge between two given nodes.
+     *
+     * \param source Source node.
+     * \param target Target node.
+     */
     void AddEdge(StatsNode* source, StatsNode* target) {
         for (const auto& node : nodes_) {
             if (source == node) node->AddNeighbor(target);
         }
     }
 
+    /*!
+     * Build the layout based on the nodes styles.
+     *
+     * \param path Filepath where the layout will be saved.
+     */
     void BuildLayout(const std::string& path) {
         std::ofstream file(path);
         file << "digraph {\n";
@@ -126,6 +194,7 @@ private:
     //! Nodes of the graph.
     std::vector<StatsNode*> nodes_;
 
+    //! Current node id.
     size_t nodes_id_;
 };
 
