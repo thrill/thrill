@@ -174,7 +174,7 @@ protected:
     }
     inline void StopExecutionTimer() {
         STOP_TIMER(execution_timer_)
-        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()));
+        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms");
     }
 
     //! Context, which can give iterators to data.
