@@ -94,6 +94,7 @@ std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/
 #endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 }
 return result;
+#endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 }
 
 /******************************************************************************/

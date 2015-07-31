@@ -54,44 +54,44 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::
     //worker 1 keeps first 1/3 of his data, sends 2/3 to worker 2
     //worker 2 receives 2/3 from worker 1
     //afterwards everybody holds 33% of the data
-    std::vector<std::vector<size_t>> offsets;
-    offsets.push_back( { (size_t)(2 * data0.size() / 3), data0.size(), data0.size() } );
-    offsets.push_back( { 0, (size_t)(data1.size() / 3), data1.size() } );
-    offsets.push_back( { 0, 0, 0 } );
+    std::vector<std::vector<size_t> > offsets;
+    offsets.push_back({ (size_t)(2 * data0.size() / 3), data0.size(), data0.size() });
+    offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
+    offsets.push_back({ 0, 0, 0 });
 
-    std::vector<std::shared_ptr<c7a::data::Channel>> channels;
+    std::vector<std::shared_ptr<c7a::data::Channel> > channels;
     channels.push_back(ctx0.data_manager().GetNewChannel());
     channels.push_back(ctx1.data_manager().GetNewChannel());
     channels.push_back(ctx2.data_manager().GetNewChannel());
 
-    std::vector<StatsTimer<true>> read_timers(3);
-    std::vector<StatsTimer<true>> write_timers(3);
+    std::vector<StatsTimer<true> > read_timers(3);
+    std::vector<StatsTimer<true> > write_timers(3);
 
     ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         for (int id = 0; id < 3; id++) {
             pool.Enqueue([&files, &channels, &offsets, &read_timers, &write_timers, id]() {
-                write_timers[id].Start();
-                channels[id]->Scatter<Type>(files[id], offsets[id]);
-                write_timers[id].Stop();
-                auto reader = channels[id]->OpenReader();
-                read_timers[id].Start();
-                while (reader.HasNext()) {
-                    reader.Next<Type>();
-                }
-                read_timers[id].Stop();
-            });
+                             write_timers[id].Start();
+                             channels[id]->Scatter<Type>(files[id], offsets[id]);
+                             write_timers[id].Stop();
+                             auto reader = channels[id]->OpenReader();
+                             read_timers[id].Start();
+                             while (reader.HasNext()) {
+                                 reader.Next<Type>();
+                             }
+                             read_timers[id].Stop();
+                         });
         }
         pool.LoopUntilEmpty();
         std::cout << "RESULT"
                   << " datatype=" << type_as_string
                   << " size=" << bytes
                   << " write_time_worker0=" << write_timers[0].Microseconds()
-                  << " read_time_worker0="  << read_timers[0].Microseconds()
+                  << " read_time_worker0=" << read_timers[0].Microseconds()
                   << " write_time_worker1=" << write_timers[1].Microseconds()
-                  << " read_time_worker1="  << read_timers[1].Microseconds()
+                  << " read_time_worker1=" << read_timers[1].Microseconds()
                   << " write_time_worker2=" << write_timers[2].Microseconds()
-                  << " read_time_worker2="  << read_timers[2].Microseconds()
+                  << " read_time_worker2=" << read_timers[2].Microseconds()
                   << std::endl;
     }
 }
@@ -103,16 +103,16 @@ int main(int argc, const char** argv) {
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
     endpoints.push_back("127.0.0.1:8002");
-    connect_pool.Enqueue([&jobMan0, &endpoints](){
-        jobMan0.Connect(0, net::Endpoint::ParseEndpointList(endpoints), 1);
-    });
-    connect_pool.Enqueue([&jobMan1, &endpoints](){
-        jobMan1.Connect(1, net::Endpoint::ParseEndpointList(endpoints), 1);
-    });
+    connect_pool.Enqueue([&jobMan0, &endpoints]() {
+                             jobMan0.Connect(0, net::Endpoint::ParseEndpointList(endpoints), 1);
+                         });
+    connect_pool.Enqueue([&jobMan1, &endpoints]() {
+                             jobMan1.Connect(1, net::Endpoint::ParseEndpointList(endpoints), 1);
+                         });
 
-    connect_pool.Enqueue([&jobMan2, &endpoints](){
-        jobMan2.Connect(2, net::Endpoint::ParseEndpointList(endpoints), 1);
-    });
+    connect_pool.Enqueue([&jobMan2, &endpoints]() {
+                             jobMan2.Connect(2, net::Endpoint::ParseEndpointList(endpoints), 1);
+                         });
     connect_pool.LoopUntilEmpty();
 
     api::Context ctx0(jobMan0, 0);
