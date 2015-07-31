@@ -11,9 +11,9 @@
 #include <c7a/api/context.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/stats_timer.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
-#include <c7a/common/stats_timer.hpp>
 
 #include "data_generators.hpp"
 

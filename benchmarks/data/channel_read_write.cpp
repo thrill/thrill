@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/file_read_write.cpp
+ * benchmarks/data/channel_read_write.cpp
  *
  * Part of Project c7a.
  *
@@ -39,28 +39,28 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
         auto channel = ctx.data_manager().GetNewChannel();
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
-            auto writers = channel->OpenWriters();
-            assert(writers.size() == 1);
-            auto& writer = writers[0];
-            write_timer.Start();
-            for (auto& s : data) {
-                writer(s);
-            }
-            writer.Close();
-            write_timer.Stop();
-        });
+                         auto writers = channel->OpenWriters();
+                         assert(writers.size() == 1);
+                         auto& writer = writers[0];
+                         write_timer.Start();
+                         for (auto& s : data) {
+                             writer(s);
+                         }
+                         writer.Close();
+                         write_timer.Stop();
+                     });
 
         StatsTimer<true> read_timer;
         pool.Enqueue([&channel, &ctx, &read_timer]() {
-            auto readers = channel->OpenReaders();
-            assert(readers.size() == 1);
-            auto& reader = readers[0];
-            read_timer.Start();
-            while (reader.HasNext()) {
-                reader.Next<Type>();
-            }
-            read_timer.Stop();
-        });
+                         auto readers = channel->OpenReaders();
+                         assert(readers.size() == 1);
+                         auto& reader = readers[0];
+                         read_timer.Start();
+                         while (reader.HasNext()) {
+                             reader.Next<Type>();
+                         }
+                         read_timer.Stop();
+                     });
         pool.LoopUntilEmpty();
         std::cout << "RESULT"
                   << " datatype=" << type_as_string

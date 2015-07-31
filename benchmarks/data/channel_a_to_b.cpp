@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/file_read_write.cpp
+ * benchmarks/data/channel_a_to_b.cpp
  *
  * Part of Project c7a.
  *
@@ -38,31 +38,31 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &ctx1, &write_timer]() {
-            auto channel = ctx1.data_manager().GetNewChannel();
-            auto writers = channel->OpenWriters();
-            assert(writers.size() == 2);
-            write_timer.Start();
-            auto& writer = writers[1];
-            for (auto& s : data) {
-                writer(s);
-            }
-            writer.Close();
-            writers[0].Close();
-            write_timer.Stop();
-        });
+                         auto channel = ctx1.data_manager().GetNewChannel();
+                         auto writers = channel->OpenWriters();
+                         assert(writers.size() == 2);
+                         write_timer.Start();
+                         auto& writer = writers[1];
+                         for (auto& s : data) {
+                             writer(s);
+                         }
+                         writer.Close();
+                         writers[0].Close();
+                         write_timer.Stop();
+                     });
 
         StatsTimer<true> read_timer;
         pool.Enqueue([&ctx2, &read_timer]() {
-            auto channel = ctx2.data_manager().GetNewChannel();
-            auto readers = channel->OpenReaders();
-            assert(readers.size() == 2);
-            auto& reader = readers[0];
-            read_timer.Start();
-            while (reader.HasNext()) {
-                reader.Next<Type>();
-            }
-            read_timer.Stop();
-        });
+                         auto channel = ctx2.data_manager().GetNewChannel();
+                         auto readers = channel->OpenReaders();
+                         assert(readers.size() == 2);
+                         auto& reader = readers[0];
+                         read_timer.Start();
+                         while (reader.HasNext()) {
+                             reader.Next<Type>();
+                         }
+                         read_timer.Stop();
+                     });
         pool.LoopUntilEmpty();
         std::cout << "RESULT"
                   << " datatype=" << type_as_string
@@ -79,13 +79,13 @@ int main(int argc, const char** argv) {
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
-    connect_pool.Enqueue([&jobMan1, &endpoints](){
-        jobMan1.Connect(0, net::Endpoint::ParseEndpointList(endpoints), 1);
-    });
+    connect_pool.Enqueue([&jobMan1, &endpoints]() {
+                             jobMan1.Connect(0, net::Endpoint::ParseEndpointList(endpoints), 1);
+                         });
 
-    connect_pool.Enqueue([&jobMan2, &endpoints](){
-        jobMan2.Connect(1, net::Endpoint::ParseEndpointList(endpoints), 1);
-    });
+    connect_pool.Enqueue([&jobMan2, &endpoints]() {
+                             jobMan2.Connect(1, net::Endpoint::ParseEndpointList(endpoints), 1);
+                         });
     connect_pool.LoopUntilEmpty();
 
     api::Context ctx1(jobMan1, 0);
