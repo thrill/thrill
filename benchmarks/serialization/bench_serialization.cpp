@@ -21,10 +21,15 @@
 #include <string>
 #include <vector>
 
+//! serializes a given object and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
 template <typename T>
-int BenchmarkSerialization(T t, int iterrations) {
+int BenchmarkSerialization(T t, int iterations) {
     c7a::common::StatsTimer<true> timer(false);
-    for (int i = 0; i < iterrations; ++i) {
+    for (int i = 0; i < iterations; ++i) {
         c7a::data::File f;
         timer.Start();
         {
@@ -35,21 +40,40 @@ int BenchmarkSerialization(T t, int iterrations) {
         r.Next<T>();
         timer.Stop();
     }
-    return timer.Microseconds() / iterrations;
+    return timer.Microseconds() / iterations;
 }
 
-int SerialString(int iterrations) {
-    return BenchmarkSerialization(bench_string, iterrations);
+//! serializes the test string and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+int SerialString(int iterations) {
+    return BenchmarkSerialization(bench_string, iterations);
 }
 
-int SerialVector(int iterrations) {
-    return BenchmarkSerialization(bv, iterrations);
+//! serializes the test vector and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+int SerialVector(int iterations) {
+    return BenchmarkSerialization(bench_vector, iterations);
 }
 
-int SerialTuple(int iterrations) {
-    return BenchmarkSerialization(bench_tuple, iterrations);
+//! serializes the test tuples and measures its time
+/*! @param t The object that shall be serialized
+ *  @param iterations The number how often the object should be serialized;
+ *                    The measured time will be divided by number of iterations
+ */
+int SerialTuple(int iterations) {
+    return BenchmarkSerialization(bench_tuple, iterations);
 }
 
+//! generates an vector with random ints
+/*! @param res The vector that should be filled with random ints
+ *  @param n The number of ints in the vector
+ */
 void GetRandomIntVector(std::vector<int64_t>& res, int n) {
     res.reserve(n);
     for (int i = 0; i < n; ++i) {
@@ -57,6 +81,7 @@ void GetRandomIntVector(std::vector<int64_t>& res, int n) {
     }
 }
 
+//! prints an output that is parsable by SQLPlotTools
 void PrintSQLPlotTool(std::string datatype, size_t size, int iterations, int time) {
     std::cout << "RESULT"
               << " datatype=" << datatype
@@ -66,7 +91,10 @@ void PrintSQLPlotTool(std::string datatype, size_t size, int iterations, int tim
               << std::endl;
 }
 
-// all glory to stackoverflow a/440240
+//! generates random chars and fills a vector
+/*! @param s The vector that should be filled with random chars
+ *  @param len The number of chars in the vector
+ */
 void GetRandomString(std::vector<char>& s, const int len) {
     s.reserve(len);
     static const char alphanum[] =
@@ -79,16 +107,17 @@ void GetRandomString(std::vector<char>& s, const int len) {
     }
 }
 
+//! executes some serializations and times it to use as benchmark
 int main() {
     int iterations = 50;
     // string from cpp-serializer
     PrintSQLPlotTool("std::string", bench_string.size(), iterations, SerialString(iterations));
     // vector from cpp-serializer
-    PrintSQLPlotTool("std::vector<int64_t>", sizeof(int64_t) * bv.bench_vector.size(), iterations, SerialVector(iterations));
+    PrintSQLPlotTool("std::vector<int64_t>", sizeof(int64_t) * bench_vector.bench_vector.size(), iterations, SerialVector(iterations));
     // tuple-pair-construct from cpp-serializer
-    PrintSQLPlotTool("???", 0, iterations, SerialTuple(iterations));
+    PrintSQLPlotTool("tuple_construct", 0, iterations, SerialTuple(iterations));
 
-    std::vector<int> size = { 100, 8890, 121212, 999999 };
+    std::vector<int> size = { 99, 9999, 99999, 999999 };
 
     // serialize some random strings
     for (int s : size) {
