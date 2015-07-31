@@ -111,11 +111,12 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
                                     return in1 + in2;
                                 };
 
-            size_t max_index = 8;
+            size_t result_size = 9;
 
-            auto reduced = integers.ReducePairToIndex(add_function, max_index);
+            auto reduced = integers.ReducePairToIndex(add_function, result_size);
 
             std::vector<size_t> out_vec = reduced.AllGather();
+            ASSERT_EQ(9u, out_vec.size());
 
             int i = 0;
             for (int element : out_vec) {
@@ -151,8 +152,6 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
                     ASSERT_EQ(42, 420);
                 }
             }
-
-            ASSERT_EQ((size_t)9, out_vec.size());
         };
 
     c7a::api::ExecuteLocalTests(start_func);
@@ -178,11 +177,12 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
                                     return in1 + in2;
                                 };
 
-            size_t max_index = 8;
+            size_t result_size = 9;
 
-            auto reduced = integers.ReduceToIndexByKey(key, add_function, max_index);
+            auto reduced = integers.ReduceToIndexByKey(key, add_function, result_size);
 
             std::vector<size_t> out_vec = reduced.AllGather();
+            ASSERT_EQ(9u, out_vec.size());
 
             int i = 0;
             for (int element : out_vec) {
@@ -218,8 +218,6 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
                     ASSERT_EQ(42, 420);
                 }
             }
-
-            ASSERT_EQ((size_t)9, out_vec.size());
         };
 
     c7a::api::ExecuteLocalTests(start_func);
