@@ -14,6 +14,7 @@
 #ifndef C7A_API_GENERATE_FROM_FILE_HEADER
 #define C7A_API_GENERATE_FROM_FILE_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -60,8 +61,9 @@ public:
     GenerateFileNode(Context& ctx,
                      GeneratorFunction generator_function,
                      std::string path_in,
-                     size_t size)
-        : DOpNode<ValueType>(ctx, { }, "GenerateFromFile"),
+                     size_t size,
+                     StatsNode* stats_node)
+        : DOpNode<ValueType>(ctx, { }, "GenerateFromFile", stats_node),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -165,18 +167,20 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
+    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", "DOp");
     auto shared_node =
         std::make_shared<GenerateResultNode>(ctx,
                                              generator_function,
                                              filepath,
-                                             size);
+                                             size,
+                                             stats_node);
 
     auto generator_stack = shared_node->ProduceStack();
 
     return DIARef<GeneratorResult, decltype(generator_stack)>
-               (shared_node,
-               generator_stack,
-               { ctx.stats_graph().AddNode("GenerateFromFile", "DOp") });
+               (shared_node, 
+                generator_stack,
+                {});
 }
 
 //! \}

@@ -68,7 +68,6 @@ macro(build_test_group TESTNAME)
 
 endmacro(build_test_group)
 
-
 ### list of tests in subdirectories
 
 build_plain(common/cmdline_parser_example)

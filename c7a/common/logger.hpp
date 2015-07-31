@@ -14,61 +14,20 @@
 #ifndef C7A_COMMON_LOGGER_HEADER
 #define C7A_COMMON_LOGGER_HEADER
 
-#include <iomanip>
-#include <iostream>
-#include <map>
-#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <thread>
-#include <utility>
 
 namespace c7a {
 namespace common {
 
-//! thread-id to name mapping for better multi-threaded log output
-class ThreadNameDirectory
-{
-public:
-    //! Defines a name for the current thread, only if no name was set
-    //! previously
-    void NameThisThread(const std::string& name) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        threads_[std::this_thread::get_id()] = StringCount(name, 0);
-    }
+//! Defines a name for the current thread, only if no name was set previously
+void NameThisThread(const std::string& name);
 
-    //! Returns the name of the current thread or 'unknown [id]'
-    std::string NameForThisThread() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto it = threads_.find(std::this_thread::get_id());
-        if (it != threads_.end()) {
-            StringCount& sc = it->second;
-            if (true) {
-                std::ostringstream ss;
-                // print "name #msg";
-                ss << sc.first << ' '
-                   << std::setfill('0') << std::setw(6) << sc.second++;
-                return ss.str();
-            }
-            else {
-                return sc.first;
-            }
-        }
-        std::ostringstream ss;
-        ss << "unknown " << std::this_thread::get_id();
-        return ss.str();
-    }
+//! Returns the name of the current thread or 'unknown [id]'
+std::string GetNameForThisThread();
 
-private:
-    using StringCount = std::pair<std::string, size_t>;
-    //! map thread id -> (name, message counter)
-    std::map<std::thread::id, StringCount> threads_;
-    std::mutex mutex_;
-};
-
-//! access global singleton
-ThreadNameDirectory & GetThreadDirectory();
+/******************************************************************************/
 
 /*!
  * A simple logging class which outputs a std::endl during destruction.
@@ -85,9 +44,6 @@ protected:
     //! collector stream
     std::ostringstream oss_;
 
-    //! the global mutex of logger and spacing logger
-    static std::mutex mutex_;
-
     //! for access to mutex_
     template <bool Active>
     friend class SpacingLogger;
@@ -97,7 +53,7 @@ public:
     static const bool active = true;
 
     Logger() {
-        oss_ << "[" << GetThreadDirectory().NameForThisThread() << "] ";
+        oss_ << "[" << GetNameForThisThread() << "] ";
     }
 
     //! output any type, including io manipulators
@@ -108,14 +64,7 @@ public:
     }
 
     //! destructor: output a newline
-    ~Logger() {
-        oss_ << "\n";
-        // lock the global mutex of logger for serialized output in
-        // multi-threaded programs.
-        std::unique_lock<std::mutex> lock;
-        std::cout << oss_.str();
-        std::cout.flush();
-    }
+    ~Logger();
 };
 
 template <>
@@ -145,7 +94,7 @@ class SpacingLogger<true>
 {
 protected:
     //! true until the first element it outputted.
-    bool first_;
+    bool first_ = true;
 
     //! collector stream
     std::ostringstream oss_;
@@ -155,9 +104,8 @@ public:
     static const bool active = true;
 
     //! constructor: if real = false the output is suppressed.
-    SpacingLogger()
-        : first_(true) {
-        oss_ << "[" << GetThreadDirectory().NameForThisThread() << "] ";
+    SpacingLogger() {
+        oss_ << "[" << GetNameForThisThread() << "] ";
     }
 
     //! output any type, including io manipulators
@@ -172,14 +120,7 @@ public:
     }
 
     //! destructor: output a newline
-    ~SpacingLogger() {
-        oss_ << "\n";
-        // lock the global mutex of logger for serialized output in
-        // multi-threaded programs.
-        std::unique_lock<std::mutex> lock;
-        std::cout << oss_.str();
-        std::cout.flush();
-    }
+    ~SpacingLogger();
 };
 
 template <>

@@ -14,7 +14,9 @@
 #ifndef C7A_API_READ_HEADER
 #define C7A_API_READ_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
+#include <c7a/api/input_line_iterator.hpp>
 #include <c7a/common/logger.hpp>
 
 #include <fstream>
@@ -50,8 +52,9 @@ public:
     */
     ReadNode(Context& ctx,
              ReadFunction read_function,
-             const std::string& path_in)
-        : DOpNode<ValueType>(ctx, { }, "Read"),
+             const std::string& path_in,
+             StatsNode* stats_node)
+        : DOpNode<ValueType>(ctx, { }, "Read", stats_node),
           read_function_(read_function),
           path_in_(path_in)
     { }
@@ -138,16 +141,18 @@ auto ReadLines(Context & ctx, std::string filepath,
             const std::string&>::value,
         "Read function needs const std::string& as input parameter.");
 
+    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", "DOp");
     auto shared_node =
         std::make_shared<ReadResultNode>(ctx,
                                          read_function,
-                                         filepath);
+                                         filepath,
+                                         stats_node);
 
     auto read_stack = shared_node->ProduceStack();
     return DIARef<ReadResult, decltype(read_stack)>
-               (shared_node,
-               read_stack,
-               { ctx.stats_graph().AddNode("ReadLines", "DOp") });
+               (shared_node, 
+                read_stack, 
+                { stats_node });
 }
 
 //! \}

@@ -91,9 +91,8 @@ std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/
 
     for (size_t current = 0; current < bytes; current += sizeof(int)) {
         result.emplace_back(42);
-#endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
-}
-return result;
+    }
+    return result;
 #endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 }
 

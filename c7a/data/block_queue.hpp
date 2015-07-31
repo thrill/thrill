@@ -27,7 +27,6 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-template <size_t BlockSize>
 class BlockQueueSource;
 
 /*!
@@ -41,18 +40,12 @@ class BlockQueueSource;
  * GetWriter() and GetReader().  Each block is available only *once* via the
  * BlockQueueSource.
  */
-template <size_t BlockSize = default_block_size>
-class BlockQueue : public BlockSink<BlockSize>
+class BlockQueue : public BlockSink
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockPtr = std::shared_ptr<Block>;
-
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-
-    using BlockSource = BlockQueueSource<BlockSize>;
-    using Writer = BlockWriterBase<BlockSize>;
-    using Reader = BlockReader<BlockSource>;
+    using BlockSource = BlockQueueSource;
+    using Writer = BlockWriter;
+    using Reader = BlockReader<BlockQueueSource>;
 
     void AppendBlock(const VirtualBlock& vb) override {
         queue_.emplace(vb);
@@ -60,8 +53,8 @@ public:
 
     //! Close called by BlockWriter.
     void Close() override {
-        assert(!closed_); // racing condition tolerated
-        closed_ = true;
+        assert(!write_closed_); // racing condition tolerated
+        write_closed_ = true;
 
         // enqueue a closing VirtualBlock.
         queue_.emplace();
@@ -76,7 +69,7 @@ public:
     }
 
     //! check if writer side Close() was called.
-    bool closed() const { return closed_; }
+    bool write_closed() const { return write_closed_; }
 
     bool empty() const { return queue_.empty(); }
 
@@ -84,17 +77,19 @@ public:
     bool read_closed() const { return read_closed_; }
 
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
-    size_t size() { return queue_.size() - (closed() ? 1 : 0); }
+    size_t size() { return queue_.size() - (write_closed() ? 1 : 0); }
 
     //! Return a BlockWriter delivering to this BlockQueue.
-    Writer GetWriter() { return Writer(this); }
+    Writer GetWriter(size_t block_size = default_block_size) {
+        return Writer(this, block_size);
+    }
 
     Reader GetReader();
 
 private:
     common::ConcurrentBoundedQueue<VirtualBlock> queue_;
 
-    std::atomic<bool> closed_ = { false };
+    std::atomic<bool> write_closed_ = { false };
 
     //! whether Pop() has returned a closing VirtualBlock.
     bool read_closed_ = false;
@@ -104,17 +99,9 @@ private:
  * A BlockSource to read Block from a BlockQueue using a BlockReader. Each Block
  * is *taken* from the BlockQueue, hence the BlockQueue can be read only once!
  */
-template <size_t BlockSize>
 class BlockQueueSource
 {
 public:
-    using Byte = unsigned char;
-
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using BlockQueue = data::BlockQueue<BlockSize>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-
     //! Start reading from a BlockQueue
     explicit BlockQueueSource(BlockQueue& queue)
         : queue_(queue)
@@ -135,9 +122,9 @@ protected:
     BlockQueue& queue_;
 };
 
-template <size_t BlockSize>
-typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
-    return BlockQueue<BlockSize>::Reader(BlockQueueSource<BlockSize>(*this));
+inline
+typename BlockQueue::Reader BlockQueue::GetReader() {
+    return BlockQueue::Reader(BlockQueueSource(*this));
 }
 
 /*!
@@ -146,18 +133,9 @@ typename BlockQueue<BlockSize>::Reader BlockQueue<BlockSize>::GetReader() {
  * are saved in the cache File. If the cache BlockQueue is initially already
  * closed, then Blocks are read from the File instead.
  */
-template <size_t BlockSize>
 class CachingBlockQueueSource
 {
 public:
-    using Byte = unsigned char;
-
-    using Block = data::Block<BlockSize>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-    using BlockQueue = data::BlockQueue<BlockSize>;
-    using BlockQueueSource = data::BlockQueueSource<BlockSize>;
-    using FileBlockSource = data::FileBlockSource<BlockSize>;
-
     //! Start reading from a BlockQueue
     CachingBlockQueueSource(BlockQueue& queue, File& file)
         : queue_src_(queue), file_src_(file), file_(file) {

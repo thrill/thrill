@@ -14,6 +14,7 @@
 
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
+#include <c7a/data/block_writer.hpp>
 
 namespace c7a {
 namespace data {
@@ -25,17 +26,13 @@ namespace data {
  * DiscardSink is an BlockSink that discards all Blocks delivered to it. Use it
  * for benchmarking!
  */
-template <size_t BlockSize>
-class DiscardSinkBase : public BlockSink<BlockSize>
+class DiscardSink : public BlockSink
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-    using ChannelId = size_t;
+    using Writer = BlockWriter;
 
     //! Create discarding BlockSink.
-    DiscardSinkBase() { }
+    DiscardSink() { }
 
     //! Discards VirtualBlock.
     void AppendBlock(const VirtualBlock&) override { }
@@ -49,12 +46,14 @@ public:
     //! return close flag
     bool closed() const { return closed_; }
 
+    //! Return a BlockWriter delivering to this BlockSink.
+    Writer GetWriter(size_t block_size = default_block_size) {
+        return Writer(this, block_size);
+    }
+
 protected:
     bool closed_ = false;
 };
-
-//! DiscardSinkBase with default block size.
-using DiscardSink = DiscardSinkBase<data::default_block_size>;
 
 //! \}
 

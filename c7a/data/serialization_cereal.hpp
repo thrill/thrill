@@ -203,7 +203,8 @@ struct Serialization<Archive, T, typename std::enable_if<
         iarchive(res);
         return res;
     }
-    static const bool fixed_size = false;
+    static const bool   is_fixed_size = false;
+    static const size_t fixed_size = 0;
 };
 
 //! \}

@@ -106,10 +106,9 @@ TEST(SerializationCereal, cereal_w_FileWriter)
 
 TEST(SerializationCereal, cereal_w_BlockQueue)
 {
-    using MyQueue = BlockQueue<16>;
-    MyQueue q;
+    BlockQueue q;
     {
-        auto qw = q.GetWriter();
+        auto qw = q.GetWriter(16);
         CerealObject myData;
         myData.a = "asdfasdf";
         myData.b = { "asdf", "asdf" };

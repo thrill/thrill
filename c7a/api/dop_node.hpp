@@ -44,8 +44,9 @@ public:
      */
     DOpNode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string& stats_tag)
-        : DIANode<ValueType>(ctx, parents, stats_tag) { }
+            const std::string& stats_tag,
+            StatsNode* stats_node)
+        : DIANode<ValueType>(ctx, parents, stats_tag, stats_node) { }
 };
 
 //! \}
