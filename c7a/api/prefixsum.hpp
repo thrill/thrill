@@ -145,24 +145,22 @@ auto DIARef<ValueType, Stack>::PrefixSum(
               = PrefixSumNode<ValueType, DIARef, SumFunction>;
 
     static_assert(
-        std::is_same<
-            typename FunctionTraits<SumFunction>::template arg<0>,
-            ValueType>::value ||
-        std::is_same<SumFunction, common::SumOp<ValueType> >::value,
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<SumFunction>::template arg<0>
+            >::value,
         "SumFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
-            typename FunctionTraits<SumFunction>::template arg<1>,
-            ValueType>::value ||
-        std::is_same<SumFunction, common::SumOp<ValueType> >::value,
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<SumFunction>::template arg<1> >::value,
         "SumFunction has the wrong input type");
 
     static_assert(
-        std::is_same<
+        std::is_convertible<
             typename FunctionTraits<SumFunction>::result_type,
-            ValueType>::value ||
-        std::is_same<SumFunction, common::SumOp<ValueType> >::value,
+            ValueType>::value,
         "SumFunction has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("PrefixSum", "DOp");
