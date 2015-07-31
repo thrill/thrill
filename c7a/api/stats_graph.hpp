@@ -92,18 +92,28 @@ public:
      * Set the node style according to the nodes type.
      */
     std::string NodeStyle() const {
+        std::string style = label_ + " [";
         if (type_.compare("DOp") == 0) {
-            return label_ + " [style=filled, fillcolor=red, shape=box]";
+            style += "style=filled, fillcolor=red, shape=box";
         }
         else if (type_.compare("Action") == 0) {
-            return label_ + " [style=filled, fillcolor=yellow, shape=diamond]";
+            style += "style=filled, fillcolor=yellow, shape=diamond";
         }
         else if (type_.compare("LOp") == 0) {
-            return label_ + " [style=filled, fillcolor=blue, shape=hexagon]";
+            style += "style=filled, fillcolor=blue, shape=hexagon";
         }
-        else {
-            return label_;
+        style += StatsLabels();
+        style += "]";
+
+        return style;
+    }
+
+    std::string StatsLabels() const {
+        std::string labels = "";
+        for (const std::string& msg : stats_msg_) {
+            labels += ", xlabel=" + msg;
         }
+        return labels;
     }
 
 private:
@@ -136,7 +146,7 @@ public:
      * Clear all nodes.
      */
     virtual ~StatsGraph() {
-        for (const auto& node : nodes_) {
+        for (auto node : nodes_) {
             delete node;
             node = NULL;
         }
