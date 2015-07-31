@@ -73,7 +73,7 @@ public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
         Key, Value,
-        KeyExtractor, ReduceFunction, false, 16*1024, core::HashByIndex>;
+        KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -99,7 +99,7 @@ public:
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_,
-                            core::HashByIndex(max_index)),
+                            core::PreReduceByIndex(max_index)),
           max_index_(max_index),
           neutral_element_(neutral_element)
     {

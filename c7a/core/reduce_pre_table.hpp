@@ -29,41 +29,50 @@
 namespace c7a {
 namespace core {
 
-class HashByKey {
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PreReduceByHashKey {
 public:
-    template <typename Key, typename ReducePreTable>
-    typename ReducePreTable::hash_result
+
+    PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreTable>
+    typename ReducePreTable::index_result
     operator() (Key v, ReducePreTable* ht) const {
 
-        using hash_result = typename ReducePreTable::hash_result;
+        using index_result = typename ReducePreTable::index_result;
 
-        size_t hashed = std::hash<Key>() (v);
+        size_t hashed = hash_function_(v);
 
         size_t local_index = hashed % ht->NumBucketsPerPartition();
         size_t partition_id = hashed % ht->NumPartitions();
         size_t global_index = partition_id *
             ht->NumBucketsPerPartition() + local_index;
-        return hash_result(partition_id, local_index, global_index);
+        return index_result(partition_id, local_index, global_index);
     }
+private:
+    HashFunction hash_function_;
+
 };
 
-class HashByIndex {
+class PreReduceByIndex {
 public:
 
     size_t max_index_;
 
-    HashByIndex(size_t max_index)
+    PreReduceByIndex(size_t max_index)
         : max_index_(max_index)
     { }
 
     template <typename ReducePreTable>
-    typename ReducePreTable::hash_result
+    typename ReducePreTable::index_result
     operator() (size_t key, ReducePreTable* ht) const {
         size_t global_index = key * ht->NumBuckets() / (max_index_ + 1);
         size_t partition_id = key * ht->NumPartitions() / (max_index_ + 1);
         size_t partition_offset = global_index -
             partition_id * ht->NumBucketsPerPartition();
-        return typename ReducePreTable::hash_result(partition_id,
+        return typename ReducePreTable::index_result(partition_id,
                                                     partition_offset,
                                                     global_index);
     }
@@ -73,7 +82,7 @@ template <typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           size_t TargetBlockSize = 16*1024,
-          typename HashFunction = HashByKey,
+          typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>
           >
 class ReducePreTable
@@ -83,7 +92,7 @@ class ReducePreTable
     typedef std::pair<Key, Value> KeyValuePair;
 
 public:
-    struct hash_result
+    struct index_result
     {
     public:
         //! which partition number the item belongs to.
@@ -93,7 +102,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(size_t p_id, size_t p_off, size_t g_id) {
+        index_result(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
             local_index = p_off;
             global_index = g_id;
@@ -141,7 +150,7 @@ public:
                    size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-                   const HashFunction& hash_function = HashFunction(),
+                   const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
@@ -151,7 +160,7 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
+          index_function_(index_function),
           equal_to_function_(equal_to_function)
     {
         init();
@@ -161,13 +170,13 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-                   const HashFunction& hash_function = HashFunction(),
+                   const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
+          index_function_(index_function),
           equal_to_function_(equal_to_function)
     {
         init();
@@ -232,7 +241,7 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        hash_result h = hash_function_(kv.first, this);
+        index_result h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
@@ -632,8 +641,8 @@ protected:
 
     std::vector<BucketBlock*> vector_;
 
-    //! Hash functions.
-    HashFunction hash_function_;
+    //! Index Calculation functions: Hash or ByIndex
+    IndexFunction index_function_;
 
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;
