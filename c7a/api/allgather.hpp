@@ -13,6 +13,7 @@
 #define C7A_API_ALLGATHER_HEADER
 
 #include <c7a/api/action_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/collective_communication.hpp>
@@ -35,9 +36,9 @@ public:
     using Super::result_file_;
 
     AllGatherNode(const ParentDIARef& parent,
-                  std::vector<ValueType>* out_vector
-                  )
-        : ActionNode(parent.ctx(), { parent.node() }, "AllGather"),
+                  std::vector<ValueType>* out_vector,
+                  StatsNode* stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, "AllGather", stats_node),
           out_vector_(out_vector),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters())
@@ -101,8 +102,10 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 
     std::vector<ValueType> output;
 
+
+    StatsNode* stats_node = AddChildStatsNode("AllGather", "Action");
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(*this, &output);
+        std::make_shared<AllGatherResultNode>(*this, &output, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 
@@ -115,10 +118,10 @@ void DIARef<ValueType, Stack>::AllGather(
 
     using AllGatherResultNode = AllGatherNode<ValueType, DIARef>;
 
+    StatsNode* stats_node = AddChildStatsNode("AllGather", "Action");
     auto shared_node =
-        std::make_shared<AllGatherResultNode>(*this, out_vector);
+        std::make_shared<AllGatherResultNode>(*this, out_vector, stats_node);
 
-    AddChildStatsNode("AllGather", "Action");
     core::StageBuilder().RunScope(shared_node.get());
 }
 

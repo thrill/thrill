@@ -11,6 +11,7 @@
 #ifndef C7A_API_LOP_NODE_HEADER
 #define C7A_API_LOP_NODE_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dia_node.hpp>
 #include <c7a/data/file.hpp>
 
@@ -44,8 +45,9 @@ public:
      * \param parent Parent DIARef.
      */
     LOpNode(const ParentDIARef& parent,
-            const std::string& stats_tag)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag)
+            const std::string& stats_tag,
+            StatsNode* stats_node)
+        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
     {
         auto save_fn =
             [=](ValueType input) {
@@ -112,14 +114,15 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = LOpNode<ValueType, DIARef>;
 
+    StatsNode* stats_node = AddChildStatsNode("LOp", "LOp");
     auto shared_node
-        = std::make_shared<LOpChainNode>(*this, "");
+        = std::make_shared<LOpChainNode>(*this, "", stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>
                (shared_node, 
                 lop_stack, 
-                { AddChildStatsNode("LOp", "LOp") });
+                { stats_node });
 }
 
 //! \}

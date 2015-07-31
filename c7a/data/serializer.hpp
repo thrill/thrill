@@ -20,7 +20,7 @@
 #include <utility>
 
 //cereal
-#include <c7a/data/serializer_cereal_archive.hpp>
+#include <c7a/data/serialization_cereal.hpp>
 #include <cereal/details/traits.hpp>
 
 namespace c7a {
@@ -182,13 +182,13 @@ struct Serializer<Archive, T, typename std::enable_if<
     //! serializes an object by using cereal with the c7a-cereal archive
     static void Serialize(const T& t, Archive& a) {
         LOG << "Type T is " << typeid(T).name();
-        c7aOutputArchive<Archive> oarchive(a); // Create an output archive
+        serialization_cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
         oarchive(t);                           // Write the data to the archive
     }
 
     //! deserializes an object by using cereal with the c7a-cereal archive
     static T Deserialize(Archive& a) {
-        c7aInputArchive<Archive> iarchive(a);  // Create an output archive
+        serialization_cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
         T res;
         iarchive(res);                         // Read the data from the archive
         return res;

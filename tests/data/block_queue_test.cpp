@@ -18,7 +18,7 @@
 
 using namespace c7a;
 
-using MyQueue = data::BlockQueue<16>;
+using MyQueue = data::BlockQueue;
 using MyBlockSource = MyQueue::BlockSource;
 using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
@@ -27,12 +27,12 @@ struct BlockQueueTest : public::testing::Test {
 };
 
 TEST_F(BlockQueueTest, FreshQueueIsNotClosed) {
-    ASSERT_FALSE(q.closed());
+    ASSERT_FALSE(q.write_closed());
 }
 
 TEST_F(BlockQueueTest, QueueCanBeClosed) {
     q.Close();
-    ASSERT_TRUE(q.closed());
+    ASSERT_TRUE(q.write_closed());
 }
 
 TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
@@ -40,14 +40,13 @@ TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
 }
 
 TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
-    std::shared_ptr<data::Block<16> > block
-        = std::make_shared<data::Block<16> >();
-    q.AppendBlock(data::VirtualBlock<16>(block, 0, 0, 0, 0));
+    data::BlockPtr block = data::Block::Allocate(16);
+    q.AppendBlock(data::VirtualBlock(block, 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 
 TEST_F(BlockQueueTest, BlockWriterToQueue) {
-    MyQueue::Writer bw = q.GetWriter();
+    MyQueue::Writer bw = q.GetWriter(16);
     bw(static_cast<int>(42));
     bw(std::string("hello there BlockQueue"));
     bw.Close();
@@ -62,7 +61,7 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
 
     pool.Enqueue(
         [&q]() {
-            MyQueue::Writer bw = q.GetWriter();
+            MyQueue::Writer bw = q.GetWriter(16);
             bw(static_cast<int>(42));
             bw(std::string("hello there BlockQueue"));
         });
@@ -90,8 +89,8 @@ TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
     common::ThreadPool pool(3);
     MyQueue q2;
 
-    auto writer1 = q.GetWriter();
-    auto writer2 = q2.GetWriter();
+    auto writer1 = q.GetWriter(16);
+    auto writer2 = q2.GetWriter(16);
 
     pool.Enqueue([&writer1]() {
                      writer1(std::string("1.1"));

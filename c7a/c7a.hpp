@@ -13,7 +13,7 @@
 #ifndef C7A_C7A_HEADER
 #define C7A_C7A_HEADER
 
-#include <c7a/api/bootstrap.hpp>
+#include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
 
 #include <c7a/api/allgather.hpp>
@@ -34,9 +34,6 @@ namespace c7a {
 
 // our public interface classes and methods. all others should be in a
 // sub-namespace.
-
-using api::DIARef;
-using api::Context;
 
 } // namespace c7a
 

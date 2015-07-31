@@ -68,7 +68,6 @@ macro(build_test_group TESTNAME)
 
 endmacro(build_test_group)
 
-
 ### list of tests in subdirectories
 
 build_plain(common/cmdline_parser_example)
@@ -96,7 +95,8 @@ build_test(net/group_test)
 build_test(data/block_queue_test)
 build_test(data/channel_multiplexer_test)
 build_test(data/file_test)
-build_test(data/serializer_test)
+build_test(data/serialization_test)
+build_test(data/serialization_cereal_test)
 build_test(data/stream_block_header_test)
 
 build_test(core/job_manager_test)

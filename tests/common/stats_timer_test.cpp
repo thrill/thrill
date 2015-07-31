@@ -8,6 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/common/stats.hpp> //for forced instantiation below
 #include <c7a/common/stats_timer.hpp>
 #include <gtest/gtest.h>
 
@@ -47,6 +48,8 @@ namespace common {
 // forced instantiations
 template class StatsTimer<true>;
 template class StatsTimer<false>;
+template class Stats<true>;
+template class Stats<false>;
 
 } // namespace common
 } // namespace c7a
