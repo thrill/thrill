@@ -72,7 +72,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction>;
+        KeyExtractor, ReduceFunction, false, 16*1024, core::HashByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -98,18 +98,7 @@ public:
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_,
-                            [=](size_t key, PreHashTable* ht) {
-                                size_t global_index = key * ht->NumBuckets() /
-                                                      (max_index + 1);
-                                size_t partition_id = key *
-                                                      ht->NumPartitions() / (max_index + 1);
-                                size_t partition_offset = global_index -
-                                                          partition_id * ht->NumBucketsPerPartition();
-                                return typename PreHashTable::
-                                hash_result(partition_id,
-                                            partition_offset,
-                                            global_index);
-                            }),
+                            core::HashByIndex(max_index)),
           max_index_(max_index),
           neutral_element_(neutral_element)
     {
@@ -225,8 +214,7 @@ private:
 
     std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction>
-    reduce_pre_table_;
+    PreHashTable reduce_pre_table_;
 
     size_t max_index_;
 
