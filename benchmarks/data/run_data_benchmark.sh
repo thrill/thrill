@@ -4,7 +4,7 @@
 githash=$(eval "git rev-parse --short HEAD")
 timestamp=$(date)
 echo ${timestamp}
-for benchmark in bench_data_file_read_write bench_data_channel_read_write bench_data_channel_a_to_b
+for benchmark in bench_data_file_read_write bench_data_channel_read_write bench_data_channel_a_to_b bench_data_channel_scatter
 do
   for type in int string pair triple
   do
