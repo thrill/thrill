@@ -30,7 +30,7 @@ namespace c7a {
 namespace core {
 
 template <typename KeyExtractor, typename ReduceFunction,
-          const bool PreservesKey = false, size_t TargetBlockSize = 1024*1024>
+          const bool PreservesKey = false, size_t TargetBlockSize = 16*1024>
 class ReducePreTable
 {
     static const bool debug = false;
@@ -99,9 +99,11 @@ public:
      */
     typedef std::function<bool (Key, Key)> EqualToFunction;
 
-    ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale,
+    ReducePreTable(size_t num_partitions,
+                   size_t num_buckets_init_scale,
                    size_t num_buckets_resize_scale,
-                   size_t max_num_items_per_bucket, size_t max_num_items_table,
+                   size_t max_num_items_per_bucket,
+                   size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
                    HashFunction hash_function
