@@ -40,9 +40,11 @@ template <typename Archive, typename T>
 struct Serializer<Archive, T,
                   typename std::enable_if<std::is_pod<T>::value>::type>
 {
+    //! serializes plain old data structures and writes into given archive
     static void Serialize(const T& x, Archive& a) {
         a.template Put<T>(x);
     }
+    //! deserializes a plain old data structure from a given archive
     static T Deserialize(Archive& a) {
         return a.template Get<T>();
     }
@@ -53,9 +55,11 @@ struct Serializer<Archive, T,
 template <typename Archive>
 struct Serializer<Archive, std::string>
 {
+    //! serializes a string and writes into given archive
     static void Serialize(const std::string& x, Archive& a) {
         a.PutString(x);
     }
+    //! deserializes a string from a given archive
     static std::string Deserialize(Archive& a) {
         return a.GetString();
     }
@@ -66,10 +70,18 @@ struct Serializer<Archive, std::string>
 template <typename Archive, typename U, typename V>
 struct Serializer<Archive, std::pair<U, V> >
 {
+    /* !
+     * serializes a pair by serializing its elements
+     * and writes into given archive
+     */
     static void Serialize(const std::pair<U, V>& x, Archive& a) {
         Serializer<Archive, U>::Serialize(x.first, a);
         Serializer<Archive, V>::Serialize(x.second, a);
     }
+    /* !
+     * deserializes a pair by serializing its elements
+     * and writes into given archive
+     */
     static std::pair<U, V> Deserialize(Archive& a) {
         U u = Serializer<Archive, U>::Deserialize(a);
         V v = Serializer<Archive, V>::Deserialize(a);
@@ -80,11 +92,11 @@ struct Serializer<Archive, std::pair<U, V> >
 };
 
 /*********************** Serialization of tuples ******************************/
-//-------------------------- tuple serializer --------------------------------//
-// serialize the (|tuple| - RevIndex)-th element in the tuple
-// and call recursively to serialize the next element:
-// (|tuple| - (RevIndex - 1))
-// for simplicity we talk about the k-th element
+/*!
+ * Serializes the (|tuple| - RevIndex)-th element in the tuple
+ * and recursively serializes the next element: (|tuple| - (RevIndex - 1)).
+ * For simplicity we talk about the k-th element.
+ */
 template <typename Archive, size_t RevIndex, typename ... Args>
 struct TupleSerializer {
 
@@ -104,7 +116,10 @@ struct TupleSerializer {
                                      && TupleSerializer<Archive, RevIndex - 1, Args ...>::fixed_size;
 };
 
-// Base case when RevIndex == 0
+/*!
+ * Base case for serialization of tuples after all elements have already been
+ * serialized. Doesn't do anything except for ending the recursion.
+ */
 template <typename Archive, typename ... Args>
 struct TupleSerializer<Archive, 0, Args ...>{
     static void Serialize(const std::tuple<Args ...>&, Archive&) {
@@ -117,9 +132,11 @@ struct TupleSerializer<Archive, 0, Args ...>{
 template <typename Archive, int RevIndex, typename T, typename ... Args>
 struct TupleDeserializer { };
 
-// deserialize the (|tuple| - RevIndex)-th element in the tuple
-// and call recursively to serialize the next element: (|tuple| - (RevIndex - 1))
-// for simplicity we talk about the k-th element
+/*!
+ * Deserialize the (|tuple| - RevIndex)-th element in the tuple
+ * and recursively deserializes the next element: (|tuple| - (RevIndex - 1)).
+ * For simplicity we talk about the k-th element
+ */
 template <typename Archive, int RevIndex, typename T, typename ... Args>
 struct TupleDeserializer<Archive, RevIndex, std::tuple<T, Args ...> >{
     static std::tuple<T, Args ...> Deserialize(Archive& a) {
@@ -130,7 +147,10 @@ struct TupleDeserializer<Archive, RevIndex, std::tuple<T, Args ...> >{
     }
 };
 
-// Base Case when RevIndex == 0
+/*!
+ * Base case for deserialization of tuples after all elements have already been
+ * deserialized. Doesn't do anything except for ending the recursion.
+ */
 template <typename Archive>
 struct TupleDeserializer<Archive, 0, std::tuple<> >{
     static std::tuple<> Deserialize(Archive&) {
@@ -159,12 +179,14 @@ struct Serializer<Archive, T, typename std::enable_if<
                       !std::is_pod<T>::value
                       >::type>
 {
+    //! serializes an object by using cereal with the c7a-cereal archive
     static void Serialize(const T& t, Archive& a) {
         LOG << "Type T is " << typeid(T).name();
         c7aOutputArchive<Archive> oarchive(a); // Create an output archive
         oarchive(t);                           // Write the data to the archive
     }
 
+    //! deserializes an object by using cereal with the c7a-cereal archive
     static T Deserialize(Archive& a) {
         c7aInputArchive<Archive> iarchive(a);  // Create an output archive
         T res;

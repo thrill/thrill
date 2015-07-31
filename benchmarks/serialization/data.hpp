@@ -16,8 +16,16 @@
 #include <string>
 #include <vector>
 
+/*
+ * test string to benchmark serialization;
+ * comparable to results in https://github.com/thekvs/cpp-serializers
+ */
 const std::string bench_string = "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjhfioukjhkfdljgdfkgvjafdhasgdfwurtjkghfsdjkfg";
 
+/*
+ * test string to serialize int vectoren;
+ * comparable to results in https://github.com/thekvs/cpp-serializers
+ */
 struct BenchVector {
     BenchVector() { }
     BenchVector(std::vector<int64_t> bv) : bench_vector(bv) { }
@@ -30,7 +38,7 @@ struct BenchVector {
     }
 };
 
-const BenchVector bv = BenchVector({
+const BenchVector bench_vector = BenchVector({
                                        34492, 6603, 44033, 8874, 47607, 38416, 20395, 29192, 38620, 36775,
                                        35058, 20501, 39664, 64574, 11261, 35679, 16607, 26020, 39476, 16699,
                                        21505, 20947, 53587, 24746, 45980, 18827, 137, 61753, 53340, 25406,

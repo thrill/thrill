@@ -24,6 +24,7 @@ namespace data {
 //     int blu_;
 // };
 
+//! Test struct with ints that provides a cereal interface
 struct CerealObject3 {
     int x_, y_, z_;
 
@@ -33,6 +34,7 @@ struct CerealObject3 {
     }
 };
 
+//! Test struct with ints and another struct that provides a cereal interface
 struct CerealObject2 {
     CerealObject2() { }
     CerealObject2(int x, int y, int z) : x_(x), y_(y), z_(z) {
@@ -51,6 +53,10 @@ struct CerealObject2 {
     }
 };
 
+/*!
+ * Test struct with more advanced data structures (string, vector)
+ * that provides a cereal interface
+ */
 struct CerealObject
 {
     uint8_t                  x, y;
