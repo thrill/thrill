@@ -13,13 +13,14 @@
 #define C7A_DATA_BLOCK_READER_HEADER
 
 #include <c7a/common/config.hpp>
-#include <c7a/common/item_serializer_tools.hpp>
+#include <c7a/common/item_serialization_tools.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block.hpp>
-#include <c7a/data/serializer.hpp>
+#include <c7a/data/serialization.hpp>
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 namespace c7a {
 namespace data {
@@ -39,12 +40,6 @@ class BlockReader
 {
 public:
     static const bool self_verify = common::g_self_verify;
-
-    using Byte = unsigned char;
-
-    using Block = typename BlockSource::Block;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = typename BlockSource::VirtualBlock;
 
     //! Start reading a File
     explicit BlockReader(BlockSource&& source)
@@ -72,7 +67,7 @@ public:
                           "with different typeid!");
             }
         }
-        return Deserialize<BlockReader, T>(*this);
+        return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
     //! HasNext() returns true if at least one more byte is available.
@@ -184,9 +179,15 @@ public:
         // than one block necessary for Next if an item is large!
 
         block_collect_ = &out;
-        while (n > 0) {
-            Next<ItemType>();
-            --n;
+        if (Serialization<BlockReader, ItemType>::is_fixed_size) {
+            Skip(n, n * ((self_verify ? sizeof(size_t) : 0) +
+                         Serialization<BlockReader, ItemType>::fixed_size));
+        }
+        else {
+            while (n > 0) {
+                Next<ItemType>();
+                --n;
+            }
         }
         block_collect_ = nullptr;
 
@@ -238,6 +239,22 @@ public:
         return out;
     }
 
+    //! Advance the cursor given number of bytes without reading them.
+    BlockReader & Skip(size_t items, size_t bytes) {
+        while (current_ + bytes > end_) {
+            bytes -= end_ - current_;
+            // deduct number of remaining items in skipped block from item skip
+            // counter.
+            items -= nitems_;
+            if (!NextBlock())
+                throw std::runtime_error("Data underflow in BlockReader.");
+        }
+        current_ += bytes;
+        // the last line skipped over the remaining "items" number of items.
+        nitems_ -= items;
+        return *this;
+    }
+
     //! Fetch a single byte from the current block, advancing the cursor.
     Byte GetByte() {
         // loop, since blocks can actually be empty.
@@ -281,7 +298,7 @@ protected:
     size_t first_item_;
 
     //! remaining number of items starting in this block
-    size_t nitems_;
+    size_t nitems_ = 0;
 
     //! pointer to vector to collect blocks in GetItemRange.
     std::vector<VirtualBlock>* block_collect_ = nullptr;

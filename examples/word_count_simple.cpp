@@ -9,7 +9,6 @@
 
 #include "word_count_user_program.cpp"
 
-#include <c7a/api/bootstrap.hpp>
 #include <c7a/c7a.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 

@@ -25,14 +25,9 @@ namespace data {
  * Pure virtual base class for all things that can receive Blocks from a
  * BlockWriter.
  */
-template <size_t BlockSize>
 class BlockSink
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockPtr = std::shared_ptr<Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
 

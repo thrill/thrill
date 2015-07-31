@@ -59,11 +59,14 @@ public:
     std::string NodeStyle() const {
         if (type_.compare("DOp") == 0) {
             return label_ + " [style=filled, fillcolor=red, shape=box]";
-        } else if (type_.compare("Action") == 0) {
+        }
+        else if (type_.compare("Action") == 0) {
             return label_ + " [style=filled, fillcolor=yellow, shape=diamond]";
-        } else if (type_.compare("LOp") == 0) {
+        }
+        else if (type_.compare("LOp") == 0) {
             return label_ + " [style=filled, fillcolor=blue, shape=hexagon]";
-        } else {
+        }
+        else {
             return label_;
         }
     }
@@ -91,7 +94,7 @@ public:
 
     virtual ~StatsGraph() { }
 
-    StatsNode* AddNode(const std::string& label, const std::string& type) {
+    StatsNode * AddNode(const std::string& label, const std::string& type) {
         StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
         nodes_.push_back(node);
         return node;
@@ -107,7 +110,7 @@ public:
         std::ofstream file(path);
         file << "digraph {\n";
         for (const auto& node : nodes_) {
-            file << "\t" << node->NodeStyle() << ";\n"; 
+            file << "\t" << node->NodeStyle() << ";\n";
         }
         file << "\n";
         for (const auto& node : nodes_) {

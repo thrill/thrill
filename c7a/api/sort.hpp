@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Michael Axtmann <michael.axtmann@kit.edu>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -23,7 +24,11 @@
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/group.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <functional>
+#include <string>
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -421,7 +426,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
     auto sort_stack = shared_node->ProduceStack();
 
     return DIARef<ValueType, decltype(sort_stack)>(
-        shared_node, 
+        shared_node,
         sort_stack,
         { stats_node });
 }

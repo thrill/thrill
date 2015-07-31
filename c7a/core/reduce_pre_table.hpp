@@ -17,9 +17,11 @@
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/block_writer.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,8 +29,8 @@
 namespace c7a {
 namespace core {
 
-template <typename KeyExtractor, typename ReduceFunction, typename EmitterFunction,
-          size_t TargetBlockSize = 1024*1024>
+template <typename KeyExtractor, typename ReduceFunction,
+          const bool RobustKey = false, size_t TargetBlockSize = 16*1024>
 class ReducePreTable
 {
     static const bool debug = false;
@@ -46,13 +48,13 @@ public:
         //! which partition number the item belongs to.
         size_t partition_id;
         //! index within the partition's sub-hashtable of this item
-        size_t partition_offset;
+        size_t local_index;
         //! index within the whole hashtable
         size_t global_index;
 
         hash_result(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
-            partition_offset = p_off;
+            local_index = p_off;
             global_index = g_id;
         }
     };
@@ -92,25 +94,35 @@ protected:
 public:
     typedef std::function<hash_result(Key, ReducePreTable*)> HashFunction;
 
-    ReducePreTable(size_t num_partitions, size_t num_buckets_init_scale,
+    /**
+     * A function to compare two keys
+     */
+    typedef std::function<bool (Key, Key)> EqualToFunction;
+
+    ReducePreTable(size_t num_partitions,
+                   size_t num_buckets_init_scale,
                    size_t num_buckets_resize_scale,
-                   size_t max_num_items_per_bucket, size_t max_num_items_table,
+                   size_t max_num_items_per_bucket,
+                   size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
-                   std::vector<EmitterFunction>& emit,
+                   std::vector<data::BlockWriter>& emit,
                    HashFunction hash_function
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
 
-                             size_t partition_offset = hashed %
+                             size_t local_index = hashed %
                                                        ht->num_buckets_per_partition_;
                              size_t partition_id = hashed % ht->num_partitions_;
                              size_t global_index = partition_id *
                                                    ht->num_buckets_per_partition_ +
-                                                   partition_offset;
-                             hash_result hr(partition_id, partition_offset, global_index);
+                                                   local_index;
+                             hash_result hr(partition_id, local_index, global_index);
                              return hr;
-                         }
-                       )
+                         },
+                   EqualToFunction equal_to_function
+                   = [](Key k1, Key k2) {
+                       return k1 == k2;
+                   })
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -119,7 +131,8 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init();
     }
@@ -127,26 +140,30 @@ public:
     ReducePreTable(size_t partition_size,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
-                   std::vector<EmitterFunction>& emit,
+                   std::vector<data::BlockWriter>& emit,
                    HashFunction hash_function
                        = [](Key v, ReducePreTable* ht) {
                              size_t hashed = std::hash<Key>() (v);
 
-                             size_t partition_offset = hashed %
+                             size_t local_index = hashed %
                                                        ht->num_buckets_per_partition_;
                              size_t partition_id = hashed % ht->num_partitions_;
                              size_t global_index = partition_id *
                                                    ht->num_buckets_per_partition_ +
-                                                   partition_offset;
-                             hash_result hr(partition_id, partition_offset, global_index);
+                                                   local_index;
+                             hash_result hr(partition_id, local_index, global_index);
                              return hr;
-                         }
-                       )
+                         },
+                    EqualToFunction equal_to_function
+                        = [](Key k1, Key k2) {
+                        return k1 == k2;
+                    })
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          equal_to_function_(equal_to_function)
     {
         init();
     }
@@ -173,7 +190,8 @@ public:
     }
 
     void init() {
-        sLOG << "creating reducePreTable with" << emit_.size() << "output emiters";
+        sLOG << "creating reducePreTable with" << emit_.size() << "output emitters";
+
         assert(emit_.size() == num_partitions_);
 
         for (size_t i = 0; i < emit_.size(); i++)
@@ -191,18 +209,31 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
+	/*!
+	 * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+	 * inserts the pair into the hashtable.
+	 */
+    void Insert(const Value& p) {
+        Key key = key_extractor_(p);
+
+        Insert(std::make_pair(key, p));
+    }
+
     /*!
      * Inserts a key/value pair.
      *
      * Optionally, this may be reduce using the reduce function
      * in case the key already exists.
      */
-    void Insert(const Value& p) {
-        Key key = key_extractor_(p);
+    void Insert(const KeyValuePair& kv) {
 
-        hash_result h = hash_function_(key, this);
+        hash_result h = hash_function_(kv.first, this);
 
-        LOG << "key: " << key << " to bucket id: " << h.global_index;
+        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
+        assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
+        assert(h.global_index >= 0 && h.global_index < num_buckets_);
+
+        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
         size_t num_items_bucket = 0;
         BucketBlock* current = vector_[h.global_index];
@@ -214,12 +245,12 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                if (key == bi->first)
+				if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOG << "match of key: " << key
+                    LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
-                    bi->second = reduce_function_(bi->second, p);
+                    bi->second = reduce_function_(bi->second, kv.second);
 
                     LOG << "...finished reduce!";
                     return;
@@ -250,7 +281,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(key, std::move(p));
+        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
 
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
@@ -342,7 +373,12 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    emit_[partition_id](bi->second);
+                    if (RobustKey) {
+                        emit_[partition_id](bi->second);
+                    }
+                    else {
+                        emit_[partition_id](*bi);
+                    }
                 }
 
                 // destroy block and advance to next
@@ -541,11 +577,15 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    log += "(";
-                    log += bi->first;
+                    log += "item: ";
+                    log += std::to_string(i);
+                    log += " (";
+                    log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
+                           ? std::to_string(bi->first) : "_";
                     log += ", ";
-                    //log += bucket_item.second; // TODO(ms): How to convert Value to a string?
-                    log += ") ";
+                    log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
+                           ? std::to_string(bi->second) : "_";
+                    log += ")\n";
                 }
                 current = current->next;
             }
@@ -582,12 +622,16 @@ private:
     KeyExtractor key_extractor_;
 
     ReduceFunction reduce_function_;
-    std::vector<EmitterFunction>& emit_;
+    std::vector<data::BlockWriter>& emit_;
     std::vector<int> emit_stats_;
 
     std::vector<BucketBlock*> vector_;
 
+    //! Hash functions.
     HashFunction hash_function_;
+
+    //! Comparator function for keys.
+    EqualToFunction equal_to_function_;
 };
 
 } // namespace core
