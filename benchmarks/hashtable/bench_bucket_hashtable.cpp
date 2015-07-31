@@ -72,13 +72,13 @@ int main(int argc, char* argv[]) {
         elements[i] = rand() % modulo;
     }
 
-    data::DiscardSink sink;
+    std::vector<data::DiscardSink> sinks(workers);
     std::vector<data::BlockWriter> writers;
-    for (size_t i = 0; i < workers; i++) {
-        writers.emplace_back(&sink);
+    for (size_t i = 0; i != workers; ++i) {
+        writers.emplace_back(sinks[i].GetWriter());
     }
 
-    core::ReducePreTable<decltype(key_ex), decltype(red_fn), data::BlockWriter>
+    core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale, max_num_items_per_bucket,
           max_num_items_table, key_ex, red_fn, writers);
 

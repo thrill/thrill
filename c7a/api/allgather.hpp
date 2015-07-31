@@ -13,6 +13,7 @@
 #define C7A_API_ALLGATHER_HEADER
 
 #include <c7a/api/action_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/collective_communication.hpp>

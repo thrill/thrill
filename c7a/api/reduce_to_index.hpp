@@ -16,6 +16,7 @@
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/types.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
@@ -48,7 +49,8 @@ namespace api {
  * \tparam ReduceFunction Type of the reduce_function
  */
 template <typename ValueType, typename ParentDIARef,
-          typename KeyExtractor, typename ReduceFunction>
+          typename KeyExtractor, typename ReduceFunction,
+          bool PreservesKey, typename InputType>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -70,7 +72,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
-              KeyExtractor, ReduceFunction, Emitter>;
+              KeyExtractor, ReduceFunction>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -112,7 +114,7 @@ public:
           neutral_element_(neutral_element)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](Value input) {
+        auto pre_op_fn = [=](InputType input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -140,7 +142,6 @@ public:
         using ReduceTable
                   = core::ReducePostTable<KeyExtractor,
                                           ReduceFunction,
-                                          std::function<void(const ValueType&)>,
                                           true>;
 
         size_t min_local_index =
@@ -170,14 +171,25 @@ public:
                           max_local_index,
                           neutral_element_);
 
-        //TODO(ts) what we actually wan is to wire callbacks in ctor to push data directly into table
-        auto reader = channel_->OpenReader();
-        sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_;
-        while (reader.HasNext()) {
-            table.Insert(std::move(reader.template Next<Value>()));
-        }
+        if (PreservesKey) {
+            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            auto reader = channel_->OpenReader();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            while (reader.HasNext()) {
+                table.Insert(reader.template Next<Value>());
+            }
 
-        table.Flush();
+            table.Flush();
+        }
+        else {
+            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            auto reader = channel_->OpenReader();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            while (reader.HasNext()) {
+                table.Insert(reader.template Next<KeyValuePair>());
+            }
+            table.Flush();
+        }
     }
 
     void Dispose() override { }
@@ -211,9 +223,9 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<Emitter> emitters_;
+    std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<KeyExtractor, ReduceFunction, Emitter>
+    core::ReducePreTable<KeyExtractor, ReduceFunction>
     reduce_pre_table_;
 
     size_t max_index_;
@@ -223,7 +235,7 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(Value input) {
+    void PreOp(InputType input) {
         reduce_pre_table_.Insert(std::move(input));
     }
 
@@ -241,6 +253,144 @@ private:
         emit_func(input);
     }
 };
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction>
+auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    size_t max_index,
+    ValueType neutral_element) const {
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+            ValueType>::value,
+        "ReduceFunction has the wrong output type");
+
+    static_assert(
+        std::is_same<
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
+                                template arg<0> >::type,
+            ValueType>::value,
+        "KeyExtractor has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<KeyExtractor>::result_type,
+            size_t>::value,
+        "The key has to be an unsigned long int (aka. size_t).");
+
+    using ReduceResultNode
+              = ReduceToIndexNode<DOpResult, DIARef,
+                                  KeyExtractor, ReduceFunction,
+                                  false, ValueType>;
+
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(*this,
+                                             key_extractor,
+                                             reduce_function,
+                                             max_index,
+                                             neutral_element,
+                                             stats_node);
+
+    auto reduce_stack = shared_node->ProduceStack();
+
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { stats_node });
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction>
+auto DIARef<ValueType, Stack>::ReducePairToIndex(
+    const ReduceFunction &reduce_function,
+    size_t max_index,
+    typename common::FunctionTraits<ReduceFunction>::result_type
+    neutral_element) const {
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(common::is_pair<ValueType>::value,
+                  "ValueType is not a pair");
+
+    static_assert(
+        std::is_convertible<
+            typename ValueType::second_type,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename ValueType::second_type,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+            typename ValueType::second_type>::value,
+        "ReduceFunction has the wrong output type");
+
+    static_assert(
+        std::is_same<
+            typename ValueType::first_type,
+            size_t>::value,
+        "The key has to be an unsigned long int (aka. size_t).");
+
+    using Key = typename ValueType::first_type;
+
+    using ReduceResultNode
+              = ReduceToIndexNode<DOpResult, DIARef,
+                                  std::function<Key(Key)>,
+                                  ReduceFunction, false, ValueType>;
+
+    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", "DOp");
+    auto shared_node
+        = std::make_shared<ReduceResultNode>(*this,
+                                             [](Key key) {
+                                                 //This function should not be
+                                                 //called, it is only here to
+                                                 //give the key type to the
+                                                 //hashtables.
+                                                 assert(1 == 0);
+                                                 key = key;
+                                                 return Key();
+                                             },
+                                             reduce_function,
+                                             max_index,
+                                             neutral_element,
+                                             stats_node);
+
+    auto reduce_stack = shared_node->ProduceStack();
+
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { stats_node });
+}
 
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction>
@@ -275,7 +425,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
 
     static_assert(
         std::is_same<
-            typename std::decay<typename common::FunctionTraits<KeyExtractor>::template arg<0> >::type,
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
+                                template arg<0> >::type,
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
@@ -287,7 +438,8 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
 
     using ReduceResultNode
               = ReduceToIndexNode<DOpResult, DIARef,
-                                  KeyExtractor, ReduceFunction>;
+                                  KeyExtractor, ReduceFunction,
+                                  true, ValueType>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
     auto shared_node

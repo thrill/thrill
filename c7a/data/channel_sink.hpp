@@ -29,13 +29,9 @@ namespace data {
  * ChannelSink is an BlockSink that sends data via a network socket to the
  * Channel object on a different worker.
  */
-template <size_t BlockSize>
-class ChannelSink : public BlockSink<BlockSize>
+class ChannelSink : public BlockSink
 {
 public:
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
     using ChannelId = size_t;
 
     //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
@@ -71,13 +67,10 @@ public:
             sLOG << "sending block" << common::hexdump(vb.ToString());
         }
 
-        // TODO(tb): this copies data!
-        net::Buffer payload_buf(vb.data_begin(), vb.size());
-
         dispatcher_->AsyncWrite(
             *connection_,
-            // send out two Buffer, guaranteed to be successive
-            header.Serialize(), std::move(payload_buf));
+            // send out Buffer and VirtualBlock, guaranteed to be successive
+            header.Serialize(), vb);
     }
 
     //! Closes the connection

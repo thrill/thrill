@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/bootstrap.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/lop_node.hpp>
 #include <c7a/api/size.hpp>
@@ -20,6 +19,7 @@
 #include <algorithm>
 #include <random>
 #include <string>
+#include <vector>
 
 using namespace c7a;
 
@@ -28,32 +28,7 @@ using c7a::api::DIARef;
 
 struct MyStruct {
     int a, b;
-    MyStruct(int _a, int _b) : a(_a), b(_b) { }
 };
-
-namespace c7a {
-namespace data {
-namespace serializers {
-
-template <typename Archive>
-struct Impl<Archive, MyStruct>
-{
-    static void Serialize(const MyStruct& x, Archive& ar) {
-        Impl<Archive, int>::Serialize(x.a, ar);
-        Impl<Archive, int>::Serialize(x.b, ar);
-    }
-    static MyStruct Deserialize(Archive& ar) {
-        int a = Impl<Archive, int>::Deserialize(ar);
-        int b = Impl<Archive, int>::Deserialize(ar);
-        return MyStruct(a, b);
-    }
-    static const bool fixed_size = (Impl<Archive, int>::fixed_size &&
-                                    Impl<Archive, int>::fixed_size);
-};
-
-} // namespace serializers
-} // namespace data
-} // namespace c7a
 
 static const size_t test_size = 1000;
 
@@ -117,7 +92,9 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
             // zip
             auto zip_result = zip_input1.Zip(
-                zip_input2, [](size_t a, short b) -> MyStruct { return MyStruct(a, b); });
+                zip_input2, [](size_t a, short b) -> MyStruct {
+                    return { static_cast<int>(a), b };
+                });
 
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();

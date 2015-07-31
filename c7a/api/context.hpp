@@ -12,8 +12,8 @@
 #ifndef C7A_API_CONTEXT_HEADER
 #define C7A_API_CONTEXT_HEADER
 
-#include <c7a/common/stats.hpp>
 #include <c7a/api/stats_graph.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -43,9 +43,9 @@ class Context
 {
 public:
     Context(core::JobManager& job_manager, int local_worker_id)
-        : job_manager_(job_manager), 
+        : job_manager_(job_manager),
           local_worker_id_(local_worker_id)
-        { }
+    { }
 
     //! Returns a reference to the data manager, which gives iterators and
     //! emitters for data.
@@ -82,7 +82,7 @@ public:
         return job_manager_.net_manager().MyRank();
     }
 
-    common::Stats & stats() {
+    common::Stats<ENABLE_STATS> & stats() {
         return stats_;
     }
 
@@ -100,16 +100,60 @@ public:
 
 private:
     core::JobManager& job_manager_;
-    common::Stats stats_;
+    common::Stats<ENABLE_STATS> stats_;
     api::StatsGraph stats_graph_;
 
     //! number of this worker context, 0..p-1, within this compute node.
     int local_worker_id_;
 };
 
+//! Executes the given job startpoint with a context instance.
+//! Startpoint may be called multiple times with concurrent threads and
+//! different context instances.
+//!
+//! \returns 0 if execution was fine on all threads. Otherwise, the first
+//! non-zero return value of any thread is returned.
+int Execute(
+    int argc, char* const* argv,
+    std::function<int(Context&)> job_startpoint,
+    size_t local_worker_count = 1, const std::string& log_prefix = "");
+
+/*!
+ * Function to run a number of workers as locally independent threads, which
+ * still communicate via TCP sockets.
+ */
+void
+ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
+                       std::function<void(Context&)> job_startpoint);
+
+/*!
+ * Helper Function to ExecuteLocalThreads in test suite for many different
+ * numbers of local workers as independent threads.
+ */
+void ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint);
+
+/*!
+ * Function to run a number of mock compute nodes as locally independent
+ * threads, which communicate via internal stream sockets.
+ */
+void
+ExecuteLocalMock(size_t node_count, size_t local_worker_count,
+                 std::function<void(core::JobManager&, size_t)> job_startpoint);
+
+/*!
+ * Helper Function to execute tests using mock networks in test suite for many
+ * different numbers of node and workers as independent threads in one program.
+ */
+void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
+                       const std::string& log_prefix = "");
+
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using c7a::api::Context;
+
 } // namespace c7a
 
 #endif // !C7A_API_CONTEXT_HEADER

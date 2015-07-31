@@ -13,15 +13,16 @@
 #include <c7a/common/cmdline_parser.hpp>
 
 #include <iostream>
+#include <string>
 
-using namespace c7a;
+using namespace c7a; // NOLINT
 
 int main(int argc, const char** argv) {
     core::JobManager jobMan;
     jobMan.Connect(0, net::Endpoint::ParseEndpointList("127.0.0.1:8000"), 1);
     //data::Manager& manager = jobMan.data_manager();
     api::Context ctx(jobMan, 0);
-    common::GetThreadDirectory().NameThisThread("benchmark");
+    common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");
