@@ -23,6 +23,14 @@
 
 using namespace c7a; // NOLINT
 
+//! Creates three threads / workers that work with three context instances
+//! Worker 0 and 1 hold 50% of the DIA each
+//! Data is scattered such that worker 0 transfers 1/3 of his data to worker 1
+//! Worker 1 scatters 2/3 of his data to worker 2
+//! Number of elements depends on the number of bytes.
+//! one RESULT line will be printed for each iteration
+//! All iterations use the same generated data.
+//! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::Context& ctx1, api::Context& ctx2, const std::string& type_as_string) {
     using namespace c7a::common;
