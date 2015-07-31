@@ -88,9 +88,9 @@ public:
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-	using KeyValuePair = std::pair<Key, Value>;
+    using KeyValuePair = std::pair<Key, Value>;
 
-	using EmitterFunction = std::function<void(const Value&)>;
+    using EmitterFunction = std::function<void(const Value&)>;
 
 protected:
     template <typename Key, typename Value>
@@ -159,10 +159,10 @@ public:
         vector_.resize(num_buckets_, nullptr);
     }
 
-	void Insert (const Value& p) {
-		Key key = key_extractor_(p);
-		Insert(std::make_pair(key, p));
-	}
+    void Insert(const Value& p) {
+        Key key = key_extractor_(p);
+        Insert(std::make_pair(key, p));
+    }
 
     /*!
      * Inserts a key/value pair.
@@ -171,10 +171,6 @@ public:
      * in case the key already exists.
      */
     void Insert(const KeyValuePair& p) {
-
-        //Key key = key_extractor_(p);
-
-		
 
         size_t hashed_key = hash_function_(p.first, this);
 

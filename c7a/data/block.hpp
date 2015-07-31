@@ -23,6 +23,9 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
+//! type of underlying memory area
+using Byte = uint8_t;
+
 //! default size of blocks in File, Channel, BlockQueue, etc.
 static const size_t default_block_size = 2 * 1024 * 1024;
 
@@ -33,24 +36,34 @@ static const size_t default_block_size = 2 * 1024 * 1024;
  * read-only between containers using shared_ptr<const Block> reference
  * counting.
  */
-template <size_t BlockSize>
 class Block
 {
-public:
-    //! type of underlying memory area
-    using Byte = unsigned char;
-
-    //! constant size of memory block
-    static const size_t block_size = BlockSize;
-
 protected:
-    //! constant size of memory block
-    static const size_t size_ = BlockSize;
+    //! the allocated size of the buffer in bytes, excluding the size_ field.
+    size_t size_;
 
-    //! the memory block itself
-    Byte data_[size_]; // NOLINT
+    //! the memory block itself follows here.
+    Byte data_[]; // NOLINT
+
+    //! Constructor to initialize Block in a buffer of memory. Protected, use
+    //! Allocate() for construction.
+    explicit Block(size_t size) : size_(size) { }
 
 public:
+    //! Construct a block of given size.
+    static std::shared_ptr<Block> Allocate(size_t block_size) {
+        // allocate a new block of uninitialized memory
+        Block* block =
+            static_cast<Block*>(operator new (sizeof(size_t) + block_size));
+
+        // initialize block using constructor
+        new (block)Block(block_size);
+
+        // wrap allocated Block in a shared_ptr. TODO(tb) figure out how to do
+        // this whole procedure with std::make_shared.
+        return std::shared_ptr<Block>(block);
+    }
+
     //! mutable data accessor to memory block
     Byte * data() { return data_; }
     //! const data accessor to memory block
@@ -70,6 +83,9 @@ public:
     size_t size() const { return size_; }
 };
 
+using BlockPtr = std::shared_ptr<Block>;
+using BlockCPtr = std::shared_ptr<const Block>;
+
 /**
  * VirtualBlock combines a reference to a read-only \ref Block and book-keeping
  * information. The book-keeping metainformation currently is the start of the
@@ -86,15 +102,9 @@ public:
  *        begin     first_item    nitems=5                  end
  * </pre>
  */
-template <size_t BlockSize = default_block_size>
 class VirtualBlock
 {
 public:
-    using Byte = unsigned char;
-
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-
     VirtualBlock() { }
 
     VirtualBlock(const BlockCPtr& block,

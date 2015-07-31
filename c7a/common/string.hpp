@@ -207,6 +207,7 @@ std::string join(const std::string& glue, const Container& parts) {
  * seed it using srand() before calling this function.
  *
  * @param size     length of result
+ * @param rng      Random number generator to use, e.g. std::default_random_engine.
  * @param letters  character set to choose from
  * @return         random string of given length
  */

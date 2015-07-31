@@ -59,32 +59,23 @@ using ChannelId = size_t;
  * expected streams is reached, the channel is marked as finished and no more
  * data will arrive.
  */
-template <size_t BlockSize = default_block_size>
-class ChannelBase
+class Channel
 {
 public:
-    using BlockQueue = data::BlockQueue<BlockSize>;
-    using BlockQueueSource = data::BlockQueueSource<BlockSize>;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
     using ConcatBlockSource = data::ConcatBlockSource<BlockQueueSource>;
     using ConcatBlockReader = BlockReader<ConcatBlockSource>;
 
-    using CachingBlockQueueSource = data::CachingBlockQueueSource<BlockSize>;
     using CachingConcatBlockSource = data::ConcatBlockSource<CachingBlockQueueSource>;
     using CachingConcatBlockReader = BlockReader<CachingConcatBlockSource>;
-
-    using BlockWriter = data::BlockWriterBase<BlockSize>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-    using ChannelSink = data::ChannelSink<BlockSize>;
-    using File = data::FileBase<BlockSize>;
 
     using Reader = BlockQueueReader;
     using ConcatReader = ConcatBlockReader;
     using CachingConcatReader = CachingConcatBlockReader;
 
     //! Creates a new channel instance
-    ChannelBase(const ChannelId& id, net::Group& group,
-                net::DispatcherThread& dispatcher)
+    Channel(const ChannelId& id, net::Group& group,
+            net::DispatcherThread& dispatcher)
         : id_(id),
           queues_(group.Size()),
           cache_files_(group.Size()),
@@ -103,12 +94,12 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    ChannelBase(const ChannelBase&) = delete;
+    Channel(const Channel&) = delete;
     //! non-copyable: delete assignment operator
-    ChannelBase& operator = (const ChannelBase&) = delete;
+    Channel& operator = (const Channel&) = delete;
 
     //! move-constructor
-    ChannelBase(ChannelBase&&) = default;
+    Channel(Channel&&) = default;
 
     const ChannelId & id() const {
         return id_;
@@ -116,15 +107,15 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    std::vector<BlockWriter> OpenWriters() {
+    std::vector<BlockWriter> OpenWriters(size_t block_size = default_block_size) {
         std::vector<BlockWriter> result;
 
         for (size_t worker_id = 0; worker_id < group_.Size(); ++worker_id) {
             if (worker_id == group_.MyRank()) {
-                result.emplace_back(&queues_[worker_id]);
+                result.emplace_back(&queues_[worker_id], block_size);
             }
             else {
-                result.emplace_back(&sinks_[worker_id]);
+                result.emplace_back(&sinks_[worker_id], block_size);
             }
         }
 
@@ -210,8 +201,7 @@ public:
 #else
             if (current != limit) {
                 writers[worker_id].AppendBlocks(
-                    reader.template GetItemBatch<ItemType>(limit - current)
-                    );
+                    reader.template GetItemBatch<ItemType>(limit - current));
                 current = limit;
             }
 #endif
@@ -228,25 +218,25 @@ public:
         }
 
         // close self-loop queues
-        if (!queues_[group_.MyRank()].closed())
+        if (!queues_[group_.MyRank()].write_closed())
             queues_[group_.MyRank()].Close();
 
         // wait for close packets to arrive (this is a busy waiting loop, try to
         // do it better -tb)
         for (size_t i = 0; i != queues_.size(); ++i) {
-            while (!queues_[i].closed()) {
+            while (!queues_[i].write_closed()) {
                 LOG << "wait for close from worker" << i;
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
     }
 
-    //! Indicates if the channel is closed - meaining all remite streams have
+    //! Indicates if the channel is closed - meaning all remite streams have
     //! been closed. This does *not* include the loopback stream
     bool closed() const {
         bool closed = true;
         for (auto& q : queues_) {
-            closed = closed && q.closed();
+            closed = closed && q.write_closed();
         }
         return closed;
     }
@@ -268,7 +258,6 @@ protected:
     net::Group& group_;
     net::DispatcherThread& dispatcher_;
 
-    template <size_t block_size>
     friend class ChannelMultiplexer;
 
     //! called from ChannelMultiplexer when there is a new Block on a
@@ -290,12 +279,11 @@ protected:
     //! received.
     void OnCloseStream(size_t from) {
         assert(from < queues_.size());
-        assert(!queues_[from].closed());
+        assert(!queues_[from].write_closed());
         queues_[from].Close();
     }
 };
 
-using Channel = ChannelBase<data::default_block_size>;
 using ChannelPtr = std::shared_ptr<Channel>;
 
 //! \}

@@ -97,8 +97,9 @@ public:
      */
     TwoZipNode(const ParentDIARef0& parent0,
                const ParentDIARef1& parent1,
-               ZipFunction zip_function)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode"),
+               ZipFunction zip_function,
+               StatsNode* stats_node)
+        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode", stats_node),
           zip_function_(zip_function)
     {
         // // Hook PreOp(s)
@@ -329,19 +330,20 @@ auto DIARef<ValueType, Stack>::Zip(
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
+    StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
+    second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
         = std::make_shared<ZipResultNode>(*this,
                                           second_dia,
-                                          zip_function);
+                                          zip_function,
+                                          stats_node);
 
     auto zip_stack = zip_node->ProduceStack();
 
-    StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
-    second_dia.AppendChildStatsNode(stats_node);
-    return DIARef<ZipResult, decltype(zip_stack)> (
-            zip_node, 
-            zip_stack,
-            { stats_node });
+    return DIARef<ZipResult, decltype(zip_stack)>(
+        zip_node,
+        zip_stack,
+        { stats_node });
 }
 
 //! \}

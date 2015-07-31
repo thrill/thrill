@@ -29,14 +29,11 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-template <size_t BlockSize>
 class FileBlockSource;
-
-template <size_t BlockSize>
 class CachingBlockQueueSource;
 
 /*!
- * A File or generally FileBase<BlockSize> is an ordered sequence of
+ * A File or generally File<> is an ordered sequence of
  * VirtualBlock objects for storing items. By using the VirtualBlock
  * indirection, the File can be composed using existing Block objects (via
  * reference counting), but only contain a subset of the items in those
@@ -50,19 +47,11 @@ class CachingBlockQueueSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-template <size_t BlockSize>
-class FileBase : public BlockSink<BlockSize>
+class File : public BlockSink
 {
 public:
-    enum { block_size = BlockSize };
-
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = data::VirtualBlock<BlockSize>;
-
-    using FileBlockSource = data::FileBlockSource<BlockSize>;
-
-    using Writer = BlockWriterBase<BlockSize>;
+    using BlockSource = FileBlockSource;
+    using Writer = BlockWriter;
     using Reader = BlockReader<FileBlockSource>;
 
     //! Append a block to this file, the block must contain given number of
@@ -97,7 +86,7 @@ public:
     }
 
     //! Return the number of bytes used by the underlying blocks
-    size_t TotalBytes() const { return NumBlocks() * block_size; }
+    //size_t TotalBytes() const { return NumBlocks() * block_size; }
 
     //! Return shared pointer to a block
     const VirtualBlock & virtual_block(size_t i) const {
@@ -112,8 +101,8 @@ public:
     }
 
     //! Get BlockWriter.
-    Writer GetWriter() {
-        return Writer(this);
+    Writer GetWriter(size_t block_size = default_block_size) {
+        return Writer(this, block_size);
     }
 
     //! Get BlockReader for beginning of File
@@ -128,8 +117,17 @@ public:
     template <typename ItemType>
     std::vector<VirtualBlock> GetItemRange(size_t begin, size_t end) const;
 
+    //! Read complete File into a std::string, obviously, this should only be
+    //! used for debugging!
+    std::string ReadComplete() const {
+        std::string output;
+        for (const VirtualBlock& vb : virtual_blocks_)
+            output += vb.ToString();
+        return output;
+    }
+
     //! Output the Block objects contained in this File.
-    friend std::ostream& operator << (std::ostream& os, const FileBase& f) {
+    friend std::ostream& operator << (std::ostream& os, const File& f) {
         os << "[File " << std::hex << &f << std::dec
            << " Blocks=[";
         for (const VirtualBlock& vb : f.virtual_blocks_)
@@ -148,32 +146,20 @@ protected:
     std::vector<size_t> nitems_sum_;
 
     //! for access to blocks_ and used_
-    friend class data::FileBlockSource<BlockSize>;
+    friend class data::FileBlockSource;
 
     //! Closed files can not be altered
     bool closed_ = false;
 };
-
-//! Default File class, using the default block size.
-using File = FileBase<default_block_size>;
 
 /*!
  * A BlockSource to read Blocks from a File. The FileBlockSource mainly contains
  * an index to the current block, which is incremented when the NextBlock() must
  * be delivered.
  */
-template <size_t BlockSize>
 class FileBlockSource
 {
 public:
-    using Byte = unsigned char;
-
-    using FileBase = data::FileBase<BlockSize>;
-
-    using Block = data::Block<BlockSize>;
-    using BlockCPtr = std::shared_ptr<const Block>;
-    using VirtualBlock = typename data::VirtualBlock<BlockSize>;
-
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
     VirtualBlock NextBlock() {
@@ -200,21 +186,21 @@ public:
 
 protected:
     //! Start reading a File
-    FileBlockSource(const FileBase& file,
+    FileBlockSource(const File& file,
                     size_t first_block = 0, size_t first_item = keep_first_item)
         : file_(file), first_block_(first_block), first_item_(first_item) {
         current_block_ = first_block_ - 1;
     }
 
     //! for calling the protected constructor
-    friend class data::FileBase<BlockSize>;
-    friend class data::CachingBlockQueueSource<BlockSize>;
+    friend class data::File;
+    friend class data::CachingBlockQueueSource;
 
     //! sentinel value for not changing the first_item item
     static const size_t keep_first_item = size_t(-1);
 
     //! file to read blocks from
-    const FileBase& file_;
+    const File& file_;
 
     //! index of current block.
     size_t current_block_ = -1;
@@ -227,16 +213,14 @@ protected:
 };
 
 //! Get BlockReader for beginning of File
-template <size_t BlockSize>
-typename FileBase<BlockSize>::Reader FileBase<BlockSize>::GetReader() const {
+inline typename File::Reader File::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
 }
 
 //! Get BlockReader seeked to the corresponding item index
-template <size_t BlockSize>
 template <typename ItemType>
-typename FileBase<BlockSize>::Reader
-FileBase<BlockSize>::GetReaderAt(size_t index) const {
+typename File::Reader
+File::GetReaderAt(size_t index) const {
     static const bool debug = false;
 
     // perform binary search for item block with largest exclusive size
@@ -261,13 +245,25 @@ FileBase<BlockSize>::GetReaderAt(size_t index) const {
     // skip over extra items in beginning of block
     size_t items_before = it == nitems_sum_.begin() ? 0 : *(it - 1);
 
-    sLOG << "items_before" << items_before;
+    sLOG << "items_before" << items_before << "index" << index
+         << "delta" << (index - items_before);
+    assert(items_before <= index);
 
-    // TODO(tb): use fixed_size information to accelerate jump.
-    for (size_t i = items_before; i < index; ++i) {
-        if (!fr.HasNext())
-            die("Underflow in GetItemRange()");
-        fr.template Next<ItemType>();
+    // use fixed_size information to accelerate jump.
+    if (Serialization<Reader, ItemType>::is_fixed_size)
+    {
+        const size_t skip_items = index - items_before;
+        fr.Skip(skip_items,
+                skip_items * ((Reader::self_verify ? sizeof(size_t) : 0) +
+                              Serialization<Reader, ItemType>::fixed_size));
+    }
+    else
+    {
+        for (size_t i = items_before; i < index; ++i) {
+            if (!fr.HasNext())
+                die("Underflow in GetItemRange()");
+            fr.template Next<ItemType>();
+        }
     }
 
     return fr;
@@ -275,10 +271,9 @@ FileBase<BlockSize>::GetReaderAt(size_t index) const {
 
 //! Seek in File: return a VirtualBlock range containing items begin, end of
 //! given type.
-template <size_t BlockSize>
 template <typename ItemType>
-std::vector<typename FileBase<BlockSize>::VirtualBlock>
-FileBase<BlockSize>::GetItemRange(size_t begin, size_t end) const {
+std::vector<VirtualBlock>
+File::GetItemRange(size_t begin, size_t end) const {
     assert(begin <= end);
     // deliver array of remaining virtual blocks
     return GetReaderAt<ItemType>(begin)
