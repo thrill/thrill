@@ -24,8 +24,8 @@
 using namespace c7a; // NOLINT
 
 template <typename Type>
-void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::Context& ctx1, api::Context& ctx2) {
-    auto overall_timer = ctx1.stats().CreateTimer("all runs", "", true);
+void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::Context& ctx1, api::Context& ctx2, const std::string& type_as_string) {
+    using namespace c7a::common;
 
     //prepare file with random data
     auto data0 = generate<Type>(bytes / 2, 1, 100);
@@ -51,31 +51,41 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::
     offsets.push_back( { 0, (size_t)(data1.size() / 3), data1.size() } );
     offsets.push_back( { 0, 0, 0 } );
 
-    //count the number of elements received
-    std::vector<size_t> elements(3, 0);
-
     std::vector<std::shared_ptr<c7a::data::Channel>> channels;
     channels.push_back(ctx0.data_manager().GetNewChannel());
     channels.push_back(ctx1.data_manager().GetNewChannel());
     channels.push_back(ctx2.data_manager().GetNewChannel());
 
-    c7a::common::ThreadPool pool;
+    std::vector<StatsTimer<true>> read_timers(3);
+    std::vector<StatsTimer<true>> write_timers(3);
+
+    ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         for (int id = 0; id < 3; id++) {
-            pool.Enqueue([&files, &channels, &offsets, &elements, id]() {
+            pool.Enqueue([&files, &channels, &offsets, &read_timers, &write_timers, id]() {
+                write_timers[id].Start();
                 channels[id]->Scatter<Type>(files[id], offsets[id]);
+                write_timers[id].Stop();
                 auto reader = channels[id]->OpenReader();
+                read_timers[id].Start();
                 while (reader.HasNext()) {
                     reader.Next<Type>();
-                    elements[id]++;
                 }
+                read_timers[id].Stop();
             });
         }
         pool.LoopUntilEmpty();
-        sLOG1 << "before scatter:" << data0.size() << data1.size() << "0";
-        sLOG1 << "after scatter: " << elements[0] << elements[1] << elements[2];
+        std::cout << "RESULT"
+                  << " datatype=" << type_as_string
+                  << " size=" << bytes
+                  << " write_time_worker0=" << write_timers[0].Microseconds()
+                  << " read_time_worker0="  << read_timers[0].Microseconds()
+                  << " write_time_worker1=" << write_timers[1].Microseconds()
+                  << " read_time_worker1="  << read_timers[1].Microseconds()
+                  << " write_time_worker2=" << write_timers[2].Microseconds()
+                  << " read_time_worker2="  << read_timers[2].Microseconds()
+                  << std::endl;
     }
-    overall_timer->Stop();
 }
 
 int main(int argc, const char** argv) {
@@ -115,13 +125,13 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     if (type == "int")
-        ConductExperiment<int>(bytes, iterations, ctx0, ctx1, ctx2);
+        ConductExperiment<int>(bytes, iterations, ctx0, ctx1, ctx2, type);
     if (type == "string")
-        ConductExperiment<std::string>(bytes, iterations, ctx0, ctx1, ctx2);
+        ConductExperiment<std::string>(bytes, iterations, ctx0, ctx1, ctx2, type);
     if (type == "pair")
-        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx0, ctx1, ctx2);
+        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx0, ctx1, ctx2, type);
     if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx0, ctx1, ctx2);
+        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx0, ctx1, ctx2, type);
 }
 
 /******************************************************************************/

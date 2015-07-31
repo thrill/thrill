@@ -13,6 +13,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
+#include <c7a/common/stats_timer.hpp>
 
 #include "data_generators.hpp"
 
@@ -23,30 +24,35 @@
 using namespace c7a; // NOLINT
 
 template <typename Type>
-void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx) {
-    auto overall_timer = ctx.stats().CreateTimer("all runs", "", true);
-    for (int i = 0; i < iterations; i++) {
+void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
+    using namespace c7a::common;
 
+    for (int i = 0; i < iterations; i++) {
         auto file = ctx.data_manager().GetFile();
         auto writer = file.GetWriter();
         auto data = generate<Type>(bytes, 1, 100);
 
         std::cout << "writing " << bytes << " bytes" << std::endl;
-        auto write_timer = ctx.stats().CreateTimer("write single run", "", true);
+        StatsTimer<true> write_timer(true);
         for (auto& s : data) {
             writer(s);
         }
         writer.Close();
-        write_timer->Stop();
+        write_timer.Stop();
 
         std::cout << "reading " << bytes << " bytes" << std::endl;
         auto reader = file.GetReader();
-        auto read_timer = ctx.stats().CreateTimer("read single run", "", true);
+        StatsTimer<true> read_timer(true);
         while (reader.HasNext())
             reader.Next<Type>();
-        read_timer->Stop();
+        read_timer.Stop();
+        std::cout << "RESULT"
+                  << " datatype=" << type_as_string
+                  << " size=" << bytes
+                  << " write_time=" << write_timer.Microseconds()
+                  << " read_time=" << read_timer.Microseconds()
+                  << std::endl;
     }
-    overall_timer->Stop();
 }
 
 int main(int argc, const char** argv) {
@@ -68,13 +74,13 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     if (type == "int")
-        ConductExperiment<int>(bytes, iterations, ctx);
+        ConductExperiment<int>(bytes, iterations, ctx, type);
     if (type == "string")
-        ConductExperiment<std::string>(bytes, iterations, ctx);
+        ConductExperiment<std::string>(bytes, iterations, ctx, type);
     if (type == "pair")
-        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx);
+        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx, type);
     if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx);
+        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx, type);
 }
 
 /******************************************************************************/
