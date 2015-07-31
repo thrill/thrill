@@ -50,12 +50,6 @@ public:
         cmp_.Connect(group);
     }
 
-    //! Returns a reference to an existing Channel.
-    ChannelPtr GetChannel(const ChannelId id) {
-        assert(cmp_.HasChannel(id));
-        return std::move(cmp_.GetOrCreateChannel(id));
-    }
-
     //! Returns a reference to a new Channel.
     //! This method alters the state of the manager and must be called on all
     //! Workers to ensure correct communication cordination
@@ -72,8 +66,6 @@ public:
 private:
     static const bool debug = false;
     ChannelMultiplexer cmp_;
-
-    Repository<File> files_;
 };
 
 //! \}
