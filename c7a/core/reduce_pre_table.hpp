@@ -29,8 +29,54 @@
 namespace c7a {
 namespace core {
 
+class HashByKey {
+public:
+    template <typename Key, typename ReducePreTable>
+    typename ReducePreTable::hash_result
+    operator() (Key v, ReducePreTable* ht) const {
+
+        using hash_result = typename ReducePreTable::hash_result;
+
+        size_t hashed = std::hash<Key>() (v);
+
+        size_t local_index = hashed % ht->NumBucketsPerPartition();
+        size_t partition_id = hashed % ht->NumPartitions();
+        size_t global_index = partition_id *
+            ht->NumBucketsPerPartition() + local_index;
+        return hash_result(partition_id, local_index, global_index);
+    }
+};
+
+class HashByIndex {
+public:
+
+    size_t max_index_;
+
+    HashByIndex(size_t max_index)
+        : max_index_(max_index)
+    { }
+
+    template <typename ReducePreTable>
+    typename ReducePreTable::hash_result
+    operator() (size_t key, ReducePreTable* ht) const {
+        size_t global_index = key * ht->NumBuckets() / (max_index_ + 1);
+        size_t partition_id = key * ht->NumPartitions() / (max_index_ + 1);
+        size_t partition_offset = global_index -
+            partition_id * ht->NumBucketsPerPartition();
+        return typename ReducePreTable::hash_result(partition_id,
+                                                    partition_offset,
+                                                    global_index);
+    }
+};
+
 template <typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey = false, size_t TargetBlockSize = 16*1024>
+          const bool RobustKey = false,
+          size_t TargetBlockSize = 16*1024,
+          typename HashFunction = HashByKey,
+          typename EqualToFunction = std::equal_to<
+              typename common::FunctionTraits<KeyExtractor>::result_type
+              >
+          >
 class ReducePreTable
 {
     static const bool debug = false;
@@ -92,12 +138,6 @@ protected:
     };
 
 public:
-    typedef std::function<hash_result(Key, ReducePreTable*)> HashFunction;
-
-    /**
-     * A function to compare two keys
-     */
-    typedef std::function<bool (Key, Key)> EqualToFunction;
 
     ReducePreTable(size_t num_partitions,
                    size_t num_buckets_init_scale,
@@ -106,23 +146,8 @@ public:
                    size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-                   HashFunction hash_function
-                       = [](Key v, ReducePreTable* ht) {
-                             size_t hashed = std::hash<Key>() (v);
-
-                             size_t local_index = hashed %
-                                                       ht->num_buckets_per_partition_;
-                             size_t partition_id = hashed % ht->num_partitions_;
-                             size_t global_index = partition_id *
-                                                   ht->num_buckets_per_partition_ +
-                                                   local_index;
-                             hash_result hr(partition_id, local_index, global_index);
-                             return hr;
-                         },
-                   EqualToFunction equal_to_function
-                   = [](Key k1, Key k2) {
-                       return k1 == k2;
-                   })
+                   const HashFunction& hash_function = HashFunction(),
+                   const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
@@ -141,23 +166,8 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-                   HashFunction hash_function
-                       = [](Key v, ReducePreTable* ht) {
-                             size_t hashed = std::hash<Key>() (v);
-
-                             size_t local_index = hashed %
-                                                       ht->num_buckets_per_partition_;
-                             size_t partition_id = hashed % ht->num_partitions_;
-                             size_t global_index = partition_id *
-                                                   ht->num_buckets_per_partition_ +
-                                                   local_index;
-                             hash_result hr(partition_id, local_index, global_index);
-                             return hr;
-                         },
-                    EqualToFunction equal_to_function
-                        = [](Key k1, Key k2) {
-                        return k1 == k2;
-                    })
+                   const HashFunction& hash_function = HashFunction(),
+                   const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -209,10 +219,10 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
-	/*!
-	 * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
-	 * inserts the pair into the hashtable.
-	 */
+        /*!
+         * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+         * inserts the pair into the hashtable.
+         */
     void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
@@ -245,7 +255,7 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-				if (equal_to_function_(kv.first, bi->first))
+                                if (equal_to_function_(kv.first, bi->first))
                 {
                     LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
@@ -405,28 +415,28 @@ public:
     /*!
      * Returns the total num of items.
      */
-    size_t Size() {
+    size_t Size() const {
         return table_size_;
     }
 
     /*!
      * Returns the total num of buckets.
      */
-    size_t NumBuckets() {
+    size_t NumBuckets() const {
         return num_buckets_;
     }
 
     /*!
      * Returns the number of buckets per partition.
      */
-    size_t NumBucketsPerPartition() {
+    size_t NumBucketsPerPartition() const {
         return num_buckets_per_partition_;
     }
 
     /*!
      * Returns the number of partitions.
      */
-    size_t NumPartitions() {
+    size_t NumPartitions() const {
         return num_partitions_;
     }
 
@@ -599,7 +609,7 @@ public:
         return;
     }
 
-private:
+protected:
     size_t num_partitions_;                   // partition size
 
     size_t num_buckets_;                      // num buckets
