@@ -16,6 +16,7 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_writer.hpp>
 
@@ -110,17 +111,10 @@ public:
     };
 
 protected:
-    //! template for constexpr max, because std::max is not good enough.
-    template <typename T>
-    constexpr
-    static const T & max(const T& a, const T& b) {
-        return a > b ? a : b;
-    }
-
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
-        max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+        common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
     //! Block holding reduce key/value pairs.
     struct BucketBlock {
