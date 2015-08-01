@@ -158,12 +158,7 @@ public:
      * \return PostOp function stack
      */
     auto ProduceStack() {
-        // Hook PostOp
-        auto post_op_fn = [=](const ValueType& elem, auto emit_func) {
-                              return this->PostOp(elem, emit_func);
-                          };
-
-        return MakeFunctionStack<ValueType>(post_op_fn);
+        return FunctionStack<ValueType>();
     }
 
     /*!
@@ -200,12 +195,6 @@ private:
         //Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
-    }
-
-    //! Hash recieved elements onto buckets and reduce each bucket to a single value.
-    template <typename Emitter>
-    void PostOp(ValueType input, Emitter emit_func) {
-        emit_func(input);
     }
 };
 
