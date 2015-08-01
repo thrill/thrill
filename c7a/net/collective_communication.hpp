@@ -9,7 +9,7 @@
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
-
+/*
 #pragma once
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
@@ -180,4 +180,4 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
 #endif // !C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
-/******************************************************************************/
+******************************************************************************/
