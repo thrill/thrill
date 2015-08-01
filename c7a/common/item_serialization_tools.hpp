@@ -39,26 +39,26 @@ public:
             w.PutByte(uint8_t(v));
         }
         else if (v < 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 7) & 0x7F));
+            w.PutByte(uint8_t(((v >> 0) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 7) & 0x7F));
         }
         else if (v < 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 14) & 0x7F));
+            w.PutByte(uint8_t(((v >> 0) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 7) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 14) & 0x7F));
         }
         else if (v < 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 21) & 0x7F));
+            w.PutByte(uint8_t(((v >> 0) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 7) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 21) & 0x7F));
         }
         else {
-            w.PutByte((uint8_t)(((v >> 0) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 7) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 28) & 0x7F));
+            w.PutByte(uint8_t(((v >> 0) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 7) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 28) & 0x7F));
         }
 
         return w;
@@ -72,78 +72,76 @@ public:
             w.PutByte(uint8_t(v));
         }
         else if (v < 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 07) & 0x7F));
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 07) & 0x7F));
         }
         else if (v < 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 14) & 0x7F));
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 14) & 0x7F));
         }
         else if (v < 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 21) & 0x7F));
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 21) & 0x7F));
         }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 28) & 0x7F));
+        else if (v < 128llu * 128 * 128 * 128 * 128) {
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 28) & 0x7F));
         }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 35) & 0x7F));
+        else if (v < 128llu * 128 * 128 * 128 * 128 * 128) {
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 28) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 35) & 0x7F));
         }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 42) & 0x7F));
+        else if (v < 128llu * 128 * 128 * 128 * 128 * 128 * 128) {
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 28) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 35) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 42) & 0x7F));
         }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128
-                 * 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 49) & 0x7F));
+        else if (v < 128llu * 128 * 128 * 128 * 128 * 128 * 128 * 128) {
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 28) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 35) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 42) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 49) & 0x7F));
         }
-        else if (v < ((uint64_t)128) * 128 * 128 * 128
-                 * 128 * 128 * 128 * 128 * 128) {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 49) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 56) & 0x7F));
+        else if (v < 128llu * 128 * 128 * 128 * 128 * 128 * 128 * 128 * 128) {
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 28) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 35) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 42) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 49) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 56) & 0x7F));
         }
         else {
-            w.PutByte((uint8_t)(((v >> 00) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 07) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 14) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 21) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 28) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 35) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 42) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 49) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)(((v >> 56) & 0x7F) | 0x80));
-            w.PutByte((uint8_t)((v >> 63) & 0x7F));
+            w.PutByte(uint8_t(((v >> 00) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 07) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 14) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 21) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 28) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 35) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 42) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 49) & 0x7F) | 0x80));
+            w.PutByte(uint8_t(((v >> 56) & 0x7F) | 0x80));
+            w.PutByte(uint8_t((v >> 63) & 0x7F));
         }
 
         return w;
