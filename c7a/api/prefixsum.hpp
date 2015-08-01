@@ -172,10 +172,10 @@ auto DIARef<ValueType, Stack>::PrefixSum(
 
     auto sum_stack = shared_node->ProduceStack();
 
-    return DIARef<ValueType, decltype(sum_stack)> (
-            shared_node, 
-            sum_stack, 
-            { stats_node });
+    return DIARef<ValueType, decltype(sum_stack)>(
+        shared_node,
+        sum_stack,
+        { stats_node });
 }
 
 //! \}

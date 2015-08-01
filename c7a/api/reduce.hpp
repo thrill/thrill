@@ -2,7 +2,8 @@
  * c7a/api/reduce.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
- * * Part of Project c7a.
+ *
+ * Part of Project c7a.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -369,10 +370,10 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)> (
-            shared_node, 
-            reduce_stack,
-            { stats_node });
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { stats_node });
 }
 
 //! \}

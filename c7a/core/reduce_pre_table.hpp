@@ -30,16 +30,16 @@ namespace c7a {
 namespace core {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
-class PreReduceByHashKey {
+class PreReduceByHashKey
+{
 public:
-
     PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
     template <typename ReducePreTable>
     typename ReducePreTable::index_result
-    operator() (Key v, ReducePreTable* ht) const {
+    operator () (Key v, ReducePreTable* ht) const {
 
         using index_result = typename ReducePreTable::index_result;
 
@@ -48,17 +48,17 @@ public:
         size_t local_index = hashed % ht->NumBucketsPerPartition();
         size_t partition_id = hashed % ht->NumPartitions();
         size_t global_index = partition_id *
-            ht->NumBucketsPerPartition() + local_index;
+                              ht->NumBucketsPerPartition() + local_index;
         return index_result(partition_id, local_index, global_index);
     }
+
 private:
     HashFunction hash_function_;
-
 };
 
-class PreReduceByIndex {
+class PreReduceByIndex
+{
 public:
-
     size_t max_index_;
 
     PreReduceByIndex(size_t max_index)
@@ -67,14 +67,14 @@ public:
 
     template <typename ReducePreTable>
     typename ReducePreTable::index_result
-    operator() (size_t key, ReducePreTable* ht) const {
+    operator () (size_t key, ReducePreTable* ht) const {
         size_t global_index = key * ht->NumBuckets() / (max_index_ + 1);
         size_t partition_id = key * ht->NumPartitions() / (max_index_ + 1);
         size_t partition_offset = global_index -
-            partition_id * ht->NumBucketsPerPartition();
+                                  partition_id * ht->NumBucketsPerPartition();
         return typename ReducePreTable::index_result(partition_id,
-                                                    partition_offset,
-                                                    global_index);
+                                                     partition_offset,
+                                                     global_index);
     }
 };
 
@@ -142,7 +142,6 @@ protected:
     };
 
 public:
-
     ReducePreTable(size_t num_partitions,
                    size_t num_buckets_init_scale,
                    size_t num_buckets_resize_scale,
@@ -161,8 +160,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         init();
     }
 
@@ -177,8 +175,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         init();
     }
 
@@ -223,10 +220,10 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
-        /*!
-         * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
-         * inserts the pair into the hashtable.
-         */
+    /*!
+     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+     * inserts the pair into the hashtable.
+     */
     void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
@@ -259,7 +256,7 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                                if (equal_to_function_(kv.first, bi->first))
+                if (equal_to_function_(kv.first, bi->first))
                 {
                     LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";

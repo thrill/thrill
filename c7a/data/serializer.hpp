@@ -183,14 +183,14 @@ struct Serializer<Archive, T, typename std::enable_if<
     static void Serialize(const T& t, Archive& a) {
         LOG << "Type T is " << typeid(T).name();
         serialization_cereal::c7aOutputArchive<Archive> oarchive(a); // Create an output archive
-        oarchive(t);                           // Write the data to the archive
+        oarchive(t);                                                 // Write the data to the archive
     }
 
     //! deserializes an object by using cereal with the c7a-cereal archive
     static T Deserialize(Archive& a) {
-        serialization_cereal::c7aInputArchive<Archive> iarchive(a);  // Create an output archive
+        serialization_cereal::c7aInputArchive<Archive> iarchive(a); // Create an output archive
         T res;
-        iarchive(res);                         // Read the data from the archive
+        iarchive(res);                                              // Read the data from the archive
         return res;
     }
     static const bool fixed_size = false;

@@ -147,17 +147,13 @@ auto Generate(Context & ctx,
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", "DOp");
     auto shared_node =
-        std::make_shared<GenerateResultNode>(ctx,
-                                             generator_function,
-                                             size,
-                                             stats_node);
+        std::make_shared<GenerateResultNode>(
+            ctx, generator_function, size, stats_node);
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (shared_node, 
-                generator_stack,
-                { stats_node });
+    return DIARef<GeneratorResult, decltype(generator_stack)>(
+        shared_node, generator_stack, { stats_node });
 }
 
 //! \}
