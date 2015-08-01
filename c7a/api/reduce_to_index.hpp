@@ -16,7 +16,7 @@
 
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/common/types.hpp>
+#include <c7a/common/functional.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
