@@ -70,7 +70,7 @@ public:
 
     // returns a string that identifies this string instance
     std::string ToString() {
-        return "File@" + std::to_string((size_t) this);
+        return "File@" + std::to_string(reinterpret_cast<uintptr_t>(this));
     }
 
     bool closed() const {

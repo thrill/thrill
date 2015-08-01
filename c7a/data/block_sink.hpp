@@ -28,6 +28,9 @@ namespace data {
 class BlockSink
 {
 public:
+    //! required virtual destructor
+    virtual ~BlockSink() { }
+
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
 
