@@ -17,9 +17,19 @@
 namespace c7a {
 namespace common {
 
+//! global ndebug flag as a boolean, NDEBUG means no debug in Release mode.
+#if NDEBUG
+static const bool g_ndebug = true;
+#else
+static const bool g_ndebug = false;
+#endif
+
+//! debug mode is active, if NDEBUG is false.
+static const bool g_debug_mode = !g_ndebug;
+
 //! global flag to enable code parts doing self-verification. Later this may be
 //! set false if NDEBUG is set in production mode.
-static const bool g_self_verify = true;
+static const bool g_self_verify = g_debug_mode;
 
 } // namespace common
 } // namespace c7a

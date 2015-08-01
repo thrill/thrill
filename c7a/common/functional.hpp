@@ -32,7 +32,7 @@ template <typename T>
 struct is_pair : public std::false_type { };
 
 template <typename S, typename T>
-struct is_pair<std::pair<S, T> > : public std::true_type { };
+struct is_pair<std::pair<S, T> >: public std::true_type { };
 
 } // namespace common
 } // namespace c7a
