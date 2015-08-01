@@ -215,7 +215,7 @@ ExecuteLocalMock(size_t node_count, size_t local_worker_count,
                  std::function<void(core::JobManager&, size_t)> job_startpoint) {
 
     // construct a mock mesh network of JobManagers
-    std::vector<core::JobManager> jm_mesh
+    std::vector<core::JobManagerPtr> jm_mesh
         = core::JobManager::ConstructLocalMesh(node_count, local_worker_count);
 
     // launch initial thread for each compute node.
@@ -224,7 +224,7 @@ ExecuteLocalMock(size_t node_count, size_t local_worker_count,
     for (size_t n = 0; n < node_count; n++) {
         threads[n] = std::thread(
             [&jm_mesh, n, job_startpoint] {
-                job_startpoint(jm_mesh[n], n);
+                job_startpoint(*jm_mesh[n], n);
             });
     }
 
@@ -232,9 +232,6 @@ ExecuteLocalMock(size_t node_count, size_t local_worker_count,
     for (size_t i = 0; i < node_count; i++) {
         threads[i].join();
     }
-
-    // tear down mock mesh of JobManagers
-    // TODO(tb): ???
 }
 
 /*!

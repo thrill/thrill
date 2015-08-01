@@ -43,7 +43,7 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g -fPIC")
 
 # enable AddressSanitizer
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
@@ -216,9 +216,12 @@ endif()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
+# SWIG (optional)
+
+find_package(SWIG)
+include(${SWIG_USE_FILE})
+
 ################################################################################
-
-
 ### Descend into Subdirectories
 
 include_directories(${CMAKE_SOURCE_DIR})
@@ -234,6 +237,11 @@ add_subdirectory(examples)
 
 add_subdirectory(benchmarks)
 
+if(SWIG_FOUND)
+  # build swig frontends
+  add_subdirectory(swig)
+endif()
+
 ###############################################################################
 ### cmake script TRY_COMPILE all stxxl header files
 
@@ -248,7 +256,8 @@ if(TRY_COMPILE_HEADERS)
   list(SORT header_files)
 
   foreach(file ${header_files})
-    string(REPLACE "/" "_" compilename "${file}") # replace / to _ to fix warnings
+    # replace / to _ to fix warnings
+    string(REPLACE "/" "_" compilename "${file}")
     string(REPLACE "." "_" compilename "${compilename}")
 
     check_cxx_source_compiles(
