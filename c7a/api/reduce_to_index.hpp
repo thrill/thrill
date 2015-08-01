@@ -72,8 +72,8 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
-        Key, Value,
-        KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
+              Key, Value,
+              KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
@@ -441,10 +441,10 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)> (
-            shared_node, 
-            reduce_stack,
-            { stats_node });
+    return DIARef<DOpResult, decltype(reduce_stack)>(
+        shared_node,
+        reduce_stack,
+        { stats_node });
 }
 
 //! \}

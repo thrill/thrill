@@ -169,18 +169,13 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", "DOp");
     auto shared_node =
-        std::make_shared<GenerateResultNode>(ctx,
-                                             generator_function,
-                                             filepath,
-                                             size,
-                                             stats_node);
+        std::make_shared<GenerateResultNode>(
+            ctx, generator_function, filepath, size, stats_node);
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (shared_node, 
-                generator_stack,
-                {});
+    return DIARef<GeneratorResult, decltype(generator_stack)>(
+        shared_node, generator_stack, { });
 }
 
 //! \}

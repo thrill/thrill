@@ -251,7 +251,7 @@ public:
         KeyValuePair* initial = &vector_[h.global_index];
         KeyValuePair* current = initial;
         KeyValuePair* next_partition = &vector_[h.global_index -
-                (h.global_index % num_items_per_partition_) + num_items_per_partition_];
+                                                (h.global_index % num_items_per_partition_) + num_items_per_partition_];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {

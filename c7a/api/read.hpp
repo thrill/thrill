@@ -149,10 +149,8 @@ auto ReadLines(Context & ctx, std::string filepath,
                                          stats_node);
 
     auto read_stack = shared_node->ProduceStack();
-    return DIARef<ReadResult, decltype(read_stack)>
-               (shared_node, 
-                read_stack, 
-                { stats_node });
+    return DIARef<ReadResult, decltype(read_stack)>(
+        shared_node, read_stack, { stats_node });
 }
 
 //! \}
