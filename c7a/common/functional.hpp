@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -25,6 +26,13 @@ struct Identity {
         return std::forward<Type>(v);
     }
 };
+
+//thanks to http://stackoverflow.com/a/7127988
+template <typename T>
+struct is_pair : public std::false_type { };
+
+template <typename S, typename T>
+struct is_pair<std::pair<S, T> > : public std::true_type { };
 
 } // namespace common
 } // namespace c7a
