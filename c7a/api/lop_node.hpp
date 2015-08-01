@@ -50,7 +50,7 @@ public:
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
     {
         auto save_fn =
-            [=](ValueType input) {
+            [=](const ValueType& input) {
                 writer_(input);
             };
         auto lop_chain = parent.stack().push(save_fn).emit();
