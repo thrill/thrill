@@ -80,6 +80,12 @@ public:
     //! input type.
     using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
+    DIARef()
+        : node_(nullptr)
+    { }
+
+    bool IsValid() const { return node_.get(); }
+
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
      * function chain from the DIANode to this DIARef.

@@ -18,6 +18,7 @@
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/manager.hpp>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -50,30 +51,30 @@ public:
     //! Construct a mock network, consisting of node_count compute nodes, each
     //! with prospective number of local_worker_count. Delivers constructed
     //! JobManager objects internally connected.
-    static std::vector<JobManager> ConstructLocalMesh(
+    static std::vector<std::shared_ptr<JobManager> > ConstructLocalMesh(
         size_t node_count, size_t local_worker_count) {
 
         // construct list of uninitialized JobManager objects.
-        std::vector<JobManager> jm_mesh(node_count);
+        std::vector<std::shared_ptr<JobManager> > jm_mesh(node_count);
 
         // construct mock net::Manager mesh and distribute to JobManager objects
         std::vector<net::Manager> nm_mesh =
             net::Manager::ConstructLocalMesh(node_count);
 
         for (size_t n = 0; n < node_count; ++n) {
-            JobManager& jm = jm_mesh[n];
+            std::shared_ptr<JobManager> jm = jm_mesh[n] = std::make_shared<JobManager>();
 
             // move associated net::Manager
-            jm.net_manager_ = std::move(nm_mesh[n]);
+            jm->net_manager_ = std::move(nm_mesh[n]);
 
             // perform remaining initialization of this JobManager
-            jm.local_worker_count_ = local_worker_count;
-            jm.data_manager_.Connect(&jm.net_manager_.GetDataGroup());
-            jm.flow_manager_ = new net::FlowControlChannelManager(
-                jm.net_manager_.GetFlowGroup(), local_worker_count);
+            jm->local_worker_count_ = local_worker_count;
+            jm->data_manager_.Connect(&jm->net_manager_.GetDataGroup());
+            jm->flow_manager_ = new net::FlowControlChannelManager(
+                jm->net_manager_.GetFlowGroup(), local_worker_count);
         }
 
-        return std::move(jm_mesh);
+        return jm_mesh;
     }
 
     data::Manager & data_manager() {
@@ -106,6 +107,8 @@ private:
     //! number of processing workers on this compute node.
     size_t local_worker_count_;
 };
+
+using JobManagerPtr = std::shared_ptr<JobManager>;
 
 } // namespace core
 } // namespace c7a
