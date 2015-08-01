@@ -181,9 +181,8 @@ set(C7A_VALGRIND_OPTS
 
 ###############################################################################
 # add cereal
-MESSAGE (${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
 ################################################################################
 ### Find Required Libraries
@@ -221,8 +220,6 @@ endif()
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
 ################################################################################
-
-
 ### Descend into Subdirectories
 
 include_directories(${CMAKE_SOURCE_DIR})
