@@ -42,8 +42,8 @@ protected:
     //! the allocated size of the buffer in bytes, excluding the size_ field.
     size_t size_;
 
-    //! the memory block itself follows here.
-    Byte data_[]; // NOLINT
+    //! the memory block itself follows here, this is just a placeholder
+    Byte data_[1];
 
     //! Constructor to initialize Block in a buffer of memory. Protected, use
     //! Allocate() for construction.
