@@ -235,7 +235,7 @@ add_subdirectory(examples)
 add_subdirectory(benchmarks)
 
 ###############################################################################
-# cmake script TRY_COMPILE all stxxl header files
+### cmake script TRY_COMPILE all stxxl header files
 
 if(TRY_COMPILE_HEADERS)
 
@@ -262,8 +262,5 @@ if(TRY_COMPILE_HEADERS)
   endforeach()
 
 endif(TRY_COMPILE_HEADERS)
-
-################################################################################
-
 
 ################################################################################
