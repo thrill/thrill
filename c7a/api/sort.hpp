@@ -19,7 +19,6 @@
 #include <c7a/api/function_stack.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/math.hpp>
-#include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/group.hpp>
