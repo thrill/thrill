@@ -13,6 +13,8 @@
 #define C7A_COMMON_ATOMIC_MOVABLE_HEADER
 
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <utility>
 
 namespace c7a {
@@ -52,6 +54,44 @@ public:
 
     //! assignment operator (same as std::atomic)
     T operator = (T desired) { return std::atomic<T>::operator = (desired); }
+};
+
+/*! PSEUDO Movable Mutex.
+ * As described above, we do require the move semantic only during
+ * initialization. This mutex breaks any semantics during operation because
+ * the state of the mutex is lost, when move-constructed
+ */
+class MutexMovable : public std::mutex
+{
+public:
+    //! default initialization (same as std::mutex)
+    MutexMovable() = default;
+
+    //! copy-construction (same as std::mutex)
+    MutexMovable(const MutexMovable&) = default;
+
+    //! move-construction NOT same as std::mutex: load and move.
+    MutexMovable(const MutexMovable&& /*rhs*/)
+        : std::mutex() { }
+};
+
+/*! PSEUDO movable ConditionVariableAny.
+ * As described above, we do require the move semantic only during
+ * initialization. This condition variable breaks any semantics during
+ * operation because the state of the cv is lost, when move-constructed
+ */
+class ConditionVariableAnyMovable : public std::condition_variable_any
+{
+public:
+    //! default initialization (same as std::condition_variable_any)
+    ConditionVariableAnyMovable() = default;
+
+    //! copy-construction (same as std::condition_variable_any)
+    ConditionVariableAnyMovable(const ConditionVariableAnyMovable&) = default;
+
+    //! move-construction NOT same as std::condition_variable_any: load and move.
+    ConditionVariableAnyMovable(const ConditionVariableAnyMovable&& /*rhs*/)
+        : std::condition_variable_any() { }
 };
 
 } // namespace common
