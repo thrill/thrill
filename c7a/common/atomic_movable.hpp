@@ -45,8 +45,10 @@ public:
     AtomicMovable(const AtomicMovable&) = default;
 
     //! move-construction NOT same as std::atomic: load and move.
+    //! Requires T to have an ctor that takes an instance of T for
+    //! initialization.
     AtomicMovable(const AtomicMovable&& rhs)
-        : std::atomic<T>(std::move(rhs)) { }
+        : std::atomic<T>(T(std::move(rhs))) { }
 
     //! assignment operator (same as std::atomic)
     T operator = (T desired) { return std::atomic<T>::operator = (desired); }
