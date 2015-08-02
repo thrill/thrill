@@ -15,6 +15,7 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
+#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/connection.hpp>
@@ -28,7 +29,6 @@
 #include <c7a/common/delegate.hpp>
 #endif
 
-#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <deque>
@@ -85,24 +85,9 @@ public:
     //! non-copyable: delete assignment operator
     Dispatcher& operator = (const Dispatcher&) = delete;
     //! move-constructor
-    Dispatcher(Dispatcher&& d)
-        : dispatcher_(std::move(d.dispatcher_)),
-          terminate_(d.terminate_.load()),
-          timer_pq_(std::move(d.timer_pq_)),
-          async_read_(std::move(d.async_read_)),
-          async_write_(std::move(d.async_write_)),
-          async_write_vblock_(std::move(d.async_write_vblock_))
-    { }
+    Dispatcher(Dispatcher&& d) = default;
     //! move-assignment
-    Dispatcher& operator = (Dispatcher&& d) {
-        dispatcher_ = std::move(d.dispatcher_);
-        terminate_ = d.terminate_.load();
-        timer_pq_ = std::move(d.timer_pq_);
-        async_read_ = std::move(d.async_read_);
-        async_write_ = std::move(d.async_write_);
-        async_write_vblock_ = std::move(d.async_write_vblock_);
-        return *this;
-    }
+    Dispatcher& operator = (Dispatcher&& d) = default;
 
     //! \name Timeout Callbacks
     //! \{
@@ -300,7 +285,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    std::atomic<bool> terminate_ { false };
+    common::atomic_movable<bool> terminate_ { false };
 
     //! struct for timer callbacks
     struct Timer
