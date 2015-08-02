@@ -141,10 +141,10 @@ private:
     void FindAndSendSplitters(
         std::vector<ValueType>& splitters, size_t sample_size) {
         // Get samples from other workers
-        size_t num_workers = context_.number_worker();
+        size_t num_total_workers = context_.max_rank() + 1;
 
         std::vector<ValueType> samples;
-        samples.reserve(sample_size * num_workers);
+        samples.reserve(sample_size * num_total_workers);
         auto reader = channel_id_samples_->OpenReader();
 
         while (reader.HasNext()) {
@@ -154,17 +154,17 @@ private:
         // Find splitters
         std::sort(samples.begin(), samples.end(), compare_function_);
 
-        size_t splitting_size = samples.size() / num_workers;
+        size_t splitting_size = samples.size() / num_total_workers;
 
         // Send splitters to other workers
-        for (size_t i = 1; i < num_workers; i++) {
+        for (size_t i = 1; i < num_total_workers; i++) {
             splitters.push_back(samples[i * splitting_size]);
-            for (size_t j = 1; j < num_workers; j++) {
+            for (size_t j = 1; j < num_total_workers; j++) {
                 emitters_samples_[j](samples[i * splitting_size]);
             }
         }
 
-        for (size_t j = 1; j < num_workers; j++) {
+        for (size_t j = 1; j < num_total_workers; j++) {
             emitters_samples_[j].Close();
         }
     }
@@ -305,7 +305,7 @@ private:
         size_t prefix_elem = channel.PrefixSum(data_.size());
         size_t total_elem = channel.AllReduce(data_.size());
 
-        size_t num_workers = context_.number_worker();
+        size_t num_total_workers = context_.max_rank() + 1;
         size_t sample_size =
             common::IntegerLog2Ceil(total_elem) *
             (1 / (desired_imbalance_ * desired_imbalance_));
@@ -323,8 +323,8 @@ private:
         }
         emitters_samples_[0].Close();
 
-        // Get the ceiling of log(num_workers), as SSSS needs 2^n buckets.
-        size_t ceil_log = common::IntegerLog2Ceil(num_workers);
+        // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
+        size_t ceil_log = common::IntegerLog2Ceil(num_total_workers);
         size_t workers_algo = 1 << ceil_log;
         size_t splitter_count_algo = workers_algo - 1;
 
@@ -336,7 +336,7 @@ private:
         }
         else {
             // Close unused emitters
-            for (size_t j = 1; j < num_workers; j++) {
+            for (size_t j = 1; j < num_total_workers; j++) {
                 emitters_samples_[j].Close();
             }
             auto reader = channel_id_samples_->OpenReader();
@@ -350,7 +350,7 @@ private:
         ValueType* splitter_tree = new ValueType[workers_algo + 1];
 
         // add sentinel splitters if fewer nodes than splitters.
-        for (size_t i = num_workers; i < workers_algo; i++) {
+        for (size_t i = num_total_workers; i < workers_algo; i++) {
             splitters.push_back(splitters.back());
         }
 
@@ -362,7 +362,7 @@ private:
             splitter_tree, // Tree. sizeof |splitter|
             workers_algo,  // Number of buckets
             ceil_log,
-            num_workers,
+            num_total_workers,
             splitters.data(),
             prefix_elem,
             total_elem);

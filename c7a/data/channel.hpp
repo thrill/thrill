@@ -180,8 +180,6 @@ public:
      */
     template <typename ItemType>
     void Scatter(const File& source, const std::vector<size_t>& offsets) {
-        assert(offsets.size() == group_.Size());
-
         // current item offset in Reader
         size_t current = 0;
         typename File::Reader reader = source.GetReader();
