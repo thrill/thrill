@@ -194,6 +194,4 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
 #endif // !C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
-******************************************************************************/
-
 /******************************************************************************/
