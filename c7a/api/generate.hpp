@@ -80,17 +80,14 @@ public:
         static_assert(std::is_convertible<size_t, InputArgument>::value,
                       "The GeneratorFunction needs a size_t as input parameter");
 
-        size_t offset = (size_ / context_.number_worker()) * context_.rank();
-        size_t local_elements;
+        size_t elements_per_worker = (size_ / (context_.max_rank() + 1));
+        size_t offset = elements_per_worker * context_.rank();
+        size_t local_elements = elements_per_worker;
 
-        if (context_.number_worker() == context_.rank() + 1) {
-            //last worker gets leftovers
-            local_elements = size_ -
-                             ((context_.number_worker() - 1) *
-                              (size_ / context_.number_worker()));
-        }
-        else {
-            local_elements = (size_ / context_.number_worker());
+        //last worker might has less elements than others
+        if (context_.max_rank() == context_.rank() && context_.max_rank() > 0) {
+            size_t elements_of_workers_before = elements_per_worker * context_.max_rank();
+            local_elements = size_ - elements_of_workers_before;
         }
 
         for (size_t i = 0; i < local_elements; i++) {

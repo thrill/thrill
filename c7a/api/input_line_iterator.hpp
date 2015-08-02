@@ -25,10 +25,10 @@ class InputLineIterator
 public:
     //! Creates an instance of iterator that reads file line based
     InputLineIterator(std::ifstream& file,
-                      size_t my_id,
+                      size_t my_node_id,
                       size_t num_workers)
         : file_(file),
-          my_id_(my_id),
+          my_node_id_(my_node_id),
           num_workers_(num_workers) {
         //Find file size and save it
         file_.seekg(0, std::ios::end);
@@ -36,19 +36,19 @@ public:
 
         //Go to start of 'local part'.
         std::streampos per_worker = file_size_ / num_workers_;
-        std::streampos my_start = per_worker * my_id_;
-        if (my_id_ == (num_workers - 1)) {
+        std::streampos my_start = per_worker * my_node_id_;
+        if (my_node_id_ == (num_workers)) {
             my_end_ = file_size_ - 1;
         }
         else {
-            my_end_ = per_worker * (my_id_ + 1) - 1;
+            my_end_ = per_worker * (my_node_id_ + 1) - 1;
         }
 
         file_.seekg(my_start, std::ios::beg);
 
         //Go to next new line if the stream-pointer is not at the beginning of a line
-        if (my_id != 0) {
-            std::streampos previous = (per_worker * my_id_) - 1;
+        if (my_node_id != 0) {
+            std::streampos previous = (per_worker * my_node_id_) - 1;
             file_.seekg(previous, std::ios::beg);
             //file_.unget();
             if (file_.get() != '\n') {
@@ -78,7 +78,7 @@ private:
     //!File size in bytes
     size_t file_size_;
     //!Worker ID
-    size_t my_id_;
+    size_t my_node_id_;
     //!Total number of workers
     size_t num_workers_;
     //!End of local block

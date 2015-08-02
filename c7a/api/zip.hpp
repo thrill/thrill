@@ -212,7 +212,7 @@ private:
     //! Scatter items from DIA "in" to other workers if necessary.
     template <typename ZipArgNum>
     void DoScatter(size_t in) {
-        const size_t workers = context_.number_worker();
+        const size_t workers = context_.max_rank() + 1;
 
         size_t local_begin =
             std::min(result_size_,
