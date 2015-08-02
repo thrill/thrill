@@ -96,8 +96,8 @@ public:
     using TimerCallback = function<bool()>;
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(const std::chrono::milliseconds& timeout,
-                            const TimerCallback& cb) {
+    void AddTimer(const std::chrono::milliseconds& timeout,
+                  const TimerCallback& cb) {
         timer_pq_.emplace(steady_clock::now() + timeout,
                           std::chrono::duration_cast<milliseconds>(timeout),
                           cb);
