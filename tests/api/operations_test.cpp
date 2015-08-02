@@ -30,40 +30,36 @@ using c7a::api::Context;
 using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
+    api::ExecuteSameThread([](api::Context& ctx) {
+        std::random_device random_device;
+        std::default_random_engine generator(random_device());
+        std::uniform_int_distribution<int> distribution(1000, 10000);
 
-    std::vector<std::string> self = { "127.0.0.1:1234" };
-    core::JobManager jobMan;
-    jobMan.Connect(0, net::Endpoint::ParseEndpointList(self), 1);
-    Context ctx(jobMan, 0);
+        size_t generate_size = distribution(generator);
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1000, 10000);
+        auto input = GenerateFromFile(
+            ctx,
+            "test1",
+            [](const std::string& line) {
+                return std::stoi(line);
+            },
+            generate_size);
 
-    size_t generate_size = distribution(generator);
+        size_t writer_size = 0;
 
-    auto input = GenerateFromFile(
-        ctx,
-        "test1",
-        [](const std::string& line) {
-            return std::stoi(line);
-        },
-        generate_size);
+        input.Map(
+            [&writer_size](const int& item) {
+                //file contains ints between 1  and 15
+                //fails if wrong integer is generated
+                EXPECT_GE(item, 1);
+                EXPECT_GE(16, item);
+                writer_size++;
+                return std::to_string(item) + "\n";
+            })
+        .WriteToFileSystem("test1.out");
 
-    size_t writer_size = 0;
-
-    input.Map(
-        [&writer_size](const int& item) {
-            //file contains ints between 1  and 15
-            //fails if wrong integer is generated
-            EXPECT_GE(item, 1);
-            EXPECT_GE(16, item);
-            writer_size++;
-            return std::to_string(item) + "\n";
-        })
-    .WriteToFileSystem("test1.out");
-
-    ASSERT_EQ(generate_size, writer_size);
+        ASSERT_EQ(generate_size, writer_size);
+    });
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
