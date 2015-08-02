@@ -8,6 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/api/context.hpp>
 #include <c7a/api/read.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/common/cmdline_parser.hpp>
@@ -18,11 +19,7 @@
 using namespace c7a; // NOLINT
 
 int main(int argc, const char** argv) {
-    core::JobManager jobMan;
-    jobMan.Connect(0, net::Endpoint::ParseEndpointList("127.0.0.1:8000"), 1);
     //data::Manager& manager = jobMan.data_manager();
-    api::Context ctx(jobMan, 0);
-    common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");
@@ -32,13 +29,15 @@ int main(int argc, const char** argv) {
     clp.AddParamString("o", output_file, "Output file");
     if (!clp.Process(argc, argv)) return -1;
 
-    auto overall_timer = ctx.stats().CreateTimer("overall", "", true);
+    api::ExecuteSameThread([&input_file, &output_file](api::Context& ctx) {
+        auto overall_timer = ctx.stats().CreateTimer("overall", "", true);
 
-    auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
+        auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
 
-    lines.WriteToFileSystem(output_file);
+        lines.WriteToFileSystem(output_file);
 
-    overall_timer->Stop();
+        overall_timer->Stop();
+    });
 }
 
 /******************************************************************************/
