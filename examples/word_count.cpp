@@ -7,18 +7,21 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include "word_count_user_program.cpp"
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
+#include <c7a/examples/word_count.hpp>
+
+using namespace c7a;
 
 int main(int argc, char* argv[]) {
 
     size_t elements = pow(2, 10);
-    std::function<int(c7a::api::Context&)> start_func = [elements](c7a::api::Context& ctx) {
-                                                            return word_count_generated(ctx, elements);
-                                                        };
+    std::function<int(api::Context&)> start_func =
+        [elements](api::Context& ctx) {
+            return examples::word_count_generated(ctx, elements);
+        };
 
-    return c7a::api::Execute(argc, argv, start_func);
+    return api::Execute(argc, argv, start_func);
 }
 
 /******************************************************************************/

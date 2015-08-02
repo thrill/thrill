@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count_user_program.cpp
+ * c7a/examples/word_count.hpp
  *
  * Part of Project c7a.
  *
@@ -7,6 +7,10 @@
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
+
+#pragma once
+#ifndef C7A_EXAMPLES_WORD_COUNT_HEADER
+#define C7A_EXAMPLES_WORD_COUNT_HEADER
 
 #include <c7a/c7a.hpp>
 #include <c7a/common/string.hpp>
@@ -16,8 +20,8 @@
 #include <string>
 #include <utility>
 
-using c7a::Context;
-using c7a::DIARef;
+namespace c7a {
+namespace examples {
 
 using WordCount = std::pair<std::string, int>;
 
@@ -27,8 +31,8 @@ auto word_count_user(DIARef<std::string, InStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCount>(
         [](std::string line, auto emit) -> void {
-            /* map lambda */
-            for (const std::string& word : c7a::common::split(line, ' ')) {
+                /* map lambda */
+            for (const std::string& word : common::split(line, ' ')) {
                 if (word.size() != 0)
                     emit(WordCount(word, 1));
             }
@@ -85,5 +89,10 @@ int word_count_generated(Context& ctx, size_t size) {
         "wordcount_" + std::to_string(ctx.rank()) + ".out");
     return 0;
 }
+
+} // namespace examples
+} // namespace c7a
+
+#endif // !C7A_EXAMPLES_WORD_COUNT_HEADER
 
 /******************************************************************************/

@@ -10,7 +10,7 @@
 
 #include <c7a/c7a.hpp>
 #include <c7a/common/string.hpp>
-#include <examples/word_count_user_program.cpp>
+#include <c7a/examples/word_count.hpp>
 
 #include <gtest/gtest.h>
 
@@ -20,11 +20,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a::core;
-using namespace c7a::net;
-
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace c7a;
 
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 
@@ -39,7 +35,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
                     return line;
                 });
 
-            auto red_words = word_count_user(lines);
+            auto red_words = examples::word_count_user(lines);
 
             std::vector<WordPair> words = red_words.AllGather();
 
@@ -64,22 +60,22 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
             ASSERT_EQ(std::make_pair(this_str, 1), words[4]);
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(WordCount, Generate1024DoesNotCrash) {
 
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { word_count_generated(ctx, 1024); };
+        [](Context& ctx) { examples::word_count_generated(ctx, 1024); };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { word_count(ctx); };
+        [](Context& ctx) { examples::word_count(ctx); };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/
