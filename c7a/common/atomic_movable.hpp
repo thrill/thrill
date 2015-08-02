@@ -28,24 +28,24 @@ namespace common {
  * all our cases we only move objects during initialization. Custom move
  * operations are trivial to write but error-prone to maintain, since they must
  * contain all member variables. Missing variables create very subtle bugs,
- * hence it is better to use this atomic_movable class.
+ * hence it is better to use this AtomicMovable class.
  */
 template <typename T>
-class atomic_movable : public std::atomic<T>
+class AtomicMovable : public std::atomic<T>
 {
 public:
     //! default initialization (same as std::atomic)
-    atomic_movable() = default;
+    AtomicMovable() = default;
 
     //! value initialization (same as std::atomic)
-    constexpr atomic_movable(T desired)
+    constexpr AtomicMovable(T desired)
         : std::atomic<T>(desired) { }
 
     //! copy-construction (same as std::atomic)
-    atomic_movable(const atomic_movable&) = default;
+    AtomicMovable(const AtomicMovable&) = default;
 
     //! move-construction NOT same as std::atomic: load and move.
-    atomic_movable(const atomic_movable&& rhs)
+    AtomicMovable(const AtomicMovable&& rhs)
         : std::atomic<T>(std::move(rhs)) { }
 
     //! assignment operator (same as std::atomic)
