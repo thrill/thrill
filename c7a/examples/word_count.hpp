@@ -23,34 +23,34 @@
 namespace c7a {
 namespace examples {
 
-using WordCount = std::pair<std::string, int>;
+using WordCountPair = std::pair<std::string, size_t>;
 
+//! The WordCount user program: reads a DIA containing std::string words, and
+//! returns a DIA containing WordCountPairs.
 template <typename InStack>
-auto word_count_user(DIARef<std::string, InStack>&input) {
-    using WordCount = std::pair<std::string, int>;
+auto WordCount(const DIARef<std::string, InStack>&input) {
 
-    auto word_pairs = input.template FlatMap<WordCount>(
-        [](std::string line, auto emit) -> void {
-                /* map lambda */
+    auto word_pairs = input.template FlatMap<WordCountPair>(
+        [](const std::string& line, auto emit) -> void {
+                /* map lambda: emit each word */
             for (const std::string& word : common::split(line, ' ')) {
                 if (word.size() != 0)
-                    emit(WordCount(word, 1));
+                    emit(WordCountPair(word, 1));
             }
         });
 
     return word_pairs.ReduceBy(
-        [](const WordCount& in) -> std::string {
+        [](const WordCountPair& in) -> std::string {
             /* reduction key: the word string */
             return in.first;
         },
-        [](const WordCount& a, const WordCount& b) -> WordCount {
+        [](const WordCountPair& a, const WordCountPair& b) -> WordCountPair {
             /* associative reduction operator: add counters */
-            return WordCount(a.first, a.second + b.second);
+            return WordCountPair(a.first, a.second + b.second);
         });
 }
 
-//! The WordCount user program
-int word_count(Context& ctx) {
+int WordCountBasic(Context& ctx) {
 
     auto lines = ReadLines(
         ctx, "wordcount.in",
@@ -58,10 +58,10 @@ int word_count(Context& ctx) {
             return line;
         });
 
-    auto red_words = word_count_user(lines);
+    auto red_words = WordCount(lines);
 
     red_words.Map(
-        [](const WordCount& wc) {
+        [](const WordCountPair& wc) {
             return wc.first + ": " + std::to_string(wc.second) + "\n";
         })
     .WriteToFileSystem(
@@ -70,7 +70,7 @@ int word_count(Context& ctx) {
     return 0;
 }
 
-int word_count_generated(Context& ctx, size_t size) {
+int WordCountGenerated(Context& ctx, size_t size) {
 
     auto lines = GenerateFromFile(
         ctx, "headwords",
@@ -79,10 +79,10 @@ int word_count_generated(Context& ctx, size_t size) {
         },
         size);
 
-    auto reduced_words = word_count_user(lines);
+    auto reduced_words = WordCount(lines);
 
     reduced_words.Map(
-        [](const WordCount& wc) {
+        [](const WordCountPair& wc) {
             return wc.first + ": " + std::to_string(wc.second) + "\n";
         })
     .WriteToFileSystem(

@@ -21,7 +21,7 @@ static void local_word_count(size_t workers, size_t elements, size_t port_base) 
 
     std::function<void(Context&)> start_func =
         [elements](Context& ctx) {
-            examples::word_count_generated(ctx, elements);
+            examples::WordCountGenerated(ctx, elements);
         };
 
     ExecuteLocalThreadsTCP(workers, port_base, start_func);
