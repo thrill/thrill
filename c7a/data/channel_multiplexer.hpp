@@ -17,6 +17,7 @@
 #include <c7a/data/channel.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
+#include <c7a/common/atomic_movable.hpp>
 
 #include <algorithm>
 #include <map>
@@ -53,6 +54,8 @@ public:
     ChannelMultiplexer(const ChannelMultiplexer&) = delete;
     //! non-copyable: delete assignment operator
     ChannelMultiplexer& operator = (const ChannelMultiplexer&) = delete;
+    //! default move constructor
+    ChannelMultiplexer(ChannelMultiplexer&&) = default;
 
     //! Closes all client connections
     ~ChannelMultiplexer() {
@@ -109,7 +112,7 @@ private:
     net::Group* group_ = nullptr;
 
     //protects critical sections
-    std::mutex mutex_;
+    common::MutexMovable mutex_;
 
     //! Next ID to generate
     ChannelId next_id_;

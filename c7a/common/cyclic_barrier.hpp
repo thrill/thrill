@@ -12,9 +12,9 @@
 #ifndef C7A_COMMON_CYCLIC_BARRIER_HEADER
 #define C7A_COMMON_CYCLIC_BARRIER_HEADER
 
-#include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <c7a/common/atomic_movable.hpp>
 
 namespace c7a {
 namespace common {
@@ -26,8 +26,8 @@ class Barrier
 {
 
 private:
-    std::mutex m;
-    std::condition_variable_any event;
+    common::MutexMovable m;
+    common::ConditionVariableAnyMovable event;
     const int threadCount;
     int counts[2];
     int current;

@@ -230,20 +230,20 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
 
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
-    net::DispatcherThread** net_dispatchers = (net::DispatcherThread**) malloc(node_count * sizeof(net::DispatcherThread));
-    data::Manager** data_managers = (data::Manager**) malloc(node_count * sizeof(data::Manager));
-    net::FlowControlChannelManager** flow_managers = (net::FlowControlChannelManager**)malloc(node_count * sizeof(net::FlowControlChannelManager));
+    std::vector<net::DispatcherThread> net_dispatchers;
+    std::vector<data::Manager> data_managers;
+    std::vector<net::FlowControlChannelManager> flow_managers;
+
 
     for (size_t node = 0; node < node_count; node++) {
         //connect data subsystem to network
-        net_dispatchers[node] = new net::DispatcherThread("dispatcher " + std::to_string(node));
-        net::DispatcherThread& dispatcher = *(net_dispatchers[node]);
-        data_managers[node] = new data::Manager(dispatcher);
-        data_managers[node]->Connect(&net_managers[node].GetDataGroup());
+        net_dispatchers.emplace_back("dispatcher " + std::to_string(node));
+        data_managers.emplace_back(net_dispatchers[node]);
+        data_managers[node].Connect(&(net_managers[node].GetDataGroup()));
 
         //create flow control subsystem
         auto & group = net_managers[node].GetFlowGroup();
-        flow_managers[node] = new net::FlowControlChannelManager(group, workers_per_node);
+        flow_managers.emplace_back(group, workers_per_node);
     }
 
     // launch thread for each of the workers on this node.
@@ -254,7 +254,7 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
         for (size_t i = 0; i < workers_per_node; i++) {
             threads[i] = std::thread(
                 [&net_managers, &data_managers, &flow_managers, &job_startpoint, node, i, log_prefix, workers_per_node ] {
-                    Context ctx(net_managers[node], *(flow_managers[node]), *(data_managers[node]), workers_per_node, i);
+                    Context ctx(net_managers[node], flow_managers[node], data_managers[node], workers_per_node, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
@@ -272,7 +272,6 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
 
     for (size_t i = 0; i < node_count * workers_per_node; i++) {
         threads[i].join();
-        free(flow_managers[i]);
     }
 }
 

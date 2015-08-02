@@ -44,6 +44,8 @@ public:
     Manager(const Manager&) = delete;
     //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
+    //! default move constructor
+    Manager(Manager&&) = default;
 
     //! Connect net::Group. Forwarded To ChannelMultiplexer.
     void Connect(net::Group* group) {
