@@ -24,7 +24,7 @@ using namespace c7a;
 
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 
-    using WordPair = std::pair<std::string, int>;
+    using examples::WordCountPair;
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -35,11 +35,11 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
                     return line;
                 });
 
-            auto red_words = examples::word_count_user(lines);
+            auto red_words = examples::WordCount(lines);
 
-            std::vector<WordPair> words = red_words.AllGather();
+            std::vector<WordCountPair> words = red_words.AllGather();
 
-            auto compare_function = [](WordPair wp1, WordPair wp2) {
+            auto compare_function = [](WordCountPair wp1, WordCountPair wp2) {
                                         return wp1.first < wp2.first;
                                     };
 
@@ -53,11 +53,11 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
             std::string a = "a";
             std::string test = "test";
 
-            ASSERT_EQ(std::make_pair(a, 3), words[0]);
-            ASSERT_EQ(std::make_pair(be, 1), words[1]);
-            ASSERT_EQ(std::make_pair(might, 1), words[2]);
-            ASSERT_EQ(std::make_pair(test, 4), words[3]);
-            ASSERT_EQ(std::make_pair(this_str, 1), words[4]);
+            ASSERT_EQ(WordCountPair(a, 3), words[0]);
+            ASSERT_EQ(WordCountPair(be, 1), words[1]);
+            ASSERT_EQ(WordCountPair(might, 1), words[2]);
+            ASSERT_EQ(WordCountPair(test, 4), words[3]);
+            ASSERT_EQ(WordCountPair(this_str, 1), words[4]);
         };
 
     api::ExecuteLocalTests(start_func);
@@ -66,14 +66,14 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 TEST(WordCount, Generate1024DoesNotCrash) {
 
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { examples::word_count_generated(ctx, 1024); };
+        [](Context& ctx) { examples::WordCountGenerated(ctx, 1024); };
 
     api::ExecuteLocalTests(start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { examples::word_count(ctx); };
+        [](Context& ctx) { examples::WordCountBasic(ctx); };
 
     api::ExecuteLocalTests(start_func);
 }
