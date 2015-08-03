@@ -17,6 +17,7 @@
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/math.hpp>
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
@@ -131,27 +132,18 @@ public:
                                           ReduceFunction,
                                           true>;
 
-        // size per PE: round up.
-         size_t begin_local_index =
-            std::ceil(static_cast<double>(result_size_)
-                      * static_cast<double>(context_.rank())
-                      / static_cast<double>(context_.number_worker()));
-        size_t end_local_index =
-            std::ceil(static_cast<double>(result_size_)
-                      * static_cast<double>(context_.rank() + 1)
-                      / static_cast<double>(context_.number_worker()));
+        size_t local_begin, local_end;
 
-        if (context_.rank() == context_.number_worker() - 1) {
-            end_local_index = result_size_;
-        }
+        std::tie(local_begin, local_end)
+            = common::CalculateLocalRange(result_size_, context_);
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks(),
                           [=](Key key, ReduceTable* ht) {
-                              return (key - begin_local_index) % ht->NumBuckets();
+                              return (key - local_begin) % ht->NumBuckets();
                           },
-                          begin_local_index,
-                          end_local_index,
+                          local_begin,
+                          local_end,
                           neutral_element_);
 
         if (PreservesKey) {

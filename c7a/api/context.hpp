@@ -73,12 +73,12 @@ public:
     }
 
     //! Returns the total number of workers.
-    size_t number_worker() {
+    size_t number_worker() const {
         return job_manager_.net_manager().Size();
     }
 
     //! Returns the rank of this worker. Between 0 and number_worker() - 1
-    size_t rank() {
+    size_t rank() const {
         return job_manager_.net_manager().MyRank();
     }
 
