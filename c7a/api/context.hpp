@@ -145,7 +145,24 @@ ExecuteLocalMock(size_t node_count, size_t local_worker_count,
  * different numbers of node and workers as independent threads in one program.
  */
 void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
-                       const std::string& log_prefix = "");
+                       const std::string& log_prefix = std::string());
+
+/*!
+ * Executes the given job startpoint with a context instance.  Startpoints may
+ * be called multiple times with concurrent threads and different context
+ * instances across different workers.  The c7a configuration is taken from
+ * environment variables starting the C7A_.
+ *
+ * C7A_RANK contains the rank of this worker
+ *
+ * C7A_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ *
+ * \returns 0 if execution was fine on all threads. Otherwise, the first
+ * non-zero return value of any thread is returned.
+ */
+int ExecuteEnv(
+    std::function<int(Context&)> job_startpoint,
+    const std::string& log_prefix = std::string());
 
 //! \}
 
