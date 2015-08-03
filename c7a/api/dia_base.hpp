@@ -15,7 +15,6 @@
 #define C7A_API_DIA_BASE_HEADER
 
 #include <c7a/api/context.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 

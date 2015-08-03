@@ -14,6 +14,7 @@
 #ifndef C7A_API_GENERATE_HEADER
 #define C7A_API_GENERATE_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/math.hpp>
