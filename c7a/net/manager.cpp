@@ -378,7 +378,7 @@ protected:
             LOG << "Connect to " << address.ToStringHostPort()
                 << " fd=" << conn.GetSocket().fd()
                 << " timed out or refused with error " << err << "."
-                << "Attempting reconnect in " << next_timeout << "msec";
+                << " Attempting reconnect in " << next_timeout << "msec";
 
             dispatcher_.AddTimer(
                 std::chrono::milliseconds(next_timeout),
