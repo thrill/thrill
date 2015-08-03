@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/read.hpp
+ * c7a/api/read_lines.hpp
  *
  * Part of Project c7a.
  *
@@ -10,12 +10,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_READ_HEADER
-#define C7A_API_READ_HEADER
+#ifndef C7A_API_READ_LINES_HEADER
+#define C7A_API_READ_LINES_HEADER
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/api/input_line_iterator.hpp>
 #include <c7a/common/logger.hpp>
 
 #include <fstream>
@@ -46,25 +45,13 @@ public:
      * \param filepath Path of the input file
      */
     ReadLinesNode(Context& ctx,
-             const std::string& filepath,
-             StatsNode* stats_node)
+                  const std::string& filepath,
+                  StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
           filepath_(filepath)
     { }
 
     virtual ~ReadLinesNode() { }
-
-    //! Returns an InputLineIterator with a given input file stream.
-    //!
-    //! \param file Input file stream
-    //! \param my_id Id of this worker
-    //! \param num_work Number of workers
-    //!
-    //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(
-        std::ifstream& file, size_t my_id, size_t num_work) {
-        return InputLineIterator(file, my_id, num_work);
-    }
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
@@ -112,6 +99,85 @@ public:
 private:
     //! Path of the input file.
     std::string filepath_;
+
+    //! InputLineIterator gives you access to lines of a file
+    class InputLineIterator
+    {
+    public:
+        //! Creates an instance of iterator that reads file line based
+        InputLineIterator(std::ifstream& file,
+                          size_t my_id,
+                          size_t num_workers)
+            : file_(file),
+              my_id_(my_id),
+              num_workers_(num_workers) {
+            // Find file size and save it
+            file_.seekg(0, std::ios::end);
+            file_size_ = file_.tellg();
+
+            // Go to start of 'local part'.
+            std::streampos per_worker = file_size_ / num_workers_;
+            std::streampos my_start = per_worker * my_id_;
+            if (my_id_ == (num_workers - 1)) {
+                my_end_ = file_size_ - 1;
+            }
+            else {
+                my_end_ = per_worker * (my_id_ + 1) - 1;
+            }
+
+            file_.seekg(my_start, std::ios::beg);
+
+            // Go to next new line if the stream-pointer is not at the beginning
+            // of a line
+            if (my_id != 0) {
+                std::streampos previous = (per_worker * my_id_) - 1;
+                file_.seekg(previous, std::ios::beg);
+                //file_.unget();
+                if (file_.get() != '\n') {
+                    std::string str;
+                    std::getline(file_, str);
+                }
+            }
+        }
+
+        //! returns the next element if one exists
+        //!
+        //! does no checks whether a next element exists!
+        std::string Next() {
+            std::string line;
+            std::getline(file_, line);
+            return line;
+        }
+
+        //! returns true, if an element is available in local part
+        bool HasNext() {
+            return (file_.tellg() <= my_end_);
+        }
+
+    private:
+        //! Input file stream
+        std::ifstream& file_;
+        //! File size in bytes
+        size_t file_size_;
+        //! Worker ID
+        size_t my_id_;
+        //! total number of workers
+        size_t num_workers_;
+        //! end of local block
+        std::streampos my_end_;
+    };
+
+    //! Returns an InputLineIterator with a given input file stream.
+    //!
+    //! \param file Input file stream
+    //! \param my_id Id of this worker
+    //! \param num_work Number of workers
+    //!
+    //! \return An InputLineIterator for a given file stream
+    InputLineIterator GetInputLineIterator(
+        std::ifstream& file, size_t my_id, size_t num_work) {
+        return InputLineIterator(file, my_id, num_work);
+    }
 };
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
@@ -133,6 +199,6 @@ DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_READ_HEADER
+#endif // !C7A_API_READ_LINES_HEADER
 
 /******************************************************************************/
