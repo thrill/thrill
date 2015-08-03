@@ -335,7 +335,7 @@ protected:
             it->second = 2 * it->second;
 
             if (it->second >= final_timeout_) {
-                throw Exception("Error connecting to client "
+                throw Exception("Timeout error connecting to client "
                                 + std::to_string(id) + " via "
                                 + address.ToStringHostPort());
             }

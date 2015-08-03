@@ -241,30 +241,184 @@ ExecuteLocalMock(size_t node_count, size_t local_worker_count,
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of node and workers as independent threads in one program.
  */
-void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
+void ExecuteLocalTests(size_t node_count,
+                       std::function<void(Context&)> job_startpoint,
                        const std::string& log_prefix) {
 
     static const bool debug = false;
 
+    ExecuteLocalMock(
+        node_count, 1,
+        [job_startpoint, log_prefix](core::JobManager& jm, size_t node_id) {
+
+            Context ctx(jm, 0);
+            common::NameThisThread(
+                log_prefix + " node " + std::to_string(node_id));
+
+            LOG << "Starting node " << node_id;
+            auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
+            job_startpoint(ctx);
+            STOP_TIMER(overall_timer);
+            LOG << "Worker " << node_id << " done!";
+
+            jm.flow_manager().GetFlowControlChannel(0).Await();
+        });
+}
+
+/*!
+ * Helper Function to execute tests using mock networks in test suite for many
+ * different numbers of node and workers as independent threads in one program.
+ */
+void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
+                       const std::string& log_prefix) {
+
     for (size_t nodes = 1; nodes <= 8; ++nodes) {
+        ExecuteLocalTests(nodes, job_startpoint, log_prefix);
+    }
+}
 
-        ExecuteLocalMock(
-            nodes, 1,
-            [job_startpoint, log_prefix](core::JobManager& jm, size_t node_id) {
+int ExecuteTCP(
+    size_t my_rank,
+    const std::vector<std::string>& endpoints,
+    std::function<int(Context&)> job_startpoint,
+    const std::string& log_prefix) {
+    static const size_t local_worker_count = 1;
 
-                Context ctx(jm, 0);
+    static const bool debug = true;
+
+    // construct node global objects: net::Manager, data::Manager, etc.
+
+    core::JobManager jobMan(log_prefix);
+    jobMan.Connect(my_rank, net::Endpoint::ParseEndpointList(endpoints),
+                   local_worker_count);
+
+    // launch initial thread for each of the workers on this node.
+
+    std::vector<std::thread> threads(local_worker_count);
+    std::vector<std::atomic<int> > results(local_worker_count);
+
+    for (size_t i = 0; i < local_worker_count; i++) {
+        threads[i] = std::thread(
+            [&jobMan, &results, &job_startpoint, i, log_prefix] {
+                Context ctx(jobMan, i);
                 common::NameThisThread(
-                    log_prefix + " node " + std::to_string(node_id));
+                    log_prefix + " worker " + std::to_string(i));
 
-                LOG << "Starting node " << node_id;
+                LOG << "Starting job on worker " << ctx.rank();
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
-                job_startpoint(ctx);
+                // TODO: this cannot be correct, the job needs to know which
+                // worker number it is on the node.
+                int job_result = job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
-                LOG << "Worker " << node_id << " done!";
+                LOG << "Worker " << ctx.rank() << " done!";
 
-                jm.flow_manager().GetFlowControlChannel(0).Await();
+                results[i] = job_result;
+                jobMan.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
+
+    // join worker threads
+    int global_result = 0;
+
+    for (size_t i = 0; i < local_worker_count; i++) {
+        threads[i].join();
+        if (results[i] != 0 && global_result == 0)
+            global_result = results[i];
+    }
+
+    return global_result;
+}
+
+// TODO: the following should be renamed to Execute().
+
+/*!
+ * Executes the given job startpoint with a context instance.  Startpoints may
+ * be called multiple times with concurrent threads and different context
+ * instances across different workers.  The c7a configuration is taken from
+ * environment variables starting the C7A_.
+ *
+ * \returns 0 if execution was fine on all threads. Otherwise, the first
+ * non-zero return value of any thread is returned.
+ */
+int ExecuteEnv(
+    std::function<int(Context&)> job_startpoint,
+    const std::string& log_prefix) {
+
+    char* endptr;
+
+    // parse environment
+    const char* c7a_rank = getenv("C7A_RANK");
+    const char* c7a_hostlist = getenv("C7A_HOSTLIST");
+
+    if (!c7a_rank || !c7a_hostlist) {
+        size_t test_nodes = std::thread::hardware_concurrency();
+
+        const char* c7a_local = getenv("C7A_LOCAL");
+        if (c7a_local) {
+            // parse envvar only if it exists.
+            test_nodes = std::strtoul(c7a_local, &endptr, 10);
+
+            if (!endptr || *endptr != 0 || test_nodes == 0) {
+                std::cerr << "environment variable C7A_LOCAL=" << c7a_local
+                          << " is not a valid number of local test nodes."
+                          << std::endl;
+                return -1;
+            }
+        }
+
+        std::cerr << "c7a: executing locally with " << test_nodes
+                  << " test nodes in a local socket network." << std::endl;
+
+        ExecuteLocalTests(test_nodes, job_startpoint, log_prefix);
+
+        return 0;
+    }
+
+    size_t my_rank = std::strtoul(c7a_rank, &endptr, 10);
+
+    if (!endptr || *endptr != 0) {
+        std::cerr << "environment variable C7A_RANK=" << c7a_rank
+                  << " is not a valid number."
+                  << std::endl;
+        return -1;
+    }
+
+    std::vector<std::string> endpoints;
+
+    {
+        // first try to split by spaces, then by commas
+        std::vector<std::string> hostlist = common::split(c7a_hostlist, ' ');
+
+        if (hostlist.size() == 1) {
+            hostlist = common::split(c7a_hostlist, ',');
+        }
+
+        for (const std::string& host : hostlist) {
+            if (host.find(':') == std::string::npos) {
+                std::cerr << "Invalid address \"" << host
+                          << "\" in C7A_HOSTLIST. "
+                          << "It must contain a port number."
+                          << std::endl;
+                return -1;
+            }
+        }
+
+        if (my_rank >= hostlist.size()) {
+            std::cerr << "endpoint list (" << hostlist.size() << " entries) "
+                      << "does not include my rank (" << my_rank << ")"
+                      << std::endl;
+            return -1;
+        }
+
+        endpoints = hostlist;
+    }
+
+    std::cerr << "c7a: executing with rank " << my_rank << " and endpoints";
+    for (const std::string& ep : endpoints)
+        std::cerr << ' ' << ep;
+    std::cerr << std::endl;
+
+    return ExecuteTCP(my_rank, endpoints, job_startpoint, log_prefix);
 }
 
 } // namespace api

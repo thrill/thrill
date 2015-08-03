@@ -16,12 +16,13 @@ using namespace c7a;
 int main(int argc, char* argv[]) {
 
     size_t elements = pow(2, 10);
+
     std::function<int(api::Context&)> start_func =
         [elements](api::Context& ctx) {
             return examples::WordCountGenerated(ctx, elements);
         };
 
-    return api::Execute(argc, argv, start_func);
+    return api::ExecuteEnv(start_func);
 }
 
 /******************************************************************************/
