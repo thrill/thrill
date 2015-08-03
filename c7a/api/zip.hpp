@@ -88,11 +88,8 @@ public:
     /*!
      * Constructor for a ZipNode.
      *
-     * \param ctx Reference to the Context, which gives iterators for data
      * \param parent0 First parent of the ZipNode
      * \param parent1 Second parent of the ZipNode
-     * \param parent_stack0 Function stack with all lambdas between the parent and this node for first DIA
-     * \param parent_stack1 Function stack with all lambdas between the parent and this node for second DIA
      * \param zip_function Zip function used to zip elements.
      */
     TwoZipNode(const ParentDIARef0& parent0,
@@ -102,7 +99,7 @@ public:
         : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode", stats_node),
           zip_function_(zip_function)
     {
-        // // Hook PreOp(s)
+        // Hook PreOp(s)
         auto pre_op0_fn = [=](const ZipArg0& input) {
                               writers_[0](input);
                           };
