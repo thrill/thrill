@@ -50,7 +50,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          bool PreservesKey, typename InputType>
+          bool PreservesKey, bool SendPair>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -104,7 +104,7 @@ public:
           neutral_element_(neutral_element)
     {
         // Hook PreOp
-        auto pre_op_fn = [=](InputType input) {
+        auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -128,9 +128,11 @@ public:
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<KeyExtractor,
-                                          ReduceFunction,
-                                          true>;
+            = core::ReducePostTable<ValueType,
+                                    KeyExtractor,
+                                    ReduceFunction,
+                                    true,
+                                    SendPair>;
 
         size_t min_local_index =
             std::ceil(static_cast<double>(max_index_ + 1)
@@ -187,12 +189,14 @@ public:
      * \return PostOp function stack
      */
     auto ProduceStack() {
+        return FunctionStack<ValueType>();
+         /*
         // Hook PostOp
         auto post_op_fn = [=](ValueType elem, auto emit_func) {
                               return this->PostOp(elem, emit_func);
                           };
 
-        return MakeFunctionStack<ValueType>(post_op_fn);
+                          return MakeFunctionStack<ValueType>(post_op_fn);*/
     }
 
     /*!
@@ -222,7 +226,7 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(InputType input) {
+    void PreOp(ValueType input) {
         reduce_pre_table_.Insert(std::move(input));
     }
 
@@ -288,7 +292,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
     using ReduceResultNode
               = ReduceToIndexNode<DOpResult, DIARef,
                                   KeyExtractor, ReduceFunction,
-                                  false, ValueType>;
+                                  false, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
     auto shared_node
@@ -350,9 +354,9 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     using Key = typename ValueType::first_type;
 
     using ReduceResultNode
-              = ReduceToIndexNode<DOpResult, DIARef,
+              = ReduceToIndexNode<ValueType, DIARef,
                                   std::function<Key(Key)>,
-                                  ReduceFunction, false, ValueType>;
+                                  ReduceFunction, false, true>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", "DOp");
     auto shared_node
@@ -373,7 +377,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>(
+    return DIARef<ValueType, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
         { stats_node });
@@ -426,7 +430,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     using ReduceResultNode
               = ReduceToIndexNode<DOpResult, DIARef,
                                   KeyExtractor, ReduceFunction,
-                                  true, ValueType>;
+                                  true, false>;
 
     StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
     auto shared_node
