@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -60,17 +61,19 @@ private:
 class PreReduceByIndex
 {
 public:
-    size_t max_index_;
 
-    PreReduceByIndex(size_t max_index)
-        : max_index_(max_index)
+    size_t size_;
+
+    PreReduceByIndex(size_t size)
+        : size_(size)
     { }
 
     template <typename ReducePreTable>
     typename ReducePreTable::index_result
-    operator () (size_t key, ReducePreTable* ht) const {
-        size_t global_index = key * ht->NumBuckets() / (max_index_ + 1);
-        size_t partition_id = key * ht->NumPartitions() / (max_index_ + 1);
+    operator() (size_t key, ReducePreTable* ht) const {
+        assert(key < size_);
+        size_t global_index = key * ht->NumBuckets() / size_;
+        size_t partition_id = key * ht->NumPartitions() / size_;
         size_t partition_offset = global_index -
                                   partition_id * ht->NumBucketsPerPartition();
         return typename ReducePreTable::index_result(partition_id,
