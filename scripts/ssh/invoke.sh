@@ -8,9 +8,10 @@ OPTIND=1
 # Initialize default vals
 copy=0
 verbose=1
+dir=
 user=$(whoami)
 
-while getopts "u:h:cv" opt; do
+while getopts "u:h:cvC:" opt; do
     case "$opt" in
     h)
         # this overrides the user environment variable
@@ -24,6 +25,8 @@ while getopts "u:h:cv" opt; do
     u)  user=$OPTARG
         ;;
     c)  copy=1
+        ;;
+    C)  dir=$OPTARG
         ;;
     :)
         echo "Option -$OPTARG requires an argument." >&2
@@ -43,6 +46,7 @@ if [ -z "$cmd" ]; then
     echo "Usage: $0 [-h hostlist] c7a_executable [args...]"
     echo "More Options:"
     echo "  -c         copy program to hosts and execute"
+    echo "  -C <path>  remove directory to change into"
     echo "  -h <list>  list of nodes with port numbers"
     echo "  -u <name>  ssh user name"
     echo "  -v         verbose output"
@@ -55,11 +59,15 @@ if [ ! -e "$cmd" ]; then
 fi
 
 # get absolute path
-cmd=`readlink -f $cmd`
+cmd=`readlink -f "$cmd"`
 
 if [ -z "$C7A_HOSTLIST" ]; then
     echo "No host list specified and C7A_HOSTLIST variable is empty." >&2
     exit 1
+fi
+
+if [ -z "$dir" ]; then
+    dir=`dirname "$cmd"`
 fi
 
 if [ $verbose -ne 0 ]; then
@@ -68,27 +76,27 @@ if [ $verbose -ne 0 ]; then
 fi
 
 rank=0
+uuid=$(cat /proc/sys/kernel/random/uuid)
 
 for hostport in $C7A_HOSTLIST; do
-  uuid=$(cat /proc/sys/kernel/random/uuid)
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $host to invoke $cmd"
   fi
   if [ "$copy" == "1" ]; then
-      cmdbase=`basename $cmd`
+      cmdbase=`basename "$cmd"`
       REMOTENAME="/tmp/$cmdbase.$hostport"
       # pipe the program though the ssh pipe, save and execute it at the remote end.
       ( cat $cmd | \
               ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
                   $host \
-                  "export C7A_HOSTLIST=\"$C7A_HOSTLIST\" C7A_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+                  "export C7A_HOSTLIST=\"$C7A_HOSTLIST\" C7A_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export C7A_HOSTLIST=\"$C7A_HOSTLIST\" C7A_RANK=\"$rank\" && $cmd $*" &
+          "export C7A_HOSTLIST=\"$C7A_HOSTLIST\" C7A_RANK=\"$rank\" && cd $dir && $cmd $*" &
   fi
   rank=$((rank+1))
 done
