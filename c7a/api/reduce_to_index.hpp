@@ -127,14 +127,14 @@ public:
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-            = core::ReducePostTable<ValueType,
-                                    KeyExtractor,
-                                    ReduceFunction,
-                                    true,
-                                    SendPair>;
+                  = core::ReducePostTable<ValueType,
+                                          KeyExtractor,
+                                          ReduceFunction,
+                                          true,
+                                          SendPair>;
 
         // size per PE: round up.
-         size_t begin_local_index =
+        size_t begin_local_index =
             std::ceil(static_cast<double>(result_size_)
                       * static_cast<double>(context_.rank())
                       / static_cast<double>(context_.number_worker()));
@@ -185,13 +185,13 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-         /*
-        // Hook PostOp
-        auto post_op_fn = [=](ValueType elem, auto emit_func) {
-                              return this->PostOp(elem, emit_func);
-                          };
+        /*
+       // Hook PostOp
+       auto post_op_fn = [=](ValueType elem, auto emit_func) {
+                             return this->PostOp(elem, emit_func);
+                         };
 
-                          return MakeFunctionStack<ValueType>(post_op_fn);*/
+                         return MakeFunctionStack<ValueType>(post_op_fn);*/
     }
 
     /*!

@@ -61,7 +61,6 @@ private:
 class PreReduceByIndex
 {
 public:
-
     size_t size_;
 
     PreReduceByIndex(size_t size)
@@ -70,7 +69,7 @@ public:
 
     template <typename ReducePreTable>
     typename ReducePreTable::index_result
-    operator() (size_t key, ReducePreTable* ht) const {
+    operator () (size_t key, ReducePreTable* ht) const {
         assert(key < size_);
         size_t global_index = key * ht->NumBuckets() / size_;
         size_t partition_id = key * ht->NumPartitions() / size_;

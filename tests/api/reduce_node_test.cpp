@@ -79,7 +79,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
             auto reduced = integers.ReducePair(add_function);
 
-            std::vector<std::pair<size_t,size_t>> out_vec = reduced.AllGather();
+            std::vector<std::pair<size_t, size_t> > out_vec = reduced.AllGather();
 
             using IntPair = std::pair<size_t, size_t>;
 
@@ -120,8 +120,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
 
             auto reduced = integers.ReducePairToIndex(add_function, result_size);
 
-
-            std::vector<std::pair<size_t, size_t>> out_vec = reduced.AllGather();
+            std::vector<std::pair<size_t, size_t> > out_vec = reduced.AllGather();
             ASSERT_EQ(9u, out_vec.size());
 
             int i = 0;
