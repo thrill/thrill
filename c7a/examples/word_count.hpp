@@ -15,6 +15,7 @@
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce.hpp>
+#include <c7a/api/size.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/common/string.hpp>
 
@@ -69,7 +70,7 @@ int WordCountBasic(Context& ctx) {
     return 0;
 }
 
-int WordCountGenerated(Context& ctx, size_t size) {
+size_t WordCountGenerated(Context& ctx, size_t size) {
 
     auto lines = GenerateFromFile(
         ctx, "headwords",
@@ -86,7 +87,8 @@ int WordCountGenerated(Context& ctx, size_t size) {
         })
     .WriteToFileSystem(
         "wordcount_" + std::to_string(ctx.rank()) + ".out");
-    return 0;
+
+    return 42; // TODO(tb): FIX reduced_words.Size();
 }
 
 } // namespace examples
