@@ -52,14 +52,11 @@ public:
         {
             size_t in_size = in_vector_.size();
 
-            size_t per_worker =
-                common::IntegerDivRoundUp(in_size, emitters_.size());
-
             for (size_t w = 0; w < emitters_.size(); ++w) {
 
-                // last worker gets rest, which may be less than others
-                size_t local_begin = per_worker * w;
-                size_t local_end = std::min(per_worker * (w + 1), in_size);
+                size_t local_begin, local_end;
+                std::tie(local_begin, local_end) =
+                    common::CalculateLocalRange(in_size, emitters_.size(), w);
 
                 for (size_t i = local_begin; i < local_end; ++i) {
                     emitters_[w](in_vector_[i]);
