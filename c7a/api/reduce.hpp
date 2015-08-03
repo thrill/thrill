@@ -52,7 +52,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey, typename InputType>
+          const bool RobustKey, const bool SendPair>
 class ReduceNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -95,7 +95,7 @@ public:
     {
 
         // Hook PreOp
-        auto pre_op_fn = [=](const InputType& input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at
@@ -119,7 +119,11 @@ public:
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<KeyExtractor, ReduceFunction, false>;
+            = core::ReducePostTable<ValueType,
+                                    KeyExtractor,
+                                    ReduceFunction,
+                                    false,
+                                    SendPair>;
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
@@ -183,7 +187,7 @@ private:
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
     //! by the shuffle algorithm.
-    void PreOp(const InputType& input) {
+    void PreOp(const ValueType& input) {
         reduce_pre_table_.Insert(input);
     }
 
@@ -235,7 +239,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
     StatsNode* stats_node = AddChildStatsNode("ReduceBy", "DOp");
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
-                           ReduceFunction, true, ValueType>;
+                           ReduceFunction, true, false>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
@@ -285,8 +289,8 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     StatsNode* stats_node = AddChildStatsNode("ReducePair", "DOp");
     using ReduceResultNode
-              = ReduceNode<DOpResult, DIARef, std::function<Key(Key)>,
-                           ReduceFunction, false, ValueType>;
+              = ReduceNode<ValueType, DIARef, std::function<Key(Key)>,
+                           ReduceFunction, false, true>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
@@ -303,7 +307,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     auto reduce_stack = shared_node->ProduceStack();
 
-    return DIARef<DOpResult, decltype(reduce_stack)>(
+    return DIARef<ValueType, decltype(reduce_stack)>(
         shared_node,
         reduce_stack,
         { stats_node });
@@ -348,7 +352,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
     StatsNode* stats_node = AddChildStatsNode("Reduce", "DOp");
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
-                           ReduceFunction, false, ValueType>;
+                           ReduceFunction, false, false>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

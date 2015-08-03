@@ -79,14 +79,19 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
             auto reduced = integers.ReducePair(add_function);
 
-            std::vector<size_t> out_vec = reduced.AllGather();
+            std::vector<std::pair<size_t,size_t>> out_vec = reduced.AllGather();
 
-            std::sort(out_vec.begin(), out_vec.end());
+            using IntPair = std::pair<size_t, size_t>;
+
+            std::sort(out_vec.begin(), out_vec.end(),
+                      [](IntPair p1, IntPair p2) {
+                          return p1.second < p2.second;
+                      });
 
             int i = 1;
 
-            for (int element : out_vec) {
-                ASSERT_EQ(element, 56 + (8 * i++));
+            for (auto element : out_vec) {
+                ASSERT_EQ(element.second, 56 + (8 * i++));
             }
 
             ASSERT_EQ((size_t)2, out_vec.size());
@@ -115,37 +120,38 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
 
             auto reduced = integers.ReducePairToIndex(add_function, max_index);
 
-            std::vector<size_t> out_vec = reduced.AllGather();
+            std::vector<std::pair<size_t, size_t>> out_vec
+            = reduced.AllGather();
 
             int i = 0;
-            for (int element : out_vec) {
+            for (auto element : out_vec) {
                 switch (i++) {
                 case 0:
-                    ASSERT_EQ(1, element);
+                    ASSERT_EQ(1, element.second);
                     break;
                 case 1:
-                    ASSERT_EQ(5, element);
+                    ASSERT_EQ(5, element.second);
                     break;
                 case 2:
-                    ASSERT_EQ(9, element);
+                    ASSERT_EQ(9, element.second);
                     break;
                 case 3:
-                    ASSERT_EQ(13, element);
+                    ASSERT_EQ(13, element.second);
                     break;
                 case 4:
-                    ASSERT_EQ(17, element);
+                    ASSERT_EQ(17, element.second);
                     break;
                 case 5:
-                    ASSERT_EQ(21, element);
+                    ASSERT_EQ(21, element.second);
                     break;
                 case 6:
-                    ASSERT_EQ(25, element);
+                    ASSERT_EQ(25, element.second);
                     break;
                 case 7:
-                    ASSERT_EQ(29, element);
+                    ASSERT_EQ(29, element.second);
                     break;
                 case 8:
-                    ASSERT_EQ(16, element);
+                    ASSERT_EQ(16, element.second);
                     break;
                 default:
                     ASSERT_EQ(42, 420);
