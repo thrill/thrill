@@ -32,17 +32,12 @@ while getopts "u:h:cv" opt; do
     esac
 done
 
-if [ -z "$C7A_HOSTLIST" ]; then
-    echo "No host list specified and C7A_HOSTLIST variable is empty." >&2
-    exit 1
-fi
-
 # remove those arguments that we were able to parse
 shift $((OPTIND - 1))
 
 # get executable
 cmd=$1
-shift
+shift || true
 
 if [ -z "$cmd" ]; then
     echo "Usage: $0 [-h hostlist] c7a_executable [args...]"
@@ -61,6 +56,11 @@ fi
 
 # get absolute path
 cmd=`readlink -f $cmd`
+
+if [ -z "$C7A_HOSTLIST" ]; then
+    echo "No host list specified and C7A_HOSTLIST variable is empty." >&2
+    exit 1
+fi
 
 if [ $verbose -ne 0 ]; then
     echo "Hosts: $hostlist"
