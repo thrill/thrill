@@ -75,10 +75,7 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void Execute() override {
-        this->StartExecutionTimer();
-        this->StopExecutionTimer();
-    }
+    void Execute() override { }
 
     void PushData() override {
         static const bool debug = false;

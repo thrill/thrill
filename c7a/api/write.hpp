@@ -60,10 +60,8 @@ public:
 
     //! Closes the output file
     void Execute() override {
-        this->StartExecutionTimer();
         sLOG << "closing file" << path_out_;
         emit_.Close();
-        this->StopExecutionTimer();
     }
 
     void Dispose() override { }

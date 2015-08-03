@@ -63,13 +63,8 @@ public:
           size_(size)
     { }
 
-    virtual ~GenerateNode() { }
-
     //! Executes the generate operation. Does nothing.
-    void Execute() override {
-        this->StartExecutionTimer();
-        this->StopExecutionTimer();
-    }
+    void Execute() override { }
 
     void PushData() override {
 
