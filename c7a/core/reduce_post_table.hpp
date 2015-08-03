@@ -277,16 +277,7 @@ public:
      * Emits element to all childs
      */
     void EmitAll(const KeyValuePair& element) {
-
         emit_impl_.EmitElement(element, emit_);
-
-        /*for (auto& emitter : emit_) {
-            if (SendPair) {
-                emitter(element);
-            } else {
-                emitter(element.second);
-            }
-            }*/
     }
 
     /*!
