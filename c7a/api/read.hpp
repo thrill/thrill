@@ -1,11 +1,10 @@
 /*******************************************************************************
  * c7a/api/read.hpp
  *
- * DIANode for a reduce operation. Performs the actual reduce operation
- *
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -29,34 +28,28 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a Read operation. Read reads a file from the file system and
- * emits it to the DataManager according to a given read function.
- *
- * \tparam ValueType Output type of the Read operation.
- * \tparam ReadFunction Type of the read function.
+ * A DIANode which performs a line-based Read operation. Read reads a file from
+ * the file system and emits it as a DIA.
  */
-template <typename ValueType, typename ReadFunction>
-class ReadNode : public DOpNode<ValueType>
+class ReadNode : public DOpNode<std::string>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = DOpNode<std::string>;
     using Super::context_;
     using Super::result_file_;
 
     /*!
-    * Constructor for a ReadNode. Sets the DataManager, parents, read_function and file path.
-    *
-    * \param ctx Reference to Context, which holds references to data and network.
-    * \param read_function Read function, which defines how each line of the file is read and emitted
-    * \param path_in Path of the input file
-    */
+     * Constructor for a ReadNode. Sets the DataManager, parents, read_function
+     * and file path.
+     *
+     * \param ctx Reference to Context, which holds references to data and network.
+     * \param filepath Path of the input file
+     */
     ReadNode(Context& ctx,
-             ReadFunction read_function,
-             const std::string& path_in,
+             const std::string& filepath,
              StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Read", stats_node),
-          read_function_(read_function),
-          path_in_(path_in)
+        : Super(ctx, { }, "Read", stats_node),
+          filepath_(filepath)
     { }
 
     virtual ~ReadNode() { }
@@ -81,7 +74,7 @@ public:
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
-        std::ifstream file(path_in_);
+        std::ifstream file(filepath_);
         assert(file.good());
 
         InputLineIterator it = GetInputLineIterator(
@@ -90,8 +83,8 @@ public:
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(read_function_(item));
+            for (auto func : Super::callbacks_) {
+                func(item);
             }
         }
     }
@@ -105,7 +98,7 @@ public:
      * \return Empty function stack
      */
     auto ProduceStack() {
-        return FunctionStack<ValueType>();
+        return FunctionStack<std::string>();
     }
 
     /*!
@@ -117,36 +110,21 @@ public:
     }
 
 private:
-    //! The read function which is applied on every line read.
-    ReadFunction read_function_;
     //! Path of the input file.
-    std::string path_in_;
+    std::string filepath_;
 };
 
-template <typename ReadFunction>
-auto ReadLines(Context & ctx, std::string filepath,
-               const ReadFunction &read_function) {
-
-    using ReadResult =
-              typename common::FunctionTraits<ReadFunction>::result_type;
-
-    using ReadResultNode = ReadNode<ReadResult, ReadFunction>;
-
-    static_assert(
-        std::is_same<
-            typename common::FunctionTraits<ReadFunction>::template arg<0>,
-            const std::string&>::value,
-        "Read function needs const std::string& as input parameter.");
+DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", "DOp");
+
     auto shared_node =
-        std::make_shared<ReadResultNode>(ctx,
-                                         read_function,
-                                         filepath,
-                                         stats_node);
+        std::make_shared<ReadNode>(
+            ctx, filepath, stats_node);
 
     auto read_stack = shared_node->ProduceStack();
-    return DIARef<ReadResult, decltype(read_stack)>(
+
+    return DIARef<std::string, decltype(read_stack)>(
         shared_node, read_stack, { stats_node });
 }
 
@@ -155,7 +133,6 @@ auto ReadLines(Context & ctx, std::string filepath,
 } // namespace api
 } // namespace c7a
 
-//! \}
 #endif // !C7A_API_READ_HEADER
 
 /******************************************************************************/

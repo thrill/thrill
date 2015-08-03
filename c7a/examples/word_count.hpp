@@ -55,11 +55,7 @@ auto WordCount(const DIARef<std::string, InStack>&input) {
 
 int WordCountBasic(Context& ctx) {
 
-    auto lines = ReadLines(
-        ctx, "wordcount.in",
-        [](const std::string& line) {
-            return line;
-        });
+    auto lines = ReadLines(ctx, "wordcount.in");
 
     auto red_words = WordCount(lines);
 
