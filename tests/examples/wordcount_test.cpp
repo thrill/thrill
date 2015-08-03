@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/wordcount_test.cpp
+ * tests/examples/wordcount_test.cpp
  *
  * Part of Project c7a.
  *
