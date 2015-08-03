@@ -241,6 +241,8 @@ public:
             auto diff = std::chrono::duration_cast<milliseconds>(
                 timer_pq_.top().next_timeout - now);
 
+            if (diff < milliseconds(1)) diff = milliseconds(1);
+
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
         }
@@ -306,7 +308,7 @@ protected:
         { }
 
         bool operator < (const Timer& b) const
-        { return next_timeout < b.next_timeout; }
+        { return next_timeout > b.next_timeout; }
     };
 
     //! priority queue of timer callbacks
