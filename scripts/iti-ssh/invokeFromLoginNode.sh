@@ -14,14 +14,16 @@ cmd=""
 verbose=0
 user=$(whoami)
 
-while getopts "u:h:c:v" opt; do
+while getopts "u:h:e:d:v" opt; do
     case "$opt" in
     h)
         hostlist=$OPTARG
         ;;
-    \?)  echo "help"
+    \?)  echo "TODO: Help"
         ;;
-    c)  cmd=$OPTARG
+    e)  cmd=$OPTARG
+        ;;
+    d)  dir=$OPTARG
         ;;
     v)  verbose=1
         ;;
@@ -35,8 +37,12 @@ while getopts "u:h:c:v" opt; do
 done
 
 if [ -z $cmd ]; then 
-  echo "Command option -c has to be specified" >&2
+  echo "Executable option -e has to be specified" >&2
   exit 1
+fi
+
+if [ -z $dir ]; then 
+  dir=$(pwd) 
 fi
 
 if [ -z "$hostlist" ]; then
@@ -49,12 +55,11 @@ if [ -z "$hostlist" ]; then
   hostlist=$(getDefaultHostlist)
 fi 
 
-dir=$(dirname $cmd)
-
 
 if [ $verbose -ne 0 ]; then
     echo "Hosts: $hostlist"
     echo "Command: $cmd" 
+    echo "Directory: $dir" 
 fi
 
 rank=0
@@ -64,7 +69,13 @@ do
   uuid=$(cat /proc/sys/kernel/random/uuid)
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   ex="$cmd -r $rank $hostlist"
-  echo "Connecting to $host to invoke $ex"
-  ssh -o BatchMode=yes -o StrictHostKeyChecking=no $host "$ex"
+  if [ $verbose -ne 0 ]; then
+    echo "Connecting to $host to invoke $ex"
+  fi
+  ssh -o BatchMode=yes -o StrictHostKeyChecking=no $host "cd $dir; ./$ex" &
   ((rank++))
 done
+
+echo "Waiting for execution to finish."
+wait
+echo "Done."
