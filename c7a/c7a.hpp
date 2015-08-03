@@ -24,6 +24,7 @@
 #include <c7a/api/read.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/reduce_to_index.hpp>
+#include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sort.hpp>
 #include <c7a/api/sum.hpp>

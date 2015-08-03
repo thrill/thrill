@@ -8,7 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/scatter.hpp>
 #include <c7a/common/string.hpp>
 #include <c7a/examples/word_count.hpp>
 
@@ -28,12 +29,17 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            auto lines = ReadLines(
-                ctx,
-                "wordcounttest",
-                [](const std::string& line) {
-                    return line;
-                });
+
+            std::vector<std::string> input_vec = {
+                "test",
+                "this",
+                "might be",
+                "a test",
+                "a test",
+                "a test"
+            };
+
+            auto lines = Scatter(ctx, input_vec);
 
             auto red_words = examples::WordCount(lines);
 
