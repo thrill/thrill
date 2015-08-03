@@ -20,7 +20,6 @@
 #include <c7a/core/reduce_post_table.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 
-#include <cmath>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -82,14 +81,14 @@ public:
      * \param parent Parent DIARef.
      * \param key_extractor Key extractor function
      * \param reduce_function Reduce function
-     * \param max_index maximum index returned by reduce_function.
+     * \param result_size size of the resulting DIA, range of index returned by reduce_function.
      * \param neutral_element Item value with which to start the reduction in
      * each array cell.
      */
     ReduceToIndexNode(const ParentDIARef& parent,
                       KeyExtractor key_extractor,
                       ReduceFunction reduce_function,
-                      size_t max_index,
+                      size_t result_size,
                       Value neutral_element,
                       StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
@@ -99,8 +98,8 @@ public:
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
                             reduce_function_, emitters_,
-                            core::PreReduceByIndex(max_index)),
-          max_index_(max_index),
+                            core::PreReduceByIndex(result_size)),
+          result_size_(result_size),
           neutral_element_(neutral_element)
     {
         // Hook PreOp
@@ -132,31 +131,27 @@ public:
                                           ReduceFunction,
                                           true>;
 
-        size_t min_local_index =
-            std::ceil(static_cast<double>(max_index_ + 1)
+        // size per PE: round up.
+         size_t begin_local_index =
+            std::ceil(static_cast<double>(result_size_)
                       * static_cast<double>(context_.rank())
                       / static_cast<double>(context_.number_worker()));
-        size_t max_local_index =
-            std::ceil(static_cast<double>(max_index_ + 1)
+        size_t end_local_index =
+            std::ceil(static_cast<double>(result_size_)
                       * static_cast<double>(context_.rank() + 1)
-                      / static_cast<double>(context_.number_worker())) - 1;
+                      / static_cast<double>(context_.number_worker()));
 
         if (context_.rank() == context_.number_worker() - 1) {
-            max_local_index = max_index_;
-        }
-        if (context_.rank() == 0) {
-            min_local_index = 0;
+            end_local_index = result_size_;
         }
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks(),
                           [=](Key key, ReduceTable* ht) {
-                              return (key - min_local_index) *
-                              (ht->NumBuckets() - 1) /
-                              (max_local_index - min_local_index + 1);
+                              return (key - begin_local_index) % ht->NumBuckets();
                           },
-                          min_local_index,
-                          max_local_index,
+                          begin_local_index,
+                          end_local_index,
                           neutral_element_);
 
         if (PreservesKey) {
@@ -215,7 +210,7 @@ private:
 
     PreHashTable reduce_pre_table_;
 
-    size_t max_index_;
+    size_t result_size_;
 
     Value neutral_element_;
 
@@ -246,7 +241,7 @@ template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
-    size_t max_index,
+    size_t size,
     ValueType neutral_element) const {
 
     using DOpResult
@@ -295,7 +290,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function,
-                                             max_index,
+                                             size,
                                              neutral_element,
                                              stats_node);
 
@@ -311,7 +306,7 @@ template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReducePairToIndex(
     const ReduceFunction &reduce_function,
-    size_t max_index,
+    size_t size,
     typename common::FunctionTraits<ReduceFunction>::result_type
     neutral_element) const {
 
@@ -367,7 +362,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                                  return Key();
                                              },
                                              reduce_function,
-                                             max_index,
+                                             size,
                                              neutral_element,
                                              stats_node);
 
@@ -384,7 +379,7 @@ template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
-    size_t max_index,
+    size_t size,
     ValueType neutral_element) const {
 
     using DOpResult
@@ -433,7 +428,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
                                              reduce_function,
-                                             max_index,
+                                             size,
                                              neutral_element,
                                              stats_node);
 

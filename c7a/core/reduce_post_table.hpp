@@ -31,18 +31,18 @@ struct FlushImpl;
 template <typename T, typename Value, typename Table>
 struct FlushImpl<true, T, Value, Table>{
     void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
-                    size_t min_local_index_, size_t max_local_index_,
+                    size_t begin_local_index_, size_t end_local_index_,
                     Table* table, Value neutral_element_) {
         // retrieve items
 
         std::vector<Value> elements_to_emit
-            (max_local_index_ - min_local_index_ + 1, neutral_element_);
+            (end_local_index_ - begin_local_index_, neutral_element_);
 
         for (size_t i = 0; i < num_buckets_; i++) {
             if ((*vector_)[i] != nullptr) {
                 T curr_node = (*vector_)[i];
                 do {
-                    elements_to_emit[curr_node->key - min_local_index_] =
+                    elements_to_emit[curr_node->key - begin_local_index_] =
                         curr_node->value;
                     auto del = curr_node;
                     curr_node = curr_node->next;
@@ -111,8 +111,8 @@ public:
                                                     ReducePostTable* pt) {
                                                      return std::hash<Key>() (key) % pt->num_buckets_;
                                                  },
-                    size_t min_local_index = 0,
-                    size_t max_local_index = 0,
+                    size_t begin_local_index = 0,
+                    size_t end_local_index = 0,
                     Value neutral_element = Value()
                     )
         : num_buckets_init_scale_(num_buckets),
@@ -123,8 +123,8 @@ public:
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-          min_local_index_(min_local_index),
-          max_local_index_(max_local_index),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
           neutral_element_(neutral_element)
     {
         init();
@@ -137,16 +137,16 @@ public:
                                                     ReducePostTable* pt) {
                                                      return std::hash<Key>() (key) % pt->num_buckets_;
                                                  },
-                    size_t min_local_index = 0,
-                    size_t max_local_index = 0,
+                    size_t begin_local_index = 0,
+                    size_t end_local_index = 0,
                     Value neutral_element = Value()
                     )
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-          min_local_index_(min_local_index),
-          max_local_index_(max_local_index),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
           neutral_element_(neutral_element)
     {
         init();
@@ -181,6 +181,8 @@ public:
 
         // TODO(ms): the first nullptr case is identical. remove and use null as
         // sentinel.
+
+        assert(hashed_key < vector_.size());
 
         // bucket is empty
         if (vector_[hashed_key] == nullptr) {
@@ -257,8 +259,8 @@ public:
 
         FlushImpl<ToIndex, node<Key, Value>*, Value,
                   ReducePostTable<KeyExtractor, ReduceFunction, ToIndex> > flush_impl;
-        flush_impl.FlushToAll(&vector_, num_buckets_, min_local_index_,
-                              max_local_index_, this, neutral_element_);
+        flush_impl.FlushToAll(&vector_, num_buckets_, begin_local_index_,
+                              end_local_index_, this, neutral_element_);
         table_size_ = 0;
     }
 
@@ -386,9 +388,9 @@ private:
 
     HashFunction hash_function_;
 
-    size_t min_local_index_;
+    size_t begin_local_index_;
 
-    size_t max_local_index_;
+    size_t end_local_index_;
 
     Value neutral_element_;
 };
