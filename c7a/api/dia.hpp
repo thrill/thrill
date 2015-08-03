@@ -568,9 +568,7 @@ private:
  * \param read_function Read function, which is performed on each
  * element
  */
-template <typename ReadFunction>
-auto ReadLines(Context & ctx, std::string filepath,
-               const ReadFunction &read_function);
+DIARef<std::string> ReadLines(Context& ctx, std::string filepath);
 
 /*!
  * GenerateFromFile is a DOp, which reads a file from the file system and

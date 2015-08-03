@@ -39,19 +39,17 @@ int page_rank(Context& ctx) {
                                   return (size_t)std::get<0>(in);
                               };
 
-    auto links = ReadLines(
-        ctx,
-        "pagerank.in",
-        [](const std::string& line) {
-            auto splitted = c7a::common::split(line, " ");
+    auto links = ReadLines(ctx, "pagerank.in")
+                 .Map([](const std::string& line) {
+                          auto splitted = c7a::common::split(line, " ");
 
-            std::vector<int> links;
-            links.reserve(splitted.size() - 1);
-            for (size_t i = 1; i < splitted.size(); i++) {
-                links.push_back(std::stoi(splitted[i]));
-            }
-            return std::make_tuple(std::stoi(splitted[0]), links);
-        });
+                          std::vector<int> links;
+                          links.reserve(splitted.size() - 1);
+                          for (size_t i = 1; i < splitted.size(); i++) {
+                              links.push_back(std::stoi(splitted[i]));
+                          }
+                          return std::make_tuple(std::stoi(splitted[0]), links);
+                      });
 
     auto size = links.Size();
 

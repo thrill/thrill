@@ -39,12 +39,10 @@ TEST(Graph, SimpleGraph) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto integers = ReadLines(
-                ctx,
-                "test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                });
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
 
             auto doubled = integers.Map([](int input) { return input * 2; });
             auto filtered = doubled.Filter([](int input) { return input % 2; });

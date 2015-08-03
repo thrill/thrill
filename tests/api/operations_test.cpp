@@ -72,12 +72,10 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto integers = ReadLines(
-                ctx,
-                "test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                });
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
 
             std::vector<int> out_vec = integers.AllGather();
 

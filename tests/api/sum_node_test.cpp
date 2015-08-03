@@ -62,12 +62,11 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
-                ctx,
-                "test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                });
+            // TODO(ms): Replace this with some test-specific rendered file
+            auto input = ReadLines(ctx, "test1")
+                         .Map([](const std::string& line) {
+                                  return std::stoi(line);
+                              });
 
             auto ones = input.Map([](int in) {
                                       return in;
