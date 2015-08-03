@@ -134,11 +134,14 @@ public:
                                           true>;
 
         // size per PE: round up.
-        size_t pre_pe = (result_size_ + context_.number_worker() - 1)
-            / context_.number_worker();
-
-        size_t begin_local_index = pre_pe * context_.rank();
-        size_t end_local_index = pre_pe * (context_.rank() + 1);
+         size_t begin_local_index =
+            std::ceil(static_cast<double>(result_size_)
+                      * static_cast<double>(context_.rank())
+                      / static_cast<double>(context_.number_worker()));
+        size_t end_local_index =
+            std::ceil(static_cast<double>(result_size_)
+                      * static_cast<double>(context_.rank() + 1)
+                      / static_cast<double>(context_.number_worker()));
 
         if (context_.rank() == context_.number_worker() - 1) {
             end_local_index = result_size_;
