@@ -33,11 +33,10 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    std::function<int(api::Context&)> start_func =
+    auto start_func =
         [elements](api::Context& ctx) {
             size_t uniques = examples::WordCountGenerated(ctx, elements);
             sLOG1 << "wrote counts of" << uniques << "unique words";
-            return 0;
         };
 
     return api::ExecuteEnv(start_func);
