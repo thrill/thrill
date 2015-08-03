@@ -13,7 +13,7 @@
 #define C7A_EXAMPLES_WORD_COUNT_HEADER
 
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/common/string.hpp>

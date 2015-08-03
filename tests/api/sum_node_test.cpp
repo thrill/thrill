@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/sum.hpp>
 #include <gtest/gtest.h>
 

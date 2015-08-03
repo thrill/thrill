@@ -31,7 +31,7 @@ namespace api {
  * A DIANode which performs a line-based Read operation. Read reads a file from
  * the file system and emits it as a DIA.
  */
-class ReadNode : public DOpNode<std::string>
+class ReadLinesNode : public DOpNode<std::string>
 {
 public:
     using Super = DOpNode<std::string>;
@@ -39,20 +39,20 @@ public:
     using Super::result_file_;
 
     /*!
-     * Constructor for a ReadNode. Sets the DataManager, parents, read_function
+     * Constructor for a ReadLinesNode. Sets the DataManager, parents, read_function
      * and file path.
      *
      * \param ctx Reference to Context, which holds references to data and network.
      * \param filepath Path of the input file
      */
-    ReadNode(Context& ctx,
+    ReadLinesNode(Context& ctx,
              const std::string& filepath,
              StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
           filepath_(filepath)
     { }
 
-    virtual ~ReadNode() { }
+    virtual ~ReadLinesNode() { }
 
     //! Returns an InputLineIterator with a given input file stream.
     //!
@@ -102,11 +102,11 @@ public:
     }
 
     /*!
-     * Returns "[ReadNode]" as a string.
-     * \return "[ReadNode]"
+     * Returns "[ReadLinesNode]" as a string.
+     * \return "[ReadLinesNode]"
      */
     std::string ToString() override {
-        return "[ReadNode] Id: " + result_file_.ToString();
+        return "[ReadLinesNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -119,7 +119,7 @@ DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
     StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", "DOp");
 
     auto shared_node =
-        std::make_shared<ReadNode>(
+        std::make_shared<ReadLinesNode>(
             ctx, filepath, stats_node);
 
     auto read_stack = shared_node->ProduceStack();
