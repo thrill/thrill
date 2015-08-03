@@ -55,7 +55,7 @@ struct FlushImpl<true, T, Key, Value, Table>{
         }
 
         size_t index = begin_local_index_;
-        for (auto element_to_emit : elements_to_emit) {        
+        for (auto element_to_emit : elements_to_emit) {
             table->EmitAll(std::make_pair(index++, element_to_emit));
         }
         assert(index == end_local_index_);
@@ -86,24 +86,22 @@ template <bool, typename EmitterType, typename ValueType, typename SendType>
 struct EmitImpl;
 
 template <typename EmitterType, typename ValueType, typename SendType>
-struct EmitImpl<true, EmitterType, ValueType, SendType> {
+struct EmitImpl<true, EmitterType, ValueType, SendType>{
     void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
-       for (auto& emitter : emitters) {
-           emitter(ele);
-        } 
+        for (auto& emitter : emitters) {
+            emitter(ele);
+        }
     }
 };
 
 template <typename EmitterType, typename ValueType, typename SendType>
-struct EmitImpl<false, EmitterType, ValueType, SendType> {
+struct EmitImpl<false, EmitterType, ValueType, SendType>{
     void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
-       for (auto& emitter : emitters) {
-           emitter(ele.second);
-        } 
+        for (auto& emitter : emitters) {
+            emitter(ele.second);
+        }
     }
 };
-
-
 
 template <typename ValueType,
           typename KeyExtractor,
@@ -132,7 +130,7 @@ protected:
 public:
     typedef std::function<size_t(Key, ReducePostTable*)> HashFunction;
 
-    typedef std::function<void(const ValueType&)> EmitterFunction;
+    typedef std::function<void (const ValueType&)> EmitterFunction;
 
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
@@ -274,17 +272,14 @@ public:
         }
     }
 
-    
-
-
-    EmitImpl<SendPair, EmitterFunction,KeyValuePair, ValueType> emit_impl_;
+    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
     /*!
      * Emits element to all childs
      */
     void EmitAll(const KeyValuePair& element) {
 
         emit_impl_.EmitElement(element, emit_);
-        
+
         /*for (auto& emitter : emit_) {
             if (SendPair) {
                 emitter(element);

@@ -119,11 +119,11 @@ public:
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-            = core::ReducePostTable<ValueType,
-                                    KeyExtractor,
-                                    ReduceFunction,
-                                    false,
-                                    SendPair>;
+                  = core::ReducePostTable<ValueType,
+                                          KeyExtractor,
+                                          ReduceFunction,
+                                          false,
+                                          SendPair>;
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks());
