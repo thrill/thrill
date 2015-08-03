@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/api/lop_node.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sum.hpp>
