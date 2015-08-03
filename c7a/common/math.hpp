@@ -45,6 +45,14 @@ static inline Integral RoundUpToPowerOfTwo(Integral n) {
 
 /******************************************************************************/
 
+//! calculate n div k with rounding up
+template <typename IntegerType>
+IntegerType IntegerDivRoundUp(const IntegerType& n, const IntegerType& k) {
+    return (n + k - 1) / k;
+}
+
+/******************************************************************************/
+
 } // namespace common
 } // namespace c7a
 
