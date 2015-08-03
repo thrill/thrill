@@ -51,9 +51,7 @@ public:
 
     //! Executes the size operation.
     void Execute() override {
-        this->StartExecutionTimer();
         MainOp();
-        this->StopExecutionTimer();
     }
 
     void Dispose() override { }

@@ -112,9 +112,7 @@ public:
      * MainOp and PostOp.
      */
     void Execute() override {
-        this->StartExecutionTimer();
         MainOp();
-        this->StopExecutionTimer();
     }
 
     void PushData() override {

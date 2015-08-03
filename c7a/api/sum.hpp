@@ -57,9 +57,7 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
-        this->StartExecutionTimer();
         MainOp();
-        this->StopExecutionTimer();
     }
 
     void Dispose() override { }
