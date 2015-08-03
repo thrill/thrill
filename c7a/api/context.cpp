@@ -76,7 +76,7 @@ ParseArgs(int argc, char* const* argv) {
 //! \returns 0 if execution was fine on all threads. Otherwise, the first non-zero return value of any thread is returned.
 int Execute(
     int argc, char* const* argv,
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     size_t local_worker_count, const std::string& log_prefix) {
 
     // true if program time should be taken and printed
@@ -109,11 +109,10 @@ int Execute(
     // launch initial thread for each of the workers on this node.
 
     std::vector<std::thread> threads(local_worker_count);
-    std::vector<std::atomic<int> > results(local_worker_count);
 
     for (size_t i = 0; i < local_worker_count; i++) {
         threads[i] = std::thread(
-            [&jobMan, &results, &job_startpoint, i, log_prefix] {
+            [&jobMan, &job_startpoint, i, log_prefix] {
                 Context ctx(jobMan, i);
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
@@ -122,11 +121,10 @@ int Execute(
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 // TODO: this cannot be correct, the job needs to know which
                 // worker number it is on the node.
-                int job_result = job_startpoint(ctx);
+                job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
                 LOG << "Worker " << ctx.rank() << " done!";
 
-                results[i] = job_result;
                 jobMan.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
@@ -135,8 +133,6 @@ int Execute(
 
     for (size_t i = 0; i < local_worker_count; i++) {
         threads[i].join();
-        if (results[i] != 0 && global_result == 0)
-            global_result = results[i];
     }
 
     return global_result;
@@ -171,16 +167,10 @@ ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
         }
         args[i].back() = NULL;
 
-        std::function<int(Context&)> intReturningFunction =
-            [job_startpoint](Context& ctx) {
-                job_startpoint(ctx);
-                return 1;
-            };
-
         threads[i] = std::thread(
             [=]() {
                 Execute(strargs[i].size(), args[i].data(),
-                        intReturningFunction, 1, "worker " + std::to_string(i));
+                        job_startpoint, 1, "worker " + std::to_string(i));
             });
     }
 
@@ -280,7 +270,7 @@ void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
 int ExecuteTCP(
     size_t my_rank,
     const std::vector<std::string>& endpoints,
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix) {
     static const size_t local_worker_count = 1;
 
@@ -308,11 +298,10 @@ int ExecuteTCP(
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 // TODO: this cannot be correct, the job needs to know which
                 // worker number it is on the node.
-                int job_result = job_startpoint(ctx);
+                job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
                 LOG << "Worker " << ctx.rank() << " done!";
 
-                results[i] = job_result;
                 jobMan.flow_manager().GetFlowControlChannel(0).Await();
             });
     }
@@ -322,8 +311,6 @@ int ExecuteTCP(
 
     for (size_t i = 0; i < local_worker_count; i++) {
         threads[i].join();
-        if (results[i] != 0 && global_result == 0)
-            global_result = results[i];
     }
 
     return global_result;
@@ -341,7 +328,7 @@ int ExecuteTCP(
  * non-zero return value of any thread is returned.
  */
 int ExecuteEnv(
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix) {
 
     char* endptr;

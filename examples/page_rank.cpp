@@ -27,7 +27,7 @@ using c7a::DIARef;
 using c7a::Context;
 
 //! The PageRank user program
-int page_rank(Context& ctx) {
+void page_rank(Context& ctx) {
 
     static const double s = 0.85;
 
@@ -120,8 +120,6 @@ int page_rank(Context& ctx) {
                   + ": " + std::to_string(std::get<1>(item));
               }).
     WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
-
-    return 0;
 }
 
 int main(int argc, char* argv[]) {

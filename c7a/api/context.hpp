@@ -115,7 +115,7 @@ private:
 //! non-zero return value of any thread is returned.
 int Execute(
     int argc, char* const* argv,
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     size_t local_worker_count = 1, const std::string& log_prefix = "");
 
 /*!
@@ -161,7 +161,7 @@ void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
  * non-zero return value of any thread is returned.
  */
 int ExecuteEnv(
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix = std::string());
 
 //! \}
