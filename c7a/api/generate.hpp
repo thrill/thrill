@@ -69,15 +69,9 @@ public:
 
     void PushData() override {
 
-        size_t per_worker =
-            common::IntegerDivRoundUp(size_, context_.number_worker());
-
-        // last worker gets rest, which may be less than others
-        size_t local_begin = per_worker * context_.rank();
-        size_t local_end = std::min(per_worker * (context_.rank() + 1), size_);
-
-        sLOG0 << "per_worker" << per_worker
-              << "local_begin" << local_begin << "local_end" << local_end;
+        size_t local_begin, local_end;
+        std::tie(local_begin, local_end) =
+            common::CalculateLocalRange(size_, context_);
 
         for (size_t i = local_begin; i < local_end; i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
