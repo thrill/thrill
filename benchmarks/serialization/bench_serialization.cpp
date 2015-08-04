@@ -12,7 +12,8 @@
 #include "data.hpp"
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/data/serializer.hpp>
+#include <c7a/data/serialization.hpp>
+#include <c7a/data/serialization_cereal.hpp>
 
 #include <cstdlib>
 #include <iomanip>
