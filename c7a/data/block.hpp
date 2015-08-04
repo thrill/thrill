@@ -87,13 +87,12 @@ using ByteBlockPtr = std::shared_ptr<ByteBlock>;
 using ByteBlockCPtr = std::shared_ptr<const ByteBlock>;
 
 /**
- * VirtualBlock combines a reference to a read-only \ref ByteBlock and
- * book-keeping information. The book-keeping metainformation currently is the
- * start of the first item, the ends of the item range, and the number of items
- * in the range.
+ * Block combines a reference to a read-only \ref ByteBlock and book-keeping
+ * information. The book-keeping meta-information currently is the start of the
+ * first item, the ends of the item range, and the number of items in the range.
  *
- * Multiple VirtualBlock instances can share the same Block but have different
- * book-keeping information!
+ * Multiple Block instances can share the same ByteBlock but have different
+ * book-keeping / meta- information!
  *
  * <pre>
  *     +--+---------+---------+-------------+---------+-----+
@@ -103,13 +102,13 @@ using ByteBlockCPtr = std::shared_ptr<const ByteBlock>;
  *        begin     first_item    nitems=5                  end
  * </pre>
  */
-class VirtualBlock
+class Block
 {
 public:
-    VirtualBlock() { }
+    Block() { }
 
-    VirtualBlock(const ByteBlockCPtr& byte_block,
-                 size_t begin, size_t end, size_t first_item, size_t nitems)
+    Block(const ByteBlockCPtr& byte_block,
+          size_t begin, size_t end, size_t first_item, size_t nitems)
         : byte_block_(byte_block),
           begin_(begin), end_(end), first_item_(first_item), nitems_(nitems)
     { }
@@ -122,8 +121,8 @@ public:
         byte_block_ = ByteBlockCPtr();
     }
 
-    // Return virtual block as std::string (for debugging), includes eventually
-    // cut off elements form the beginning included
+    // Return block as std::string (for debugging), includes eventually cut off
+    // elements form the beginning included
     std::string ToString() const {
         return std::string(
             reinterpret_cast<const char*>(data_begin()), size());
@@ -163,14 +162,14 @@ public:
     size_t first_item_relative() const { return first_item_ - begin_; }
 
     friend std::ostream&
-    operator << (std::ostream& os, const VirtualBlock& c) {
-        os << "[VirtualBlock " << std::hex << &c << std::dec
-           << " byte_block_=" << std::hex << c.byte_block_.get() << std::dec;
-        if (c.IsValid()) {
-            os << " begin_=" << c.begin_
-               << " end_=" << c.end_
-               << " first_item_=" << c.first_item_
-               << " nitems_=" << c.nitems_;
+    operator << (std::ostream& os, const Block& b) {
+        os << "[Block " << std::hex << &b << std::dec
+           << " byte_block_=" << std::hex << b.byte_block_.get() << std::dec;
+        if (b.IsValid()) {
+            os << " begin_=" << b.begin_
+               << " end_=" << b.end_
+               << " first_item_=" << b.first_item_
+               << " nitems_=" << b.nitems_;
         }
         return os << "]";
     }

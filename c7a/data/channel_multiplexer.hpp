@@ -186,8 +186,7 @@ private:
 
         channel->OnStreamBlock(
             header.sender_rank,
-            VirtualBlock(bytes, 0, header.size,
-                         header.first_item, header.nitems));
+            Block(bytes, 0, header.size, header.first_item, header.nitems));
 
         AsyncReadStreamBlockHeader(s);
     }

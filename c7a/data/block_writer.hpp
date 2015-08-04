@@ -87,11 +87,11 @@ public:
 
     //! Directly write Blocks to the underlying BlockSink (after flushing the
     //! current one if need be).
-    void AppendBlocks(const std::vector<VirtualBlock>& vblocks) {
+    void AppendBlocks(const std::vector<Block>& blocks) {
         MaybeFlushBlock();
 
-        for (const VirtualBlock& vb : vblocks)
-            sink_->AppendBlock(vb);
+        for (const Block& b : blocks)
+            sink_->AppendBlock(b);
 
         AllocateBlock();
     }
