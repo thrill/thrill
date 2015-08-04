@@ -56,14 +56,14 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const Block& b) {
+    void AppendBlock(const Block& b) override {
         assert(!closed_);
         if (b.size() == 0) return;
         blocks_.push_back(b);
         nitems_sum_.push_back(NumItems() + b.nitems());
     }
 
-    void Close() {
+    void Close() override {
         assert(!closed_);
         closed_ = true;
     }
