@@ -40,8 +40,8 @@ TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
 }
 
 TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
-    data::BlockPtr block = data::Block::Allocate(16);
-    q.AppendBlock(data::VirtualBlock(block, 0, 0, 0, 0));
+    data::ByteBlockPtr bytes = data::ByteBlock::Allocate(16);
+    q.AppendBlock(data::VirtualBlock(bytes, 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 

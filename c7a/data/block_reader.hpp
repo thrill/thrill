@@ -99,10 +99,10 @@ public:
         if (n == 0) return out;
 
         die_unless(HasNext());
-        assert(block_);
+        assert(bytes_);
 
         const Byte* begin_output = current_;
-        size_t first_output = current_ - block_->begin();
+        size_t first_output = current_ - bytes_->begin();
 
         // inside the if-clause the current_ may not point to a valid item
         // boundary.
@@ -113,11 +113,11 @@ public:
             if (n >= nitems_) {
                 // construct first VirtualBlock using current_ pointer
                 out.emplace_back(
-                    block_,
+                    bytes_,
                     // valid range: excludes preceding items.
-                    current_ - block_->begin(), end_ - block_->begin(),
+                    current_ - bytes_->begin(), end_ - bytes_->begin(),
                     // first item is at begin_ (we may have dropped some)
-                    current_ - block_->begin(),
+                    current_ - bytes_->begin(),
                     // remaining items in this block
                     nitems_);
 
@@ -130,7 +130,7 @@ public:
                 if (!NextBlock()) {
                     assert(n == 0);
                     sLOG << "exit1 after batch:"
-                         << "current_=" << current_ - block_->begin();
+                         << "current_=" << current_ - bytes_->begin();
                     return out;
                 }
             }
@@ -139,9 +139,9 @@ public:
 
             while (n >= nitems_) {
                 out.emplace_back(
-                    block_,
+                    bytes_,
                     // full range is valid.
-                    current_ - block_->begin(), end_ - block_->begin(),
+                    current_ - bytes_->begin(), end_ - bytes_->begin(),
                     first_item_, nitems_);
 
                 sLOG << "middle:" << out.back();
@@ -151,7 +151,7 @@ public:
                 if (!NextBlock()) {
                     assert(n == 0);
                     sLOG << "exit2 after batch:"
-                         << "current_=" << current_ - block_->begin();
+                         << "current_=" << current_ - bytes_->begin();
                     return out;
                 }
             }
@@ -163,15 +163,15 @@ public:
             begin_output = current_;
             first_output = first_item_;
 
-            current_ = block_->begin() + first_item_;
+            current_ = bytes_->begin() + first_item_;
         }
 
         // put prospective last block into vector.
 
         out.emplace_back(
-            block_,
+            bytes_,
             // full range is valid.
-            begin_output - block_->begin(), end_ - block_->begin(),
+            begin_output - bytes_->begin(), end_ - bytes_->begin(),
             first_output, n);
 
         // skip over remaining items in this block, there while collect all
@@ -191,12 +191,12 @@ public:
         }
         block_collect_ = nullptr;
 
-        out.back().set_end(current_ - block_->begin());
+        out.back().set_end(current_ - bytes_->begin());
 
         sLOG << "partial last:" << out.back();
 
         sLOG << "exit3 after batch:"
-             << "current_=" << current_ - block_->begin();
+             << "current_=" << current_ - bytes_->begin();
 
         return out;
     }
@@ -285,7 +285,7 @@ protected:
     BlockSource source_;
 
     //! The current block being read, this holds a shared pointer reference.
-    BlockCPtr block_;
+    ByteBlockCPtr bytes_;
 
     //! current read pointer into current block of file.
     const Byte* current_ = nullptr;
@@ -308,7 +308,7 @@ protected:
         VirtualBlock vb = source_.NextBlock();
         sLOG0 << "BlockReader::NextBlock" << vb;
 
-        block_ = vb.block();
+        bytes_ = vb.byte_block();
         if (!vb.IsValid()) return false;
 
         if (block_collect_)
