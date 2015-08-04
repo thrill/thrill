@@ -89,8 +89,8 @@ TEST(File, PutSomeItemsGetItems) {
 
     // check size of Block.
     {
-        data::BlockCPtr block = file.virtual_block(0).block();
-        ASSERT_EQ(16u, block->size());
+        data::ByteBlockCPtr bytes = file.virtual_block(0).byte_block();
+        ASSERT_EQ(16u, bytes->size());
     }
 
     // read File contents using BlockReader

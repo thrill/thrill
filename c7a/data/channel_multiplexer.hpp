@@ -181,12 +181,12 @@ private:
         die_unless(header.size == buffer.size());
 
         // TODO(tb): don't copy data!
-        BlockPtr block = Block::Allocate(buffer.size());
-        std::copy(buffer.data(), buffer.data() + buffer.size(), block->begin());
+        ByteBlockPtr bytes = ByteBlock::Allocate(buffer.size());
+        std::copy(buffer.data(), buffer.data() + buffer.size(), bytes->begin());
 
         channel->OnStreamBlock(
             header.sender_rank,
-            VirtualBlock(block, 0, header.size,
+            VirtualBlock(bytes, 0, header.size,
                          header.first_item, header.nitems));
 
         AsyncReadStreamBlockHeader(s);
