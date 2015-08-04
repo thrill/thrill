@@ -59,6 +59,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
 # enable AddressSanitizer
@@ -183,7 +184,7 @@ enable_testing()
 
 # google test + mock - enable "make test" and add_test()
 add_subdirectory(extlib/gtest)
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
 set(C7A_VALGRIND_OPTS
