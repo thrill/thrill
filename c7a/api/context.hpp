@@ -14,6 +14,7 @@
 
 #include <c7a/api/stats_graph.hpp>
 #include <c7a/common/stats.hpp>
+#include <c7a/common/config.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -82,7 +83,7 @@ public:
         return job_manager_.net_manager().MyRank();
     }
 
-    common::Stats<ENABLE_STATS> & stats() {
+    common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
 
@@ -100,7 +101,7 @@ public:
 
 private:
     core::JobManager& job_manager_;
-    common::Stats<ENABLE_STATS> stats_;
+    common::Stats<common::g_enable_stats> stats_;
     api::StatsGraph stats_graph_;
 
     //! number of this worker context, 0..p-1, within this compute node.
