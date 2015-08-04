@@ -254,9 +254,11 @@ add_subdirectory(benchmarks)
 if(TRY_COMPILE_HEADERS)
 
   include(CheckCXXSourceCompiles)
-  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR})
+  set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
+  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
   set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${CMAKE_THREAD_LIBS_INIT})
+    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${ALL_LIBRARIES})
 
   file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
   list(SORT header_files)
@@ -270,7 +272,7 @@ if(TRY_COMPILE_HEADERS)
       int main() { return 0; }" IsSelfContained${compilename})
 
     if(NOT IsSelfContained${compilename})
-      message(SEND_ERROR
+      message(FATAL
         "Compilation FAILED for ${file}\n\nCompiler output:\n${OUTPUT}")
     endif()
   endforeach()

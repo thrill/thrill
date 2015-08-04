@@ -12,6 +12,7 @@
 #ifndef C7A_DATA_SERIALIZATION_CEREAL_HEADER
 #define C7A_DATA_SERIALIZATION_CEREAL_HEADER
 
+#include <c7a/data/serialization.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/details/traits.hpp>
 
