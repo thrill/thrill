@@ -117,7 +117,6 @@ build_test(examples/wordcount_test)
 if (OFF)
 
   build_only(data/manager_channels_test)
-  build_test(data/iterator_test)
 
   build_test(api/reduce_node_test)
   build_test(core/post_hash_table_test)
