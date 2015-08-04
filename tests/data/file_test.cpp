@@ -43,12 +43,12 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.NumBlocks(), 6u);
     ASSERT_EQ(file.NumItems(), 5u);
 
-    ASSERT_EQ(file.virtual_block(0).size(), 16u);
-    ASSERT_EQ(file.virtual_block(1).size(), 16u);
-    ASSERT_EQ(file.virtual_block(2).size(), 16u);
-    ASSERT_EQ(file.virtual_block(3).size(), 16u);
-    ASSERT_EQ(file.virtual_block(4).size(), 16u);
-    ASSERT_EQ(file.virtual_block(5).size(), 14u);
+    ASSERT_EQ(file.block(0).size(), 16u);
+    ASSERT_EQ(file.block(1).size(), 16u);
+    ASSERT_EQ(file.block(2).size(), 16u);
+    ASSERT_EQ(file.block(3).size(), 16u);
+    ASSERT_EQ(file.block(4).size(), 16u);
+    ASSERT_EQ(file.block(5).size(), 14u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
@@ -75,7 +75,7 @@ TEST(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.NumBlocks(); ++i) {
-            std::cout << common::hexdump(file.virtual_block(i).ToString())
+            std::cout << common::hexdump(file.block(i).ToString())
                       << std::endl;
         }
     }
@@ -89,7 +89,7 @@ TEST(File, PutSomeItemsGetItems) {
 
     // check size of Block.
     {
-        data::ByteBlockCPtr bytes = file.virtual_block(0).byte_block();
+        data::ByteBlockCPtr bytes = file.block(0).byte_block();
         ASSERT_EQ(16u, bytes->size());
     }
 
@@ -180,13 +180,13 @@ TEST(File, SeekReadSlicesOfFiles) {
 
             // read the items [begin,end)
             {
-                std::vector<data::VirtualBlock> blocks
+                std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
                 data::BlockQueue queue;
 
-                for (data::VirtualBlock& vb : blocks)
-                    queue.AppendBlock(vb);
+                for (data::Block& b : blocks)
+                    queue.AppendBlock(b);
                 queue.Close();
 
                 data::BlockQueue::Reader qr = queue.GetReader();
@@ -205,13 +205,13 @@ TEST(File, SeekReadSlicesOfFiles) {
 
             // read the items [end, end + more)
             {
-                std::vector<data::VirtualBlock> blocks
+                std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
                 data::BlockQueue queue;
 
-                for (data::VirtualBlock& vb : blocks)
-                    queue.AppendBlock(vb);
+                for (data::Block& b : blocks)
+                    queue.AppendBlock(b);
                 queue.Close();
 
                 data::BlockQueue::Reader qr = queue.GetReader();

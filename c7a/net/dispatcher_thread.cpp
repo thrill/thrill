@@ -112,7 +112,7 @@ void DispatcherThread::AsyncWrite(
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
-                                  const data::VirtualBlock& block,
+                                  const data::Block& block,
                                   AsyncWriteCallback done_cb) {
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,

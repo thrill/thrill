@@ -38,12 +38,12 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    VirtualBlock NextBlock() {
+    Block NextBlock() {
         for ( ; current_ < sources_.size(); ++current_) {
-            VirtualBlock vb = sources_[current_].NextBlock();
-            if (vb.IsValid()) return vb;
+            Block b = sources_[current_].NextBlock();
+            if (b.IsValid()) return b;
         }
-        return VirtualBlock();
+        return Block();
     }
 
 protected:

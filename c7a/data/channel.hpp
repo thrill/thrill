@@ -262,17 +262,17 @@ protected:
 
     //! called from ChannelMultiplexer when there is a new Block on a
     //! Stream.
-    void OnStreamBlock(size_t from, VirtualBlock&& vb) {
+    void OnStreamBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
 
-        sLOG << "OnStreamBlock" << vb;
+        sLOG << "OnStreamBlock" << b;
 
         if (debug) {
             sLOG << "channel" << id_ << "receive from" << from << ":"
-                 << common::hexdump(vb.ToString());
+                 << common::hexdump(b.ToString());
         }
 
-        queues_[from].AppendBlock(vb);
+        queues_[from].AppendBlock(b);
     }
 
     //! called from ChannelMultiplexer when a Stream closed notification was

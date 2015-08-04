@@ -30,7 +30,7 @@ namespace data {
 class BlockQueueSource;
 
 /*!
- * A BlockQueue is a thread-safe queue used to hand-over VirtualBlock objects
+ * A BlockQueue is a thread-safe queue used to hand-over Block objects
  * between threads. It is currently used by the ChannelMultiplexer to queue
  * received Blocks and deliver them (later) to their destination.
  *
@@ -47,8 +47,8 @@ public:
     using Writer = BlockWriter;
     using Reader = BlockReader<BlockQueueSource>;
 
-    void AppendBlock(const VirtualBlock& vb) override {
-        queue_.emplace(vb);
+    void AppendBlock(const Block& b) override {
+        queue_.emplace(b);
     }
 
     //! Close called by BlockWriter.
@@ -56,16 +56,16 @@ public:
         assert(!write_closed_); // racing condition tolerated
         write_closed_ = true;
 
-        // enqueue a closing VirtualBlock.
+        // enqueue a closing Block.
         queue_.emplace();
     }
 
-    VirtualBlock Pop() {
+    Block Pop() {
         assert(!read_closed_);
-        VirtualBlock vb;
-        queue_.pop(vb);
-        read_closed_ = !vb.IsValid();
-        return vb;
+        Block b;
+        queue_.pop(b);
+        read_closed_ = !b.IsValid();
+        return b;
     }
 
     //! check if writer side Close() was called.
@@ -87,11 +87,11 @@ public:
     Reader GetReader();
 
 private:
-    common::ConcurrentBoundedQueue<VirtualBlock> queue_;
+    common::ConcurrentBoundedQueue<Block> queue_;
 
     std::atomic<bool> write_closed_ = { false };
 
-    //! whether Pop() has returned a closing VirtualBlock.
+    //! whether Pop() has returned a closing Block.
     bool read_closed_ = false;
 };
 
@@ -109,7 +109,7 @@ public:
 
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader. Returns false if the source is empty.
-    VirtualBlock NextBlock() {
+    Block NextBlock() {
         return queue_.Pop();
     }
 
@@ -143,14 +143,14 @@ public:
         from_queue_ = !queue_src_.closed();
     }
 
-    //! Return next virtual block for BlockReader.
-    VirtualBlock NextBlock() {
+    //! Return next block for BlockReader.
+    Block NextBlock() {
         if (from_queue_) {
-            VirtualBlock vb = queue_src_.NextBlock();
+            Block b = queue_src_.NextBlock();
             // cache block in file_
-            if (vb.IsValid())
-                file_.AppendBlock(vb);
-            return vb;
+            if (b.IsValid())
+                file_.AppendBlock(b);
+            return b;
         }
         else {
             return file_src_.NextBlock();

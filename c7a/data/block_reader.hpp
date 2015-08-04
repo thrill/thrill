@@ -29,7 +29,7 @@ namespace data {
 //! \{
 
 /*!
- * BlockReader takes VirtualBlock objects from BlockSource and allows reading of
+ * BlockReader takes Block objects from BlockSource and allows reading of
  * a) serializable Items or b) arbitray data from the Block sequence. It takes
  * care of fetching the next Block when the previous one underruns and also of
  * data items split between two Blocks.
@@ -89,13 +89,13 @@ public:
     }
 
     //! Read n items, however, do not deserialize them but deliver them as a
-    //! vector of VirtualBlock objects. This is used to take out a range of
+    //! vector of Block objects. This is used to take out a range of
     //! items, the internal item cursor is advanced by n.
     template <typename ItemType>
-    std::vector<VirtualBlock> GetItemBatch(size_t n) {
+    std::vector<Block> GetItemBatch(size_t n) {
         static const bool debug = false;
 
-        std::vector<VirtualBlock> out;
+        std::vector<Block> out;
         if (n == 0) return out;
 
         die_unless(HasNext());
@@ -111,7 +111,7 @@ public:
             // *** if the current block still contains items, push it partially
 
             if (n >= nitems_) {
-                // construct first VirtualBlock using current_ pointer
+                // construct first Block using current_ pointer
                 out.emplace_back(
                     bytes_,
                     // valid range: excludes preceding items.
@@ -158,7 +158,7 @@ public:
 
             // move current_ to the first valid item of the block we got (at
             // least one NextBlock() has been called). But when constructing the
-            // last VirtualBlock, we have to include the partial item in the
+            // last Block, we have to include the partial item in the
             // front.
             begin_output = current_;
             first_output = first_item_;
@@ -294,30 +294,30 @@ protected:
     const Byte* end_ = nullptr;
 
     //! offset of first valid item in block (needed only during direct copying
-    //! of VirtualBlocks).
+    //! of Blocks).
     size_t first_item_;
 
     //! remaining number of items starting in this block
     size_t nitems_ = 0;
 
     //! pointer to vector to collect blocks in GetItemRange.
-    std::vector<VirtualBlock>* block_collect_ = nullptr;
+    std::vector<Block>* block_collect_ = nullptr;
 
     //! Call source_.NextBlock with appropriate parameters
     bool NextBlock() {
-        VirtualBlock vb = source_.NextBlock();
-        sLOG0 << "BlockReader::NextBlock" << vb;
+        Block b = source_.NextBlock();
+        sLOG0 << "BlockReader::NextBlock" << b;
 
-        bytes_ = vb.byte_block();
-        if (!vb.IsValid()) return false;
+        bytes_ = b.byte_block();
+        if (!b.IsValid()) return false;
 
         if (block_collect_)
-            block_collect_->emplace_back(vb);
+            block_collect_->emplace_back(b);
 
-        current_ = vb.data_begin();
-        end_ = vb.data_end();
-        first_item_ = vb.first_item();
-        nitems_ = vb.nitems();
+        current_ = b.data_begin();
+        end_ = b.data_end();
+        first_item_ = b.first_item();
+        nitems_ = b.nitems();
         return true;
     }
 };

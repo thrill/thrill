@@ -34,7 +34,7 @@ class CachingBlockQueueSource;
 
 /*!
  * A File or generally File<> is an ordered sequence of
- * VirtualBlock objects for storing items. By using the VirtualBlock
+ * Block objects for storing items. By using the Block
  * indirection, the File can be composed using existing Block objects (via
  * reference counting), but only contain a subset of the items in those
  * Blocks. This may be used for Zip() and Repartition().
@@ -56,11 +56,11 @@ public:
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const VirtualBlock& vb) {
+    void AppendBlock(const Block& b) {
         assert(!closed_);
-        if (vb.size() == 0) return;
-        virtual_blocks_.push_back(vb);
-        nitems_sum_.push_back(NumItems() + vb.nitems());
+        if (b.size() == 0) return;
+        blocks_.push_back(b);
+        nitems_sum_.push_back(NumItems() + b.nitems());
     }
 
     void Close() {
@@ -78,7 +78,7 @@ public:
     }
 
     //! Return the number of blocks
-    size_t NumBlocks() const { return virtual_blocks_.size(); }
+    size_t NumBlocks() const { return blocks_.size(); }
 
     //! Return the number of items in the file
     size_t NumItems() const {
@@ -89,14 +89,14 @@ public:
     //size_t TotalBytes() const { return NumBlocks() * block_size; }
 
     //! Return shared pointer to a block
-    const VirtualBlock & virtual_block(size_t i) const {
-        assert(i < virtual_blocks_.size());
-        return virtual_blocks_[i];
+    const Block & block(size_t i) const {
+        assert(i < blocks_.size());
+        return blocks_[i];
     }
 
     //! Return number of items starting in block i
     size_t ItemsStartIn(size_t i) const {
-        assert(i < virtual_blocks_.size());
+        assert(i < blocks_.size());
         return nitems_sum_[i] - (i == 0 ? 0 : nitems_sum_[i - 1]);
     }
 
@@ -112,17 +112,17 @@ public:
     template <typename ItemType>
     Reader GetReaderAt(size_t index) const;
 
-    //! Seek in File: return a VirtualBlock range containing items begin, end of
+    //! Seek in File: return a Block range containing items begin, end of
     //! given type.
     template <typename ItemType>
-    std::vector<VirtualBlock> GetItemRange(size_t begin, size_t end) const;
+    std::vector<Block> GetItemRange(size_t begin, size_t end) const;
 
     //! Read complete File into a std::string, obviously, this should only be
     //! used for debugging!
     std::string ReadComplete() const {
         std::string output;
-        for (const VirtualBlock& vb : virtual_blocks_)
-            output += vb.ToString();
+        for (const Block& b : blocks_)
+            output += b.ToString();
         return output;
     }
 
@@ -130,15 +130,15 @@ public:
     friend std::ostream& operator << (std::ostream& os, const File& f) {
         os << "[File " << std::hex << &f << std::dec
            << " Blocks=[";
-        for (const VirtualBlock& vb : f.virtual_blocks_)
-            os << "\n    " << vb;
+        for (const Block& b : f.blocks_)
+            os << "\n    " << b;
         return os << "]]";
     }
 
 protected:
-    //! the container holding virtual blocks and thus shared pointers to all
+    //! the container holding blocks and thus shared pointers to all byte
     //! blocks.
-    std::vector<VirtualBlock> virtual_blocks_;
+    std::vector<Block> blocks_;
 
     //! inclusive prefixsum of number of elements of blocks, hence
     //! nitems_sum_[i] is the number of items starting in all blocks preceding
@@ -162,21 +162,21 @@ class FileBlockSource
 public:
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
-    VirtualBlock NextBlock() {
+    Block NextBlock() {
         ++current_block_;
 
         if (current_block_ >= file_.NumBlocks())
-            return VirtualBlock();
+            return Block();
 
         if (current_block_ == first_block_) {
             // construct first block differently, in case we want to shorten it.
-            VirtualBlock vb = file_.virtual_block(current_block_);
+            Block b = file_.block(current_block_);
             if (first_item_ != keep_first_item)
-                vb.set_begin(first_item_);
-            return vb;
+                b.set_begin(first_item_);
+            return b;
         }
         else {
-            return file_.virtual_block(current_block_);
+            return file_.block(current_block_);
         }
     }
 
@@ -235,12 +235,12 @@ File::GetReaderAt(size_t index) const {
 
     sLOG << "item" << index << "in block" << begin_block
          << "psum" << nitems_sum_[begin_block]
-         << "first_item" << virtual_blocks_[begin_block].first_item();
+         << "first_item" << blocks_[begin_block].first_item();
 
     // start Reader at given first valid item in located block
     Reader fr(
         FileBlockSource(*this, begin_block,
-                        virtual_blocks_[begin_block].first_item()));
+                        blocks_[begin_block].first_item()));
 
     // skip over extra items in beginning of block
     size_t items_before = it == nitems_sum_.begin() ? 0 : *(it - 1);
@@ -269,13 +269,13 @@ File::GetReaderAt(size_t index) const {
     return fr;
 }
 
-//! Seek in File: return a VirtualBlock range containing items begin, end of
+//! Seek in File: return a Block range containing items begin, end of
 //! given type.
 template <typename ItemType>
-std::vector<VirtualBlock>
+std::vector<Block>
 File::GetItemRange(size_t begin, size_t end) const {
     assert(begin <= end);
-    // deliver array of remaining virtual blocks
+    // deliver array of remaining blocks
     return GetReaderAt<ItemType>(begin)
            .template GetItemBatch<ItemType>(end - begin);
 }
