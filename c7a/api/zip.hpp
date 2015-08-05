@@ -1,7 +1,7 @@
 /*******************************************************************************
  * c7a/api/zip.hpp
  *
- * DIANode for a reduce operation. Performs the actual reduce operation
+ * DIANode for a zip operation. Performs the actual zip operation
  *
  * Part of Project c7a.
  *
