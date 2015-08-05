@@ -47,8 +47,8 @@ namespace data {
 class ChannelMultiplexer
 {
 public:
-    explicit ChannelMultiplexer(net::DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), next_id_(0) { }
+    explicit ChannelMultiplexer(net::DispatcherThread& dispatcher, size_t num_workers_per_node)
+        : dispatcher_(dispatcher), next_id_(0), num_workers_per_node_(num_workers_per_node) { }
 
     //! non-copyable: delete copy-constructor
     ChannelMultiplexer(const ChannelMultiplexer&) = delete;
@@ -74,15 +74,15 @@ public:
 
     void Connect(net::Group* group) {
         group_ = group;
-        for (size_t id = 0; id < group_->Size(); id++) {
-            if (id == group_->MyRank()) continue;
+        for (size_t id = 0; id < group_->num_connections(); id++) {
+            if (id == group_->my_connection_id()) continue;
             AsyncReadStreamBlockHeader(group_->connection(id));
         }
     }
 
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
-    bool HasChannel(ChannelId id) {
+    bool HasChannel(size_t id) {
         return channels_.find(id) != channels_.end();
     }
 
@@ -90,12 +90,12 @@ public:
     //TODO Method to access channel via callbacks
 
     //! Allocate the next channel
-    ChannelId AllocateNext() {
+    size_t AllocateNext() {
         return next_id_++;
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr GetOrCreateChannel(ChannelId id) {
+    ChannelPtr GetOrCreateChannel(size_t id) {
         std::lock_guard<std::mutex> lock(mutex_);
         return _GetOrCreateChannel(id);
     }
@@ -106,7 +106,7 @@ private:
     net::DispatcherThread& dispatcher_;
 
     //! Channels have an ID in block headers
-    std::map<ChannelId, ChannelPtr> channels_;
+    std::map<size_t, ChannelPtr> channels_;
 
     // Holds NetConnections for outgoing Channels
     net::Group* group_ = nullptr;
@@ -115,10 +115,13 @@ private:
     common::MutexMovable mutex_;
 
     //! Next ID to generate
-    ChannelId next_id_;
+    size_t next_id_;
+
+    //! Number of workers per node
+    size_t num_workers_per_node_;
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr _GetOrCreateChannel(ChannelId id) {
+    ChannelPtr _GetOrCreateChannel(size_t id) {
         assert(group_ != nullptr);
         auto it = channels_.find(id);
 
