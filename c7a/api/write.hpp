@@ -13,8 +13,8 @@
 #ifndef C7A_API_WRITE_HEADER
 #define C7A_API_WRITE_HEADER
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/action_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
 
 #include <fstream>

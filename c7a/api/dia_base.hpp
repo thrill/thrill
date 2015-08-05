@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -29,10 +30,8 @@ namespace api {
 
 /*!
  * Possible states a DIABase can be in.
- * TODO(ch): turn this enum into an "enum class" within DIABase. These are
- * c7a-global identifiers atm.
  */
-enum kState {
+enum class DIAState {
     //! The DIABase has not been computed yet.
     NEW,
     //! The DIABase has been calculated but not explicitly cached.  Data might
@@ -139,11 +138,11 @@ public:
         return result_file_;
     }
 
-    kState state() const {
+    DIAState state() const {
         return state_;
     }
 
-    kState set_state(kState state) {
+    DIAState set_state(DIAState state) {
         return state_ = state;
     }
 
@@ -161,16 +160,16 @@ public:
 
 protected:
     //! State of the DIANode. State is NEW on creation.
-    kState state_ = NEW;
+    DIAState state_ = DIAState::NEW;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
         switch (state_) {
-        case NEW:
+        case DIAState::NEW:
             return "NEW";
-        case EXECUTED:
+        case DIAState::EXECUTED:
             return "EXECUTED";
-        case DISPOSED:
+        case DIAState::DISPOSED:
             return "DISPOSED";
         default:
             return "UNDEFINED";
