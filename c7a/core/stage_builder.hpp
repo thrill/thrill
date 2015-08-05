@@ -40,19 +40,19 @@ public:
         node_->StopExecutionTimer();
 
         node_->PushData();
-        node_->set_state(c7a::api::EXECUTED);
+        node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
         LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
         node_->PushData();
-        node_->set_state(c7a::api::EXECUTED);
+        node_->set_state(api::DIAState::EXECUTED);
     }
 
     void Dispose() {
         LOG << "DISPOSING stage " << node_->ToString() << "node" << node_;
         node_->Dispose();
-        node_->set_state(c7a::api::DISPOSED);
+        node_->set_state(api::DIAState::DISPOSED);
     }
 
     DIABase * node() {
@@ -87,7 +87,7 @@ public:
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
                     // If parent was not executed push it to the DFS
-                    if (p->state() != c7a::api::EXECUTED) {
+                    if (p->state() != api::DIAState::EXECUTED) {
                         dia_stack.push(p);
                     }
                 }
@@ -102,8 +102,8 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
-            if (s.node()->state() == c7a::api::NEW) s.Execute();
+            if (s.node()->state() == api::DIAState::EXECUTED) s.PushData();
+            if (s.node()->state() == api::DIAState::NEW) s.Execute();
             s.node()->UnregisterChilds();
         }
     }

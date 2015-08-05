@@ -13,8 +13,8 @@
 #define C7A_API_CONTEXT_HEADER
 
 #include <c7a/api/stats_graph.hpp>
-#include <c7a/common/stats.hpp>
 #include <c7a/common/config.hpp>
+#include <c7a/common/stats.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
