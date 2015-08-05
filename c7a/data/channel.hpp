@@ -130,7 +130,7 @@ public:
             }
         }
 
-        assert(result.size() == group_.num_connections() * workers_per_connection_);
+        assert(result.size() == num_workers());
         return result;
     }
 
@@ -144,7 +144,7 @@ public:
             result.emplace_back(BlockQueueSource(queues_[worker_id]));
         }
 
-        assert(result.size() == group_.num_connections() * workers_per_connection_);
+        assert(result.size() == num_workers());
         return result;
     }
 

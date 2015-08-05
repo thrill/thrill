@@ -170,7 +170,7 @@ private:
 
         size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
         if (header.IsStreamEnd()) {
-            sLOG << "end of stream on" << s << "in channel" << id;
+            sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
             channel->OnCloseStream(sender_worker_rank);
 
             AsyncReadStreamBlockHeader(s);
@@ -191,7 +191,6 @@ private:
         Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
         net::Buffer&& buffer) {
 
-        sLOG << "got block on" << s << "in channel" << header.channel_id;
 
         die_unless(header.size == buffer.size());
 
@@ -200,6 +199,7 @@ private:
         std::copy(buffer.data(), buffer.data() + buffer.size(), block->begin());
 
         size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
+        sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
         channel->OnStreamBlock(
             sender_worker_rank,
             VirtualBlock(block, 0, header.size,
