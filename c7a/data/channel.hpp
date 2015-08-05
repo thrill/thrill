@@ -90,13 +90,12 @@ public:
                     sinks_.emplace_back();
                 }
                 else {
-                    size_t partner_worker_id = node * workers_per_connection_ + worker;
                     sinks_.emplace_back(
                         &dispatcher, &group_.connection(node),
                         id,
                         group_.my_connection_id(),
                         my_worker_id_,
-                        partner_worker_id);
+                        worker);
                 }
             }
         }
@@ -141,7 +140,7 @@ public:
     std::vector<BlockQueueReader> OpenReaders() {
         std::vector<BlockQueueReader> result;
 
-        for (size_t worker_id = 0; worker_id < workers_per_connection_; ++worker_id) {
+        for (size_t worker_id = 0; worker_id < num_workers(); ++worker_id) {
             result.emplace_back(BlockQueueSource(queues_[worker_id]));
         }
 
