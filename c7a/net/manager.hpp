@@ -45,12 +45,12 @@ public:
      */
     static const size_t kGroupCount = 3;
 
-    ClientId MyRank() {
-        return GetSystemGroup().MyRank();
+    ClientId my_node_rank() {
+        return GetSystemGroup().my_connection_id();
     }
 
-    ClientId Size() {
-        return GetSystemGroup().Size();
+    ClientId num_nodes() {
+        return GetSystemGroup().num_connections();
     }
 
     //! default constructor

@@ -75,8 +75,8 @@ public:
 
     //! Initialize a real Group for construction from the NetManager.
     void Initialize(ClientId my_rank, size_t group_size) {
-        assert(my_rank_ == -1u);
         my_rank_ = my_rank;
+        assert(my_rank_ == -1u);
         connections_.resize(group_size);
     }
 
@@ -147,13 +147,13 @@ public:
         return connections_[connection.peer_id()];
     }
 
-    //! Return number of connections in this group.
-    size_t Size() const {
+    //! Return number of connections in this group (= number computing nodes)
+    size_t num_connections() const {
         return connections_.size();
     }
 
-    //! Return my rank in the connection group
-    size_t MyRank() const {
+    //! Return my rank in the connection group (computing nodes)
+    size_t my_connection_id() const {
         return my_rank_;
     }
 
