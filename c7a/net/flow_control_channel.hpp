@@ -117,7 +117,7 @@ protected:
     template <typename T>
     T * GetLocalShared() {
         assert(*shmem != NULL);
-        return *((T**)shmem);
+        return *(reinterpret_cast<T**>(shmem));
     }
 
     void ClearLocalShared() {

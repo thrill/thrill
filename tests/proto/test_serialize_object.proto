@@ -1,6 +1,0 @@
-package serial;
-
-message TestSerializeObject {
-    optional int32 bla_ = 1;
-    optional int32 blu_ = 2;
-}

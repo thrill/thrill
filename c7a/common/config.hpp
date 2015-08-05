@@ -31,6 +31,13 @@ static const bool g_debug_mode = !g_ndebug;
 //! set false if NDEBUG is set in production mode.
 static const bool g_self_verify = g_debug_mode;
 
+//! global flag to enable stats.
+#if ENABLE_STATS
+static const bool g_enable_stats = true;
+#else
+static const bool g_enable_stats = false;
+#endif
+
 } // namespace common
 } // namespace c7a
 

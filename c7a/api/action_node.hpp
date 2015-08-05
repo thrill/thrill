@@ -33,10 +33,10 @@ public:
     { }
 
     //! ActionNodes do not have children.
-    void UnregisterChilds() final { }
+    void UnregisterChilds() final override { }
 
     //! Actionnodes do not push data, they only Execute.
-    void PushData() final { }
+    void PushData() final override { }
 };
 
 //! \}

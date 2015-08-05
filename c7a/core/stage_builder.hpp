@@ -35,7 +35,10 @@ public:
 
     void Execute() {
         LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
+        node_->StartExecutionTimer();
         node_->Execute();
+        node_->StopExecutionTimer();
+
         node_->PushData();
         node_->set_state(c7a::api::EXECUTED);
     }

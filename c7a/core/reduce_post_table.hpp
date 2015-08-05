@@ -17,6 +17,7 @@
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/data/block_writer.hpp>
 
 #include <string>
 #include <utility>
@@ -25,24 +26,24 @@
 namespace c7a {
 namespace core {
 
-template <bool, typename T, typename Value, typename Table>
+template <bool, typename T, typename Key, typename Value, typename Table>
 struct FlushImpl;
 
-template <typename T, typename Value, typename Table>
-struct FlushImpl<true, T, Value, Table>{
+template <typename T, typename Key, typename Value, typename Table>
+struct FlushImpl<true, T, Key, Value, Table>{
     void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
-                    size_t min_local_index_, size_t max_local_index_,
+                    size_t begin_local_index_, size_t end_local_index_,
                     Table* table, Value neutral_element_) {
         // retrieve items
 
         std::vector<Value> elements_to_emit
-            (max_local_index_ - min_local_index_ + 1, neutral_element_);
+            (end_local_index_ - begin_local_index_, neutral_element_);
 
         for (size_t i = 0; i < num_buckets_; i++) {
             if ((*vector_)[i] != nullptr) {
                 T curr_node = (*vector_)[i];
                 do {
-                    elements_to_emit[curr_node->key - min_local_index_] =
+                    elements_to_emit[curr_node->key - begin_local_index_] =
                         curr_node->value;
                     auto del = curr_node;
                     curr_node = curr_node->next;
@@ -52,21 +53,24 @@ struct FlushImpl<true, T, Value, Table>{
                 (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
             }
         }
+
+        size_t index = begin_local_index_;
         for (auto element_to_emit : elements_to_emit) {
-            table->EmitAll(element_to_emit);
+            table->EmitAll(std::make_pair(index++, element_to_emit));
         }
+        assert(index == end_local_index_);
     }
 };
 
-template <typename T, typename Value, typename Table>
-struct FlushImpl<false, T, Value, Table>{
+template <typename T, typename Key, typename Value, typename Table>
+struct FlushImpl<false, T, Key, Value, Table>{
     void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
                     size_t, size_t, Table* table, Value) {
         for (size_t i = 0; i < num_buckets_; i++) {
             if ((*vector_)[i] != nullptr) {
                 T curr_node = (*vector_)[i];
                 do {
-                    table->EmitAll(curr_node->value);
+                    table->EmitAll(std::make_pair(curr_node->key, curr_node->value));
                     auto del = curr_node;
                     curr_node = curr_node->next;
                     delete del;
@@ -78,7 +82,32 @@ struct FlushImpl<false, T, Value, Table>{
     }
 };
 
-template <typename KeyExtractor, typename ReduceFunction, const bool ToIndex = false>
+template <bool, typename EmitterType, typename ValueType, typename SendType>
+struct EmitImpl;
+
+template <typename EmitterType, typename ValueType, typename SendType>
+struct EmitImpl<true, EmitterType, ValueType, SendType>{
+    void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
+        for (auto& emitter : emitters) {
+            emitter(ele);
+        }
+    }
+};
+
+template <typename EmitterType, typename ValueType, typename SendType>
+struct EmitImpl<false, EmitterType, ValueType, SendType>{
+    void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
+        for (auto& emitter : emitters) {
+            emitter(ele.second);
+        }
+    }
+};
+
+template <typename ValueType,
+          typename KeyExtractor,
+          typename ReduceFunction,
+          const bool ToIndex = false,
+          const bool SendPair = false>
 class ReducePostTable
 {
 public:
@@ -89,8 +118,6 @@ public:
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     using KeyValuePair = std::pair<Key, Value>;
-
-    using EmitterFunction = std::function<void(const Value&)>;
 
 protected:
     template <typename Key, typename Value>
@@ -103,6 +130,8 @@ protected:
 public:
     typedef std::function<size_t(Key, ReducePostTable*)> HashFunction;
 
+    typedef std::function<void (const ValueType&)> EmitterFunction;
+
     ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
                     size_t max_num_items_per_bucket, size_t max_num_items_table,
                     KeyExtractor key_extractor, ReduceFunction reduce_function,
@@ -111,8 +140,8 @@ public:
                                                     ReducePostTable* pt) {
                                                      return std::hash<Key>() (key) % pt->num_buckets_;
                                                  },
-                    size_t min_local_index = 0,
-                    size_t max_local_index = 0,
+                    size_t begin_local_index = 0,
+                    size_t end_local_index = 0,
                     Value neutral_element = Value()
                     )
         : num_buckets_init_scale_(num_buckets),
@@ -123,8 +152,8 @@ public:
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-          min_local_index_(min_local_index),
-          max_local_index_(max_local_index),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
           neutral_element_(neutral_element)
     {
         init();
@@ -137,16 +166,16 @@ public:
                                                     ReducePostTable* pt) {
                                                      return std::hash<Key>() (key) % pt->num_buckets_;
                                                  },
-                    size_t min_local_index = 0,
-                    size_t max_local_index = 0,
+                    size_t begin_local_index = 0,
+                    size_t end_local_index = 0,
                     Value neutral_element = Value()
                     )
         : key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
           hash_function_(hash_function),
-          min_local_index_(min_local_index),
-          max_local_index_(max_local_index),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
           neutral_element_(neutral_element)
     {
         init();
@@ -181,6 +210,8 @@ public:
 
         // TODO(ms): the first nullptr case is identical. remove and use null as
         // sentinel.
+
+        assert(hashed_key < vector_.size());
 
         // bucket is empty
         if (vector_[hashed_key] == nullptr) {
@@ -241,13 +272,12 @@ public:
         }
     }
 
+    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
     /*!
      * Emits element to all childs
      */
-    void EmitAll(Value& element) {
-        for (auto& emitter : emit_) {
-            emitter(element);
-        }
+    void EmitAll(const KeyValuePair& element) {
+        emit_impl_.EmitElement(element, emit_);
     }
 
     /*!
@@ -255,10 +285,14 @@ public:
      */
     void Flush() {
 
-        FlushImpl<ToIndex, node<Key, Value>*, Value,
-                  ReducePostTable<KeyExtractor, ReduceFunction, ToIndex> > flush_impl;
-        flush_impl.FlushToAll(&vector_, num_buckets_, min_local_index_,
-                              max_local_index_, this, neutral_element_);
+        FlushImpl<ToIndex, node<Key, Value>*, Key, Value,
+                  ReducePostTable<ValueType,
+                                  KeyExtractor,
+                                  ReduceFunction,
+                                  ToIndex,
+                                  SendPair> > flush_impl;
+        flush_impl.FlushToAll(&vector_, num_buckets_, begin_local_index_,
+                              end_local_index_, this, neutral_element_);
         table_size_ = 0;
     }
 
@@ -386,9 +420,9 @@ private:
 
     HashFunction hash_function_;
 
-    size_t min_local_index_;
+    size_t begin_local_index_;
 
-    size_t max_local_index_;
+    size_t end_local_index_;
 
     Value neutral_element_;
 };

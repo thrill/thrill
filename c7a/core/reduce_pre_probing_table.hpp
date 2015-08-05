@@ -300,7 +300,8 @@ public:
             FlushLargestPartition();
         }
 
-        if ((float)items_per_partition_[h.partition_id] / (float)num_items_per_partition_
+        if (static_cast<double>(items_per_partition_[h.partition_id]) /
+            static_cast<double>(num_items_per_partition_)
             > max_partition_fill_ratio_)
         {
             LOG << "resize";

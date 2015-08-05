@@ -28,16 +28,19 @@ namespace data {
 class BlockSink
 {
 public:
+    //! required virtual destructor
+    virtual ~BlockSink() { }
+
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
 
-    //! Appends the VirtualBlock, moving it out.
-    virtual void AppendBlock(const VirtualBlock& vb) = 0;
+    //! Appends the Block, moving it out.
+    virtual void AppendBlock(const Block& b) = 0;
 
-    //! Appends the VirtualBlock and detaches it afterwards.
-    void AppendBlock(const BlockPtr& block, size_t begin, size_t end,
+    //! Appends the Block and detaches it afterwards.
+    void AppendBlock(const ByteBlockPtr& byte_block, size_t begin, size_t end,
                      size_t first_item, size_t nitems) {
-        return AppendBlock(VirtualBlock(block, begin, end, first_item, nitems));
+        return AppendBlock(Block(byte_block, begin, end, first_item, nitems));
     }
 };
 

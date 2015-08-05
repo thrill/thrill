@@ -110,13 +110,13 @@ build_test(api/operations_test)
 build_test(api/reduce_node_test)
 build_test(api/sort_node_test)
 build_test(api/sum_node_test)
-build_test(api/wordcount_test)
 build_test(api/zip_node_test)
+
+build_test(examples/wordcount_test)
 
 if (OFF)
 
   build_only(data/manager_channels_test)
-  build_test(data/iterator_test)
 
   build_test(api/reduce_node_test)
   build_test(core/post_hash_table_test)

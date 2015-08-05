@@ -15,7 +15,6 @@
 #define C7A_API_DIA_BASE_HEADER
 
 #include <c7a/api/context.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 
@@ -148,6 +147,18 @@ public:
         return state_ = state;
     }
 
+    //Why are these stupid functions here?
+    //Because we do not want to include the stats.hpp into every
+    //single node class
+    inline void StartExecutionTimer() {
+        START_TIMER(execution_timer_);
+    }
+
+    inline void StopExecutionTimer() {
+        STOP_TIMER(execution_timer_);
+        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms");
+    }
+
 protected:
     //! State of the DIANode. State is NEW on creation.
     kState state_ = NEW;
@@ -164,17 +175,6 @@ protected:
         default:
             return "UNDEFINED";
         }
-    }
-
-    //Why are these stupid functions here?
-    //Because we do not want to include the stats.hpp into every
-    //single node class
-    inline void StartExecutionTimer() {
-        START_TIMER(execution_timer_)
-    }
-    inline void StopExecutionTimer() {
-        STOP_TIMER(execution_timer_)
-        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms");
     }
 
     //! Context, which can give iterators to data.

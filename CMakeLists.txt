@@ -6,10 +6,11 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-project(c7a)
-
 # custom cmake scripts
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
+
+# project: we only use C++
+project(c7a CXX)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -43,7 +44,24 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -std=c++1y -g -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
+
+# enable more warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wcast-qual")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtautological-compare")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-pure-const -Wsuggest-attribute=const")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
+endif()
 
 # enable AddressSanitizer
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
@@ -67,7 +85,7 @@ if(JENKINS_BUILD)
   endif()
 
   # build using libc++ with clang in Jenkins
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     message(STATUS "Building using libc++ on clang")
   endif()
@@ -167,7 +185,7 @@ enable_testing()
 
 # google test + mock - enable "make test" and add_test()
 add_subdirectory(extlib/gtest)
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
 set(C7A_VALGRIND_OPTS
@@ -177,9 +195,8 @@ set(C7A_VALGRIND_OPTS
 
 ###############################################################################
 # add cereal
-MESSAGE (${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
 ################################################################################
 ### Find Required Libraries
@@ -248,9 +265,11 @@ endif()
 if(TRY_COMPILE_HEADERS)
 
   include(CheckCXXSourceCompiles)
-  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR})
+  set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
+  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
   set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${CMAKE_THREAD_LIBS_INIT})
+    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${ALL_LIBRARIES})
 
   file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
   list(SORT header_files)
@@ -265,7 +284,7 @@ if(TRY_COMPILE_HEADERS)
       int main() { return 0; }" IsSelfContained${compilename})
 
     if(NOT IsSelfContained${compilename})
-      message(SEND_ERROR
+      message(FATAL
         "Compilation FAILED for ${file}\n\nCompiler output:\n${OUTPUT}")
     endif()
   endforeach()

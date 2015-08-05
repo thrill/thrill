@@ -74,10 +74,7 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void Execute() override {
-        this->StartExecutionTimer();
-        this->StopExecutionTimer();
-    }
+    void Execute() override { }
 
     void PushData() override {
         LOG << "GENERATING data to file " << result_file_.ToString();

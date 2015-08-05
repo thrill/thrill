@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -16,6 +17,7 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_writer.hpp>
 
@@ -59,17 +61,18 @@ private:
 class PreReduceByIndex
 {
 public:
-    size_t max_index_;
+    size_t size_;
 
-    PreReduceByIndex(size_t max_index)
-        : max_index_(max_index)
+    PreReduceByIndex(size_t size)
+        : size_(size)
     { }
 
     template <typename ReducePreTable>
     typename ReducePreTable::index_result
     operator () (size_t key, ReducePreTable* ht) const {
-        size_t global_index = key * ht->NumBuckets() / (max_index_ + 1);
-        size_t partition_id = key * ht->NumPartitions() / (max_index_ + 1);
+        assert(key < size_);
+        size_t global_index = key * ht->NumBuckets() / size_;
+        size_t partition_id = key * ht->NumPartitions() / size_;
         size_t partition_offset = global_index -
                                   partition_id * ht->NumBucketsPerPartition();
         return typename ReducePreTable::index_result(partition_id,
@@ -110,17 +113,10 @@ public:
     };
 
 protected:
-    //! template for constexpr max, because std::max is not good enough.
-    template <typename T>
-    constexpr
-    static const T & max(const T& a, const T& b) {
-        return a > b ? a : b;
-    }
-
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
-        max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+        common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
     //! Block holding reduce key/value pairs.
     struct BucketBlock {
