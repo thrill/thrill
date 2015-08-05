@@ -111,8 +111,8 @@ int Execute(
 
     //connect data subsystem to network
     net::DispatcherThread net_dispatcher("dispatcher " + std::to_string(my_rank));
-    data::Manager data_manager(net_dispatcher);
-    data_manager.Connect(&net_manager.GetDataGroup());
+    data::ChannelMultiplexer cmp(net_dispatcher, workers_per_node);
+    cmp.Connect(&(net_manager.GetDataGroup()));
 
     //create flow control subsystem
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_node);
@@ -123,7 +123,9 @@ int Execute(
 
     for (size_t i = 0; i < workers_per_node; i++) {
         threads[i] = std::thread(
-            [&net_manager, &data_manager, &flow_manager, &results, &job_startpoint, i, log_prefix, workers_per_node] {
+            [&net_manager, &cmp, &flow_manager, &results, &job_startpoint, i, log_prefix, workers_per_node] {
+                data::Manager data_manager(cmp, i);
+
                 Context ctx(net_manager, flow_manager, data_manager, workers_per_node, i);
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
@@ -231,15 +233,16 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
     std::vector<net::DispatcherThread> net_dispatchers;
-    std::vector<data::Manager> data_managers;
+    std::vector<data::ChannelMultiplexer> channel_multiplexers;
     std::vector<net::FlowControlChannelManager> flow_managers;
 
 
     for (size_t node = 0; node < node_count; node++) {
         //connect data subsystem to network
         net_dispatchers.emplace_back("dispatcher " + std::to_string(node));
-        data_managers.emplace_back(net_dispatchers[node]);
-        data_managers[node].Connect(&(net_managers[node].GetDataGroup()));
+        channel_multiplexers.emplace_back(net_dispatchers[node], workers_per_node);
+        //TOOD(ts) fix this ugly pointer workaround ??
+        channel_multiplexers[node].Connect(&(net_managers[node].GetDataGroup()));
 
         //create flow control subsystem
         auto & group = net_managers[node].GetFlowGroup();
@@ -253,8 +256,9 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
         std::string log_prefix = "node " + std::to_string(node);
         for (size_t i = 0; i < workers_per_node; i++) {
             threads[i] = std::thread(
-                [&net_managers, &data_managers, &flow_managers, &job_startpoint, node, i, log_prefix, workers_per_node ] {
-                    Context ctx(net_managers[node], flow_managers[node], data_managers[node], workers_per_node, i);
+                [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, node, i, log_prefix, workers_per_node ] {
+                    data::Manager data_manager(channel_multiplexers[node], i);
+                    Context ctx(net_managers[node], flow_managers[node], data_manager, workers_per_node, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
@@ -294,16 +298,20 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
     net::Manager net_manager;
     net_manager.Initialize(0, net::Endpoint::ParseEndpointList("127.0.0.1:12345"));
 
+    size_t workers_per_node = 1;
+    size_t my_node_id = 1;
+
     //connect data subsystem to network
     net::DispatcherThread net_dispatcher("dispatcher");
-    data::Manager data_manager(net_dispatcher);
-    data_manager.Connect(&net_manager.GetDataGroup());
+    data::ChannelMultiplexer multiplexer(net_dispatcher, workers_per_node);
+    multiplexer.Connect(&net_manager.GetDataGroup());
+    data::Manager data_manager(multiplexer, my_node_id);
 
     //create flow control subsystem
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), 1);
 
-    Context ctx(net_manager, flow_manager, data_manager, 1, 0);
-    common::NameThisThread("worker " + std::to_string(0));
+    Context ctx(net_manager, flow_manager, data_manager, workers_per_node, my_node_id);
+    common::NameThisThread("worker " + std::to_string(my_node_id));
 
     job_startpoint(ctx);
 }

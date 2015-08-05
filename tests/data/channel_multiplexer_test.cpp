@@ -32,9 +32,10 @@ struct ChannelMultiplexer : public::testing::Test {
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         net::DispatcherThread dispatcher("dp");
-        data::Manager manager(dispatcher);
-        manager.Connect(group);
-        switch (group->MyRank()) {
+        data::ChannelMultiplexer cmp(dispatcher, 1);
+        cmp.Connect(group);
+        data::Manager manager(cmp, 0);
+        switch (group->my_connection_id()) {
         case 0:
             common::NameThisThread("t0");
             if (f1) f1(manager);
@@ -65,28 +66,29 @@ struct ChannelMultiplexer : public::testing::Test {
 // open a Channel via data::Manager, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaChannel(net::Group* net) {
-    common::NameThisThread("chmp" + std::to_string(net->MyRank()));
+    common::NameThisThread("chmp" + std::to_string(net->my_connection_id()));
 
     net::DispatcherThread dispatcher(
-        "chmp" + std::to_string(net->MyRank()) + "-dp");
+        "chmp" + std::to_string(net->my_connection_id()) + "-dp");
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
         send_buffer[i] = i;
 
     static const size_t iterations = 1000;
+    size_t my_worker_id = 0;
 
-    data::ChannelMultiplexer cmp(dispatcher);
+    data::ChannelMultiplexer cmp(dispatcher, 1);
     cmp.Connect(net);
     {
-        data::ChannelId id = cmp.AllocateNext();
+        data::ChannelId id = cmp.AllocateNext(my_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writer = cmp.GetOrCreateChannel(id)->OpenWriters(test_block_size);
+        auto writer = cmp.GetOrCreateChannel(id, my_worker_id)->OpenWriters(test_block_size);
 
-        for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
-            writer[tgt]("hello I am " + std::to_string(net->MyRank())
+        for (size_t tgt = 0; tgt != net->num_connections(); ++tgt) {
+            writer[tgt]("hello I am " + std::to_string(net->my_connection_id())
                         + " calling " + std::to_string(tgt));
 
             writer[tgt].Flush();
@@ -101,15 +103,15 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
         // open Readers and receive message from all workers
 
-        auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
+        auto reader = cmp.GetOrCreateChannel(id, my_worker_id)->OpenReaders();
 
-        for (size_t src = 0; src != net->Size(); ++src) {
+        for (size_t src = 0; src != net->num_connections(); ++src) {
             std::string msg = reader[src].Next<std::string>();
 
             ASSERT_EQ(msg, "hello I am " + std::to_string(src)
-                      + " calling " + std::to_string(net->MyRank()));
+                      + " calling " + std::to_string(net->my_connection_id()));
 
-            sLOG << net->MyRank() << "got msg from" << src;
+            sLOG << net->my_connection_id() << "got msg from" << src;
 
             // read a few MiBs of oddly sized data
             unsigned char recv_buffer[sizeof(send_buffer)];

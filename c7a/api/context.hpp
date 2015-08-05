@@ -70,7 +70,7 @@ public:
 
     //! Returns the total number of computing_nodes.
     size_t number_computing_node() const {
-        return net_manager_.Size();
+        return net_manager_.num_nodes();
     }
 
     //! Returns the number of nodes that is hosted on each computing_node
@@ -89,7 +89,7 @@ public:
     //! Returns id of this computing_node in the cluser
     //! A computing_node is a machine in the cluster that hosts multiple workers
     size_t computing_node_id() const {
-        return net_manager_.MyRank();
+        return net_manager_.my_node_rank();
     }
 
     //! Returns the local id ot this worker on the computing_node

@@ -38,14 +38,23 @@ public:
     //! where Blocks are directly sent to local workers.
     ChannelSink() : closed_(true) { }
 
-    //! ChannelSink sending out to network.
+    /*! ChannelSink sending out to network.
+     * \param dispatcher used for sending data via a socket
+     * \param connection the socket (aka conneciton) used for the channel
+     * \param channel_id the ID that identifies the channel
+     * \param my_rank the ID that identifies this computing node globally
+     * \param my_worker_id the id that identifies the worker locally
+     * \param partners_worker_id the id that identifies the partner worker locally
+     */
     ChannelSink(net::DispatcherThread* dispatcher,
                 net::Connection* connection,
-                ChannelId channel_id, size_t own_rank)
+                ChannelId channel_id, size_t my_rank, size_t my_worker_id, size_t partners_worker_id)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
-          own_rank_(own_rank)
+          my_rank_(my_rank),
+          my_worker_id_(my_worker_id),
+          partners_worker_id_(partners_worker_id)
     { }
 
     ChannelSink(ChannelSink&&) = default;
@@ -61,7 +70,9 @@ public:
         header.size = vb.size();
         header.first_item = vb.first_item_relative();
         header.nitems = vb.nitems();
-        header.sender_rank = own_rank_;
+        header.sender_rank = my_rank_;
+        header.sender_worker_id = my_worker_id_;
+        header.receiver_worker_id = partners_worker_id_;
 
         if (debug) {
             sLOG << "sending block" << common::hexdump(vb.ToString());
@@ -78,7 +89,8 @@ public:
         assert(!closed_);
         closed_ = true;
 
-        sLOG << "sending 'close channel' from worker" << own_rank_
+        sLOG << "sending 'close channel' from worker" << my_worker_id_
+             << "to worker" << partners_worker_id_
              << "channel" << id_;
 
         StreamBlockHeader header;
@@ -86,7 +98,9 @@ public:
         header.size = 0;
         header.first_item = 0;
         header.nitems = 0;
-        header.sender_rank = own_rank_;
+        header.sender_rank = my_rank_;
+        header.sender_worker_id = my_worker_id_;
+        header.receiver_worker_id = partners_worker_id_;
         dispatcher_->AsyncWrite(*connection_, header.Serialize());
     }
 
@@ -100,7 +114,9 @@ protected:
     net::Connection* connection_ = nullptr;
 
     size_t id_ = -1;
-    size_t own_rank_ = -1;
+    size_t my_rank_ = -1;
+    size_t my_worker_id_ = -1;
+    size_t partners_worker_id_ = -1;
     bool closed_ = false;
 };
 

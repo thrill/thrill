@@ -48,7 +48,7 @@ class ChannelMultiplexer
 {
 public:
     explicit ChannelMultiplexer(net::DispatcherThread& dispatcher, size_t num_workers_per_node)
-        : dispatcher_(dispatcher), next_id_(0), num_workers_per_node_(num_workers_per_node) { }
+        : dispatcher_(dispatcher), next_id_(num_workers_per_node, 0), num_workers_per_node_(num_workers_per_node) { }
 
     //! non-copyable: delete copy-constructor
     ChannelMultiplexer(const ChannelMultiplexer&) = delete;
@@ -82,22 +82,26 @@ public:
 
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
-    bool HasChannel(size_t id) {
-        return channels_.find(id) != channels_.end();
+    //! \param worker_id of the local worker who requested the channel
+    bool HasChannel(size_t id, size_t worker_id) {
+        return channels_.find(std::make_pair(worker_id, id)) != channels_.end();
     }
 
     //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
     //TODO Method to access channel via callbacks
 
     //! Allocate the next channel
-    size_t AllocateNext() {
-        return next_id_++;
+    //! \param worker_id of the local worker who requested the channel
+    size_t AllocateNext(size_t worker_id) {
+        assert(worker_id < next_id_.size());
+        return next_id_[worker_id] = next_id_[worker_id] + 1;
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr GetOrCreateChannel(size_t id) {
+    //! \param worker_id of the local worker who requested the channel
+    ChannelPtr GetOrCreateChannel(size_t id, size_t worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateChannel(id);
+        return _GetOrCreateChannel(id, worker_id);
     }
 
 private:
@@ -106,7 +110,8 @@ private:
     net::DispatcherThread& dispatcher_;
 
     //! Channels have an ID in block headers
-    std::map<size_t, ChannelPtr> channels_;
+    //! <worker id, channel id>
+    std::map<std::pair<size_t, size_t>, ChannelPtr> channels_;
 
     // Holds NetConnections for outgoing Channels
     net::Group* group_ = nullptr;
@@ -114,23 +119,25 @@ private:
     //protects critical sections
     common::MutexMovable mutex_;
 
-    //! Next ID to generate
-    size_t next_id_;
+    //! Next ID to generate, one for each worker
+    std::vector<size_t> next_id_;
 
     //! Number of workers per node
     size_t num_workers_per_node_;
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr _GetOrCreateChannel(size_t id) {
+    //! \param id of the channel
+    //! \param worker_id of the local worker who requested the channel
+    ChannelPtr _GetOrCreateChannel(size_t id, size_t worker_id) {
         assert(group_ != nullptr);
-        auto it = channels_.find(id);
+        auto it = channels_.find(std::make_pair(worker_id, id));
 
         if (it != channels_.end())
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_);
-        channels_.insert(std::make_pair(id, channel));
+        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_, worker_id, num_workers_per_node_);
+        channels_.insert(std::make_pair(std::make_pair(worker_id, id), channel));
         return channel;
     }
 
@@ -158,11 +165,13 @@ private:
 
         // received channel id
         auto id = header.channel_id;
-        ChannelPtr channel = GetOrCreateChannel(id);
+        auto local_worker = header.receiver_worker_id;
+        ChannelPtr channel = GetOrCreateChannel(id, local_worker);
 
+        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
         if (header.IsStreamEnd()) {
             sLOG << "end of stream on" << s << "in channel" << id;
-            channel->OnCloseStream(header.sender_rank);
+            channel->OnCloseStream(sender_worker_rank);
 
             AsyncReadStreamBlockHeader(s);
         }
@@ -190,8 +199,9 @@ private:
         BlockPtr block = Block::Allocate(buffer.size());
         std::copy(buffer.data(), buffer.data() + buffer.size(), block->begin());
 
+        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
         channel->OnStreamBlock(
-            header.sender_rank,
+            sender_worker_rank,
             VirtualBlock(block, 0, header.size,
                          header.first_item, header.nitems));
 
