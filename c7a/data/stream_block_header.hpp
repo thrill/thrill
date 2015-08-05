@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
