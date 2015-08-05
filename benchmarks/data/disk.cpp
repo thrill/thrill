@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/write.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/stats_timer.hpp>
@@ -38,7 +38,7 @@ int main(int argc, const char** argv) {
 
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> timer(true);
-        auto lines = ReadLines(ctx, input_file, [](const std::string& line) { return line; });
+        auto lines = ReadLines(ctx, input_file);
         lines.WriteToFileSystem(output_file);
         timer.Stop();
         std::cout << "RESULT"

@@ -14,8 +14,10 @@
 #ifndef C7A_API_GENERATE_HEADER
 #define C7A_API_GENERATE_HEADER
 
+#include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/math.hpp>
 
 #include <fstream>
 #include <random>
@@ -29,12 +31,12 @@ namespace api {
 //! \{
 
 /*!
- * A DIANode which performs a Generate operation. Generate creates an DIA according
- * to a generator function. This function is used to generate a DIA of a certain
- * size by applying it to integers from 0 to size - 1.
+ * A DIANode which performs a Generate operation. Generate creates an DIA
+ * according to a generator function. This function is used to generate a DIA of
+ * a certain size by applying it to integers from 0 to size - 1.
  *
  * \tparam ValueType Output type of the Generate operation.
- * \tparam ReadFunction Type of the generate function.
+ * \tparam GenerateNode Type of the generate function.
  */
 template <typename ValueType, typename GeneratorFunction>
 class GenerateNode : public DOpNode<ValueType>
@@ -42,16 +44,17 @@ class GenerateNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
+
     /*!
-    * Constructor for a GenerateNode. Sets the Context, parents, generator
-    * function and file path.
-    *
-    * \param ctx Reference to Context, which holds references to data and network.
-    * \param generator_function Generator function, which defines how each line
-    * of the file is read and used for generation of a DIA.
-    * \param generator_function generates elements from an index
-    * \param size Number of elements in the generated DIA
-    */
+     * Constructor for a GenerateNode. Sets the Context, parents, generator
+     * function and file path.
+     *
+     * \param ctx Reference to Context, which holds references to data and network.
+     * \param generator_function Generator function, which defines how each line
+     * of the file is read and used for generation of a DIA.
+     * \param generator_function generates elements from an index
+     * \param size Number of elements in the generated DIA
+     */
     GenerateNode(Context& ctx,
                  GeneratorFunction generator_function,
                  size_t size,
@@ -61,41 +64,18 @@ public:
           size_(size)
     { }
 
-    virtual ~GenerateNode() { }
-
-    //! Executes the generate operation. Reads a file line by line and creates a
-    //! element vector, out of which elements are randomly chosen (possibly
-    //! duplicated).
-    void Execute() override {
-        this->StartExecutionTimer();
-        this->StopExecutionTimer();
-    }
+    //! Executes the generate operation. Does nothing.
+    void Execute() override { }
 
     void PushData() override {
-        LOG << "GENERATING data with id " << this->result_file_;
 
-        using InputArgument
-                  = typename common::FunctionTraits<GeneratorFunction>::template arg<0>;
+        size_t local_begin, local_end;
+        std::tie(local_begin, local_end) =
+            common::CalculateLocalRange(size_, context_);
 
-        static_assert(std::is_convertible<size_t, InputArgument>::value,
-                      "The GeneratorFunction needs a size_t as input parameter");
-
-        size_t offset = (size_ / context_.number_worker()) * context_.rank();
-        size_t local_elements;
-
-        if (context_.number_worker() == context_.rank() + 1) {
-            //last worker gets leftovers
-            local_elements = size_ -
-                             ((context_.number_worker() - 1) *
-                              (size_ / context_.number_worker()));
-        }
-        else {
-            local_elements = (size_ / context_.number_worker());
-        }
-
-        for (size_t i = 0; i < local_elements; i++) {
+        for (size_t i = local_begin; i < local_end; i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
-                func(generator_function_(i + offset));
+                func(generator_function_(i));
             }
         }
     }
@@ -103,8 +83,8 @@ public:
     void Dispose() override { }
 
     /*!
-     * Produces an 'empty' function stack, which only contains the identity emitter function.
-     * \return Empty function stack
+     * Produces an 'empty' function stack, which only contains the identity
+     * emitter function.  \return Empty function stack
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
@@ -119,12 +99,10 @@ public:
     }
 
 private:
-    //! The read function which is applied on every line read.
+    //! The generator function which is applied to every index.
     GeneratorFunction generator_function_;
     //! Size of the output DIA.
     size_t size_;
-
-    static const bool debug = false;
 };
 
 template <typename GeneratorFunction>

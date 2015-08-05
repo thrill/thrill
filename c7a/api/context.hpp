@@ -14,6 +14,7 @@
 
 #include <c7a/api/stats_graph.hpp>
 #include <c7a/common/stats.hpp>
+#include <c7a/common/config.hpp>
 #include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -73,16 +74,16 @@ public:
     }
 
     //! Returns the total number of workers.
-    size_t number_worker() {
+    size_t number_worker() const {
         return job_manager_.net_manager().Size();
     }
 
     //! Returns the rank of this worker. Between 0 and number_worker() - 1
-    size_t rank() {
+    size_t rank() const {
         return job_manager_.net_manager().MyRank();
     }
 
-    common::Stats<ENABLE_STATS> & stats() {
+    common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
 
@@ -100,7 +101,7 @@ public:
 
 private:
     core::JobManager& job_manager_;
-    common::Stats<ENABLE_STATS> stats_;
+    common::Stats<common::g_enable_stats> stats_;
     api::StatsGraph stats_graph_;
 
     //! number of this worker context, 0..p-1, within this compute node.
@@ -115,7 +116,7 @@ private:
 //! non-zero return value of any thread is returned.
 int Execute(
     int argc, char* const* argv,
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     size_t local_worker_count = 1, const std::string& log_prefix = "");
 
 /*!
@@ -145,7 +146,24 @@ ExecuteLocalMock(size_t node_count, size_t local_worker_count,
  * different numbers of node and workers as independent threads in one program.
  */
 void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
-                       const std::string& log_prefix = "");
+                       const std::string& log_prefix = std::string());
+
+/*!
+ * Executes the given job startpoint with a context instance.  Startpoints may
+ * be called multiple times with concurrent threads and different context
+ * instances across different workers.  The c7a configuration is taken from
+ * environment variables starting the C7A_.
+ *
+ * C7A_RANK contains the rank of this worker
+ *
+ * C7A_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ *
+ * \returns 0 if execution was fine on all threads. Otherwise, the first
+ * non-zero return value of any thread is returned.
+ */
+int ExecuteEnv(
+    std::function<void(Context&)> job_startpoint,
+    const std::string& log_prefix = std::string());
 
 //! \}
 

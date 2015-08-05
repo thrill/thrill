@@ -15,6 +15,7 @@
 #ifndef C7A_NET_DISPATCHER_THREAD_HEADER
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
+#include <c7a/common/atomic_movable.hpp>
 #include <c7a/common/concurrent_queue.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/data/block.hpp>
@@ -77,6 +78,10 @@ public:
     DispatcherThread(const DispatcherThread&) = delete;
     //! non-copyable: delete assignment operator
     DispatcherThread& operator = (const DispatcherThread&) = delete;
+    //! move-constructor: default
+    DispatcherThread(DispatcherThread&&) = default;
+    //! move-assignment operator: default
+    DispatcherThread& operator = (DispatcherThread&&) = default;
 
     //! Return internal Dispatcher object
     //Dispatcher & dispatcher() { return dispatcher_; }
@@ -88,8 +93,8 @@ public:
     //! \{
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(const std::chrono::milliseconds& timeout,
-                            const TimerCallback& cb);
+    void AddTimer(const std::chrono::milliseconds& timeout,
+                  const TimerCallback& cb);
 
     //! \}
 
@@ -120,10 +125,9 @@ public:
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr);
 
-    //! asynchronously write buffer and callback when delivered. The buffer is
-    //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
-                    const data::VirtualBlock& block,
+    //! asynchronously write byte and block and callback when delivered. The
+    //! block is reference counted by the async writer.
+    void AsyncWrite(Connection& c, Buffer&& buffer, const data::Block& block,
                     AsyncWriteCallback done_cb = nullptr);
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
@@ -159,7 +163,7 @@ private:
     class Dispatcher* dispatcher_;
 
     //! termination flag
-    std::atomic<bool> terminate_ { false };
+    common::atomic_movable<bool> terminate_ { false };
 
     //! thread name for logging
     std::string name_;

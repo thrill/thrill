@@ -14,7 +14,8 @@
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/lop_node.hpp>
 #include <c7a/api/prefixsum.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
+#include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/write.hpp>
 #include <gtest/gtest.h>
@@ -71,12 +72,10 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto integers = ReadLines(
-                ctx,
-                "test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                });
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
 
             std::vector<int> out_vec = integers.AllGather();
 
@@ -86,6 +85,39 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
             }
 
             ASSERT_EQ((size_t)16, out_vec.size());
+        };
+
+    api::ExecuteLocalTests(start_func);
+}
+
+TEST(Operations, ScatterAndAllGatherElementsCorrect) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            static const size_t test_size = 1024;
+
+            std::vector<size_t> in_vector;
+
+            if (ctx.rank() == 0) {
+                // generate data only on worker 0.
+                for (size_t i = 0; i < test_size; ++i) {
+                    in_vector.push_back(i);
+                }
+
+                std::random_shuffle(in_vector.begin(), in_vector.end());
+            }
+
+            DIARef<size_t> integers = Scatter(ctx, in_vector).Collapse();
+
+            std::vector<size_t> out_vec = integers.AllGather();
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
         };
 
     api::ExecuteLocalTests(start_func);

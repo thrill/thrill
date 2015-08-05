@@ -34,6 +34,13 @@ struct is_pair : public std::false_type { };
 template <typename S, typename T>
 struct is_pair<std::pair<S, T> >: public std::true_type { };
 
+//! template for constexpr max, because std::max is not good enough.
+template <typename T>
+constexpr
+static inline const T & max(const T& a, const T& b) {
+    return a > b ? a : b;
+}
+
 } // namespace common
 } // namespace c7a
 

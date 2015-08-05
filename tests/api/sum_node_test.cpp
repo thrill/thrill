@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/sum.hpp>
 #include <gtest/gtest.h>
 
@@ -62,12 +62,11 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
-                ctx,
-                "test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                });
+            // TODO(ms): Replace this with some test-specific rendered file
+            auto input = ReadLines(ctx, "test1")
+                         .Map([](const std::string& line) {
+                                  return std::stoi(line);
+                              });
 
             auto ones = input.Map([](int in) {
                                       return in;
