@@ -84,7 +84,7 @@ protected:
      * @param value The value to send.
      */
     template <typename T>
-    void SendTo(ClientId destination, T value) {
+    void SendTo(size_t destination, T value) {
 
         assert(threadId == 0); //Only primary thread might send/receive.
 
@@ -100,7 +100,7 @@ protected:
      * received value is stored.
      */
     template <typename T>
-    void ReceiveFrom(ClientId source, T* value) {
+    void ReceiveFrom(size_t source, T* value) {
 
         assert(threadId == 0); //Only primary thread might send/receive.
 
