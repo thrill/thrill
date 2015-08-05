@@ -45,11 +45,11 @@ public:
      */
     static const size_t kGroupCount = 3;
 
-    ClientId my_node_rank() {
+    size_t my_node_rank() {
         return GetSystemGroup().my_connection_id();
     }
 
-    ClientId num_nodes() {
+    size_t num_nodes() {
         return GetSystemGroup().num_connections();
     }
 
@@ -119,7 +119,7 @@ private:
     /**
      * The rank associated with the local worker.
      */
-    ClientId my_rank_;
+    size_t my_rank_;
 
     //! for initialization of members
     friend class Construction;

@@ -90,7 +90,7 @@ public:
 
         //Initiate connections to all hosts with higher id.
         for (uint32_t g = 0; g < kGroupCount; g++) {
-            for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id) {
+            for (size_t id = my_rank_ + 1; id < addressList.size(); ++id) {
                 AsyncConnect(g, id, addressList[id]);
             }
         }
@@ -135,7 +135,7 @@ protected:
     /**
      * The rank associated with the local worker.
      */
-    ClientId my_rank_;
+    size_t my_rank_;
 
     /**
      * The Connections responsible
@@ -177,7 +177,7 @@ protected:
         /**
          * The id of the worker associated with the sending Connection.
          */
-        ClientId id;
+        size_t id;
     };
 
     /**
@@ -220,7 +220,7 @@ protected:
 
         for (uint32_t g = 0; g < kGroupCount; g++) {
 
-            for (ClientId id = 0; id < groups_[g].num_connections(); ++id) {
+            for (size_t id = 0; id < groups_[g].num_connections(); ++id) {
                 if (id == my_rank_) continue;
 
                 //Just checking the state works since this implicitey checks the
