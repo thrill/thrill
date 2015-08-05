@@ -77,36 +77,37 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     static const size_t iterations = 1000;
     size_t my_worker_id = 0;
+    size_t num_workers_per_node = 1;
 
-    data::ChannelMultiplexer cmp(dispatcher, 1);
+    data::ChannelMultiplexer cmp(dispatcher, num_workers_per_node);
     cmp.Connect(net);
     {
         data::ChannelId id = cmp.AllocateNext(my_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writer = cmp.GetOrCreateChannel(id, my_worker_id)->OpenWriters(test_block_size);
+        auto writers = cmp.GetOrCreateChannel(id, my_worker_id)->OpenWriters(test_block_size);
 
-        for (size_t tgt = 0; tgt != net->num_connections(); ++tgt) {
-            writer[tgt]("hello I am " + std::to_string(net->my_connection_id())
+        for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
+            writers[tgt]("hello I am " + std::to_string(net->my_connection_id())
                         + " calling " + std::to_string(tgt));
 
-            writer[tgt].Flush();
+            writers[tgt].Flush();
 
             // write a few MiBs of oddly sized data
             for (size_t r = 0; r != iterations; ++r) {
-                writer[tgt].Append(send_buffer, sizeof(send_buffer));
+                writers[tgt].Append(send_buffer, sizeof(send_buffer));
             }
 
-            writer[tgt].Flush();
+            writers[tgt].Flush();
         }
 
         // open Readers and receive message from all workers
 
-        auto reader = cmp.GetOrCreateChannel(id, my_worker_id)->OpenReaders();
+        auto readers = cmp.GetOrCreateChannel(id, my_worker_id)->OpenReaders();
 
-        for (size_t src = 0; src != net->num_connections(); ++src) {
-            std::string msg = reader[src].Next<std::string>();
+        for (size_t src = 0; src != readers.size(); ++src) {
+            std::string msg = readers[src].Next<std::string>();
 
             ASSERT_EQ(msg, "hello I am " + std::to_string(src)
                       + " calling " + std::to_string(net->my_connection_id()));
@@ -117,7 +118,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
             unsigned char recv_buffer[sizeof(send_buffer)];
 
             for (size_t r = 0; r != iterations; ++r) {
-                reader[src].Read(recv_buffer, sizeof(recv_buffer));
+                readers[src].Read(recv_buffer, sizeof(recv_buffer));
 
                 ASSERT_TRUE(std::equal(send_buffer,
                                        send_buffer + sizeof(send_buffer),
