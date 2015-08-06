@@ -255,7 +255,7 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
     for (size_t node = 0; node < node_count; node++) {
         std::string log_prefix = "node " + std::to_string(node);
         for (size_t i = 0; i < workers_per_node; i++) {
-            threads[i] = std::thread(
+            threads[node * workers_per_node + i] = std::thread(
                 [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, node, i, log_prefix, workers_per_node ] {
                     data::Manager data_manager(channel_multiplexers[node], i);
                     Context ctx(net_managers[node], flow_managers[node], data_manager, workers_per_node, i);
