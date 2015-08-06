@@ -285,7 +285,7 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
  */
 void ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
     int num_nodes[] = { 1, 2, 5, 8};
-    int num_workers[] = {1, 2, 3};
+    int num_workers[] = {1};//, 2, 3};
 
     for (auto& nodes : num_nodes) {
         for (auto& workers : num_workers) {
