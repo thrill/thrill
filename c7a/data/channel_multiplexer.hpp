@@ -47,8 +47,8 @@ namespace data {
 class ChannelMultiplexer
 {
 public:
-    explicit ChannelMultiplexer(net::DispatcherThread& dispatcher, size_t num_workers_per_node)
-        : dispatcher_(dispatcher), next_id_(num_workers_per_node, 0), num_workers_per_node_(num_workers_per_node) { }
+    explicit ChannelMultiplexer(size_t num_workers_per_node)
+        : dispatcher_("dispatcher"), next_id_(num_workers_per_node, 0), num_workers_per_node_(num_workers_per_node) { }
 
     //! non-copyable: delete copy-constructor
     ChannelMultiplexer(const ChannelMultiplexer&) = delete;
@@ -107,7 +107,7 @@ public:
 private:
     static const bool debug = false;
 
-    net::DispatcherThread& dispatcher_;
+    net::DispatcherThread dispatcher_;
 
     //! Channels have an ID in block headers
     //! <worker id, channel id>

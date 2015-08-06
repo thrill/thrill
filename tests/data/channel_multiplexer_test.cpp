@@ -31,8 +31,7 @@ struct ChannelMultiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        net::DispatcherThread dispatcher("dp");
-        data::ChannelMultiplexer cmp(dispatcher, 1);
+        data::ChannelMultiplexer cmp(1);
         cmp.Connect(group);
         data::Manager manager(cmp, 0);
         switch (group->my_connection_id()) {
@@ -68,8 +67,6 @@ struct ChannelMultiplexer : public::testing::Test {
 void TalkAllToAllViaChannel(net::Group* net) {
     common::NameThisThread("chmp" + std::to_string(net->my_connection_id()));
 
-    net::DispatcherThread dispatcher(
-        "chmp" + std::to_string(net->my_connection_id()) + "-dp");
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
@@ -79,7 +76,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
     size_t my_worker_id = 0;
     size_t num_workers_per_node = 1;
 
-    data::ChannelMultiplexer cmp(dispatcher, num_workers_per_node);
+    data::ChannelMultiplexer cmp(num_workers_per_node);
     cmp.Connect(net);
     {
         data::ChannelId id = cmp.AllocateNext(my_worker_id);
