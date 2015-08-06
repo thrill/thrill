@@ -34,28 +34,27 @@ namespace data {
 using ChannelId = size_t;
 
 /*!
- * A Channel is a virtual set of connections to all other nodes instances,
+ * A Channel is a virtual set of connections to all other worker instances,
  * hence a "Channel" bundles them to a logical communication context. We call an
- * individual connection from a node to another node a "Stream", though no
- * such class exists.
+ * individual connection from a worker to another worker a "Connection".
  *
  * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
- * outbound Stream. The vector is of size nodes, including virtual
- * connections to the local node(s). One can then write items destined to the
- * corresponding node. The written items are buffered into a Block and only
+ * outbound Stream. The vector is of size of workers in the system.
+ * One can then write items destined to the
+ * corresponding worker. The written items are buffered into a Block and only
  * sent when the Block is full. To force a send, use BlockWriter::Flush(). When
  * all items are sent, the BlockWriters **must** be closed using
  * BlockWriter::Close().
  *
- * To read the inbound Stream items, one can get a vector of BlockReader via
+ * To read the inbound Connection items, one can get a vector of BlockReader via
  * OpenReaders(), which can then be used to read items sent by individual
- * nodes.
+ * workers.
  *
  * Alternatively, one can use OpenReader() to get a BlockReader which delivers
- * all items from *all* nodes in node order (concatenating all inbound
- * Streams).
+ * all items from *all* worker in worker order (concatenating all inbound
+ * Connections).
  *
- * As soon as all attached streams of the Channel have been Close()the number of
+ * As soon as all attached streams of the Channel have been Close() the number of
  * expected streams is reached, the channel is marked as finished and no more
  * data will arrive.
  */
@@ -84,14 +83,14 @@ public:
           my_local_worker_id_(my_local_worker_id),
           workers_per_connection_(workers_per_connection) {
         // construct ChannelSink array
-        for (size_t node = 0; node < group_.num_connections(); ++node) {
+        for (size_t host = 0; host < group_.num_connections(); ++host) {
             for (size_t worker = 0; worker < workers_per_connection_; worker++) {
-                if (node == group_.my_connection_id()) {
+                if (host == group_.my_connection_id()) {
                     sinks_.emplace_back();
                 }
                 else {
                     sinks_.emplace_back(
-                        &dispatcher, &group_.connection(node),
+                        &dispatcher, &group_.connection(host),
                         id,
                         group_.my_connection_id(),
                         my_local_worker_id_,
@@ -113,19 +112,19 @@ public:
         return id_;
     }
 
-    //! Creates BlockWriters for each node. BlockWriter can only be opened
+    //! Creates BlockWriters for each woker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<BlockWriter> OpenWriters(size_t block_size = default_block_size) {
         std::vector<BlockWriter> result;
 
-        for (size_t node_id = 0; node_id < group_.num_connections(); ++node_id) {
+        for (size_t host_id = 0; host_id < group_.num_connections(); ++host_id) {
             for (size_t local_worker_id = 0; local_worker_id < workers_per_connection_; ++local_worker_id) {
-                size_t queue_id = node_id * workers_per_connection_ + local_worker_id;
-                if (node_id == group_.my_connection_id()) {
-                    result.emplace_back(&queues_[queue_id], block_size);
+                size_t worker_id = host_id * workers_per_connection_ + local_worker_id;
+                if (host_id == group_.my_connection_id()) {
+                    result.emplace_back(&queues_[worker_id], block_size);
                 }
                 else {
-                    result.emplace_back(&sinks_[queue_id], block_size);
+                    result.emplace_back(&sinks_[worker_id], block_size);
                 }
             }
         }
@@ -134,7 +133,7 @@ public:
         return result;
     }
 
-    //! Creates a BlockReader for each node. The BlockReaders are attached to
+    //! Creates a BlockReader for each worker. The BlockReaders are attached to
     //! the BlockQueues in the Channel and wait for further Blocks to arrive or
     //! the Channel's remote close.
     std::vector<BlockQueueReader> OpenReaders() {
@@ -148,7 +147,7 @@ public:
         return result;
     }
 
-    //! Creates a BlockReader for all nodes. The BlockReader is attached to
+    //! Creates a BlockReader for all workers. The BlockReader is attached to
     //! one \ref ConcatBlockSource which includes all incoming queues of
     //! this channel.
     ConcatBlockReader OpenReader() {
@@ -161,7 +160,7 @@ public:
         return ConcatBlockReader(ConcatBlockSource(result));
     }
 
-    //! Creates a BlockReader for all nodes. The BlockReader is attached to
+    //! Creates a BlockReader for all workers. The BlockReader is attached to
     //! one \ref ConcatBlockSource which includes all incoming queues of this
     //! channel. The received Blocks are also cached in the Channel, hence this
     //! function can be called multiple times to read the items again.
@@ -177,10 +176,10 @@ public:
     }
 
     /*!
-     * Scatters a File to many nodes
+     * Scatters a File to many worker
      *
-     * elements from 0..offset[0] are sent to the first node,
-     * elements from (offset[0] + 1)..offset[1] are sent to the second node.
+     * elements from 0..offset[0] are sent to the first worker,
+     * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
      * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
      * The offset values range from 0..Manager::GetNumElements().
      * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_connection_.
@@ -198,7 +197,7 @@ public:
         std::vector<BlockWriter> writers = OpenWriters();
 
         for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
-            // write [current,limit) to this node
+            // write [current,limit) to this worker
             size_t limit = offsets[local_worker_id];
             assert(current <= limit);
 #if 0
@@ -220,7 +219,7 @@ public:
 
     //! shuts the channel down.
     void Close() {
-        // close all sinks, this should emit sentinel to all other nodes.
+        // close all sinks, this should emit sentinel to all other worker.
         for (size_t i = 0; i != sinks_.size(); ++i) {
             if (sinks_[i].closed()) continue;
             sinks_[i].Close();
@@ -237,7 +236,7 @@ public:
         // do it better -tb)
         for (size_t i = 0; i != queues_.size(); ++i) {
             while (!queues_[i].write_closed()) {
-                LOG << "wait for close from node" << i;
+                LOG << "wait for close from worker" << i;
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
@@ -258,7 +257,7 @@ protected:
 
     ChannelId id_;
 
-    //! ChannelSink objects are receivers of Blocks outbound for other nodes.
+    //! ChannelSink objects are receivers of Blocks outbound for other worker.
     std::vector<ChannelSink> sinks_;
 
     //! BlockQueues to store incoming Blocks with no attached destination.
@@ -282,7 +281,7 @@ protected:
 
     //! called from ChannelMultiplexer when there is a new Block on a
     //! Stream.
-    //! \param from the worker rank (node rank * #workers/node + worker id)
+    //! \param from the worker rank (host rank * #workers/host + worker id)
     void OnStreamBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
 
@@ -298,7 +297,7 @@ protected:
 
     //! called from ChannelMultiplexer when a Stream closed notification was
     //! received.
-    //! \param from the worker rank (node rank * #workers/node + worker id)
+    //! \param from the worker rank (host rank * #workers/host + worker id)
     void OnCloseStream(size_t from) {
         assert(from < queues_.size());
         assert(!queues_[from].write_closed());

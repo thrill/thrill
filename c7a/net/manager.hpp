@@ -45,11 +45,11 @@ public:
      */
     static const size_t kGroupCount = 3;
 
-    size_t my_node_rank() {
+    size_t my_rank() {
         return GetSystemGroup().my_connection_id();
     }
 
-    size_t num_nodes() {
+    size_t num_hosts() {
         return GetSystemGroup().num_connections();
     }
 
