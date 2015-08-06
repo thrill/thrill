@@ -87,13 +87,13 @@ public:
     //! \}
 
     //! non-copyable: delete copy-constructor
-    Group(const Group &) = delete;
+    Group(const Group&) = delete;
     //! non-copyable: delete assignment operator
-    Group & operator = (const Group &) = delete;
+    Group& operator = (const Group&) = delete;
     //! move-constructor: default
-    Group(Group &&) = default;
+    Group(Group&&) = default;
     //! move-assignment operator: default
-    Group & operator = (Group &&) = default;
+    Group& operator = (Group&&) = default;
 
     //! \name Status and Access to NetConnections
     //! \{
