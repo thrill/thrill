@@ -179,6 +179,16 @@ public:
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
+        assert(!closed_);
+
+        // fast path for writing item into block if it fits.
+        if (C7A_LIKELY(current_ + sizeof(Type) <= end_)) {
+            *reinterpret_cast<Type*>(current_) = item;
+
+            current_ += sizeof(Type);
+            return *this;
+        }
+
         return Append(&item, sizeof(item));
     }
 

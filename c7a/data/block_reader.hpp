@@ -273,7 +273,16 @@ public:
                       "You only want to Get() POD types as raw values.");
 
         Type ret;
-        Read(&ret, sizeof(ret));
+
+        // fast path for reading item from block if it fits.
+        if (C7A_LIKELY(current_ + sizeof(Type) <= end_)) {
+            ret = *reinterpret_cast<const Type*>(current_);
+            current_ += sizeof(Type);
+        }
+        else {
+            Read(&ret, sizeof(ret));
+        }
+
         return ret;
     }
 
