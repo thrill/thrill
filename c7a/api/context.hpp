@@ -46,12 +46,12 @@ namespace api {
 class Context
 {
 public:
-    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Manager& data_manager, size_t workers_per_computing_node, size_t worker_id)
+    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Manager& data_manager, size_t workers_per_host, size_t worker_id)
         : net_manager_(net_manager)
         , flow_manager_(flow_manager)
         , data_manager_(data_manager)
         , worker_id_(worker_id)
-        , workers_per_computing_node_(workers_per_computing_node)
+        , workers_per_host_(workers_per_host)
     { }
 
     //! Returns a reference to the data manager, which gives iterators and
@@ -69,31 +69,31 @@ public:
         return flow_manager_.GetFlowControlChannel(worker_id_);
     }
 
-    //! Returns the total number of computing_nodes.
-    size_t number_computing_node() const {
-        return net_manager_.num_nodes();
+    //! Returns the total number of hosts.
+    size_t num_hosts() const {
+        return net_manager_.num_hosts();
     }
 
-    //! Returns the number of nodes that is hosted on each computing_node
-    size_t workers_per_computing_node() const {
-        return workers_per_computing_node_;
+    //! Returns the number of workers that is hosted on each host
+    size_t workers_per_host() const {
+        return workers_per_host_;
     }
 
     size_t my_rank() const {
-        return workers_per_computing_node() * computing_node_id() + worker_id();
+        return workers_per_host() * host_rank() + worker_id();
     }
 
     size_t num_workers() const {
-        return number_computing_node() * workers_per_computing_node();
+        return num_hosts() * workers_per_host();
     }
 
-    //! Returns id of this computing_node in the cluser
-    //! A computing_node is a machine in the cluster that hosts multiple workers
-    size_t computing_node_id() const {
-        return net_manager_.my_node_rank();
+    //! Returns id of this host in the cluser
+    //! A host is a machine in the cluster that hosts multiple workers
+    size_t host_rank() const {
+        return net_manager_.my_rank();
     }
 
-    //! Returns the local id ot this worker on the computing_node
+    //! Returns the local id ot this worker on the host
     //! A worker is _locally_ identified by this id
     size_t worker_id() const {
         return worker_id_;
@@ -124,16 +124,16 @@ private:
     common::Stats<common::g_enable_stats> stats_;
 
 
-    //! number of this computing_node context, 0..p-1, within this compute node
+    //! number of this host context, 0..p-1, within this host
     size_t worker_id_;
 
-    //! number of workers hosted per computing_node
-    size_t workers_per_computing_node_;
+    //! number of workers hosted per host
+    size_t workers_per_host_;
 };
 
-//! Outputs the context as <computing node id>:<worker id> to an std::ostream
+//! Outputs the context as <host id>:<worker id> to an std::ostream
 static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
-    return os << ctx.computing_node_id() << ":" << ctx.worker_id();
+    return os << ctx.host_rank() << ":" << ctx.worker_id();
 }
 
 //! Executes the given job startpoint with a context instance.
@@ -148,38 +148,38 @@ int Execute(
     const std::string& log_prefix = "");
 
 /*!
- * Function to run a number of computing_nodes as locally independent threads, which
- * still communicate via TCP sockets (threads_per_computing_node = 1)
+ * Function to run a number of hosts as locally independent threads, which
+ * still communicate via TCP sockets (workers_per_host = 1)
  */
 void
-ExecuteLocalThreadsTCP(const size_t& computing_nodes, const size_t& port_base,
+ExecuteLocalThreadsTCP(const size_t& hosts, const size_t& port_base,
                        std::function<void(Context&)> job_startpoint);
 //TODO maybe this should be moved somewhere into test/helpers -ts
 
 /*!
  * Helper Function to ExecuteLocalThreads in test suite for many different
- * numbers of local computing_nodes as independent threads.
+ * numbers of local hosts as independent threads.
  */
 void ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint);
 //TODO maybe this should be moved somewhere into test/helpers -ts
 
 /*!
- * Function to run a number of mock compute nodes as locally independent
+ * Function to run a number of mock hosts as locally independent
  * threads, which communicate via internal stream sockets.
  */
 void
-ExecuteLocalMock(size_t node_count, size_t local_computing_node_count,
+ExecuteLocalMock(size_t host_count, size_t local_host_count,
                  std::function<void(api::Context&, size_t)> job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
- * different numbers of node and computing_nodes as independent threads in one program.
+ * different numbers of workers and hosts as independent threads in one program.
  */
 void ExecuteLocalTests(std::function<void(Context&)> job_startpoint);
 
 /*!
  * Executes the given job_startpoint within the same thread -->
- * one computing node with one thread
+ * one host with one thread
  */
 void ExecuteSameThread(std::function<void(Context&)> job_startpoint);
 

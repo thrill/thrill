@@ -37,24 +37,24 @@ ParseArgs(int argc, char* const* argv) {
     clp.SetVerboseProcess(false);
 
     unsigned int rank = 1;
-    unsigned int workers_per_node = 1;
+    unsigned int workers_per_host = 1;
     clp.AddUInt('r', "rank", "R", rank,
-                "Rank of this computing node");
+                "Rank of this host");
     clp.AddUInt('w', "workers", "W", rank,
-                "Workers per computing node");
+                "Workers per host");
 
     std::vector<std::string> addr;
     clp.AddParamStringlist("addresses", addr,
                            "List of all worker addresses.");
 
     if (!clp.Process(argc, argv)) {
-        return std::make_tuple(-1, my_rank, workers_per_node, endpoints);
+        return std::make_tuple(-1, my_rank, workers_per_host, endpoints);
     }
 
     for (auto address : addr) {
         if (address.find(":") == std::string::npos) {
             std::cerr << "Invalid address. No Portnumber detectable";
-            return std::make_tuple(-1, my_rank, workers_per_node, endpoints);
+            return std::make_tuple(-1, my_rank, workers_per_host, endpoints);
         }
     }
 
@@ -64,13 +64,13 @@ ParseArgs(int argc, char* const* argv) {
     }
     else if (argc == 3) {
         std::cerr << "Wrong number of arguments. Must be 0 or > 1";
-        return std::make_tuple(-1, my_rank, workers_per_node, endpoints);
+        return std::make_tuple(-1, my_rank, workers_per_host, endpoints);
     }
     else {
         my_rank = 0;
         endpoints.push_back("127.0.0.1:1234");
     }
-    return std::make_tuple(0, my_rank, workers_per_node, endpoints);
+    return std::make_tuple(0, my_rank, workers_per_host, endpoints);
 }
 
 //! Executes the given job startpoint with a context instance.
@@ -87,10 +87,10 @@ int Execute(
     static const bool debug = false;
 
     size_t my_rank;
-    size_t workers_per_node;
+    size_t workers_per_host;
     std::vector<std::string> endpoints;
     int global_result = 0;
-    std::tie(global_result, my_rank, workers_per_node, endpoints) = ParseArgs(argc, argv);
+    std::tie(global_result, my_rank, workers_per_host, endpoints) = ParseArgs(argc, argv);
     if (global_result != 0)
         return -1;
 
@@ -110,26 +110,26 @@ int Execute(
     net_manager.Initialize(my_rank, net::Endpoint::ParseEndpointList(endpoints));
 
     //connect data subsystem to network
-    data::ChannelMultiplexer cmp(workers_per_node);
+    data::ChannelMultiplexer cmp(workers_per_host);
     cmp.Connect(&(net_manager.GetDataGroup()));
 
     //create flow control subsystem
-    net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_node);
+    net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_host);
 
-    // launch thread for each of the workers on this node.
-    std::vector<std::thread> threads(workers_per_node);
-    std::vector<int > results(workers_per_node);
+    // launch thread for each of the workers on this host.
+    std::vector<std::thread> threads(workers_per_host);
+    std::vector<int > results(workers_per_host);
 
-    for (size_t i = 0; i < workers_per_node; i++) {
+    for (size_t i = 0; i < workers_per_host; i++) {
         threads[i] = std::thread(
-            [&net_manager, &cmp, &flow_manager, &job_startpoint, i, log_prefix, workers_per_node] {
+            [&net_manager, &cmp, &flow_manager, &job_startpoint, i, log_prefix, workers_per_host] {
                 data::Manager data_manager(cmp, i);
 
-                Context ctx(net_manager, flow_manager, data_manager, workers_per_node, i);
+                Context ctx(net_manager, flow_manager, data_manager, workers_per_host, i);
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 
-                LOG << "Starting job on node " << ctx.computing_node_id();
+                LOG << "Starting job on host " << ctx.host_rank();
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
@@ -141,7 +141,7 @@ int Execute(
 
     // join worker threads
 
-    for (size_t i = 0; i < workers_per_node; i++) {
+    for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
 
@@ -149,7 +149,7 @@ int Execute(
 }
 
 /*!
- * Starts n computing nodes with one worker each, all running on this machine.
+ * Starts n hosts with one worker each, all running on this machine.
  * Thus the workers communicate via TCP sockets and do not share a
  * data::Manager or net::FlowControlChannel.
  */
@@ -207,52 +207,52 @@ void ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint) {
 }
 
 /*!
- * Starts n computing nodes with multiple workers each, all running on this machine.
- * The nodes communicate via Sockets created by the socketpair call and do
+ * Starts n hosts with multiple workers each, all running on this machine.
+ * The hosts communicate via Sockets created by the socketpair call and do
  * not share a data::Manager or net::FlowControlChannel. The workers withing
- * the same node do share these components though.
+ * the same host do share these components though.
  */
 void
-ExecuteLocalMock(size_t node_count, size_t workers_per_node,
+ExecuteLocalMock(size_t host_count, size_t workers_per_host,
                  std::function<void(api::Context&)> job_startpoint) {
     static const bool debug = false;
     //connect TCP streams
-    std::vector<net::Manager> net_managers = net::Manager::ConstructLocalMesh(node_count);
-    assert(net_managers.size() == node_count);
+    std::vector<net::Manager> net_managers = net::Manager::ConstructLocalMesh(host_count);
+    assert(net_managers.size() == host_count);
 
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
     std::vector<data::ChannelMultiplexer> channel_multiplexers;
     std::vector<net::FlowControlChannelManager> flow_managers;
-    channel_multiplexers.reserve(node_count);
-    flow_managers.reserve(node_count);
+    channel_multiplexers.reserve(host_count);
+    flow_managers.reserve(host_count);
 
 
-    for (size_t node = 0; node < node_count; node++) {
+    for (size_t host = 0; host < host_count; host++) {
         //connect data subsystem to network
-        channel_multiplexers.emplace_back(workers_per_node);
+        channel_multiplexers.emplace_back(workers_per_host);
         //TOOD(ts) fix this ugly pointer workaround ??
-        channel_multiplexers[node].Connect(&(net_managers[node].GetDataGroup()));
+        channel_multiplexers[host].Connect(&(net_managers[host].GetDataGroup()));
 
         //create flow control subsystem
-        auto & group = net_managers[node].GetFlowGroup();
-        flow_managers.emplace_back(group, workers_per_node);
+        auto & group = net_managers[host].GetFlowGroup();
+        flow_managers.emplace_back(group, workers_per_host);
     }
 
-    // launch thread for each of the workers on this node.
-    std::vector<std::thread> threads(node_count * workers_per_node);
+    // launch thread for each of the workers on this host.
+    std::vector<std::thread> threads(host_count * workers_per_host);
 
-    for (size_t node = 0; node < node_count; node++) {
-        std::string log_prefix = "node " + std::to_string(node);
-        for (size_t i = 0; i < workers_per_node; i++) {
-            threads[node * workers_per_node + i] = std::thread(
-                [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, node, i, log_prefix, workers_per_node ] {
-                    data::Manager data_manager(channel_multiplexers[node], i);
-                    Context ctx(net_managers[node], flow_managers[node], data_manager, workers_per_node, i);
+    for (size_t host = 0; host < host_count; host++) {
+        std::string log_prefix = "host " + std::to_string(host);
+        for (size_t i = 0; i < workers_per_host; i++) {
+            threads[host * workers_per_host + i] = std::thread(
+                [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host ] {
+                    data::Manager data_manager(channel_multiplexers[host], i);
+                    Context ctx(net_managers[host], flow_managers[host], data_manager, workers_per_host, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
-                    LOG << "Starting job on node " << ctx.computing_node_id();
+                    LOG << "Starting job on host " << ctx.host_rank();
                     auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                     job_startpoint(ctx);
                     STOP_TIMER(overall_timer)
@@ -264,22 +264,22 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
 
     // join worker threads
 
-    for (size_t i = 0; i < node_count * workers_per_node; i++) {
+    for (size_t i = 0; i < host_count * workers_per_host; i++) {
         threads[i].join();
     }
 }
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
- * different numbers of node and workers as independent threads in one program.
+ * different numbers of host and workers as independent threads in one program.
  */
 void ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
-    int num_nodes[] = { 1, 2, 5, 8};
+    int num_hosts[] = { 1, 2, 5, 8};
     int num_workers[] = {1};//, 2, 3};
 
-    for (auto& nodes : num_nodes) {
+    for (auto& hosts : num_hosts) {
         for (auto& workers : num_workers) {
-            ExecuteLocalMock(nodes, workers, job_startpoint);
+            ExecuteLocalMock(hosts, workers, job_startpoint);
         }
     }
 }
@@ -288,19 +288,19 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
     net::Manager net_manager;
     net_manager.Initialize(0, net::Endpoint::ParseEndpointList("127.0.0.1:12345"));
 
-    size_t workers_per_node = 1;
-    size_t my_node_id = 1;
+    size_t workers_per_host = 1;
+    size_t my_host_rank = 1;
 
     //connect data subsystem to network
-    data::ChannelMultiplexer multiplexer(workers_per_node);
+    data::ChannelMultiplexer multiplexer(workers_per_host);
     multiplexer.Connect(&net_manager.GetDataGroup());
-    data::Manager data_manager(multiplexer, my_node_id);
+    data::Manager data_manager(multiplexer, my_host_rank);
 
     //create flow control subsystem
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), 1);
 
-    Context ctx(net_manager, flow_manager, data_manager, workers_per_node, my_node_id);
-    common::NameThisThread("worker " + std::to_string(my_node_id));
+    Context ctx(net_manager, flow_manager, data_manager, workers_per_host, my_host_rank);
+    common::NameThisThread("worker " + std::to_string(my_host_rank));
 
     job_startpoint(ctx);
 }
@@ -313,28 +313,28 @@ int ExecuteTCP(
     const std::string& log_prefix) {
 
     //TODO pull this out of ENV
-    const size_t workers_per_node = 1;
+    const size_t workers_per_host = 1;
 
     static const bool debug = false;
 
     net::Manager net_manager;
     net_manager.Initialize(my_rank, net::Endpoint::ParseEndpointList(endpoints));
 
-    data::ChannelMultiplexer cmp(workers_per_node);
+    data::ChannelMultiplexer cmp(workers_per_host);
     cmp.Connect(&(net_manager.GetDataGroup()));
-    net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_node);
+    net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_host);
 
-    std::vector<std::thread> threads(workers_per_node);
+    std::vector<std::thread> threads(workers_per_host);
 
-    for (size_t i = 0; i < workers_per_node; i++) {
+    for (size_t i = 0; i < workers_per_host; i++) {
         threads[i] = std::thread(
-            [&net_manager, &cmp, &flow_manager, &job_startpoint, i, log_prefix, workers_per_node] {
+            [&net_manager, &cmp, &flow_manager, &job_startpoint, i, log_prefix, workers_per_host] {
                 data::Manager data_manager(cmp, i);
-                Context ctx(net_manager, flow_manager, data_manager, workers_per_node, i);
+                Context ctx(net_manager, flow_manager, data_manager, workers_per_host, i);
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 
-                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx.computing_node_id() << "/" << ctx.worker_id() << ")";
+                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx.host_rank() << "/" << ctx.worker_id() << ")";
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
@@ -347,7 +347,7 @@ int ExecuteTCP(
     // join worker threads
     int global_result = 0;
 
-    for (size_t i = 0; i < workers_per_node; i++) {
+    for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
 
@@ -376,26 +376,26 @@ int ExecuteEnv(
     const char* c7a_hostlist = getenv("C7A_HOSTLIST");
 
     if (!c7a_rank || !c7a_hostlist) {
-        size_t test_nodes = std::thread::hardware_concurrency();
+        size_t test_hosts = std::thread::hardware_concurrency();
 
         const char* c7a_local = getenv("C7A_LOCAL");
         if (c7a_local) {
             // parse envvar only if it exists.
-            test_nodes = std::strtoul(c7a_local, &endptr, 10);
+            test_hosts = std::strtoul(c7a_local, &endptr, 10);
 
-            if (!endptr || *endptr != 0 || test_nodes == 0) {
+            if (!endptr || *endptr != 0 || test_hosts == 0) {
                 std::cerr << "environment variable C7A_LOCAL=" << c7a_local
-                          << " is not a valid number of local test nodes."
+                          << " is not a valid number of local test hosts."
                           << std::endl;
                 return -1;
             }
         }
 
-        std::cerr << "c7a: executing locally with " << test_nodes
-                  << " test nodes in a local socket network." << std::endl;
+        std::cerr << "c7a: executing locally with " << test_hosts
+                  << " test hosts in a local socket network." << std::endl;
 
-        const size_t workers_per_node = 1;
-        ExecuteLocalMock(test_nodes, workers_per_node, job_startpoint);
+        const size_t workers_per_host = 1;
+        ExecuteLocalMock(test_hosts, workers_per_host, job_startpoint);
 
         return 0;
     }
