@@ -16,6 +16,7 @@
 #include <c7a/data/block_queue.hpp>
 #include <c7a/data/channel_sink.hpp>
 #include <c7a/data/concat_block_source.hpp>
+#include <c7a/data/dyn_block_reader.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/connection.hpp>

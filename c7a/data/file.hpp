@@ -17,6 +17,7 @@
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/dyn_block_reader.hpp>
 
 #include <cassert>
 #include <memory>
@@ -53,6 +54,7 @@ public:
     using BlockSource = FileBlockSource;
     using Writer = BlockWriter;
     using Reader = BlockReader<FileBlockSource>;
+    using DynReader = DynBlockReader;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -108,6 +110,9 @@ public:
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
 
+    //! return polymorphic BlockReader variant for beginning of File
+    DynReader GetDynReader() const;
+
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
     Reader GetReaderAt(size_t index) const;
@@ -160,6 +165,13 @@ protected:
 class FileBlockSource
 {
 public:
+    //! Start reading a File
+    FileBlockSource(const File& file,
+                    size_t first_block = 0, size_t first_item = keep_first_item)
+        : file_(file), first_block_(first_block), first_item_(first_item) {
+        current_block_ = first_block_ - 1;
+    }
+
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
     Block NextBlock() {
@@ -185,17 +197,6 @@ public:
     }
 
 protected:
-    //! Start reading a File
-    FileBlockSource(const File& file,
-                    size_t first_block = 0, size_t first_item = keep_first_item)
-        : file_(file), first_block_(first_block), first_item_(first_item) {
-        current_block_ = first_block_ - 1;
-    }
-
-    //! for calling the protected constructor
-    friend class data::File;
-    friend class data::CachingBlockQueueSource;
-
     //! sentinel value for not changing the first_item item
     static const size_t keep_first_item = size_t(-1);
 
@@ -215,6 +216,11 @@ protected:
 //! Get BlockReader for beginning of File
 inline typename File::Reader File::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
+}
+
+inline
+typename File::DynReader File::GetDynReader() const {
+    return ConstructDynBlockReader<FileBlockSource, const File&>(*this, 0, 0);
 }
 
 //! Get BlockReader seeked to the corresponding item index
