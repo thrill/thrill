@@ -77,8 +77,8 @@ public:
     Channel(const ChannelId& id, net::Group& group,
             net::DispatcherThread& dispatcher, size_t my_worker_id, size_t workers_per_connection)
         : id_(id),
-          queues_(group.num_connections()),
-          cache_files_(group.num_connections()),
+          queues_(group.num_connections() * workers_per_connection),
+          cache_files_(group.num_connections() * workers_per_connection),
           group_(group),
           dispatcher_(dispatcher),
           my_worker_id_(my_worker_id),
