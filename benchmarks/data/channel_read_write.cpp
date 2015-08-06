@@ -90,12 +90,16 @@ int main(int argc, const char** argv) {
 
     if (type == "int")
         api::ExecuteSameThread(std::bind(ConductExperiment<int>, bytes, iterations, std::placeholders::_1, type));
-    if (type == "string")
+    else if (type == "size_t")
+        api::ExecuteSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
+    else if (type == "string")
         api::ExecuteSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
-    if (type == "pair")
+    else if (type == "pair")
         api::ExecuteSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
-    if (type == "triple")
+    else if (type == "triple")
         api::ExecuteSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
+    else
+        abort();
 }
 
 /******************************************************************************/
