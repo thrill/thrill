@@ -519,6 +519,8 @@ public:
      * \param filepath Destination of the output file.
      */
     void WriteToFileSystem(const std::string& filepath) const;
+    
+    void WriteToSingleFile(const std::string& filepath) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on

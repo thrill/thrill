@@ -18,6 +18,7 @@
 #include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/write.hpp>
+#include <c7a/api/write_single_file.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -64,6 +65,26 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
     .WriteToFileSystem("test1.out");
 
     ASSERT_EQ(generate_size, writer_size);
+}
+
+TEST(Operations, WriteToSingleFile) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
+            integers.Map(
+                [](const int& item) {
+                    return std::to_string(item) + "\n";
+                })
+            .WriteToSingleFile("testsf.out");
+            
+        };
+
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
