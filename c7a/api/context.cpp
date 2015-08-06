@@ -288,7 +288,7 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
     net_manager.Initialize(0, net::Endpoint::ParseEndpointList("127.0.0.1:12345"));
 
     size_t workers_per_host = 1;
-    size_t my_host_rank = 1;
+    size_t my_host_rank = 0;
 
     //connect data subsystem to network
     data::ChannelMultiplexer multiplexer(workers_per_host);
