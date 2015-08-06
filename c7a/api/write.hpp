@@ -60,18 +60,18 @@ public:
     }
 
     //! Closes the output file
-    void Execute() override {
+    void Execute() final {
         sLOG << "closing file" << path_out_;
         emit_.Close();
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns "[WriteNode]" and its id as a string.
      * \return "[WriteNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 

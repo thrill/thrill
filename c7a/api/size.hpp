@@ -50,11 +50,11 @@ public:
     }
 
     //! Executes the size operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns result of global size.
@@ -68,7 +68,7 @@ public:
      * Returns "[SizeNode]" as a string.
      * \return "[SizeNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[SizeNode] Id:" + result_file_.ToString();
     }
 

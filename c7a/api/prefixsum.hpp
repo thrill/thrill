@@ -59,11 +59,11 @@ public:
     virtual ~PrefixSumNode() { }
 
     //! Executes the sum operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         data::File::Reader reader = file_.GetReader();
 
         ValueType sum = local_sum_;
@@ -76,7 +76,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -92,7 +92,7 @@ public:
      * Returns "[PrefixSumNode]" as a string.
      * \return "[PrefixSumNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[PrefixSumNode] Id:" + result_file_.ToString();
     }
 

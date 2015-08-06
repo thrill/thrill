@@ -55,9 +55,9 @@ public:
 
     //! Executes the read operation. Reads a file line by line and emits it to
     //! the DataManager after applying the read function on it.
-    void Execute() override { }
+    void Execute() final { }
 
-    void PushData() override {
+    void PushData() final {
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
@@ -76,7 +76,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -92,7 +92,7 @@ public:
      * Returns "[ReadLinesNode]" as a string.
      * \return "[ReadLinesNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReadLinesNode] Id: " + result_file_.ToString();
     }
 

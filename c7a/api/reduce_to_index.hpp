@@ -121,11 +121,11 @@ public:
      * Actually executes the reduce to index operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -170,7 +170,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces a function stack, which only contains the PostOp function.
@@ -191,7 +191,7 @@ public:
      * Returns "[ReduceToIndexNode]" and its id as a string.
      * \return "[ReduceToIndexNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReduceToIndexNode] Id: " + result_file_.ToString();
     }
 

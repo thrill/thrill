@@ -65,9 +65,9 @@ public:
     { }
 
     //! Executes the generate operation. Does nothing.
-    void Execute() override { }
+    void Execute() final { }
 
-    void PushData() override {
+    void PushData() final {
 
         size_t local_begin, local_end;
         std::tie(local_begin, local_end) =
@@ -80,7 +80,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -94,7 +94,7 @@ public:
      * Returns information about the GeneratorNode as a string.
      * \return Stringified node.
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[GeneratorNode] Id: " + this->result_file_.ToString();
     }
 

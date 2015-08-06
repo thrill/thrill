@@ -59,7 +59,7 @@ public:
     }
 
     //! Closes the output file
-    void Execute() override {
+    void Execute() final {
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
@@ -72,13 +72,13 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns "[AllGatherNode]" and its id as a string.
      * \return "[AllGatherNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[AllGatherNode] Id: " + result_file_.ToString();
     }
 
