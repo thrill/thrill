@@ -110,8 +110,7 @@ int Execute(
     net_manager.Initialize(my_rank, net::Endpoint::ParseEndpointList(endpoints));
 
     //connect data subsystem to network
-    net::DispatcherThread net_dispatcher("dispatcher " + std::to_string(my_rank));
-    data::ChannelMultiplexer cmp(net_dispatcher, workers_per_node);
+    data::ChannelMultiplexer cmp(workers_per_node);
     cmp.Connect(&(net_manager.GetDataGroup()));
 
     //create flow control subsystem
@@ -229,18 +228,19 @@ ExecuteLocalMock(size_t node_count, size_t workers_per_node,
     static const bool debug = false;
     //connect TCP streams
     std::vector<net::Manager> net_managers = net::Manager::ConstructLocalMesh(node_count);
+    assert(net_managers.size() == node_count);
 
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
-    std::vector<net::DispatcherThread> net_dispatchers;
     std::vector<data::ChannelMultiplexer> channel_multiplexers;
     std::vector<net::FlowControlChannelManager> flow_managers;
+    channel_multiplexers.reserve(node_count);
+    flow_managers.reserve(node_count);
 
 
     for (size_t node = 0; node < node_count; node++) {
         //connect data subsystem to network
-        net_dispatchers.emplace_back("dispatcher " + std::to_string(node));
-        channel_multiplexers.emplace_back(net_dispatchers[node], workers_per_node);
+        channel_multiplexers.emplace_back(workers_per_node);
         //TOOD(ts) fix this ugly pointer workaround ??
         channel_multiplexers[node].Connect(&(net_managers[node].GetDataGroup()));
 
@@ -302,8 +302,7 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
     size_t my_node_id = 1;
 
     //connect data subsystem to network
-    net::DispatcherThread net_dispatcher("dispatcher");
-    data::ChannelMultiplexer multiplexer(net_dispatcher, workers_per_node);
+    data::ChannelMultiplexer multiplexer(workers_per_node);
     multiplexer.Connect(&net_manager.GetDataGroup());
     data::Manager data_manager(multiplexer, my_node_id);
 
