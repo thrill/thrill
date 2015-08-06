@@ -91,7 +91,7 @@ public:
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().max_rank() + 1, key_extractor,
+          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_)
     {
 

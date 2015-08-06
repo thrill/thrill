@@ -83,12 +83,8 @@ public:
         return workers_per_computing_node() * computing_node_id() + worker_id();
     }
 
-    size_t max_rank() const {
-        return number_computing_node() * workers_per_computing_node() - 1;
-    }
-
     size_t num_workers() const {
-        return max_rank() + 1;
+        return number_computing_node() * workers_per_computing_node();
     }
 
     //! Returns id of this computing_node in the cluser

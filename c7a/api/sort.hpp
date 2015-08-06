@@ -137,7 +137,7 @@ private:
     void FindAndSendSplitters(
         std::vector<ValueType>& splitters, size_t sample_size) {
         // Get samples from other workers
-        size_t num_total_workers = context_.max_rank() + 1;
+        size_t num_total_workers = context_.num_workers();
 
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
@@ -301,7 +301,7 @@ private:
         size_t prefix_elem = channel.PrefixSum(data_.size());
         size_t total_elem = channel.AllReduce(data_.size());
 
-        size_t num_total_workers = context_.max_rank() + 1;
+        size_t num_total_workers = context_.num_workers();
         size_t sample_size =
             common::IntegerLog2Ceil(total_elem) *
             (1 / (desired_imbalance_ * desired_imbalance_));

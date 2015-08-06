@@ -92,11 +92,11 @@ public:
         }
 
         size_t local_elements;
-        size_t elements_per_worker = size_ / (context_.max_rank() + 1);
-        if (context_.max_rank() == context_.my_rank()) {
+        size_t elements_per_worker = size_ / context_.num_workers();
+        if (context_.num_workers() - 1 == context_.my_rank()) {
             //last worker gets leftovers
             local_elements = size_ -
-                             (context_.max_rank() * elements_per_worker);
+                             ((context_.num_workers() - 1) * elements_per_worker);
         }
         else {
             local_elements = elements_per_worker;
