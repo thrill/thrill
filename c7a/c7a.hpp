@@ -29,6 +29,7 @@
 #include <c7a/api/sort.hpp>
 #include <c7a/api/sum.hpp>
 #include <c7a/api/write.hpp>
+#include <c7a/api/write_single_file.hpp>
 #include <c7a/api/zip.hpp>
 
 namespace c7a {
