@@ -565,8 +565,6 @@ private:
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
- * \param read_function Read function, which is performed on each
- * element
  */
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath);
 

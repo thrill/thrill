@@ -281,7 +281,7 @@ protected:
 
     //! called from ChannelMultiplexer when there is a new Block on a
     //! Stream.
-    //! \param from the worker rank (host rank * #workers/host + worker id)
+    //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnStreamBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
 
@@ -297,7 +297,7 @@ protected:
 
     //! called from ChannelMultiplexer when a Stream closed notification was
     //! received.
-    //! \param from the worker rank (host rank * #workers/host + worker id)
+    //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnCloseStream(size_t from) {
         assert(from < queues_.size());
         assert(!queues_[from].write_closed());

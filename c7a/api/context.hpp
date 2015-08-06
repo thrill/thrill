@@ -46,11 +46,11 @@ namespace api {
 class Context
 {
 public:
-    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Manager& data_manager, size_t workers_per_host, size_t worker_id)
+    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Manager& data_manager, size_t workers_per_host, size_t local_worker_id)
         : net_manager_(net_manager),
           flow_manager_(flow_manager),
           data_manager_(data_manager),
-          worker_id_(worker_id),
+          local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host)
     { }
 
@@ -66,7 +66,7 @@ public:
      * @return The flow control channel instance for this worker.
      */
     net::FlowControlChannel & flow_control_channel() {
-        return flow_manager_.GetFlowControlChannel(worker_id_);
+        return flow_manager_.GetFlowControlChannel(local_worker_id_);
     }
 
     //! Returns the total number of hosts.
@@ -79,10 +79,12 @@ public:
         return workers_per_host_;
     }
 
+    //! Global rank of this worker among all other workers in the system.
     size_t my_rank() const {
-        return workers_per_host() * host_rank() + worker_id();
+        return workers_per_host() * host_rank() + local_worker_id();
     }
 
+    //! Global number of workers in the system.
     size_t num_workers() const {
         return num_hosts() * workers_per_host();
     }
@@ -95,8 +97,8 @@ public:
 
     //! Returns the local id ot this worker on the host
     //! A worker is _locally_ identified by this id
-    size_t worker_id() const {
-        return worker_id_;
+    size_t local_worker_id() const {
+        return local_worker_id_;
     }
 
     //! Returns the stas object for this worker
@@ -124,15 +126,15 @@ private:
     common::Stats<common::g_enable_stats> stats_;
 
     //! number of this host context, 0..p-1, within this host
-    size_t worker_id_;
+    size_t local_worker_id_;
 
     //! number of workers hosted per host
     size_t workers_per_host_;
 };
 
-//! Outputs the context as <host id>:<worker id> to an std::ostream
+//! Outputs the context as [host id]:[local worker id] to an std::ostream
 static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
-    return os << ctx.host_rank() << ":" << ctx.worker_id();
+    return os << ctx.host_rank() << ":" << ctx.local_worker_id();
 }
 
 //! Executes the given job startpoint with a context instance.

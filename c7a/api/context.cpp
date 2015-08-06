@@ -332,7 +332,7 @@ int ExecuteTCP(
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 
-                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx.host_rank() << "/" << ctx.worker_id() << ")";
+                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx << ")";
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
