@@ -136,7 +136,7 @@ public:
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
-        while (current_ + size > end_) {
+        while (C7A_UNLIKELY(current_ + size > end_)) {
             // partial copy of beginning of buffer
             size_t partial_size = end_ - current_;
             std::copy(cdata, cdata + partial_size, current_);
@@ -159,13 +159,10 @@ public:
     BlockWriter & PutByte(Byte data) {
         assert(!closed_);
 
-        if (current_ < end_) {
-            *current_++ = data;
-        }
-        else {
+        if (C7A_UNLIKELY(current_ == end_))
             Flush();
-            *current_++ = data;
-        }
+
+        *current_++ = data;
         return *this;
     }
 

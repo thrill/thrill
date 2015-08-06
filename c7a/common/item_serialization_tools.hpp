@@ -20,6 +20,14 @@
 #include <stdexcept>
 #include <string>
 
+#if defined(__GNUC__) || defined(__clang__)
+#define C7A_LIKELY(c)   __builtin_expect((c), 1)
+#define C7A_UNLIKELY(c) __builtin_expect((c), 0)
+#else
+#define C7A_LIKELY(c)   c
+#define C7A_UNLIKELY(c) c
+#endif
+
 namespace c7a {
 namespace common {
 
