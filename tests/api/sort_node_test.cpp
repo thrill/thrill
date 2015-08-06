@@ -27,8 +27,7 @@ TEST(Sort, SortKnownIntegers) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
@@ -59,8 +58,7 @@ TEST(Sort, SortRandomIntegers) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
@@ -91,8 +89,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
@@ -129,8 +126,7 @@ TEST(Sort, SortRandomIntIntStructs) {
 
             using Pair = std::pair<int, int>;
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10);
 
             auto integers = Generate(

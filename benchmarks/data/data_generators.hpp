@@ -26,8 +26,7 @@ std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size
     size_t remaining = bytes;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
     while (remaining > 0) {
@@ -44,8 +43,7 @@ std::vector<Tuple> generate(size_t bytes, size_t min_size, size_t max_size) {
     size_t remaining = bytes;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
     while (remaining > 0) {
@@ -63,8 +61,7 @@ std::vector<Triple> generate(size_t bytes, size_t min_size, size_t max_size) {
     size_t remaining = bytes;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
     while (remaining > 0) {
@@ -85,8 +82,7 @@ std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/
     std::vector<int> result;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 
     for (size_t current = 0; current < bytes; current += sizeof(int)) {
