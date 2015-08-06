@@ -37,12 +37,13 @@ public:
         //Go to start of 'local part'.
         std::streampos per_worker = file_size_ / num_workers_;
         std::streampos my_start = per_worker * my_node_id_;
-        if (my_node_id_ == (num_workers)) {
+        if (my_node_id_ == num_workers - 1) {
             my_end_ = file_size_ - 1;
         }
         else {
             my_end_ = per_worker * (my_node_id_ + 1) - 1;
         }
+        sLOG << "reading file from" << my_start << "to" << my_end_;
 
         file_.seekg(my_start, std::ios::beg);
 

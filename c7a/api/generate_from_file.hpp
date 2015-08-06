@@ -95,14 +95,14 @@ public:
         }
 
         size_t local_elements;
+        size_t elements_per_worker = size_ / (context_.max_rank() + 1);
         if (context_.max_rank() == context_.rank()) {
             //last worker gets leftovers
             local_elements = size_ -
-                             ((context_.max_rank()) *
-                              (size_ / context_.max_rank() + 1));
+                             (context_.max_rank() * elements_per_worker);
         }
         else {
-            local_elements = (size_ / context_.max_rank() + 1);
+            local_elements = elements_per_worker;
         }
 
         std::random_device random_device;
