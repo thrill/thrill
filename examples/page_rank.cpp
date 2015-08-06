@@ -8,7 +8,7 @@
  ******************************************************************************/
 
 #include <c7a/api/lop_node.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sum.hpp>
@@ -27,7 +27,7 @@ using c7a::DIARef;
 using c7a::Context;
 
 //! The PageRank user program
-int page_rank(Context& ctx) {
+void page_rank(Context& ctx) {
 
     static const double s = 0.85;
 
@@ -39,19 +39,17 @@ int page_rank(Context& ctx) {
                                   return (size_t)std::get<0>(in);
                               };
 
-    auto links = ReadLines(
-        ctx,
-        "pagerank.in",
-        [](const std::string& line) {
-            auto splitted = c7a::common::split(line, " ");
+    auto links = ReadLines(ctx, "pagerank.in")
+                 .Map([](const std::string& line) {
+                          auto splitted = c7a::common::split(line, " ");
 
-            std::vector<int> links;
-            links.reserve(splitted.size() - 1);
-            for (size_t i = 1; i < splitted.size(); i++) {
-                links.push_back(std::stoi(splitted[i]));
-            }
-            return std::make_tuple(std::stoi(splitted[0]), links);
-        });
+                          std::vector<int> links;
+                          links.reserve(splitted.size() - 1);
+                          for (size_t i = 1; i < splitted.size(); i++) {
+                              links.push_back(std::stoi(splitted[i]));
+                          }
+                          return std::make_tuple(std::stoi(splitted[0]), links);
+                      });
 
     auto size = links.Size();
 
@@ -122,8 +120,6 @@ int page_rank(Context& ctx) {
                   + ": " + std::to_string(std::get<1>(item));
               }).
     WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
-
-    return 0;
 }
 
 int main(int argc, char* argv[]) {

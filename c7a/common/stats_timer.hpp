@@ -126,7 +126,7 @@ public:
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
     friend std::ostream& operator << (std::ostream& os, const StatsTimer& t) {
-        return os << t.Microseconds() << "us";
+        return os << t.Microseconds();
     }
 };
 
@@ -186,7 +186,7 @@ public:
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
     friend std::ostream& operator << (std::ostream& os, const StatsTimer&) {
-        return os << "<invalid>" << "ms";
+        return os << "<invalid>";
     }
 };
 

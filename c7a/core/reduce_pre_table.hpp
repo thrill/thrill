@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -16,6 +17,7 @@
 #define C7A_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_writer.hpp>
 
@@ -29,66 +31,71 @@
 namespace c7a {
 namespace core {
 
-class HashByKey {
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PreReduceByHashKey
+{
 public:
-    template <typename Key, typename ReducePreTable>
-    typename ReducePreTable::hash_result
-    operator() (Key v, ReducePreTable* ht) const {
+    PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function)
+    { }
 
-        using hash_result = typename ReducePreTable::hash_result;
+    template <typename ReducePreTable>
+    typename ReducePreTable::index_result
+    operator () (Key v, ReducePreTable* ht) const {
 
-        size_t hashed = std::hash<Key>() (v);
+        using index_result = typename ReducePreTable::index_result;
+
+        size_t hashed = hash_function_(v);
 
         size_t local_index = hashed % ht->NumBucketsPerPartition();
         size_t partition_id = hashed % ht->NumPartitions();
         size_t global_index = partition_id *
-            ht->NumBucketsPerPartition() + local_index;
-        return hash_result(partition_id, local_index, global_index);
+                              ht->NumBucketsPerPartition() + local_index;
+        return index_result(partition_id, local_index, global_index);
     }
+
+private:
+    HashFunction hash_function_;
 };
 
-class HashByIndex {
+class PreReduceByIndex
+{
 public:
+    size_t size_;
 
-    size_t max_index_;
-
-    HashByIndex(size_t max_index)
-        : max_index_(max_index)
+    PreReduceByIndex(size_t size)
+        : size_(size)
     { }
 
     template <typename ReducePreTable>
-    typename ReducePreTable::hash_result
-    operator() (size_t key, ReducePreTable* ht) const {
-        size_t global_index = key * ht->NumBuckets() / (max_index_ + 1);
-        size_t partition_id = key * ht->NumPartitions() / (max_index_ + 1);
+    typename ReducePreTable::index_result
+    operator () (size_t key, ReducePreTable* ht) const {
+        assert(key < size_);
+        size_t global_index = key * ht->NumBuckets() / size_;
+        size_t partition_id = key * ht->NumPartitions() / size_;
         size_t partition_offset = global_index -
-            partition_id * ht->NumBucketsPerPartition();
-        return typename ReducePreTable::hash_result(partition_id,
-                                                    partition_offset,
-                                                    global_index);
+                                  partition_id * ht->NumBucketsPerPartition();
+        return typename ReducePreTable::index_result(partition_id,
+                                                     partition_offset,
+                                                     global_index);
     }
 };
 
-template <typename KeyExtractor, typename ReduceFunction,
+template <typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
           size_t TargetBlockSize = 16*1024,
-          typename HashFunction = HashByKey,
-          typename EqualToFunction = std::equal_to<
-              typename common::FunctionTraits<KeyExtractor>::result_type
-              >
+          typename IndexFunction = PreReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key>
           >
 class ReducePreTable
 {
     static const bool debug = false;
 
-    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
     typedef std::pair<Key, Value> KeyValuePair;
 
 public:
-    struct hash_result
+    struct index_result
     {
     public:
         //! which partition number the item belongs to.
@@ -98,7 +105,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(size_t p_id, size_t p_off, size_t g_id) {
+        index_result(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
             local_index = p_off;
             global_index = g_id;
@@ -106,17 +113,10 @@ public:
     };
 
 protected:
-    //! template for constexpr max, because std::max is not good enough.
-    template <typename T>
-    constexpr
-    static const T & max(const T& a, const T& b) {
-        return a > b ? a : b;
-    }
-
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
-        max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+        common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
     //! Block holding reduce key/value pairs.
     struct BucketBlock {
@@ -138,7 +138,6 @@ protected:
     };
 
 public:
-
     ReducePreTable(size_t num_partitions,
                    size_t num_buckets_init_scale,
                    size_t num_buckets_resize_scale,
@@ -146,7 +145,7 @@ public:
                    size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-                   const HashFunction& hash_function = HashFunction(),
+                   const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_buckets_init_scale_(num_buckets_init_scale),
@@ -156,9 +155,8 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
-          equal_to_function_(equal_to_function)
-    {
+          index_function_(index_function),
+          equal_to_function_(equal_to_function) {
         init();
     }
 
@@ -166,15 +164,14 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
-                   const HashFunction& hash_function = HashFunction(),
+                   const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
-          equal_to_function_(equal_to_function)
-    {
+          index_function_(index_function),
+          equal_to_function_(equal_to_function) {
         init();
     }
 
@@ -219,10 +216,10 @@ public:
         items_per_partition_.resize(num_partitions_, 0);
     }
 
-        /*!
-         * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
-         * inserts the pair into the hashtable.
-         */
+    /*!
+     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+     * inserts the pair into the hashtable.
+     */
     void Insert(const Value& p) {
         Key key = key_extractor_(p);
 
@@ -237,7 +234,7 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        hash_result h = hash_function_(kv.first, this);
+        index_result h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
@@ -255,7 +252,7 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                                if (equal_to_function_(kv.first, bi->first))
+                if (equal_to_function_(kv.first, bi->first))
                 {
                     LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
@@ -637,8 +634,8 @@ protected:
 
     std::vector<BucketBlock*> vector_;
 
-    //! Hash functions.
-    HashFunction hash_function_;
+    //! Index Calculation functions: Hash or ByIndex
+    IndexFunction index_function_;
 
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;

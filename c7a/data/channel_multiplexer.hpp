@@ -195,15 +195,14 @@ private:
         die_unless(header.size == buffer.size());
 
         // TODO(tb): don't copy data!
-        BlockPtr block = Block::Allocate(buffer.size());
-        std::copy(buffer.data(), buffer.data() + buffer.size(), block->begin());
+        ByteBlockPtr bytes = ByteBlock::Allocate(buffer.size());
+        std::copy(buffer.data(), buffer.data() + buffer.size(), bytes->begin());
 
         size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
         sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
         channel->OnStreamBlock(
             sender_worker_rank,
-            VirtualBlock(block, 0, header.size,
-                         header.first_item, header.nitems));
+            Block(bytes, 0, header.size, header.first_item, header.nitems));
 
         AsyncReadStreamBlockHeader(s);
     }

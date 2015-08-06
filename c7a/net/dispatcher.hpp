@@ -96,8 +96,8 @@ public:
     using TimerCallback = function<bool()>;
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(const std::chrono::milliseconds& timeout,
-                            const TimerCallback& cb) {
+    void AddTimer(const std::chrono::milliseconds& timeout,
+                  const TimerCallback& cb) {
         timer_pq_.emplace(steady_clock::now() + timeout,
                           std::chrono::duration_cast<milliseconds>(timeout),
                           cb);
@@ -176,7 +176,7 @@ public:
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, const data::VirtualBlock& block,
+    void AsyncWrite(Connection& c, const data::Block& block,
                     AsyncWriteCallback done_cb = nullptr) {
         assert(c.GetSocket().IsValid());
 
@@ -186,11 +186,11 @@ public:
         }
 
         // add new async writer object
-        async_write_vblock_.emplace_back(block, done_cb);
+        async_write_block_.emplace_back(block, done_cb);
 
         // register write callback
-        AsyncWriteVirtualBlock& awvb = async_write_vblock_.back();
-        AddWrite(c, [&awvb, &c]() { return awvb(c); });
+        AsyncWriteBlock& awb = async_write_block_.back();
+        AddWrite(c, [&awb, &c]() { return awb(c); });
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
@@ -241,6 +241,8 @@ public:
             auto diff = std::chrono::duration_cast<milliseconds>(
                 timer_pq_.top().next_timeout - now);
 
+            if (diff < milliseconds(1)) diff = milliseconds(1);
+
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
             dispatcher_.Dispatch(diff);
         }
@@ -254,8 +256,8 @@ public:
             async_write_.pop_front();
         }
 
-        while (async_write_vblock_.size() && async_write_vblock_.front().IsDone()) {
-            async_write_vblock_.pop_front();
+        while (async_write_block_.size() && async_write_block_.front().IsDone()) {
+            async_write_block_.pop_front();
         }
     }
 
@@ -275,7 +277,7 @@ public:
 
     //! Check whether there are still AsyncWrite()s in the queue.
     bool HasAsyncWrites() const {
-        return (async_write_.size() != 0) || (async_write_vblock_.size() != 0);
+        return (async_write_.size() != 0) || (async_write_block_.size() != 0);
     }
 
     //! \}
@@ -306,7 +308,7 @@ protected:
         { }
 
         bool operator < (const Timer& b) const
-        { return next_timeout < b.next_timeout; }
+        { return next_timeout > b.next_timeout; }
     };
 
     //! priority queue of timer callbacks
@@ -434,40 +436,40 @@ protected:
 
     /**************************************************************************/
 
-    class AsyncWriteVirtualBlock
+    class AsyncWriteBlock
     {
     public:
         //! Construct buffered writer with callback
-        AsyncWriteVirtualBlock(const data::VirtualBlock& virtual_block,
-                               const AsyncWriteCallback& callback)
+        AsyncWriteBlock(const data::Block& block,
+                        const AsyncWriteCallback& callback)
 
             : callback_(callback),
-              virtual_block_(virtual_block)
+              block_(block)
         { }
 
         //! Should be called when the socket is writable
         bool operator () (Connection& c) {
             int r = c.GetSocket().send_one(
-                virtual_block_.data_begin() + size_,
-                virtual_block_.size() - size_);
+                block_.data_begin() + size_,
+                block_.size() - size_);
 
             if (r <= 0) {
                 if (errno == EINTR || errno == EAGAIN) return true;
 
                 // signal artificial IsDone, for clean up.
-                size_ = virtual_block_.size();
+                size_ = block_.size();
 
                 if (errno == EPIPE) {
-                    LOG1 << "AsyncWriteVirtualBlock() got SIGPIPE";
+                    LOG1 << "AsyncWriteBlock() got SIGPIPE";
                     if (callback_) callback_(c);
                     return false;
                 }
-                throw Exception("AsyncWriteVirtualBlock() error in send", errno);
+                throw Exception("AsyncWriteBlock() error in send", errno);
             }
 
             size_ += r;
 
-            if (size_ == virtual_block_.size()) {
+            if (size_ == block_.size()) {
                 if (callback_) callback_(c);
                 return false;
             }
@@ -476,7 +478,7 @@ protected:
             }
         }
 
-        bool IsDone() const { return size_ == virtual_block_.size(); }
+        bool IsDone() const { return size_ == block_.size(); }
 
     private:
         //! total size currently written
@@ -485,12 +487,12 @@ protected:
         //! functional object to call once data is complete
         AsyncWriteCallback callback_;
 
-        //! Send block (holds a reference count to the underlying Block)
-        data::VirtualBlock virtual_block_;
+        //! Send block (holds a reference count to the underlying ByteBlock)
+        data::Block block_;
     };
 
     //! deque of asynchronous writers
-    std::deque<AsyncWriteVirtualBlock> async_write_vblock_;
+    std::deque<AsyncWriteBlock> async_write_block_;
 
     /**************************************************************************/
 

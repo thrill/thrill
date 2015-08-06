@@ -251,7 +251,7 @@ public:
         KeyValuePair* initial = &vector_[h.global_index];
         KeyValuePair* current = initial;
         KeyValuePair* next_partition = &vector_[h.global_index -
-                (h.global_index % num_items_per_partition_) + num_items_per_partition_];
+                                                (h.global_index % num_items_per_partition_) + num_items_per_partition_];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -300,7 +300,8 @@ public:
             FlushLargestPartition();
         }
 
-        if ((float)items_per_partition_[h.partition_id] / (float)num_items_per_partition_
+        if (static_cast<double>(items_per_partition_[h.partition_id]) /
+            static_cast<double>(num_items_per_partition_)
             > max_partition_fill_ratio_)
         {
             LOG << "resize";

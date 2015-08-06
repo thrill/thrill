@@ -14,6 +14,7 @@
 #define C7A_API_CONTEXT_HEADER
 
 #include <c7a/api/stats_graph.hpp>
+#include <c7a/common/config.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 #include <c7a/net/manager.hpp>
@@ -84,6 +85,9 @@ public:
 
     size_t max_rank() {
         return number_computing_node() * workers_per_computing_node() - 1;
+
+    common::Stats<common::g_enable_stats> & stats() {
+        return stats_;
     }
 
     size_t num_workers() {
@@ -126,7 +130,7 @@ private:
     common::Stats<ENABLE_STATS> stats_;
 
     //! StatsGrapg object that is uniquely held for this worker
-    api::StatsGraph stats_graph_;
+    common::Stats<common::g_enable_stats> stats_;
 
     //! number of this computing_node context, 0..p-1, within this compute node
     size_t worker_id_;
@@ -148,7 +152,7 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
 //! non-zero return value of any thread is returned.
 int Execute(
     int argc, char* const* argv,
-    std::function<int(Context&)> job_startpoint,
+    std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix = "");
 
 /*!
@@ -186,6 +190,26 @@ void ExecuteLocalTests(std::function<void(Context&)> job_startpoint);
  * one computing node with one thread
  */
 void ExecuteSameThread(std::function<void(Context&)> job_startpoint);
+
+void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
+                       const std::string& log_prefix = std::string());
+
+/*!
+ * Executes the given job startpoint with a context instance.  Startpoints may
+ * be called multiple times with concurrent threads and different context
+ * instances across different workers.  The c7a configuration is taken from
+ * environment variables starting the C7A_.
+ *
+ * C7A_RANK contains the rank of this worker
+ *
+ * C7A_HOSTLIST contains a space- or comma-separated list of host:ports to connect to.
+ *
+ * \returns 0 if execution was fine on all threads. Otherwise, the first
+ * non-zero return value of any thread is returned.
+ */
+int ExecuteEnv(
+    std::function<void(Context&)> job_startpoint,
+    const std::string& log_prefix = std::string());
 
 //! \}
 

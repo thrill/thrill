@@ -62,7 +62,7 @@ public:
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        if (block_)
+        if (bytes_)
             Close();
     }
 
@@ -87,11 +87,11 @@ public:
 
     //! Directly write Blocks to the underlying BlockSink (after flushing the
     //! current one if need be).
-    void AppendBlocks(const std::vector<VirtualBlock>& vblocks) {
+    void AppendBlocks(const std::vector<Block>& blocks) {
         MaybeFlushBlock();
 
-        for (const VirtualBlock& vb : vblocks)
-            sink_->AppendBlock(vb);
+        for (const Block& b : blocks)
+            sink_->AppendBlock(b);
 
         AllocateBlock();
     }
@@ -105,7 +105,7 @@ public:
             Flush();
 
         if (nitems_ == 0)
-            first_offset_ = current_ - block_->begin();
+            first_offset_ = current_ - bytes_->begin();
 
         ++nitems_;
 
@@ -190,37 +190,37 @@ public:
 protected:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        block_ = Block::Allocate(block_size_);
-        current_ = block_->begin();
-        end_ = block_->end();
+        bytes_ = ByteBlock::Allocate(block_size_);
+        current_ = bytes_->begin();
+        end_ = bytes_->end();
         nitems_ = 0;
         first_offset_ = 0;
     }
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
-        sink_->AppendBlock(block_, 0, current_ - block_->begin(),
+        sink_->AppendBlock(bytes_, 0, current_ - bytes_->begin(),
                            first_offset_, nitems_);
     }
 
     //! Flush the currently created block if it contains at least one byte
     void MaybeFlushBlock() {
-        if (current_ != block_->begin() || nitems_) {
+        if (current_ != bytes_->begin() || nitems_) {
             FlushBlock();
             nitems_ = 0;
-            block_ = BlockPtr();
+            bytes_ = ByteBlockPtr();
             current_ = nullptr;
         }
     }
 
     //! current block, already allocated as shared ptr, since we want to use
     //! make_shared.
-    BlockPtr block_;
+    ByteBlockPtr bytes_;
 
     //! current write pointer into block.
     Byte* current_;
 
-    //! current end of block pointer. this is == block_.end(), just one
+    //! current end of block pointer. this is == bytes_.end(), just one
     //! indirection less.
     Byte* end_;
 
@@ -233,7 +233,7 @@ protected:
     //! file or stream sink to output blocks to.
     BlockSink* sink_;
 
-    //! size of blocks to construct
+    //! size of data blocks to construct
     size_t block_size_;
 
     //! Flag if Close was called explicitly

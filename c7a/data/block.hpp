@@ -30,38 +30,38 @@ using Byte = uint8_t;
 static const size_t default_block_size = 2 * 1024 * 1024;
 
 /*!
- * A Block is the basic storage units of containers like File, BlockQueue,
+ * A ByteBlock is the basic storage units of containers like File, BlockQueue,
  * etc. It consists of a fixed number of bytes without any type and meta
- * information. Conceptually a Block is written _once_ and can then be shared
- * read-only between containers using shared_ptr<const Block> reference
- * counting.
+ * information. Conceptually a ByteBlock is written _once_ and can then be
+ * shared read-only between containers using shared_ptr<const ByteBlock>
+ * reference counting inside a Block, which adds meta information.
  */
-class Block
+class ByteBlock
 {
 protected:
     //! the allocated size of the buffer in bytes, excluding the size_ field.
     size_t size_;
 
-    //! the memory block itself follows here.
-    Byte data_[]; // NOLINT
+    //! the memory block itself follows here, this is just a placeholder
+    Byte data_[1];
 
-    //! Constructor to initialize Block in a buffer of memory. Protected, use
-    //! Allocate() for construction.
-    explicit Block(size_t size) : size_(size) { }
+    //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
+    //! use Allocate() for construction.
+    explicit ByteBlock(size_t size) : size_(size) { }
 
 public:
     //! Construct a block of given size.
-    static std::shared_ptr<Block> Allocate(size_t block_size) {
+    static std::shared_ptr<ByteBlock> Allocate(size_t block_size) {
         // allocate a new block of uninitialized memory
-        Block* block =
-            static_cast<Block*>(operator new (sizeof(size_t) + block_size));
+        ByteBlock* block =
+            static_cast<ByteBlock*>(operator new (sizeof(size_t) + block_size));
 
         // initialize block using constructor
-        new (block)Block(block_size);
+        new (block)ByteBlock(block_size);
 
-        // wrap allocated Block in a shared_ptr. TODO(tb) figure out how to do
+        // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
         // this whole procedure with std::make_shared.
-        return std::shared_ptr<Block>(block);
+        return std::shared_ptr<ByteBlock>(block);
     }
 
     //! mutable data accessor to memory block
@@ -83,16 +83,16 @@ public:
     size_t size() const { return size_; }
 };
 
-using BlockPtr = std::shared_ptr<Block>;
-using BlockCPtr = std::shared_ptr<const Block>;
+using ByteBlockPtr = std::shared_ptr<ByteBlock>;
+using ByteBlockCPtr = std::shared_ptr<const ByteBlock>;
 
 /**
- * VirtualBlock combines a reference to a read-only \ref Block and book-keeping
- * information. The book-keeping metainformation currently is the start of the
+ * Block combines a reference to a read-only \ref ByteBlock and book-keeping
+ * information. The book-keeping meta-information currently is the start of the
  * first item, the ends of the item range, and the number of items in the range.
  *
- * Multiple VirtualBlock instances can share the same Block but have different
- * book-keeping information!
+ * Multiple Block instances can share the same ByteBlock but have different
+ * book-keeping / meta- information!
  *
  * <pre>
  *     +--+---------+---------+-------------+---------+-----+
@@ -102,34 +102,34 @@ using BlockCPtr = std::shared_ptr<const Block>;
  *        begin     first_item    nitems=5                  end
  * </pre>
  */
-class VirtualBlock
+class Block
 {
 public:
-    VirtualBlock() { }
+    Block() { }
 
-    VirtualBlock(const BlockCPtr& block,
-                 size_t begin, size_t end, size_t first_item, size_t nitems)
-        : block_(block),
+    Block(const ByteBlockCPtr& byte_block,
+          size_t begin, size_t end, size_t first_item, size_t nitems)
+        : byte_block_(byte_block),
           begin_(begin), end_(end), first_item_(first_item), nitems_(nitems)
     { }
 
-    //! Return whether the enclosed block is valid.
-    bool IsValid() const { return block_ != nullptr; }
+    //! Return whether the enclosed ByteBlock is valid.
+    bool IsValid() const { return byte_block_ != nullptr; }
 
-    //! Releases the reference to the block and resets book-keeping info
+    //! Releases the reference to the ByteBlock and resets book-keeping info
     void Release() {
-        block_ = BlockCPtr();
+        byte_block_ = ByteBlockCPtr();
     }
 
-    // Return virtual block as std::string (for debugging), includes eventually
-    // cut off elements form the beginning included
+    // Return block as std::string (for debugging), includes eventually cut off
+    // elements form the beginning included
     std::string ToString() const {
         return std::string(
             reinterpret_cast<const char*>(data_begin()), size());
     }
 
-    //! access to block_
-    const BlockCPtr & block() const { return block_; }
+    //! access to byte_block_
+    const ByteBlockCPtr & byte_block() const { return byte_block_; }
 
     //! return number of items beginning in this block
     size_t nitems() const { return nitems_; }
@@ -142,51 +142,51 @@ public:
 
     //! return pointer to beginning of valid data
     const Byte * data_begin() const {
-        assert(block_);
-        return block_->begin() + begin_;
+        assert(byte_block_);
+        return byte_block_->begin() + begin_;
     }
 
     //! return pointer to end of valid data
     const Byte * data_end() const {
-        assert(block_);
-        return block_->begin() + end_;
+        assert(byte_block_);
+        return byte_block_->begin() + end_;
     }
 
     //! return length of valid data in bytes.
     size_t size() const { return end_ - begin_; }
 
-    //! accessor to first_item_ (absolute in block)
+    //! accessor to first_item_ (absolute in ByteBlock)
     size_t first_item() const { return first_item_; }
 
     //! return the first_item_offset relative to data_begin().
     size_t first_item_relative() const { return first_item_ - begin_; }
 
     friend std::ostream&
-    operator << (std::ostream& os, const VirtualBlock& c) {
-        os << "[VirtualBlock " << std::hex << &c << std::dec
-           << " block_=" << std::hex << c.block_.get() << std::dec;
-        if (c.IsValid()) {
-            os << " begin_=" << c.begin_
-               << " end_=" << c.end_
-               << " first_item_=" << c.first_item_
-               << " nitems_=" << c.nitems_;
+    operator << (std::ostream& os, const Block& b) {
+        os << "[Block " << std::hex << &b << std::dec
+           << " byte_block_=" << std::hex << b.byte_block_.get() << std::dec;
+        if (b.IsValid()) {
+            os << " begin_=" << b.begin_
+               << " end_=" << b.end_
+               << " first_item_=" << b.first_item_
+               << " nitems_=" << b.nitems_;
         }
         return os << "]";
     }
 
 protected:
-    //! referenced block
-    BlockCPtr block_;
+    //! referenced ByteBlock
+    ByteBlockCPtr byte_block_;
 
     //! beginning offset of valid bytes to read
     size_t begin_;
 
-    //! one byte beyond the end of the valid bytes in the block (can be used to
-    //! virtually shorten a block)
+    //! one byte beyond the end of the valid bytes in the ByteBlock (can be used to
+    //! virtually shorten a ByteBlock)
     size_t end_;
 
-    //! offset of first valid element in the block in absolute bytes from
-    //! block_->begin().
+    //! offset of first valid element in the ByteBlock in absolute bytes from
+    //! byte_block_->begin().
     size_t first_item_;
 
     //! number of valid items that _start_ in this block (includes cut-off

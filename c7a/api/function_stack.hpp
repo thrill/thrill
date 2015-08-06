@@ -38,7 +38,7 @@ namespace api {
 template <typename Lambda>
 auto run_emitter(Lambda lambda)
 {
-    return [=](auto input)->void {
+    return [=](const auto & input)->void {
                lambda(input);
     };
 }
@@ -56,7 +56,7 @@ auto run_emitter(Lambda lambda)
 template <typename Lambda, typename ... MoreLambdas>
 auto run_emitter(Lambda lambda, MoreLambdas ... rest)
 {
-    return [=](auto input)->void {
+    return [=](const auto & input)->void {
                lambda(input, run_emitter(rest ...));
     };
 }

@@ -50,7 +50,7 @@ public:
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
     {
         auto save_fn =
-            [=](ValueType input) {
+            [=](const ValueType& input) {
                 writer_(input);
             };
         auto lop_chain = parent.stack().push(save_fn).emit();
@@ -119,10 +119,8 @@ auto DIARef<ValueType, Stack>::Collapse() const {
         = std::make_shared<LOpChainNode>(*this, "", stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
-    return DIARef<ValueType, decltype(lop_stack)>
-               (shared_node, 
-                lop_stack, 
-                { stats_node });
+    return DIARef<ValueType, decltype(lop_stack)>(
+        shared_node, lop_stack, { stats_node });
 }
 
 //! \}

@@ -95,25 +95,8 @@ public:
     }
 
 protected:
-    //! State of the DIANode. State is NEW on creation.
-    kState state_ = NEW;
-
     //! Callback functions from the child nodes.
     std::vector<ChildFunction> callbacks_;
-
-    //!Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_() {
-        switch (state_) {
-        case NEW:
-            return "NEW";
-        case EXECUTED:
-            return "EXECUTED";
-        case DISPOSED:
-            return "DISPOSED";
-        default:
-            return "UNDEFINED";
-        }
-    }
 };
 
 //! \}

@@ -74,10 +74,7 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void Execute() override {
-        this->StartExecutionTimer();
-        this->StopExecutionTimer();
-    }
+    void Execute() override { }
 
     void PushData() override {
         LOG << "GENERATING data to file " << result_file_.ToString();
@@ -105,8 +102,7 @@ public:
             local_elements = elements_per_worker;
         }
 
-        std::random_device random_device;
-        std::default_random_engine generator(random_device());
+        std::default_random_engine generator({ std::random_device()() });
         std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
 
         for (size_t i = 0; i < local_elements; i++) {
@@ -169,18 +165,13 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", "DOp");
     auto shared_node =
-        std::make_shared<GenerateResultNode>(ctx,
-                                             generator_function,
-                                             filepath,
-                                             size,
-                                             stats_node);
+        std::make_shared<GenerateResultNode>(
+            ctx, generator_function, filepath, size, stats_node);
 
     auto generator_stack = shared_node->ProduceStack();
 
-    return DIARef<GeneratorResult, decltype(generator_stack)>
-               (shared_node, 
-                generator_stack,
-                {});
+    return DIARef<GeneratorResult, decltype(generator_stack)>(
+        shared_node, generator_stack, { });
 }
 
 //! \}

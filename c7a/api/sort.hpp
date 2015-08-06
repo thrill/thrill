@@ -14,9 +14,8 @@
 #ifndef C7A_API_SORT_HEADER
 #define C7A_API_SORT_HEADER
 
-#include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/api/function_stack.hpp>
+#include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/math.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -24,7 +23,6 @@
 #include <c7a/net/group.hpp>
 
 #include <algorithm>
-#include <cmath>
 #include <functional>
 #include <string>
 #include <vector>
@@ -83,9 +81,7 @@ public:
 
     //! Executes the sum operation.
     void Execute() override {
-        this->StartExecutionTimer();
         MainOp();
-        this->StopExecutionTimer();
     }
 
     void PushData() override {
@@ -312,8 +308,7 @@ private:
 
         LOG << prefix_elem << " elements, out of " << total_elem;
 
-        std::random_device random_device;
-        std::default_random_engine generator(random_device());
+        std::default_random_engine generator({ std::random_device()() });
         std::uniform_int_distribution<int> distribution(0, data_.size() - 1);
 
         // Send samples to worker 0

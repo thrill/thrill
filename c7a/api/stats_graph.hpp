@@ -160,12 +160,11 @@ public:
      *
      * \return Pointer to the new node.
      */
-    StatsNode* AddNode(const std::string& label, const std::string& type) {
+    StatsNode * AddNode(const std::string& label, const std::string& type) {
         StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
         nodes_.push_back(node);
         return node;
     }
-
 
     /*!
      * Add a new directed edge between two given nodes.

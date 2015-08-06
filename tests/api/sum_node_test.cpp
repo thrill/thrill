@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/sum.hpp>
 #include <gtest/gtest.h>
 
@@ -26,8 +26,7 @@ using c7a::api::DIARef;
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
+    std::default_random_engine generator({ std::random_device()() });
     std::uniform_int_distribution<int> distribution(1000, 10000);
 
     size_t generate_size = distribution(generator);
@@ -62,12 +61,11 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto input = ReadLines( // TODO(ms): Replace this with some test-specific rendered file
-                ctx,
-                "test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                });
+            // TODO(ms): Replace this with some test-specific rendered file
+            auto input = ReadLines(ctx, "test1")
+                         .Map([](const std::string& line) {
+                                  return std::stoi(line);
+                              });
 
             auto ones = input.Map([](int in) {
                                       return in;
