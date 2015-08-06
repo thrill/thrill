@@ -92,14 +92,14 @@ public:
         }
 
         size_t local_elements;
-        if (context_.number_worker() == context_.rank() + 1) {
+        size_t elements_per_worker = size_ / context_.num_workers();
+        if (context_.num_workers() - 1 == context_.my_rank()) {
             //last worker gets leftovers
             local_elements = size_ -
-                             ((context_.number_worker() - 1) *
-                              (size_ / context_.number_worker()));
+                             ((context_.num_workers() - 1) * elements_per_worker);
         }
         else {
-            local_elements = (size_ / context_.number_worker());
+            local_elements = elements_per_worker;
         }
 
         std::default_random_engine generator({ std::random_device()() });

@@ -99,7 +99,6 @@ build_test(data/serialization_test)
 build_test(data/serialization_cereal_test)
 build_test(data/stream_block_header_test)
 
-build_test(core/job_manager_test)
 build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/stage_builder_test)

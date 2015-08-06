@@ -48,7 +48,7 @@ public:
     //! Executes the scatter operation: source sends out its data.
     void Execute() override {
 
-        if (context_.rank() == source_id_)
+        if (context_.my_rank() == source_id_)
         {
             size_t in_size = in_vector_.size();
 

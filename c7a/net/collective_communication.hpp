@@ -1,6 +1,15 @@
 /*******************************************************************************
  * c7a/net/collective_communication.hpp
  *
+//http://memegenerator.net/instance2/1128363 (ts)
+
+
+
+
+
+/*******************************************************************************
+ * c7a/net/collective_communication.hpp
+ *
  * This file provides collective communication primitives, which are to be used
  * with c7a::net::Groups.
  *
@@ -10,6 +19,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#pragma once
+#ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
+#define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
+/*
 #pragma once
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
@@ -175,9 +188,12 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
 //! \}
 
+
 } // namespace net
 } // namespace c7a
 
 #endif // !C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
+
+******************************************************************************/
 
 /******************************************************************************/

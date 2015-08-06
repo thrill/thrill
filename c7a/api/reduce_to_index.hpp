@@ -98,7 +98,7 @@ public:
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
+          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
