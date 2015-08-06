@@ -16,6 +16,7 @@
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/dyn_block_reader.hpp>
 #include <c7a/data/file.hpp>
 
 #include <atomic>
@@ -46,6 +47,7 @@ public:
     using BlockSource = BlockQueueSource;
     using Writer = BlockWriter;
     using Reader = BlockReader<BlockQueueSource>;
+    using DynReader = DynBlockReader;
 
     void AppendBlock(const Block& b) final {
         queue_.emplace(b);
@@ -84,7 +86,11 @@ public:
         return Writer(this, block_size);
     }
 
+    //! return BlockReader specifically for a BlockQueue
     Reader GetReader();
+
+    //! return polymorphic BlockReader variant
+    DynReader GetDynReader();
 
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
@@ -125,6 +131,11 @@ protected:
 inline
 typename BlockQueue::Reader BlockQueue::GetReader() {
     return BlockQueue::Reader(BlockQueueSource(*this));
+}
+
+inline
+typename BlockQueue::DynReader BlockQueue::GetDynReader() {
+    return ConstructDynBlockReader<BlockQueueSource, BlockQueue&>(*this);
 }
 
 /*!
