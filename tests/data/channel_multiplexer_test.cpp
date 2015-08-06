@@ -73,17 +73,17 @@ void TalkAllToAllViaChannel(net::Group* net) {
         send_buffer[i] = i;
 
     static const size_t iterations = 1000;
-    size_t my_worker_id = 0;
+    size_t my_local_worker_id = 0;
     size_t num_workers_per_node = 1;
 
     data::ChannelMultiplexer cmp(num_workers_per_node);
     cmp.Connect(net);
     {
-        data::ChannelId id = cmp.AllocateNext(my_worker_id);
+        data::ChannelId id = cmp.AllocateNext(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writers = cmp.GetOrCreateChannel(id, my_worker_id)->OpenWriters(test_block_size);
+        auto writers = cmp.GetOrCreateChannel(id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt]("hello I am " + std::to_string(net->my_connection_id())
@@ -101,7 +101,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
         // open Readers and receive message from all workers
 
-        auto readers = cmp.GetOrCreateChannel(id, my_worker_id)->OpenReaders();
+        auto readers = cmp.GetOrCreateChannel(id, my_local_worker_id)->OpenReaders();
 
         for (size_t src = 0; src != readers.size(); ++src) {
             std::string msg = readers[src].Next<std::string>();

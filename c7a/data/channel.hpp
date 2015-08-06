@@ -75,13 +75,13 @@ public:
 
     //! Creates a new channel instance
     Channel(const ChannelId& id, net::Group& group,
-            net::DispatcherThread& dispatcher, size_t my_worker_id, size_t workers_per_connection)
+            net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_connection)
         : id_(id),
           queues_(group.num_connections() * workers_per_connection),
           cache_files_(group.num_connections() * workers_per_connection),
           group_(group),
           dispatcher_(dispatcher),
-          my_worker_id_(my_worker_id),
+          my_local_worker_id_(my_local_worker_id),
           workers_per_connection_(workers_per_connection) {
         // construct ChannelSink array
         for (size_t node = 0; node < group_.num_connections(); ++node) {
@@ -94,7 +94,7 @@ public:
                         &dispatcher, &group_.connection(node),
                         id,
                         group_.my_connection_id(),
-                        my_worker_id_,
+                        my_local_worker_id_,
                         worker);
                 }
             }
@@ -119,8 +119,8 @@ public:
         std::vector<BlockWriter> result;
 
         for (size_t node_id = 0; node_id < group_.num_connections(); ++node_id) {
-            for (size_t worker_id = 0; worker_id < workers_per_connection_; ++worker_id) {
-                size_t queue_id = node_id * workers_per_connection_ + worker_id;
+            for (size_t local_worker_id = 0; local_worker_id < workers_per_connection_; ++local_worker_id) {
+                size_t queue_id = node_id * workers_per_connection_ + local_worker_id;
                 if (node_id == group_.my_connection_id()) {
                     result.emplace_back(&queues_[queue_id], block_size);
                 }
@@ -140,8 +140,8 @@ public:
     std::vector<BlockQueueReader> OpenReaders() {
         std::vector<BlockQueueReader> result;
 
-        for (size_t worker_id = 0; worker_id < num_workers(); ++worker_id) {
-            result.emplace_back(BlockQueueSource(queues_[worker_id]));
+        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
+            result.emplace_back(BlockQueueSource(queues_[local_worker_id]));
         }
 
         assert(result.size() == num_workers());
@@ -154,8 +154,8 @@ public:
     ConcatBlockReader OpenReader() {
         // construct vector of BlockQueueSources to read from queues_.
         std::vector<BlockQueueSource> result;
-        for (size_t worker_id = 0; worker_id < num_workers(); ++worker_id) {
-            result.emplace_back(queues_[worker_id]);
+        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
+            result.emplace_back(queues_[local_worker_id]);
         }
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
         return ConcatBlockReader(ConcatBlockSource(result));
@@ -168,8 +168,8 @@ public:
     CachingConcatBlockReader OpenCachingReader() {
         // construct vector of CachingBlockQueueSources to read from queues_.
         std::vector<CachingBlockQueueSource> result;
-        for (size_t worker_id = 0; worker_id < num_workers(); ++worker_id) {
-            result.emplace_back(queues_[worker_id], cache_files_[worker_id]);
+        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
+            result.emplace_back(queues_[local_worker_id], cache_files_[local_worker_id]);
         }
         // move CachingBlockQueueSources into concatenation BlockSource, and to
         // Reader.
@@ -197,24 +197,24 @@ public:
 
         std::vector<BlockWriter> writers = OpenWriters();
 
-        for (size_t worker_id = 0; worker_id < num_workers(); ++worker_id) {
+        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
             // write [current,limit) to this node
-            size_t limit = offsets[worker_id];
+            size_t limit = offsets[local_worker_id];
             assert(current <= limit);
 #if 0
             for ( ; current < limit; ++current) {
                 assert(reader.HasNext());
                 // move over one item (with deserialization and serialization)
-                writers[worker_id](reader.template Next<ItemType>());
+                writers[local_worker_id](reader.template Next<ItemType>());
             }
 #else
             if (current != limit) {
-                writers[worker_id].AppendBlocks(
+                writers[local_worker_id].AppendBlocks(
                     reader.template GetItemBatch<ItemType>(limit - current));
                 current = limit;
             }
 #endif
-            writers[worker_id].Close();
+            writers[local_worker_id].Close();
         }
     }
 
@@ -228,9 +228,9 @@ public:
 
         // close self-loop queues
         for (size_t my_worker = 0; my_worker < workers_per_connection_; my_worker++) {
-            size_t worker_id = group_.my_connection_id() + my_worker;
-            if (!queues_[worker_id].write_closed())
-                queues_[worker_id].Close();
+            size_t local_worker_id = group_.my_connection_id() + my_worker;
+            if (!queues_[local_worker_id].write_closed())
+                queues_[local_worker_id].Close();
         }
 
         // wait for close packets to arrive (this is a busy waiting loop, try to
@@ -270,7 +270,7 @@ protected:
     net::Group& group_;
     net::DispatcherThread& dispatcher_;
 
-    size_t my_worker_id_;
+    size_t my_local_worker_id_;
 
     size_t workers_per_connection_;
 
