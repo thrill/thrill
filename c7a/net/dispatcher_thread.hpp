@@ -163,7 +163,7 @@ private:
     class Dispatcher* dispatcher_;
 
     //! termination flag
-    common::atomic_movable<bool> terminate_ { false };
+    common::AtomicMovable<bool> terminate_ { false };
 
     //! thread name for logging
     std::string name_;

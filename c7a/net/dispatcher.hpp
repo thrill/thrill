@@ -287,7 +287,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    common::atomic_movable<bool> terminate_ { false };
+    common::AtomicMovable<bool> terminate_ { false };
 
     //! struct for timer callbacks
     struct Timer

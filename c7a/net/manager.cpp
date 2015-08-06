@@ -46,10 +46,11 @@ public:
     void Initialize(size_t my_rank_,
                     const std::vector<Endpoint>& endpoints) {
 
-        this->my_rank_ = my_rank_;
         die_unless(my_rank_ < endpoints.size());
 
         LOG << "Client " << my_rank_ << " starting: " << endpoints[my_rank_];
+
+        this->my_rank_ = my_rank_;
 
         //If we heldy any connections, do not allow a new initialization.
         if (connections_.size() != 0) {
@@ -86,8 +87,8 @@ public:
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         //Initiate connections to all hosts with higher id.
-        for (size_t g = 0; g < kGroupCount; g++) {
-            for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id) {
+        for (uint32_t g = 0; g < kGroupCount; g++) {
+            for (size_t id = my_rank_ + 1; id < addressList.size(); ++id) {
                 AsyncConnect(g, id, addressList[id]);
             }
         }
@@ -110,12 +111,11 @@ public:
 
         LOG << "Client " << my_rank_ << " done";
 
-        for (size_t j = 0; j < kGroupCount; j++) {
+        for (uint32_t j = 0; j < kGroupCount; j++) {
             // output list of file descriptors connected to partners
             for (size_t i = 0; i != addressList.size(); ++i) {
                 if (i == my_rank_) continue;
-                LOG << "Group " << j
-                    << " link " << my_rank_ << " -> " << i << " = fd "
+                LOG << "Group " << j << " link " << my_rank_ << " -> " << i << " = fd "
                     << groups_[j].connection(i).GetSocket().fd();
 
                 groups_[j].connection(i).GetSocket().SetNonBlocking(true);
@@ -133,7 +133,7 @@ protected:
     /**
      * The rank associated with the local worker.
      */
-    ClientId my_rank_;
+    size_t my_rank_;
 
     /**
      * The Connections responsible
@@ -147,26 +147,15 @@ protected:
      */
     Dispatcher dispatcher_;
 
-    // Some definitions for convenience
-    using Socket = lowlevel::Socket;
-    using SocketAddress = lowlevel::SocketAddress;
-    using IPv4Address = lowlevel::IPv4Address;
-    using GroupNodeIdPair = std::pair<size_t, size_t>;
+    //Some definitions for convenience
+    typedef lowlevel::Socket Socket;
+    typedef lowlevel::SocketAddress SocketAddress;
+    typedef lowlevel::IPv4Address IPv4Address;
 
     //! Array of opened connections that are not assigned to any (group,id)
     //! client, yet. This must be a deque. When welcomes are received the
     //! Connection is moved out of the deque into the right Group.
     std::deque<Connection> connections_;
-
-    //! Array of connect timeouts which are exponentially increased from 10msec
-    //! on failed connects.
-    std::map<GroupNodeIdPair, size_t> timeouts_;
-
-    //! start connect backoff at 10msec
-    const size_t initial_timeout_ = 10;
-
-    //! maximum connect backoff, after which the program fails.
-    const size_t final_timeout_ = 5120;
 
     /**
      * @brief Represents a welcome message.
@@ -178,21 +167,21 @@ protected:
         /**
          * The c7a flag.
          */
-        uint64_t c7a;
+        uint32_t c7a;
         /**
          * The id of the Group associated with the sending Connection.
          */
-        size_t   group_id;
+        uint32_t group_id;
         /**
          * The id of the worker associated with the sending Connection.
          */
-        ClientId id;
+        size_t   id;
     };
 
     /**
      * The c7a flag - introduced by Master Timo.
      */
-    static const uint64_t c7a_sign = 0x0C7A0C7A0C7A0C7A;
+    static const uint32_t c7a_sign = 0x0C7A0C7A;
 
     /**
      * @brief Converts a c7a endpoint list into a list of socket address.
@@ -220,16 +209,16 @@ protected:
     /**
      * @brief Returns wether the initialization is completed.
      *
-     * @details Checkts the Groups associated with this Manager and returns true
-     * or false wether the initialization is finished.
+     * @details Checkts the Groups associated with this Manager and returns true or fals wether
+     * the initialization is finished.
      *
      * @return True if initialization is finished, else false.
      */
     bool IsInitializationFinished() {
 
-        for (size_t g = 0; g < kGroupCount; g++) {
+        for (uint32_t g = 0; g < kGroupCount; g++) {
 
-            for (ClientId id = 0; id < groups_[g].Size(); ++id) {
+            for (size_t id = 0; id < groups_[g].num_connections(); ++id) {
                 if (id == my_rank_) continue;
 
                 //Just checking the state works since this implicitey checks the
@@ -290,7 +279,7 @@ protected:
      * @param address The address of the endpoint to connect to.
      */
     void AsyncConnect(
-        size_t group, size_t id, const SocketAddress& address) {
+        uint32_t group, size_t id, const SocketAddress& address) {
 
         // Construct a new socket (old one is destroyed)
         Connection& nc = groups_[group].connection(id);
@@ -322,36 +311,13 @@ protected:
         }
     }
 
-    //! calculate the next timeout on connect() errors
-    size_t NextConnectTimeout(size_t group, size_t id,
-                              const SocketAddress& address) {
-        GroupNodeIdPair gnip(group, id);
-        auto it = timeouts_.find(gnip);
-        if (it == timeouts_.end()) {
-            it = timeouts_.insert(std::make_pair(gnip, initial_timeout_)).first;
-        }
-        else {
-            // exponential backoff of reconnects.
-            it->second = 2 * it->second;
-
-            if (it->second >= final_timeout_) {
-                throw Exception("Timeout error connecting to client "
-                                + std::to_string(id) + " via "
-                                + address.ToStringHostPort());
-            }
-        }
-        return it->second;
-    }
-
     /**
      * @brief Called when a connection initiated by us succeeds.
      * @details Called when a connection initiated by us succeeds on a betwork level.
      * The c7a welcome messages still have to be exchanged.
      *
      * @param conn The connection that was connected successfully.
-     *
-     * @param address The associated address. This parameter is needed in case
-     * we need to reconnect.
+     * @param address The associated address. This parameter is needed in case we need to reconnect.
      *
      * @return A bool indicating wether this callback should stay registered.
      */
@@ -361,33 +327,23 @@ protected:
         int err = conn.GetSocket().GetError();
 
         if (conn.state() != ConnectionState::Connecting) {
-            LOG << "Client " << my_rank_
-                << " expected connection state " << ConnectionState::Connecting
-                << " but got " << conn.state();
-            die("FAULTY STATE DETECTED");
+            LOG << "FAULTY STATE DETECTED";
+            LOG << "Client " << my_rank_ << " expected connection state " << ConnectionState::Connecting <<
+                " but got " << conn.state();
+            assert(false);
         }
 
         if (err == Socket::Errors::ConnectionRefused ||
             err == Socket::Errors::Timeout) {
 
-            // Connection refused. The other workers might not be online yet.
+            //Connection refused. The other workers might not be online yet.
 
-            size_t next_timeout = NextConnectTimeout(
-                conn.group_id(), conn.peer_id(), address);
+            LOG << "Connect to " << address.ToStringHostPort() <<
+                " FD=" << conn.GetSocket().fd() << " timed out or refused with error " << err << ". Attempting reconnect";
 
-            LOG << "Connect to " << address.ToStringHostPort()
-                << " fd=" << conn.GetSocket().fd()
-                << " timed out or refused with error " << err << "."
-                << " Attempting reconnect in " << next_timeout << "msec";
-
-            dispatcher_.AddTimer(
-                std::chrono::milliseconds(next_timeout),
-                [&]() {
-                    // Construct a new connection since the socket might not be
-                    // reusable.
-                    AsyncConnect(conn.group_id(), conn.peer_id(), address);
-                    return false;
-                });
+            // Construct a new connection since the socket might not be
+            // reusable.
+            AsyncConnect(conn.group_id(), conn.peer_id(), address);
 
             return false;
         }
@@ -411,7 +367,7 @@ protected:
             << " group=" << conn.group_id();
 
         // send welcome message
-        const WelcomeMsg hello = { c7a_sign, conn.group_id(), my_rank_ };
+        const WelcomeMsg hello = { c7a_sign, (uint32_t)conn.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(conn, &hello, sizeof(hello),
                                    [=](Connection& nc) {
@@ -453,8 +409,7 @@ protected:
             LOG << "FAULTY ID DETECTED";
         }
 
-        LOG << "client " << my_rank_ << " expected signature from client "
-            << conn.peer_id() << " and  got signature "
+        LOG << "client " << my_rank_ << " expected signature from client " << conn.peer_id() << " and  got signature "
             << "from client " << msg->id;
 
         die_unequal(conn.peer_id(), msg->id);
@@ -487,7 +442,7 @@ protected:
             << " id " << msg_in->id;
 
         die_unless(msg_in->group_id < kGroupCount);
-        die_unless(msg_in->id < groups_[msg_in->group_id].Size());
+        die_unless(msg_in->id < groups_[msg_in->group_id].num_connections());
 
         die_unequal(groups_[msg_in->group_id].connection(msg_in->id).state(),
                     ConnectionState::Invalid);
@@ -543,7 +498,6 @@ protected:
         return true;
     }
 };
-
 void Manager::Initialize(size_t my_rank,
                          const std::vector<Endpoint>& endpoints) {
     my_rank_ = my_rank;

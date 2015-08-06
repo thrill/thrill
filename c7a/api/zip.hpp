@@ -19,7 +19,6 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/net/collective_communication.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -209,7 +208,7 @@ private:
     //! Scatter items from DIA "in" to other workers if necessary.
     template <typename ZipArgNum>
     void DoScatter(size_t in) {
-        const size_t workers = context_.number_worker();
+        const size_t workers = context_.num_workers();
 
         size_t local_begin =
             std::min(result_size_,

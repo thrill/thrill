@@ -32,8 +32,6 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-typedef unsigned int ClientId;
-
 //TODO(ej) Cleanup the Group. Make to a sole collection holding a bunch of connections.
 //Move everything else into appropriate channel.
 
@@ -74,14 +72,15 @@ public:
     { }
 
     //! Initialize a real Group for construction from the NetManager.
-    void Initialize(ClientId my_rank, size_t group_size) {
-        assert(my_rank_ == -1u);
+    void Initialize(size_t my_rank, size_t group_size) {
         my_rank_ = my_rank;
+        assert(!connected_);
+        connected_ = true;
         connections_.resize(group_size);
     }
 
     //! Initializing constructor, used by tests for creating Groups.
-    Group(ClientId my_rank, size_t group_size) {
+    Group(size_t my_rank, size_t group_size) {
         Initialize(my_rank, group_size);
     }
 
@@ -102,7 +101,7 @@ public:
     //! move-assignment, only allowed if this Group is uninitialized.
     Group& operator = (Group&& other) {
         assert(this != &other);
-        assert(my_rank_ == ClientId(-1));
+        assert(!connected_);
 
         my_rank_ = std::move(other.my_rank_);
         connections_ = std::move(other.connections_);
@@ -114,7 +113,7 @@ public:
     //! \{
 
     //! Return Connection to client id.
-    Connection & connection(ClientId id) {
+    Connection & connection(size_t id) {
         if (id >= connections_.size())
             throw Exception("Group::Connection() requested "
                             "invalid client id " + std::to_string(id));
@@ -147,13 +146,13 @@ public:
         return connections_[connection.peer_id()];
     }
 
-    //! Return number of connections in this group.
-    size_t Size() const {
+    //! Return number of connections in this group (= number computing nodes)
+    size_t num_connections() const {
         return connections_.size();
     }
 
-    //! Return my rank in the connection group
-    size_t MyRank() const {
+    //! Return my rank in the connection group (computing nodes)
+    size_t my_connection_id() const {
         return my_rank_;
     }
 
@@ -171,7 +170,7 @@ public:
         }
 
         connections_.clear();
-        my_rank_ = -1u;
+        connected_ = false;
     }
 
     //! Closes all client connections
@@ -192,7 +191,7 @@ public:
      * @param out_value The received value.
      */
     template <typename T>
-    void ReceiveFromAny(ClientId* out_src, T* out_value) {
+    void ReceiveFromAny(size_t* out_src, T* out_value) {
         fd_set fd_set;
         int max_fd = 0;
 
@@ -252,7 +251,7 @@ public:
      * @param out_src The id of the worker the string was received from.
      * @param out_data The string received from the worker.
      */
-    void ReceiveStringFromAny(ClientId* out_src, std::string* out_data) {
+    void ReceiveStringFromAny(size_t* out_src, std::string* out_data) {
         fd_set fd_set;
         int max_fd = 0;
 
@@ -311,7 +310,7 @@ public:
      * @param dest The worker to send the string to.
      * @param data The string to send.
      */
-    void SendStringTo(ClientId dest, const std::string& data) {
+    void SendStringTo(size_t dest, const std::string& data) {
         connection(dest).SendString(data);
     }
 
@@ -322,7 +321,7 @@ public:
      * @param src The worker to receive the string from.
      * @param data A pointer to the string where the received string should be stored.
      */
-    void ReceiveStringFrom(ClientId src, std::string* data) {
+    void ReceiveStringFrom(size_t src, std::string* data) {
         connection(src).ReceiveString(data);
     }
 
@@ -334,7 +333,7 @@ public:
      * @param data The data to send.
      */
     template <typename T>
-    void SendTo(ClientId dest, const T& data) {
+    void SendTo(size_t dest, const T& data) {
         connection(dest).Send(data);
     }
 
@@ -346,7 +345,7 @@ public:
      * @param data A pointer to the location where the received data should be stored.
      */
     template <typename T>
-    void ReceiveFrom(ClientId src, T* data) {
+    void ReceiveFrom(size_t src, T* data) {
         connection(src).Receive(data);
     }
 
@@ -383,7 +382,9 @@ public:
 
 private:
     //! The client id of this object in the Group.
-    ClientId my_rank_ = -1;
+    size_t my_rank_;
+
+    bool connected_ = false;
 
     //! Connections to all other clients in the Group.
     std::vector<Connection> connections_;

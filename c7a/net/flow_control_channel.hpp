@@ -84,7 +84,7 @@ protected:
      * @param value The value to send.
      */
     template <typename T>
-    void SendTo(ClientId destination, T value) {
+    void SendTo(size_t destination, T value) {
 
         assert(threadId == 0); //Only primary thread might send/receive.
 
@@ -100,7 +100,7 @@ protected:
      * received value is stored.
      */
     template <typename T>
-    void ReceiveFrom(ClientId source, T* value) {
+    void ReceiveFrom(size_t source, T* value) {
 
         assert(threadId == 0); //Only primary thread might send/receive.
 
@@ -130,7 +130,7 @@ public:
      * @brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(net::Group& group, int threadId, int threadCount, common::Barrier& barrier, void** shmem)
-        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
+        : group(group), id(group.my_connection_id()), count(group.num_connections()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
 
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum

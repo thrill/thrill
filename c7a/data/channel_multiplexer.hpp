@@ -13,6 +13,7 @@
 #ifndef C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 
+#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
@@ -46,13 +47,15 @@ namespace data {
 class ChannelMultiplexer
 {
 public:
-    explicit ChannelMultiplexer(net::DispatcherThread& dispatcher)
-        : dispatcher_(dispatcher), next_id_(0) { }
+    explicit ChannelMultiplexer(size_t num_workers_per_node)
+        : dispatcher_("dispatcher"), next_id_(num_workers_per_node, 0), num_workers_per_node_(num_workers_per_node) { }
 
     //! non-copyable: delete copy-constructor
     ChannelMultiplexer(const ChannelMultiplexer&) = delete;
     //! non-copyable: delete assignment operator
     ChannelMultiplexer& operator = (const ChannelMultiplexer&) = delete;
+    //! default move constructor
+    ChannelMultiplexer(ChannelMultiplexer&&) = default;
 
     //! Closes all client connections
     ~ChannelMultiplexer() {
@@ -71,60 +74,70 @@ public:
 
     void Connect(net::Group* group) {
         group_ = group;
-        for (size_t id = 0; id < group_->Size(); id++) {
-            if (id == group_->MyRank()) continue;
+        for (size_t id = 0; id < group_->num_connections(); id++) {
+            if (id == group_->my_connection_id()) continue;
             AsyncReadStreamBlockHeader(group_->connection(id));
         }
     }
 
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
-    bool HasChannel(ChannelId id) {
-        return channels_.find(id) != channels_.end();
+    //! \param local_worker_id of the local worker who requested the channel
+    bool HasChannel(size_t id, size_t local_worker_id) {
+        return channels_.find(std::make_pair(local_worker_id, id)) != channels_.end();
     }
 
     //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
     //TODO Method to access channel via callbacks
 
     //! Allocate the next channel
-    ChannelId AllocateNext() {
-        return next_id_++;
+    //! \param local_worker_id of the local worker who requested the channel
+    size_t AllocateNext(size_t local_worker_id) {
+        assert(local_worker_id < next_id_.size());
+        return next_id_[local_worker_id] = next_id_[local_worker_id] + 1;
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr GetOrCreateChannel(ChannelId id) {
+    //! \param local_worker_id of the local worker who requested the channel
+    ChannelPtr GetOrCreateChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateChannel(id);
+        return _GetOrCreateChannel(id, local_worker_id);
     }
 
 private:
     static const bool debug = false;
 
-    net::DispatcherThread& dispatcher_;
+    net::DispatcherThread dispatcher_;
 
     //! Channels have an ID in block headers
-    std::map<ChannelId, ChannelPtr> channels_;
+    //! <worker id, channel id>
+    std::map<std::pair<size_t, size_t>, ChannelPtr> channels_;
 
     // Holds NetConnections for outgoing Channels
     net::Group* group_ = nullptr;
 
     //protects critical sections
-    std::mutex mutex_;
+    common::MutexMovable mutex_;
 
-    //! Next ID to generate
-    ChannelId next_id_;
+    //! Next ID to generate, one for each worker
+    std::vector<size_t> next_id_;
+
+    //! Number of workers per node
+    size_t num_workers_per_node_;
 
     //! Get channel with given id, if it does not exist, create it.
-    ChannelPtr _GetOrCreateChannel(ChannelId id) {
+    //! \param id of the channel
+    //! \param local_worker_id of the local worker who requested the channel
+    ChannelPtr _GetOrCreateChannel(size_t id, size_t local_worker_id) {
         assert(group_ != nullptr);
-        auto it = channels_.find(id);
+        auto it = channels_.find(std::make_pair(local_worker_id, id));
 
         if (it != channels_.end())
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_);
-        channels_.insert(std::make_pair(id, channel));
+        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_, local_worker_id, num_workers_per_node_);
+        channels_.insert(std::make_pair(std::make_pair(local_worker_id, id), channel));
         return channel;
     }
 
@@ -152,11 +165,13 @@ private:
 
         // received channel id
         auto id = header.channel_id;
-        ChannelPtr channel = GetOrCreateChannel(id);
+        auto local_worker = header.receiver_local_worker_id;
+        ChannelPtr channel = GetOrCreateChannel(id, local_worker);
 
+        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_local_worker_id;
         if (header.IsStreamEnd()) {
-            sLOG << "end of stream on" << s << "in channel" << id;
-            channel->OnCloseStream(header.sender_rank);
+            sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
+            channel->OnCloseStream(sender_worker_rank);
 
             AsyncReadStreamBlockHeader(s);
         }
@@ -176,16 +191,16 @@ private:
         Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
         net::Buffer&& buffer) {
 
-        sLOG << "got block on" << s << "in channel" << header.channel_id;
-
         die_unless(header.size == buffer.size());
 
         // TODO(tb): don't copy data!
         ByteBlockPtr bytes = ByteBlock::Allocate(buffer.size());
         std::copy(buffer.data(), buffer.data() + buffer.size(), bytes->begin());
 
+        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_local_worker_id;
+        sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
         channel->OnStreamBlock(
-            header.sender_rank,
+            sender_worker_rank,
             Block(bytes, 0, header.size, header.first_item, header.nitems));
 
         AsyncReadStreamBlockHeader(s);
