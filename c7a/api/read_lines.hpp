@@ -65,7 +65,7 @@ public:
         assert(file.good());
 
         InputLineIterator it = GetInputLineIterator(
-            file, context_.rank(), context_.number_worker());
+            file, context_.my_rank(), context_.num_workers());
 
         // Hook Read
         while (it.HasNext()) {

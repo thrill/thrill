@@ -124,7 +124,7 @@ private:
 
         ValueType sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
-        if (context_.rank() == 0) {
+        if (context_.my_rank() == 0) {
             sum = neutral_element_;
         }
 

@@ -65,7 +65,7 @@ int WordCountBasic(Context& ctx) {
             return wc.first + ": " + std::to_string(wc.second) + "\n";
         })
     .WriteToFileSystem(
-        "wordcount_" + std::to_string(ctx.rank()) + ".out");
+        "wordcount_" + std::to_string(ctx.my_rank()) + ".out");
 
     return 0;
 }
@@ -86,7 +86,7 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
             return wc.first + ": " + std::to_string(wc.second) + "\n";
         })
     .WriteToFileSystem(
-        "wordcount_" + std::to_string(ctx.rank()) + ".out");
+        "wordcount_" + std::to_string(ctx.my_rank()) + ".out");
 
     return 42; // TODO(tb): FIX reduced_words.Size();
 }

@@ -94,7 +94,7 @@ TEST(Operations, ScatterAndAllGatherElementsCorrect) {
 
             std::vector<size_t> in_vector;
 
-            if (ctx.rank() == 0) {
+            if (ctx.my_rank() == 0) {
                 // generate data only on worker 0.
                 for (size_t i = 0; i < test_size; ++i) {
                     in_vector.push_back(i);

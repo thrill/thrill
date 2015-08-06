@@ -10,6 +10,7 @@
 
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/write.hpp>
+#include <c7a/api/context.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/stats_timer.hpp>
 
@@ -17,6 +18,7 @@
 #include <string>
 
 using namespace c7a; // NOLINT
+using namespace c7a::common; // NOLINT
 
 //! Reads and Writes random data from disk and measures time for whole process
 int main(int argc, const char** argv) {
