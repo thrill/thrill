@@ -28,27 +28,7 @@ namespace common {
  * \param size  length of binary data
  * \return      string of hexadecimal pairs
  */
-static inline std::string hexdump(const void* const data, size_t size) {
-    const unsigned char* const cdata
-        = static_cast<const unsigned char* const>(data);
-
-    std::string out;
-    out.resize(size * 2);
-
-    static const char xdigits[16] = {
-        '0', '1', '2', '3', '4', '5', '6', '7',
-        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-    };
-
-    std::string::iterator oi = out.begin();
-    for (const unsigned char* si = cdata; si != cdata + size; ++si)
-    {
-        *oi++ = xdigits[(*si & 0xF0) >> 4];
-        *oi++ = xdigits[(*si & 0x0F)];
-    }
-
-    return out;
-}
+std::string hexdump(const void* const data, size_t size) __attribute__((pure));
 
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
@@ -56,9 +36,7 @@ static inline std::string hexdump(const void* const data, size_t size) {
  * \param str  binary data to output in hex
  * \return     string of hexadecimal pairs
  */
-static inline std::string hexdump(const std::string& str) {
-    return hexdump(str.data(), str.size());
-}
+std::string hexdump(const std::string& str) __attribute__((pure));
 
 /**
  * Checks if the given match string is located at the start of this string.
