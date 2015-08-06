@@ -56,11 +56,11 @@ public:
     }
 
     //! Executes the sum operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns result of global sum.
@@ -74,7 +74,7 @@ public:
      * Returns "[SumNode]" as a string.
      * \return "[SumNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[SumNode] Id:" + result_file_.ToString();
     }
 

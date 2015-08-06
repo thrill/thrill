@@ -80,11 +80,11 @@ public:
     virtual ~SortNode() { }
 
     //! Executes the sum operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
 
         for (size_t i = 0; i < data_.size(); i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
@@ -93,7 +93,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -109,7 +109,7 @@ public:
      * Returns "[SortNode]" as a string.
      * \return "[SortNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[SortNode] Id:" + result_file_.ToString();
     }
 

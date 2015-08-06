@@ -74,9 +74,9 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void Execute() override { }
+    void Execute() final { }
 
-    void PushData() override {
+    void PushData() final {
         LOG << "GENERATING data to file " << result_file_.ToString();
 
         std::ifstream file(path_in_);
@@ -113,7 +113,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -129,7 +129,7 @@ public:
      * Returns information about the GeneratorNode as a string.
      * \return Stringified node.
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[GeneratorNode] Id: " + result_file_.ToString();
     }
 

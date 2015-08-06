@@ -47,12 +47,12 @@ public:
     using Writer = BlockWriter;
     using Reader = BlockReader<BlockQueueSource>;
 
-    void AppendBlock(const Block& b) override {
+    void AppendBlock(const Block& b) final {
         queue_.emplace(b);
     }
 
     //! Close called by BlockWriter.
-    void Close() override {
+    void Close() final {
         assert(!write_closed_); // racing condition tolerated
         write_closed_ = true;
 

@@ -112,11 +112,11 @@ public:
      * Actually executes the reduce operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -154,7 +154,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces a function stack, which only contains the PostOp function.
@@ -168,7 +168,7 @@ public:
      * Returns "[ReduceNode]" and its id as a string.
      * \return "[ReduceNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReduceNode] Id: " + result_file_.ToString();
     }
 

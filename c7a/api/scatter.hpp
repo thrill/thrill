@@ -46,7 +46,7 @@ public:
     { }
 
     //! Executes the scatter operation: source sends out its data.
-    void Execute() override {
+    void Execute() final {
 
         if (context_.my_rank() == source_id_)
         {
@@ -70,7 +70,7 @@ public:
         }
     }
 
-    void PushData() override {
+    void PushData() final {
         data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
 
         while (readers.HasNext()) {
@@ -81,7 +81,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     auto ProduceStack() {
         return FunctionStack<ValueType>();
@@ -91,7 +91,7 @@ public:
      * Returns "[AllGatherNode]" and its id as a string.
      * \return "[AllGatherNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[AllGatherNode] Id: " + result_file_.ToString();
     }
 

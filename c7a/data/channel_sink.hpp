@@ -60,7 +60,7 @@ public:
     ChannelSink(ChannelSink&&) = default;
 
     //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
-    void AppendBlock(const Block& b) override {
+    void AppendBlock(const Block& b) final {
         if (b.size() == 0) return;
 
         sLOG << "ChannelSink::AppendBlock" << b;
@@ -85,7 +85,7 @@ public:
     }
 
     //! Closes the connection
-    void Close() override {
+    void Close() final {
         assert(!closed_);
         closed_ = true;
 

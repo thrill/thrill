@@ -64,25 +64,25 @@ public:
      * Pushes elements to next node.
      * Can be skipped for LOps.
      */
-    void Execute() override {
+    void Execute() final {
         // Push local elements to children
         writer_.Close();
     }
 
-    void PushData() override {
+    void PushData() final {
         data::File::Reader reader = file_.GetReader();
         for (size_t i = 0; i < file_.NumItems(); ++i) {
             this->PushElement(reader.Next<ValueType>());
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns "[LOpNode]" and its id as a string.
      * \return "[LOpNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[LOpNode] Id: " + result_file_.ToString();
     }
 

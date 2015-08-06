@@ -122,11 +122,11 @@ public:
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         size_t result_count = 0;
 
         if (result_size_ != 0) {
@@ -158,7 +158,7 @@ public:
         sLOG << "Zip: result_count" << result_count;
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Creates empty stack.
@@ -172,7 +172,7 @@ public:
      * Returns "[ZipNode]" as a string.
      * \return "[ZipNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ZipNode]";
     }
 
