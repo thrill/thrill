@@ -87,27 +87,13 @@ public:
     //! \}
 
     //! non-copyable: delete copy-constructor
-    Group(const Group&) = delete;
+    Group(const Group &) = delete;
     //! non-copyable: delete assignment operator
-    Group& operator = (const Group&) = delete;
-
-    //! move-constructor
-    Group(Group&& other)
-        : my_rank_(std::move(other.my_rank_)),
-          connections_(std::move(other.connections_)),
-          listener_(std::move(other.listener_))
-    { }
-
-    //! move-assignment, only allowed if this Group is uninitialized.
-    Group& operator = (Group&& other) {
-        assert(this != &other);
-        assert(!connected_);
-
-        my_rank_ = std::move(other.my_rank_);
-        connections_ = std::move(other.connections_);
-        listener_ = std::move(other.listener_);
-        return *this;
-    }
+    Group & operator = (const Group &) = delete;
+    //! move-constructor: default
+    Group(Group &&) = default;
+    //! move-assignment operator: default
+    Group & operator = (Group &&) = default;
 
     //! \name Status and Access to NetConnections
     //! \{
@@ -158,9 +144,6 @@ public:
 
     //! Closes all client connections
     void Close() {
-        if (listener_.IsValid())
-            listener_.Close();
-
         for (size_t i = 0; i != connections_.size(); ++i)
         {
             if (i == my_rank_) continue;
@@ -388,9 +371,6 @@ private:
 
     //! Connections to all other clients in the Group.
     std::vector<Connection> connections_;
-
-    //! Socket on which to listen for incoming connections.
-    Connection listener_;
 };
 
 //! \}
