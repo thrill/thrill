@@ -13,6 +13,8 @@
 #define C7A_COMMON_ATOMIC_MOVABLE_HEADER
 
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <utility>
 
 namespace c7a {

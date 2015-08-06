@@ -326,7 +326,7 @@ private:
         std::vector<ValueType> splitters;
         splitters.reserve(workers_algo);
 
-        if (context_.rank() == 0) {
+        if (context_.my_rank() == 0) {
             FindAndSendSplitters(splitters, sample_size);
         }
         else {
@@ -377,7 +377,7 @@ private:
             data_.push_back(reader.template Next<ValueType>());
         }
 
-        LOG << "node " << context_.rank() << " : " << data_.size();
+        LOG << "node " << context_.my_rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
     }

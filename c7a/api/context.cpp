@@ -305,24 +305,15 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
     job_startpoint(ctx);
 }
 
-/*!
- * Helper Function to execute tests using mock networks in test suite for many
- * different numbers of node and workers as independent threads in one program.
- */
-void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
-                       const std::string& log_prefix) {
-
-    for (size_t nodes = 1; nodes <= 8; ++nodes) {
-        ExecuteLocalTests(nodes, job_startpoint, log_prefix);
-    }
-}
 
 int ExecuteTCP(
     size_t my_rank,
     const std::vector<std::string>& endpoints,
     std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix) {
-    static const size_t workers_per_node = 1;
+
+    //TODO pull this out of ENV
+    const size_t workers_per_node = 1;
 
     static const bool debug = false;
 
@@ -333,18 +324,21 @@ int ExecuteTCP(
     cmp.Connect(&(net_manager.GetDataGroup()));
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_node);
 
+    std::vector<std::thread> threads(workers_per_node);
+
     for (size_t i = 0; i < workers_per_node; i++) {
         threads[i] = std::thread(
             [&net_manager, &cmp, &flow_manager, &job_startpoint, i, log_prefix, workers_per_node] {
+                data::Manager data_manager(cmp, i);
                 Context ctx(net_manager, flow_manager, data_manager, workers_per_node, i);
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 
-                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx.my_computing_node_id() << "/" << ctx.my_worker_id() << ")";
+                LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx.computing_node_id() << "/" << ctx.worker_id() << ")";
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
                 job_startpoint(ctx);
                 STOP_TIMER(overall_timer)
-                LOG << "Worker " << ctx.rank() << " done!";
+                LOG << "Worker " << ctx.my_rank() << " done!";
 
                 ctx.flow_control_channel().Await();
             });
@@ -373,7 +367,7 @@ int ExecuteTCP(
  */
 int ExecuteEnv(
     std::function<void(Context&)> job_startpoint,
-    const std::string& log_prefix) {
+    const std::string& /*log_prefix*/) {
 
     char* endptr;
 
@@ -400,7 +394,8 @@ int ExecuteEnv(
         std::cerr << "c7a: executing locally with " << test_nodes
                   << " test nodes in a local socket network." << std::endl;
 
-        ExecuteLocalTests(test_nodes, job_startpoint, log_prefix);
+        const size_t workers_per_node = 1;
+        ExecuteLocalMock(test_nodes, workers_per_node, job_startpoint);
 
         return 0;
     }
@@ -449,7 +444,7 @@ int ExecuteEnv(
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    return ExecuteTCP(my_rank, endpoints, job_startpoint, log_prefix);
+    return ExecuteTCP(my_rank, endpoints, job_startpoint, "");
 }
 
 } // namespace api

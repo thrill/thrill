@@ -79,18 +79,15 @@ public:
         return workers_per_computing_node_;
     }
 
-    size_t rank() const {
+    size_t my_rank() const {
         return workers_per_computing_node() * computing_node_id() + worker_id();
     }
 
-    size_t max_rank() {
+    size_t max_rank() const {
         return number_computing_node() * workers_per_computing_node() - 1;
-
-    common::Stats<common::g_enable_stats> & stats() {
-        return stats_;
     }
 
-    size_t num_workers() {
+    size_t num_workers() const {
         return max_rank() + 1;
     }
 
@@ -107,7 +104,7 @@ public:
     }
 
     //! Returns the stas object for this worker
-    common::Stats<ENABLE_STATS> & stats() {
+    common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
 
@@ -126,11 +123,10 @@ private:
     //! data::Manager instance that is shared among workers
     data::Manager& data_manager_;
 
-    //! Stats object that is uniquely held for this worker
-    common::Stats<ENABLE_STATS> stats_;
-
     //! StatsGrapg object that is uniquely held for this worker
+    api::StatsGraph stats_graph_;
     common::Stats<common::g_enable_stats> stats_;
+
 
     //! number of this computing_node context, 0..p-1, within this compute node
     size_t worker_id_;
@@ -190,9 +186,6 @@ void ExecuteLocalTests(std::function<void(Context&)> job_startpoint);
  * one computing node with one thread
  */
 void ExecuteSameThread(std::function<void(Context&)> job_startpoint);
-
-void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
-                       const std::string& log_prefix = std::string());
 
 /*!
  * Executes the given job startpoint with a context instance.  Startpoints may
