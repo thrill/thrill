@@ -82,26 +82,26 @@ public:
 
     //! Indicates if a channel exists with the given id
     //! Channels exist if they have been allocated before
-    //! \param worker_id of the local worker who requested the channel
-    bool HasChannel(size_t id, size_t worker_id) {
-        return channels_.find(std::make_pair(worker_id, id)) != channels_.end();
+    //! \param local_worker_id of the local worker who requested the channel
+    bool HasChannel(size_t id, size_t local_worker_id) {
+        return channels_.find(std::make_pair(local_worker_id, id)) != channels_.end();
     }
 
     //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
     //TODO Method to access channel via callbacks
 
     //! Allocate the next channel
-    //! \param worker_id of the local worker who requested the channel
-    size_t AllocateNext(size_t worker_id) {
-        assert(worker_id < next_id_.size());
-        return next_id_[worker_id] = next_id_[worker_id] + 1;
+    //! \param local_worker_id of the local worker who requested the channel
+    size_t AllocateNext(size_t local_worker_id) {
+        assert(local_worker_id < next_id_.size());
+        return next_id_[local_worker_id] = next_id_[local_worker_id] + 1;
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    //! \param worker_id of the local worker who requested the channel
-    ChannelPtr GetOrCreateChannel(size_t id, size_t worker_id) {
+    //! \param local_worker_id of the local worker who requested the channel
+    ChannelPtr GetOrCreateChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateChannel(id, worker_id);
+        return _GetOrCreateChannel(id, local_worker_id);
     }
 
 private:
@@ -127,17 +127,17 @@ private:
 
     //! Get channel with given id, if it does not exist, create it.
     //! \param id of the channel
-    //! \param worker_id of the local worker who requested the channel
-    ChannelPtr _GetOrCreateChannel(size_t id, size_t worker_id) {
+    //! \param local_worker_id of the local worker who requested the channel
+    ChannelPtr _GetOrCreateChannel(size_t id, size_t local_worker_id) {
         assert(group_ != nullptr);
-        auto it = channels_.find(std::make_pair(worker_id, id));
+        auto it = channels_.find(std::make_pair(local_worker_id, id));
 
         if (it != channels_.end())
             return it->second;
 
         // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_, worker_id, num_workers_per_node_);
-        channels_.insert(std::make_pair(std::make_pair(worker_id, id), channel));
+        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_, local_worker_id, num_workers_per_node_);
+        channels_.insert(std::make_pair(std::make_pair(local_worker_id, id), channel));
         return channel;
     }
 
@@ -165,10 +165,10 @@ private:
 
         // received channel id
         auto id = header.channel_id;
-        auto local_worker = header.receiver_worker_id;
+        auto local_worker = header.receiver_local_worker_id;
         ChannelPtr channel = GetOrCreateChannel(id, local_worker);
 
-        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
+        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_local_worker_id;
         if (header.IsStreamEnd()) {
             sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
             channel->OnCloseStream(sender_worker_rank);
@@ -198,7 +198,7 @@ private:
         ByteBlockPtr bytes = ByteBlock::Allocate(buffer.size());
         std::copy(buffer.data(), buffer.data() + buffer.size(), bytes->begin());
 
-        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_worker_id;
+        size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_local_worker_id;
         sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
         channel->OnStreamBlock(
             sender_worker_rank,

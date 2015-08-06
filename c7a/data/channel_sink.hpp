@@ -43,18 +43,18 @@ public:
      * \param connection the socket (aka conneciton) used for the channel
      * \param channel_id the ID that identifies the channel
      * \param my_rank the ID that identifies this computing node globally
-     * \param my_worker_id the id that identifies the worker locally
-     * \param partners_worker_id the id that identifies the partner worker locally
+     * \param my_local_worker_id the id that identifies the worker locally
+     * \param partners_local_worker_id the id that identifies the partner worker locally
      */
     ChannelSink(net::DispatcherThread* dispatcher,
                 net::Connection* connection,
-                ChannelId channel_id, size_t my_rank, size_t my_worker_id, size_t partners_worker_id)
+                ChannelId channel_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
           my_rank_(my_rank),
-          my_worker_id_(my_worker_id),
-          partners_worker_id_(partners_worker_id)
+          my_local_worker_id_(my_local_worker_id),
+          partners_local_worker_id_(partners_local_worker_id)
     { }
 
     ChannelSink(ChannelSink&&) = default;
@@ -71,8 +71,8 @@ public:
         header.first_item = b.first_item_relative();
         header.nitems = b.nitems();
         header.sender_rank = my_rank_;
-        header.sender_worker_id = my_worker_id_;
-        header.receiver_worker_id = partners_worker_id_;
+        header.sender_local_worker_id = my_local_worker_id_;
+        header.receiver_local_worker_id = partners_local_worker_id_;
 
         if (debug) {
             sLOG << "sending block" << common::hexdump(b.ToString());
@@ -89,8 +89,8 @@ public:
         assert(!closed_);
         closed_ = true;
 
-        sLOG << "sending 'close channel' from worker" << my_worker_id_
-             << "to worker" << partners_worker_id_
+        sLOG << "sending 'close channel' from worker" << my_local_worker_id_
+             << "to worker" << partners_local_worker_id_
              << "channel" << id_;
 
         StreamBlockHeader header;
@@ -99,8 +99,8 @@ public:
         header.first_item = 0;
         header.nitems = 0;
         header.sender_rank = my_rank_;
-        header.sender_worker_id = my_worker_id_;
-        header.receiver_worker_id = partners_worker_id_;
+        header.sender_local_worker_id = my_local_worker_id_;
+        header.receiver_local_worker_id = partners_local_worker_id_;
         dispatcher_->AsyncWrite(*connection_, header.Serialize());
     }
 
@@ -115,8 +115,8 @@ protected:
 
     size_t id_ = -1;
     size_t my_rank_ = -1;
-    size_t my_worker_id_ = -1;
-    size_t partners_worker_id_ = -1;
+    size_t my_local_worker_id_ = -1;
+    size_t partners_local_worker_id_ = -1;
     bool closed_ = false;
 };
 

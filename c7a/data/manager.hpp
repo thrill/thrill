@@ -37,8 +37,8 @@ namespace data {
 class Manager
 {
 public:
-    explicit Manager(data::ChannelMultiplexer& multiplexer, size_t my_worker_id)
-        : cmp_(multiplexer), my_worker_id_(my_worker_id) { }
+    explicit Manager(data::ChannelMultiplexer& multiplexer, size_t my_local_worker_id)
+        : cmp_(multiplexer), my_local_worker_id_(my_local_worker_id) { }
 
     //! non-copyable: delete copy-constructor
     Manager(const Manager&) = delete;
@@ -51,7 +51,7 @@ public:
     //! This method alters the state of the manager and must be called on all
     //! Workers to ensure correct communication cordination
     ChannelPtr GetNewChannel() {
-        return std::move(cmp_.GetOrCreateChannel(cmp_.AllocateNext(my_worker_id_), my_worker_id_));
+        return std::move(cmp_.GetOrCreateChannel(cmp_.AllocateNext(my_local_worker_id_), my_local_worker_id_));
     }
 
     //! Returns a new File object containing a sequence of local Blocks.
@@ -63,7 +63,7 @@ public:
 private:
     static const bool debug = false;
     ChannelMultiplexer& cmp_;
-    size_t my_worker_id_;
+    size_t my_local_worker_id_;
 };
 
 //! \}
