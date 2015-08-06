@@ -26,8 +26,7 @@ using c7a::api::DIARef;
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
+    std::default_random_engine generator({ std::random_device()() });
     std::uniform_int_distribution<int> distribution(1000, 10000);
 
     size_t generate_size = distribution(generator);

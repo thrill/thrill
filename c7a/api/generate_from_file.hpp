@@ -102,8 +102,7 @@ public:
             local_elements = (size_ / context_.number_worker());
         }
 
-        std::random_device random_device;
-        std::default_random_engine generator(random_device());
+        std::default_random_engine generator({ std::random_device()() });
         std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
 
         for (size_t i = 0; i < local_elements; i++) {
