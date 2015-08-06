@@ -12,9 +12,9 @@
 #ifndef C7A_COMMON_CYCLIC_BARRIER_HEADER
 #define C7A_COMMON_CYCLIC_BARRIER_HEADER
 
+#include <c7a/common/atomic_movable.hpp>
 #include <condition_variable>
 #include <mutex>
-#include <c7a/common/atomic_movable.hpp>
 
 namespace c7a {
 namespace common {

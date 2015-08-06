@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * c7a/net/collective_communication.hpp
+ *
 //http://memegenerator.net/instance2/1128363 (ts)
 
 
@@ -15,6 +18,10 @@
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
+
+#pragma once
+#ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
+#define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 /*
 #pragma once
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
@@ -181,9 +188,12 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
 //! \}
 
+
 } // namespace net
 } // namespace c7a
 
 #endif // !C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
 ******************************************************************************/
+
+/******************************************************************************/

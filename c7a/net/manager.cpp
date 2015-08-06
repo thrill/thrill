@@ -175,7 +175,7 @@ protected:
         /**
          * The id of the worker associated with the sending Connection.
          */
-        size_t id;
+        size_t   id;
     };
 
     /**
