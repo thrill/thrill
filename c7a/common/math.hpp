@@ -12,6 +12,8 @@
 #ifndef C7A_COMMON_MATH_HEADER
 #define C7A_COMMON_MATH_HEADER
 
+#include <c7a/api/context.hpp>
+
 namespace c7a {
 namespace common {
 
@@ -41,6 +43,36 @@ static inline Integral RoundUpToPowerOfTwo(Integral n) {
         n |= n >> k;
     ++n;
     return n;
+}
+
+/******************************************************************************/
+
+//! calculate n div k with rounding up
+template <typename IntegerType>
+IntegerType IntegerDivRoundUp(const IntegerType& n, const IntegerType& k) {
+    return (n + k - 1) / k;
+}
+
+/******************************************************************************/
+
+//! given a global range [0,global_size) and p PEs to split the range, calculate
+//! the [local_begin,local_end) index range assigned to the PE i.
+std::tuple<size_t, size_t> CalculateLocalRange(
+    size_t global_size, size_t p, size_t i) {
+
+    double per_pe = static_cast<double>(global_size) / static_cast<double>(p);
+    return std::make_tuple(
+        std::ceil(i * per_pe),
+        std::min(static_cast<size_t>(std::ceil((i + 1) * per_pe)),
+                 global_size));
+}
+
+//! given a global range [0,global_size) and p PEs to split the range, calculate
+//! the [local_begin,local_end) index range assigned to the PE i. Takes the
+//! information from the Context.
+std::tuple<size_t, size_t> CalculateLocalRange(
+    size_t global_size, const Context& ctx) {
+    return CalculateLocalRange(global_size, ctx.number_worker(), ctx.rank());
 }
 
 /******************************************************************************/

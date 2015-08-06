@@ -52,16 +52,17 @@ void DispatcherThread::Terminate() {
 }
 
 //! Register a relative timeout callback
-void DispatcherThread::AddRelativeTimeout(const std::chrono::milliseconds& timeout,
-                                          const TimerCallback& cb) {
+void DispatcherThread::AddTimer(
+    const std::chrono::milliseconds& timeout, const TimerCallback& cb) {
     Enqueue([=]() {
-                dispatcher_->AddRelativeTimeout(timeout, cb);
+                dispatcher_->AddTimer(timeout, cb);
             });
     WakeUpThread();
 }
 
 //! Register a buffered read callback and a default exception callback.
-void DispatcherThread::AddRead(Connection& c, const ConnectionCallback& read_cb) {
+void DispatcherThread::AddRead(
+    Connection& c, const ConnectionCallback& read_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddRead(c, read_cb);
             });
@@ -69,7 +70,8 @@ void DispatcherThread::AddRead(Connection& c, const ConnectionCallback& read_cb)
 }
 
 //! Register a buffered write callback and a default exception callback.
-void DispatcherThread::AddWrite(Connection& c, const ConnectionCallback& write_cb) {
+void DispatcherThread::AddWrite(
+    Connection& c, const ConnectionCallback& write_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddWrite(c, write_cb);
             });
@@ -86,7 +88,8 @@ void DispatcherThread::Cancel(Connection& c) {
 }
 
 //! asynchronously read n bytes and deliver them to the callback
-void DispatcherThread::AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
+void DispatcherThread::AsyncRead(
+    Connection& c, size_t n, AsyncReadCallback done_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AsyncRead(c, n, done_cb);
             });
@@ -97,8 +100,8 @@ void DispatcherThread::AsyncRead(Connection& c, size_t n, AsyncReadCallback done
 //! buffer2 are MOVED into the async writer. This is most useful to write a
 //! header and a payload Buffers that are hereby guaranteed to be written in
 //! order.
-void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
-                                  AsyncWriteCallback done_cb) {
+void DispatcherThread::AsyncWrite(
+    Connection& c, Buffer&& buffer, AsyncWriteCallback done_cb) {
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c, b = std::move(buffer)]() mutable {
                 dispatcher_->AsyncWrite(c, std::move(b), done_cb);
@@ -109,7 +112,7 @@ void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(Connection& c, Buffer&& buffer,
-                                  const data::VirtualBlock& block,
+                                  const data::Block& block,
                                   AsyncWriteCallback done_cb) {
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,

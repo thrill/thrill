@@ -33,7 +33,7 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-enum ConnectionState {
+enum ConnectionState : unsigned {
     Invalid, Connecting, TransportConnected, HelloReceived,
     HelloSent, WaitingForHello, Connected, Disconnected
 };
@@ -203,7 +203,7 @@ public:
                 throw Exception("Error during Send", errno);
         }
 
-        if (send(&value, sizeof(value)) != (ssize_t)sizeof(value))
+        if (send(&value, sizeof(value)) != static_cast<ssize_t>(sizeof(value)))
             throw Exception("Error during Send", errno);
     }
 
@@ -212,7 +212,7 @@ public:
         if (send(&len, sizeof(len), MSG_MORE) != sizeof(len))
             throw Exception("Error during SendString", errno);
 
-        if (send(data, len) != (ssize_t)len)
+        if (send(data, len) != static_cast<ssize_t>(len))
             throw Exception("Error during SendString", errno);
     }
 
@@ -242,7 +242,8 @@ public:
             die_unequal(len, sizeof(*out_value));
         }
 
-        if (recv(out_value, sizeof(*out_value)) != (ssize_t)sizeof(*out_value))
+        if (recv(out_value, sizeof(*out_value))
+            != static_cast<ssize_t>(sizeof(*out_value)))
             throw Exception("Error during Receive", errno);
     }
 
@@ -260,7 +261,7 @@ public:
 
         ssize_t ret = recv(const_cast<char*>(outdata->data()), len);
 
-        if (ret != (ssize_t)len)
+        if (ret != static_cast<ssize_t>(len))
             throw Exception("Error during ReceiveString", errno);
     }
 

@@ -14,6 +14,7 @@
 #define C7A_API_WRITE_HEADER
 
 #include <c7a/api/action_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
 
 #include <fstream>
@@ -60,10 +61,8 @@ public:
 
     //! Closes the output file
     void Execute() override {
-        this->StartExecutionTimer();
         sLOG << "closing file" << path_out_;
         emit_.Close();
-        this->StopExecutionTimer();
     }
 
     void Dispose() override { }

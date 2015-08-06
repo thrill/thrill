@@ -91,7 +91,7 @@ TEST_F(PreTable, AddIntegers) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
 
     table.Insert(1);
@@ -116,7 +116,7 @@ TEST_F(PreTable, CreateEmptyTable) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
 
     table.Insert(1);
@@ -141,7 +141,7 @@ TEST_F(PreTable, PopIntegers) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
 
     table.SetMaxSize(3);
@@ -173,7 +173,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, 10, 2, 10, 10, key_ex, red_fn, writers);
 
     table.Insert(0);
@@ -213,7 +213,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, 5, 2, 10, 10, key_ex, red_fn, writers);
 
     table.Insert(0);
@@ -261,7 +261,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, 10, 2, 10, 4, key_ex, red_fn, writers);
 
     table.Insert(0);
@@ -300,7 +300,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, 5, 2, 10, 4, key_ex, red_fn, writers);
 
     table.Insert(0);
@@ -348,7 +348,7 @@ TEST_F(PreTable, ComplexType) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
     table(1, 2, 2, 10, 3, key_ex, red_fn, writers);
 
     table.Insert(std::make_pair("hallo", 1));
@@ -381,7 +381,7 @@ TEST_F(PreTable, MultipleWorkers) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, key_ex, red_fn, writers);
 
     ASSERT_EQ(0u, table.Size());
@@ -411,7 +411,7 @@ TEST_F(PreTable, ResizeOnePartition) {
         std::vector<File::Writer> writers;
         writers.emplace_back(output.GetWriter());
 
-        c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+        c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
         table(1, 1, 10, 1, 10, key_ex, red_fn, writers);
 
         table.Insert(1);
@@ -457,7 +457,7 @@ TEST_F(PreTable, ResizeTwoPartitions) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true>
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, 1, 10, 1, 10, key_ex, red_fn, writers);
 
     ASSERT_EQ(0u, table.Size());
@@ -502,7 +502,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
         writers.emplace_back(files[i].GetWriter());
     }
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
     table(num_partitions, num_buckets_init_scale, 10, bucket_size,
           nitems, key_ex, red_fn, writers);
 
@@ -590,7 +590,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     writers.emplace_back(output.GetWriter());
 
     // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
     table(1, 2, 2, 128 * 1024, 1024 * 1024,
           key_ex, red_fn, writers);
 
@@ -633,7 +633,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
     table(1, 2, 2, 128, nitems, key_ex, red_fn, writers);
 
     // insert lots of items
@@ -684,7 +684,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 4 * 1024;
 
-    c7a::core::ReducePreTable<decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true, 16*1024>
     table(1, 2, 2, 128, nitems, key_ex, red_fn, writers);
 
     // insert lots of items

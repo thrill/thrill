@@ -34,8 +34,8 @@ public:
     //! Create discarding BlockSink.
     DiscardSink() { }
 
-    //! Discards VirtualBlock.
-    void AppendBlock(const VirtualBlock&) override { }
+    //! Discards Block.
+    void AppendBlock(const Block&) override { }
 
     //! Closes the sink
     void Close() override {

@@ -93,8 +93,8 @@ public:
     //! \{
 
     //! Register a relative timeout callback
-    void AddRelativeTimeout(const std::chrono::milliseconds& timeout,
-                            const TimerCallback& cb);
+    void AddTimer(const std::chrono::milliseconds& timeout,
+                  const TimerCallback& cb);
 
     //! \}
 
@@ -125,10 +125,9 @@ public:
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = nullptr);
 
-    //! asynchronously write buffer and callback when delivered. The buffer is
-    //! MOVED into the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
-                    const data::VirtualBlock& block,
+    //! asynchronously write byte and block and callback when delivered. The
+    //! block is reference counted by the async writer.
+    void AsyncWrite(Connection& c, Buffer&& buffer, const data::Block& block,
                     AsyncWriteCallback done_cb = nullptr);
 
     //! asynchronously write buffer and callback when delivered. COPIES the data

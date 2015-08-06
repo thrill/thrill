@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -15,7 +16,6 @@
 #define C7A_API_DIA_BASE_HEADER
 
 #include <c7a/api/context.hpp>
-#include <c7a/api/dia.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
 
@@ -30,10 +30,8 @@ namespace api {
 
 /*!
  * Possible states a DIABase can be in.
- * TODO(ch): turn this enum into an "enum class" within DIABase. These are
- * c7a-global identifiers atm.
  */
-enum kState {
+enum class DIAState {
     //! The DIABase has not been computed yet.
     NEW,
     //! The DIABase has been calculated but not explicitly cached.  Data might
@@ -140,41 +138,42 @@ public:
         return result_file_;
     }
 
-    kState state() const {
+    DIAState state() const {
         return state_;
     }
 
-    kState set_state(kState state) {
+    DIAState set_state(DIAState state) {
         return state_ = state;
-    }
-
-protected:
-    //! State of the DIANode. State is NEW on creation.
-    kState state_ = NEW;
-
-    //!Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_() {
-        switch (state_) {
-        case NEW:
-            return "NEW";
-        case EXECUTED:
-            return "EXECUTED";
-        case DISPOSED:
-            return "DISPOSED";
-        default:
-            return "UNDEFINED";
-        }
     }
 
     //Why are these stupid functions here?
     //Because we do not want to include the stats.hpp into every
     //single node class
     inline void StartExecutionTimer() {
-        START_TIMER(execution_timer_)
+        START_TIMER(execution_timer_);
     }
+
     inline void StopExecutionTimer() {
-        STOP_TIMER(execution_timer_)
+        STOP_TIMER(execution_timer_);
         if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms");
+    }
+
+protected:
+    //! State of the DIANode. State is NEW on creation.
+    DIAState state_ = DIAState::NEW;
+
+    //!Returns the state of this DIANode as a string. Used by ToString.
+    std::string state_string_() {
+        switch (state_) {
+        case DIAState::NEW:
+            return "NEW";
+        case DIAState::EXECUTED:
+            return "EXECUTED";
+        case DIAState::DISPOSED:
+            return "DISPOSED";
+        default:
+            return "UNDEFINED";
+        }
     }
 
     //! Context, which can give iterators to data.

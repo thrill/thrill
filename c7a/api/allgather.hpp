@@ -60,7 +60,6 @@ public:
 
     //! Closes the output file
     void Execute() override {
-        this->StartExecutionTimer();
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
@@ -71,7 +70,6 @@ public:
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
-        this->StopExecutionTimer();
     }
 
     void Dispose() override { }
@@ -100,7 +98,6 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
     using AllGatherResultNode = AllGatherNode<ValueType, DIARef>;
 
     std::vector<ValueType> output;
-
 
     StatsNode* stats_node = AddChildStatsNode("AllGather", "Action");
     auto shared_node =

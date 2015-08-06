@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/wordcount_test.cpp
+ * tests/examples/wordcount_test.cpp
  *
  * Part of Project c7a.
  *
@@ -8,9 +8,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
+#include <c7a/api/allgather.hpp>
+#include <c7a/api/scatter.hpp>
 #include <c7a/common/string.hpp>
-#include <examples/word_count_user_program.cpp>
+#include <c7a/examples/word_count.hpp>
 
 #include <gtest/gtest.h>
 
@@ -20,30 +21,31 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a::core;
-using namespace c7a::net;
-
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace c7a;
 
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 
-    using WordPair = std::pair<std::string, int>;
+    using examples::WordCountPair;
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            auto lines = ReadLines(
-                ctx,
-                "wordcounttest",
-                [](const std::string& line) {
-                    return line;
-                });
 
-            auto red_words = word_count_user(lines);
+            std::vector<std::string> input_vec = {
+                "test",
+                "this",
+                "might be",
+                "a test",
+                "a test",
+                "a test"
+            };
 
-            std::vector<WordPair> words = red_words.AllGather();
+            auto lines = Scatter(ctx, input_vec);
 
-            auto compare_function = [](WordPair wp1, WordPair wp2) {
+            auto red_words = examples::WordCount(lines);
+
+            std::vector<WordCountPair> words = red_words.AllGather();
+
+            auto compare_function = [](WordCountPair wp1, WordCountPair wp2) {
                                         return wp1.first < wp2.first;
                                     };
 
@@ -57,29 +59,29 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
             std::string a = "a";
             std::string test = "test";
 
-            ASSERT_EQ(std::make_pair(a, 3), words[0]);
-            ASSERT_EQ(std::make_pair(be, 1), words[1]);
-            ASSERT_EQ(std::make_pair(might, 1), words[2]);
-            ASSERT_EQ(std::make_pair(test, 4), words[3]);
-            ASSERT_EQ(std::make_pair(this_str, 1), words[4]);
+            ASSERT_EQ(WordCountPair(a, 3), words[0]);
+            ASSERT_EQ(WordCountPair(be, 1), words[1]);
+            ASSERT_EQ(WordCountPair(might, 1), words[2]);
+            ASSERT_EQ(WordCountPair(test, 4), words[3]);
+            ASSERT_EQ(WordCountPair(this_str, 1), words[4]);
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(WordCount, Generate1024DoesNotCrash) {
 
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { word_count_generated(ctx, 1024); };
+        [](Context& ctx) { examples::WordCountGenerated(ctx, 1024); };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
     std::function<void(Context&)> start_func =
-        [](Context& ctx) { word_count(ctx); };
+        [](Context& ctx) { examples::WordCountBasic(ctx); };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    api::ExecuteLocalTests(start_func);
 }
 
 /******************************************************************************/
