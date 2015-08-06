@@ -91,6 +91,19 @@ std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/
     return result;
 }
 
+//! Generates random integers in the whole size_t-range
+template <>
+std::vector<size_t> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/) {
+    assert(bytes % sizeof(size_t) == 0);
+    std::vector<size_t> result;
+    result.reserve((bytes + sizeof(size_t) - 1) / sizeof(size_t));
+
+    for (size_t current = 0; current < bytes; current += sizeof(size_t)) {
+        result.emplace_back(42 + current);
+    }
+    return result;
+}
+
 #endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
 /******************************************************************************/

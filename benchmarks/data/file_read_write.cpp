@@ -81,12 +81,16 @@ int main(int argc, const char** argv) {
 
     if (type == "int")
         ConductExperiment<int>(bytes, iterations, ctx, type);
-    if (type == "string")
+    else if (type == "size_t")
+        ConductExperiment<size_t>(bytes, iterations, ctx, type);
+    else if (type == "string")
         ConductExperiment<std::string>(bytes, iterations, ctx, type);
-    if (type == "pair")
+    else if (type == "pair")
         ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx, type);
-    if (type == "triple")
+    else if (type == "triple")
         ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx, type);
+    else
+        abort();
 }
 
 /******************************************************************************/
