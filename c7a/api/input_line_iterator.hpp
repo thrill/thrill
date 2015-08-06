@@ -23,6 +23,8 @@ namespace c7a {
 class InputLineIterator
 {
 public:
+    static const bool debug = false;
+
     //! Creates an instance of iterator that reads file line based
     InputLineIterator(std::ifstream& file,
                       size_t my_node_id,

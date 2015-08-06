@@ -86,6 +86,10 @@ public:
         return number_computing_node() * workers_per_computing_node() - 1;
     }
 
+    size_t num_workers() {
+        return max_rank() + 1;
+    }
+
     //! Returns id of this computing_node in the cluser
     //! A computing_node is a machine in the cluster that hosts multiple workers
     size_t computing_node_id() const {

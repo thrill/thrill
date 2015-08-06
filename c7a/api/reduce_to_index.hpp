@@ -96,7 +96,7 @@ public:
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().max_rank() + 1, key_extractor,
+          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_,
                             core::HashByIndex(max_index)),
           max_index_(max_index),
@@ -136,11 +136,11 @@ public:
         size_t min_local_index =
             std::ceil(static_cast<double>(max_index_ + 1)
                       * static_cast<double>(context_.rank())
-                      / static_cast<double>(context_.max_rank()));
+                      / static_cast<double>(context_.num_workers()));
         size_t max_local_index =
             std::ceil(static_cast<double>(max_index_ + 1)
-                      * static_cast<double>(context_.rank())
-                      / static_cast<double>(context_.max_rank())) - 1;
+                      * static_cast<double>(context_.rank() + 1)
+                      / static_cast<double>(context_.num_workers())) - 1;
 
         if (context_.rank() == context_.max_rank()) {
             max_local_index = max_index_;
