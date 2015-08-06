@@ -16,12 +16,12 @@
 #include <c7a/common/stats.hpp>
 
 #include <atomic>
+#include <memory>
 #include <random>
 #include <string>
 #include <thread>
 #include <tuple>
 #include <vector>
-#include <memory>
 
 namespace c7a {
 namespace api {
@@ -118,7 +118,7 @@ int Execute(
 
     // launch thread for each of the workers on this host.
     std::vector<std::thread> threads(workers_per_host);
-    std::vector<int > results(workers_per_host);
+    std::vector<int> results(workers_per_host);
 
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i] = std::thread(
@@ -227,7 +227,6 @@ ExecuteLocalMock(size_t host_count, size_t workers_per_host,
     channel_multiplexers.reserve(host_count);
     flow_managers.reserve(host_count);
 
-
     for (size_t host = 0; host < host_count; host++) {
         //connect data subsystem to network
         channel_multiplexers.emplace_back(workers_per_host);
@@ -235,7 +234,7 @@ ExecuteLocalMock(size_t host_count, size_t workers_per_host,
         channel_multiplexers[host].Connect(&(net_managers[host].GetDataGroup()));
 
         //create flow control subsystem
-        auto & group = net_managers[host].GetFlowGroup();
+        auto& group = net_managers[host].GetFlowGroup();
         flow_managers.emplace_back(group, workers_per_host);
     }
 
@@ -246,7 +245,7 @@ ExecuteLocalMock(size_t host_count, size_t workers_per_host,
         std::string log_prefix = "host " + std::to_string(host);
         for (size_t i = 0; i < workers_per_host; i++) {
             threads[host * workers_per_host + i] = std::thread(
-                [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host ] {
+                [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
                     data::Manager data_manager(channel_multiplexers[host], i);
                     Context ctx(net_managers[host], flow_managers[host], data_manager, workers_per_host, i);
                     common::NameThisThread(
@@ -274,8 +273,8 @@ ExecuteLocalMock(size_t host_count, size_t workers_per_host,
  * different numbers of host and workers as independent threads in one program.
  */
 void ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
-    int num_hosts[] = { 1, 2, 5, 8};
-    int num_workers[] = {1};//, 2, 3};
+    int num_hosts[] = { 1, 2, 5, 8 };
+    int num_workers[] = { 1 };//, 2, 3};
 
     for (auto& hosts : num_hosts) {
         for (auto& workers : num_workers) {
@@ -304,7 +303,6 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
 
     job_startpoint(ctx);
 }
-
 
 int ExecuteTCP(
     size_t my_rank,

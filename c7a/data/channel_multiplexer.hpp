@@ -13,11 +13,11 @@
 #ifndef C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 #define C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
 
+#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
-#include <c7a/common/atomic_movable.hpp>
 
 #include <algorithm>
 #include <map>
@@ -190,7 +190,6 @@ private:
     void OnStreamBlock(
         Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
         net::Buffer&& buffer) {
-
 
         die_unless(header.size == buffer.size());
 

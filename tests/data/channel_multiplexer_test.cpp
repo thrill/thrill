@@ -67,7 +67,6 @@ struct ChannelMultiplexer : public::testing::Test {
 void TalkAllToAllViaChannel(net::Group* net) {
     common::NameThisThread("chmp" + std::to_string(net->my_connection_id()));
 
-
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
         send_buffer[i] = i;
@@ -87,7 +86,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt]("hello I am " + std::to_string(net->my_connection_id())
-                        + " calling " + std::to_string(tgt));
+                         + " calling " + std::to_string(tgt));
 
             writers[tgt].Flush();
 

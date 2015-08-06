@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/zip.hpp
+ * c7a/api/merge.hpp
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
@@ -33,8 +33,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-
-//! todo(ej) todo(tb) Can probably subclass a lot here. 
+//! todo(ej) todo(tb) Can probably subclass a lot here.
 
 template <typename ValueType,
           typename ParentDIARef0, typename ParentDIARef1,
@@ -57,11 +56,10 @@ class TwoMergeNode : public DOpNode<ValueType>
               typename FunctionTraits<MergeFunction>::result_type;
 
 public:
- 
     TwoMergeNode(const ParentDIARef0& parent0,
-               const ParentDIARef1& parent1,
-               MergeFunction merge_function,
-               StatsNode* stats_node)
+                 const ParentDIARef1& parent1,
+                 MergeFunction merge_function,
+                 StatsNode* stats_node)
         : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "MergeNode", stats_node),
           merge_function_(merge_function)
     {

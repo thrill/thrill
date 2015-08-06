@@ -17,9 +17,9 @@
 #include <c7a/common/config.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/manager.hpp>
-#include <c7a/net/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/manager.hpp>
 
 #include <cassert>
 #include <cstdio>
@@ -47,11 +47,11 @@ class Context
 {
 public:
     Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Manager& data_manager, size_t workers_per_host, size_t worker_id)
-        : net_manager_(net_manager)
-        , flow_manager_(flow_manager)
-        , data_manager_(data_manager)
-        , worker_id_(worker_id)
-        , workers_per_host_(workers_per_host)
+        : net_manager_(net_manager),
+          flow_manager_(flow_manager),
+          data_manager_(data_manager),
+          worker_id_(worker_id),
+          workers_per_host_(workers_per_host)
     { }
 
     //! Returns a reference to the data manager, which gives iterators and
@@ -122,7 +122,6 @@ private:
     //! StatsGrapg object that is uniquely held for this worker
     api::StatsGraph stats_graph_;
     common::Stats<common::g_enable_stats> stats_;
-
 
     //! number of this host context, 0..p-1, within this host
     size_t worker_id_;
