@@ -69,7 +69,7 @@ public:
         writer_.Close();
 
 		//(Portable) allocation of output file, setting individual file pointers. 
-        size_t prefix_elem = context_.flow_control_channel().PrefixSum(size_, std::plus<size_t>(), false);
+        size_t prefix_elem = context_.flow_control_channel().PrefixSum(size_);
 		if (context_.my_rank() == context_.num_workers() - 1) {
 			file_.seekp(prefix_elem + size_ - 1);
 			file_.put('\0');
@@ -103,8 +103,8 @@ private:
     //! File to write to
     std::ofstream file_;
 
-	//! Local file size
-	size_t size_ = 0;
+    //! Local file size
+    size_t size_ = 0;
 
     //! File writer used.
     data::File::Writer writer_;
