@@ -16,6 +16,7 @@
 #include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/channel.hpp>
+#include <c7a/data/repository.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 
@@ -48,7 +49,9 @@ class Multiplexer
 {
 public:
     explicit Multiplexer(size_t num_workers_per_node)
-        : dispatcher_("dispatcher"), next_id_(num_workers_per_node, 0), num_workers_per_node_(num_workers_per_node) { }
+        : dispatcher_("multiplexer"),
+          num_workers_per_node_(num_workers_per_node),
+          channels_(num_workers_per_node){ }
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;
@@ -61,7 +64,7 @@ public:
     ~Multiplexer() {
         if (group_ != nullptr) {
             // close all still open Channels
-            for (auto& ch : channels_)
+            for (auto& ch : channels_.map())
                 ch.second->Close();
         }
 
@@ -80,66 +83,54 @@ public:
         }
     }
 
-    //! Indicates if a channel exists with the given id
-    //! Channels exist if they have been allocated before
-    //! \param local_worker_id of the local worker who requested the channel
-    bool HasChannel(size_t id, size_t local_worker_id) {
-        return channels_.find(std::make_pair(local_worker_id, id)) != channels_.end();
-    }
-
-    //TODO(ts) Method to access channel via callbacks
-
     //! Allocate the next channel
-    //! \param local_worker_id of the local worker who requested the channel
-    size_t AllocateNext(size_t local_worker_id) {
-        assert(local_worker_id < next_id_.size());
-        return next_id_[local_worker_id] = next_id_[local_worker_id] + 1;
+    size_t AllocateChannelId(size_t local_worker_id) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return channels_.AllocateId(local_worker_id);
     }
 
     //! Get channel with given id, if it does not exist, create it.
-    //! \param local_worker_id of the local worker who requested the channel
     ChannelPtr GetOrCreateChannel(size_t id, size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return _GetOrCreateChannel(id, local_worker_id);
+        return std::move(_GetOrCreateChannel(id, local_worker_id));
+    }
+
+    //! Request next channel.
+    ChannelPtr GetNewChannel(size_t local_worker_id) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return std::move(
+            _GetOrCreateChannel(
+                channels_.AllocateId(local_worker_id), local_worker_id));
     }
 
 private:
     static const bool debug = false;
 
+    //! dispatcher used for all communication by data::Multiplexer, the thread
+    //! never leaves the data components!
     net::DispatcherThread dispatcher_;
-
-    //! Channels have an ID in block headers
-    //! <worker id, channel id>
-    std::map<std::pair<size_t, size_t>, ChannelPtr> channels_;
 
     // Holds NetConnections for outgoing Channels
     net::Group* group_ = nullptr;
 
-    //protects critical sections
-    common::MutexMovable mutex_;
-
-    //! Next ID to generate, one for each worker
-    std::vector<size_t> next_id_;
-
     //! Number of workers per node
     size_t num_workers_per_node_;
 
-    //! Get channel with given id, if it does not exist, create it.
-    //! \param id of the channel
-    //! \param local_worker_id of the local worker who requested the channel
+    //! protects critical sections
+    common::MutexMovable mutex_;
+
+    //! Channels have an ID in block headers. (worker id, channel id)
+    Repository<Channel> channels_;
+
     ChannelPtr _GetOrCreateChannel(size_t id, size_t local_worker_id) {
         assert(group_ != nullptr);
-        auto it = channels_.find(std::make_pair(local_worker_id, id));
-
-        if (it != channels_.end())
-            return it->second;
-
-        // build params for Channel ctor
-        ChannelPtr channel = std::make_shared<Channel>(id, *group_, dispatcher_, local_worker_id, num_workers_per_node_);
-        channels_.insert(std::make_pair(std::make_pair(local_worker_id, id), channel));
-        return channel;
+        return std::move(
+            channels_.GetOrCreate(
+                id, local_worker_id,
+                // initializers for Channels
+                id, *group_, dispatcher_, local_worker_id, num_workers_per_node_));
     }
-
+    
     /**************************************************************************/
 
     using Connection = net::Connection;

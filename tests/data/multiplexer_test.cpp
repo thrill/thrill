@@ -76,7 +76,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
     data::Multiplexer datamp(num_workers_per_node);
     datamp.Connect(net);
     {
-        data::ChannelId id = datamp.AllocateNext(my_local_worker_id);
+        data::ChannelId id = datamp.AllocateChannelId(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
@@ -132,7 +132,7 @@ TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
 
 TEST_F(Multiplexer, ReadCompleteChannel) {
     auto w0 = [](data::Multiplexer& datamp) {
-                  auto id = datamp.AllocateNext(0);
+                  auto id = datamp.AllocateChannelId(0);
                   auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
@@ -146,7 +146,7 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                   }
               };
     auto w1 = [](data::Multiplexer& datamp) {
-                  auto id = datamp.AllocateNext(0);
+                  auto id = datamp.AllocateChannelId(0);
                   auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
@@ -157,7 +157,7 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                   }
               };
     auto w2 = [](data::Multiplexer& datamp) {
-                  auto id = datamp.AllocateNext(0);
+                  auto id = datamp.AllocateChannelId(0);
                   auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
@@ -175,7 +175,7 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
 
 TEST_F(Multiplexer, ReadCompleteChannelTwice) {
     auto w0 = [](data::Multiplexer& datamp) {
-                  auto id = datamp.AllocateNext(0);
+                  auto id = datamp.AllocateChannelId(0);
                   auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
@@ -189,7 +189,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   }
               };
     auto w1 = [](data::Multiplexer& datamp) {
-                  auto id = datamp.AllocateNext(0);
+                  auto id = datamp.AllocateChannelId(0);
                   auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
@@ -200,7 +200,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   }
               };
     auto w2 = [](data::Multiplexer& datamp) {
-                  auto id = datamp.AllocateNext(0);
+                  auto id = datamp.AllocateChannelId(0);
                   auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
@@ -246,7 +246,7 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             }
 
             // scatter File contents via channel: only items [0,3) are sent
-            data::ChannelId id = datamp.AllocateNext(0);
+            data::ChannelId id = datamp.AllocateChannelId(0);
             auto ch = datamp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 2 });
 
@@ -273,7 +273,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via channel: only items [0,2) are to local worker
-            data::ChannelId id = datamp.AllocateNext(0);
+            data::ChannelId id = datamp.AllocateChannelId(0);
             auto ch = datamp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 2, 2 });
 
@@ -293,7 +293,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via channel: only items [0,3) are to local worker
-            data::ChannelId id = datamp.AllocateNext(0);
+            data::ChannelId id = datamp.AllocateChannelId(0);
             auto ch = datamp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 0, 3 });
 
@@ -315,7 +315,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = datamp.AllocateNext(0);
+                  data::ChannelId id = datamp.AllocateChannelId(0);
                   auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
@@ -334,7 +334,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = datamp.AllocateNext(0);
+                  data::ChannelId id = datamp.AllocateChannelId(0);
                   auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
@@ -356,7 +356,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = datamp.AllocateNext(0);
+                  data::ChannelId id = datamp.AllocateChannelId(0);
                   auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
@@ -376,7 +376,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   }
 
                   // scatter File contents via channel.
-                  data::ChannelId id = datamp.AllocateNext(0);
+                  data::ChannelId id = datamp.AllocateChannelId(0);
                   auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
@@ -389,7 +389,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   data::File file;
 
                   // scatter File contents via channel.
-                  data::ChannelId id = datamp.AllocateNext(0);
+                  data::ChannelId id = datamp.AllocateChannelId(0);
                   auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
