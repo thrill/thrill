@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_LOP_NODE_HEADER
-#define C7A_API_LOP_NODE_HEADER
+#ifndef C7A_API_CACHE_NODE_HEADER
+#define C7A_API_CACHE_NODE_HEADER
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dia_node.hpp>
@@ -32,7 +32,7 @@ namespace api {
  * the last and this DIANode.
  */
 template <typename ValueType, typename ParentDIARef>
-class LOpNode : public DIANode<ValueType>
+class CacheNode : public DIANode<ValueType>
 {
 public:
     using Super = DIANode<ValueType>;
@@ -44,7 +44,7 @@ public:
      *
      * \param parent Parent DIARef.
      */
-    LOpNode(const ParentDIARef& parent,
+    CacheNode(const ParentDIARef& parent,
             const std::string& stats_tag,
             StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
@@ -58,7 +58,7 @@ public:
     }
 
     //! Virtual destructor for a LOpNode.
-    virtual ~LOpNode() { }
+    virtual ~CacheNode() { }
 
     /*!
      * Pushes elements to next node.
@@ -79,11 +79,11 @@ public:
     void Dispose() final { }
 
     /*!
-     * Returns "[LOpNode]" and its id as a string.
-     * \return "[LOpNode]"
+     * Returns "[CacheNode]" and its id as a string.
+     * \return "[CacheNode]"
      */
     std::string ToString() final {
-        return "[LOpNode] Id: " + result_file_.ToString();
+        return "[CacheNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -98,7 +98,7 @@ template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, DIARef>;
+    using LOpChainNode = CacheNode<ValueType, DIARef>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -109,10 +109,10 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
 }
 
 template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Collapse() const {
+auto DIARef<ValueType, Stack>::Cache() const {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, DIARef>;
+    using LOpChainNode = CacheNode<ValueType, DIARef>;
 
     StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::LOP);
     auto shared_node
@@ -128,6 +128,6 @@ auto DIARef<ValueType, Stack>::Collapse() const {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_LOP_NODE_HEADER
+#endif // !C7A_API_CACHE_NODE_HEADER
 
 /******************************************************************************/

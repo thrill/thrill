@@ -12,7 +12,8 @@
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/lop_node.hpp>
+#include <c7a/api/collapse.hpp>
+#include <c7a/api/cache.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/scatter.hpp>
@@ -366,7 +367,7 @@ TEST(Operations, ForLoop) {
             for (size_t i = 0; i < 4; ++i) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Collapse();
+                squares = multiplied.Cache();
             }
 
             std::vector<int> out_vec = squares.AllGather();
@@ -409,7 +410,7 @@ TEST(Operations, WhileLoop) {
             while (sum < 256) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Collapse();
+                squares = multiplied.Cache();
                 sum = squares.Size();
             }
 

@@ -536,6 +536,8 @@ public:
 
     auto Collapse() const;
 
+    auto Cache() const;
+
     /*!
      * Returns the string which defines the DIANode node_.
      *

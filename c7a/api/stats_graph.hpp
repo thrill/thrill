@@ -94,8 +94,11 @@ public:
         stats_msg_.push_back(msg);
         switch (type) {
             case LogType::EXECUTION:
+                sLOG1 << "[Execution]" << msg;
             case LogType::NETWORK:
+                sLOG1 << "[Network]" << msg;
             case LogType::INFO:
+                sLOG1 << "[Info]" << msg;
             default:
                 break;
         }
