@@ -510,15 +510,21 @@ public:
     size_t Size() const;
 
     /*!
-     * WriteLinesMany is an Action, which writes ostreamable elements to an output file.
-     * Items are written using ostream formatting / serialization, with a newline
-	 * after each entry.
+     * WriteLines is an Action, which writes std::strings to an output file.
+     * Strings are written using fstream with a newline after each entry.
+     *
+     * \param filepath Destination of the output file.
+     */
+    void WriteLines(const std::string& filepath) const;
+
+    /*!
+     * WriteLinesMany is an Action, which writes std::strings to multiple output
+     * files. Strings are written using fstream with a newline after each
+     * entry. Each worker creates its individual file.
      *
      * \param filepath Destination of the output file.
      */
     void WriteLinesMany(const std::string& filepath) const;
-    
-    void WriteLines(const std::string& filepath) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
