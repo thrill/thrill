@@ -459,9 +459,10 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
                       return in1 + in2;
                   };
 
-    File output;
+    File output1, output2;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    writers.emplace_back(output1.GetWriter());
+    writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, key_ex, red_fn, writers, -1, 2, 10, 1.0f, 10);
