@@ -17,6 +17,8 @@
 #include <c7a/common/config.hpp>
 #include <c7a/common/stats.hpp>
 #include <c7a/data/multiplexer.hpp>
+#include <c7a/data/file.hpp>
+#include <c7a/data/channel.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/manager.hpp>
