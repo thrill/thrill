@@ -123,6 +123,10 @@ public:
      * The set of slots is divided into 1..n partitions. Each key is hashed into exactly one partition.
      *
      * \param num_partitions The number of partitions.
+     * \param key_extractor Key extractor function to extract a key from a value.
+     * \param reduce_function Reduce function to reduce to values.
+     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
+     * \param sentinel Sentinel element used to flag free slots.
      * \param num_items_init_scale Used to calculate the initial number of slots
      *                  (num_partitions * num_items_init_scale).
      * \param num_items_resize_scale Used to calculate the number of slots during resize
@@ -132,22 +136,18 @@ public:
      *                  is greater than max_partition_fill_ratio, resize.
      * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
      *                  of the partition with the most items gets flushed.
-     * \param key_extractor Key extractor function to extract a key from a value.
-     * \param reduce_function Reduce function to reduce to values.
-     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param sentinel Sentinel element used to flag free slots.
      * \param hash_function Hash function to be used for hashing.
      * \param equal_to_function Function for checking equality fo two keys.
      */
     ReducePreProbingTable(size_t num_partitions,
-                          size_t num_items_init_scale,
-                          size_t num_items_resize_scale,
-                          double max_partition_fill_ratio,
-                          size_t max_num_items_table,
                           KeyExtractor key_extractor,
                           ReduceFunction reduce_function,
                           std::vector<data::BlockWriter>& emit,
                           Key sentinel,
+                          size_t num_items_init_scale = 10,
+                          size_t num_items_resize_scale = 2,
+                          double max_partition_fill_ratio = 1.0,
+                          size_t max_num_items_table = 1048576,
                           const IndexFunction& index_function = IndexFunction(),
                           const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -155,25 +155,6 @@ public:
           num_items_resize_scale_(num_items_resize_scale),
           max_partition_fill_ratio_(max_partition_fill_ratio),
           max_num_items_table_(max_num_items_table),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(emit),
-          index_function_(index_function),
-          equal_to_function_(equal_to_function) {
-        init(sentinel);
-    }
-
-    /**
-     * see above.
-     */
-    ReducePreProbingTable(size_t num_partitions,
-                          KeyExtractor key_extractor,
-                          ReduceFunction reduce_function,
-                          std::vector<data::BlockWriter>& emit,
-                          Key sentinel,
-                          const IndexFunction& index_function = IndexFunction(),
-                          const EqualToFunction& equal_to_function = EqualToFunction())
-        : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),

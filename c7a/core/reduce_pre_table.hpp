@@ -139,12 +139,12 @@ protected:
 
 public:
     ReducePreTable(size_t num_partitions,
-                   size_t num_buckets_init_scale,
-                   size_t num_buckets_resize_scale,
-                   size_t max_num_items_per_bucket,
-                   size_t max_num_items_table,
                    KeyExtractor key_extractor, ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
+                   size_t num_buckets_init_scale = 10,
+                   size_t num_buckets_resize_scale = 2,
+                   size_t max_num_items_per_bucket = 256,
+                   size_t max_num_items_table = 1048576,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -152,21 +152,6 @@ public:
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(emit),
-          index_function_(index_function),
-          equal_to_function_(equal_to_function) {
-        init();
-    }
-
-    ReducePreTable(size_t partition_size,
-                   KeyExtractor key_extractor,
-                   ReduceFunction reduce_function,
-                   std::vector<data::BlockWriter>& emit,
-                   const IndexFunction& index_function = IndexFunction(),
-                   const EqualToFunction& equal_to_function = EqualToFunction())
-        : num_partitions_(partition_size),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
