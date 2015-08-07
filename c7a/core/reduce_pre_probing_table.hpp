@@ -159,7 +159,15 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function) {
+          equal_to_function_(equal_to_function)
+    {
+        assert(num_partitions >= 0);
+        assert(num_partitions == emit_.size());
+        assert(num_items_init_scale > 0);
+        assert(num_items_resize_scale > 1);
+        assert(max_partition_fill_ratio >= 0.0 && max_partition_fill_ratio <= 1.0);
+        assert(max_num_items_table > 0);
+
         init(sentinel);
     }
 
@@ -193,13 +201,6 @@ public:
         sentinel_ = KeyValuePair(sentinel, Value());
         vector_.resize(table_size_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
-
-//        assert(num_partitions_ >= 0);
-//        assert(num_items_init_scale_ > 0);
-//        assert(num_items_resize_scale_ > 1);
-//        assert(max_partition_fill_ratio_ >= 0.0 && max_partition_fill_ratio_ <= 1.0);
-//        assert(max_num_items_table_ > 0);
-//        assert(num_partitions_ == emit_.size());
     }
 
     /*!
@@ -563,19 +564,19 @@ private:
     //! Scale factor to compute the initial size
     //! (=number of slots for items)
     //! based on the number of partitions.
-    size_t num_items_init_scale_ = 10;
+    size_t num_items_init_scale_;
 
     //! Scale factor to compute the number of slots
     //! during resize based on the curewnr size.
-    size_t num_items_resize_scale_ = 2;
+    size_t num_items_resize_scale_;
 
     //! Maximal allowed fill ratio per partition before
     //! resize.
-    double max_partition_fill_ratio_ = 1.0;
+    double max_partition_fill_ratio_;
 
     //! Maximal number of items before some items
     //! are flushed.
-    size_t max_num_items_table_ = 1048576;
+    size_t max_num_items_table_;
 
     //! Keeps the current number of items in the table
     size_t num_items_ = 0;
