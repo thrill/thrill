@@ -130,7 +130,7 @@ public:
      * @brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(net::Group& group, int threadId, int threadCount, common::Barrier& barrier, void** shmem)
-        : group(group), id(group.my_connection_id()), count(group.num_connections()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
+        : group(group), id(group.my_host_rank()), count(group.num_hosts()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
 
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum

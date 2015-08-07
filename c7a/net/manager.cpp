@@ -229,7 +229,7 @@ protected:
 
         for (size_t g = 0; g < kGroupCount; g++) {
 
-            for (size_t id = 0; id < groups_[g].num_connections(); ++id) {
+            for (size_t id = 0; id < groups_[g].num_hosts(); ++id) {
                 if (id == my_rank_) continue;
 
                 //Just checking the state works since this implicitey checks the
@@ -487,7 +487,7 @@ protected:
             << " id " << msg_in->id;
 
         die_unless(msg_in->group_id < kGroupCount);
-        die_unless(msg_in->id < groups_[msg_in->group_id].num_connections());
+        die_unless(msg_in->id < groups_[msg_in->group_id].num_hosts());
 
         die_unequal(groups_[msg_in->group_id].connection(msg_in->id).state(),
                     ConnectionState::Invalid);

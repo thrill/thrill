@@ -100,7 +100,7 @@ public:
     //! Returns id of this host in the cluser
     //! A host is a machine in the cluster that hosts multiple workers
     size_t host_rank() const {
-        return net_manager_.my_rank();
+        return net_manager_.my_host_rank();
     }
 
     //! Returns the local id ot this worker on the host
