@@ -30,7 +30,7 @@ namespace data {
 class Channel;
 using ChannelPtr = std::shared_ptr<Channel>;
 
-struct StreamBlockHeader;
+struct ChannelBlockHeader;
 
 /*!
  * Multiplexes virtual Connections on Dispatcher.
@@ -38,7 +38,7 @@ struct StreamBlockHeader;
  * A worker as a TCP conneciton to each other worker to exchange large amounts
  * of data. Since multiple exchanges can occur at the same time on this single
  * connection we use multiplexing. The slices are called Blocks and are
- * indicated by a \ref StreamBlockHeader. Multiple Blocks form a Stream on a
+ * indicated by a \ref ChannelBlockHeader. Multiple Blocks form a Channel on a
  * single TCP connection. The multiplexer multiplexes all streams on all
  * sockets.
  *
@@ -68,7 +68,7 @@ public:
         group_ = group;
         for (size_t id = 0; id < group_->num_connections(); id++) {
             if (id == group_->my_connection_id()) continue;
-            AsyncReadStreamBlockHeader(group_->connection(id));
+            AsyncReadChannelBlockHeader(group_->connection(id));
         }
     }
 
@@ -119,14 +119,14 @@ private:
 
     using Connection = net::Connection;
 
-    //! expects the next StreamBlockHeader from a socket and passes to
-    //! OnStreamBlockHeader
-    void AsyncReadStreamBlockHeader(Connection& s);
+    //! expects the next ChannelBlockHeader from a socket and passes to
+    //! OnChannelBlockHeader
+    void AsyncReadChannelBlockHeader(Connection& s);
 
-    void OnStreamBlockHeader(Connection& s, net::Buffer&& buffer);
+    void OnChannelBlockHeader(Connection& s, net::Buffer&& buffer);
 
-    void OnStreamBlock(
-        Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
+    void OnChannelBlock(
+        Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
         net::Buffer&& buffer);
 };
 

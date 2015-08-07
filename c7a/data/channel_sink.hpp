@@ -17,7 +17,7 @@
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
-#include <c7a/data/stream_block_header.hpp>
+#include <c7a/data/multiplexer_header.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 
@@ -68,33 +68,36 @@ public:
     ChannelSink(ChannelSink&&) = default;
 
     //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
-    void AppendBlock(const Block& b) final {
-        if (b.size() == 0) return;
+    void AppendBlock(const Block& block) final {
+        if (block.size() == 0) return;
 
         tx_timespan_->StartEventually();
-        sLOG << "ChannelSink::AppendBlock" << b;
+        sLOG << "ChannelSink::AppendBlock" << block;
 
-        StreamBlockHeader header;
+        ChannelBlockHeader header(block);
         header.channel_id = id_;
-        header.size = b.size();
-        header.first_item = b.first_item_relative();
-        header.nitems = b.nitems();
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         if (debug) {
-            sLOG << "sending block" << common::hexdump(b.ToString());
+            sLOG << "sending block" << common::hexdump(block.ToString());
         }
 
-        auto header_buffer = header.Serialize();
-        (*byte_counter_) += header_buffer.size();
-        (*byte_counter_) += b.size();
+        net::BufferBuilder bb;
+        //bb.Put(MagicByte::CHANNEL_BLOCK);
+        header.Serialize(bb);
+
+        net::Buffer buffer = bb.ToBuffer();
+
+        (*byte_counter_) += buffer.size();
+        (*byte_counter_) += block.size();
         (*block_counter_)++;
+
         dispatcher_->AsyncWrite(
             *connection_,
             // send out Buffer and Block, guaranteed to be successive
-            std::move(header_buffer), b);
+            std::move(buffer), block);
     }
 
     //! Closes the connection
@@ -108,17 +111,21 @@ public:
              << "to worker" << partners_local_worker_id_
              << "channel" << id_;
 
-        StreamBlockHeader header;
+        ChannelBlockHeader header;
         header.channel_id = id_;
-        header.size = 0;
-        header.first_item = 0;
-        header.nitems = 0;
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
         header.receiver_local_worker_id = partners_local_worker_id_;
-        auto header_buffer = header.Serialize();
-        (*byte_counter_) += header_buffer.size();
-        dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
+
+        net::BufferBuilder bb;
+        //bb.Put(MagicByte::CHANNEL_BLOCK);
+        header.Serialize(bb);
+
+        net::Buffer buffer = bb.ToBuffer();
+
+        (*byte_counter_) += buffer.size();
+
+        dispatcher_->AsyncWrite(*connection_, std::move(buffer));
     }
 
     //! return close flag
