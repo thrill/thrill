@@ -103,6 +103,9 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain);
+        channel_->OnClose([this]() {
+            this->WriteChannelStats(this->channel_);
+        });
     }
 
     //! Virtual destructor for a ReduceNode.
@@ -199,7 +202,6 @@ private:
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         channel_->Close();
-        this->WriteChannelStats(channel_);
     }
 };
 
