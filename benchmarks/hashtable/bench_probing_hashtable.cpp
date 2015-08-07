@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(sinks[i].GetWriter());
     }
 
-    core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
+    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(workers, num_buckets_init_scale, num_buckets_resize_scale,
           max_partition_fill_ratio, max_num_items_table, key_ex, red_fn, writers, -1);
 
