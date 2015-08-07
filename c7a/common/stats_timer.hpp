@@ -82,7 +82,7 @@ public:
 
     //! start timer only if it not running
     void StartEventually() {
-        if(!running_) {
+        if (!running_) {
             running_ = true;
             last_start_ = steady_clock::now();
         }
@@ -184,9 +184,7 @@ public:
     { }
 
     //! stop timer if it is running
-    void StopEventually() {
-    }
-
+    void StopEventually() { }
 
     //! return accumulated time
     void Reset()

@@ -13,6 +13,8 @@
 #ifndef C7A_DATA_CHANNEL_HEADER
 #define C7A_DATA_CHANNEL_HEADER
 
+#include <c7a/common/stats_counter.hpp>
+#include <c7a/common/stats_timer.hpp>
 #include <c7a/data/block_queue.hpp>
 #include <c7a/data/channel_sink.hpp>
 #include <c7a/data/concat_block_source.hpp>
@@ -21,8 +23,6 @@
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/group.hpp>
-#include <c7a/common/stats_counter.hpp>
-#include <c7a/common/stats_timer.hpp>
 
 #include <sstream>
 #include <string>
@@ -76,12 +76,12 @@ public:
     using CachingConcatReader = CachingConcatBlockReader;
 
     using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
-    using StatsTimer   = common::StatsTimer<common::g_enable_stats>;
+    using StatsTimer = common::StatsTimer<common::g_enable_stats>;
 
     //! Creates a new channel instance
     Channel(const ChannelId& id, net::Group& group,
             net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_connection)
-          :  tx_lifetime_(true), rx_lifetime_(true),
+        :  tx_lifetime_(true), rx_lifetime_(true),
           tx_timespan_(), rx_timespan_(),
           id_(id),
           queues_(group.num_connections() * workers_per_connection),
@@ -287,10 +287,10 @@ public:
     StatsCounter outgoing_bytes_, outgoing_blocks_;
 
     //! Timers from creation of channel until rx / tx direction is closed.
-    StatsTimer   tx_lifetime_, rx_lifetime_;
+    StatsTimer tx_lifetime_, rx_lifetime_;
 
     //! Timers from first rx / tx package until rx / tx direction is closed.
-    StatsTimer   tx_timespan_, rx_timespan_;
+    StatsTimer tx_timespan_, rx_timespan_;
     ///////////////////////////////////////////////////////////////////////////
 
 protected:
@@ -317,7 +317,6 @@ protected:
     //! number of expected / received stream closing operations. Required to know when to
     //! stop rx_lifetime
     size_t expected_closing_blocks_, received_closing_blocks_;
-
 
     friend class ChannelMultiplexer;
 
