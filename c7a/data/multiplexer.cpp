@@ -34,7 +34,7 @@ ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
         channels_.GetOrCreate(
             id, local_worker_id,
             // initializers for Channels
-            id, *group_, dispatcher_, local_worker_id, num_workers_per_node_));
+            *this, id, local_worker_id));
 }
 
 /******************************************************************************/
@@ -63,7 +63,7 @@ void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
     auto local_worker = header.receiver_local_worker_id;
     ChannelPtr channel = GetOrCreateChannel(id, local_worker);
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_local_worker_id;
+    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     if (header.IsEnd()) {
         sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
         channel->OnCloseChannel(sender_worker_rank);
@@ -92,7 +92,7 @@ void Multiplexer::OnChannelBlock(
     ByteBlockPtr bytes = ByteBlock::Allocate(buffer.size());
     std::copy(buffer.data(), buffer.data() + buffer.size(), bytes->begin());
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_node_ + header.sender_local_worker_id;
+    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
     channel->OnChannelBlock(
         sender_worker_rank,
