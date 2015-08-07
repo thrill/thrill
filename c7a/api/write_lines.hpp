@@ -69,7 +69,7 @@ public:
         writer_.Close();
 
 		//(Portable) allocation of output file, setting individual file pointers. 
-        size_t prefix_elem = context_.flow_control_channel().PrefixSum(size_);
+        size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
 		if (context_.my_rank() == context_.num_workers() - 1) {
 			file_.seekp(prefix_elem + size_ - 1);
 			file_.put('\0');
