@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/api/read_lines.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/stats_timer.hpp>
 

@@ -17,8 +17,8 @@
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
-#include <c7a/api/write.hpp>
-#include <c7a/api/write_single_file.hpp>
+#include <c7a/api/write_lines.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
