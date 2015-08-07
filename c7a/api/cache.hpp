@@ -114,7 +114,7 @@ auto DIARef<ValueType, Stack>::Cache() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::LOP);
+    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::CACHE);
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, "", stats_node);
     auto lop_stack = FunctionStack<ValueType>();
