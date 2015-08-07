@@ -413,7 +413,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    StatsNode* stats_node = AddChildStatsNode("Sort", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("Sort", NodeType::DOP);
     auto shared_node
         = std::make_shared<SortResultNode>(*this, compare_function, stats_node);
 

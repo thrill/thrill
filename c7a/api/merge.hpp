@@ -206,7 +206,7 @@ auto DIARef<ValueType, Stack>::Merge(
             >::value,
         "MergeFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Merge", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
         = std::make_shared<MergeResultNode>(*this,

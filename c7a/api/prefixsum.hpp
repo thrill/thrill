@@ -161,7 +161,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("PrefixSum", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("PrefixSum", NodeType::DOP);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,

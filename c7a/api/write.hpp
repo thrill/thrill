@@ -127,7 +127,7 @@ void DIARef<ValueType, Stack>::WriteToFileSystem(
 
     using WriteResultNode = WriteNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", "Action");
+    StatsNode* stats_node = AddChildStatsNode("Write", NodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
