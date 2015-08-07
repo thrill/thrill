@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/data/channel_a_to_b.cpp
+ * c7a/data/multiplexer.cpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/multiplexer.hpp>
 #include <c7a/data/channel.hpp>
+#include <c7a/data/multiplexer.hpp>
 
 namespace c7a {
 namespace data {

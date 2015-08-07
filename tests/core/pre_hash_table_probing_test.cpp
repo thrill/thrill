@@ -26,10 +26,11 @@ struct ReducePreProbingTable : public::testing::Test { };
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-        : public c7a::core::PreProbingReduceByHashKey<int> {
+    : public c7a::core::PreProbingReduceByHashKey<int>
+{
 public:
     CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     template <typename ReducePreProbingTable>
@@ -66,7 +67,7 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 
     CustomKeyHashFunction<int> cust_hash;
     c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true,
-            CustomKeyHashFunction<int>>
+                                     CustomKeyHashFunction<int> >
     table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576, cust_hash);
 
     for (int i = 0; i < 16; i++) {
