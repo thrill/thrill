@@ -84,6 +84,7 @@ public:
     //! Get object with given id, if it does not exist, create it.
     //! \param object_id of the object
     //! \param local_worker_id of the local worker who requested the object
+    //! \param construction parameters forwards to constructor
     template <typename ... Types>
     ObjectPtr GetOrCreate(size_t object_id, size_t local_worker_id,
                           Types&& ... construction) {
