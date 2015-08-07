@@ -13,6 +13,7 @@
 
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/api/collapse.hpp>
 
 #include <algorithm>
 #include <set>
@@ -20,6 +21,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <typeinfo>
 
 namespace c7a {
 namespace core {
@@ -87,7 +89,7 @@ public:
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
                     // If parent was not executed push it to the DFS
-                    if (p->state() != api::DIAState::EXECUTED) {
+                    if (p->state() != api::DIAState::EXECUTED || p->type() == api::NodeType::COLLAPSE) {
                         dia_stack.push(p);
                     }
                 }

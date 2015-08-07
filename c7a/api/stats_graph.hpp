@@ -27,8 +27,9 @@ namespace api {
 
 enum class NodeType {
     DOP,
-    LOP,
     ACTION,
+    COLLAPSE,
+    CACHE,
     LAMBDA
 };
 
@@ -74,7 +75,7 @@ public:
     /*!
      * Returns the type of the node.
      */
-    NodeType type() const {
+    const NodeType& type() const {
         return type_;
     }
 
@@ -123,7 +124,8 @@ public:
             case NodeType::ACTION:
                 style += "style=filled, fillcolor=yellow, shape=diamond";
                 break;
-            case NodeType::LOP:
+            case NodeType::CACHE:
+            case NodeType::COLLAPSE:
                 style += "style=filled, fillcolor=blue, shape=hexagon";
                 break;
             default:
