@@ -272,7 +272,7 @@ public:
 
     void CallClosedCallbacksEventually() {
         if (closed()) {
-            for(const auto& cb : closed_callbacks_)
+            for (const auto& cb : closed_callbacks_)
                 cb();
             closed_callbacks_.clear();
         }

@@ -93,7 +93,6 @@ int main(int argc, const char** argv) {
     net::FlowControlChannelManager flow_manager1(net_manager1.GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);
 
-
     api::Context ctx1(net_manager1, flow_manager1, cmp1, 1, 0);
     api::Context ctx2(net_manager2, flow_manager2, cmp2, 1, 0);
 
