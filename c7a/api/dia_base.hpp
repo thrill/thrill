@@ -108,6 +108,10 @@ public:
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
+    const NodeType & type() {
+        return stats_node_->type();
+    }
+
     //! Returns the children of this DIABase.
     //! \return A vector of all children
     const std::vector<DIABase*> & children() {
@@ -155,7 +159,7 @@ public:
 
     inline void StopExecutionTimer() {
         STOP_TIMER(execution_timer_);
-        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms");
+        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms", LogType::EXECUTION);
     }
 
 protected:

@@ -19,7 +19,6 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/net/collective_communication.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -123,11 +122,11 @@ public:
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         size_t result_count = 0;
 
         if (result_size_ != 0) {
@@ -159,7 +158,7 @@ public:
         sLOG << "Zip: result_count" << result_count;
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Creates empty stack.
@@ -173,7 +172,7 @@ public:
      * Returns "[ZipNode]" as a string.
      * \return "[ZipNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ZipNode]";
     }
 
@@ -209,7 +208,7 @@ private:
     //! Scatter items from DIA "in" to other workers if necessary.
     template <typename ZipArgNum>
     void DoScatter(size_t in) {
-        const size_t workers = context_.number_worker();
+        const size_t workers = context_.num_workers();
 
         size_t local_begin =
             std::min(result_size_,
@@ -326,7 +325,7 @@ auto DIARef<ValueType, Stack>::Zip(
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("Zip", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
         = std::make_shared<ZipResultNode>(*this,

@@ -22,30 +22,30 @@ using MyQueue = data::BlockQueue;
 using MyBlockSource = MyQueue::BlockSource;
 using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
-struct BlockQueueTest : public::testing::Test {
+struct BlockQueue : public::testing::Test {
     MyQueue q;
 };
 
-TEST_F(BlockQueueTest, FreshQueueIsNotClosed) {
+TEST_F(BlockQueue, FreshQueueIsNotClosed) {
     ASSERT_FALSE(q.write_closed());
 }
 
-TEST_F(BlockQueueTest, QueueCanBeClosed) {
+TEST_F(BlockQueue, QueueCanBeClosed) {
     q.Close();
     ASSERT_TRUE(q.write_closed());
 }
 
-TEST_F(BlockQueueTest, FreshQueueIsEmpty) {
+TEST_F(BlockQueue, FreshQueueIsEmpty) {
     ASSERT_TRUE(q.empty());
 }
 
-TEST_F(BlockQueueTest, QueueNonEmptyAfterAppend) {
+TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
     data::ByteBlockPtr bytes = data::ByteBlock::Allocate(16);
     q.AppendBlock(data::Block(bytes, 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
 
-TEST_F(BlockQueueTest, BlockWriterToQueue) {
+TEST_F(BlockQueue, BlockWriterToQueue) {
     MyQueue::Writer bw = q.GetWriter(16);
     bw(static_cast<int>(42));
     bw(std::string("hello there BlockQueue"));
@@ -55,7 +55,7 @@ TEST_F(BlockQueueTest, BlockWriterToQueue) {
     ASSERT_EQ(2u + (MyQueue::Writer::self_verify ? 1 : 0), q.size());
 }
 
-TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
+TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
     common::ThreadPool pool(2);
     MyQueue q;
 
@@ -84,7 +84,7 @@ TEST_F(BlockQueueTest, ThreadedParallelBlockWriterAndBlockReader) {
     pool.LoopUntilEmpty();
 }
 
-TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
+TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
     using namespace std::literals;
     common::ThreadPool pool(3);
     MyQueue q2;
@@ -115,4 +115,34 @@ TEST_F(BlockQueueTest, OrderedMultiQueue_Multithreaded) {
                  });
     pool.LoopUntilEmpty();
 }
+
+TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
+    common::ThreadPool pool(2);
+    MyQueue q;
+
+    pool.Enqueue(
+        [&q]() {
+            MyQueue::Writer bw = q.GetWriter(16);
+            bw(static_cast<int>(42));
+            bw(std::string("hello there BlockQueue"));
+        });
+
+    pool.Enqueue(
+        [&q]() {
+            MyQueue::DynReader br = q.GetDynReader();
+
+            ASSERT_TRUE(br.HasNext());
+            int i1 = br.Next<int>();
+            ASSERT_EQ(42, i1);
+
+            ASSERT_TRUE(br.HasNext());
+            std::string i2 = br.Next<std::string>();
+            ASSERT_EQ("hello there BlockQueue", i2);
+
+            ASSERT_FALSE(br.HasNext());
+        });
+
+    pool.LoopUntilEmpty();
+}
+
 /******************************************************************************/

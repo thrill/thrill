@@ -63,11 +63,6 @@ public:
     //! Virtual destructor for a DIANode.
     virtual ~DIANode() { }
 
-    //! ToString-method. Returns DIANode and it's state as a string.
-    std::string ToString() override {
-        return "[DIANode/State:" + state_string_() + "]";
-    }
-
     /*!
      * Enables children to push their "folded" function chains to their parent.
      * This way the parent can push all its result elements to each of the
@@ -80,7 +75,7 @@ public:
         this->callbacks_.push_back(callback);
     }
 
-    void UnregisterChilds() override {
+    void UnregisterChilds() final {
         this->callbacks_.clear();
     }
 

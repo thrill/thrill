@@ -7,7 +7,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/lop_node.hpp>
+#include <c7a/api/cache.hpp>
+#include <c7a/api/collapse.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/size.hpp>
@@ -119,11 +120,11 @@ void page_rank(Context& ctx) {
                   return std::to_string(std::get<0>(item))
                   + ": " + std::to_string(std::get<1>(item));
               }).
-    WriteLinesMany("pagerank_" + std::to_string(ctx.rank()) + ".out");
+    WriteLinesMany("pagerank_" + std::to_string(ctx.my_rank()) + ".out");
 }
 
 int main(int argc, char* argv[]) {
-    return c7a::api::Execute(argc, argv, page_rank);
+    return c7a::api::Run(page_rank);
 }
 
 /******************************************************************************/

@@ -37,30 +37,21 @@ namespace data {
 class Manager
 {
 public:
-    explicit Manager(net::DispatcherThread& dispatcher)
-        : cmp_(dispatcher) { }
+    explicit Manager(data::ChannelMultiplexer& multiplexer, size_t my_local_worker_id)
+        : cmp_(multiplexer), my_local_worker_id_(my_local_worker_id) { }
 
     //! non-copyable: delete copy-constructor
     Manager(const Manager&) = delete;
     //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
-
-    //! Connect net::Group. Forwarded To ChannelMultiplexer.
-    void Connect(net::Group* group) {
-        cmp_.Connect(group);
-    }
-
-    //! Returns a reference to an existing Channel.
-    ChannelPtr GetChannel(const ChannelId id) {
-        assert(cmp_.HasChannel(id));
-        return std::move(cmp_.GetOrCreateChannel(id));
-    }
+    //! default move constructor
+    Manager(Manager&&) = default;
 
     //! Returns a reference to a new Channel.
     //! This method alters the state of the manager and must be called on all
     //! Workers to ensure correct communication cordination
     ChannelPtr GetNewChannel() {
-        return std::move(cmp_.GetOrCreateChannel(cmp_.AllocateNext()));
+        return std::move(cmp_.GetOrCreateChannel(cmp_.AllocateNext(my_local_worker_id_), my_local_worker_id_));
     }
 
     //! Returns a new File object containing a sequence of local Blocks.
@@ -71,9 +62,8 @@ public:
 
 private:
     static const bool debug = false;
-    ChannelMultiplexer cmp_;
-
-    Repository<File> files_;
+    ChannelMultiplexer& cmp_;
+    size_t my_local_worker_id_;
 };
 
 //! \}

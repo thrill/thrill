@@ -91,7 +91,7 @@ public:
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
+          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_)
     {
 
@@ -112,11 +112,11 @@ public:
      * Actually executes the reduce operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -154,7 +154,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces a function stack, which only contains the PostOp function.
@@ -168,7 +168,7 @@ public:
      * Returns "[ReduceNode]" and its id as a string.
      * \return "[ReduceNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReduceNode] Id: " + result_file_.ToString();
     }
 
@@ -237,7 +237,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceBy", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceBy", NodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, true, false>;
@@ -288,7 +288,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     using Key = typename ValueType::first_type;
 
-    StatsNode* stats_node = AddChildStatsNode("ReducePair", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReducePair", NodeType::DOP);
     using ReduceResultNode
               = ReduceNode<ValueType, DIARef, std::function<Key(Key)>,
                            ReduceFunction, false, true>;
@@ -350,7 +350,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Reduce", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("Reduce", NodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, false, false>;

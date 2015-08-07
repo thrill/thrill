@@ -14,6 +14,9 @@
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
+//http://memegenerator.net/instance2/1128363 (ts)
+#if DISABLE_MAYBE_REMOVE
+
 #include <c7a/common/functional.hpp>
 #include <c7a/net/group.hpp>
 #include <condition_variable>
@@ -177,6 +180,8 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
 } // namespace net
 } // namespace c7a
+
+#endif // DISABLE_MAYBE_REMOVE
 
 #endif // !C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 

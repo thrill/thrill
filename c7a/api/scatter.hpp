@@ -46,9 +46,9 @@ public:
     { }
 
     //! Executes the scatter operation: source sends out its data.
-    void Execute() override {
+    void Execute() final {
 
-        if (context_.rank() == source_id_)
+        if (context_.my_rank() == source_id_)
         {
             size_t in_size = in_vector_.size();
 
@@ -70,7 +70,7 @@ public:
         }
     }
 
-    void PushData() override {
+    void PushData() final {
         data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
 
         while (readers.HasNext()) {
@@ -81,7 +81,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     auto ProduceStack() {
         return FunctionStack<ValueType>();
@@ -91,7 +91,7 @@ public:
      * Returns "[AllGatherNode]" and its id as a string.
      * \return "[AllGatherNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[AllGatherNode] Id: " + result_file_.ToString();
     }
 
@@ -112,7 +112,7 @@ auto Scatter(
 
     using ScatterNode = api::ScatterNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Scatter", "DOp");
+    StatsNode* stats_node = ctx.stats_graph().AddNode("Scatter", NodeType::DOP);
 
     auto shared_node =
         std::make_shared<ScatterNode>(

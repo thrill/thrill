@@ -15,7 +15,6 @@
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
-#include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/group.hpp>
@@ -51,11 +50,11 @@ public:
     }
 
     //! Executes the size operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns result of global size.
@@ -69,7 +68,7 @@ public:
      * Returns "[SizeNode]" as a string.
      * \return "[SizeNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[SizeNode] Id:" + result_file_.ToString();
     }
 
@@ -98,7 +97,7 @@ size_t DIARef<ValueType, Stack>::Size() const {
 
     using SizeResultNode = SizeNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Size", "Action");
+    StatsNode* stats_node = AddChildStatsNode("Size", NodeType::ACTION);
     auto shared_node
         = std::make_shared<SizeResultNode>(*this, stats_node);
 

@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
             sLOG1 << "wrote counts of" << uniques << "unique words";
         };
 
-    return api::ExecuteEnv(start_func);
+    return api::Run(start_func);
 }
 
 /******************************************************************************/
