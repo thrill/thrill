@@ -119,7 +119,7 @@ void page_rank(Context& ctx) {
                   return std::to_string(std::get<0>(item))
                   + ": " + std::to_string(std::get<1>(item));
               }).
-    WriteToFileSystem("pagerank_" + std::to_string(ctx.rank()) + ".out");
+    WriteLinesMany("pagerank_" + std::to_string(ctx.rank()) + ".out");
 }
 
 int main(int argc, char* argv[]) {

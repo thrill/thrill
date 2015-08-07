@@ -39,7 +39,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> timer(true);
         auto lines = ReadLines(ctx, input_file);
-        lines.WriteToFileSystem(output_file);
+        lines.WriteLinesMany(output_file);
         timer.Stop();
         std::cout << "RESULT"
                   << " input_file=" << input_file

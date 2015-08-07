@@ -62,7 +62,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
             writer_size++;
             return std::to_string(item) + "\n";
         })
-    .WriteToFileSystem("test1.out");
+    .WriteLinesMany("test1.out");
 
     ASSERT_EQ(generate_size, writer_size);
 }
@@ -80,7 +80,7 @@ TEST(Operations, WriteToSingleFile) {
                 [](const int& item) {
                     return std::to_string(item) + "\n";
                 })
-            .WriteToSingleFile("testsf.out");
+            .WriteLines("testsf.out");
             
         };
 
