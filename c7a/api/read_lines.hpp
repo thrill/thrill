@@ -38,7 +38,7 @@ public:
     using Super::result_file_;
 
     /*!
-     * Constructor for a ReadLinesNode. Sets the DataManager, parents, read_function
+     * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
      *
      * \param ctx Reference to Context, which holds references to data and network.
@@ -53,8 +53,8 @@ public:
 
     virtual ~ReadLinesNode() { }
 
-    //! Executes the read operation. Reads a file line by line and emits it to
-    //! the DataManager after applying the read function on it.
+    //! Executes the read operation. Reads a file line by line
+    //! and emmits it after applyung the read function.
     void Execute() final { }
 
     void PushData() final {

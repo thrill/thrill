@@ -74,7 +74,7 @@ class ReduceNode : public DOpNode<ValueType>
 
 public:
     /*!
-     * Constructor for a ReduceNode. Sets the DataManager, parent, stack,
+     * Constructor for a ReduceNode. Sets the parent, stack,
      * key_extractor and reduce_function.
      *
      * \param parent Parent DIARef.
@@ -89,7 +89,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce", stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_)
@@ -104,8 +104,8 @@ public:
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain);
         channel_->OnClose([this]() {
-            this->WriteChannelStats(this->channel_);
-        });
+                              this->WriteChannelStats(this->channel_);
+                          });
     }
 
     //! Virtual destructor for a ReduceNode.

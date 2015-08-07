@@ -77,7 +77,7 @@ public:
               KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
 
     /*!
-     * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
+     * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
      *
      * \param parent Parent DIARef.
@@ -96,7 +96,7 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_, 10, 2, 256, 1048576,

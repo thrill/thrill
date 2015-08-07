@@ -16,7 +16,7 @@
 #include <c7a/api/stats_graph.hpp>
 #include <c7a/common/config.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/manager.hpp>
+#include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/manager.hpp>
@@ -36,28 +36,35 @@ namespace api {
 /*!
  * The Context of a job is a unique instance per worker which holds
  *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref c7a::data::Manager "data manager", the
+ *  references to the  \ref c7a::data::ChannelMultiplexer "channel multiplexer", the
  * \ref c7a::net::Group  "net group"
  * \ref c7a::common::Stats "stats" and
  * \ref c7a::common::StatsGraph "stats graph".
- * Threads share the data manager and
+ * Threads share the channel multiplexer and
  * the net group via the context object.
  */
 class Context
 {
 public:
-    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Manager& data_manager, size_t workers_per_host, size_t local_worker_id)
+    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::ChannelMultiplexer& channel_multiplexer, size_t workers_per_host, size_t local_worker_id)
         : net_manager_(net_manager),
           flow_manager_(flow_manager),
-          data_manager_(data_manager),
+          channel_multiplexer_(channel_multiplexer),
           local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host)
     { }
 
-    //! Returns a reference to the data manager, which gives iterators and
-    //! emitters for data.
-    data::Manager & data_manager() const {
-        return data_manager_;
+    //! Returns a reference to a new Channel.
+    //! This method alters the state of the context and must be called on all
+    //! Workers to ensure correct communication cordination
+    data::ChannelPtr GetNewChannel() {
+        auto id = channel_multiplexer_.AllocateNext(local_worker_id_);
+        return std::move(channel_multiplexer_.GetOrCreateChannel(id, local_worker_id_));
+    }
+
+    //! Returns a new File object containing a sequence of local Blocks.
+    data::File GetFile() {
+        return data::File();
     }
 
     /**
@@ -118,8 +125,8 @@ private:
     //! net::FlowControlChannelManager instance that is shared among workers
     net::FlowControlChannelManager& flow_manager_;
 
-    //! data::Manager instance that is shared among workers
-    data::Manager& data_manager_;
+    //! data::ChannelMultiplexer instance that is shared among workers
+    data::ChannelMultiplexer& channel_multiplexer_;
 
     //! StatsGrapg object that is uniquely held for this worker
     api::StatsGraph stats_graph_;
