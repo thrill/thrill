@@ -600,24 +600,37 @@ public:
     }
 
 protected:
-    size_t num_partitions_;                   // partition size
+    //! Number of partitions
+    size_t num_partitions_;
 
-    size_t num_buckets_;                      // num buckets
+    //! Scale factor to compute the initial bucket size.
+    size_t num_buckets_init_scale_;
 
-    size_t num_buckets_per_partition_;        // num buckets per partition
+    //! Scale factor to compute the number of buckets
+    //! during resize relative to current size.
+    size_t num_buckets_resize_scale_;
 
-    size_t num_buckets_init_scale_ = 10;      // set number of buckets per partition based on num_partitions
-    // multiplied with some scaling factor, must be equal to or greater than 1
+    // Maximal number of items per bucket before resize.
+    size_t max_num_items_per_bucket_;
 
-    size_t num_buckets_resize_scale_ = 2;     // resize scale on max_num_items_per_bucket_
+    //! Number of buckets
+    //! Product of number of partitions and init scale.
+    size_t num_buckets_;
 
-    size_t max_num_items_per_bucket_ = 256;   // max num of items per bucket before resize
+    // Number of buckets per partition.
+    size_t num_buckets_per_partition_;
 
-    std::vector<size_t> items_per_partition_; // num items per partition
+    //! Number of items per partition.
+    std::vector<size_t> items_per_partition_;
 
-    size_t table_size_ = 0;                   // total number of items
+    //! Size of the table, which is the number of slots
+    //! available for items. Table size is usually greater
+    //! than number of buckets.
+    size_t table_size_ = 0;
 
-    size_t max_num_items_table_ = 1048576;    // max num of items before spilling of largest partition
+    //! Maximal number of items before some items
+    //! are flushed (-> partial flush).
+    size_t max_num_items_table_;
 
     KeyExtractor key_extractor_;
 

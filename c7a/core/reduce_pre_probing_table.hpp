@@ -563,11 +563,10 @@ private:
 
     //! Scale factor to compute the initial size
     //! (=number of slots for items)
-    //! based on the number of partitions.
     size_t num_items_init_scale_;
 
     //! Scale factor to compute the number of slots
-    //! during resize based on the curewnr size.
+    //! during resize relative to current size.
     size_t num_items_resize_scale_;
 
     //! Maximal allowed fill ratio per partition before
@@ -575,10 +574,10 @@ private:
     double max_partition_fill_ratio_;
 
     //! Maximal number of items before some items
-    //! are flushed.
+    //! are flushed (-> partial flush).
     size_t max_num_items_table_;
 
-    //! Keeps the current number of items in the table
+    //! Keeps the total number of items in the table
     size_t num_items_ = 0;
 
     //! Maximal number of items allowed per partition.
