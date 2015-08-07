@@ -33,8 +33,8 @@ namespace api {
  * the same host do share these components though.
  */
 void
-ExecuteLocalMock(size_t host_count, size_t workers_per_host,
-                 std::function<void(api::Context&)> job_startpoint) {
+RunLocalMock(size_t host_count, size_t workers_per_host,
+             std::function<void(api::Context&)> job_startpoint) {
     static const bool debug = false;
     //connect TCP streams
     std::vector<net::Manager> net_managers = net::Manager::ConstructLocalMesh(host_count);
@@ -92,18 +92,18 @@ ExecuteLocalMock(size_t host_count, size_t workers_per_host,
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of host and workers as independent threads in one program.
  */
-void ExecuteLocalTests(std::function<void(Context&)> job_startpoint) {
+void RunLocalTests(std::function<void(Context&)> job_startpoint) {
     int num_hosts[] = { 1, 2, 5, 8 };
     int num_workers[] = { 1 };//, 2, 3};
 
     for (auto& hosts : num_hosts) {
         for (auto& workers : num_workers) {
-            ExecuteLocalMock(hosts, workers, job_startpoint);
+            RunLocalMock(hosts, workers, job_startpoint);
         }
     }
 }
 
-void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
+void RunSameThread(std::function<void(Context&)> job_startpoint) {
     net::Manager net_manager;
     net_manager.Initialize(0, net::Endpoint::ParseEndpointList("127.0.0.1:12345"));
 
@@ -124,7 +124,7 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint) {
     job_startpoint(ctx);
 }
 
-int ExecuteTCP(
+int RunDistributedTCP(
     size_t my_rank,
     const std::vector<std::string>& endpoints,
     std::function<void(Context&)> job_startpoint,
@@ -172,10 +172,10 @@ int ExecuteTCP(
     return global_result;
 }
 
-// TODO: the following should be renamed to Execute().
+// TODO: the following should be renamed to Run().
 
 /*!
- * Executes the given job startpoint with a context instance.  Startpoints may
+ * Runs the given job startpoint with a context instance.  Startpoints may
  * be called multiple times with concurrent threads and different context
  * instances across different workers.  The c7a configuration is taken from
  * environment variables starting the C7A_.
@@ -183,7 +183,7 @@ int ExecuteTCP(
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
  */
-int ExecuteEnv(
+int Run(
     std::function<void(Context&)> job_startpoint,
     const std::string& /*log_prefix*/) {
 
@@ -213,7 +213,7 @@ int ExecuteEnv(
                   << " test hosts in a local socket network." << std::endl;
 
         const size_t workers_per_host = 1;
-        ExecuteLocalMock(test_hosts, workers_per_host, job_startpoint);
+        RunLocalMock(test_hosts, workers_per_host, job_startpoint);
 
         return 0;
     }
@@ -262,7 +262,7 @@ int ExecuteEnv(
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    return ExecuteTCP(my_rank, endpoints, job_startpoint, "");
+    return RunDistributedTCP(my_rank, endpoints, job_startpoint, "");
 }
 
 } // namespace api

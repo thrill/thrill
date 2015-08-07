@@ -34,16 +34,16 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
-        api::ExecuteSameThread([&input_file, &output_file](api::Context& ctx) {
-                                   StatsTimer<true> timer(true);
-                                   auto lines = ReadLines(ctx, input_file);
-                                   lines.WriteToFileSystem(output_file);
-                                   timer.Stop();
-                                   std::cout << "RESULT"
-                                             << " input_file=" << input_file
-                                             << " time=" << timer.Microseconds()
-                                             << std::endl;
-                               });
+        api::RunSameThread([&input_file, &output_file](api::Context& ctx) {
+                               StatsTimer<true> timer(true);
+                               auto lines = ReadLines(ctx, input_file);
+                               lines.WriteToFileSystem(output_file);
+                               timer.Stop();
+                               std::cout << "RESULT"
+                                         << " input_file=" << input_file
+                                         << " time=" << timer.Microseconds()
+                                         << std::endl;
+                           });
     }
 }
 
