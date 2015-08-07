@@ -61,7 +61,7 @@ class PreProbingReduceByHashKey
 {
 public:
     PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     template <typename ReducePreProbingTable>
@@ -90,7 +90,7 @@ template <typename Key, typename Value,
           const bool RobustKey = false,
           typename IndexFunction = PreProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>
-    >
+          >
 class ReducePreProbingTable
 {
     static const bool debug = false;
@@ -158,8 +158,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         init(sentinel);
     }
 
@@ -178,8 +177,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         init(sentinel);
     }
 

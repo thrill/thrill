@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/write.hpp
+ * c7a/api/write_lines_many.hpp
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_WRITE_HEADER
-#define C7A_API_WRITE_HEADER
+#ifndef C7A_API_WRITE_LINES_MANY_HEADER
+#define C7A_API_WRITE_LINES_MANY_HEADER
 
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
@@ -38,8 +38,8 @@ public:
     using Super::context_;
 
     WriteLinesManyNode(const ParentDIARef& parent,
-              const std::string& path_out,
-              StatsNode* stats_node)
+                       const std::string& path_out,
+                       StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           path_out_(path_out),
           file_(path_out_)
@@ -52,17 +52,17 @@ public:
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain); 
+        parent.node()->RegisterChild(lop_chain);
     }
 
     void PreOp(ValueType input) {
-		file_ << input << "\n";
+        file_ << input << "\n";
     }
 
     //! Closes the output file
     void Execute() final {
         sLOG << "closing file" << path_out_;
-		file_.close();
+        file_.close();
     }
 
     void Dispose() final { }
@@ -87,15 +87,14 @@ template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath) const {
 
-	
-	static_assert(std::is_same<ValueType, std::string>::value,
-				  "WriteLinesMany needs an std::string as input parameter");
+    static_assert(std::is_same<ValueType, std::string>::value,
+                  "WriteLinesMany needs an std::string as input parameter");
 
     using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
 
-	StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", NodeType::ACTION);
-    
-	auto shared_node =
+    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", NodeType::ACTION);
+
+    auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
                                           stats_node);
@@ -108,6 +107,6 @@ void DIARef<ValueType, Stack>::WriteLinesMany(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_WRITE_HEADER
+#endif // !C7A_API_WRITE_LINES_MANY_HEADER
 
 /******************************************************************************/
