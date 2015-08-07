@@ -75,7 +75,7 @@ public:
     /*!
      * Returns the type of the node.
      */
-    const NodeType& type() const {
+    const NodeType & type() const {
         return type_;
     }
 
@@ -94,14 +94,14 @@ public:
     void AddStatsMsg(const std::string& msg, const LogType& type) {
         stats_msg_.push_back(msg);
         switch (type) {
-            case LogType::EXECUTION:
-                sLOG1 << "[Execution]" << msg;
-            case LogType::NETWORK:
-                sLOG1 << "[Network]" << msg;
-            case LogType::INFO:
-                sLOG1 << "[Info]" << msg;
-            default:
-                break;
+        case LogType::EXECUTION:
+            sLOG1 << "[Execution]" << msg;
+        case LogType::NETWORK:
+            sLOG1 << "[Network]" << msg;
+        case LogType::INFO:
+            sLOG1 << "[Info]" << msg;
+        default:
+            break;
         }
     }
 
@@ -118,19 +118,18 @@ public:
     std::string NodeStyle() const {
         std::string style = label_ + " [";
         switch (type_) {
-            case NodeType::DOP:
-                style += "style=filled, fillcolor=red, shape=box";
-                break;
-            case NodeType::ACTION:
-                style += "style=filled, fillcolor=yellow, shape=diamond";
-                break;
-            case NodeType::CACHE:
-            case NodeType::COLLAPSE:
-                style += "style=filled, fillcolor=blue, shape=hexagon";
-                break;
-            default:
-                break;
-
+        case NodeType::DOP:
+            style += "style=filled, fillcolor=red, shape=box";
+            break;
+        case NodeType::ACTION:
+            style += "style=filled, fillcolor=yellow, shape=diamond";
+            break;
+        case NodeType::CACHE:
+        case NodeType::COLLAPSE:
+            style += "style=filled, fillcolor=blue, shape=hexagon";
+            break;
+        default:
+            break;
         }
         style += StatsLabels();
         style += "]";

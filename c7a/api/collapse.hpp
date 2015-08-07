@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/lop_node.hpp
+ * c7a/api/collapse.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_COLLAPSE_NODE_HEADER
-#define C7A_API_COLLAPSE_NODE_HEADER
+#ifndef C7A_API_COLLAPSE_HEADER
+#define C7A_API_COLLAPSE_HEADER
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dia_node.hpp>
@@ -44,13 +44,13 @@ public:
      * \param parent Parent DIARef.
      */
     CollapseNode(const ParentDIARef& parent,
-            const std::string& stats_tag,
-            StatsNode* stats_node)
+                 const std::string& stats_tag,
+                 StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
     {
         auto propagate_fn = [=](ValueType input) {
-            Super::PushElement(input);
-        };
+                                Super::PushElement(input);
+                            };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
         parent.node()->RegisterChild(lop_chain);
     }
@@ -97,6 +97,6 @@ auto DIARef<ValueType, Stack>::Collapse() const {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_COLLAPSE_NODE_HEADER
+#endif // !C7A_API_COLLAPSE_HEADER
 
 /******************************************************************************/

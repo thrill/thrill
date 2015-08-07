@@ -11,9 +11,9 @@
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
 
+#include <c7a/api/collapse.hpp>
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/api/collapse.hpp>
 
 #include <algorithm>
 #include <set>
@@ -21,7 +21,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <typeinfo>
 
 namespace c7a {
 namespace core {

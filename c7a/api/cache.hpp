@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/lop_node.hpp
+ * c7a/api/cache.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_CACHE_NODE_HEADER
-#define C7A_API_CACHE_NODE_HEADER
+#ifndef C7A_API_CACHE_HEADER
+#define C7A_API_CACHE_HEADER
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dia_node.hpp>
@@ -45,8 +45,8 @@ public:
      * \param parent Parent DIARef.
      */
     CacheNode(const ParentDIARef& parent,
-            const std::string& stats_tag,
-            StatsNode* stats_node)
+              const std::string& stats_tag,
+              StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
     {
         auto save_fn =
@@ -128,6 +128,6 @@ auto DIARef<ValueType, Stack>::Cache() const {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_CACHE_NODE_HEADER
+#endif // !C7A_API_CACHE_HEADER
 
 /******************************************************************************/
