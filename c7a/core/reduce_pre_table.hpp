@@ -375,9 +375,13 @@ public:
                 {
                     if (RobustKey) {
                         emit_[partition_id](bi->second);
+						sLOG << "Pushing value";
+						emit_stats_[partition_id]++;
                     }
                     else {
                         emit_[partition_id](*bi);
+						sLOG << "pushing pair";
+						emit_stats_[partition_id]++;
                     }
                 }
 
