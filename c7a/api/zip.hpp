@@ -148,11 +148,17 @@ public:
             // Empty out readers. If they have additional items, this is
             // necessary for the CachingBlockQueueSource, as it has to cache the
             // additional blocks -tb. TODO(tb): this is weird behaviour.
+            // yes ... weird - ts
             while (readers[0].HasNext())
                 readers[0].Next<ZipArg0>();
 
             while (readers[1].HasNext())
                 readers[1].Next<ZipArg1>();
+
+            channels_[0]->Close();
+            channels_[1]->Close();
+            this->WriteChannelStats(channels_[0]);
+            this->WriteChannelStats(channels_[1]);
         }
 
         sLOG << "Zip: result_count" << result_count;

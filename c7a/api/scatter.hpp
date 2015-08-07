@@ -79,6 +79,9 @@ public:
                 func(v);
             }
         }
+
+        channel_->Close();
+        this->WriteChannelStats(channel_);
     }
 
     void Dispose() final { }

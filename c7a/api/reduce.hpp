@@ -198,6 +198,8 @@ private:
         //Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
+        channel_->Close();
+        this->WriteChannelStats(channel_);
     }
 };
 
