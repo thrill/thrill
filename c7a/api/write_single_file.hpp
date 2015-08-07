@@ -29,7 +29,7 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIARef>
-class WriteSingleNode : public ActionNode
+class WriteLinesNode : public ActionNode
 {
     static const bool debug = true;
 
@@ -38,7 +38,7 @@ public:
     using Super::result_file_;
     using Super::context_;
 
-    WriteSingleNode(const ParentDIARef& parent,
+    WriteLinesNode(const ParentDIARef& parent,
               const std::string& path_out,
               StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
@@ -140,10 +140,10 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteToSingleFile(
+void DIARef<ValueType, Stack>::WriteLines(
     const std::string& filepath) const {
 
-    using WriteResultNode = WriteSingleNode<ValueType, DIARef>;
+    using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
     StatsNode* stats_node = AddChildStatsNode("Write", "Action");
     auto shared_node =

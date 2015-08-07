@@ -510,17 +510,15 @@ public:
     size_t Size() const;
 
     /*!
-     * WriteToFileSystem is an Action, which writes elements to an output file.
-     * Items are written using ostream formatting / serialization, with NO
-     * delimiters like newline, etc. So either add operator << for your
-     * structs, or prefix the WriteToFileSystem() call with Map() to
-     * std::string.
+     * WriteLinesMany is an Action, which writes ostreamable elements to an output file.
+     * Items are written using ostream formatting / serialization, with a newline
+	 * after each entry.
      *
      * \param filepath Destination of the output file.
      */
-    void WriteToFileSystem(const std::string& filepath) const;
+    void WriteLinesMany(const std::string& filepath) const;
     
-    void WriteToSingleFile(const std::string& filepath) const;
+    void WriteLines(const std::string& filepath) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on

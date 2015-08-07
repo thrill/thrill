@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -27,7 +28,7 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIARef>
-class WriteNode : public ActionNode
+class WriteLinesManyNode : public ActionNode
 {
     static const bool debug = false;
 
@@ -36,7 +37,7 @@ public:
     using Super::result_file_;
     using Super::context_;
 
-    WriteNode(const ParentDIARef& parent,
+    WriteLinesManyNode(const ParentDIARef& parent,
               const std::string& path_out,
               StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
@@ -83,12 +84,12 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteToFileSystem(
+void DIARef<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath) const {
 
-    using WriteResultNode = WriteNode<ValueType, DIARef>;
+    using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", "Action");
+    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", "Action");
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
