@@ -20,7 +20,7 @@
 #include <c7a/data/concat_block_source.hpp>
 #include <c7a/data/dyn_block_reader.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/data/stream_block_header.hpp>
+#include <c7a/data/multiplexer_header.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/group.hpp>
 
@@ -42,7 +42,7 @@ using ChannelId = size_t;
  * individual connection from a worker to another worker a "Connection".
  *
  * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
- * outbound Stream. The vector is of size of workers in the system.
+ * outbound Channel. The vector is of size of workers in the system.
  * One can then write items destined to the
  * corresponding worker. The written items are buffered into a Block and only
  * sent when the Block is full. To force a send, use BlockWriter::Flush(). When
@@ -344,15 +344,15 @@ protected:
     }
 
     //! called from Multiplexer when there is a new Block on a
-    //! Stream.
+    //! Channel.
     //! \param from the worker rank (host rank * num_workers/host + worker id)
-    void OnStreamBlock(size_t from, Block&& b) {
+    void OnChannelBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
         rx_timespan_.StartEventually();
         incoming_bytes_ += b.size();
         incoming_blocks_++;
 
-        sLOG << "OnStreamBlock" << b;
+        sLOG << "OnChannelBlock" << b;
 
         if (debug) {
             sLOG << "channel" << id_ << "receive from" << from << ":"
@@ -362,10 +362,10 @@ protected:
         queues_[from].AppendBlock(b);
     }
 
-    //! called from Multiplexer when a Stream closed notification was
+    //! called from Multiplexer when a Channel closed notification was
     //! received.
     //! \param from the worker rank (host rank * num_workers/host + worker id)
-    void OnCloseStream(size_t from) {
+    void OnCloseChannel(size_t from) {
         assert(from < queues_.size());
         assert(!queues_[from].write_closed());
         queues_[from].Close();
