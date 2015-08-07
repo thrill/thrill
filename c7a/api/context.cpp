@@ -29,7 +29,7 @@ namespace api {
 /*!
  * Starts n hosts with multiple workers each, all running on this machine.
  * The hosts communicate via Sockets created by the socketpair call and do
- * not share a data::ChannelMultiplexer or net::FlowControlChannel. The workers withing
+ * not share a data::Multiplexer or net::FlowControlChannel. The workers withing
  * the same host do share these components though.
  */
 void
@@ -42,16 +42,16 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
 
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
-    std::vector<data::ChannelMultiplexer> channel_multiplexers;
+    std::vector<data::Multiplexer> multiplexers;
     std::vector<net::FlowControlChannelManager> flow_managers;
-    channel_multiplexers.reserve(host_count);
+    multiplexers.reserve(host_count);
     flow_managers.reserve(host_count);
 
     for (size_t host = 0; host < host_count; host++) {
         //connect data subsystem to network
-        channel_multiplexers.emplace_back(workers_per_host);
+        multiplexers.emplace_back(workers_per_host);
         //TOOD(ts) fix this ugly pointer workaround ??
-        channel_multiplexers[host].Connect(&(net_managers[host].GetDataGroup()));
+        multiplexers[host].Connect(&(net_managers[host].GetDataGroup()));
 
         //create flow control subsystem
         auto& group = net_managers[host].GetFlowGroup();
@@ -65,8 +65,8 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
         std::string log_prefix = "host " + std::to_string(host);
         for (size_t i = 0; i < workers_per_host; i++) {
             threads[host * workers_per_host + i] = std::thread(
-                [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
-                    Context ctx(net_managers[host], flow_managers[host], channel_multiplexers[host], workers_per_host, i);
+                [&net_managers, &multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
+                    Context ctx(net_managers[host], flow_managers[host], multiplexers[host], workers_per_host, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
@@ -110,7 +110,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
     size_t my_host_rank = 0;
 
     //connect data subsystem to network
-    data::ChannelMultiplexer multiplexer(workers_per_host);
+    data::Multiplexer multiplexer(workers_per_host);
     multiplexer.Connect(&net_manager.GetDataGroup());
 
     //create flow control subsystem
@@ -136,7 +136,7 @@ int RunDistributedTCP(
     net::Manager net_manager;
     net_manager.Initialize(my_rank, net::Endpoint::ParseEndpointList(endpoints));
 
-    data::ChannelMultiplexer cmp(workers_per_host);
+    data::Multiplexer cmp(workers_per_host);
     cmp.Connect(&(net_manager.GetDataGroup()));
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_host);
 

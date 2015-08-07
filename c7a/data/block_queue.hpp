@@ -31,9 +31,9 @@ namespace data {
 class BlockQueueSource;
 
 /*!
- * A BlockQueue is a thread-safe queue used to hand-over Block objects
- * between threads. It is currently used by the ChannelMultiplexer to queue
- * received Blocks and deliver them (later) to their destination.
+ * A BlockQueue is a thread-safe queue used to hand-over Block objects between
+ * threads. It is currently used by the Multiplexer to queue received Blocks and
+ * deliver them (later) to their destination.
  *
  * The BlockQueue itself is also a BlockSink (so one can attach a BlockWriter to
  * it). To read items from the queue, one needs to use a BlockReader

@@ -18,8 +18,8 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/data/file.hpp>
+#include <c7a/data/multiplexer.hpp>
 #include <c7a/net/collective_communication.hpp>
 
 #include <algorithm>

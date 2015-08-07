@@ -337,13 +337,13 @@ protected:
     //! Callbacks that are called once when the channel is closed (r+w)
     std::vector<ClosedCallback> closed_callbacks_;
 
-    friend class ChannelMultiplexer;
+    friend class Multiplexer;
 
     size_t num_workers() const {
         return group_.num_connections() * workers_per_connection_;
     }
 
-    //! called from ChannelMultiplexer when there is a new Block on a
+    //! called from Multiplexer when there is a new Block on a
     //! Stream.
     //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnStreamBlock(size_t from, Block&& b) {
@@ -362,7 +362,7 @@ protected:
         queues_[from].AppendBlock(b);
     }
 
-    //! called from ChannelMultiplexer when a Stream closed notification was
+    //! called from Multiplexer when a Stream closed notification was
     //! received.
     //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnCloseStream(size_t from) {
