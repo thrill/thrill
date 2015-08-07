@@ -103,9 +103,7 @@ public:
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain);
-        channel_->OnClose([this]() {
-            this->WriteChannelStats(this->channel_);
-        });
+        channel_->OnClose(std::bind(&DIABase::WriteChannelStats, this, channel_));
     }
 
     //! Virtual destructor for a ReduceNode.
