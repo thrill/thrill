@@ -32,15 +32,29 @@ namespace core {
 /**
  *
  * A data structure which takes an arbitrary value and extracts a key using
- * a key extractor function from that value. Afterwards, the value is hashed
- * based on the key into some slot.
+ * a key extractor function from that value. A key may also be provided initially as
+ * part of a key/value pair, not requiring to extract a key.
  *
- * In case a slot already has a value and the key of that value and the key of
- * the value to be inserted are them same, the value are reduced according to
- * some reduce function.
+ * Afterwards, the key is hashed and the hash is used to assign that key/value pair
+ * to some slot.
  *
- * The set of slots is divided into 1..n partitions. Each key is hashed into
- * exactly one partition.
+ * In case a slot already has a key/value pair and the key of that value and the key of
+ * the value to be inserted are them same, the values are reduced according to
+ * some reduce function. No key/value is added to the data structure.
+ *
+ * If the keys are different, the next slot (moving to the right) is considered.
+ * If the slot is occupied, the same procedure happens again (know as linear probing.)
+ *
+ * Finally, the key/value pair to be inserted may either:
+ *
+ * 1.) Be reduced with some other key/value pair, sharing the same key.
+ * 2.) Inserted at a free slot.
+ * 3.) Trigger a resize of the data structure in case there are no more free slots in
+ *     the data structure.
+ *
+ * The following illustrations shows the general structure of the data structure.
+ * The set of slots is divided into 1..n partitions. Each key is hashed into exactly
+ * one partition.
  *
  *
  *     Partition 0 Partition 1 Partition 2 Partition 3 Partition 4
@@ -120,8 +134,6 @@ public:
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
      *
-     * The set of slots is divided into 1..n partitions. Each key is hashed into exactly one partition.
-     *
      * \param num_partitions The number of partitions.
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
@@ -136,7 +148,7 @@ public:
      *                  is greater than max_partition_fill_ratio, resize.
      * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
      *                  of the partition with the most items gets flushed.
-     * \param hash_function Hash function to be used for hashing.
+     * \param index_function Function to be used for computing the slot the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
     ReducePreProbingTable(size_t num_partitions,
@@ -218,9 +230,10 @@ public:
      * already in the table and the key of the value to be inserted are the same.
      *
      * An insert may trigger a partial flush of the partition with the most items if the maximal
-     * number of items in the table is reached. Alternatively, it may  trigger a resize of table in
-     * case maximal fill ratio or maximal number of items per partition is reached.s
-     * in the table is reached.
+     * number of items in the table (max_num_items_table) is reached.
+     *
+     * Alternatively, it may trigger a resize of the table in case the maximal fill ratio
+     * per partition is reached.
      *
      * \param p Value to be inserted into the table.
      */
@@ -390,7 +403,7 @@ public:
      *
      * @return Size of the table.
      */
-    size_t Size() {
+    size_t Size() const {
         return table_size_;
     }
 
@@ -399,7 +412,7 @@ public:
      *
      * @return Number of items in the table.
      */
-    size_t NumItems() {
+    size_t NumItems() const {
         return num_items_;
     }
 
@@ -408,7 +421,7 @@ public:
      *
      * @return Maximal number of items a partition can hold.
      */
-    size_t NumItemsPerPartition() {
+    size_t NumItemsPerPartition() const {
         return num_items_per_partition_;
     }
 
@@ -417,7 +430,7 @@ public:
      *
      * @return The number of partitions.
      */
-    size_t NumPartitions() {
+    size_t NumPartitions() const {
         return num_partitions_;
     }
 
@@ -428,7 +441,7 @@ public:
      *                  items to be returned..
      * @return The number of items in the partitions.
      */
-    size_t PartitionSize(size_t partition_id) {
+    size_t PartitionNumItems(size_t partition_id) {
         return items_per_partition_[partition_id];
     }
 
@@ -436,9 +449,9 @@ public:
      * Sets the maximum number of items of the hash table. We don't want to push 2vt
      * elements before flush happens.
      *
-     * \param size The maximal number of items a table may hold.
+     * \param size The maximal number of items the table may hold.
      */
-    void SetMaxSize(size_t size) {
+    void SetMaxNumItems(size_t size) {
         max_num_items_table_ = size;
     }
 
@@ -456,8 +469,8 @@ public:
 
     /*!
      * Resizes the table by increasing the number of slots using some
-     * scale factor (num_items_resize_scale_). The current size if multiplied
-     * by the factor.
+     * scale factor (num_items_resize_scale_). All items are rehashed as
+     * part of the operation.
      */
     void ResizeUp() {
         LOG << "Resizing";
@@ -562,7 +575,7 @@ private:
     size_t num_partitions_;
 
     //! Scale factor to compute the initial size
-    //! (=number of slots for items)
+    //! (=number of slots for items).
     size_t num_items_init_scale_;
 
     //! Scale factor to compute the number of slots
@@ -577,7 +590,7 @@ private:
     //! are flushed (-> partial flush).
     size_t max_num_items_table_;
 
-    //! Keeps the total number of items in the table
+    //! Keeps the total number of items in the table.
     size_t num_items_ = 0;
 
     //! Maximal number of items allowed per partition.
