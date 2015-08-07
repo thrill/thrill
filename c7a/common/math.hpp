@@ -14,6 +14,9 @@
 
 #include <c7a/api/context.hpp>
 
+#include <algorithm>
+#include <tuple>
+
 namespace c7a {
 namespace common {
 

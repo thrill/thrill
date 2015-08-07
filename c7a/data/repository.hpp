@@ -33,7 +33,7 @@ public:
     using ObjectPtr = std::shared_ptr<Object>;
 
     //! construct with initial ids 0.
-    Repository(size_t num_workers_per_node)
+    explicit Repository(size_t num_workers_per_node)
         : next_id_(num_workers_per_node, 0) { }
 
     //! Alllocates the next data target.

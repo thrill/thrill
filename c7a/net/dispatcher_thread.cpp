@@ -15,6 +15,7 @@
 
 #include <csignal>
 #include <deque>
+#include <string>
 #include <vector>
 
 namespace c7a {

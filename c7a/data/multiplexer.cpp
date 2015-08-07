@@ -11,6 +11,8 @@
 #include <c7a/data/channel.hpp>
 #include <c7a/data/multiplexer.hpp>
 
+#include <algorithm>
+
 namespace c7a {
 namespace data {
 

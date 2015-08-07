@@ -39,7 +39,7 @@ struct BlockHeader {
 
     BlockHeader() = default;
 
-    BlockHeader(const Block& b)
+    explicit BlockHeader(const Block& b)
         : size(b.size()),
           first_item(b.first_item_relative()),
           nitems(b.nitems())
@@ -75,7 +75,7 @@ struct ChannelBlockHeader : public BlockHeader {
 
     ChannelBlockHeader() = default;
 
-    ChannelBlockHeader(const Block& b)
+    explicit ChannelBlockHeader(const Block& b)
         : BlockHeader(b)
     { }
 
@@ -115,7 +115,7 @@ struct PartitionBlockHeader : public BlockHeader {
 
     PartitionBlockHeader() = default;
 
-    PartitionBlockHeader(const Block& b)
+    explicit PartitionBlockHeader(const Block& b)
         : BlockHeader(b)
     { }
 
