@@ -16,6 +16,7 @@
 #include <c7a/common/functional.hpp>
 #include <c7a/net/group.hpp>
 
+#include <functional>
 #include <string>
 #include <vector>
 

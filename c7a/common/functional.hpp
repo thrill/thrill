@@ -13,6 +13,7 @@
 #ifndef C7A_COMMON_FUNCTIONAL_HEADER
 #define C7A_COMMON_FUNCTIONAL_HEADER
 
+#include <algorithm>
 #include <utility>
 
 namespace c7a {

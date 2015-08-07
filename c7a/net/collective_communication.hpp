@@ -19,7 +19,9 @@
 
 #include <c7a/common/functional.hpp>
 #include <c7a/net/group.hpp>
+
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 
 namespace c7a {
