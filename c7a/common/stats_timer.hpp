@@ -68,11 +68,24 @@ public:
     //! Whether the timer is real
     bool Real() const { return true; }
 
+    //! Whether the timer is running
+    bool running() const {
+        return running_;
+    }
+
     //! start timer
     void Start() {
         assert(!running_);
         running_ = true;
         last_start_ = steady_clock::now();
+    }
+
+    //! start timer only if it not running
+    void StartEventually() {
+        if(!running_) {
+            running_ = true;
+            last_start_ = steady_clock::now();
+        }
     }
 
     //! stop timer
@@ -81,6 +94,12 @@ public:
         running_ = false;
         accumulated_ += std::chrono::duration_cast<duration>(
             steady_clock::now() - last_start_);
+    }
+
+    //! stop timer if it is running
+    void StopEventually() {
+        if (running_)
+            Stop();
     }
 
     //! return accumulated time
@@ -147,13 +166,27 @@ public:
     //! Whether the timer is real
     bool Real() const { return false; }
 
+    //! Whether the timer is running
+    bool running() const {
+        return false;
+    }
+
     //! start timer
     void Start()
+    { }
+
+    //! start timer only if it not running
+    void StartEventually()
     { }
 
     //! stop timer
     void Stop()
     { }
+
+    //! stop timer if it is running
+    void StopEventually() {
+    }
+
 
     //! return accumulated time
     void Reset()
