@@ -13,13 +13,13 @@
 #define C7A_DATA_CHANNEL_SINK_HEADER
 
 #include <c7a/common/logger.hpp>
+#include <c7a/common/stats_counter.hpp>
+#include <c7a/common/stats_timer.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
-#include <c7a/common/stats_counter.hpp>
-#include <c7a/common/stats_timer.hpp>
 
 namespace c7a {
 namespace data {
@@ -37,11 +37,11 @@ public:
     using ChannelId = size_t;
     //use ptr because the default ctor cannot leave references unitialized
     using StatsCounterPtr = common::StatsCounter<size_t, common::g_enable_stats>*;
-    using StatsTimerPtr   = common::StatsTimer<common::g_enable_stats>*;
+    using StatsTimerPtr = common::StatsTimer<common::g_enable_stats>*;
 
     //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    ChannelSink() : closed_(true) {}
+    ChannelSink() : closed_(true) { }
 
     /*! ChannelSink sending out to network.
      * \param dispatcher used for sending data via a socket
@@ -66,7 +66,6 @@ public:
     { }
 
     ChannelSink(ChannelSink&&) = default;
-
 
     //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
     void AppendBlock(const Block& b) final {
@@ -139,7 +138,7 @@ protected:
 
     StatsCounterPtr byte_counter_;
     StatsCounterPtr block_counter_;
-    StatsTimerPtr   tx_timespan_;
+    StatsTimerPtr tx_timespan_;
 };
 
 //! \}

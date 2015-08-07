@@ -169,16 +169,16 @@ public:
             assert(!c->rx_timespan_.running());
             assert(!c->tx_timespan_.running());
             stats_node_->AddStatsMsg(
-                 "channel " + std::to_string(c->id()) + "; " +
-                 "incoming_bytes "   + std::to_string(c->incoming_bytes_.value()) + "; " +
-                 "incoming_blocks "  + std::to_string(c->incoming_blocks_.value()) + "; " +
-                 "outgoing_bytes "   + std::to_string(c->outgoing_bytes_.value()) + "; " +
-                 "outgoing_blocks "  + std::to_string(c->outgoing_blocks_.value()) + "; " +
-                 "rx_lifetime (us) " + std::to_string(c->rx_lifetime_.Microseconds()) + "; " +
-                 "tx_lifetime (us) " + std::to_string(c->tx_lifetime_.Microseconds()) + "; " +
-                 "rx_timespan (us) " + std::to_string(c->rx_timespan_.Microseconds()) + "; " +
-                 "tx_timespan (us) " + std::to_string(c->tx_timespan_.Microseconds())
-                , LogType::NETWORK);
+                "channel " + std::to_string(c->id()) + "; " +
+                "incoming_bytes " + std::to_string(c->incoming_bytes_.value()) + "; " +
+                "incoming_blocks " + std::to_string(c->incoming_blocks_.value()) + "; " +
+                "outgoing_bytes " + std::to_string(c->outgoing_bytes_.value()) + "; " +
+                "outgoing_blocks " + std::to_string(c->outgoing_blocks_.value()) + "; " +
+                "rx_lifetime (us) " + std::to_string(c->rx_lifetime_.Microseconds()) + "; " +
+                "tx_lifetime (us) " + std::to_string(c->tx_lifetime_.Microseconds()) + "; " +
+                "rx_timespan (us) " + std::to_string(c->rx_timespan_.Microseconds()) + "; " +
+                "tx_timespan (us) " + std::to_string(c->tx_timespan_.Microseconds()),
+                LogType::NETWORK);
         }
     }
 
