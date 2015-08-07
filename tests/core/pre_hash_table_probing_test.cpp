@@ -42,6 +42,8 @@ public:
         size_t partition_id = 0;
         size_t local_index = v / 2;
 
+        (*ht).NumItems();
+
         return index_result(partition_id, local_index, global_index);
     }
 
@@ -149,7 +151,7 @@ TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
     c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
-    table.SetMaxSize(3);
+    table.SetMaxNumItems(3);
 
     table.Insert(0);
     table.Insert(1);
@@ -388,7 +390,7 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
     table(2, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
     ASSERT_EQ(0u, table.NumItems());
-    table.SetMaxSize(5);
+    table.SetMaxNumItems(5);
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
@@ -419,19 +421,19 @@ TEST_F(ReducePreProbingTable, ResizeOnePartition) {
     table.Insert(0);
 
     ASSERT_EQ(2u, table.Size());
-    ASSERT_EQ(1u, table.PartitionSize(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(0));
     ASSERT_EQ(1u, table.NumItems());
 
     table.Insert(1);
 
     ASSERT_EQ(2u, table.Size());
-    ASSERT_EQ(2u, table.PartitionSize(0));
+    ASSERT_EQ(2u, table.PartitionNumItems(0));
     ASSERT_EQ(2u, table.NumItems());
 
     table.Insert(2); // Resize happens here
 
     ASSERT_EQ(20u, table.Size());
-    ASSERT_EQ(3u, table.PartitionSize(0));
+    ASSERT_EQ(3u, table.PartitionNumItems(0));
     ASSERT_EQ(3u, table.NumItems());
 
     table.Flush();
@@ -469,29 +471,29 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
 
     ASSERT_EQ(0u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(0u, table.PartitionSize(0));
-    ASSERT_EQ(0u, table.PartitionSize(1));
+    ASSERT_EQ(0u, table.PartitionNumItems(0));
+    ASSERT_EQ(0u, table.PartitionNumItems(1));
 
     table.Insert(0);
     table.Insert(1);
 
     ASSERT_EQ(2u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(1u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.PartitionSize(1));
+    ASSERT_EQ(1u, table.PartitionNumItems(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(1));
 
     table.Insert(2);
 
     ASSERT_EQ(3u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(2u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.PartitionSize(1));
+    ASSERT_EQ(2u, table.PartitionNumItems(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(1));
 
     table.Insert(3); // Resize happens here
 
     ASSERT_EQ(4u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(4u, table.PartitionSize(0) + table.PartitionSize(1));
+    ASSERT_EQ(4u, table.PartitionNumItems(0) + table.PartitionNumItems(1));
 }
 
 TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
@@ -521,7 +523,7 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
           nitems);
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
     ASSERT_EQ(0u, table.NumItems());
@@ -545,7 +547,7 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
     }
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
     ASSERT_EQ(0u, table.NumItems());
@@ -568,7 +570,7 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(0u, table.NumItems());
 
