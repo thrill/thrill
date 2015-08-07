@@ -86,6 +86,10 @@ public:
     {
         return value_;
     }
+
+    ValueType value() const {
+        return value_;
+    }
 };
 
 template <typename _ValueType>
@@ -116,6 +120,10 @@ public:
 
     operator ValueType () const
     {
+        return ValueType();
+    }
+
+    ValueType value() const {
         return ValueType();
     }
 };
