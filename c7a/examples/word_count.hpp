@@ -16,7 +16,7 @@
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/size.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <c7a/common/string.hpp>
 
 #include <algorithm>
