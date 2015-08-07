@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -27,7 +28,7 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIARef>
-class WriteNode : public ActionNode
+class WriteLinesManyNode : public ActionNode
 {
     static const bool debug = false;
 
@@ -36,13 +37,12 @@ public:
     using Super::result_file_;
     using Super::context_;
 
-    WriteNode(const ParentDIARef& parent,
+    WriteLinesManyNode(const ParentDIARef& parent,
               const std::string& path_out,
               StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           path_out_(path_out),
-          file_(path_out_),
-          emit_(file_)
+          file_(path_out_)
     {
         sLOG << "Creating write node.";
 
@@ -52,17 +52,17 @@ public:
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain);
+        parent.node()->RegisterChild(lop_chain); 
     }
 
     void PreOp(ValueType input) {
-        emit_(input);
+		file_ << input << "\n";
     }
 
     //! Closes the output file
     void Execute() final {
         sLOG << "closing file" << path_out_;
-        emit_.Close();
+		file_.close();
     }
 
     void Dispose() final { }
@@ -75,60 +75,27 @@ public:
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 
-protected:
-    //! OutputEmitter let's you write to files. Each element is written
-    //! using ostream.
-    class OutputEmitter
-    {
-    public:
-        explicit OutputEmitter(std::ofstream& file)
-            : out_(file) { }
-
-        //! write item out using ostream formatting / serialization.
-        void operator () (const ValueType& v) {
-            out_ << v;
-        }
-
-        //! Flushes and closes the block (cannot be undone)
-        //! No further emitt operations can be done afterwards.
-        void Close() {
-            assert(!closed_);
-            closed_ = true;
-            out_.close();
-        }
-
-        //! Writes the data to the target without closing the emitter
-        void Flush() {
-            out_.flush();
-        }
-
-    private:
-        //! output stream
-        std::ofstream& out_;
-
-        //! whether the output stream is closed.
-        bool closed_ = false;
-    };
-
 private:
     //! Path of the output file.
     std::string path_out_;
 
     //! File to write to
     std::ofstream file_;
-
-    //! Emitter to file
-    OutputEmitter emit_;
 };
 
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::WriteToFileSystem(
+void DIARef<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath) const {
 
-    using WriteResultNode = WriteNode<ValueType, DIARef>;
+	
+	static_assert(std::is_same<ValueType, std::string>::value,
+				  "WriteLinesMany needs an std::string as input parameter");
 
-    StatsNode* stats_node = AddChildStatsNode("Write", NodeType::ACTION);
-    auto shared_node =
+    using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
+
+	StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", NodeType::ACTION);
+    
+	auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
                                           stats_node);

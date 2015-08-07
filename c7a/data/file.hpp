@@ -63,6 +63,7 @@ public:
         if (b.size() == 0) return;
         blocks_.push_back(b);
         nitems_sum_.push_back(NumItems() + b.nitems());
+        size_ += b.size();
     }
 
     void Close() final {
@@ -87,8 +88,8 @@ public:
         return nitems_sum_.size() ? nitems_sum_.back() : 0;
     }
 
-    //! Return the number of bytes used by the underlying blocks
-    //size_t TotalBytes() const { return NumBlocks() * block_size; }
+    //! Return the number of bytes of user data in this file.
+    size_t TotalSize() const { return size_; }
 
     //! Return shared pointer to a block
     const Block & block(size_t i) const {
@@ -149,6 +150,9 @@ protected:
     //! nitems_sum_[i] is the number of items starting in all blocks preceding
     //! and including the i-th block.
     std::vector<size_t> nitems_sum_;
+
+    //! Total size of this file in bytes. Sum of all block sizes.
+    size_t size_ = 0;
 
     //! for access to blocks_ and used_
     friend class data::FileBlockSource;

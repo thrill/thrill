@@ -18,7 +18,8 @@
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -57,10 +58,48 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
                                    writer_size++;
                                    return std::to_string(item) + "\n";
                                })
-                           .WriteToFileSystem("test1.out");
+                           .WriteLinesMany("test1.out");
 
                            ASSERT_EQ(generate_size, writer_size);
                        });
+}
+
+TEST(Operations, WriteToSingleFile) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+	    	std::string path = "testsf.out";
+
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
+            integers.Map(
+                [](const int& item) {
+                    return std::to_string(item);
+                })
+            .WriteLines(path);
+
+			//Race condition as one worker might be finished while others
+			//are still writing to output file.
+			context.flow_control_channel().Await();
+			std::ifstream file(path);
+			size_t begin = file.tellg();
+			file.seekg(0, std::ios::end);
+			size_t end = file.tellg();
+			ASSERT_EQ(end-begin, 39);
+			file.seekg(0);
+			for (int i = 1; i <= 16; i++) {
+				std::string line;
+				std::getline(file, line);
+				ASSERT_EQ(std::stoi(line), i);
+			}
+        };
+
+    api::RunLocalTests(start_func);
+
+
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
