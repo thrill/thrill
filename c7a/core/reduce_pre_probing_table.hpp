@@ -144,7 +144,8 @@ public:
                           size_t num_items_resize_scale,
                           double max_partition_fill_ratio,
                           size_t max_num_items_table,
-                          KeyExtractor key_extractor, ReduceFunction reduce_function,
+                          KeyExtractor key_extractor,
+                          ReduceFunction reduce_function,
                           std::vector<data::BlockWriter>& emit,
                           Key sentinel,
                           const IndexFunction& index_function = IndexFunction(),
@@ -244,6 +245,9 @@ public:
     void Insert(const KeyValuePair& kv) {
 
         index_result h = index_function_(kv.first, this);
+
+        if (!(h.partition_id >= 0 && h.partition_id < num_partitions_))
+            std::cout << "bamm" << std::endl;
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
