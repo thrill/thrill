@@ -41,8 +41,7 @@ public:
               StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           path_out_(path_out),
-          file_(path_out_),
-          emit_(file_)
+          file_(path_out_)
     {
         sLOG << "Creating write node.";
 
@@ -56,13 +55,13 @@ public:
     }
 
     void PreOp(ValueType input) {
-        emit_(input);
+		file_ << input;
     }
 
     //! Closes the output file
     void Execute() override {
         sLOG << "closing file" << path_out_;
-        emit_.Close();
+		file_.close();
     }
 
     void Dispose() override { }
@@ -75,50 +74,12 @@ public:
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 
-protected:
-    //! OutputEmitter let's you write to files. Each element is written
-    //! using ostream.
-    class OutputEmitter
-    {
-    public:
-        explicit OutputEmitter(std::ofstream& file)
-            : out_(file) { }
-
-        //! write item out using ostream formatting / serialization.
-        void operator () (const ValueType& v) {
-            out_ << v;
-        }
-
-        //! Flushes and closes the block (cannot be undone)
-        //! No further emitt operations can be done afterwards.
-        void Close() {
-            assert(!closed_);
-            closed_ = true;
-            out_.close();
-        }
-
-        //! Writes the data to the target without closing the emitter
-        void Flush() {
-            out_.flush();
-        }
-
-    private:
-        //! output stream
-        std::ofstream& out_;
-
-        //! whether the output stream is closed.
-        bool closed_ = false;
-    };
-
 private:
     //! Path of the output file.
     std::string path_out_;
 
     //! File to write to
     std::ofstream file_;
-
-    //! Emitter to file
-    OutputEmitter emit_;
 };
 
 template <typename ValueType, typename Stack>
