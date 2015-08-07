@@ -18,8 +18,8 @@
 #include <c7a/data/block_queue.hpp>
 #include <c7a/data/channel_sink.hpp>
 #include <c7a/data/concat_block_source.hpp>
-#include <c7a/data/dyn_block_reader.hpp>
 #include <c7a/data/file.hpp>
+#include <c7a/data/multiplexer.hpp>
 #include <c7a/data/multiplexer_header.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/group.hpp>
@@ -81,32 +81,30 @@ public:
     using ClosedCallback = std::function<void()>;
 
     //! Creates a new channel instance
-    Channel(const ChannelId& id, net::Group& group,
-            net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_host)
-        :  tx_lifetime_(true), rx_lifetime_(true),
+    Channel(data::Multiplexer& multiplexer, const ChannelId& id,
+            size_t my_local_worker_id)
+        : tx_lifetime_(true), rx_lifetime_(true),
           tx_timespan_(), rx_timespan_(),
           id_(id),
-          queues_(group.num_hosts() * workers_per_host),
-          cache_files_(group.num_hosts() * workers_per_host),
-          group_(group),
-          dispatcher_(dispatcher),
-          my_local_worker_id_(my_local_worker_id),
-          workers_per_host_(workers_per_host),
-          expected_closing_blocks_((group.num_hosts() - 1) * workers_per_host),
+          multiplexer_(multiplexer),
+          queues_(multiplexer_.num_workers()),
+          cache_files_(multiplexer_.num_workers()),
+          expected_closing_blocks_(
+              (multiplexer_.num_hosts() - 1) * multiplexer_.num_workers_per_host_),
           received_closing_blocks_(0) {
         // construct ChannelSink array
-        for (size_t host = 0; host < group_.num_hosts(); ++host) {
-            for (size_t worker = 0; worker < workers_per_host_; worker++) {
-                if (host == group_.my_host_rank()) {
+        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
+            for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
+                if (host == multiplexer_.my_host_rank()) {
                     sinks_.emplace_back();
                 }
                 else {
                     sinks_.emplace_back(
-                        &dispatcher, &group_.connection(host),
+                        &multiplexer_.dispatcher_,
+                        &multiplexer_.group_->connection(host),
                         id,
-                        group_.my_host_rank(),
-                        my_local_worker_id_,
-                        worker, &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
+                        multiplexer_.my_host_rank(), my_local_worker_id, worker,
+                        &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
             }
         }
@@ -124,17 +122,17 @@ public:
         return id_;
     }
 
-    //! Creates BlockWriters for each woker. BlockWriter can only be opened
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<BlockWriter> OpenWriters(size_t block_size = default_block_size) {
         tx_timespan_.StartEventually();
 
         std::vector<BlockWriter> result;
 
-        for (size_t host_rank = 0; host_rank < group_.num_hosts(); ++host_rank) {
-            for (size_t local_worker_id = 0; local_worker_id < workers_per_host_; ++local_worker_id) {
-                size_t worker_id = host_rank * workers_per_host_ + local_worker_id;
-                if (host_rank == group_.my_host_rank()) {
+        for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
+            for (size_t local_worker_id = 0; local_worker_id < multiplexer_.num_workers_per_host_; ++local_worker_id) {
+                size_t worker_id = host * multiplexer_.num_workers_per_host_ + local_worker_id;
+                if (host == multiplexer_.my_host_rank()) {
                     result.emplace_back(&queues_[worker_id], block_size);
                 }
                 else {
@@ -143,7 +141,7 @@ public:
             }
         }
 
-        assert(result.size() == num_workers());
+        assert(result.size() == multiplexer_.num_workers());
         return result;
     }
 
@@ -155,11 +153,11 @@ public:
 
         std::vector<BlockQueueReader> result;
 
-        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
-            result.emplace_back(BlockQueueSource(queues_[local_worker_id]));
+        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
+            result.emplace_back(BlockQueueSource(queues_[worker]));
         }
 
-        assert(result.size() == num_workers());
+        assert(result.size() == multiplexer_.num_workers());
         return result;
     }
 
@@ -172,8 +170,8 @@ public:
         // construct vector of BlockQueueSources to read from queues_.
         std::vector<BlockQueueSource> result;
 
-        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
-            result.emplace_back(queues_[local_worker_id]);
+        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
+            result.emplace_back(queues_[worker]);
         }
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
         return ConcatBlockReader(ConcatBlockSource(result));
@@ -188,8 +186,8 @@ public:
 
         // construct vector of CachingBlockQueueSources to read from queues_.
         std::vector<CachingBlockQueueSource> result;
-        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
-            result.emplace_back(queues_[local_worker_id], cache_files_[local_worker_id]);
+        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
+            result.emplace_back(queues_[worker], cache_files_[worker]);
         }
         // move CachingBlockQueueSources into concatenation BlockSource, and to
         // Reader.
@@ -219,24 +217,24 @@ public:
 
         std::vector<BlockWriter> writers = OpenWriters();
 
-        for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
+        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
             // write [current,limit) to this worker
-            size_t limit = offsets[local_worker_id];
+            size_t limit = offsets[worker];
             assert(current <= limit);
 #if 0
             for ( ; current < limit; ++current) {
                 assert(reader.HasNext());
                 // move over one item (with deserialization and serialization)
-                writers[local_worker_id](reader.template Next<ItemType>());
+                writers[worker](reader.template Next<ItemType>());
             }
 #else
             if (current != limit) {
-                writers[local_worker_id].AppendBlocks(
+                writers[worker].AppendBlocks(
                     reader.template GetItemBatch<ItemType>(limit - current));
                 current = limit;
             }
 #endif
-            writers[local_worker_id].Close();
+            writers[worker].Close();
         }
 
         tx_timespan_.Stop();
@@ -251,8 +249,8 @@ public:
         }
 
         // close self-loop queues
-        for (size_t my_worker = 0; my_worker < workers_per_host_; my_worker++) {
-            size_t local_worker_id = group_.my_host_rank() + my_worker;
+        for (size_t my_worker = 0; my_worker < multiplexer_.num_workers_per_host_; my_worker++) {
+            size_t local_worker_id = multiplexer_.my_host_rank() + my_worker;
             if (!queues_[local_worker_id].write_closed())
                 queues_[local_worker_id].Close();
         }
@@ -294,6 +292,7 @@ public:
     }
 
     ///////// expse these members - getters would be too java-ish /////////////
+
     //! StatsCounter for incoming data transfer
     //! Do not include loopback data transfer
     StatsCounter incoming_bytes_, incoming_blocks_;
@@ -307,12 +306,16 @@ public:
 
     //! Timers from first rx / tx package until rx / tx direction is closed.
     StatsTimer tx_timespan_, rx_timespan_;
+
     ///////////////////////////////////////////////////////////////////////////
 
 protected:
     static const bool debug = false;
 
     ChannelId id_;
+
+    //! reference to multiplexer
+    data::Multiplexer& multiplexer_;
 
     //! ChannelSink objects are receivers of Blocks outbound for other worker.
     std::vector<ChannelSink> sinks_;
@@ -323,13 +326,6 @@ protected:
     //! Vector of Files to cache inbound Blocks needed for OpenCachingReader().
     std::vector<File> cache_files_;
 
-    net::Group& group_;
-    net::DispatcherThread& dispatcher_;
-
-    size_t my_local_worker_id_;
-
-    size_t workers_per_host_;
-
     //! number of expected / received stream closing operations. Required to know when to
     //! stop rx_lifetime
     size_t expected_closing_blocks_, received_closing_blocks_;
@@ -337,11 +333,8 @@ protected:
     //! Callbacks that are called once when the channel is closed (r+w)
     std::vector<ClosedCallback> closed_callbacks_;
 
+    //! for calling methods to deliver blocks
     friend class Multiplexer;
-
-    size_t num_workers() const {
-        return group_.num_hosts() * workers_per_host_;
-    }
 
     //! called from Multiplexer when there is a new Block on a
     //! Channel.

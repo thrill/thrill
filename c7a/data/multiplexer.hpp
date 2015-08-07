@@ -49,10 +49,10 @@ struct ChannelBlockHeader;
 class Multiplexer
 {
 public:
-    explicit Multiplexer(size_t num_workers_per_node)
+    explicit Multiplexer(size_t num_workers_per_host)
         : dispatcher_("multiplexer"),
-          num_workers_per_node_(num_workers_per_node),
-          channels_(num_workers_per_node) { }
+          num_workers_per_host_(num_workers_per_host),
+          channels_(num_workers_per_host) { }
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;
@@ -70,6 +70,21 @@ public:
             if (id == group_->my_host_rank()) continue;
             AsyncReadChannelBlockHeader(group_->connection(id));
         }
+    }
+
+    //! total number of hosts.
+    size_t num_hosts() const {
+        return group_->num_hosts();
+    }
+
+    //! my rank among the hosts.
+    size_t my_host_rank() const {
+        return group_->my_host_rank();
+    }
+
+    //! total number of workers.
+    size_t num_workers() const {
+        return num_hosts() * num_workers_per_host_;
     }
 
     //! Allocate the next channel
@@ -102,11 +117,14 @@ private:
     // Holds NetConnections for outgoing Channels
     net::Group* group_ = nullptr;
 
-    //! Number of workers per node
-    size_t num_workers_per_node_;
+    //! Number of workers per host
+    size_t num_workers_per_host_;
 
     //! protects critical sections
     common::MutexMovable mutex_;
+
+    //! friends for access to network components
+    friend class Channel;
 
     /**************************************************************************/
 
