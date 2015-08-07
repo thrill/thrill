@@ -96,10 +96,13 @@ public:
         switch (type) {
         case LogType::EXECUTION:
             sLOG1 << "[Execution]" << msg;
+            break;
         case LogType::NETWORK:
             sLOG1 << "[Network]" << msg;
+            break;
         case LogType::INFO:
             sLOG1 << "[Info]" << msg;
+            break;
         default:
             break;
         }

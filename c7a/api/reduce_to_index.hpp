@@ -224,6 +224,8 @@ private:
         //Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
+        channel_->Close();
+        this->WriteChannelStats(channel_);
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.

@@ -92,7 +92,9 @@ public:
 
     void PushData() final {
         size_t result_count = 0;
-
+        //TODO(ej) - call WriteChannelStats() for each channel when these
+        //when they are closed ( = you read all data + called Close() on the
+        //channels).
         if (result_size_ != 0) {
             // get inbound readers from all Channels
             std::vector<data::Channel::CachingConcatReader> readers {

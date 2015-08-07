@@ -339,6 +339,7 @@ private:
                 splitters.push_back(reader.template Next<ValueType>());
             }
         }
+        channel_id_samples_->Close();
 
         //code from SS2NPartition, slightly altered
 
@@ -376,10 +377,13 @@ private:
         while (reader.HasNext()) {
             data_.push_back(reader.template Next<ValueType>());
         }
+        channel_id_data_->Close();
 
         LOG << "node " << context_.my_rank() << " : " << data_.size();
 
         std::sort(data_.begin(), data_.end(), compare_function_);
+        this->WriteChannelStats(channel_id_data_);
+        this->WriteChannelStats(channel_id_samples_);
     }
 
     void PostOp() { }
