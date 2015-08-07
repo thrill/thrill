@@ -62,7 +62,7 @@ size_t WordCountBasic(Context& ctx) {
 
     red_words.Map(
         [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second) + "\n";
+            return wc.first + ": " + std::to_string(wc.second);
         })
     .WriteLinesMany(
         "wordcount_" + std::to_string(ctx.rank()) + ".out");
@@ -83,7 +83,7 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
 
     reduced_words.Map(
         [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second) + "\n";
+            return wc.first + ": " + std::to_string(wc.second);
         })
     .WriteLinesMany(
         "wordcount_" + std::to_string(ctx.rank()) + ".out");
