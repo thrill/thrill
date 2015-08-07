@@ -31,7 +31,7 @@ namespace api {
 template <typename ValueType, typename ParentDIARef>
 class WriteLinesNode : public ActionNode
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     using Super = ActionNode;
@@ -39,14 +39,13 @@ public:
     using Super::context_;
 
     WriteLinesNode(const ParentDIARef& parent,
-              const std::string& path_out,
-              StatsNode* stats_node)
+				   const std::string& path_out,
+				   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
                      "WriteSingleFile", stats_node),
           path_out_(path_out),
           file_(path_out_),
-          writer_(result_file_.GetWriter()),
-          emit_(file_)
+          writer_(result_file_.GetWriter())
     {
         sLOG << "Creating write node.";
 
@@ -62,22 +61,29 @@ public:
 
     void PreOp(ValueType input) {
         writer_(input);
-        emit_(input);
+		size_ += input.size() + 1;
     }
 
     //! Closes the output file
     void Execute() override {
         writer_.Close();
 
+		//(Portable) allocation of output file, setting individual file pointers. 
+        size_t prefix_elem = context_.flow_control_channel().PrefixSum(size_, std::plus<size_t>(), false);
+		if (context_.rank() == context_.number_worker() - 1) {
+			file_.seekp(prefix_elem + size_ - 1);
+			file_.put('\0');
+		}		
+		file_.seekp(prefix_elem);		
+		context_.flow_control_channel().Await();
+
         data::File::Reader reader = result_file_.GetReader();
             
         for (size_t i = 0; i < result_file_.NumItems(); ++i) {
-            sLOG << "element: " << reader.Next<ValueType>();
+            file_ << reader.Next<ValueType>() << "\n";
         }
-        
-        sLOG << "size: " << result_file_.TotalSize();
-        sLOG << "closing file" << path_out_;
-        emit_.Close();
+
+		file_.close();
     }
 
     void Dispose() override { }
@@ -90,41 +96,6 @@ public:
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 
-protected:
-    //! OutputEmitter let's you write to files. Each element is written
-    //! using ostream.
-    class OutputEmitter
-    {
-    public:
-        explicit OutputEmitter(std::ofstream& file)
-            : out_(file) { }
-
-        //! write item out using ostream formatting / serialization.
-        void operator () (const ValueType& v) {
-            out_ << v;
-        }
-
-        //! Flushes and closes the block (cannot be undone)
-        //! No further emitt operations can be done afterwards.
-        void Close() {
-            assert(!closed_);
-            closed_ = true;
-            out_.close();
-        }
-
-        //! Writes the data to the target without closing the emitter
-        void Flush() {
-            out_.flush();
-        }
-
-    private:
-        //! output stream
-        std::ofstream& out_;
-
-        //! whether the output stream is closed.
-        bool closed_ = false;
-    };
-
 private:
     //! Path of the output file.
     std::string path_out_;
@@ -132,16 +103,19 @@ private:
     //! File to write to
     std::ofstream file_;
 
+	//! Local file size
+	size_t size_ = 0;
+
     //! File writer used.
     data::File::Writer writer_;
-
-    //! Emitter to file
-    OutputEmitter emit_;
 };
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLines(
     const std::string& filepath) const {
+
+	static_assert(std::is_same<ValueType, std::string>::value,
+				  "WriteLines needs an std::string as input parameter");
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 

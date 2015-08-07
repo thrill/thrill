@@ -60,7 +60,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
             EXPECT_GE(item, 1);
             EXPECT_GE(16, item);
             writer_size++;
-            return std::to_string(item) + "\n";
+            return std::to_string(item);
         })
     .WriteLinesMany("test1.out");
 
@@ -72,19 +72,27 @@ TEST(Operations, WriteToSingleFile) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
+	    	std::string path = "testsf.out";
+
             auto integers = ReadLines(ctx, "test1")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
             integers.Map(
                 [](const int& item) {
-                    return std::to_string(item) + "\n";
+                    return std::to_string(item);
                 })
-            .WriteLines("testsf.out");
-            
+            .WriteLines(path);  
+			std::ifstream file(path);
+			size_t begin = file.tellg();
+			file.seekg(0, std::ios::end);
+			size_t end = file.tellg();
+			ASSERT_EQ(end-begin, 39);
         };
 
     api::ExecuteLocalTests(start_func);
+
+
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {

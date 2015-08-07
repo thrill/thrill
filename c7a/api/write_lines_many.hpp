@@ -56,7 +56,7 @@ public:
     }
 
     void PreOp(ValueType input) {
-		file_ << input;
+		file_ << input << "\n";
     }
 
     //! Closes the output file
@@ -86,6 +86,10 @@ private:
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath) const {
+
+	
+	static_assert(std::is_same<ValueType, std::string>::value,
+				  "WriteLinesMany needs an std::string as input parameter");
 
     using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
 
