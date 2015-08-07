@@ -87,8 +87,7 @@ public:
         return channels_.find(std::make_pair(local_worker_id, id)) != channels_.end();
     }
 
-    //TODO Method to access channel via queue -> requires vec<Queue> or MultiQueue
-    //TODO Method to access channel via callbacks
+    //TODO(ts) Method to access channel via callbacks
 
     //! Allocate the next channel
     //! \param local_worker_id of the local worker who requested the channel
