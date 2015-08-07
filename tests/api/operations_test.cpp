@@ -79,7 +79,11 @@ TEST(Operations, WriteToSingleFile) {
                 [](const int& item) {
                     return std::to_string(item);
                 })
-            .WriteLines(path);  
+            .WriteLines(path);
+
+			//Race condition as one worker might be finished while others
+			//are still writing to output file.
+			context.flow_control_channel().Await();
 			std::ifstream file(path);
 			size_t begin = file.tellg();
 			file.seekg(0, std::ios::end);
