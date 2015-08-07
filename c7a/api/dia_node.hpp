@@ -13,7 +13,6 @@
 
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/manager.hpp>
 
 #include <string>
 #include <vector>
@@ -44,7 +43,7 @@ public:
     DIANode() { }
 
     /*!
-     * Constructor for a DIANode, which sets references to the DataManager and
+     * Constructor for a DIANode, which sets references to the 
      * parent nodes. Calls the constructor of DIABase with the same parameters.
      *
      * \param ctx Reference to Context, which holds references to data and

@@ -63,9 +63,9 @@ public:
              StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort", stats_node),
           compare_function_(compare_function),
-          channel_id_samples_(parent.ctx().data_manager().GetNewChannel()),
+          channel_id_samples_(parent.ctx().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
-          channel_id_data_(parent.ctx().data_manager().GetNewChannel()),
+          channel_id_data_(parent.ctx().GetNewChannel()),
           emitters_data_(channel_id_data_->OpenWriters())
     {
         // Hook PreOp(s)

@@ -15,7 +15,6 @@
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
-#include <c7a/data/manager.hpp>
 
 #include <string>
 #include <vector>
@@ -39,7 +38,7 @@ public:
                   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "AllGather", stats_node),
           out_vector_(out_vector),
-          channel_(parent.ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
         auto pre_op_function = [=](ValueType input) {

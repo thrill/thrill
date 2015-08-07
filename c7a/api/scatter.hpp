@@ -41,7 +41,7 @@ public:
         : DOpNode<ValueType>(ctx, { }, "Scatter", stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
-          channel_(ctx.data_manager().GetNewChannel()),
+          channel_(ctx.GetNewChannel()),
           emitters_(channel_->OpenWriters())
     { }
 
