@@ -62,7 +62,7 @@ TEST(Stage, CountReferencesSimple) {
             ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Stage, CountReferencesLOpNode) {
@@ -112,7 +112,7 @@ TEST(Stage, CountReferencesLOpNode) {
             ASSERT_EQ(reduced.node_refcount(), 1u);
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Stage, OverwriteReferenceLOpNode) {
@@ -160,7 +160,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
             ASSERT_EQ(quadruples.node_refcount(), 1u);
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Stage, AdditionalChildReferences) {
@@ -214,7 +214,7 @@ TEST(Stage, AdditionalChildReferences) {
             ASSERT_EQ(octuples_second.node_refcount(), 1u);
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

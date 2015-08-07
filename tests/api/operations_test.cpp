@@ -31,35 +31,35 @@ using c7a::api::Context;
 using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
-    api::ExecuteSameThread([](api::Context& ctx) {
-                               std::default_random_engine generator({ std::random_device()() });
-                               std::uniform_int_distribution<int> distribution(1000, 10000);
+    api::RunSameThread([](api::Context& ctx) {
+                           std::default_random_engine generator({ std::random_device()() });
+                           std::uniform_int_distribution<int> distribution(1000, 10000);
 
-                               size_t generate_size = distribution(generator);
+                           size_t generate_size = distribution(generator);
 
-                               auto input = GenerateFromFile(
-                                   ctx,
-                                   "test1",
-                                   [](const std::string& line) {
-                                       return std::stoi(line);
-                                   },
-                                   generate_size);
+                           auto input = GenerateFromFile(
+                               ctx,
+                               "test1",
+                               [](const std::string& line) {
+                                   return std::stoi(line);
+                               },
+                               generate_size);
 
-                               size_t writer_size = 0;
+                           size_t writer_size = 0;
 
-                               input.Map(
-                                   [&writer_size](const int& item) {
-                                       //file contains ints between 1  and 15
-                                       //fails if wrong integer is generated
-                                       EXPECT_GE(item, 1);
-                                       EXPECT_GE(16, item);
-                                       writer_size++;
-                                       return std::to_string(item) + "\n";
-                                   })
-                               .WriteToFileSystem("test1.out");
+                           input.Map(
+                               [&writer_size](const int& item) {
+                                   //file contains ints between 1  and 15
+                                   //fails if wrong integer is generated
+                                   EXPECT_GE(item, 1);
+                                   EXPECT_GE(16, item);
+                                   writer_size++;
+                                   return std::to_string(item) + "\n";
+                               })
+                           .WriteToFileSystem("test1.out");
 
-                               ASSERT_EQ(generate_size, writer_size);
-                           });
+                           ASSERT_EQ(generate_size, writer_size);
+                       });
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
@@ -82,7 +82,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
             ASSERT_EQ((size_t)16, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, ScatterAndAllGatherElementsCorrect) {
@@ -115,7 +115,7 @@ TEST(Operations, ScatterAndAllGatherElementsCorrect) {
             }
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, GenerateIntegers) {
@@ -139,7 +139,7 @@ TEST(Operations, GenerateIntegers) {
             }
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, MapResultsCorrectChangingType) {
@@ -173,7 +173,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
             static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
@@ -213,7 +213,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
                 "Node must be int");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, PrefixSumCorrectResults) {
@@ -241,7 +241,7 @@ TEST(Operations, PrefixSumCorrectResults) {
             ASSERT_EQ((size_t)16, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, PrefixSumFacultyCorrectResults) {
@@ -272,7 +272,7 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
             ASSERT_EQ(10u, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, FilterResultsCorrectly) {
@@ -304,7 +304,7 @@ TEST(Operations, FilterResultsCorrectly) {
             ASSERT_EQ(8u, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, DIARefCasting) {
@@ -336,7 +336,7 @@ TEST(Operations, DIARefCasting) {
             ASSERT_EQ(8u, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, ForLoop) {
@@ -378,7 +378,7 @@ TEST(Operations, ForLoop) {
             ASSERT_EQ(256u, squares.Size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, WhileLoop) {
@@ -422,7 +422,7 @@ TEST(Operations, WhileLoop) {
             ASSERT_EQ(256u, squares.Size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

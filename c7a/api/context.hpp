@@ -142,23 +142,23 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
  * threads, which communicate via internal stream sockets.
  */
 void
-ExecuteLocalMock(size_t host_count, size_t local_host_count,
-                 std::function<void(api::Context&, size_t)> job_startpoint);
+RunLocalMock(size_t host_count, size_t local_host_count,
+             std::function<void(api::Context&, size_t)> job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of workers and hosts as independent threads in one program.
  */
-void ExecuteLocalTests(std::function<void(Context&)> job_startpoint);
+void RunLocalTests(std::function<void(Context&)> job_startpoint);
 
 /*!
- * Executes the given job_startpoint within the same thread -->
+ * Runs the given job_startpoint within the same thread -->
  * one host with one thread
  */
-void ExecuteSameThread(std::function<void(Context&)> job_startpoint);
+void RunSameThread(std::function<void(Context&)> job_startpoint);
 
 /*!
- * Executes the given job startpoint with a context instance.  Startpoints may
+ * Runs the given job startpoint with a context instance.  Startpoints may
  * be called multiple times with concurrent threads and different context
  * instances across different workers.  The c7a configuration is taken from
  * environment variables starting the C7A_.
@@ -170,7 +170,7 @@ void ExecuteSameThread(std::function<void(Context&)> job_startpoint);
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
  */
-int ExecuteEnv(
+int Run(
     std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix = std::string());
 

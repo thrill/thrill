@@ -28,7 +28,7 @@ namespace common {
  * \param size  length of binary data
  * \return      string of hexadecimal pairs
  */
-std::string hexdump(const void* const data, size_t size) __attribute__((pure));
+std::string hexdump(const void* const data, size_t size) __attribute__ ((pure));
 
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
@@ -36,7 +36,7 @@ std::string hexdump(const void* const data, size_t size) __attribute__((pure));
  * \param str  binary data to output in hex
  * \return     string of hexadecimal pairs
  */
-std::string hexdump(const std::string& str) __attribute__((pure));
+std::string hexdump(const std::string& str) __attribute__ ((pure));
 
 /**
  * Checks if the given match string is located at the start of this string.

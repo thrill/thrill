@@ -56,7 +56,7 @@ TEST(Graph, SimpleGraph) {
             ctx.stats_graph().BuildLayout("simple.out");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Graph, WhileLoop) {
@@ -99,7 +99,7 @@ TEST(Graph, WhileLoop) {
             ctx.stats_graph().BuildLayout("loop.out");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

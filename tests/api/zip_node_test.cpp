@@ -61,8 +61,7 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
             }
         };
 
-    // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedIntegerArrays) {
@@ -112,8 +111,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             ASSERT_EQ(100u, zip_result.Size());
         };
 
-    // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
@@ -142,8 +140,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
             ASSERT_EQ(0u, res.size());
         };
 
-    // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedStringArrays) {
@@ -217,8 +214,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
             ASSERT_EQ(check, res);
         };
 
-    //c7a::api::ExecuteLocalThreadsTCP(2, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

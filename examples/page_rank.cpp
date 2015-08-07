@@ -123,7 +123,7 @@ void page_rank(Context& ctx) {
 }
 
 int main(int argc, char* argv[]) {
-    return c7a::api::ExecuteEnv(page_rank);
+    return c7a::api::Run(page_rank);
 }
 
 /******************************************************************************/
