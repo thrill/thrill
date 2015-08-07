@@ -78,6 +78,8 @@ public:
     using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
     using StatsTimer = common::StatsTimer<common::g_enable_stats>;
 
+    using ClosedCallback = std::function<void()>;
+
     //! Creates a new channel instance
     Channel(const ChannelId& id, net::Group& group,
             net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_connection)
@@ -265,6 +267,15 @@ public:
         }
         tx_lifetime_.StopEventually();
         tx_timespan_.StopEventually();
+        CallClosedCallbacksEventually();
+    }
+
+    void CallClosedCallbacksEventually() {
+        if (closed()) {
+            for(const auto& cb : closed_callbacks_)
+                cb();
+            closed_callbacks_.clear();
+        }
     }
 
     //! Indicates if the channel is closed - meaning all remite streams have
@@ -275,6 +286,11 @@ public:
             closed = closed && q.write_closed();
         }
         return closed;
+    }
+
+    //! Adds a Callback that is called when the channel is closed (r+w)
+    void OnClose(ClosedCallback cb) {
+        closed_callbacks_.push_back(cb);
     }
 
     ///////// expse these members - getters would be too java-ish /////////////
@@ -318,6 +334,9 @@ protected:
     //! stop rx_lifetime
     size_t expected_closing_blocks_, received_closing_blocks_;
 
+    //! Callbacks that are called once when the channel is closed (r+w)
+    std::vector<ClosedCallback> closed_callbacks_;
+
     friend class ChannelMultiplexer;
 
     size_t num_workers() const {
@@ -351,8 +370,9 @@ protected:
         assert(!queues_[from].write_closed());
         queues_[from].Close();
         if (expected_closing_blocks_ == ++received_closing_blocks_) {
-            rx_lifetime_.Stop();
-            rx_timespan_.Stop();
+            rx_lifetime_.StopEventually();
+            rx_timespan_.StopEventually();
+            CallClosedCallbacksEventually();
         }
     }
 };
