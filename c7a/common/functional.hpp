@@ -41,6 +41,34 @@ static inline const T & max(const T& a, const T& b) {
     return a > b ? a : b;
 }
 
+/******************************************************************************/
+
+// Compile-time integer sequences, an implementation of std::index_sequence and
+// std::make_index_sequence, as these are not available in many current
+// libraries.
+template <size_t ... Indexes>
+struct index_sequence {
+    static size_t size() { return sizeof ... (Indexes); }
+};
+
+template <size_t CurrentIndex, size_t ... Indexes>
+struct make_index_sequence_helper;
+
+template <size_t ... Indexes>
+struct make_index_sequence_helper<0, Indexes ...>{
+    typedef index_sequence<Indexes ...> type;
+};
+
+template <size_t CurrentIndex, size_t ... Indexes>
+struct make_index_sequence_helper {
+    typedef typename make_index_sequence_helper<
+            CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type type;
+};
+
+template <size_t Length>
+struct make_index_sequence : public make_index_sequence_helper<Length>::type
+{ };
+
 } // namespace common
 } // namespace c7a
 

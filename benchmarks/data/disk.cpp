@@ -8,6 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/api/context.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/write_lines_many.hpp>
 #include <c7a/common/cmdline_parser.hpp>
@@ -16,15 +17,11 @@
 #include <iostream>
 #include <string>
 
-using namespace c7a; // NOLINT
+using namespace c7a;         // NOLINT
+using namespace c7a::common; // NOLINT
 
 //! Reads and Writes random data from disk and measures time for whole process
 int main(int argc, const char** argv) {
-    using namespace c7a::common;
-    core::JobManager jobMan;
-    jobMan.Connect(0, net::Endpoint::ParseEndpointList("127.0.0.1:8000"), 1);
-    api::Context ctx(jobMan, 0);
-    common::NameThisThread("benchmark");
 
     CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");
@@ -37,14 +34,16 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
-        StatsTimer<true> timer(true);
-        auto lines = ReadLines(ctx, input_file);
-        lines.WriteLinesMany(output_file);
-        timer.Stop();
-        std::cout << "RESULT"
-                  << " input_file=" << input_file
-                  << " time=" << timer.Microseconds()
-                  << std::endl;
+        api::RunSameThread([&input_file, &output_file](api::Context& ctx) {
+                               StatsTimer<true> timer(true);
+                               auto lines = ReadLines(ctx, input_file);
+                               lines.WriteLinesMany(output_file);
+                               timer.Stop();
+                               std::cout << "RESULT"
+                                         << " input_file=" << input_file
+                                         << " time=" << timer.Microseconds()
+                                         << std::endl;
+                           });
     }
 }
 

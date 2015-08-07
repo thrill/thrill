@@ -3,6 +3,7 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -37,6 +38,8 @@ struct StreamBlockHeader {
     size_t      first_item;
     size_t      nitems;
     size_t      sender_rank;
+    size_t      receiver_local_worker_id;
+    size_t      sender_local_worker_id;
 
     //! Reads the channel id and the number of elements in this block
     void        ParseHeader(const net::Buffer& buffer) {
@@ -47,6 +50,8 @@ struct StreamBlockHeader {
         first_item = br.Get<size_t>();
         nitems = br.Get<size_t>();
         sender_rank = br.Get<size_t>();
+        receiver_local_worker_id = br.Get<size_t>();
+        sender_local_worker_id = br.Get<size_t>();
     }
 
     //! Serializes the whole block struct into a buffer
@@ -58,6 +63,8 @@ struct StreamBlockHeader {
         bb.Put<size_t>(first_item);
         bb.Put<size_t>(nitems);
         bb.Put<size_t>(sender_rank);
+        bb.Put<size_t>(receiver_local_worker_id);
+        bb.Put<size_t>(sender_local_worker_id);
         return bb.ToBuffer();
     }
 

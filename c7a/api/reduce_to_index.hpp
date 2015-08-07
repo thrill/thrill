@@ -98,7 +98,7 @@ public:
           reduce_function_(reduce_function),
           channel_(parent.ctx().data_manager().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
+          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
@@ -121,11 +121,11 @@ public:
      * Actually executes the reduce to index operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -170,7 +170,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces a function stack, which only contains the PostOp function.
@@ -191,7 +191,7 @@ public:
      * Returns "[ReduceToIndexNode]" and its id as a string.
      * \return "[ReduceToIndexNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReduceToIndexNode] Id: " + result_file_.ToString();
     }
 
@@ -282,7 +282,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
@@ -346,7 +346,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, true>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
@@ -420,7 +420,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction,
                                   true, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

@@ -45,12 +45,12 @@ public:
      */
     static const size_t kGroupCount = 3;
 
-    ClientId MyRank() {
-        return GetSystemGroup().MyRank();
+    size_t my_rank() {
+        return GetSystemGroup().my_connection_id();
     }
 
-    ClientId Size() {
-        return GetSystemGroup().Size();
+    size_t num_hosts() {
+        return GetSystemGroup().num_connections();
     }
 
     //! default constructor
@@ -119,7 +119,7 @@ private:
     /**
      * The rank associated with the local worker.
      */
-    ClientId my_rank_;
+    size_t my_rank_;
 
     //! for initialization of members
     friend class Construction;

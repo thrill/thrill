@@ -12,7 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
@@ -74,22 +73,33 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
 }
 
 int main(int argc, const char** argv) {
-    core::JobManager jobMan1, jobMan2;
     c7a::common::ThreadPool connect_pool;
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
-    connect_pool.Enqueue([&jobMan1, &endpoints]() {
-                             jobMan1.Connect(0, net::Endpoint::ParseEndpointList(endpoints), 1);
+    net::Manager net_manager1, net_manager2;
+    connect_pool.Enqueue([&net_manager1, &endpoints]() {
+                             net_manager1.Initialize(0, net::Endpoint::ParseEndpointList(endpoints));
                          });
 
-    connect_pool.Enqueue([&jobMan2, &endpoints]() {
-                             jobMan2.Connect(1, net::Endpoint::ParseEndpointList(endpoints), 1);
+    connect_pool.Enqueue([&net_manager2, &endpoints]() {
+                             net_manager2.Initialize(1, net::Endpoint::ParseEndpointList(endpoints));
                          });
     connect_pool.LoopUntilEmpty();
 
-    api::Context ctx1(jobMan1, 0);
-    api::Context ctx2(jobMan2, 0);
+    data::ChannelMultiplexer cmp1(1), cmp2(1);
+    cmp1.Connect(&(net_manager1.GetDataGroup()));
+    cmp2.Connect(&(net_manager2.GetDataGroup()));
+
+    net::FlowControlChannelManager flow_manager1(net_manager1.GetFlowGroup(), 1);
+    net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);
+
+    data::Manager data_manager1(cmp1, 0);
+    data::Manager data_manager2(cmp2, 0);
+
+    api::Context ctx1(net_manager1, flow_manager1, data_manager1, 1, 0);
+    api::Context ctx2(net_manager2, flow_manager2, data_manager2, 1, 0);
+
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
@@ -106,12 +116,16 @@ int main(int argc, const char** argv) {
 
     if (type == "int")
         ConductExperiment<int>(bytes, iterations, ctx1, ctx2, type);
-    if (type == "string")
+    else if (type == "size_t")
+        ConductExperiment<size_t>(bytes, iterations, ctx1, ctx2, type);
+    else if (type == "string")
         ConductExperiment<std::string>(bytes, iterations, ctx1, ctx2, type);
-    if (type == "pair")
+    else if (type == "pair")
         ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx1, ctx2, type);
-    if (type == "triple")
+    else if (type == "triple")
         ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx1, ctx2, type);
+    else
+        abort();
 }
 
 /******************************************************************************/

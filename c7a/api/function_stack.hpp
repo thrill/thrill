@@ -12,6 +12,7 @@
 #define C7A_API_FUNCTION_STACK_HEADER
 
 #include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
 
 #include <array>
 #include <cassert>
@@ -60,36 +61,6 @@ auto run_emitter(Lambda lambda, MoreLambdas ... rest)
                lambda(input, run_emitter(rest ...));
     };
 }
-
-namespace {
-
-// Compile-time integer sequences, an implementation of std::index_sequence and
-// std::make_index_sequence, as these are not available in many current
-// libraries.
-template <size_t ... Indexes>
-struct index_sequence {
-    static size_t size() { return sizeof ... (Indexes); }
-};
-
-template <size_t CurrentIndex, size_t ... Indexes>
-struct make_index_sequence_helper;
-
-template <size_t ... Indexes>
-struct make_index_sequence_helper<0, Indexes ...>{
-    typedef index_sequence<Indexes ...> type;
-};
-
-template <size_t CurrentIndex, size_t ... Indexes>
-struct make_index_sequence_helper {
-    typedef typename make_index_sequence_helper<
-            CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type type;
-};
-
-template <size_t Length>
-struct make_index_sequence : public make_index_sequence_helper<Length>::type
-{ };
-
-} // namespace
 
 /*!
  * A FunctionStack is a chain of lambda functions that can be folded to a single
@@ -148,11 +119,8 @@ public:
      * \return Single "folded" lambda function representing the chain.
      */
     auto emit() const {
-        typedef std::tuple<Lambdas ...> StackType;
-
-        const size_t Size = std::tuple_size<StackType>::value;
-
-        return emit_sequence(make_index_sequence<Size>{ });
+        const size_t Size = sizeof ... (Lambdas);
+        return emit_sequence(common::make_index_sequence<Size>{ });
     }
 
 private:
@@ -167,8 +135,7 @@ private:
      * \return Single "folded" lambda function representing the chain.
      */
     template <std::size_t ... Is>
-    auto emit_sequence(index_sequence<Is ...>) const
-    {
+    auto emit_sequence(common::index_sequence<Is ...>) const {
         return run_emitter(std::get<Is>(stack_) ...);
     }
 };

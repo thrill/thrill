@@ -86,8 +86,8 @@ public:
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         //Initiate connections to all hosts with higher id.
-        for (size_t g = 0; g < kGroupCount; g++) {
-            for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id) {
+        for (uint32_t g = 0; g < kGroupCount; g++) {
+            for (size_t id = my_rank_ + 1; id < addressList.size(); ++id) {
                 AsyncConnect(g, id, addressList[id]);
             }
         }
@@ -133,7 +133,7 @@ protected:
     /**
      * The rank associated with the local worker.
      */
-    ClientId my_rank_;
+    size_t my_rank_;
 
     /**
      * The Connections responsible
@@ -186,7 +186,7 @@ protected:
         /**
          * The id of the worker associated with the sending Connection.
          */
-        ClientId id;
+        size_t   id;
     };
 
     /**
@@ -229,7 +229,7 @@ protected:
 
         for (size_t g = 0; g < kGroupCount; g++) {
 
-            for (ClientId id = 0; id < groups_[g].Size(); ++id) {
+            for (size_t id = 0; id < groups_[g].num_connections(); ++id) {
                 if (id == my_rank_) continue;
 
                 //Just checking the state works since this implicitey checks the
@@ -487,7 +487,7 @@ protected:
             << " id " << msg_in->id;
 
         die_unless(msg_in->group_id < kGroupCount);
-        die_unless(msg_in->id < groups_[msg_in->group_id].Size());
+        die_unless(msg_in->id < groups_[msg_in->group_id].num_connections());
 
         die_unequal(groups_[msg_in->group_id].connection(msg_in->id).state(),
                     ConnectionState::Invalid);
@@ -543,7 +543,6 @@ protected:
         return true;
     }
 };
-
 void Manager::Initialize(size_t my_rank,
                          const std::vector<Endpoint>& endpoints) {
     my_rank_ = my_rank;

@@ -49,7 +49,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](ValueType input) {
+        auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -59,7 +59,7 @@ public:
         
     }
 
-    void PreOp(ValueType input) {
+    void PreOp(const ValueType& input) {
         writer_(input);
 		size_ += input.size() + 1;
     }
@@ -70,7 +70,7 @@ public:
 
 		//(Portable) allocation of output file, setting individual file pointers. 
         size_t prefix_elem = context_.flow_control_channel().PrefixSum(size_, std::plus<size_t>(), false);
-		if (context_.rank() == context_.number_worker() - 1) {
+		if (context_.my_rank() == context_.num_workers() - 1) {
 			file_.seekp(prefix_elem + size_ - 1);
 			file_.put('\0');
 		}		
@@ -119,7 +119,7 @@ void DIARef<ValueType, Stack>::WriteLines(
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", "Action");
+    StatsNode* stats_node = AddChildStatsNode("Write", NodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,

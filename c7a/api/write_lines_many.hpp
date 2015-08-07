@@ -60,18 +60,18 @@ public:
     }
 
     //! Closes the output file
-    void Execute() override {
+    void Execute() final {
         sLOG << "closing file" << path_out_;
 		file_.close();
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns "[WriteNode]" and its id as a string.
      * \return "[WriteNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 
@@ -93,8 +93,9 @@ void DIARef<ValueType, Stack>::WriteLinesMany(
 
     using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", "Action");
-    auto shared_node =
+	StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", NodeType::ACTION);
+    
+	auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
                                           stats_node);

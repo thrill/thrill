@@ -72,7 +72,7 @@ std::tuple<size_t, size_t> CalculateLocalRange(
 //! information from the Context.
 std::tuple<size_t, size_t> CalculateLocalRange(
     size_t global_size, const Context& ctx) {
-    return CalculateLocalRange(global_size, ctx.number_worker(), ctx.rank());
+    return CalculateLocalRange(global_size, ctx.num_workers(), ctx.my_rank());
 }
 
 /******************************************************************************/

@@ -50,7 +50,7 @@ TEST(Sort, SortKnownIntegers) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntegers) {
@@ -81,7 +81,7 @@ TEST(Sort, SortRandomIntegers) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntegersCustomCompareFunction) {
@@ -116,7 +116,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntIntStructs) {
@@ -153,7 +153,7 @@ TEST(Sort, SortRandomIntIntStructs) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

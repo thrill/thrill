@@ -12,7 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/stats_timer.hpp>
-#include <c7a/core/job_manager.hpp>
 #include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
@@ -30,18 +29,18 @@ using namespace c7a; // NOLINT
 //! All iterations use the same generated data.
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
-void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
+void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, const std::string& type_as_string) {
     using namespace c7a::common;
 
-    for (int i = 0; i < iterations; i++) {
+    for (unsigned i = 0; i < iterations; i++) {
         auto file = ctx.data_manager().GetFile();
         auto writer = file.GetWriter();
-        auto data = generate<Type>(bytes, 1, 100);
+        auto data = Generator<Type>(bytes);
 
         std::cout << "writing " << bytes << " bytes" << std::endl;
         StatsTimer<true> write_timer(true);
-        for (auto& s : data) {
-            writer(s);
+        while (data.HasNext()) {
+            writer(data.Next());
         }
         writer.Close();
         write_timer.Stop();
@@ -62,33 +61,31 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
 }
 
 int main(int argc, const char** argv) {
-    core::JobManager jobMan;
-    jobMan.Connect(0, net::Endpoint::ParseEndpointList("127.0.0.1:8000"), 1);
-    api::Context ctx(jobMan, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
     clp.SetDescription("c7a::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
-    int iterations;
+    unsigned iterations = 1;
     uint64_t bytes;
     std::string type;
     clp.AddBytes('b', "bytes", bytes, "number of bytes to process");
-    clp.AddParamInt("n", iterations, "Iterations");
+    clp.AddUInt('n', "iterations", iterations, "Iterations (default: 1)");
     clp.AddParamString("type", type,
-                       "data type (int, string, pair, triple)");
+                       "data type (size_t, string, pair, triple)");
     if (!clp.Process(argc, argv)) return -1;
 
-    if (type == "int")
-        ConductExperiment<int>(bytes, iterations, ctx, type);
-    else if (type == "size_t")
-        ConductExperiment<size_t>(bytes, iterations, ctx, type);
+    using pair = std::tuple<std::string, size_t>;
+    using triple = std::tuple<std::string, size_t, std::string>;
+
+    if (type == "size_t")
+        api::RunSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "string")
-        ConductExperiment<std::string>(bytes, iterations, ctx, type);
+        api::RunSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "pair")
-        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx, type);
+        api::RunSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
     else if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx, type);
+        api::RunSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
     else
         abort();
 }

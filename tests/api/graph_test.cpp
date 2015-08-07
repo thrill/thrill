@@ -8,10 +8,11 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
+#include <c7a/api/cache.hpp>
+#include <c7a/api/collapse.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/lop_node.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/size.hpp>
@@ -56,7 +57,7 @@ TEST(Graph, SimpleGraph) {
             ctx.stats_graph().BuildLayout("simple.out");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Graph, WhileLoop) {
@@ -87,7 +88,7 @@ TEST(Graph, WhileLoop) {
             while (sum < 64) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Collapse();
+                squares = multiplied.Cache();
                 sum = squares.Size();
             }
 
@@ -99,7 +100,7 @@ TEST(Graph, WhileLoop) {
             ctx.stats_graph().BuildLayout("loop.out");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/
