@@ -86,7 +86,7 @@ protected:
  * BlockSource.
  */
 template <typename BlockSource, typename ... Params>
-DynBlockReader ConstructDynBlockReader(Params ... params) {
+DynBlockReader ConstructDynBlockReader(Params && ... params) {
     return DynBlockReader(
         DynBlockSourcePtr(
             std::move(std::make_shared<DynBlockSourceAdapter<BlockSource> >(
