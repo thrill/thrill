@@ -32,7 +32,31 @@ struct MyStruct
 
 using MyPair = std::pair<int, MyStruct>;
 
-#if FIXME_LATER
+template <typename Key, typename HashFunction = std::hash<Key> >
+class CustomKeyHashFunction
+        : public c7a::core::PreReduceByHashKey<int> {
+public:
+    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+            : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreTable>
+    typename ReducePreTable::index_result
+    operator () (Key v, ReducePreTable* ht) const {
+
+        using index_result = typename ReducePreTable::index_result;
+
+        size_t global_index = v / 2;
+        size_t partition_id = 0;
+        size_t local_index = v / 2;
+
+        return index_result(partition_id, local_index, global_index);
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
 TEST_F(PreTable, CustomHashFunction) {
 
     auto key_ex = [](int in) {
@@ -43,23 +67,14 @@ TEST_F(PreTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    using HashTable = typename c7a::core::ReducePreTable<
-              decltype(key_ex), decltype(red_fn), true>;
-
-    auto hash_function = [](int key, HashTable*) {
-
-                             size_t global_index = key / 2;
-                             size_t partition_id = 0;
-                             size_t partition_offset = key / 2;
-
-                             return HashTable::hash_result(partition_id, partition_offset, global_index);
-                         };
-
     File output;
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, writers, hash_function);
+    CustomKeyHashFunction<int> cust_hash;
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true, 16*1024,
+            CustomKeyHashFunction<int>>
+    table(1, 8, 2, 20, 100, key_ex, red_fn, writers, cust_hash);
 
     for (int i = 0; i < 16; i++) {
         table.Insert(std::move(i));
@@ -76,7 +91,6 @@ TEST_F(PreTable, CustomHashFunction) {
 
     ASSERT_EQ(16, c);
 }
-#endif
 
 TEST_F(PreTable, AddIntegers) {
     auto key_ex = [](int in) {

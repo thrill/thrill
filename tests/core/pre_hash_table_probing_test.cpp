@@ -24,48 +24,64 @@ using IntPair = std::pair<int, int>;
 
 struct ReducePreProbingTable : public::testing::Test { };
 
-//TEST_F(ReducePreProbingTable, CustomHashFunction) {
-//    auto key_ex = [](int in) {
-//                      return in;
-//                  };
-//
-//    auto red_fn = [](int in1, int in2) {
-//                      return in1 + in2;
-//                  };
-//
-//    using HashTable = typename c7a::core::ReducePreProbingTable<
-//              decltype(key_ex), decltype(red_fn), true>;
-//
-//    auto hash_function = [](int key, HashTable*) {
-//
-//                             size_t global_index = key / 2;
-//                             size_t partition_id = 0;
-//                             size_t partition_offset = key / 2;
-//
-//                             return HashTable::hash_result(partition_id, partition_offset, global_index);
-//                         };
-//
-//    File output;
-//    std::vector<File::Writer> writers;
-//    writers.emplace_back(output.GetWriter());
-//
-//    HashTable table(1, key_ex, red_fn, writers, -1, hash_function);
-//
-//    for (int i = 0; i < 16; i++) {
-//        table.Insert(i);
-//    }
-//
-//    table.Flush();
-//
-//    auto it = output.GetReader();
-//    int c = 0;
-//    while (it.HasNext()) {
-//        it.Next<int>();
-//        c++;
-//    }
-//
-//    ASSERT_EQ(16, c);
-//}
+template <typename Key, typename HashFunction = std::hash<Key> >
+class CustomKeyHashFunction
+        : public c7a::core::PreProbingReduceByHashKey<int> {
+public:
+    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+            : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreProbingTable>
+    typename ReducePreProbingTable::index_result
+    operator () (Key v, ReducePreProbingTable* ht) const {
+
+        using index_result = typename ReducePreProbingTable::index_result;
+
+        size_t global_index = v / 2;
+        size_t partition_id = 0;
+        size_t local_index = v / 2;
+
+        return index_result(partition_id, local_index, global_index);
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
+TEST_F(ReducePreProbingTable, CustomHashFunction) {
+    auto key_ex = [](int in) {
+                      return in;
+                  };
+
+    auto red_fn = [](int in1, int in2) {
+                      return in1 + in2;
+                  };
+
+    File output;
+    std::vector<File::Writer> writers;
+    writers.emplace_back(output.GetWriter());
+
+    CustomKeyHashFunction<int> cust_hash;
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true,
+            CustomKeyHashFunction<int>>
+    table(1, key_ex, red_fn, writers, -1, cust_hash);
+
+    for (int i = 0; i < 16; i++) {
+        table.Insert(i);
+    }
+
+    table.Flush();
+
+    auto it = output.GetReader();
+    int c = 0;
+    while (it.HasNext()) {
+        it.Next<int>();
+        c++;
+    }
+
+    ASSERT_EQ(16, c);
+}
 
 TEST_F(ReducePreProbingTable, AddIntegers) {
     auto key_ex = [](int in) {
