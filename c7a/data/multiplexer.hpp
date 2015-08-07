@@ -66,8 +66,8 @@ public:
 
     void Connect(net::Group* group) {
         group_ = group;
-        for (size_t id = 0; id < group_->num_connections(); id++) {
-            if (id == group_->my_connection_id()) continue;
+        for (size_t id = 0; id < group_->num_hosts(); id++) {
+            if (id == group_->my_host_rank()) continue;
             AsyncReadChannelBlockHeader(group_->connection(id));
         }
     }

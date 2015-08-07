@@ -32,7 +32,7 @@ struct Multiplexer : public::testing::Test {
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         data::Multiplexer datamp(1);
         datamp.Connect(group);
-        switch (group->my_connection_id()) {
+        switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
             if (f1) f1(datamp);
@@ -63,7 +63,7 @@ struct Multiplexer : public::testing::Test {
 // open a Channel via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaChannel(net::Group* net) {
-    common::NameThisThread("chmp" + std::to_string(net->my_connection_id()));
+    common::NameThisThread("chmp" + std::to_string(net->my_host_rank()));
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
@@ -83,7 +83,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
         auto writers = datamp.GetOrCreateChannel(id, my_local_worker_id)->OpenWriters(test_block_size);
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
-            writers[tgt]("hello I am " + std::to_string(net->my_connection_id())
+            writers[tgt]("hello I am " + std::to_string(net->my_host_rank())
                          + " calling " + std::to_string(tgt));
 
             writers[tgt].Flush();
@@ -104,9 +104,9 @@ void TalkAllToAllViaChannel(net::Group* net) {
             std::string msg = readers[src].Next<std::string>();
 
             ASSERT_EQ(msg, "hello I am " + std::to_string(src)
-                      + " calling " + std::to_string(net->my_connection_id()));
+                      + " calling " + std::to_string(net->my_host_rank()));
 
-            sLOG << net->my_connection_id() << "got msg from" << src;
+            sLOG << net->my_host_rank() << "got msg from" << src;
 
             // read a few MiBs of oddly sized data
             unsigned char recv_buffer[sizeof(send_buffer)];

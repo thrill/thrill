@@ -39,7 +39,7 @@ using ChannelId = size_t;
 /*!
  * A Channel is a virtual set of connections to all other worker instances,
  * hence a "Channel" bundles them to a logical communication context. We call an
- * individual connection from a worker to another worker a "Connection".
+ * individual connection from a worker to another worker a "Host".
  *
  * To use a Channel, one can get a vector of BlockWriter via OpenWriters() of
  * outbound Channel. The vector is of size of workers in the system.
@@ -82,29 +82,29 @@ public:
 
     //! Creates a new channel instance
     Channel(const ChannelId& id, net::Group& group,
-            net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_connection)
+            net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_host)
         :  tx_lifetime_(true), rx_lifetime_(true),
           tx_timespan_(), rx_timespan_(),
           id_(id),
-          queues_(group.num_connections() * workers_per_connection),
-          cache_files_(group.num_connections() * workers_per_connection),
+          queues_(group.num_hosts() * workers_per_host),
+          cache_files_(group.num_hosts() * workers_per_host),
           group_(group),
           dispatcher_(dispatcher),
           my_local_worker_id_(my_local_worker_id),
-          workers_per_connection_(workers_per_connection),
-          expected_closing_blocks_((group.num_connections() - 1) * workers_per_connection),
+          workers_per_host_(workers_per_host),
+          expected_closing_blocks_((group.num_hosts() - 1) * workers_per_host),
           received_closing_blocks_(0) {
         // construct ChannelSink array
-        for (size_t host = 0; host < group_.num_connections(); ++host) {
-            for (size_t worker = 0; worker < workers_per_connection_; worker++) {
-                if (host == group_.my_connection_id()) {
+        for (size_t host = 0; host < group_.num_hosts(); ++host) {
+            for (size_t worker = 0; worker < workers_per_host_; worker++) {
+                if (host == group_.my_host_rank()) {
                     sinks_.emplace_back();
                 }
                 else {
                     sinks_.emplace_back(
                         &dispatcher, &group_.connection(host),
                         id,
-                        group_.my_connection_id(),
+                        group_.my_host_rank(),
                         my_local_worker_id_,
                         worker, &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
@@ -131,10 +131,10 @@ public:
 
         std::vector<BlockWriter> result;
 
-        for (size_t host_id = 0; host_id < group_.num_connections(); ++host_id) {
-            for (size_t local_worker_id = 0; local_worker_id < workers_per_connection_; ++local_worker_id) {
-                size_t worker_id = host_id * workers_per_connection_ + local_worker_id;
-                if (host_id == group_.my_connection_id()) {
+        for (size_t host_rank = 0; host_rank < group_.num_hosts(); ++host_rank) {
+            for (size_t local_worker_id = 0; local_worker_id < workers_per_host_; ++local_worker_id) {
+                size_t worker_id = host_rank * workers_per_host_ + local_worker_id;
+                if (host_rank == group_.my_host_rank()) {
                     result.emplace_back(&queues_[worker_id], block_size);
                 }
                 else {
@@ -203,7 +203,7 @@ public:
      * elements from (offset[0] + 1)..offset[1] are sent to the second worker.
      * elements from (offset[my_rank - 1] + 1)..(offset[my_rank]) are copied
      * The offset values range from 0..Manager::GetNumElements().
-     * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_connection_.
+     * The number of given offsets must be equal to the net::Group::num_workers() * workers_per_host_.
      *
      * /param source File containing the data to be scattered.
      *
@@ -251,8 +251,8 @@ public:
         }
 
         // close self-loop queues
-        for (size_t my_worker = 0; my_worker < workers_per_connection_; my_worker++) {
-            size_t local_worker_id = group_.my_connection_id() + my_worker;
+        for (size_t my_worker = 0; my_worker < workers_per_host_; my_worker++) {
+            size_t local_worker_id = group_.my_host_rank() + my_worker;
             if (!queues_[local_worker_id].write_closed())
                 queues_[local_worker_id].Close();
         }
@@ -328,7 +328,7 @@ protected:
 
     size_t my_local_worker_id_;
 
-    size_t workers_per_connection_;
+    size_t workers_per_host_;
 
     //! number of expected / received stream closing operations. Required to know when to
     //! stop rx_lifetime
@@ -340,7 +340,7 @@ protected:
     friend class Multiplexer;
 
     size_t num_workers() const {
-        return group_.num_connections() * workers_per_connection_;
+        return group_.num_hosts() * workers_per_host_;
     }
 
     //! called from Multiplexer when there is a new Block on a
