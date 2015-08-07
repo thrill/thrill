@@ -133,7 +133,7 @@ TEST_F(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
 TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
     auto w0 = [](data::ChannelMultiplexer& cmp) {
                   auto id = cmp.AllocateNext(0);
-                  auto c  = cmp.GetOrCreateChannel(id, 0);
+                  auto c = cmp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -147,7 +147,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
               };
     auto w1 = [](data::ChannelMultiplexer& cmp) {
                   auto id = cmp.AllocateNext(0);
-                  auto c  = cmp.GetOrCreateChannel(id, 0);
+                  auto c = cmp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -158,7 +158,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
               };
     auto w2 = [](data::ChannelMultiplexer& cmp) {
                   auto id = cmp.AllocateNext(0);
-                  auto c  = cmp.GetOrCreateChannel(id, 0);
+                  auto c = cmp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -176,7 +176,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
 TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
     auto w0 = [](data::ChannelMultiplexer& cmp) {
                   auto id = cmp.AllocateNext(0);
-                  auto c  = cmp.GetOrCreateChannel(id, 0);
+                  auto c = cmp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -190,7 +190,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
               };
     auto w1 = [](data::ChannelMultiplexer& cmp) {
                   auto id = cmp.AllocateNext(0);
-                  auto c  = cmp.GetOrCreateChannel(id, 0);
+                  auto c = cmp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -201,7 +201,7 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
               };
     auto w2 = [](data::ChannelMultiplexer& cmp) {
                   auto id = cmp.AllocateNext(0);
-                  auto c  = cmp.GetOrCreateChannel(id, 0);
+                  auto c = cmp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -247,7 +247,7 @@ TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
 
             // scatter File contents via channel: only items [0,3) are sent
             data::ChannelId id = cmp.AllocateNext(0);
-            auto ch  = cmp.GetOrCreateChannel(id, 0);
+            auto ch = cmp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 2 });
 
             // check that got items
@@ -274,7 +274,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
 
             // scatter File contents via channel: only items [0,2) are to local worker
             data::ChannelId id = cmp.AllocateNext(0);
-            auto ch  = cmp.GetOrCreateChannel(id, 0);
+            auto ch = cmp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 2, 2 });
 
             // check that got items
@@ -294,7 +294,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
 
             // scatter File contents via channel: only items [0,3) are to local worker
             data::ChannelId id = cmp.AllocateNext(0);
-            auto ch  = cmp.GetOrCreateChannel(id, 0);
+            auto ch = cmp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 0, 3 });
 
             // check that got items
@@ -316,7 +316,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
 
                   // scatter File contents via channel.
                   data::ChannelId id = cmp.AllocateNext(0);
-                  auto ch  = cmp.GetOrCreateChannel(id, 0);
+                  auto ch = cmp.GetOrCreateChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
@@ -335,7 +335,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
 
                   // scatter File contents via channel.
                   data::ChannelId id = cmp.AllocateNext(0);
-                  auto ch  = cmp.GetOrCreateChannel(id, 0);
+                  auto ch = cmp.GetOrCreateChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
@@ -357,7 +357,7 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
 
                   // scatter File contents via channel.
                   data::ChannelId id = cmp.AllocateNext(0);
-                  auto ch  = cmp.GetOrCreateChannel(id, 0);
+                  auto ch = cmp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
                   // check that got items
@@ -377,7 +377,7 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
 
                   // scatter File contents via channel.
                   data::ChannelId id = cmp.AllocateNext(0);
-                  auto ch  = cmp.GetOrCreateChannel(id, 0);
+                  auto ch = cmp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
                   // check that got items
@@ -390,7 +390,7 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
 
                   // scatter File contents via channel.
                   data::ChannelId id = cmp.AllocateNext(0);
-                  auto ch  = cmp.GetOrCreateChannel(id, 0);
+                  auto ch = cmp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
                   // check that got items

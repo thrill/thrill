@@ -43,7 +43,7 @@ public:
     DIANode() { }
 
     /*!
-     * Constructor for a DIANode, which sets references to the 
+     * Constructor for a DIANode, which sets references to the
      * parent nodes. Calls the constructor of DIABase with the same parameters.
      *
      * \param ctx Reference to Context, which holds references to data and
