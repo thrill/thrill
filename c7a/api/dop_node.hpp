@@ -33,7 +33,7 @@ class DOpNode : public DIANode<ValueType>
 {
 public:
     /*!
-     * Constructor for a DOpNode, which sets references to the DataManager and
+     * Constructor for a DOpNode, which sets references to the 
      * parent nodes.  Calls the constructor of DIANode with the same parameters.
      *
      * \param ctx Reference to Context, which holds references to data and

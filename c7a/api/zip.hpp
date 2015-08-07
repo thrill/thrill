@@ -258,10 +258,8 @@ private:
             LOG << "input " << in << " offsets[" << i << "] = " << offsets[i];
         }
 
-        data::Manager& data_manager = context_.data_manager();
-
         //! target channel id
-        channels_[in] = data_manager.GetNewChannel();
+        channels_[in] = context_.GetNewChannel();
 
         //! scatter elements to other workers, if necessary
         channels_[in]->template Scatter<ZipArgNum>(files_[in], offsets);
