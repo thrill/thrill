@@ -21,6 +21,8 @@
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/connection.hpp>
 #include <c7a/net/group.hpp>
+#include <c7a/common/stats_counter.hpp>
+#include <c7a/common/stats_timer.hpp>
 
 #include <sstream>
 #include <string>
@@ -73,16 +75,23 @@ public:
     using ConcatReader = ConcatBlockReader;
     using CachingConcatReader = CachingConcatBlockReader;
 
+    using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
+    using StatsTimer   = common::StatsTimer<common::g_enable_stats>;
+
     //! Creates a new channel instance
     Channel(const ChannelId& id, net::Group& group,
             net::DispatcherThread& dispatcher, size_t my_local_worker_id, size_t workers_per_connection)
-        : id_(id),
+          :  tx_lifetime_(true), rx_lifetime_(true),
+          tx_timespan_(), rx_timespan_(),
+          id_(id),
           queues_(group.num_connections() * workers_per_connection),
           cache_files_(group.num_connections() * workers_per_connection),
           group_(group),
           dispatcher_(dispatcher),
           my_local_worker_id_(my_local_worker_id),
-          workers_per_connection_(workers_per_connection) {
+          workers_per_connection_(workers_per_connection),
+          expected_closing_blocks_((group.num_connections() - 1) * workers_per_connection),
+          received_closing_blocks_(0) {
         // construct ChannelSink array
         for (size_t host = 0; host < group_.num_connections(); ++host) {
             for (size_t worker = 0; worker < workers_per_connection_; worker++) {
@@ -95,7 +104,7 @@ public:
                         id,
                         group_.my_connection_id(),
                         my_local_worker_id_,
-                        worker);
+                        worker, &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
             }
         }
@@ -116,6 +125,8 @@ public:
     //! Creates BlockWriters for each woker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<BlockWriter> OpenWriters(size_t block_size = default_block_size) {
+        tx_timespan_.StartEventually();
+
         std::vector<BlockWriter> result;
 
         for (size_t host_id = 0; host_id < group_.num_connections(); ++host_id) {
@@ -138,6 +149,8 @@ public:
     //! the BlockQueues in the Channel and wait for further Blocks to arrive or
     //! the Channel's remote close.
     std::vector<BlockQueueReader> OpenReaders() {
+        rx_timespan_.StartEventually();
+
         std::vector<BlockQueueReader> result;
 
         for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
@@ -152,8 +165,11 @@ public:
     //! one \ref ConcatBlockSource which includes all incoming queues of
     //! this channel.
     ConcatBlockReader OpenReader() {
+        rx_timespan_.StartEventually();
+
         // construct vector of BlockQueueSources to read from queues_.
         std::vector<BlockQueueSource> result;
+
         for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
             result.emplace_back(queues_[local_worker_id]);
         }
@@ -166,6 +182,8 @@ public:
     //! channel. The received Blocks are also cached in the Channel, hence this
     //! function can be called multiple times to read the items again.
     CachingConcatBlockReader OpenCachingReader() {
+        rx_timespan_.StartEventually();
+
         // construct vector of CachingBlockQueueSources to read from queues_.
         std::vector<CachingBlockQueueSource> result;
         for (size_t local_worker_id = 0; local_worker_id < num_workers(); ++local_worker_id) {
@@ -191,6 +209,8 @@ public:
      */
     template <typename ItemType>
     void Scatter(const File& source, const std::vector<size_t>& offsets) {
+        tx_timespan_.StartEventually();
+
         // current item offset in Reader
         size_t current = 0;
         typename File::Reader reader = source.GetReader();
@@ -216,6 +236,8 @@ public:
 #endif
             writers[local_worker_id].Close();
         }
+
+        tx_timespan_.Stop();
     }
 
     //! shuts the channel down.
@@ -241,6 +263,8 @@ public:
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
+        tx_lifetime_.StopEventually();
+        tx_timespan_.StopEventually();
     }
 
     //! Indicates if the channel is closed - meaning all remite streams have
@@ -252,6 +276,22 @@ public:
         }
         return closed;
     }
+
+    ///////// expse these members - getters would be too java-ish /////////////
+    //! StatsCounter for incoming data transfer
+    //! Do not include loopback data transfer
+    StatsCounter incoming_bytes_, incoming_blocks_;
+
+    //! StatsCounters for outgoing data transfer - shared by all sinks
+    //! Do not include loopback data transfer
+    StatsCounter outgoing_bytes_, outgoing_blocks_;
+
+    //! Timers from creation of channel until rx / tx direction is closed.
+    StatsTimer   tx_lifetime_, rx_lifetime_;
+
+    //! Timers from first rx / tx package until rx / tx direction is closed.
+    StatsTimer   tx_timespan_, rx_timespan_;
+    ///////////////////////////////////////////////////////////////////////////
 
 protected:
     static const bool debug = false;
@@ -274,6 +314,11 @@ protected:
 
     size_t workers_per_connection_;
 
+    //! number of expected / received stream closing operations. Required to know when to
+    //! stop rx_lifetime
+    size_t expected_closing_blocks_, received_closing_blocks_;
+
+
     friend class ChannelMultiplexer;
 
     size_t num_workers() const {
@@ -285,6 +330,9 @@ protected:
     //! \param from the worker rank (host rank * num_workers/host + worker id)
     void OnStreamBlock(size_t from, Block&& b) {
         assert(from < queues_.size());
+        rx_timespan_.StartEventually();
+        incoming_bytes_ += b.size();
+        incoming_blocks_++;
 
         sLOG << "OnStreamBlock" << b;
 
@@ -303,6 +351,10 @@ protected:
         assert(from < queues_.size());
         assert(!queues_[from].write_closed());
         queues_[from].Close();
+        if (expected_closing_blocks_ == ++received_closing_blocks_) {
+            rx_lifetime_.Stop();
+            rx_timespan_.Stop();
+        }
     }
 };
 

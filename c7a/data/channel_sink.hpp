@@ -18,6 +18,8 @@
 #include <c7a/data/stream_block_header.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
+#include <c7a/common/stats_counter.hpp>
+#include <c7a/common/stats_timer.hpp>
 
 namespace c7a {
 namespace data {
@@ -33,10 +35,13 @@ class ChannelSink : public BlockSink
 {
 public:
     using ChannelId = size_t;
+    //use ptr because the default ctor cannot leave references unitialized
+    using StatsCounterPtr = common::StatsCounter<size_t, common::g_enable_stats>*;
+    using StatsTimerPtr   = common::StatsTimer<common::g_enable_stats>*;
 
     //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    ChannelSink() : closed_(true) { }
+    ChannelSink() : closed_(true) {}
 
     /*! ChannelSink sending out to network.
      * \param dispatcher used for sending data via a socket
@@ -48,21 +53,26 @@ public:
      */
     ChannelSink(net::DispatcherThread* dispatcher,
                 net::Connection* connection,
-                ChannelId channel_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id)
+                ChannelId channel_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
         : dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
           my_rank_(my_rank),
           my_local_worker_id_(my_local_worker_id),
-          partners_local_worker_id_(partners_local_worker_id)
+          partners_local_worker_id_(partners_local_worker_id),
+          byte_counter_(byte_counter),
+          block_counter_(block_counter),
+          tx_timespan_(tx_timespan)
     { }
 
     ChannelSink(ChannelSink&&) = default;
+
 
     //! Appends data to the ChannelSink.  Data may be sent but may be delayed.
     void AppendBlock(const Block& b) final {
         if (b.size() == 0) return;
 
+        tx_timespan_->StartEventually();
         sLOG << "ChannelSink::AppendBlock" << b;
 
         StreamBlockHeader header;
@@ -78,16 +88,22 @@ public:
             sLOG << "sending block" << common::hexdump(b.ToString());
         }
 
+        auto header_buffer = header.Serialize();
+        (*byte_counter_) += header_buffer.size();
+        (*byte_counter_) += b.size();
+        (*block_counter_)++;
         dispatcher_->AsyncWrite(
             *connection_,
             // send out Buffer and Block, guaranteed to be successive
-            header.Serialize(), b);
+            std::move(header_buffer), b);
     }
 
     //! Closes the connection
     void Close() final {
         assert(!closed_);
         closed_ = true;
+
+        tx_timespan_->StartEventually();
 
         sLOG << "sending 'close channel' from worker" << my_local_worker_id_
              << "to worker" << partners_local_worker_id_
@@ -101,7 +117,9 @@ public:
         header.sender_rank = my_rank_;
         header.sender_local_worker_id = my_local_worker_id_;
         header.receiver_local_worker_id = partners_local_worker_id_;
-        dispatcher_->AsyncWrite(*connection_, header.Serialize());
+        auto header_buffer = header.Serialize();
+        (*byte_counter_) += header_buffer.size();
+        dispatcher_->AsyncWrite(*connection_, std::move(header_buffer));
     }
 
     //! return close flag
@@ -118,6 +136,10 @@ protected:
     size_t my_local_worker_id_ = -1;
     size_t partners_local_worker_id_ = -1;
     bool closed_ = false;
+
+    StatsCounterPtr byte_counter_;
+    StatsCounterPtr block_counter_;
+    StatsTimerPtr   tx_timespan_;
 };
 
 //! \}
