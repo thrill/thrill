@@ -282,7 +282,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
@@ -346,7 +346,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, true>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
@@ -420,7 +420,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction,
                                   true, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

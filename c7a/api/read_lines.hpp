@@ -182,7 +182,7 @@ private:
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", "DOp");
+    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", NodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

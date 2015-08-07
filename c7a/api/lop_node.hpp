@@ -114,7 +114,7 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = LOpNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", "LOp");
+    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::LOP);
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, "", stats_node);
     auto lop_stack = FunctionStack<ValueType>();

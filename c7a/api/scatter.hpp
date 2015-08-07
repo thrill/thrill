@@ -112,7 +112,7 @@ auto Scatter(
 
     using ScatterNode = api::ScatterNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Scatter", "DOp");
+    StatsNode* stats_node = ctx.stats_graph().AddNode("Scatter", NodeType::DOP);
 
     auto shared_node =
         std::make_shared<ScatterNode>(

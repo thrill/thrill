@@ -325,7 +325,7 @@ auto DIARef<ValueType, Stack>::Zip(
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("Zip", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
         = std::make_shared<ZipResultNode>(*this,

@@ -152,7 +152,7 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const std::string& type) const {
+    StatsNode * AddChildStatsNode(const std::string& label, const NodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
         for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
         return node;
@@ -192,7 +192,7 @@ public:
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
-        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", "Lambda") });
+        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", NodeType::LAMBDA) });
     }
 
     /*!
@@ -221,7 +221,7 @@ public:
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
-        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", "Lambda") });
+        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", NodeType::LAMBDA) });
     }
 
     /*!
@@ -243,7 +243,7 @@ public:
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
         auto new_stack = stack_.push(flatmap_function);
-        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", "Lambda") });
+        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", NodeType::LAMBDA) });
     }
 
     /*!
