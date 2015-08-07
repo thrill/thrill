@@ -12,7 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
@@ -35,7 +34,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
     auto data = generate<Type>(bytes, 1, 100);
     ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
-        auto channel = ctx.data_manager().GetNewChannel();
+        auto channel = ctx.GetNewChannel();
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
                          auto writers = channel->OpenWriters();

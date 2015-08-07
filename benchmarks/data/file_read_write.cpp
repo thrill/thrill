@@ -12,7 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/stats_timer.hpp>
-#include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
@@ -33,7 +32,7 @@ void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, c
     using namespace c7a::common;
 
     for (unsigned i = 0; i < iterations; i++) {
-        auto file = ctx.data_manager().GetFile();
+        auto file = ctx.GetFile();
         auto writer = file.GetWriter();
         auto data = Generator<Type>(bytes);
 

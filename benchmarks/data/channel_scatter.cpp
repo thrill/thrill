@@ -12,7 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
@@ -59,9 +58,9 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::
     offsets.push_back({ 0, 0, 0 });
 
     std::vector<std::shared_ptr<c7a::data::Channel> > channels;
-    channels.push_back(ctx0.data_manager().GetNewChannel());
-    channels.push_back(ctx1.data_manager().GetNewChannel());
-    channels.push_back(ctx2.data_manager().GetNewChannel());
+    channels.push_back(ctx0.GetNewChannel());
+    channels.push_back(ctx1.GetNewChannel());
+    channels.push_back(ctx2.GetNewChannel());
 
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);
@@ -124,13 +123,9 @@ int main(int argc, const char** argv) {
     net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager3(net_manager3.GetFlowGroup(), 1);
 
-    data::Manager data_manager1(cmp1, 0);
-    data::Manager data_manager2(cmp2, 0);
-    data::Manager data_manager3(cmp3, 0);
-
-    api::Context ctx1(net_manager1, flow_manager1, data_manager1, 1, 0);
-    api::Context ctx2(net_manager2, flow_manager2, data_manager2, 1, 0);
-    api::Context ctx3(net_manager3, flow_manager3, data_manager3, 1, 0);
+    api::Context ctx1(net_manager1, flow_manager1, cmp1, 1, 0);
+    api::Context ctx2(net_manager2, flow_manager2, cmp2, 1, 0);
+    api::Context ctx3(net_manager3, flow_manager3, cmp3, 1, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;

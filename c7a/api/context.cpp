@@ -29,7 +29,7 @@ namespace api {
 /*!
  * Starts n hosts with multiple workers each, all running on this machine.
  * The hosts communicate via Sockets created by the socketpair call and do
- * not share a data::Manager or net::FlowControlChannel. The workers withing
+ * not share a data::ChannelMultiplexer or net::FlowControlChannel. The workers withing
  * the same host do share these components though.
  */
 void
@@ -66,8 +66,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
         for (size_t i = 0; i < workers_per_host; i++) {
             threads[host * workers_per_host + i] = std::thread(
                 [&net_managers, &channel_multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
-                    data::Manager data_manager(channel_multiplexers[host], i);
-                    Context ctx(net_managers[host], flow_managers[host], data_manager, workers_per_host, i);
+                    Context ctx(net_managers[host], flow_managers[host], channel_multiplexers[host], workers_per_host, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
@@ -113,12 +112,11 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
     //connect data subsystem to network
     data::ChannelMultiplexer multiplexer(workers_per_host);
     multiplexer.Connect(&net_manager.GetDataGroup());
-    data::Manager data_manager(multiplexer, my_host_rank);
 
     //create flow control subsystem
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), 1);
 
-    Context ctx(net_manager, flow_manager, data_manager, workers_per_host, my_host_rank);
+    Context ctx(net_manager, flow_manager, multiplexer, workers_per_host, my_host_rank);
     common::NameThisThread("worker " + std::to_string(my_host_rank));
 
     job_startpoint(ctx);
@@ -147,8 +145,7 @@ int RunDistributedTCP(
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i] = std::thread(
             [&net_manager, &cmp, &flow_manager, &job_startpoint, i, log_prefix, workers_per_host] {
-                data::Manager data_manager(cmp, i);
-                Context ctx(net_manager, flow_manager, data_manager, workers_per_host, i);
+                Context ctx(net_manager, flow_manager, cmp, workers_per_host, i);
                 common::NameThisThread(
                     log_prefix + " worker " + std::to_string(i));
 

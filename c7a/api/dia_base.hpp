@@ -17,7 +17,6 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/manager.hpp>
 
 #include <string>
 #include <vector>
@@ -69,7 +68,7 @@ public:
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag, StatsNode* stats_node)
         : context_(ctx), parents_(parents),
-          result_file_(ctx.data_manager().GetFile()),
+          result_file_(ctx.GetFile()),
           execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
           lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
           stats_node_(stats_node) {
@@ -124,8 +123,8 @@ public:
         return parents_;
     }
 
-    //! Returns the data::Manager of this DIABase.
-    //! \return The data::Manager of this DIABase.
+    //! Returns the api::Context of this DIABase.
+    //! \return The api::Context of this DIABase.
     Context & context() {
         return context_;
     }

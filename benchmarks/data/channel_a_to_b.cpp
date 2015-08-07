@@ -12,7 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
@@ -37,7 +36,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &ctx1, &write_timer]() {
-                         auto channel = ctx1.data_manager().GetNewChannel();
+                         auto channel = ctx1.GetNewChannel();
                          auto writers = channel->OpenWriters();
                          assert(writers.size() == 2);
                          write_timer.Start();
@@ -52,7 +51,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
 
         StatsTimer<true> read_timer;
         pool.Enqueue([&ctx2, &read_timer]() {
-                         auto channel = ctx2.data_manager().GetNewChannel();
+                         auto channel = ctx2.GetNewChannel();
                          auto readers = channel->OpenReaders();
                          assert(readers.size() == 2);
                          auto& reader = readers[0];
@@ -94,11 +93,8 @@ int main(int argc, const char** argv) {
     net::FlowControlChannelManager flow_manager1(net_manager1.GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);
 
-    data::Manager data_manager1(cmp1, 0);
-    data::Manager data_manager2(cmp2, 0);
-
-    api::Context ctx1(net_manager1, flow_manager1, data_manager1, 1, 0);
-    api::Context ctx2(net_manager2, flow_manager2, data_manager2, 1, 0);
+    api::Context ctx1(net_manager1, flow_manager1, cmp1, 1, 0);
+    api::Context ctx2(net_manager2, flow_manager2, cmp2, 1, 0);
 
     common::NameThisThread("benchmark");
 
