@@ -50,6 +50,9 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(4).size(), 16u);
     ASSERT_EQ(file.block(5).size(), 14u);
 
+    //Total size is equal to sum of block sizes
+    ASSERT_EQ(file.TotalSize(), 94u);
+
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
         0x74, 0x65, 0x73, 0x74, 0x74, 0x65, 0x73, 0x74,

@@ -10,7 +10,7 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/api/read_lines.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/stats_timer.hpp>
 
@@ -37,7 +37,7 @@ int main(int argc, const char** argv) {
         api::RunSameThread([&input_file, &output_file](api::Context& ctx) {
                                StatsTimer<true> timer(true);
                                auto lines = ReadLines(ctx, input_file);
-                               lines.WriteToFileSystem(output_file);
+                               lines.WriteLinesMany(output_file);
                                timer.Stop();
                                std::cout << "RESULT"
                                          << " input_file=" << input_file

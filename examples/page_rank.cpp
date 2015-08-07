@@ -13,7 +13,7 @@
 #include <c7a/api/reduce_to_index.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sum.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/string.hpp>
@@ -120,7 +120,7 @@ void page_rank(Context& ctx) {
                   return std::to_string(std::get<0>(item))
                   + ": " + std::to_string(std::get<1>(item));
               }).
-    WriteToFileSystem("pagerank_" + std::to_string(ctx.my_rank()) + ".out");
+    WriteLinesMany("pagerank_" + std::to_string(ctx.my_rank()) + ".out");
 }
 
 int main(int argc, char* argv[]) {
