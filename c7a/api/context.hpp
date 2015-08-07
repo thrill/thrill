@@ -137,33 +137,6 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
     return os << ctx.host_rank() << ":" << ctx.local_worker_id();
 }
 
-//! Executes the given job startpoint with a context instance.
-//! Startpoint may be called multiple times with concurrent workers (threads)
-//! and different context instances.
-//!
-//! \returns 0 if execution was fine on all threads. Otherwise, the first
-//! non-zero return value of any thread is returned.
-int Execute(
-    int argc, char* const* argv,
-    std::function<void(Context&)> job_startpoint,
-    const std::string& log_prefix = "");
-
-/*!
- * Function to run a number of hosts as locally independent threads, which
- * still communicate via TCP sockets (workers_per_host = 1)
- */
-void
-ExecuteLocalThreadsTCP(const size_t& hosts, const size_t& port_base,
-                       std::function<void(Context&)> job_startpoint);
-//TODO maybe this should be moved somewhere into test/helpers -ts
-
-/*!
- * Helper Function to ExecuteLocalThreads in test suite for many different
- * numbers of local hosts as independent threads.
- */
-void ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint);
-//TODO maybe this should be moved somewhere into test/helpers -ts
-
 /*!
  * Function to run a number of mock hosts as locally independent
  * threads, which communicate via internal stream sockets.
