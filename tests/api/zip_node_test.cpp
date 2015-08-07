@@ -10,7 +10,8 @@
 
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/generate.hpp>
-#include <c7a/api/lop_node.hpp>
+#include <c7a/api/collapse.hpp>
+#include <c7a/api/cache.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/common/string.hpp>
@@ -164,7 +165,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                 },
                 test_size);
 
-            DIARef<std::string> input = input_gen.Collapse();
+            DIARef<std::string> input = input_gen.Cache();
 
             std::vector<std::string> vinput = input.AllGather();
             ASSERT_EQ(test_size, vinput.size());
