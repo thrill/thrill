@@ -114,18 +114,18 @@ int main(int argc, const char** argv) {
                          });
     connect_pool.LoopUntilEmpty();
 
-    data::ChannelMultiplexer cmp1(1), cmp2(1), cmp3(1);
-    cmp1.Connect(&(net_manager1.GetDataGroup()));
-    cmp2.Connect(&(net_manager2.GetDataGroup()));
-    cmp3.Connect(&(net_manager3.GetDataGroup()));
+    data::Multiplexer datamp1(1), datamp2(1), datamp3(1);
+    datamp1.Connect(&(net_manager1.GetDataGroup()));
+    datamp2.Connect(&(net_manager2.GetDataGroup()));
+    datamp3.Connect(&(net_manager3.GetDataGroup()));
 
     net::FlowControlChannelManager flow_manager1(net_manager1.GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager3(net_manager3.GetFlowGroup(), 1);
 
-    api::Context ctx1(net_manager1, flow_manager1, cmp1, 1, 0);
-    api::Context ctx2(net_manager2, flow_manager2, cmp2, 1, 0);
-    api::Context ctx3(net_manager3, flow_manager3, cmp3, 1, 0);
+    api::Context ctx1(net_manager1, flow_manager1, datamp1, 1, 0);
+    api::Context ctx2(net_manager2, flow_manager2, datamp2, 1, 0);
+    api::Context ctx3(net_manager3, flow_manager3, datamp3, 1, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;

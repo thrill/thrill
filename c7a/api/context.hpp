@@ -16,7 +16,7 @@
 #include <c7a/api/stats_graph.hpp>
 #include <c7a/common/config.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/channel_multiplexer.hpp>
+#include <c7a/data/multiplexer.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/manager.hpp>
@@ -36,7 +36,7 @@ namespace api {
 /*!
  * The Context of a job is a unique instance per worker which holds
  *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref c7a::data::ChannelMultiplexer "channel multiplexer", the
+ *  references to the  \ref c7a::data::Multiplexer "channel multiplexer", the
  * \ref c7a::net::Group  "net group"
  * \ref c7a::common::Stats "stats" and
  * \ref c7a::common::StatsGraph "stats graph".
@@ -46,10 +46,10 @@ namespace api {
 class Context
 {
 public:
-    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::ChannelMultiplexer& channel_multiplexer, size_t workers_per_host, size_t local_worker_id)
+    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Multiplexer& multiplexer, size_t workers_per_host, size_t local_worker_id)
         : net_manager_(net_manager),
           flow_manager_(flow_manager),
-          channel_multiplexer_(channel_multiplexer),
+          multiplexer_(multiplexer),
           local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host)
     { }
@@ -58,8 +58,8 @@ public:
     //! This method alters the state of the context and must be called on all
     //! Workers to ensure correct communication cordination
     data::ChannelPtr GetNewChannel() {
-        auto id = channel_multiplexer_.AllocateNext(local_worker_id_);
-        return std::move(channel_multiplexer_.GetOrCreateChannel(id, local_worker_id_));
+        auto id = multiplexer_.AllocateNext(local_worker_id_);
+        return std::move(multiplexer_.GetOrCreateChannel(id, local_worker_id_));
     }
 
     //! Returns a new File object containing a sequence of local Blocks.
@@ -125,8 +125,8 @@ private:
     //! net::FlowControlChannelManager instance that is shared among workers
     net::FlowControlChannelManager& flow_manager_;
 
-    //! data::ChannelMultiplexer instance that is shared among workers
-    data::ChannelMultiplexer& channel_multiplexer_;
+    //! data::Multiplexer instance that is shared among workers
+    data::Multiplexer& multiplexer_;
 
     //! StatsGrapg object that is uniquely held for this worker
     api::StatsGraph stats_graph_;

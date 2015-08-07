@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/channel_multiplexer.hpp
+ * c7a/data/multiplexer.hpp
  *
  * Part of Project c7a.
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
-#define C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
+#ifndef C7A_DATA_MULTIPLEXER_HEADER
+#define C7A_DATA_MULTIPLEXER_HEADER
 
 #include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block_writer.hpp>
@@ -44,21 +44,21 @@ namespace data {
  * either attached to an existing channel or a new channel instance is
  * created.
  */
-class ChannelMultiplexer
+class Multiplexer
 {
 public:
-    explicit ChannelMultiplexer(size_t num_workers_per_node)
+    explicit Multiplexer(size_t num_workers_per_node)
         : dispatcher_("dispatcher"), next_id_(num_workers_per_node, 0), num_workers_per_node_(num_workers_per_node) { }
 
     //! non-copyable: delete copy-constructor
-    ChannelMultiplexer(const ChannelMultiplexer&) = delete;
+    Multiplexer(const Multiplexer&) = delete;
     //! non-copyable: delete assignment operator
-    ChannelMultiplexer& operator = (const ChannelMultiplexer&) = delete;
+    Multiplexer& operator = (const Multiplexer&) = delete;
     //! default move constructor
-    ChannelMultiplexer(ChannelMultiplexer&&) = default;
+    Multiplexer(Multiplexer&&) = default;
 
     //! Closes all client connections
-    ~ChannelMultiplexer() {
+    ~Multiplexer() {
         if (group_ != nullptr) {
             // close all still open Channels
             for (auto& ch : channels_)
@@ -211,6 +211,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_CHANNEL_MULTIPLEXER_HEADER
+#endif // !C7A_DATA_MULTIPLEXER_HEADER
 
 /******************************************************************************/

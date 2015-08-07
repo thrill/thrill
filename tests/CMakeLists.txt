@@ -93,7 +93,7 @@ build_test(net/flow_control_test)
 build_test(net/group_test)
 
 build_test(data/block_queue_test)
-build_test(data/channel_multiplexer_test)
+build_test(data/multiplexer_test)
 build_test(data/file_test)
 build_test(data/serialization_test)
 build_test(data/serialization_cereal_test)
@@ -114,8 +114,6 @@ build_test(api/zip_node_test)
 build_test(examples/wordcount_test)
 
 if (OFF)
-
-  build_only(data/manager_channels_test)
 
   build_test(api/reduce_node_test)
   build_test(core/post_hash_table_test)
