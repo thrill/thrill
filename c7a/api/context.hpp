@@ -58,8 +58,7 @@ public:
     //! This method alters the state of the context and must be called on all
     //! Workers to ensure correct communication cordination
     data::ChannelPtr GetNewChannel() {
-        auto id = multiplexer_.AllocateNext(local_worker_id_);
-        return std::move(multiplexer_.GetOrCreateChannel(id, local_worker_id_));
+        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
     }
 
     //! Returns a new File object containing a sequence of local Blocks.
