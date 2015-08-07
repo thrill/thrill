@@ -29,7 +29,8 @@ namespace data {
 
 class Channel;
 using ChannelPtr = std::shared_ptr<Channel>;
-class StreamBlockHeader;
+
+struct StreamBlockHeader;
 
 /*!
  * Multiplexes virtual Connections on Dispatcher.
@@ -51,7 +52,7 @@ public:
     explicit Multiplexer(size_t num_workers_per_node)
         : dispatcher_("multiplexer"),
           num_workers_per_node_(num_workers_per_node),
-          channels_(num_workers_per_node){ }
+          channels_(num_workers_per_node) { }
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;

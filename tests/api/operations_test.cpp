@@ -84,7 +84,7 @@ TEST(Operations, WriteToSingleFile) {
             //Race condition as one worker might be finished while others
             //are still writing to output file.
             ctx.flow_control_channel().Await();
-            
+
             std::ifstream file(path);
             size_t begin = file.tellg();
             file.seekg(0, std::ios::end);
