@@ -224,7 +224,7 @@ inline typename File::Reader File::GetReader() const {
 
 inline
 typename File::DynReader File::GetDynReader() const {
-    return ConstructDynBlockReader<FileBlockSource, const File&>(*this, 0, 0);
+    return ConstructDynBlockReader<FileBlockSource>(*this, 0, 0);
 }
 
 //! Get BlockReader seeked to the corresponding item index

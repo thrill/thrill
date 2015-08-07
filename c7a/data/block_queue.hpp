@@ -135,7 +135,7 @@ typename BlockQueue::Reader BlockQueue::GetReader() {
 
 inline
 typename BlockQueue::DynReader BlockQueue::GetDynReader() {
-    return ConstructDynBlockReader<BlockQueueSource, BlockQueue&>(*this);
+    return ConstructDynBlockReader<BlockQueueSource>(*this);
 }
 
 /*!
