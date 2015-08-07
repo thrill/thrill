@@ -56,19 +56,49 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <typename KeyExtractor, typename ReduceFunction, const bool RobustKey = false>
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PreProbingReduceByHashKey
+{
+public:
+    PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+            : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreProbingTable>
+    typename ReducePreProbingTable::index_result
+    operator () (Key v, ReducePreProbingTable* ht) const {
+
+        using index_result = typename ReducePreProbingTable::index_result;
+
+        size_t hashed = hash_function_(v);
+
+        size_t local_index = hashed %
+                             ht->NumItemsPerPartition();
+        size_t partition_id = hashed % ht->NumPartitions();
+        size_t global_index = partition_id *
+                              ht->NumItemsPerPartition() +
+                              local_index;
+        return index_result(partition_id, local_index, global_index);
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
+template <typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool RobustKey = false,
+          typename IndexFunction = PreProbingReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key>
+    >
 class ReducePreProbingTable
 {
     static const bool debug = false;
 
-    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
     typedef std::pair<Key, Value> KeyValuePair;
 
 public:
-    struct hash_result
+    struct index_result
     {
     public:
         //! which partition number the item belongs to.
@@ -78,7 +108,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(size_t p_id, size_t p_off, size_t g_id) {
+        index_result(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
             local_index = p_off;
             global_index = g_id;
@@ -86,13 +116,6 @@ public:
     };
 
 public:
-    typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
-
-    /**
-     * A function to compare two keys
-     */
-    typedef std::function<bool (Key, Key)> EqualToFunction;
-
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
@@ -124,23 +147,8 @@ public:
                           KeyExtractor key_extractor, ReduceFunction reduce_function,
                           std::vector<data::BlockWriter>& emit,
                           Key sentinel,
-                          HashFunction hash_function
-                              = [](Key v, ReducePreProbingTable* ht) {
-                                    size_t hashed = std::hash<Key>() (v);
-
-                                    size_t local_index = hashed %
-                                                         ht->num_items_per_partition_;
-                                    size_t partition_id = hashed % ht->num_partitions_;
-                                    size_t global_index = partition_id *
-                                                          ht->num_items_per_partition_ +
-                                                          local_index;
-                                    hash_result hr(partition_id, local_index, global_index);
-                                    return hr;
-                                },
-                          EqualToFunction equal_to_function
-                              = [](Key k1, Key k2) {
-                                    return k1 == k2;
-                                })
+                          const IndexFunction& index_function = IndexFunction(),
+                          const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -149,7 +157,7 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
+          index_function_(index_function),
           equal_to_function_(equal_to_function)
     {
         init(sentinel);
@@ -158,32 +166,18 @@ public:
     /**
      * see above.
      */
-    ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
+    ReducePreProbingTable(size_t num_partitions,
+                          KeyExtractor key_extractor,
                           ReduceFunction reduce_function,
                           std::vector<data::BlockWriter>& emit,
                           Key sentinel,
-                          HashFunction hash_function
-                              = [](Key v, ReducePreProbingTable* ht) {
-                                    size_t hashed = std::hash<Key>() (v);
-
-                                    size_t local_index = hashed %
-                                                         ht->num_items_per_partition_;
-                                    size_t partition_id = hashed % ht->num_partitions_;
-                                    size_t global_index = partition_id *
-                                                          ht->num_items_per_partition_ +
-                                                          local_index;
-                                    hash_result hr(partition_id, local_index, global_index);
-                                    return hr;
-                                },
-                          EqualToFunction equal_to_function
-                              = [](Key k1, Key k2) {
-                                    return k1 == k2;
-                                })
+                          const IndexFunction& index_function = IndexFunction(),
+                          const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
+          index_function_(index_function),
           equal_to_function_(equal_to_function)
     {
         init(sentinel);
@@ -229,6 +223,16 @@ public:
     }
 
     /*!
+     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+     * inserts the pair into the hashtable.
+     */
+    void Insert(const Value& p) {
+        Key key = key_extractor_(p);
+
+        Insert(std::make_pair(key, p));
+    }
+
+    /*!
      * Inserts a value into the table, potentially reducing it in case both the key of the value
      * already in the table and the key of the value to be inserted are the same.
      *
@@ -239,10 +243,9 @@ public:
      *
      * \param p Value to be inserted into the table.
      */
-    void Insert(const Value& p) {
-        Key key = key_extractor_(p);
+    void Insert(const KeyValuePair& kv) {
 
-        hash_result h = hash_function_(key, this);
+        index_result h = index_function_(kv.first, this);
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
@@ -255,12 +258,12 @@ public:
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
-            if (equal_to_function_(current->first, key))
+            if (equal_to_function_(current->first, kv.first))
             {
-                LOG << "match of key: " << key
+                LOG << "match of key: " << kv.first
                     << " and " << current->first << " ... reducing...";
 
-                current->second = reduce_function_(current->second, p);
+                current->second = reduce_function_(current->second, kv.second);
 
                 LOG << "...finished reduce!";
                 return;
@@ -276,16 +279,16 @@ public:
             if (current == initial)
             {
                 ResizeUp();
-                Insert(std::move(p));
+                Insert(std::move(kv));
                 return;
             }
         }
 
         // insert new pair
-        if (current->first == sentinel_.first)
+        if (equal_to_function_(current->first, sentinel_.first))
         {
-            current->first = key;
-            current->second = p;
+            current->first = std::move(kv.first);
+            current->second = std::move(kv.second);
 
             // increase total counter
             num_items_++;
@@ -490,10 +493,9 @@ public:
         // rehash all items in old array
         for (KeyValuePair k_v_pair : vector_old)
         {
-            KeyValuePair current = k_v_pair;
-            if (current.first != sentinel_.first)
+            if (k_v_pair.first != sentinel_.first)
             {
-                Insert(std::move(current.second));
+                Insert(std::move(k_v_pair.second));
             }
         }
         LOG << "Resized";
@@ -624,7 +626,7 @@ private:
     KeyValuePair sentinel_;
 
     //! Hash functions.
-    HashFunction hash_function_;
+    IndexFunction index_function_;
 
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;

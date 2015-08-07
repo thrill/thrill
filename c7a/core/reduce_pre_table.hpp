@@ -492,7 +492,7 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    Insert(std::move(bi->second));
+                    Insert(*bi);
                 }
 
                 // destroy block and advance to next
