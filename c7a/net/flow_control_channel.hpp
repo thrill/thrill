@@ -244,7 +244,7 @@ public:
      * @return The value sent by the master.
      */
     template <typename T>
-    T Broadcast(T& value) {
+    T Broadcast(const T& value) {
 
         T res;
 
