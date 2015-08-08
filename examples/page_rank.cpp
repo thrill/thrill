@@ -88,8 +88,6 @@ void page_rank(Context& ctx) {
 			 		return std::make_pair(page.first, (1 - s) + page.second * s);
 			 	})
 			.Cache();
-
-		pages.Size();
     }
 
     ranks.Map([](PageWithRank item) {
