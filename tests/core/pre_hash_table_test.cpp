@@ -74,7 +74,7 @@ TEST_F(PreTable, CustomHashFunction) {
     writers.emplace_back(output.GetWriter());
 
     CustomKeyHashFunction<int> cust_hash;
-    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true, 16*1024,
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
             CustomKeyHashFunction<int>>
     table(1, key_ex, red_fn, writers, 8, 2, 20, 100, cust_hash);
 
@@ -519,7 +519,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
         writers.emplace_back(files[i].GetWriter());
     }
 
-    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
     table(num_partitions, key_ex, red_fn, writers, num_buckets_init_scale, 10, bucket_size,
           nitems);
 
@@ -607,7 +607,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     writers.emplace_back(output.GetWriter());
 
     // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, 2, 2, 128 * 1024, 1024 * 1024);
 
     // insert lots of items
@@ -649,7 +649,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, 2, 2, 128, nitems);
 
     // insert lots of items
@@ -700,7 +700,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 4 * 1024;
 
-    c7a::core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true, 16*1024>
+    c7a::core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, 2, 2, 128, nitems);
 
     // insert lots of items

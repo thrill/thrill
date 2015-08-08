@@ -74,7 +74,7 @@ public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, false, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
