@@ -44,6 +44,30 @@ static inline const T & max(const T& a, const T& b) {
 
 /******************************************************************************/
 
+//! Compute the maximum of two values. This is a class, while std::max is a
+//! function.
+template <typename T>
+class maximum : public std::binary_function<T, T, T>
+{
+public:
+    const T& operator () (const T& x, const T& y) const {
+        return std::max<T>(x, y);
+    }
+};
+
+//! Compute the minimum of two values. This is a class, while std::min is a
+//! function.
+template <typename T>
+class minimum : public std::binary_function<T, T, T>
+{
+public:
+    const T& operator () (const T& x, const T& y) const {
+        return std::min<T>(x, y);
+    }
+};
+
+/******************************************************************************/
+
 // Compile-time integer sequences, an implementation of std::index_sequence and
 // std::make_index_sequence, as these are not available in many current
 // libraries.
