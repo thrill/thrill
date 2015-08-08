@@ -83,7 +83,7 @@ public:
             for (size_t i = 0; i < parents.size(); ++i) {
                 // Check if parent was already added
                 auto p = parents[i].get();
-                if (p && (stages_found.find(p) == stages_found.end())) {
+                if (p) {
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
