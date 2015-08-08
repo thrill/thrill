@@ -56,26 +56,8 @@ public:
           workers_per_host_(workers_per_host)
     { }
 
-    //! Returns a reference to a new Channel.
-    //! This method alters the state of the context and must be called on all
-    //! Workers to ensure correct communication cordination
-    data::ChannelPtr GetNewChannel() {
-        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
-    }
-
-    //! Returns a new File object containing a sequence of local Blocks.
-    data::File GetFile() {
-        return data::File();
-    }
-
-    /**
-     * @brief Gets the flow control channel for the current worker.
-     *
-     * @return The flow control channel instance for this worker.
-     */
-    net::FlowControlChannel & flow_control_channel() {
-        return flow_manager_.GetFlowControlChannel(local_worker_id_);
-    }
+    //! \name System Information
+    //! \{
 
     //! Returns the total number of hosts.
     size_t num_hosts() const {
@@ -108,6 +90,53 @@ public:
     size_t local_worker_id() const {
         return local_worker_id_;
     }
+
+    //! \}
+
+    //! \name Network Subsystem
+    //! \{
+
+    /**
+     * @brief Gets the flow control channel for the current worker.
+     *
+     * @return The flow control channel instance for this worker.
+     */
+    net::FlowControlChannel & flow_control_channel() {
+        return flow_manager_.GetFlowControlChannel(local_worker_id_);
+    }
+
+    //! Broadcasts a value of an integral type T from the master (the worker
+    //! with rank 0) to all other workers.
+    template <typename T>
+    T Broadcast(const T& value) {
+        return flow_control_channel().Broadcast(value);
+    }
+
+    //! Reduces a value of an integral type T over all workers given a certain
+    //! reduce function.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
+        return flow_control_channel().AllReduce(value, sumOp);
+    }
+
+    //! \}
+
+    //! \name Data Subsystem
+    //! \{
+
+    //! Returns a new File object containing a sequence of local Blocks.
+    data::File GetFile() {
+        return data::File();
+    }
+
+    //! Returns a reference to a new Channel.  This method alters the state of
+    //! the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::ChannelPtr GetNewChannel() {
+        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
+    }
+
+    //! \}
 
     //! Returns the stas object for this worker
     common::Stats<common::g_enable_stats> & stats() {
