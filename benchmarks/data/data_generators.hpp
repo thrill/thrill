@@ -34,6 +34,7 @@ public:
 
     size_t Next() {
         assert(size_ > 0);
+        --size_;
         return index_++;
     }
 
