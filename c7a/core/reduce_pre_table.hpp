@@ -137,9 +137,9 @@ public:
 template <typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          size_t TargetBlockSize = 16*1024,
           typename IndexFunction = PreReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>
+          typename EqualToFunction = std::equal_to<Key>,
+          size_t TargetBlockSize = 16*1024
           >
 class ReducePreTable
 {
