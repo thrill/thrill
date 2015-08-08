@@ -5,20 +5,19 @@
 ################################################################################
 
 # macro for building test programs with correct libraries
-macro(c7a_build TARGETNAME)
+macro(c7a_build_test TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME}
-    c7a gtest gtest_main ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} c7a gtest gtest_main ${ALL_LIBRARIES})
 
-endmacro(c7a_build)
+endmacro(c7a_build_test)
 
 # macro for building test programs, without main() in c7a_tests.cpp
 macro(build_plain PROGNAME)
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
-  c7a_build(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
+  c7a_build_test(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
 
 endmacro(build_plain)
 
@@ -63,7 +62,7 @@ macro(build_test_group TESTNAME)
 
   string(REPLACE "/" "_" TARGETNAME "${TESTNAME}") # replace slashes
 
-  c7a_build(${TARGETNAME} ${ARGN})
+  c7a_build_test(${TARGETNAME} ${ARGN})
   test_only(${TARGETNAME})
 
 endmacro(build_test_group)

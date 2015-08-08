@@ -234,9 +234,29 @@ endif()
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
 ################################################################################
+### Build Macros
+
+# macro for building main c7a programs with correct libraries
+macro(c7a_build TARGETNAME)
+
+  add_executable(${TARGETNAME} ${ARGN})
+  target_link_libraries(${TARGETNAME} c7a ${ALL_LIBRARIES})
+
+endmacro(c7a_build)
+
+# macro for building a single-source c7a program
+macro(c7a_build_prog PROGNAME)
+
+  string(REPLACE "/" "_" TARGETNAME "${PROGNAME}") # replace slashes
+
+  c7a_build(${TARGETNAME} ${PROGNAME}.cpp ${ARGN})
+
+endmacro(c7a_build_prog)
+
+################################################################################
 ### Descend into Subdirectories
 
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # descend into library source
 add_subdirectory(c7a)
