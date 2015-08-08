@@ -107,7 +107,8 @@ public:
 
         tx_timespan_->StartEventually();
 
-        sLOG << "sending 'close channel' from worker" << my_local_worker_id_
+        sLOG << "sending 'close channel' from my_rank" << my_rank_
+             << "worker" << my_local_worker_id_
              << "to worker" << partners_local_worker_id_
              << "channel" << id_;
 

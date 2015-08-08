@@ -9,6 +9,7 @@ c7a_build_prog(hashtable/bench_probing_hashtable)
 
 c7a_build_prog(data/disk)
 c7a_build_prog(data/file_read_write)
+c7a_build_prog(data/channel)
 c7a_build_prog(data/channel_read_write)
 c7a_build_prog(data/channel_a_to_b)
 c7a_build_prog(data/channel_scatter)
