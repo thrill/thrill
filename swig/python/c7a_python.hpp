@@ -176,7 +176,7 @@ public:
 } // namespace c7a
 
 // import Swig Director classes.
-#include "c7aPYTHON_wrap.h"
+#include "c7a_pythonPYTHON_wrap.h"
 
 namespace std {
 template <>
