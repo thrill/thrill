@@ -235,23 +235,25 @@ int Run(
         }
 
         for (const std::string& host : hostlist) {
+            // skip empty splits
+            if (host.size() == 0) continue;
+
             if (host.find(':') == std::string::npos) {
-                std::cerr << "Invalid address \"" << host
-                          << "\" in C7A_HOSTLIST. "
-                          << "It must contain a port number."
+                std::cerr << "Invalid address \"" << host << "\""
+                          << "in C7A_HOSTLIST. It must contain a port number."
                           << std::endl;
                 return -1;
             }
+
+            endpoints.push_back(host);
         }
 
-        if (my_rank >= hostlist.size()) {
+        if (my_rank >= endpoints.size()) {
             std::cerr << "endpoint list (" << hostlist.size() << " entries) "
                       << "does not include my rank (" << my_rank << ")"
                       << std::endl;
             return -1;
         }
-
-        endpoints = hostlist;
     }
 
     std::cerr << "c7a: executing with rank " << my_rank << " and endpoints";
