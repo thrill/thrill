@@ -62,7 +62,7 @@ public:
         }
 
         //Parse endpoints.
-        std::vector<SocketAddress> addressList
+        std::vector<SocketAddress> address_list
             = GetAddressList(endpoints);
 
         //Create listening socket.
@@ -70,8 +70,7 @@ public:
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
 
-            SocketAddress lsa("0.0.0.0:0");
-            lsa.SetPort(addressList[my_rank_].GetPort());
+            SocketAddress& lsa = address_list[my_rank_];
 
             if (listen_socket.bind(lsa) != 0)
                 throw Exception("Could not bind listen socket to "
@@ -88,8 +87,8 @@ public:
 
         //Initiate connections to all hosts with higher id.
         for (uint32_t g = 0; g < kGroupCount; g++) {
-            for (size_t id = my_rank_ + 1; id < addressList.size(); ++id) {
-                AsyncConnect(g, id, addressList[id]);
+            for (size_t id = my_rank_ + 1; id < address_list.size(); ++id) {
+                AsyncConnect(g, id, address_list[id]);
             }
         }
 
@@ -113,7 +112,7 @@ public:
 
         for (size_t j = 0; j < kGroupCount; j++) {
             // output list of file descriptors connected to partners
-            for (size_t i = 0; i != addressList.size(); ++i) {
+            for (size_t i = 0; i != address_list.size(); ++i) {
                 if (i == my_rank_) continue;
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
