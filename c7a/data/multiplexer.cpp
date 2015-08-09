@@ -76,26 +76,23 @@ void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
         sLOG << "stream header from" << s << "on channel" << id
              << "from" << header.sender_rank;
 
+        ByteBlockPtr bytes = ByteBlock::Allocate(header.size);
+
         dispatcher_.AsyncRead(
-            s, header.size,
-            [this, header, channel](Connection& s, net::Buffer&& buffer) {
-                OnChannelBlock(s, header, channel, std::move(buffer));
+            s, bytes,
+            [this, header, channel, bytes](Connection& s) {
+                OnChannelBlock(s, header, channel, bytes);
             });
     }
 }
 
 void Multiplexer::OnChannelBlock(
     Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-    net::Buffer&& buffer) {
-
-    die_unless(header.size == buffer.size());
-
-    // TODO(tb): don't copy data!
-    ByteBlockPtr bytes = ByteBlock::Allocate(buffer.size());
-    std::copy(buffer.data(), buffer.data() + buffer.size(), bytes->begin());
+    const ByteBlockPtr& bytes) {
 
     size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
     sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
+
     channel->OnChannelBlock(
         sender_worker_rank,
         Block(bytes, 0, header.size, header.first_item, header.nitems));

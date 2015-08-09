@@ -200,7 +200,7 @@ int main(int argc, const char** argv) {
 
     if (type == "size_t")
         api::Run([&](Context& ctx) {
-                return Experiment<size_t>(experiment, ctx, type);
+                     return Experiment<size_t>(experiment, ctx, type);
                  });
     else if (type == "string")
         api::Run([&](Context& ctx) {

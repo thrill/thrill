@@ -145,7 +145,7 @@ private:
 
     void OnChannelBlock(
         Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-        net::Buffer&& buffer);
+        const ByteBlockPtr& bytes);
 };
 
 //! \}

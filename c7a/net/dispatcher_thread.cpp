@@ -97,6 +97,15 @@ void DispatcherThread::AsyncRead(
     WakeUpThread();
 }
 
+//! asynchronously read the full ByteBlock and deliver it to the callback
+void DispatcherThread::AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+                                 AsyncReadByteBlockCallback done_cb) {
+    Enqueue([=, &c]() {
+                dispatcher_->AsyncRead(c, block, done_cb);
+            });
+    WakeUpThread();
+}
+
 //! asynchronously write TWO buffers and callback when delivered. The
 //! buffer2 are MOVED into the async writer. This is most useful to write a
 //! header and a payload Buffers that are hereby guaranteed to be written in

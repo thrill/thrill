@@ -62,6 +62,9 @@ public:
     //! Signature of async read callbacks.
     using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
 
+    //! Signature of async read ByteBlock callbacks.
+    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
+
     //! Signature of async write callbacks.
     using AsyncWriteCallback = function<void(Connection&)>;
 
@@ -117,6 +120,10 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb);
+
+    //! asynchronously read the full ByteBlock and deliver it to the callback
+    void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+                   AsyncReadByteBlockCallback done_cb);
 
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
