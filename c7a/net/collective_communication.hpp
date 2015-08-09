@@ -46,30 +46,30 @@ static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = Bi
 
     static const bool debug = false;
 
-    for (size_t d = 1; d < net.Size(); d <<= 1)
+    for (size_t d = 1; d < net.num_hosts(); d <<= 1)
     {
         // Send total sum of this hypercube to worker with id = id XOR d
-        if ((net.MyRank() ^ d) < net.Size()) {
-            net.connection(net.MyRank() ^ d).Send(total_sum);
-            sLOG << "PREFIX_SUM: Worker" << net.MyRank() << ": Sending" << total_sum
-                 << "to worker" << (net.MyRank() ^ d);
+        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
+            net.connection(net.my_host_rank() ^ d).Send(total_sum);
+            sLOG << "PREFIX_SUM: Worker" << net.my_host_rank() << ": Sending" << total_sum
+                 << "to worker" << (net.my_host_rank() ^ d);
         }
 
         // Receive total sum of smaller hypercube from worker with id = id XOR d
         T recv_data;
-        if ((net.MyRank() ^ d) < net.Size()) {
-            net.connection(net.MyRank() ^ d).Receive(&recv_data);
+        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
+            net.connection(net.my_host_rank() ^ d).Receive(&recv_data);
             total_sum = sumOp(total_sum, recv_data);
             // Variable 'value' represents the prefix sum of this worker
-            if (net.MyRank() & d)
+            if (net.my_host_rank() & d)
                 value = sumOp(value, recv_data);
-            sLOG << "PREFIX_SUM: Worker" << net.MyRank() << ": Received" << recv_data
-                 << "from worker" << (net.MyRank() ^ d)
+            sLOG << "PREFIX_SUM: Worker" << net.my_host_rank() << ": Received" << recv_data
+                 << "from worker" << (net.my_host_rank() ^ d)
                  << "value =" << value;
         }
     }
 
-    sLOG << "PREFIX_SUM: Worker" << net.MyRank()
+    sLOG << "PREFIX_SUM: Worker" << net.my_host_rank()
          << ": value after prefix sum =" << value;
 }
 
@@ -84,15 +84,15 @@ static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = Bi
 template <typename T, typename BinarySumOp = std::plus<T> >
 void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     bool active = true;
-    for (size_t d = 1; d < net.Size(); d <<= 1) {
+    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         if (active) {
-            if (net.MyRank() & d) {
-                net.connection(net.MyRank() - d).Send(value);
+            if (net.my_host_rank() & d) {
+                net.connection(net.my_host_rank() - d).Send(value);
                 active = false;
             }
-            else if (net.MyRank() + d < net.Size()) {
+            else if (net.my_host_rank() + d < net.num_hosts()) {
                 T recv_data;
-                net.connection(net.MyRank() + d).Receive(&recv_data);
+                net.connection(net.my_host_rank() + d).Receive(&recv_data);
                 value = sumOp(value, recv_data);
             }
         }
@@ -105,13 +105,13 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   value The value to be added to the aggregation
 template <typename T>
 void Broadcast(Group& net, T& value) {
-    if (net.MyRank() > 0) {
-        ClientId from;
+    if (net.my_host_rank() > 0) {
+        size_t from;
         net.ReceiveFromAny(&from, &value);
     }
-    for (size_t d = 1, i = 0; ((net.MyRank() >> i) & 1) == 0 && d < net.Size(); d <<= 1, ++i) {
-        if (net.MyRank() + d < net.Size()) {
-            net.connection(net.MyRank() + d).Send(value);
+    for (size_t d = 1, i = 0; ((net.my_host_rank() >> i) & 1) == 0 && d < net.num_hosts(); d <<= 1, ++i) {
+        if (net.my_host_rank() + d < net.num_hosts()) {
+            net.connection(net.my_host_rank() + d).Send(value);
         }
     }
 }
@@ -127,6 +127,41 @@ template <typename T, typename BinarySumOp = std::plus<T> >
 void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
+}
+
+//! @brief   Perform an All-Reduce for powers of two. This is done with the
+//!          Hypercube algorithm from the ParAlg script.
+//!
+//! @param   net The current worker onto which to apply the operation
+//! @param   value The value to be added to the aggregation
+//! @param   sumOp A custom summation operator
+template <typename T, typename BinarySumOp = std::plus<T> >
+void AllReduceForPowersOfTwo(Group& net, T &value, BinarySumOp sumOp = BinarySumOp()) {
+    // For each dimension of the hypercube, exchange data between workers with
+    // different bits at position d
+    
+    static const bool debug = false;
+
+    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+        // Send value to worker with id id ^ d
+        if ((net.my_host_rank() ^ d) < net.num_hosts()){
+            net.connection(net.my_host_rank() ^ d).Send(value);
+            sLOG << "ALL_REDUCE_HYPERCUBE: Worker" << net.my_host_rank() << ": Sending" << value
+                      << "to worker" << (net.my_host_rank() ^ d) << "\n";
+        }
+
+        // Receive value from worker with id id ^ d
+        T recv_data;
+        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
+            net.connection(net.my_host_rank() ^ d).Receive(&recv_data);
+            value = sumOp(value, recv_data);
+            sLOG << "ALL_REDUCE_HYPERCUBE: Worker " << net.my_host_rank() << ": Received " << recv_data
+                      << " from worker " << (net.my_host_rank() ^ d)
+                      << " value = " << value << "\n";
+        }
+    }
+    
+    sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
 }
 
 //! @brief   Perform a barrier for all workers.
@@ -164,15 +199,15 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
     // This is based on the pointer-doubling algorithm presented in the ParAlg
     // script, which is used for list ranking.
-    for (size_t d = 1; d < net.Size(); d <<= 1) {
-        if (net.MyRank() + d < net.Size()) {
-            sLOG << "Worker" << net.MyRank() << ": sending to" << net.MyRank() + d;
-            net.SendTo(net.MyRank() + d, value);
+    for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
+        if (net.my_host_rank() + d < net.num_hosts()) {
+            sLOG << "Worker" << net.my_host_rank() << ": sending to" << net.my_host_rank() + d;
+            net.SendTo(net.my_host_rank() + d, value);
         }
-        if (net.MyRank() >= d) {
-            sLOG << "Worker" << net.MyRank() << ": receiving from" << net.MyRank() - d;
+        if (net.my_host_rank() >= d) {
+            sLOG << "Worker" << net.my_host_rank() << ": receiving from" << net.my_host_rank() - d;
             T recv_value;
-            net.ReceiveFrom(net.MyRank() - d, &recv_value);
+            net.ReceiveFrom(net.my_host_rank() - d, &recv_value);
             value = sumOp(value, recv_value);
         }
     }
