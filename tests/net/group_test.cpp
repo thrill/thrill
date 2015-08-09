@@ -258,6 +258,18 @@ TEST(Group, TestPrefixSum) {
     }
 }
 
+TEST(Group, TestPrefixSumInHypercube) {
+    for (size_t p = 1; p <= 8; p <<= 1) {
+        // Construct Group of p workers which perform a PrefixSum collective
+        Group::ExecuteLocalMock(
+            p, [](Group* net) {
+                size_t local_value = 1;
+                PrefixSumForPowersOfTwo(*net, local_value);
+                ASSERT_EQ(local_value, net->my_host_rank() + 1);
+            });
+    }
+}
+
 TEST(Group, TestAllReduce) {
     for (size_t p = 0; p <= 8; ++p) {
         // Construct Group of p workers which perform an AllReduce collective
@@ -269,6 +281,18 @@ TEST(Group, TestAllReduce) {
             });
     }
 }
+
+TEST(Group, TestAllReduceInHypercube) {
+    // Construct a NetGroup of 8 workers which perform an AllReduce collective
+    for (size_t p = 1; p <= 8; p <<= 1) {
+        Group::ExecuteLocalMock(
+            p, [](Group* net) {
+                size_t local_value = net->my_host_rank();
+                AllReduceForPowersOfTwo(*net, local_value);
+                ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
+            });
+    }
+} 
 
 TEST(Group, TestBroadcast) {
     for (size_t p = 0; p <= 8; ++p) {
