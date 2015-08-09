@@ -165,8 +165,9 @@ protected:
     //! start connect backoff at 10msec
     const size_t initial_timeout_ = 10;
 
-    //! maximum connect backoff, after which the program fails.
-    const size_t final_timeout_ = 5120;
+    //! maximum connect backoff, after which the program fails. Total waiting
+    //! time is about 2 * final_timeout_ (in millisec).
+    const size_t final_timeout_ = 40960;
 
     /**
      * @brief Represents a welcome message.
