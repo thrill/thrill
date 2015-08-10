@@ -10,9 +10,6 @@ using namespace c7a;
 %}
 
 %feature("director") GeneratorFunction;
-%feature("director") MapFunction;
-%feature("director") KeyExtractorFunction;
-%feature("director") ReduceFunction;
 
 %pragma(java) jniclasscode=%{
      static {
@@ -24,6 +21,39 @@ using namespace c7a;
              System.exit(1);
          }
      }
+%}
+
+// from http://stackoverflow.com/questions/8168517/generating-java-interface-with-swig
+
+%rename(GeneratorFunctionNative) GeneratorFunction;
+
+%typemap(jstype) const c7a::GeneratorFunction& "GeneratorFunction";
+%typemap(javainterfaces) c7a::GeneratorFunction "GeneratorFunction"
+%typemap(javain, pgcppname="n",
+         pre="    GeneratorFunctionNative n = makeNative($javainput);")
+     const c7a::GeneratorFunction&  "GeneratorFunctionNative.getCPtr(n)"
+
+%pragma(java) modulecode=%{
+  // (2.4)
+  private static class GeneratorFunctionNativeProxy extends GeneratorFunctionNative {
+    private GeneratorFunction delegate;
+    public GeneratorFunctionNativeProxy(GeneratorFunction gf) {
+      delegate = gf;
+    }
+
+    public String call(long i) {
+      return delegate.call(i);
+    }
+  }
+
+  // (2.5)
+  private static GeneratorFunctionNative makeNative(GeneratorFunction i) {
+    if (i instanceof GeneratorFunctionNative) {
+      // If it already *is* a NativeInterface don't bother wrapping it again
+      return (GeneratorFunctionNative)i;
+    }
+    return new GeneratorFunctionNativeProxy(i);
+  }
 %}
 
 /* %define ARRAYHELPER(FunctionType,function_var) %{ */
