@@ -17,7 +17,7 @@ set(SWIG_MODULE_c7a_java_EXTRA_DEPS
   )
 
 # unclear if this conflicts with other swig runs? -tb
-set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/java")
+set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/source")
 
 set_source_files_properties(c7a_java.i PROPERTIES
   CPLUSPLUS ON
@@ -32,7 +32,7 @@ file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/classes")
 
 add_custom_command(OUTPUT c7a.jar
   DEPENDS c7a_java
-  COMMAND "${Java_JAVAC_EXECUTABLE}" -d classes java/*.java
+  COMMAND "${Java_JAVAC_EXECUTABLE}" -d classes "source/*.java" "${CMAKE_CURRENT_SOURCE_DIR}/c7a/*.java"
   COMMAND "${Java_JAR_EXECUTABLE}" -cf c7a.jar -C classes .
   )
 set(c7a_JAR "${CMAKE_CURRENT_BINARY_DIR}/c7a.jar")

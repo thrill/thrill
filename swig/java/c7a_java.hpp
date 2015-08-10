@@ -32,8 +32,15 @@ namespace c7a {
 
 static const bool debug = true;
 
-void printHello() {
-    std::cout << "Hello from C++" << std::endl;
+class GeneratorFunction
+{
+public:
+    virtual ~GeneratorFunction() { }
+    virtual std::string call(size_t index) const = 0;
+};
+
+void printHello(size_t i, const GeneratorFunction& gen) {
+    std::cout << "Hello from C++: " << gen.call(i) << std::endl;
 }
 
 #if 0
@@ -150,13 +157,6 @@ struct Serialization<Archive, PyObjectRef>
 };
 
 } // namespace data
-
-class GeneratorFunction
-{
-public:
-    virtual ~GeneratorFunction() { }
-    virtual PyObjectVarRef operator () (size_t index) = 0;
-};
 
 class MapFunction
 {
