@@ -1,12 +1,6 @@
-#! /bin/bash
+#!/bin/bash
 
-#todo: Check for g+ 4.9.2 loaded. 
-
-GCC=$(gcc --version | grep "4.9.2")
-if [ -z "$GCC" ]; then 
-  echo "GCC version is not 4.9.2. Please load the according module"
-  exit -1
-fi
+set -e
 
 function printVars {
   echo "SLURM_NNODES: $SLURM_NNODES"
@@ -18,7 +12,6 @@ function printVars {
 echo "Checking Environment:"
 printVars
 
-
 if [ -z $SLURM_NNODES ]; then
   echo "Error: SLURM environment not found."
   exit -1
@@ -29,3 +22,6 @@ if [ $SLURM_NNODES -ne $SLURM_NTASKS ]; then
   exit -1
 fi
 
+echo "More SLURM Environment:"
+set | grep ^SLURM
+echo "END SLURM Environment:"
