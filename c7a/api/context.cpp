@@ -126,7 +126,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
 }
 
 int RunDistributedTCP(
-    size_t my_rank,
+    size_t my_host_rank,
     const std::vector<std::string>& endpoints,
     std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix) {
@@ -137,7 +137,7 @@ int RunDistributedTCP(
     static const bool debug = false;
 
     net::Manager net_manager;
-    net_manager.Initialize(my_rank, net::Endpoint::ParseEndpointList(endpoints));
+    net_manager.Initialize(my_host_rank, net::Endpoint::ParseEndpointList(endpoints));
 
     data::Multiplexer cmp(workers_per_host, net_manager.GetDataGroup());
 
@@ -172,8 +172,6 @@ int RunDistributedTCP(
 
     return global_result;
 }
-
-// TODO: the following should be renamed to Run().
 
 /*!
  * Runs the given job startpoint with a context instance.  Startpoints may
@@ -219,7 +217,7 @@ int Run(
         return 0;
     }
 
-    size_t my_rank = std::strtoul(c7a_rank, &endptr, 10);
+    size_t my_host_rank = std::strtoul(c7a_rank, &endptr, 10);
 
     if (!endptr || *endptr != 0) {
         std::cerr << "environment variable C7A_RANK=" << c7a_rank
@@ -252,20 +250,20 @@ int Run(
             endpoints.push_back(host);
         }
 
-        if (my_rank >= endpoints.size()) {
+        if (my_host_rank >= endpoints.size()) {
             std::cerr << "endpoint list (" << hostlist.size() << " entries) "
-                      << "does not include my rank (" << my_rank << ")"
+                      << "does not include my host_rank (" << my_host_rank << ")"
                       << std::endl;
             return -1;
         }
     }
 
-    std::cerr << "c7a: executing with rank " << my_rank << " and endpoints";
+    std::cerr << "c7a: executing with host_rank " << my_host_rank << " and endpoints";
     for (const std::string& ep : endpoints)
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    return RunDistributedTCP(my_rank, endpoints, job_startpoint, "");
+    return RunDistributedTCP(my_host_rank, endpoints, job_startpoint, "");
 }
 
 } // namespace api
