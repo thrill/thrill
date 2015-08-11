@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
-#Simply us (undocumented) expandnods tool to expand the ostlist. 
-expandnodes $SLURM_JOB_NODELIST
+# Simply use (undocumented) expandnodes tool to expand the hostlist. 
+expandnodes "$SLURM_JOB_NODELIST"

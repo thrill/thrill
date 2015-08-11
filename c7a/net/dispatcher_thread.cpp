@@ -15,6 +15,7 @@
 
 #include <csignal>
 #include <deque>
+#include <string>
 #include <vector>
 
 namespace c7a {
@@ -92,6 +93,15 @@ void DispatcherThread::AsyncRead(
     Connection& c, size_t n, AsyncReadCallback done_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AsyncRead(c, n, done_cb);
+            });
+    WakeUpThread();
+}
+
+//! asynchronously read the full ByteBlock and deliver it to the callback
+void DispatcherThread::AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+                                 AsyncReadByteBlockCallback done_cb) {
+    Enqueue([=, &c]() {
+                dispatcher_->AsyncRead(c, block, done_cb);
             });
     WakeUpThread();
 }

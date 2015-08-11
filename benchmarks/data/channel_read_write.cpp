@@ -12,8 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
@@ -36,7 +34,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
     auto data = generate<Type>(bytes, 1, 100);
     ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
-        auto channel = ctx.data_manager().GetNewChannel();
+        auto channel = ctx.GetNewChannel();
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &channel, &ctx, &write_timer]() {
                          auto writers = channel->OpenWriters();
@@ -72,9 +70,6 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const 
 }
 
 int main(int argc, const char** argv) {
-    core::JobManager jobMan;
-    jobMan.Connect(0, net::Endpoint::ParseEndpointList("127.0.0.1:8000"), 1);
-    api::Context ctx(jobMan, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
@@ -89,14 +84,21 @@ int main(int argc, const char** argv) {
                        "data type (int, string, pair, triple)");
     if (!clp.Process(argc, argv)) return -1;
 
+    using pair = std::pair<std::string, int>;
+    using triple = std::tuple<std::string, int, std::string>;
+
     if (type == "int")
-        ConductExperiment<int>(bytes, iterations, ctx, type);
-    if (type == "string")
-        ConductExperiment<std::string>(bytes, iterations, ctx, type);
-    if (type == "pair")
-        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx, type);
-    if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx, type);
+        api::RunSameThread(std::bind(ConductExperiment<int>, bytes, iterations, std::placeholders::_1, type));
+    else if (type == "size_t")
+        api::RunSameThread(std::bind(ConductExperiment<size_t>, bytes, iterations, std::placeholders::_1, type));
+    else if (type == "string")
+        api::RunSameThread(std::bind(ConductExperiment<std::string>, bytes, iterations, std::placeholders::_1, type));
+    else if (type == "pair")
+        api::RunSameThread(std::bind(ConductExperiment<pair>, bytes, iterations, std::placeholders::_1, type));
+    else if (type == "triple")
+        api::RunSameThread(std::bind(ConductExperiment<triple>, bytes, iterations, std::placeholders::_1, type));
+    else
+        abort();
 }
 
 /******************************************************************************/

@@ -13,11 +13,10 @@
 #ifndef C7A_API_PREFIXSUM_HEADER
 #define C7A_API_PREFIXSUM_HEADER
 
-#include <c7a/api/dop_node.hpp>
 #include <c7a/api/dia.hpp>
+#include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 
@@ -60,11 +59,11 @@ public:
     virtual ~PrefixSumNode() { }
 
     //! Executes the sum operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         data::File::Reader reader = file_.GetReader();
 
         ValueType sum = local_sum_;
@@ -77,7 +76,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -93,7 +92,7 @@ public:
      * Returns "[PrefixSumNode]" as a string.
      * \return "[PrefixSumNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[PrefixSumNode] Id:" + result_file_.ToString();
     }
 
@@ -125,7 +124,7 @@ private:
 
         ValueType sum = channel.PrefixSum(local_sum_, sum_function_, false);
 
-        if (context_.rank() == 0) {
+        if (context_.my_rank() == 0) {
             sum = neutral_element_;
         }
 
@@ -162,7 +161,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("PrefixSum", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("PrefixSum", NodeType::DOP);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,

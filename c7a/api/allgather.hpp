@@ -15,8 +15,6 @@
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
-#include <c7a/data/manager.hpp>
-#include <c7a/net/collective_communication.hpp>
 
 #include <string>
 #include <vector>
@@ -40,7 +38,7 @@ public:
                   StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "AllGather", stats_node),
           out_vector_(out_vector),
-          channel_(parent.ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
         auto pre_op_function = [=](ValueType input) {
@@ -60,7 +58,7 @@ public:
     }
 
     //! Closes the output file
-    void Execute() override {
+    void Execute() final {
         //data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].Close();
@@ -71,15 +69,17 @@ public:
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
+
+        this->WriteChannelStats(channel_);
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns "[AllGatherNode]" and its id as a string.
      * \return "[AllGatherNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[AllGatherNode] Id: " + result_file_.ToString();
     }
 
@@ -100,7 +100,7 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", "Action");
+    StatsNode* stats_node = AddChildStatsNode("AllGather", NodeType::ACTION);
     auto shared_node =
         std::make_shared<AllGatherResultNode>(*this, &output, stats_node);
 
@@ -115,7 +115,7 @@ void DIARef<ValueType, Stack>::AllGather(
 
     using AllGatherResultNode = AllGatherNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", "Action");
+    StatsNode* stats_node = AddChildStatsNode("AllGather", NodeType::ACTION);
     auto shared_node =
         std::make_shared<AllGatherResultNode>(*this, out_vector, stats_node);
 

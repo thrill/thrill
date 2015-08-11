@@ -50,6 +50,9 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(4).size(), 16u);
     ASSERT_EQ(file.block(5).size(), 14u);
 
+    //Total size is equal to sum of block sizes
+    ASSERT_EQ(file.TotalSize(), 94u);
+
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
         0x74, 0x65, 0x73, 0x74, 0x74, 0x65, 0x73, 0x74,
@@ -127,6 +130,37 @@ TEST(File, SerializeSomeItems) {
     // get items back from file.
     {
         data::File::Reader fr = file.GetReader();
+        unsigned i1 = fr.Next<unsigned>();
+        ASSERT_EQ(i1, 5u);
+        MyPair i2 = fr.Next<MyPair>();
+        ASSERT_EQ(i2, MyPair(5, "10abc"));
+        double i3 = fr.Next<double>();
+        ASSERT_DOUBLE_EQ(i3, 42.0);
+        std::string i4 = fr.Next<std::string>();
+        ASSERT_EQ(i4, "test");
+    }
+}
+
+TEST(File, SerializeSomeItemsDynReader) {
+
+    // construct File with very small blocks for testing
+    data::File file;
+
+    using MyPair = std::pair<int, std::string>;
+
+    // put into File some items (all of different serialization bytes)
+    {
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(1024);
+        fw(static_cast<unsigned>(5));
+        fw(MyPair(5, "10abc"));
+        fw(static_cast<double>(42.0));
+        fw(std::string("test"));
+    }
+
+    // get items back from file.
+    {
+        data::File::DynReader fr = file.GetDynReader();
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
         MyPair i2 = fr.Next<MyPair>();

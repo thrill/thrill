@@ -32,7 +32,34 @@ struct MyStruct
 
 using MyPair = std::pair<int, MyStruct>;
 
-#if FIXME_LATER
+template <typename Key, typename HashFunction = std::hash<Key> >
+class CustomKeyHashFunction
+    : public c7a::core::PreReduceByHashKey<int>
+{
+public:
+    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreTable>
+    typename ReducePreTable::index_result
+    operator () (Key v, ReducePreTable* ht) const {
+
+        using index_result = typename ReducePreTable::index_result;
+
+        size_t global_index = v / 2;
+        size_t partition_id = 0;
+        size_t local_index = v / 2;
+
+        (*ht).NumItems();
+
+        return index_result(partition_id, local_index, global_index);
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
 TEST_F(PreTable, CustomHashFunction) {
 
     auto key_ex = [](int in) {
@@ -43,23 +70,14 @@ TEST_F(PreTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    using HashTable = typename c7a::core::ReducePreTable<
-              decltype(key_ex), decltype(red_fn), true>;
-
-    auto hash_function = [](int key, HashTable*) {
-
-                             size_t global_index = key / 2;
-                             size_t partition_id = 0;
-                             size_t partition_offset = key / 2;
-
-                             return HashTable::hash_result(partition_id, partition_offset, global_index);
-                         };
-
     File output;
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    HashTable table(1, 8, 2, 20, 100, key_ex, red_fn, writers, hash_function);
+    CustomKeyHashFunction<int> cust_hash;
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true, 16*1024,
+                              CustomKeyHashFunction<int> >
+    table(1, key_ex, red_fn, writers, 8, 2, 20, 100, cust_hash);
 
     for (int i = 0; i < 16; i++) {
         table.Insert(std::move(i));
@@ -76,7 +94,6 @@ TEST_F(PreTable, CustomHashFunction) {
 
     ASSERT_EQ(16, c);
 }
-#endif
 
 TEST_F(PreTable, AddIntegers) {
     auto key_ex = [](int in) {
@@ -98,11 +115,11 @@ TEST_F(PreTable, AddIntegers) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 }
 
 TEST_F(PreTable, CreateEmptyTable) {
@@ -123,11 +140,11 @@ TEST_F(PreTable, CreateEmptyTable) {
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(2);
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 }
 
 TEST_F(PreTable, PopIntegers) {
@@ -144,18 +161,18 @@ TEST_F(PreTable, PopIntegers) {
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
 
-    table.SetMaxSize(3);
+    table.SetMaxNumItems(3);
 
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     table.Insert(1);
 
-    ASSERT_EQ(1u, table.Size());
+    ASSERT_EQ(1u, table.NumItems());
 }
 
 // Manually flush all items in table,
@@ -174,7 +191,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, 10, 2, 10, 10, key_ex, red_fn, writers);
+    table(1, key_ex, red_fn, writers, 10, 2, 10, 10);
 
     table.Insert(0);
     table.Insert(1);
@@ -182,10 +199,10 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5u, table.Size());
+    ASSERT_EQ(5u, table.NumItems());
 
     table.Flush();
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     auto it = output.GetReader();
     int c = 0;
@@ -214,7 +231,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, 5, 2, 10, 10, key_ex, red_fn, writers);
+    table(2, key_ex, red_fn, writers, 5, 2, 10, 10);
 
     table.Insert(0);
     table.Insert(1);
@@ -222,10 +239,10 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     table.Insert(3);
     table.Insert(4);
 
-    ASSERT_EQ(5u, table.Size());
+    ASSERT_EQ(5u, table.NumItems());
 
     table.Flush();
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     auto it1 = output1.GetReader();
     int c1 = 0;
@@ -262,14 +279,14 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, 10, 2, 10, 4, key_ex, red_fn, writers);
+    table(1, key_ex, red_fn, writers, 10, 2, 10, 4);
 
     table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4u, table.Size());
+    ASSERT_EQ(4u, table.NumItems());
 
     table.Insert(4);
 
@@ -301,14 +318,14 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, 5, 2, 10, 4, key_ex, red_fn, writers);
+    table(2, key_ex, red_fn, writers, 5, 2, 10, 4);
 
     table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
 
-    ASSERT_EQ(4u, table.Size());
+    ASSERT_EQ(4u, table.NumItems());
 
     table.Insert(4);
     table.Flush();
@@ -331,7 +348,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     }
 
     ASSERT_EQ(2, c2);
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 TEST_F(PreTable, ComplexType) {
@@ -349,21 +366,21 @@ TEST_F(PreTable, ComplexType) {
     writers.emplace_back(output.GetWriter());
 
     c7a::core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, 2, 2, 10, 3, key_ex, red_fn, writers);
+    table(1, key_ex, red_fn, writers, 2, 2, 10, 3);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
     table.Insert(std::make_pair("bonjour", 3));
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(std::make_pair("hello", 5));
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Insert(std::make_pair("baguette", 42));
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 TEST_F(PreTable, MultipleWorkers) {
@@ -382,17 +399,17 @@ TEST_F(PreTable, MultipleWorkers) {
     writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers);
+    table(2, key_ex, red_fn, writers, 10, 2, 256, 1048576);
 
-    ASSERT_EQ(0u, table.Size());
-    table.SetMaxSize(5);
+    ASSERT_EQ(0u, table.NumItems());
+    table.SetMaxNumItems(5);
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
     }
 
-    ASSERT_LE(table.Size(), 3u);
-    ASSERT_GT(table.Size(), 0u);
+    ASSERT_LE(table.NumItems(), 3u);
+    ASSERT_GT(table.NumItems(), 0u);
 }
 
 // Resize due to max bucket size reached. Set max items per bucket to 1,
@@ -412,19 +429,19 @@ TEST_F(PreTable, ResizeOnePartition) {
         writers.emplace_back(output.GetWriter());
 
         c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-        table(1, 1, 10, 1, 10, key_ex, red_fn, writers);
+        table(1, key_ex, red_fn, writers, 1, 10, 1, 10);
 
         table.Insert(1);
 
         ASSERT_EQ(1u, table.NumBuckets());
-        ASSERT_EQ(1u, table.PartitionSize(0));
-        ASSERT_EQ(1u, table.Size());
+        ASSERT_EQ(1u, table.PartitionNumItems(0));
+        ASSERT_EQ(1u, table.NumItems());
 
         table.Insert(2); // Resize happens here
 
         ASSERT_EQ(10u, table.NumBuckets());
-        ASSERT_EQ(2u, table.PartitionSize(0));
-        ASSERT_EQ(2u, table.Size());
+        ASSERT_EQ(2u, table.PartitionNumItems(0));
+        ASSERT_EQ(2u, table.NumItems());
 
         table.Flush();
     }
@@ -458,26 +475,26 @@ TEST_F(PreTable, ResizeTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, 1, 10, 1, 10, key_ex, red_fn, writers);
+    table(2, key_ex, red_fn, writers, 1, 10, 1, 10);
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
     ASSERT_EQ(2u, table.NumBuckets());
-    ASSERT_EQ(0u, table.PartitionSize(0));
-    ASSERT_EQ(0u, table.PartitionSize(1));
+    ASSERT_EQ(0u, table.PartitionNumItems(0));
+    ASSERT_EQ(0u, table.PartitionNumItems(1));
 
     table.Insert(1);
     table.Insert(2);
 
-    ASSERT_EQ(2u, table.Size());
+    ASSERT_EQ(2u, table.NumItems());
     ASSERT_EQ(2u, table.NumBuckets());
-    ASSERT_EQ(1u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.PartitionSize(1));
+    ASSERT_EQ(1u, table.PartitionNumItems(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(1));
 
     table.Insert(3); // Resize happens here
 
-    ASSERT_EQ(3u, table.Size());
+    ASSERT_EQ(3u, table.NumItems());
     ASSERT_EQ(20u, table.NumBuckets());
-    ASSERT_EQ(3u, table.PartitionSize(0) + table.PartitionSize(1));
+    ASSERT_EQ(3u, table.PartitionNumItems(0) + table.PartitionNumItems(1));
 }
 
 TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
@@ -494,7 +511,8 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     size_t num_partitions = 3;
     size_t num_buckets_init_scale = 2;
     size_t bucket_size = 1 * 1024;
-    size_t nitems = bucket_size + (num_partitions * num_buckets_init_scale * bucket_size);
+    size_t nitems = bucket_size +
+                    (num_partitions * num_buckets_init_scale * bucket_size);
 
     std::vector<File> files(num_partitions);
     std::vector<File::Writer> writers;
@@ -503,14 +521,14 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
-    table(num_partitions, num_buckets_init_scale, 10, bucket_size,
-          nitems, key_ex, red_fn, writers);
+    table(num_partitions, key_ex, red_fn, writers, num_buckets_init_scale, 10, bucket_size,
+          nitems);
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     // insert as many items which DO NOT lead to bucket overflow
     for (size_t i = 0; i != bucket_size; ++i) {
@@ -518,7 +536,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
-    ASSERT_EQ(bucket_size, table.Size());
+    ASSERT_EQ(bucket_size, table.NumItems());
 
     table.Flush();
 
@@ -533,10 +551,10 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     // insert as many items which DO NOT lead to bucket overflow
     // (need to insert again because of previous flush call needed to backup data)
@@ -545,7 +563,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     }
 
     ASSERT_EQ(num_partitions * num_buckets_init_scale, table.NumBuckets());
-    ASSERT_EQ(bucket_size, table.Size());
+    ASSERT_EQ(bucket_size, table.NumItems());
 
     // insert as many items guaranteed to DO lead to bucket overflow
     // resize happens here
@@ -556,9 +574,9 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     for (size_t i = 0; i != num_partitions; ++i) {
         auto it = files[i].GetReader();
@@ -591,8 +609,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
-    table(1, 2, 2, 128 * 1024, 1024 * 1024,
-          key_ex, red_fn, writers);
+    table(1, key_ex, red_fn, writers, 2, 2, 128 * 1024, 1024 * 1024);
 
     // insert lots of items
     size_t nitems = 1 * 1024 * 1024;
@@ -634,7 +651,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     // Hashtable with smaller block size for testing.
     c7a::core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true, 16*1024>
-    table(1, 2, 2, 128, nitems, key_ex, red_fn, writers);
+    table(1, key_ex, red_fn, writers, 2, 2, 128, nitems);
 
     // insert lots of items
     int sum = 0;
@@ -645,11 +662,11 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
         }
     }
 
-    ASSERT_EQ(nitems, table.Size());
+    ASSERT_EQ(nitems, table.NumItems());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {
@@ -685,7 +702,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems = 1 * 4 * 1024;
 
     c7a::core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true, 16*1024>
-    table(1, 2, 2, 128, nitems, key_ex, red_fn, writers);
+    table(1, key_ex, red_fn, writers, 2, 2, 128, nitems);
 
     // insert lots of items
     int sum = 0;
@@ -699,11 +716,11 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
         }
     }
 
-    ASSERT_EQ(nitems, table.Size());
+    ASSERT_EQ(nitems, table.NumItems());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.Size());
+    ASSERT_EQ(0u, table.NumItems());
 
     auto it1 = output.GetReader();
     while (it1.HasNext()) {

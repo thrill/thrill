@@ -12,10 +12,9 @@
 #ifndef C7A_API_SUM_HEADER
 #define C7A_API_SUM_HEADER
 
-#include <c7a/api/dia.hpp>
 #include <c7a/api/action_node.hpp>
+#include <c7a/api/dia.hpp>
 #include <c7a/core/stage_builder.hpp>
-#include <c7a/net/collective_communication.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/group.hpp>
@@ -57,11 +56,11 @@ public:
     }
 
     //! Executes the sum operation.
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Returns result of global sum.
@@ -75,7 +74,7 @@ public:
      * Returns "[SumNode]" as a string.
      * \return "[SumNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[SumNode] Id:" + result_file_.ToString();
     }
 
@@ -129,7 +128,7 @@ auto DIARef<ValueType, Stack>::Sum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Sum", "Action");
+    StatsNode* stats_node = AddChildStatsNode("Sum", NodeType::ACTION);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,

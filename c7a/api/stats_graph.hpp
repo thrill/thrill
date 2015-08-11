@@ -25,6 +25,20 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+enum class NodeType {
+    DOP,
+    ACTION,
+    COLLAPSE,
+    CACHE,
+    LAMBDA
+};
+
+enum class LogType {
+    EXECUTION,
+    NETWORK,
+    INFO
+};
+
 class StatsNode
 {
 public:
@@ -34,7 +48,7 @@ public:
      * \param label Label of the node in the graphical representation.
      * \param type Switch for choosing the layout of the node.
      */
-    StatsNode(const std::string& label, const std::string& type)
+    StatsNode(const std::string& label, const NodeType& type)
         : label_(label),
           type_(type)
     { }
@@ -61,7 +75,7 @@ public:
     /*!
      * Returns the type of the node.
      */
-    std::string type() const {
+    const NodeType & type() const {
         return type_;
     }
 
@@ -77,8 +91,21 @@ public:
      *
      * \param msg Message to be displayed.
      */
-    void AddStatsMsg(const std::string& msg) {
+    void AddStatsMsg(const std::string& msg, const LogType& type) {
         stats_msg_.push_back(msg);
+        switch (type) {
+        case LogType::EXECUTION:
+            sLOG1 << "[Execution]" << msg;
+            break;
+        case LogType::NETWORK:
+            sLOG1 << "[Network]" << msg;
+            break;
+        case LogType::INFO:
+            sLOG1 << "[Info]" << msg;
+            break;
+        default:
+            break;
+        }
     }
 
     /*!
@@ -93,14 +120,19 @@ public:
      */
     std::string NodeStyle() const {
         std::string style = label_ + " [";
-        if (type_.compare("DOp") == 0) {
+        switch (type_) {
+        case NodeType::DOP:
             style += "style=filled, fillcolor=red, shape=box";
-        }
-        else if (type_.compare("Action") == 0) {
+            break;
+        case NodeType::ACTION:
             style += "style=filled, fillcolor=yellow, shape=diamond";
-        }
-        else if (type_.compare("LOp") == 0) {
+            break;
+        case NodeType::CACHE:
+        case NodeType::COLLAPSE:
             style += "style=filled, fillcolor=blue, shape=hexagon";
+            break;
+        default:
+            break;
         }
         style += StatsLabels();
         style += "]";
@@ -124,7 +156,7 @@ private:
     std::string label_;
 
     //! Type of node
-    std::string type_;
+    NodeType type_;
 
     //! Stats messages
     std::vector<std::string> stats_msg_;
@@ -160,7 +192,7 @@ public:
      *
      * \return Pointer to the new node.
      */
-    StatsNode * AddNode(const std::string& label, const std::string& type) {
+    StatsNode * AddNode(const std::string& label, const NodeType& type) {
         StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
         nodes_.push_back(node);
         return node;

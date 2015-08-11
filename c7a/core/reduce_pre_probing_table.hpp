@@ -32,15 +32,29 @@ namespace core {
 /**
  *
  * A data structure which takes an arbitrary value and extracts a key using
- * a key extractor function from that value. Afterwards, the value is hashed
- * based on the key into some slot.
+ * a key extractor function from that value. A key may also be provided initially as
+ * part of a key/value pair, not requiring to extract a key.
  *
- * In case a slot already has a value and the key of that value and the key of
- * the value to be inserted are them same, the value are reduced according to
- * some reduce function.
+ * Afterwards, the key is hashed and the hash is used to assign that key/value pair
+ * to some slot.
  *
- * The set of slots is divided into 1..n partitions. Each key is hashed into
- * exactly one partition.
+ * In case a slot already has a key/value pair and the key of that value and the key of
+ * the value to be inserted are them same, the values are reduced according to
+ * some reduce function. No key/value is added to the data structure.
+ *
+ * If the keys are different, the next slot (moving to the right) is considered.
+ * If the slot is occupied, the same procedure happens again (know as linear probing.)
+ *
+ * Finally, the key/value pair to be inserted may either:
+ *
+ * 1.) Be reduced with some other key/value pair, sharing the same key.
+ * 2.) Inserted at a free slot.
+ * 3.) Trigger a resize of the data structure in case there are no more free slots in
+ *     the data structure.
+ *
+ * The following illustrations shows the general structure of the data structure.
+ * The set of slots is divided into 1..n partitions. Each key is hashed into exactly
+ * one partition.
  *
  *
  *     Partition 0 Partition 1 Partition 2 Partition 3 Partition 4
@@ -56,19 +70,49 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <typename KeyExtractor, typename ReduceFunction, const bool RobustKey = false>
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PreProbingReduceByHashKey
+{
+public:
+    PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreProbingTable>
+    typename ReducePreProbingTable::index_result
+    operator () (Key v, ReducePreProbingTable* ht) const {
+
+        using index_result = typename ReducePreProbingTable::index_result;
+
+        size_t hashed = hash_function_(v);
+
+        size_t local_index = hashed %
+                             ht->NumItemsPerPartition();
+        size_t partition_id = hashed % ht->NumPartitions();
+        size_t global_index = partition_id *
+                              ht->NumItemsPerPartition() +
+                              local_index;
+        return index_result(partition_id, local_index, global_index);
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
+template <typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool RobustKey = false,
+          typename IndexFunction = PreProbingReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key>
+          >
 class ReducePreProbingTable
 {
     static const bool debug = false;
 
-    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
     typedef std::pair<Key, Value> KeyValuePair;
 
 public:
-    struct hash_result
+    struct index_result
     {
     public:
         //! which partition number the item belongs to.
@@ -78,7 +122,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        hash_result(size_t p_id, size_t p_off, size_t g_id) {
+        index_result(size_t p_id, size_t p_off, size_t g_id) {
             partition_id = p_id;
             local_index = p_off;
             global_index = g_id;
@@ -86,20 +130,15 @@ public:
     };
 
 public:
-    typedef std::function<hash_result(Key, ReducePreProbingTable*)> HashFunction;
-
-    /**
-     * A function to compare two keys
-     */
-    typedef std::function<bool (Key, Key)> EqualToFunction;
-
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
      *
-     * The set of slots is divided into 1..n partitions. Each key is hashed into exactly one partition.
-     *
      * \param num_partitions The number of partitions.
+     * \param key_extractor Key extractor function to extract a key from a value.
+     * \param reduce_function Reduce function to reduce to values.
+     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
+     * \param sentinel Sentinel element used to flag free slots.
      * \param num_items_init_scale Used to calculate the initial number of slots
      *                  (num_partitions * num_items_init_scale).
      * \param num_items_resize_scale Used to calculate the number of slots during resize
@@ -109,38 +148,20 @@ public:
      *                  is greater than max_partition_fill_ratio, resize.
      * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
      *                  of the partition with the most items gets flushed.
-     * \param key_extractor Key extractor function to extract a key from a value.
-     * \param reduce_function Reduce function to reduce to values.
-     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param sentinel Sentinel element used to flag free slots.
-     * \param hash_function Hash function to be used for hashing.
+     * \param index_function Function to be used for computing the slot the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
     ReducePreProbingTable(size_t num_partitions,
-                          size_t num_items_init_scale,
-                          size_t num_items_resize_scale,
-                          double max_partition_fill_ratio,
-                          size_t max_num_items_table,
-                          KeyExtractor key_extractor, ReduceFunction reduce_function,
+                          KeyExtractor key_extractor,
+                          ReduceFunction reduce_function,
                           std::vector<data::BlockWriter>& emit,
                           Key sentinel,
-                          HashFunction hash_function
-                              = [](Key v, ReducePreProbingTable* ht) {
-                                    size_t hashed = std::hash<Key>() (v);
-
-                                    size_t local_index = hashed %
-                                                         ht->num_items_per_partition_;
-                                    size_t partition_id = hashed % ht->num_partitions_;
-                                    size_t global_index = partition_id *
-                                                          ht->num_items_per_partition_ +
-                                                          local_index;
-                                    hash_result hr(partition_id, local_index, global_index);
-                                    return hr;
-                                },
-                          EqualToFunction equal_to_function
-                              = [](Key k1, Key k2) {
-                                    return k1 == k2;
-                                })
+                          size_t num_items_init_scale = 10,
+                          size_t num_items_resize_scale = 2,
+                          double max_partition_fill_ratio = 1.0,
+                          size_t max_num_items_table = 1048576,
+                          const IndexFunction& index_function = IndexFunction(),
+                          const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -149,43 +170,15 @@ public:
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
-          hash_function_(hash_function),
-          equal_to_function_(equal_to_function)
-    {
-        init(sentinel);
-    }
+          index_function_(index_function),
+          equal_to_function_(equal_to_function) {
+        assert(num_partitions >= 0);
+        assert(num_partitions == emit_.size());
+        assert(num_items_init_scale > 0);
+        assert(num_items_resize_scale > 1);
+        assert(max_partition_fill_ratio >= 0.0 && max_partition_fill_ratio <= 1.0);
+        assert(max_num_items_table > 0);
 
-    /**
-     * see above.
-     */
-    ReducePreProbingTable(size_t num_partitions, KeyExtractor key_extractor,
-                          ReduceFunction reduce_function,
-                          std::vector<data::BlockWriter>& emit,
-                          Key sentinel,
-                          HashFunction hash_function
-                              = [](Key v, ReducePreProbingTable* ht) {
-                                    size_t hashed = std::hash<Key>() (v);
-
-                                    size_t local_index = hashed %
-                                                         ht->num_items_per_partition_;
-                                    size_t partition_id = hashed % ht->num_partitions_;
-                                    size_t global_index = partition_id *
-                                                          ht->num_items_per_partition_ +
-                                                          local_index;
-                                    hash_result hr(partition_id, local_index, global_index);
-                                    return hr;
-                                },
-                          EqualToFunction equal_to_function
-                              = [](Key k1, Key k2) {
-                                    return k1 == k2;
-                                })
-        : num_partitions_(num_partitions),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(emit),
-          hash_function_(hash_function),
-          equal_to_function_(equal_to_function)
-    {
         init(sentinel);
     }
 
@@ -219,13 +212,16 @@ public:
         sentinel_ = KeyValuePair(sentinel, Value());
         vector_.resize(table_size_, sentinel_);
         items_per_partition_.resize(num_partitions_, 0);
+    }
 
-//        assert(num_partitions_ >= 0);
-//        assert(num_items_init_scale_ > 0);
-//        assert(num_items_resize_scale_ > 1);
-//        assert(max_partition_fill_ratio_ >= 0.0 && max_partition_fill_ratio_ <= 1.0);
-//        assert(max_num_items_table_ > 0);
-//        assert(num_partitions_ == emit_.size());
+    /*!
+     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+     * inserts the pair into the hashtable.
+     */
+    void Insert(const Value& p) {
+        Key key = key_extractor_(p);
+
+        Insert(std::make_pair(key, p));
     }
 
     /*!
@@ -233,16 +229,19 @@ public:
      * already in the table and the key of the value to be inserted are the same.
      *
      * An insert may trigger a partial flush of the partition with the most items if the maximal
-     * number of items in the table is reached. Alternatively, it may  trigger a resize of table in
-     * case maximal fill ratio or maximal number of items per partition is reached.s
-     * in the table is reached.
+     * number of items in the table (max_num_items_table) is reached.
+     *
+     * Alternatively, it may trigger a resize of the table in case the maximal fill ratio
+     * per partition is reached.
      *
      * \param p Value to be inserted into the table.
      */
-    void Insert(const Value& p) {
-        Key key = key_extractor_(p);
+    void Insert(const KeyValuePair& kv) {
 
-        hash_result h = hash_function_(key, this);
+        index_result h = index_function_(kv.first, this);
+
+        if (!(h.partition_id >= 0 && h.partition_id < num_partitions_))
+            std::cout << "bamm" << std::endl;
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
@@ -255,12 +254,12 @@ public:
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
-            if (equal_to_function_(current->first, key))
+            if (equal_to_function_(current->first, kv.first))
             {
-                LOG << "match of key: " << key
+                LOG << "match of key: " << kv.first
                     << " and " << current->first << " ... reducing...";
 
-                current->second = reduce_function_(current->second, p);
+                current->second = reduce_function_(current->second, kv.second);
 
                 LOG << "...finished reduce!";
                 return;
@@ -276,16 +275,16 @@ public:
             if (current == initial)
             {
                 ResizeUp();
-                Insert(std::move(p));
+                Insert(std::move(kv));
                 return;
             }
         }
 
         // insert new pair
-        if (current->first == sentinel_.first)
+        if (equal_to_function_(current->first, sentinel_.first))
         {
-            current->first = key;
-            current->second = p;
+            current->first = std::move(kv.first);
+            current->second = std::move(kv.second);
 
             // increase total counter
             num_items_++;
@@ -403,7 +402,7 @@ public:
      *
      * @return Size of the table.
      */
-    size_t Size() {
+    size_t Size() const {
         return table_size_;
     }
 
@@ -412,7 +411,7 @@ public:
      *
      * @return Number of items in the table.
      */
-    size_t NumItems() {
+    size_t NumItems() const {
         return num_items_;
     }
 
@@ -421,7 +420,7 @@ public:
      *
      * @return Maximal number of items a partition can hold.
      */
-    size_t NumItemsPerPartition() {
+    size_t NumItemsPerPartition() const {
         return num_items_per_partition_;
     }
 
@@ -430,7 +429,7 @@ public:
      *
      * @return The number of partitions.
      */
-    size_t NumPartitions() {
+    size_t NumPartitions() const {
         return num_partitions_;
     }
 
@@ -441,7 +440,7 @@ public:
      *                  items to be returned..
      * @return The number of items in the partitions.
      */
-    size_t PartitionSize(size_t partition_id) {
+    size_t PartitionNumItems(size_t partition_id) {
         return items_per_partition_[partition_id];
     }
 
@@ -449,9 +448,9 @@ public:
      * Sets the maximum number of items of the hash table. We don't want to push 2vt
      * elements before flush happens.
      *
-     * \param size The maximal number of items a table may hold.
+     * \param size The maximal number of items the table may hold.
      */
-    void SetMaxSize(size_t size) {
+    void SetMaxNumItems(size_t size) {
         max_num_items_table_ = size;
     }
 
@@ -469,8 +468,8 @@ public:
 
     /*!
      * Resizes the table by increasing the number of slots using some
-     * scale factor (num_items_resize_scale_). The current size if multiplied
-     * by the factor.
+     * scale factor (num_items_resize_scale_). All items are rehashed as
+     * part of the operation.
      */
     void ResizeUp() {
         LOG << "Resizing";
@@ -490,10 +489,9 @@ public:
         // rehash all items in old array
         for (KeyValuePair k_v_pair : vector_old)
         {
-            KeyValuePair current = k_v_pair;
-            if (current.first != sentinel_.first)
+            if (k_v_pair.first != sentinel_.first)
             {
-                Insert(std::move(current.second));
+                Insert(std::move(k_v_pair.second));
             }
         }
         LOG << "Resized";
@@ -576,23 +574,22 @@ private:
     size_t num_partitions_;
 
     //! Scale factor to compute the initial size
-    //! (=number of slots for items)
-    //! based on the number of partitions.
-    size_t num_items_init_scale_ = 10;
+    //! (=number of slots for items).
+    size_t num_items_init_scale_;
 
     //! Scale factor to compute the number of slots
-    //! during resize based on the curewnr size.
-    size_t num_items_resize_scale_ = 2;
+    //! during resize relative to current size.
+    size_t num_items_resize_scale_;
 
     //! Maximal allowed fill ratio per partition before
     //! resize.
-    double max_partition_fill_ratio_ = 1.0;
+    double max_partition_fill_ratio_;
 
     //! Maximal number of items before some items
-    //! are flushed.
-    size_t max_num_items_table_ = 1048576;
+    //! are flushed (-> partial flush).
+    size_t max_num_items_table_;
 
-    //! Keeps the current number of items in the table
+    //! Keeps the total number of items in the table.
     size_t num_items_ = 0;
 
     //! Maximal number of items allowed per partition.
@@ -624,7 +621,7 @@ private:
     KeyValuePair sentinel_;
 
     //! Hash functions.
-    HashFunction hash_function_;
+    IndexFunction index_function_;
 
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;

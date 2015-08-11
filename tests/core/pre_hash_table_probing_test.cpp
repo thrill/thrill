@@ -24,6 +24,34 @@ using IntPair = std::pair<int, int>;
 
 struct ReducePreProbingTable : public::testing::Test { };
 
+template <typename Key, typename HashFunction = std::hash<Key> >
+class CustomKeyHashFunction
+    : public c7a::core::PreProbingReduceByHashKey<int>
+{
+public:
+    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function)
+    { }
+
+    template <typename ReducePreProbingTable>
+    typename ReducePreProbingTable::index_result
+    operator () (Key v, ReducePreProbingTable* ht) const {
+
+        using index_result = typename ReducePreProbingTable::index_result;
+
+        size_t global_index = v / 2;
+        size_t partition_id = 0;
+        size_t local_index = v / 2;
+
+        (*ht).NumItems();
+
+        return index_result(partition_id, local_index, global_index);
+    }
+
+private:
+    HashFunction hash_function_;
+};
+
 TEST_F(ReducePreProbingTable, CustomHashFunction) {
     auto key_ex = [](int in) {
                       return in;
@@ -33,23 +61,14 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    using HashTable = typename c7a::core::ReducePreProbingTable<
-              decltype(key_ex), decltype(red_fn), true>;
-
-    auto hash_function = [](int key, HashTable*) {
-
-                             size_t global_index = key / 2;
-                             size_t partition_id = 0;
-                             size_t partition_offset = key / 2;
-
-                             return HashTable::hash_result(partition_id, partition_offset, global_index);
-                         };
-
     File output;
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    HashTable table(1, key_ex, red_fn, writers, -1, hash_function);
+    CustomKeyHashFunction<int> cust_hash;
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true,
+                                     CustomKeyHashFunction<int> >
+    table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576, cust_hash);
 
     for (int i = 0; i < 16; i++) {
         table.Insert(i);
@@ -80,8 +99,8 @@ TEST_F(ReducePreProbingTable, AddIntegers) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
     table.Insert(0);
     table.Insert(1);
@@ -105,8 +124,8 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
     table.Insert(0);
     table.Insert(1);
@@ -130,10 +149,10 @@ TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
-    table.SetMaxSize(3);
+    table.SetMaxNumItems(3);
 
     table.Insert(0);
     table.Insert(1);
@@ -162,8 +181,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
     table.Insert(0);
     table.Insert(1);
@@ -202,8 +221,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(2, 5, 2, 1.0f, 10, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(2, key_ex, red_fn, writers, -1, 5, 2, 1.0f, 10);
 
     table.Insert(0);
     table.Insert(1);
@@ -250,8 +269,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, 10, 2, 1.0f, 4, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 4);
 
     table.Insert(0);
     table.Insert(1);
@@ -289,8 +308,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(2, 5, 2, 1.0f, 4, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(2, key_ex, red_fn, writers, -1, 5, 2, 1.0f, 4);
 
     table.Insert(0);
     table.Insert(1);
@@ -336,8 +355,8 @@ TEST_F(ReducePreProbingTable, ComplexType) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, 10, 2, 1.0f, 3, key_ex, red_fn, writers, "");
+    c7a::core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, "", 10, 2, 1.0f, 3);
 
     table.Insert(StringPair("hallo", 1));
     table.Insert(StringPair("hello", 1));
@@ -368,11 +387,11 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(2, key_ex, red_fn, writers, -1, 10, 2, 1.0f, 1048576);
 
     ASSERT_EQ(0u, table.NumItems());
-    table.SetMaxSize(5);
+    table.SetMaxNumItems(5);
 
     for (int i = 0; i < 6; i++) {
         table.Insert(i * 35001);
@@ -397,25 +416,25 @@ TEST_F(ReducePreProbingTable, ResizeOnePartition) {
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, 2, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 2, 10, 1.0f, 10);
 
     table.Insert(0);
 
     ASSERT_EQ(2u, table.Size());
-    ASSERT_EQ(1u, table.PartitionSize(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(0));
     ASSERT_EQ(1u, table.NumItems());
 
     table.Insert(1);
 
     ASSERT_EQ(2u, table.Size());
-    ASSERT_EQ(2u, table.PartitionSize(0));
+    ASSERT_EQ(2u, table.PartitionNumItems(0));
     ASSERT_EQ(2u, table.NumItems());
 
     table.Insert(2); // Resize happens here
 
     ASSERT_EQ(20u, table.Size());
-    ASSERT_EQ(3u, table.PartitionSize(0));
+    ASSERT_EQ(3u, table.PartitionNumItems(0));
     ASSERT_EQ(3u, table.NumItems());
 
     table.Flush();
@@ -443,38 +462,39 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
                       return in1 + in2;
                   };
 
-    File output;
+    File output1, output2;
     std::vector<File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    writers.emplace_back(output1.GetWriter());
+    writers.emplace_back(output2.GetWriter());
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(2, 2, 10, 1.0f, 10, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
+    table(2, key_ex, red_fn, writers, -1, 2, 10, 1.0f, 10);
 
     ASSERT_EQ(0u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(0u, table.PartitionSize(0));
-    ASSERT_EQ(0u, table.PartitionSize(1));
+    ASSERT_EQ(0u, table.PartitionNumItems(0));
+    ASSERT_EQ(0u, table.PartitionNumItems(1));
 
     table.Insert(0);
     table.Insert(1);
 
     ASSERT_EQ(2u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(1u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.PartitionSize(1));
+    ASSERT_EQ(1u, table.PartitionNumItems(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(1));
 
     table.Insert(2);
 
     ASSERT_EQ(3u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(2u, table.PartitionSize(0));
-    ASSERT_EQ(1u, table.PartitionSize(1));
+    ASSERT_EQ(2u, table.PartitionNumItems(0));
+    ASSERT_EQ(1u, table.PartitionNumItems(1));
 
     table.Insert(3); // Resize happens here
 
     ASSERT_EQ(4u, table.NumItems());
     ASSERT_EQ(4u, table.Size());
-    ASSERT_EQ(4u, table.PartitionSize(0) + table.PartitionSize(1));
+    ASSERT_EQ(4u, table.PartitionNumItems(0) + table.PartitionNumItems(1));
 }
 
 TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
@@ -498,13 +518,13 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
         writers.emplace_back(files[i].GetWriter());
     }
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(num_partitions, num_items_init_scale,
+    c7a::core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
+    table(num_partitions, key_ex, red_fn, writers, -1, num_items_init_scale,
           10, 1.0f,
-          nitems, key_ex, red_fn, writers, -1);
+          nitems);
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
     ASSERT_EQ(0u, table.NumItems());
@@ -528,7 +548,7 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
     }
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(num_partitions * num_items_init_scale, table.Size());
     ASSERT_EQ(0u, table.NumItems());
@@ -551,7 +571,7 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
     table.Flush();
 
     for (size_t i = 0; i != num_partitions; ++i) {
-        ASSERT_EQ(0u, table.PartitionSize(i));
+        ASSERT_EQ(0u, table.PartitionNumItems(i));
     }
     ASSERT_EQ(0u, table.NumItems());
 
@@ -585,8 +605,8 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
     size_t nitems = 1 * 1024 * 1024;
 
     // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, 2, 2, 1.0f, nitems, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 2, 2, 1.0f, nitems);
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
@@ -624,8 +644,8 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, 2, 2, 1.0f, nitems, key_ex, red_fn, writers, -1);
+    c7a::core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, -1, 2, 2, 1.0f, nitems);
 
     // insert lots of items
     int sum = 0;
@@ -675,8 +695,8 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems_per_key = 2;
     size_t nitems = 1 * 4 * 1024;
 
-    c7a::core::ReducePreProbingTable<decltype(key_ex), decltype(red_fn), true>
-    table(1, nitems, 2, 1.0f, nitems * 2, key_ex, red_fn, writers, "");
+    c7a::core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
+    table(1, key_ex, red_fn, writers, "", nitems, 2, 1.0f, nitems * 2);
 
     // insert lots of items
     int sum = 0;

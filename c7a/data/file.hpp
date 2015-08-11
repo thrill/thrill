@@ -17,6 +17,7 @@
 #include <c7a/data/block_reader.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/dyn_block_reader.hpp>
 
 #include <cassert>
 #include <memory>
@@ -53,17 +54,19 @@ public:
     using BlockSource = FileBlockSource;
     using Writer = BlockWriter;
     using Reader = BlockReader<FileBlockSource>;
+    using DynReader = DynBlockReader;
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
-    void AppendBlock(const Block& b) override {
+    void AppendBlock(const Block& b) final {
         assert(!closed_);
         if (b.size() == 0) return;
         blocks_.push_back(b);
         nitems_sum_.push_back(NumItems() + b.nitems());
+        size_ += b.size();
     }
 
-    void Close() override {
+    void Close() final {
         assert(!closed_);
         closed_ = true;
     }
@@ -85,8 +88,8 @@ public:
         return nitems_sum_.size() ? nitems_sum_.back() : 0;
     }
 
-    //! Return the number of bytes used by the underlying blocks
-    //size_t TotalBytes() const { return NumBlocks() * block_size; }
+    //! Return the number of bytes of user data in this file.
+    size_t TotalSize() const { return size_; }
 
     //! Return shared pointer to a block
     const Block & block(size_t i) const {
@@ -107,6 +110,9 @@ public:
 
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
+
+    //! return polymorphic BlockReader variant for beginning of File
+    DynReader GetDynReader() const;
 
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
@@ -145,6 +151,9 @@ protected:
     //! and including the i-th block.
     std::vector<size_t> nitems_sum_;
 
+    //! Total size of this file in bytes. Sum of all block sizes.
+    size_t size_ = 0;
+
     //! for access to blocks_ and used_
     friend class data::FileBlockSource;
 
@@ -160,6 +169,13 @@ protected:
 class FileBlockSource
 {
 public:
+    //! Start reading a File
+    FileBlockSource(const File& file,
+                    size_t first_block = 0, size_t first_item = keep_first_item)
+        : file_(file), first_block_(first_block), first_item_(first_item) {
+        current_block_ = first_block_ - 1;
+    }
+
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
     Block NextBlock() {
@@ -185,17 +201,6 @@ public:
     }
 
 protected:
-    //! Start reading a File
-    FileBlockSource(const File& file,
-                    size_t first_block = 0, size_t first_item = keep_first_item)
-        : file_(file), first_block_(first_block), first_item_(first_item) {
-        current_block_ = first_block_ - 1;
-    }
-
-    //! for calling the protected constructor
-    friend class data::File;
-    friend class data::CachingBlockQueueSource;
-
     //! sentinel value for not changing the first_item item
     static const size_t keep_first_item = size_t(-1);
 
@@ -215,6 +220,11 @@ protected:
 //! Get BlockReader for beginning of File
 inline typename File::Reader File::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
+}
+
+inline
+typename File::DynReader File::GetDynReader() const {
+    return ConstructDynBlockReader<FileBlockSource>(*this, 0, 0);
 }
 
 //! Get BlockReader seeked to the corresponding item index

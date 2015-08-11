@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/channel_multiplexer_test.cpp
+ * tests/data/multiplexer_test.cpp
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,7 @@
 
 #include <c7a/common/cyclic_barrier.hpp>
 #include <c7a/data/channel.hpp>
-#include <c7a/data/channel_multiplexer.hpp>
-#include <c7a/data/manager.hpp>
+#include <c7a/data/multiplexer.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 #include <gtest/gtest.h>
@@ -25,27 +24,25 @@ using namespace c7a;
 static const bool debug = false;
 static const size_t test_block_size = 1024;
 
-struct ChannelMultiplexer : public::testing::Test {
+struct Multiplexer : public::testing::Test {
 
-    using WorkerThread = std::function<void(data::Manager&)>;
+    using WorkerThread = std::function<void(data::Multiplexer&)>;
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        net::DispatcherThread dispatcher("dp");
-        data::Manager manager(dispatcher);
-        manager.Connect(group);
-        switch (group->MyRank()) {
+        data::Multiplexer datamp(1, *group);
+        switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
-            if (f1) f1(manager);
+            if (f1) f1(datamp);
             break;
         case 1:
             common::NameThisThread("t1");
-            if (f2) f2(manager);
+            if (f2) f2(datamp);
             break;
         case 2:
             common::NameThisThread("t2");
-            if (f3) f3(manager);
+            if (f3) f3(datamp);
             break;
         }
     }
@@ -62,60 +59,58 @@ struct ChannelMultiplexer : public::testing::Test {
     }
 };
 
-// open a Channel via data::Manager, and send a short message to all workers,
+// open a Channel via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaChannel(net::Group* net) {
-    common::NameThisThread("chmp" + std::to_string(net->MyRank()));
-
-    net::DispatcherThread dispatcher(
-        "chmp" + std::to_string(net->MyRank()) + "-dp");
+    common::NameThisThread("chmp" + std::to_string(net->my_host_rank()));
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
         send_buffer[i] = i;
 
     static const size_t iterations = 1000;
+    size_t my_local_worker_id = 0;
+    size_t num_workers_per_node = 1;
 
-    data::ChannelMultiplexer cmp(dispatcher);
-    cmp.Connect(net);
+    data::Multiplexer datamp(num_workers_per_node, *net);
     {
-        data::ChannelId id = cmp.AllocateNext();
+        data::ChannelId id = datamp.AllocateChannelId(my_local_worker_id);
 
         // open Writers and send a message to all workers
 
-        auto writer = cmp.GetOrCreateChannel(id)->OpenWriters(test_block_size);
+        auto writers = datamp.GetOrCreateChannel(id, my_local_worker_id)->OpenWriters(test_block_size);
 
-        for (size_t tgt = 0; tgt != net->Size(); ++tgt) {
-            writer[tgt]("hello I am " + std::to_string(net->MyRank())
-                        + " calling " + std::to_string(tgt));
+        for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
+            writers[tgt]("hello I am " + std::to_string(net->my_host_rank())
+                         + " calling " + std::to_string(tgt));
 
-            writer[tgt].Flush();
+            writers[tgt].Flush();
 
             // write a few MiBs of oddly sized data
             for (size_t r = 0; r != iterations; ++r) {
-                writer[tgt].Append(send_buffer, sizeof(send_buffer));
+                writers[tgt].Append(send_buffer, sizeof(send_buffer));
             }
 
-            writer[tgt].Flush();
+            writers[tgt].Flush();
         }
 
         // open Readers and receive message from all workers
 
-        auto reader = cmp.GetOrCreateChannel(id)->OpenReaders();
+        auto readers = datamp.GetOrCreateChannel(id, my_local_worker_id)->OpenReaders();
 
-        for (size_t src = 0; src != net->Size(); ++src) {
-            std::string msg = reader[src].Next<std::string>();
+        for (size_t src = 0; src != readers.size(); ++src) {
+            std::string msg = readers[src].Next<std::string>();
 
             ASSERT_EQ(msg, "hello I am " + std::to_string(src)
-                      + " calling " + std::to_string(net->MyRank()));
+                      + " calling " + std::to_string(net->my_host_rank()));
 
-            sLOG << net->MyRank() << "got msg from" << src;
+            sLOG << net->my_host_rank() << "got msg from" << src;
 
             // read a few MiBs of oddly sized data
             unsigned char recv_buffer[sizeof(send_buffer)];
 
             for (size_t r = 0; r != iterations; ++r) {
-                reader[src].Read(recv_buffer, sizeof(recv_buffer));
+                readers[src].Read(recv_buffer, sizeof(recv_buffer));
 
                 ASSERT_TRUE(std::equal(send_buffer,
                                        send_buffer + sizeof(send_buffer),
@@ -125,7 +120,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
     }
 }
 
-TEST_F(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
+TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 16:
     net::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
     net::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
@@ -133,9 +128,10 @@ TEST_F(ChannelMultiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     net::Group::ExecuteLocalMock(16, TalkAllToAllViaChannel);
 }
 
-TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
-    auto w0 = [](data::Manager& manager) {
-                  auto c = manager.GetNewChannel();
+TEST_F(Multiplexer, ReadCompleteChannel) {
+    auto w0 = [](data::Multiplexer& datamp) {
+                  auto id = datamp.AllocateChannelId(0);
+                  auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -147,8 +143,9 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
                       w.Close();
                   }
               };
-    auto w1 = [](data::Manager& manager) {
-                  auto c = manager.GetNewChannel();
+    auto w1 = [](data::Multiplexer& datamp) {
+                  auto id = datamp.AllocateChannelId(0);
+                  auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -157,8 +154,9 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
                       w.Close();
                   }
               };
-    auto w2 = [](data::Manager& manager) {
-                  auto c = manager.GetNewChannel();
+    auto w2 = [](data::Multiplexer& datamp) {
+                  auto id = datamp.AllocateChannelId(0);
+                  auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -173,9 +171,10 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannel) {
     Execute(w0, w1, w2);
 }
 
-TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
-    auto w0 = [](data::Manager& manager) {
-                  auto c = manager.GetNewChannel();
+TEST_F(Multiplexer, ReadCompleteChannelTwice) {
+    auto w0 = [](data::Multiplexer& datamp) {
+                  auto id = datamp.AllocateChannelId(0);
+                  auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
@@ -187,8 +186,9 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
                       w.Close();
                   }
               };
-    auto w1 = [](data::Manager& manager) {
-                  auto c = manager.GetNewChannel();
+    auto w1 = [](data::Multiplexer& datamp) {
+                  auto id = datamp.AllocateChannelId(0);
+                  auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   std::string msg1 = "I came from worker 1";
                   writers[2](msg1);
@@ -197,8 +197,9 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
                       w.Close();
                   }
               };
-    auto w2 = [](data::Manager& manager) {
-                  auto c = manager.GetNewChannel();
+    auto w2 = [](data::Multiplexer& datamp) {
+                  auto id = datamp.AllocateChannelId(0);
+                  auto c = datamp.GetOrCreateChannel(id, 0);
                   auto writers = c->OpenWriters(test_block_size);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -229,9 +230,9 @@ TEST_F(ChannelMultiplexer, ReadCompleteChannelTwice) {
     Execute(w0, w1, w2);
 }
 
-TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
+TEST_F(Multiplexer, Scatter_OneWorker) {
     auto w0 =
-        [](data::Manager& manager) {
+        [](data::Multiplexer& datamp) {
             // produce a File containing some items
             data::File file;
             {
@@ -243,7 +244,8 @@ TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
             }
 
             // scatter File contents via channel: only items [0,3) are sent
-            auto ch = manager.GetNewChannel();
+            data::ChannelId id = datamp.AllocateChannelId(0);
+            auto ch = datamp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 2 });
 
             // check that got items
@@ -257,9 +259,9 @@ TEST_F(ChannelMultiplexer, Scatter_OneWorker) {
     Execute(w0);
 }
 
-TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
+TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
     auto w0 =
-        [](data::Manager& manager) {
+        [](data::Multiplexer& datamp) {
             // produce a File containing some items
             data::File file;
             {
@@ -269,7 +271,8 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via channel: only items [0,2) are to local worker
-            auto ch = manager.GetNewChannel();
+            data::ChannelId id = datamp.AllocateChannelId(0);
+            auto ch = datamp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 2, 2 });
 
             // check that got items
@@ -277,7 +280,7 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ASSERT_EQ(res, (std::vector<std::string>{ "foo", "bar" }));
         };
     auto w1 =
-        [](data::Manager& manager) {
+        [](data::Multiplexer& datamp) {
             // produce a File containing some items
             data::File file;
             {
@@ -288,7 +291,8 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via channel: only items [0,3) are to local worker
-            auto ch = manager.GetNewChannel();
+            data::ChannelId id = datamp.AllocateChannelId(0);
+            auto ch = datamp.GetOrCreateChannel(id, 0);
             ch->Scatter<std::string>(file, { 0, 3 });
 
             // check that got items
@@ -298,8 +302,8 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
     Execute(w0, w1);
 }
 
-TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
-    auto w0 = [](data::Manager& manager) {
+TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
+    auto w0 = [](data::Multiplexer& datamp) {
                   // produce a File containing some items
                   data::File file;
                   {
@@ -309,14 +313,15 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   }
 
                   // scatter File contents via channel.
-                  auto ch = manager.GetNewChannel();
+                  data::ChannelId id = datamp.AllocateChannelId(0);
+                  auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
                   auto res = ch->OpenReader().ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "foo", "hello" }));
               };
-    auto w1 = [](data::Manager& manager) {
+    auto w1 = [](data::Multiplexer& datamp) {
                   // produce a File containing some items
                   data::File file;
                   {
@@ -327,7 +332,8 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   }
 
                   // scatter File contents via channel.
-                  auto ch = manager.GetNewChannel();
+                  data::ChannelId id = datamp.AllocateChannelId(0);
+                  auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
@@ -337,8 +343,8 @@ TEST_F(ChannelMultiplexer, Scatter_TwoWorkers_CompleteExchange) {
     Execute(w0, w1);
 }
 
-TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
-    auto w0 = [](data::Manager& manager) {
+TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
+    auto w0 = [](data::Multiplexer& datamp) {
                   // produce a File containing some items
                   data::File file;
                   {
@@ -348,14 +354,15 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   }
 
                   // scatter File contents via channel.
-                  auto ch = manager.GetNewChannel();
+                  data::ChannelId id = datamp.AllocateChannelId(0);
+                  auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
                   // check that got items
                   auto res = ch->OpenReader().ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 1, 2 }));
               };
-    auto w1 = [](data::Manager& manager) {
+    auto w1 = [](data::Multiplexer& datamp) {
                   // produce a File containing some items
                   data::File file;
                   {
@@ -367,19 +374,21 @@ TEST_F(ChannelMultiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   }
 
                   // scatter File contents via channel.
-                  auto ch = manager.GetNewChannel();
+                  data::ChannelId id = datamp.AllocateChannelId(0);
+                  auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
                   // check that got items
                   auto res = ch->OpenReader().ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 3, 4 }));
               };
-    auto w2 = [](data::Manager& manager) {
+    auto w2 = [](data::Multiplexer& datamp) {
                   // empty File :...(
                   data::File file;
 
                   // scatter File contents via channel.
-                  auto ch = manager.GetNewChannel();
+                  data::ChannelId id = datamp.AllocateChannelId(0);
+                  auto ch = datamp.GetOrCreateChannel(id, 0);
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
                   // check that got items

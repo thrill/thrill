@@ -14,6 +14,9 @@
 
 #include <c7a/api/context.hpp>
 
+#include <algorithm>
+#include <tuple>
+
 namespace c7a {
 namespace common {
 
@@ -72,7 +75,7 @@ std::tuple<size_t, size_t> CalculateLocalRange(
 //! information from the Context.
 std::tuple<size_t, size_t> CalculateLocalRange(
     size_t global_size, const Context& ctx) {
-    return CalculateLocalRange(global_size, ctx.number_worker(), ctx.rank());
+    return CalculateLocalRange(global_size, ctx.num_workers(), ctx.my_rank());
 }
 
 /******************************************************************************/

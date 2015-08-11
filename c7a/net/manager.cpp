@@ -15,6 +15,7 @@
 
 #include <deque>
 #include <map>
+#include <utility>
 #include <vector>
 
 namespace c7a {
@@ -61,7 +62,7 @@ public:
         }
 
         //Parse endpoints.
-        std::vector<SocketAddress> addressList
+        std::vector<SocketAddress> address_list
             = GetAddressList(endpoints);
 
         //Create listening socket.
@@ -69,8 +70,7 @@ public:
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
 
-            SocketAddress lsa("0.0.0.0:0");
-            lsa.SetPort(addressList[my_rank_].GetPort());
+            SocketAddress& lsa = address_list[my_rank_];
 
             if (listen_socket.bind(lsa) != 0)
                 throw Exception("Could not bind listen socket to "
@@ -86,9 +86,9 @@ public:
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         //Initiate connections to all hosts with higher id.
-        for (size_t g = 0; g < kGroupCount; g++) {
-            for (ClientId id = my_rank_ + 1; id < addressList.size(); ++id) {
-                AsyncConnect(g, id, addressList[id]);
+        for (uint32_t g = 0; g < kGroupCount; g++) {
+            for (size_t id = my_rank_ + 1; id < address_list.size(); ++id) {
+                AsyncConnect(g, id, address_list[id]);
             }
         }
 
@@ -112,7 +112,7 @@ public:
 
         for (size_t j = 0; j < kGroupCount; j++) {
             // output list of file descriptors connected to partners
-            for (size_t i = 0; i != addressList.size(); ++i) {
+            for (size_t i = 0; i != address_list.size(); ++i) {
                 if (i == my_rank_) continue;
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
@@ -128,12 +128,12 @@ protected:
     Manager& mgr_;
 
     //! Link to manager's groups to initialize
-    Group* groups_ = mgr_.groups_;
+    std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
 
     /**
      * The rank associated with the local worker.
      */
-    ClientId my_rank_;
+    size_t my_rank_;
 
     /**
      * The Connections responsible
@@ -165,8 +165,9 @@ protected:
     //! start connect backoff at 10msec
     const size_t initial_timeout_ = 10;
 
-    //! maximum connect backoff, after which the program fails.
-    const size_t final_timeout_ = 5120;
+    //! maximum connect backoff, after which the program fails. Total waiting
+    //! time is about 2 * final_timeout_ (in millisec).
+    const size_t final_timeout_ = 40960;
 
     /**
      * @brief Represents a welcome message.
@@ -186,7 +187,7 @@ protected:
         /**
          * The id of the worker associated with the sending Connection.
          */
-        ClientId id;
+        size_t   id;
     };
 
     /**
@@ -229,7 +230,7 @@ protected:
 
         for (size_t g = 0; g < kGroupCount; g++) {
 
-            for (ClientId id = 0; id < groups_[g].Size(); ++id) {
+            for (size_t id = 0; id < groups_[g].num_hosts(); ++id) {
                 if (id == my_rank_) continue;
 
                 //Just checking the state works since this implicitey checks the
@@ -487,7 +488,7 @@ protected:
             << " id " << msg_in->id;
 
         die_unless(msg_in->group_id < kGroupCount);
-        die_unless(msg_in->id < groups_[msg_in->group_id].Size());
+        die_unless(msg_in->id < groups_[msg_in->group_id].num_hosts());
 
         die_unequal(groups_[msg_in->group_id].connection(msg_in->id).state(),
                     ConnectionState::Invalid);
@@ -544,35 +545,44 @@ protected:
     }
 };
 
-void Manager::Initialize(size_t my_rank,
-                         const std::vector<Endpoint>& endpoints) {
-    my_rank_ = my_rank;
+Manager::Manager(size_t my_rank,
+                 const std::vector<Endpoint>& endpoints)
+    : my_rank_(my_rank) {
     Construction(*this).Initialize(my_rank_, endpoints);
 }
 
-//! Construct a mock network, consisting of node_count compute
-//! nodes. Delivers this number of net::Manager objects, which are
+Manager::Manager(size_t my_rank,
+                 std::array<Group, kGroupCount>&& groups)
+    : my_rank_(my_rank),
+      groups_(std::move(groups)) { }
+
+//! Construct a mock network, consisting of host_count compute
+//! hosts. Delivers this number of net::Manager objects, which are
 //! internally connected.
-std::vector<Manager> Manager::ConstructLocalMesh(size_t node_count) {
-
-    // construct list of uninitialized net::Manager objects.
-    std::vector<Manager> nmlist(node_count);
-
-    for (size_t n = 0; n < node_count; ++n) {
-        nmlist[n].my_rank_ = n;
-    }
+std::vector<std::unique_ptr<Manager> >
+Manager::ConstructLocalMesh(size_t host_count) {
 
     // construct three full mesh connection cliques, deliver net::Groups.
-    for (size_t g = 0; g < kGroupCount; ++g) {
-        std::vector<Group> group = Group::ConstructLocalMesh(node_count);
+    std::array<std::vector<Group>, kGroupCount> group;
 
-        // distribute net::Group objects to managers
-        for (size_t n = 0; n < node_count; ++n) {
-            nmlist[n].groups_[g] = std::move(group[n]);
-        }
+    for (size_t g = 0; g < kGroupCount; ++g) {
+        group[g] = std::move(Group::ConstructLocalMesh(host_count));
     }
 
-    return std::move(nmlist);
+    // construct list of uninitialized net::Manager objects.
+    std::vector<std::unique_ptr<Manager> > nmlist(host_count);
+
+    for (size_t h = 0; h < host_count; ++h) {
+        std::array<Group, kGroupCount> host_group = {
+            std::move(group[0][h]),
+            std::move(group[1][h]),
+            std::move(group[2][h]),
+        };
+
+        nmlist[h] = std::make_unique<Manager>(h, std::move(host_group));
+    }
+
+    return nmlist;
 }
 
 //! \}

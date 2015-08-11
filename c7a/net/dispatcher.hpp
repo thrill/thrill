@@ -15,7 +15,6 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
-#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/connection.hpp>
@@ -29,6 +28,7 @@
 #include <c7a/common/delegate.hpp>
 #endif
 
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <deque>
@@ -84,10 +84,6 @@ public:
     Dispatcher(const Dispatcher&) = delete;
     //! non-copyable: delete assignment operator
     Dispatcher& operator = (const Dispatcher&) = delete;
-    //! move-constructor
-    Dispatcher(Dispatcher&& d) = default;
-    //! move-assignment
-    Dispatcher& operator = (Dispatcher&& d) = default;
 
     //! \name Timeout Callbacks
     //! \{
@@ -150,6 +146,28 @@ public:
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
         AddRead(c, [&arb, &c]() { return arb(c); });
+    }
+
+    //! callback signature for async read callbacks, they may acquire the buffer
+    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
+
+    //! asynchronously read the full ByteBlock and deliver it to the callback
+    void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+                   AsyncReadByteBlockCallback done_cb) {
+        assert(c.GetSocket().IsValid());
+
+        LOG << "async read on read dispatcher";
+        if (block->size() == 0) {
+            if (done_cb) done_cb(c);
+            return;
+        }
+
+        // add new async reader object
+        async_read_block_.emplace_back(block, done_cb);
+
+        // register read callback
+        AsyncReadByteBlock& arbb = async_read_block_.back();
+        AddRead(c, [&arbb, &c]() { return arbb(c); });
     }
 
     //! callback signature for async write callbacks
@@ -251,11 +269,13 @@ public:
         while (async_read_.size() && async_read_.front().IsDone()) {
             async_read_.pop_front();
         }
-
         while (async_write_.size() && async_write_.front().IsDone()) {
             async_write_.pop_front();
         }
 
+        while (async_read_block_.size() && async_read_block_.front().IsDone()) {
+            async_read_block_.pop_front();
+        }
         while (async_write_block_.size() && async_write_block_.front().IsDone()) {
             async_write_block_.pop_front();
         }
@@ -287,7 +307,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    common::atomic_movable<bool> terminate_ { false };
+    std::atomic<bool> terminate_ { false };
 
     //! struct for timer callbacks
     struct Timer
@@ -325,8 +345,8 @@ protected:
     public:
         //! Construct buffered reader with callback
         AsyncReadBuffer(size_t buffer_size, const AsyncReadCallback& callback)
-            : callback_(callback),
-              buffer_(buffer_size)
+            : buffer_(buffer_size),
+              callback_(callback)
         { }
 
         //! Should be called when the socket is readable
@@ -363,14 +383,14 @@ protected:
         bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
+        //! Receive buffer
+        Buffer buffer_;
+
         //! total size currently read
         size_t size_ = 0;
 
         //! functional object to call once data is complete
         AsyncReadCallback callback_;
-
-        //! Receive buffer
-        Buffer buffer_;
     };
 
     //! deque of asynchronous readers
@@ -384,8 +404,8 @@ protected:
         //! Construct buffered writer with callback
         AsyncWriteBuffer(Buffer&& buffer,
                          const AsyncWriteCallback& callback)
-            : callback_(callback),
-              buffer_(std::move(buffer))
+            : buffer_(std::move(buffer)),
+              callback_(callback)
         { }
 
         //! Should be called when the socket is writable
@@ -421,14 +441,14 @@ protected:
         bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
+        //! Send buffer (owned by this writer)
+        Buffer buffer_;
+
         //! total size currently written
         size_t size_ = 0;
 
         //! functional object to call once data is complete
         AsyncWriteCallback callback_;
-
-        //! Send buffer (owned by this writer)
-        Buffer buffer_;
     };
 
     //! deque of asynchronous writers
@@ -436,15 +456,74 @@ protected:
 
     /**************************************************************************/
 
+    class AsyncReadByteBlock
+    {
+    public:
+        //! Construct block reader with callback
+        AsyncReadByteBlock(const data::ByteBlockPtr& block,
+                           const AsyncReadByteBlockCallback& callback)
+            : block_(block),
+              callback_(callback)
+        { }
+
+        //! Should be called when the socket is readable
+        bool operator () (Connection& c) {
+            int r = c.GetSocket().recv_one(
+                block_->data() + size_, block_->size() - size_);
+
+            if (r <= 0) {
+                // these errors are acceptable: just redo the recv later.
+                if (errno == EINTR || errno == EAGAIN) return true;
+
+                // signal artificial IsDone, for clean up.
+                size_ = block_->size();
+
+                // these errors are end-of-file indications (both good and bad)
+                if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
+                    if (callback_) callback_(c);
+                    return false;
+                }
+                throw Exception("AsyncReadBlock() error in recv", errno);
+            }
+
+            size_ += r;
+
+            if (size_ == block_->size()) {
+                if (callback_) callback_(c);
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
+
+        bool IsDone() const { return size_ == block_->size(); }
+
+    private:
+        //! Receive block
+        data::ByteBlockPtr block_;
+
+        //! total size currently read
+        size_t size_ = 0;
+
+        //! functional object to call once data is complete
+        AsyncReadByteBlockCallback callback_;
+    };
+
+    //! deque of asynchronous readers
+    std::deque<AsyncReadByteBlock> async_read_block_;
+
+    /**************************************************************************/
+
     class AsyncWriteBlock
     {
     public:
-        //! Construct buffered writer with callback
+        //! Construct block writer with callback
         AsyncWriteBlock(const data::Block& block,
                         const AsyncWriteCallback& callback)
 
-            : callback_(callback),
-              block_(block)
+            : block_(block),
+              callback_(callback)
         { }
 
         //! Should be called when the socket is writable
@@ -481,14 +560,14 @@ protected:
         bool IsDone() const { return size_ == block_.size(); }
 
     private:
+        //! Send block (holds a reference count to the underlying ByteBlock)
+        data::Block block_;
+
         //! total size currently written
         size_t size_ = 0;
 
         //! functional object to call once data is complete
         AsyncWriteCallback callback_;
-
-        //! Send block (holds a reference count to the underlying ByteBlock)
-        data::Block block_;
     };
 
     //! deque of asynchronous writers

@@ -27,8 +27,7 @@ TEST(Sort, SortKnownIntegers) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
@@ -51,7 +50,7 @@ TEST(Sort, SortKnownIntegers) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntegers) {
@@ -59,8 +58,7 @@ TEST(Sort, SortRandomIntegers) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
@@ -83,7 +81,7 @@ TEST(Sort, SortRandomIntegers) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntegersCustomCompareFunction) {
@@ -91,8 +89,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
@@ -119,7 +116,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntIntStructs) {
@@ -129,8 +126,7 @@ TEST(Sort, SortRandomIntIntStructs) {
 
             using Pair = std::pair<int, int>;
 
-            std::random_device random_device;
-            std::default_random_engine generator(random_device());
+            std::default_random_engine generator({ std::random_device()() });
             std::uniform_int_distribution<int> distribution(1, 10);
 
             auto integers = Generate(
@@ -157,7 +153,7 @@ TEST(Sort, SortRandomIntIntStructs) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

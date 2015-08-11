@@ -58,7 +58,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
@@ -97,7 +97,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReducePairToIndexCorrectResults) {
@@ -159,7 +159,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
             }
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
@@ -225,7 +225,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
             }
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

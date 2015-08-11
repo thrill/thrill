@@ -26,8 +26,7 @@ using c7a::api::DIARef;
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
+    std::default_random_engine generator({ std::random_device()() });
     std::uniform_int_distribution<int> distribution(1000, 10000);
 
     size_t generate_size = distribution(generator);
@@ -54,7 +53,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
             ASSERT_EQ((int)generate_size, ones.Sum(add_function));
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
@@ -79,7 +78,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
             ASSERT_EQ(136, ones.Sum(add_function));
         };
 
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

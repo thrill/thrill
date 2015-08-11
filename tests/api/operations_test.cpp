@@ -10,14 +10,16 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
+#include <c7a/api/cache.hpp>
+#include <c7a/api/collapse.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/lop_node.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -31,40 +33,72 @@ using c7a::api::Context;
 using c7a::api::DIARef;
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
+    api::RunSameThread([](api::Context& ctx) {
+                           std::default_random_engine generator({ std::random_device()() });
+                           std::uniform_int_distribution<int> distribution(1000, 10000);
 
-    std::vector<std::string> self = { "127.0.0.1:1234" };
-    core::JobManager jobMan;
-    jobMan.Connect(0, net::Endpoint::ParseEndpointList(self), 1);
-    Context ctx(jobMan, 0);
+                           size_t generate_size = distribution(generator);
 
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
-    std::uniform_int_distribution<int> distribution(1000, 10000);
+                           auto input = GenerateFromFile(
+                               ctx,
+                               "test1",
+                               [](const std::string& line) {
+                                   return std::stoi(line);
+                               },
+                               generate_size);
 
-    size_t generate_size = distribution(generator);
+                           size_t writer_size = 0;
 
-    auto input = GenerateFromFile(
-        ctx,
-        "test1",
-        [](const std::string& line) {
-            return std::stoi(line);
-        },
-        generate_size);
+                           input.Map(
+                               [&writer_size](const int& item) {
+                                   //file contains ints between 1  and 15
+                                   //fails if wrong integer is generated
+                                   EXPECT_GE(item, 1);
+                                   EXPECT_GE(16, item);
+                                   writer_size++;
+                                   return std::to_string(item) + "\n";
+                               })
+                           .WriteLinesMany("test1.out");
 
-    size_t writer_size = 0;
+                           ASSERT_EQ(generate_size, writer_size);
+                       });
+}
 
-    input.Map(
-        [&writer_size](const int& item) {
-            //file contains ints between 1  and 15
-            //fails if wrong integer is generated
-            EXPECT_GE(item, 1);
-            EXPECT_GE(16, item);
-            writer_size++;
-            return std::to_string(item) + "\n";
-        })
-    .WriteToFileSystem("test1.out");
+TEST(Operations, WriteToSingleFile) {
 
-    ASSERT_EQ(generate_size, writer_size);
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            std::string path = "testsf.out";
+
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
+            integers.Map(
+                [](const int& item) {
+                    return std::to_string(item);
+                })
+            .WriteLines(path);
+
+            // Race condition as one worker might be finished while others are
+            // still writing to output file.
+            ctx.Barrier();
+
+            std::ifstream file(path);
+            size_t begin = file.tellg();
+            file.seekg(0, std::ios::end);
+            size_t end = file.tellg();
+            ASSERT_EQ(end - begin, 39);
+            file.seekg(0);
+            for (int i = 1; i <= 16; i++) {
+                std::string line;
+                std::getline(file, line);
+                ASSERT_EQ(std::stoi(line), i);
+            }
+        };
+
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, ReadAndAllGatherElementsCorrect) {
@@ -87,7 +121,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
             ASSERT_EQ((size_t)16, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, ScatterAndAllGatherElementsCorrect) {
@@ -99,7 +133,7 @@ TEST(Operations, ScatterAndAllGatherElementsCorrect) {
 
             std::vector<size_t> in_vector;
 
-            if (ctx.rank() == 0) {
+            if (ctx.my_rank() == 0) {
                 // generate data only on worker 0.
                 for (size_t i = 0; i < test_size; ++i) {
                     in_vector.push_back(i);
@@ -120,7 +154,7 @@ TEST(Operations, ScatterAndAllGatherElementsCorrect) {
             }
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, GenerateIntegers) {
@@ -144,7 +178,7 @@ TEST(Operations, GenerateIntegers) {
             }
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, MapResultsCorrectChangingType) {
@@ -178,7 +212,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
             static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, FlatMapResultsCorrectChangingType) {
@@ -218,7 +252,7 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
                 "Node must be int");
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, PrefixSumCorrectResults) {
@@ -246,7 +280,7 @@ TEST(Operations, PrefixSumCorrectResults) {
             ASSERT_EQ((size_t)16, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, PrefixSumFacultyCorrectResults) {
@@ -277,7 +311,7 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
             ASSERT_EQ(10u, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, FilterResultsCorrectly) {
@@ -309,7 +343,7 @@ TEST(Operations, FilterResultsCorrectly) {
             ASSERT_EQ(8u, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, DIARefCasting) {
@@ -341,7 +375,7 @@ TEST(Operations, DIARefCasting) {
             ASSERT_EQ(8u, out_vec.size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, ForLoop) {
@@ -371,7 +405,7 @@ TEST(Operations, ForLoop) {
             for (size_t i = 0; i < 4; ++i) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Collapse();
+                squares = multiplied.Cache();
             }
 
             std::vector<int> out_vec = squares.AllGather();
@@ -383,7 +417,7 @@ TEST(Operations, ForLoop) {
             ASSERT_EQ(256u, squares.Size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, WhileLoop) {
@@ -414,7 +448,7 @@ TEST(Operations, WhileLoop) {
             while (sum < 256) {
                 auto pairs = squares.FlatMap(flatmap_duplicate);
                 auto multiplied = pairs.Map(map_multiply);
-                squares = multiplied.Collapse();
+                squares = multiplied.Cache();
                 sum = squares.Size();
             }
 
@@ -427,7 +461,7 @@ TEST(Operations, WhileLoop) {
             ASSERT_EQ(256u, squares.Size());
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

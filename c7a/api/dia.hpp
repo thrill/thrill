@@ -158,7 +158,7 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const std::string& type) const {
+    StatsNode * AddChildStatsNode(const std::string& label, const NodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
         for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
         return node;
@@ -198,7 +198,7 @@ public:
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
-        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", "Lambda") });
+        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", NodeType::LAMBDA) });
     }
 
     /*!
@@ -227,7 +227,7 @@ public:
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
-        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", "Lambda") });
+        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", NodeType::LAMBDA) });
     }
 
     /*!
@@ -249,7 +249,7 @@ public:
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
         auto new_stack = stack_.push(flatmap_function);
-        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", "Lambda") });
+        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", NodeType::LAMBDA) });
     }
 
     /*!
@@ -516,15 +516,21 @@ public:
     size_t Size() const;
 
     /*!
-     * WriteToFileSystem is an Action, which writes elements to an output file.
-     * Items are written using ostream formatting / serialization, with NO
-     * delimiters like newline, etc. So either add operator << for your
-     * structs, or prefix the WriteToFileSystem() call with Map() to
-     * std::string.
+     * WriteLines is an Action, which writes std::strings to an output file.
+     * Strings are written using fstream with a newline after each entry.
      *
      * \param filepath Destination of the output file.
      */
-    void WriteToFileSystem(const std::string& filepath) const;
+    void WriteLines(const std::string& filepath) const;
+
+    /*!
+     * WriteLinesMany is an Action, which writes std::strings to multiple output
+     * files. Strings are written using fstream with a newline after each
+     * entry. Each worker creates its individual file.
+     *
+     * \param filepath Destination of the output file.
+     */
+    void WriteLinesMany(const std::string& filepath) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
@@ -541,6 +547,8 @@ public:
     std::vector<ValueType> AllGather() const;
 
     auto Collapse() const;
+
+    auto Cache() const;
 
     /*!
      * Returns the string which defines the DIANode node_.
@@ -571,8 +579,6 @@ private:
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
- * \param read_function Read function, which is performed on each
- * element
  */
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath);
 

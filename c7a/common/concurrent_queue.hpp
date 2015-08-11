@@ -18,6 +18,7 @@
 
 #endif // HAVE_INTELTBB
 
+#include <atomic>
 #include <mutex>
 #include <queue>
 
