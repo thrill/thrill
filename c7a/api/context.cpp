@@ -37,7 +37,9 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
              std::function<void(api::Context&)> job_startpoint) {
     static const bool debug = false;
     //connect TCP streams
-    std::vector<net::Manager> net_managers = net::Manager::ConstructLocalMesh(host_count);
+    std::vector<std::unique_ptr<net::Manager> > net_managers =
+        net::Manager::ConstructLocalMesh(host_count);
+
     assert(net_managers.size() == host_count);
 
     //cannot be constructed inside loop because we pass only references down
@@ -51,10 +53,10 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
         //connect data subsystem to network
         multiplexers.emplace_back(workers_per_host);
         //TOOD(ts) fix this ugly pointer workaround ??
-        multiplexers[host].Connect(&(net_managers[host].GetDataGroup()));
+        multiplexers[host].Connect(&(net_managers[host]->GetDataGroup()));
 
         //create flow control subsystem
-        auto& group = net_managers[host].GetFlowGroup();
+        auto& group = net_managers[host]->GetFlowGroup();
         flow_managers.emplace_back(group, workers_per_host);
     }
 
@@ -66,7 +68,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
         for (size_t i = 0; i < workers_per_host; i++) {
             threads[host * workers_per_host + i] = std::thread(
                 [&net_managers, &multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
-                    Context ctx(net_managers[host], flow_managers[host], multiplexers[host], workers_per_host, i);
+                    Context ctx(*net_managers[host], flow_managers[host], multiplexers[host], workers_per_host, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
