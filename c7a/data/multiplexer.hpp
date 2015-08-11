@@ -17,8 +17,8 @@
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 
-#include <atomic>
 #include <algorithm>
+#include <atomic>
 #include <memory>
 
 namespace c7a {

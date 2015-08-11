@@ -136,18 +136,18 @@ void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! @param   value The value to be added to the aggregation
 //! @param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-void AllReduceForPowersOfTwo(Group& net, T &value, BinarySumOp sumOp = BinarySumOp()) {
+void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
-    
+
     static const bool debug = false;
 
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         // Send value to worker with id id ^ d
-        if ((net.my_host_rank() ^ d) < net.num_hosts()){
+        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
             net.connection(net.my_host_rank() ^ d).Send(value);
             sLOG << "ALL_REDUCE_HYPERCUBE: Worker" << net.my_host_rank() << ": Sending" << value
-                      << "to worker" << (net.my_host_rank() ^ d) << "\n";
+                 << "to worker" << (net.my_host_rank() ^ d) << "\n";
         }
 
         // Receive value from worker with id id ^ d
@@ -156,11 +156,11 @@ void AllReduceForPowersOfTwo(Group& net, T &value, BinarySumOp sumOp = BinarySum
             net.connection(net.my_host_rank() ^ d).Receive(&recv_data);
             value = sumOp(value, recv_data);
             sLOG << "ALL_REDUCE_HYPERCUBE: Worker " << net.my_host_rank() << ": Received " << recv_data
-                      << " from worker " << (net.my_host_rank() ^ d)
-                      << " value = " << value << "\n";
+                 << " from worker " << (net.my_host_rank() ^ d)
+                 << " value = " << value << "\n";
         }
     }
-    
+
     sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
 }
 

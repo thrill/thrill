@@ -165,15 +165,15 @@ static void RealGroupConstructAndCall(
 
     // lambda to construct Group and call user thread function.
 
-    std::vector<Manager> groups(count);
+    std::vector<std::unique_ptr<Manager> > groups(count);
 
     for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
             [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
-                groups[i].Initialize(i, endpoints);
+                groups[i] = std::make_unique<Manager>(i, endpoints);
                 // run thread function
-                thread_function(&groups[i].GetFlowGroup());
+                thread_function(&groups[i]->GetFlowGroup());
             });
     }
 
@@ -181,7 +181,7 @@ static void RealGroupConstructAndCall(
         threads[i].join();
     }
     for (size_t i = 0; i < count; i++) {
-        groups[i].Close();
+        groups[i]->Close();
     }
 }
 
@@ -292,7 +292,7 @@ TEST(Group, TestAllReduceInHypercube) {
                 ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
             });
     }
-} 
+}
 
 TEST(Group, TestBroadcast) {
     for (size_t p = 0; p <= 8; ++p) {
