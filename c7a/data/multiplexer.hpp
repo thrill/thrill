@@ -13,11 +13,11 @@
 #ifndef C7A_DATA_MULTIPLEXER_HEADER
 #define C7A_DATA_MULTIPLEXER_HEADER
 
-#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/repository.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 
+#include <atomic>
 #include <algorithm>
 #include <memory>
 
@@ -58,8 +58,6 @@ public:
     Multiplexer(const Multiplexer&) = delete;
     //! non-copyable: delete assignment operator
     Multiplexer& operator = (const Multiplexer&) = delete;
-    //! default move constructor
-    Multiplexer(Multiplexer&&) = default;
 
     //! Closes all client connections
     ~Multiplexer();
