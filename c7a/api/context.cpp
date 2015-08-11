@@ -45,7 +45,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
     std::vector<std::unique_ptr<data::Multiplexer> > multiplexers;
-    std::vector<net::FlowControlChannelManager> flow_managers;
+    std::vector<std::unique_ptr<net::FlowControlChannelManager> > flow_managers;
     multiplexers.reserve(host_count);
     flow_managers.reserve(host_count);
 
@@ -58,7 +58,8 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
 
         //create flow control subsystem
         auto& group = net_managers[host]->GetFlowGroup();
-        flow_managers.emplace_back(group, workers_per_host);
+        flow_managers.emplace_back(
+            std::make_unique<net::FlowControlChannelManager>(group, workers_per_host));
     }
 
     // launch thread for each of the workers on this host.
@@ -69,7 +70,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
         for (size_t i = 0; i < workers_per_host; i++) {
             threads[host * workers_per_host + i] = std::thread(
                 [&net_managers, &multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
-                    Context ctx(*net_managers[host], flow_managers[host], *multiplexers[host], workers_per_host, i);
+                    Context ctx(*net_managers[host], *flow_managers[host], *multiplexers[host], workers_per_host, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
