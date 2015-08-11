@@ -101,7 +101,7 @@ public:
                 else {
                     sinks_.emplace_back(
                         &multiplexer_.dispatcher_,
-                        &multiplexer_.group_->connection(host),
+                        &multiplexer_.group_.connection(host),
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);

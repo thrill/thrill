@@ -17,21 +17,17 @@ namespace c7a {
 namespace data {
 
 Multiplexer::~Multiplexer() {
-    if (group_ != nullptr) {
-        // close all still open Channels
-        for (auto& ch : channels_.map())
-            ch.second->Close();
-    }
+    // close all still open Channels
+    for (auto& ch : channels_.map())
+        ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
     dispatcher_.Terminate();
 
-    if (group_ != nullptr)
-        group_->Close();
+    group_.Close();
 }
 
 ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
-    assert(group_ != nullptr);
     return std::move(
         channels_.GetOrCreate(
             id, local_worker_id,
