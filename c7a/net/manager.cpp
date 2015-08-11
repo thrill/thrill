@@ -128,7 +128,7 @@ protected:
     Manager& mgr_;
 
     //! Link to manager's groups to initialize
-    Group* groups_ = mgr_.groups_;
+    std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
 
     /**
      * The rank associated with the local worker.
@@ -544,34 +544,42 @@ protected:
         return true;
     }
 };
-void Manager::Initialize(size_t my_rank,
-                         const std::vector<Endpoint>& endpoints) {
-    my_rank_ = my_rank;
+
+Manager::Manager(size_t my_rank,
+                 const std::vector<Endpoint>& endpoints)
+    : my_rank_(my_rank) {
     Construction(*this).Initialize(my_rank_, endpoints);
 }
 
-//! Construct a mock network, consisting of node_count compute
-//! nodes. Delivers this number of net::Manager objects, which are
+Manager::Manager(size_t my_rank,
+                 std::array<Group, kGroupCount>&& groups)
+    : my_rank_(my_rank),
+      groups_(std::move(groups)) { }
+
+//! Construct a mock network, consisting of host_count compute
+//! hosts. Delivers this number of net::Manager objects, which are
 //! internally connected.
 std::vector<std::unique_ptr<Manager> >
-Manager::ConstructLocalMesh(size_t node_count) {
-
-    // construct list of uninitialized net::Manager objects.
-    std::vector<std::unique_ptr<Manager> > nmlist(node_count);
-
-    for (size_t n = 0; n < node_count; ++n) {
-        nmlist[n] = std::make_unique<Manager>();
-        nmlist[n]->my_rank_ = n;
-    }
+Manager::ConstructLocalMesh(size_t host_count) {
 
     // construct three full mesh connection cliques, deliver net::Groups.
-    for (size_t g = 0; g < kGroupCount; ++g) {
-        std::vector<Group> group = Group::ConstructLocalMesh(node_count);
+    std::array<std::vector<Group>, kGroupCount> group;
 
-        // distribute net::Group objects to managers
-        for (size_t n = 0; n < node_count; ++n) {
-            nmlist[n]->groups_[g] = std::move(group[n]);
-        }
+    for (size_t g = 0; g < kGroupCount; ++g) {
+        group[g] = std::move(Group::ConstructLocalMesh(host_count));
+    }
+
+    // construct list of uninitialized net::Manager objects.
+    std::vector<std::unique_ptr<Manager> > nmlist(host_count);
+
+    for (size_t h = 0; h < host_count; ++h) {
+        std::array<Group, kGroupCount> host_group = {
+            std::move(group[0][h]),
+            std::move(group[1][h]),
+            std::move(group[2][h]),
+        };
+
+        nmlist[h] = std::make_unique<Manager>(h, std::move(host_group));
     }
 
     return nmlist;

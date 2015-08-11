@@ -107,8 +107,8 @@ void RunLocalTests(std::function<void(Context&)> job_startpoint) {
 }
 
 void RunSameThread(std::function<void(Context&)> job_startpoint) {
-    net::Manager net_manager;
-    net_manager.Initialize(0, net::Endpoint::ParseEndpointList("127.0.0.1:12345"));
+    net::Manager net_manager(
+        0, net::Endpoint::ParseEndpointList("127.0.0.1:12345"));
 
     size_t workers_per_host = 1;
     size_t my_host_rank = 0;
@@ -136,8 +136,8 @@ int RunDistributedTCP(
 
     static const bool debug = false;
 
-    net::Manager net_manager;
-    net_manager.Initialize(my_host_rank, net::Endpoint::ParseEndpointList(endpoints));
+    net::Manager net_manager(
+        my_host_rank, net::Endpoint::ParseEndpointList(endpoints));
 
     data::Multiplexer cmp(workers_per_host, net_manager.GetDataGroup());
 

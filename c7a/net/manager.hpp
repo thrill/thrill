@@ -38,7 +38,7 @@ class Manager
     static const bool debug = false;
 
 public:
-    /**
+    /*!
      * The count of net::Groups to initialize.
      * If this value is changed, the corresponding
      * getters for the net::Groups should be changed as well.
@@ -53,15 +53,12 @@ public:
         return GetSystemGroup().num_hosts();
     }
 
-    //! default constructor
-    Manager() { }
-
     //! non-copyable: delete copy-constructor
     Manager(const Manager&) = delete;
     //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
 
-    /**
+    /*!
      * @brief Initializes this Manager and initializes all Groups.
      * @details Initializes this Manager and initializes all Groups.
      * When this method returns, the network system is ready to use.
@@ -70,8 +67,14 @@ public:
      * @param endpoints The ordered list of all endpoints, including the local worker,
      * where the endpoint at position i corresponds to the worker with id i.
      */
-    void Initialize(size_t my_rank_,
-                    const std::vector<Endpoint>& endpoints);
+    Manager(size_t my_rank_,
+            const std::vector<Endpoint>& endpoints);
+
+    /*!
+     * Construct Manager from already initialized net::Groups.
+     */
+    Manager(size_t my_rank_,
+            std::array<Group, kGroupCount>&& groups);
 
     //! Construct a mock network, consisting of node_count compute
     //! nodes. Delivers this number of net::Manager objects, which are
@@ -108,15 +111,15 @@ public:
 
 private:
     /**
-     * The Groups initialized and managed
-     * by this Manager.
-     */
-    Group groups_[kGroupCount];
-
-    /**
      * The rank associated with the local worker.
      */
     size_t my_rank_;
+
+    /**
+     * The Groups initialized and managed
+     * by this Manager.
+     */
+    std::array<Group, kGroupCount> groups_;
 
     //! for initialization of members
     friend class Construction;

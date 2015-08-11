@@ -101,30 +101,33 @@ int main(int argc, const char** argv) {
     endpoints.push_back("127.0.0.1:8001");
     endpoints.push_back("127.0.0.1:8002");
 
-    net::Manager net_manager1, net_manager2, net_manager3;
+    std::unique_ptr<net::Manager> net_manager1, net_manager2, net_manager3;
     connect_pool.Enqueue([&net_manager1, &endpoints]() {
-                             net_manager1.Initialize(0, net::Endpoint::ParseEndpointList(endpoints));
+                             net_manager1 = std::make_unique<net::Manager>(
+                                 0, net::Endpoint::ParseEndpointList(endpoints));
                          });
 
     connect_pool.Enqueue([&net_manager2, &endpoints]() {
-                             net_manager2.Initialize(1, net::Endpoint::ParseEndpointList(endpoints));
+                             net_manager2 = std::make_unique<net::Manager>(
+                                 1, net::Endpoint::ParseEndpointList(endpoints));
                          });
     connect_pool.Enqueue([&net_manager3, &endpoints]() {
-                             net_manager3.Initialize(2, net::Endpoint::ParseEndpointList(endpoints));
+                             net_manager3 = std::make_unique<net::Manager>(
+                                 2, net::Endpoint::ParseEndpointList(endpoints));
                          });
     connect_pool.LoopUntilEmpty();
 
-    data::Multiplexer datamp1(1, net_manager1.GetDataGroup());
-    data::Multiplexer datamp2(1, net_manager2.GetDataGroup());
-    data::Multiplexer datamp3(1, net_manager3.GetDataGroup());
+    data::Multiplexer datamp1(1, net_manager1->GetDataGroup());
+    data::Multiplexer datamp2(1, net_manager2->GetDataGroup());
+    data::Multiplexer datamp3(1, net_manager3->GetDataGroup());
 
-    net::FlowControlChannelManager flow_manager1(net_manager1.GetFlowGroup(), 1);
-    net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);
-    net::FlowControlChannelManager flow_manager3(net_manager3.GetFlowGroup(), 1);
+    net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
+    net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
+    net::FlowControlChannelManager flow_manager3(net_manager3->GetFlowGroup(), 1);
 
-    api::Context ctx1(net_manager1, flow_manager1, datamp1, 1, 0);
-    api::Context ctx2(net_manager2, flow_manager2, datamp2, 1, 0);
-    api::Context ctx3(net_manager3, flow_manager3, datamp3, 1, 0);
+    api::Context ctx1(*net_manager1, flow_manager1, datamp1, 1, 0);
+    api::Context ctx2(*net_manager2, flow_manager2, datamp2, 1, 0);
+    api::Context ctx3(*net_manager3, flow_manager3, datamp3, 1, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
