@@ -121,7 +121,7 @@ private:
     size_t num_workers_per_host_;
 
     //! protects critical sections
-    common::MutexMovable mutex_;
+    std::mutex mutex_;
 
     //! friends for access to network components
     friend class Channel;
