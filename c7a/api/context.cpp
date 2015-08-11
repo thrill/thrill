@@ -52,14 +52,14 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     for (size_t host = 0; host < host_count; host++) {
         //connect data subsystem to network
         multiplexers.emplace_back(
-            std::make_unique<data::Multiplexer>(workers_per_host));
-        //TOOD(ts) fix this ugly pointer workaround ??
-        multiplexers[host]->Connect(&(net_managers[host]->GetDataGroup()));
+            std::make_unique<data::Multiplexer>(
+                workers_per_host, net_managers[host]->GetDataGroup()));
 
         //create flow control subsystem
         auto& group = net_managers[host]->GetFlowGroup();
         flow_managers.emplace_back(
-            std::make_unique<net::FlowControlChannelManager>(group, workers_per_host));
+            std::make_unique<net::FlowControlChannelManager>(
+                group, workers_per_host));
     }
 
     // launch thread for each of the workers on this host.
@@ -114,8 +114,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
     size_t my_host_rank = 0;
 
     //connect data subsystem to network
-    data::Multiplexer multiplexer(workers_per_host);
-    multiplexer.Connect(&net_manager.GetDataGroup());
+    data::Multiplexer multiplexer(workers_per_host, net_manager.GetDataGroup());
 
     //create flow control subsystem
     net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), 1);
@@ -140,9 +139,10 @@ int RunDistributedTCP(
     net::Manager net_manager;
     net_manager.Initialize(my_rank, net::Endpoint::ParseEndpointList(endpoints));
 
-    data::Multiplexer cmp(workers_per_host);
-    cmp.Connect(&(net_manager.GetDataGroup()));
-    net::FlowControlChannelManager flow_manager(net_manager.GetFlowGroup(), workers_per_host);
+    data::Multiplexer cmp(workers_per_host, net_manager.GetDataGroup());
+
+    net::FlowControlChannelManager flow_manager(
+        net_manager.GetFlowGroup(), workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 

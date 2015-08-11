@@ -86,9 +86,9 @@ int main(int argc, const char** argv) {
                          });
     connect_pool.LoopUntilEmpty();
 
-    data::Multiplexer datamp1(1), datamp2(1);
-    datamp1.Connect(&(net_manager1.GetDataGroup()));
-    datamp2.Connect(&(net_manager2.GetDataGroup()));
+    data::Multiplexer
+        datamp1(1, net_manager1.GetDataGroup()),
+        datamp2(1, net_manager2.GetDataGroup());
 
     net::FlowControlChannelManager flow_manager1(net_manager1.GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2.GetFlowGroup(), 1);

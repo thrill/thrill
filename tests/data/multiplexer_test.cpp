@@ -30,8 +30,7 @@ struct Multiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        data::Multiplexer datamp(1);
-        datamp.Connect(group);
+        data::Multiplexer datamp(1, *group);
         switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
@@ -73,8 +72,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
     size_t my_local_worker_id = 0;
     size_t num_workers_per_node = 1;
 
-    data::Multiplexer datamp(num_workers_per_node);
-    datamp.Connect(net);
+    data::Multiplexer datamp(num_workers_per_node, *net);
     {
         data::ChannelId id = datamp.AllocateChannelId(my_local_worker_id);
 
