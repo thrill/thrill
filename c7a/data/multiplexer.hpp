@@ -49,10 +49,16 @@ struct ChannelBlockHeader;
 class Multiplexer
 {
 public:
-    explicit Multiplexer(size_t num_workers_per_host)
+    explicit Multiplexer(size_t num_workers_per_host, net::Group& group)
         : dispatcher_("multiplexer"),
           num_workers_per_host_(num_workers_per_host),
-          channels_(num_workers_per_host) { }
+          channels_(num_workers_per_host) {
+        group_ = &group;
+        for (size_t id = 0; id < group_->num_hosts(); id++) {
+            if (id == group_->my_host_rank()) continue;
+            AsyncReadChannelBlockHeader(group_->connection(id));
+        }
+    }
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;
@@ -61,14 +67,6 @@ public:
 
     //! Closes all client connections
     ~Multiplexer();
-
-    void Connect(net::Group* group) {
-        group_ = group;
-        for (size_t id = 0; id < group_->num_hosts(); id++) {
-            if (id == group_->my_host_rank()) continue;
-            AsyncReadChannelBlockHeader(group_->connection(id));
-        }
-    }
 
     //! total number of hosts.
     size_t num_hosts() const {
