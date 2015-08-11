@@ -15,7 +15,6 @@
 #ifndef C7A_NET_DISPATCHER_THREAD_HEADER
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
-#include <c7a/common/atomic_movable.hpp>
 #include <c7a/common/concurrent_queue.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/data/block.hpp>
@@ -81,10 +80,6 @@ public:
     DispatcherThread(const DispatcherThread&) = delete;
     //! non-copyable: delete assignment operator
     DispatcherThread& operator = (const DispatcherThread&) = delete;
-    //! move-constructor: default
-    DispatcherThread(DispatcherThread&&) = default;
-    //! move-assignment operator: default
-    DispatcherThread& operator = (DispatcherThread&&) = default;
 
     //! Return internal Dispatcher object
     //Dispatcher & dispatcher() { return dispatcher_; }
@@ -170,7 +165,7 @@ private:
     class Dispatcher* dispatcher_;
 
     //! termination flag
-    common::AtomicMovable<bool> terminate_ { false };
+    std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
     std::string name_;

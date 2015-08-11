@@ -15,7 +15,6 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
-#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/connection.hpp>
@@ -29,6 +28,7 @@
 #include <c7a/common/delegate.hpp>
 #endif
 
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <deque>
@@ -84,10 +84,6 @@ public:
     Dispatcher(const Dispatcher&) = delete;
     //! non-copyable: delete assignment operator
     Dispatcher& operator = (const Dispatcher&) = delete;
-    //! move-constructor
-    Dispatcher(Dispatcher&& d) = default;
-    //! move-assignment
-    Dispatcher& operator = (Dispatcher&& d) = default;
 
     //! \name Timeout Callbacks
     //! \{
@@ -311,7 +307,7 @@ protected:
     SubDispatcher dispatcher_;
 
     //! true if dispatcher needs to stop
-    common::AtomicMovable<bool> terminate_ { false };
+    std::atomic<bool> terminate_ { false };
 
     //! struct for timer callbacks
     struct Timer

@@ -60,10 +60,6 @@ public:
     Manager(const Manager&) = delete;
     //! non-copyable: delete assignment operator
     Manager& operator = (const Manager&) = delete;
-    //! move-constructor
-    Manager(Manager&&) = default;
-    //! move-assignment
-    Manager& operator = (Manager&&) = default;
 
     /**
      * @brief Initializes this Manager and initializes all Groups.
