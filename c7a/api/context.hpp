@@ -174,6 +174,11 @@ public:
         return flow_control_channel().AllReduce(value, sumOp);
     }
 
+    //! A collective global barrier.
+    void Barrier() {
+        return flow_control_channel().Barrier();
+    }
+
     //! \}
 
     //! \name Data Subsystem

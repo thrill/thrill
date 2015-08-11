@@ -354,7 +354,7 @@ public:
     /**
      * @brief A trivial global barrier.
      */
-    void Await() {
+    void Barrier() {
         int i = 0;
         i = AllReduce(i);
     }

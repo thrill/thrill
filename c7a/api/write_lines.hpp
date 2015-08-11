@@ -74,7 +74,7 @@ public:
             file_.put('\0');
         }
         file_.seekp(prefix_elem);
-        context_.flow_control_channel().Await();
+        context_.Barrier();
 
         data::File::Reader reader = result_file_.GetReader();
 
