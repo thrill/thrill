@@ -44,16 +44,17 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
 
     //cannot be constructed inside loop because we pass only references down
     //thus the objects must live longer than the loop.
-    std::vector<data::Multiplexer> multiplexers;
+    std::vector<std::unique_ptr<data::Multiplexer> > multiplexers;
     std::vector<net::FlowControlChannelManager> flow_managers;
     multiplexers.reserve(host_count);
     flow_managers.reserve(host_count);
 
     for (size_t host = 0; host < host_count; host++) {
         //connect data subsystem to network
-        multiplexers.emplace_back(workers_per_host);
+        multiplexers.emplace_back(
+            std::make_unique<data::Multiplexer>(workers_per_host));
         //TOOD(ts) fix this ugly pointer workaround ??
-        multiplexers[host].Connect(&(net_managers[host]->GetDataGroup()));
+        multiplexers[host]->Connect(&(net_managers[host]->GetDataGroup()));
 
         //create flow control subsystem
         auto& group = net_managers[host]->GetFlowGroup();
@@ -68,7 +69,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
         for (size_t i = 0; i < workers_per_host; i++) {
             threads[host * workers_per_host + i] = std::thread(
                 [&net_managers, &multiplexers, &flow_managers, &job_startpoint, host, i, log_prefix, workers_per_host] {
-                    Context ctx(*net_managers[host], flow_managers[host], multiplexers[host], workers_per_host, i);
+                    Context ctx(*net_managers[host], flow_managers[host], *multiplexers[host], workers_per_host, i);
                     common::NameThisThread(
                         log_prefix + " worker " + std::to_string(i));
 
