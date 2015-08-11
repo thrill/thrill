@@ -51,12 +51,12 @@ class Multiplexer
 public:
     explicit Multiplexer(size_t num_workers_per_host, net::Group& group)
         : dispatcher_("multiplexer"),
+          group_(group),
           num_workers_per_host_(num_workers_per_host),
           channels_(num_workers_per_host) {
-        group_ = &group;
-        for (size_t id = 0; id < group_->num_hosts(); id++) {
-            if (id == group_->my_host_rank()) continue;
-            AsyncReadChannelBlockHeader(group_->connection(id));
+        for (size_t id = 0; id < group_.num_hosts(); id++) {
+            if (id == group_.my_host_rank()) continue;
+            AsyncReadChannelBlockHeader(group_.connection(id));
         }
     }
 
@@ -70,12 +70,12 @@ public:
 
     //! total number of hosts.
     size_t num_hosts() const {
-        return group_->num_hosts();
+        return group_.num_hosts();
     }
 
     //! my rank among the hosts.
     size_t my_host_rank() const {
-        return group_->my_host_rank();
+        return group_.my_host_rank();
     }
 
     //! total number of workers.
@@ -111,7 +111,7 @@ private:
     net::DispatcherThread dispatcher_;
 
     // Holds NetConnections for outgoing Channels
-    net::Group* group_ = nullptr;
+    net::Group& group_;
 
     //! Number of workers per host
     size_t num_workers_per_host_;
