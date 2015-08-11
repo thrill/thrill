@@ -36,6 +36,50 @@ namespace api {
 //! \{
 
 /*!
+ * The HostContext contains all data structures shared among workers on the same
+ * host. It is used to construct and destroy them. For testing multiple
+ * instances are run in the same process.
+ */
+class HostContext
+{
+public:
+    HostContext(size_t my_host_rank,
+                const std::vector<net::Endpoint>& endpoints,
+                size_t workers_per_host)
+        : workers_per_host_(workers_per_host),
+          net_manager_(my_host_rank, endpoints),
+          flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+          data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
+    { }
+
+    //! constructor from existing net Groups for use from ConstructLocalMock().
+    HostContext(size_t my_host_rank,
+                std::array<net::Group, net::Manager::kGroupCount>&& groups,
+                size_t workers_per_host)
+        : workers_per_host_(workers_per_host),
+          net_manager_(my_host_rank, std::move(groups)),
+          flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+          data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
+    { }
+
+    //! number of workers per host (all have the same).
+    size_t workers_per_host_;
+
+    //! net manager constructs communication groups to other hosts.
+    net::Manager net_manager_;
+
+    //! the flow control group is used for collective communication.
+    net::FlowControlChannelManager flow_manager_;
+
+    //! data multiplexer transmits large amounts of data asynchronously.
+    data::Multiplexer data_multiplexer_;
+
+    //! Construct a number of mock hosts running in this process.
+    static std::vector<std::unique_ptr<HostContext> >
+    ConstructLocalMesh(size_t host_count, size_t workers_per_host);
+};
+
+/*!
  * The Context of a job is a unique instance per worker which holds
  *  references to all underlying parts of c7a. The context is able to give
  *  references to the  \ref c7a::data::Multiplexer "channel multiplexer", the
@@ -48,12 +92,23 @@ namespace api {
 class Context
 {
 public:
-    Context(net::Manager& net_manager, net::FlowControlChannelManager& flow_manager, data::Multiplexer& multiplexer, size_t workers_per_host, size_t local_worker_id)
+    Context(net::Manager& net_manager,
+            net::FlowControlChannelManager& flow_manager,
+            data::Multiplexer& multiplexer,
+            size_t workers_per_host, size_t local_worker_id)
         : net_manager_(net_manager),
           flow_manager_(flow_manager),
           multiplexer_(multiplexer),
           local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host)
+    { }
+
+    Context(HostContext& host_context, size_t local_worker_id)
+        : net_manager_(host_context.net_manager_),
+          flow_manager_(host_context.flow_manager_),
+          multiplexer_(host_context.data_multiplexer_),
+          local_worker_id_(local_worker_id),
+          workers_per_host_(host_context.workers_per_host_)
     { }
 
     //! \name System Information
