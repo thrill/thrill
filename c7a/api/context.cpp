@@ -88,7 +88,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
                     job_startpoint(ctx);
                     STOP_TIMER(overall_timer)
                     LOG << "Worker " << worker << " done!";
-                    ctx.flow_control_channel().Await();
+                    ctx.Barrier();
                 });
         }
     }
@@ -161,7 +161,7 @@ int RunDistributedTCP(
                 STOP_TIMER(overall_timer)
                 LOG << "Worker " << ctx.my_rank() << " done!";
 
-                ctx.flow_control_channel().Await();
+                ctx.Barrier();
             });
     }
 

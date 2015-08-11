@@ -81,9 +81,9 @@ TEST(Operations, WriteToSingleFile) {
                 })
             .WriteLines(path);
 
-            //Race condition as one worker might be finished while others
-            //are still writing to output file.
-            ctx.flow_control_channel().Await();
+            // Race condition as one worker might be finished while others are
+            // still writing to output file.
+            ctx.Barrier();
 
             std::ifstream file(path);
             size_t begin = file.tellg();
