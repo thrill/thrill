@@ -11,14 +11,112 @@
 #pragma once
 #ifndef C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 #define C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+
+#include <c7a/common/functional.hpp>
+
 #include <limits>
+#include <random>
+#include <tuple>
+
+using namespace c7a; // NOLINT
+
+template <typename Type>
+class Generator;
+
+template <>
+class Generator<size_t>
+{
+public:
+    Generator(size_t bytes)
+        : size_((bytes + sizeof(size_t) - 1) / sizeof(size_t)) { }
+
+    bool HasNext() const { return size_ > 0; }
+
+    size_t Next() {
+        assert(size_ > 0);
+        --size_;
+        return index_++;
+    }
+
+protected:
+    size_t size_;
+    size_t index_ = 42;
+};
+
+template <>
+class Generator<std::string>
+{
+public:
+    Generator(size_t bytes)
+        : bytes_(bytes) { }
+
+    bool HasNext() const { return bytes_ > 0; }
+
+    std::string Next() {
+        size_t next_size = std::min<size_t>(uniform_dist_(randomness_), bytes_);
+        bytes_ -= next_size;
+        return std::string('f', next_size);
+    }
+
+protected:
+    ssize_t bytes_;
+
+    //init randomness
+    std::default_random_engine randomness_ { std::random_device()() };
+    std::uniform_int_distribution<size_t> uniform_dist_ { 1, 100 };
+};
+
+/******************************************************************************/
+
+template <size_t Index, typename ... Types>
+struct TupleGenerator {
+    static bool HasNext(const std::tuple<Generator<Types>...>& t) {
+        return std::get<Index - 1>(t).HasNext() &&
+               TupleGenerator<Index - 1, Types ...>::HasNext(t);
+    }
+};
+
+template <typename ... Types>
+struct TupleGenerator<0, Types ...>{
+    static bool HasNext(const std::tuple<Generator<Types>...>&) {
+        return true;
+    }
+};
+
+template <std::size_t ... Is, typename ... Types>
+auto TupleGeneratorNext(std::tuple<Generator<Types>...>&t,
+                        common::index_sequence<Is ...>)
+{
+    return std::make_tuple(std::get<Is>(t).Next() ...);
+}
+
+template <typename ... Types>
+class Generator<std::tuple<Types ...> >
+{
+public:
+    Generator(size_t bytes)
+        : gen_(Generator<Types>(bytes) ...) { }
+
+    bool HasNext() const {
+        return TupleGenerator<sizeof ... (Types), Types ...>::HasNext(gen_);
+    }
+
+    std::tuple<Types ...> Next() {
+        const size_t Size = sizeof ... (Types);
+        return TupleGeneratorNext(gen_, common::make_index_sequence<Size>{ });
+    }
+
+protected:
+    std::tuple<Generator<Types>...> gen_;
+};
+
+/******************************************************************************/
 
 using Tuple = std::pair<std::string, int>;
 using Triple = std::tuple<std::string, int, std::string>;
 
 template <typename Type>
-std::vector<Type> generate(size_t bytes, size_t min_size, size_t max_size)
-{ }
+std::vector<Type> generate(size_t bytes, size_t min_size, size_t max_size);
 
 template <>
 std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size) {
@@ -26,8 +124,7 @@ std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size
     size_t remaining = bytes;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
     while (remaining > 0) {
@@ -44,8 +141,7 @@ std::vector<Tuple> generate(size_t bytes, size_t min_size, size_t max_size) {
     size_t remaining = bytes;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
     while (remaining > 0) {
@@ -63,8 +159,7 @@ std::vector<Triple> generate(size_t bytes, size_t min_size, size_t max_size) {
     size_t remaining = bytes;
 
     //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
+    std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
     while (remaining > 0) {
@@ -83,14 +178,23 @@ template <>
 std::vector<int> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/) {
     assert(bytes % sizeof(int) == 0);
     std::vector<int> result;
-
-    //init randomness
-    std::random_device rd;
-    std::default_random_engine randomness(rd());
-    std::uniform_int_distribution<size_t> uniform_dist(std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+    result.reserve((bytes + sizeof(int) - 1) / sizeof(int));
 
     for (size_t current = 0; current < bytes; current += sizeof(int)) {
-        result.emplace_back(42);
+        result.emplace_back(42 + current);
+    }
+    return result;
+}
+
+//! Generates random integers in the whole size_t-range
+template <>
+std::vector<size_t> generate(size_t bytes, size_t /*min_size*/, size_t /*max_size*/) {
+    assert(bytes % sizeof(size_t) == 0);
+    std::vector<size_t> result;
+    result.reserve((bytes + sizeof(size_t) - 1) / sizeof(size_t));
+
+    for (size_t current = 0; current < bytes; current += sizeof(size_t)) {
+        result.emplace_back(42 + current);
     }
     return result;
 }

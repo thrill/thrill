@@ -1,4 +1,4 @@
-This folder contains scripts to manage c7a execution on the BW HPC cluster.
+This folder contains scripts to manage c7a execution on the BW HPC or IC2 cluster.
 
 Workflow at the moment is: 
 

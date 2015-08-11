@@ -6,6 +6,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -16,7 +17,6 @@
 
 #include <c7a/api/context.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/manager.hpp>
 
 #include <string>
 #include <vector>
@@ -29,10 +29,8 @@ namespace api {
 
 /*!
  * Possible states a DIABase can be in.
- * TODO(ch): turn this enum into an "enum class" within DIABase. These are
- * c7a-global identifiers atm.
  */
-enum kState {
+enum class DIAState {
     //! The DIABase has not been computed yet.
     NEW,
     //! The DIABase has been calculated but not explicitly cached.  Data might
@@ -70,7 +68,7 @@ public:
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag, StatsNode* stats_node)
         : context_(ctx), parents_(parents),
-          result_file_(ctx.data_manager().GetFile()),
+          result_file_(ctx.GetFile()),
           execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
           lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
           stats_node_(stats_node) {
@@ -109,6 +107,10 @@ public:
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
+    const NodeType & type() {
+        return stats_node_->type();
+    }
+
     //! Returns the children of this DIABase.
     //! \return A vector of all children
     const std::vector<DIABase*> & children() {
@@ -121,8 +123,8 @@ public:
         return parents_;
     }
 
-    //! Returns the data::Manager of this DIABase.
-    //! \return The data::Manager of this DIABase.
+    //! Returns the api::Context of this DIABase.
+    //! \return The api::Context of this DIABase.
     Context & context() {
         return context_;
     }
@@ -139,11 +141,11 @@ public:
         return result_file_;
     }
 
-    kState state() const {
+    DIAState state() const {
         return state_;
     }
 
-    kState set_state(kState state) {
+    DIAState set_state(DIAState state) {
         return state_ = state;
     }
 
@@ -156,21 +158,41 @@ public:
 
     inline void StopExecutionTimer() {
         STOP_TIMER(execution_timer_);
-        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms");
+        if (execution_timer_) stats_node_->AddStatsMsg(std::to_string(execution_timer_->Milliseconds()) + "ms", LogType::EXECUTION);
+    }
+
+    inline void WriteChannelStats(const data::ChannelPtr& c) {
+        if (common::g_enable_stats) {
+            assert(!c->rx_lifetime_.running());
+            assert(!c->tx_lifetime_.running());
+            assert(!c->rx_timespan_.running());
+            assert(!c->tx_timespan_.running());
+            stats_node_->AddStatsMsg(
+                "channel " + std::to_string(c->id()) + "; " +
+                "incoming_bytes " + std::to_string(c->incoming_bytes_.value()) + "; " +
+                "incoming_blocks " + std::to_string(c->incoming_blocks_.value()) + "; " +
+                "outgoing_bytes " + std::to_string(c->outgoing_bytes_.value()) + "; " +
+                "outgoing_blocks " + std::to_string(c->outgoing_blocks_.value()) + "; " +
+                "rx_lifetime (us) " + std::to_string(c->rx_lifetime_.Microseconds()) + "; " +
+                "tx_lifetime (us) " + std::to_string(c->tx_lifetime_.Microseconds()) + "; " +
+                "rx_timespan (us) " + std::to_string(c->rx_timespan_.Microseconds()) + "; " +
+                "tx_timespan (us) " + std::to_string(c->tx_timespan_.Microseconds()),
+                LogType::NETWORK);
+        }
     }
 
 protected:
     //! State of the DIANode. State is NEW on creation.
-    kState state_ = NEW;
+    DIAState state_ = DIAState::NEW;
 
     //!Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
         switch (state_) {
-        case NEW:
+        case DIAState::NEW:
             return "NEW";
-        case EXECUTED:
+        case DIAState::EXECUTED:
             return "EXECUTED";
-        case DISPOSED:
+        case DIAState::DISPOSED:
             return "DISPOSED";
         default:
             return "UNDEFINED";

@@ -71,12 +71,26 @@ if [ -z "$dir" ]; then
 fi
 
 if [ $verbose -ne 0 ]; then
-    echo "Hosts: $hostlist"
+    echo "Hosts: $C7A_HOSTLIST"
     echo "Command: $cmd"
 fi
 
 rank=0
 uuid=$(cat /proc/sys/kernel/random/uuid)
+
+# check C7A_HOSTLIST for hosts without port numbers: add 10000+rank
+hostlist=()
+for hostport in $C7A_HOSTLIST; do
+  port=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $2 }')
+  if [ -z "$port" ]; then
+      hostport="$hostport:$((10000+rank))"
+  fi
+  hostlist+=($hostport)
+  rank=$((rank+1))
+done
+
+rank=0
+C7A_HOSTLIST="${hostlist[@]}"
 
 for hostport in $C7A_HOSTLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')

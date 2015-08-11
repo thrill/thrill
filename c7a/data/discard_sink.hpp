@@ -35,10 +35,10 @@ public:
     DiscardSink() { }
 
     //! Discards Block.
-    void AppendBlock(const Block&) override { }
+    void AppendBlock(const Block&) final { }
 
     //! Closes the sink
-    void Close() override {
+    void Close() final {
         assert(!closed_);
         closed_ = true;
     }

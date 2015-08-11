@@ -1,7 +1,7 @@
 /*******************************************************************************
  * c7a/api/zip.hpp
  *
- * DIANode for a reduce operation. Performs the actual reduce operation
+ * DIANode for a zip operation. Performs the actual zip operation
  *
  * Part of Project c7a.
  *
@@ -17,9 +17,7 @@
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/data/channel_multiplexer.hpp>
 #include <c7a/data/file.hpp>
-#include <c7a/net/collective_communication.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -123,11 +121,11 @@ public:
      * Actually executes the zip operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         size_t result_count = 0;
 
         if (result_size_ != 0) {
@@ -149,17 +147,23 @@ public:
             // Empty out readers. If they have additional items, this is
             // necessary for the CachingBlockQueueSource, as it has to cache the
             // additional blocks -tb. TODO(tb): this is weird behaviour.
+            // yes ... weird - ts
             while (readers[0].HasNext())
                 readers[0].Next<ZipArg0>();
 
             while (readers[1].HasNext())
                 readers[1].Next<ZipArg1>();
+
+            channels_[0]->Close();
+            channels_[1]->Close();
+            this->WriteChannelStats(channels_[0]);
+            this->WriteChannelStats(channels_[1]);
         }
 
         sLOG << "Zip: result_count" << result_count;
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Creates empty stack.
@@ -173,7 +177,7 @@ public:
      * Returns "[ZipNode]" as a string.
      * \return "[ZipNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ZipNode]";
     }
 
@@ -209,7 +213,7 @@ private:
     //! Scatter items from DIA "in" to other workers if necessary.
     template <typename ZipArgNum>
     void DoScatter(size_t in) {
-        const size_t workers = context_.number_worker();
+        const size_t workers = context_.num_workers();
 
         size_t local_begin =
             std::min(result_size_,
@@ -253,10 +257,8 @@ private:
             LOG << "input " << in << " offsets[" << i << "] = " << offsets[i];
         }
 
-        data::Manager& data_manager = context_.data_manager();
-
         //! target channel id
-        channels_[in] = data_manager.GetNewChannel();
+        channels_[in] = context_.GetNewChannel();
 
         //! scatter elements to other workers, if necessary
         channels_[in]->template Scatter<ZipArgNum>(files_[in], offsets);
@@ -326,7 +328,7 @@ auto DIARef<ValueType, Stack>::Zip(
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Zip", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("Zip", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
         = std::make_shared<ZipResultNode>(*this,

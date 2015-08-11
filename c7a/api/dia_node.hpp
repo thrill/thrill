@@ -13,7 +13,6 @@
 
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/data/manager.hpp>
 
 #include <string>
 #include <vector>
@@ -44,7 +43,7 @@ public:
     DIANode() { }
 
     /*!
-     * Constructor for a DIANode, which sets references to the DataManager and
+     * Constructor for a DIANode, which sets references to the
      * parent nodes. Calls the constructor of DIABase with the same parameters.
      *
      * \param ctx Reference to Context, which holds references to data and
@@ -63,11 +62,6 @@ public:
     //! Virtual destructor for a DIANode.
     virtual ~DIANode() { }
 
-    //! ToString-method. Returns DIANode and it's state as a string.
-    std::string ToString() override {
-        return "[DIANode/State:" + state_string_() + "]";
-    }
-
     /*!
      * Enables children to push their "folded" function chains to their parent.
      * This way the parent can push all its result elements to each of the
@@ -80,7 +74,7 @@ public:
         this->callbacks_.push_back(callback);
     }
 
-    void UnregisterChilds() override {
+    void UnregisterChilds() final {
         this->callbacks_.clear();
     }
 
@@ -95,25 +89,8 @@ public:
     }
 
 protected:
-    //! State of the DIANode. State is NEW on creation.
-    kState state_ = NEW;
-
     //! Callback functions from the child nodes.
     std::vector<ChildFunction> callbacks_;
-
-    //!Returns the state of this DIANode as a string. Used by ToString.
-    std::string state_string_() {
-        switch (state_) {
-        case NEW:
-            return "NEW";
-        case EXECUTED:
-            return "EXECUTED";
-        case DISPOSED:
-            return "DISPOSED";
-        default:
-            return "UNDEFINED";
-        }
-    }
 };
 
 //! \}

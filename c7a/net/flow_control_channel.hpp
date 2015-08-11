@@ -16,6 +16,7 @@
 #include <c7a/common/functional.hpp>
 #include <c7a/net/group.hpp>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -84,7 +85,7 @@ protected:
      * @param value The value to send.
      */
     template <typename T>
-    void SendTo(ClientId destination, T value) {
+    void SendTo(size_t destination, T value) {
 
         assert(threadId == 0); //Only primary thread might send/receive.
 
@@ -100,7 +101,7 @@ protected:
      * received value is stored.
      */
     template <typename T>
-    void ReceiveFrom(ClientId source, T* value) {
+    void ReceiveFrom(size_t source, T* value) {
 
         assert(threadId == 0); //Only primary thread might send/receive.
 
@@ -130,7 +131,7 @@ public:
      * @brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(net::Group& group, int threadId, int threadCount, common::Barrier& barrier, void** shmem)
-        : group(group), id(group.MyRank()), count(group.Size()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
+        : group(group), id(group.my_host_rank()), count(group.num_hosts()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
 
     /**
      * @brief Calculates the prefix sum over all workers, given a certain sum
@@ -243,7 +244,7 @@ public:
      * @return The value sent by the master.
      */
     template <typename T>
-    T Broadcast(T& value) {
+    T Broadcast(const T& value) {
 
         T res;
 
@@ -353,7 +354,7 @@ public:
     /**
      * @brief A trivial global barrier.
      */
-    void Await() {
+    void Barrier() {
         int i = 0;
         i = AllReduce(i);
     }

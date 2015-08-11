@@ -11,6 +11,7 @@
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
 
+#include <c7a/api/collapse.hpp>
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/logger.hpp>
 
@@ -40,19 +41,19 @@ public:
         node_->StopExecutionTimer();
 
         node_->PushData();
-        node_->set_state(c7a::api::EXECUTED);
+        node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
         LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
         node_->PushData();
-        node_->set_state(c7a::api::EXECUTED);
+        node_->set_state(api::DIAState::EXECUTED);
     }
 
     void Dispose() {
         LOG << "DISPOSING stage " << node_->ToString() << "node" << node_;
         node_->Dispose();
-        node_->set_state(c7a::api::DISPOSED);
+        node_->set_state(api::DIAState::DISPOSED);
     }
 
     DIABase * node() {
@@ -82,12 +83,12 @@ public:
             for (size_t i = 0; i < parents.size(); ++i) {
                 // Check if parent was already added
                 auto p = parents[i].get();
-                if (p && (stages_found.find(p) == stages_found.end())) {
+                if (p) {
                     // If not add parent to stages found and result stages
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
                     // If parent was not executed push it to the DFS
-                    if (p->state() != c7a::api::EXECUTED) {
+                    if (p->state() != api::DIAState::EXECUTED || p->type() == api::NodeType::COLLAPSE) {
                         dia_stack.push(p);
                     }
                 }
@@ -102,8 +103,8 @@ public:
         FindStages(action, result);
         for (auto s : result)
         {
-            if (s.node()->state() == c7a::api::EXECUTED) s.PushData();
-            if (s.node()->state() == c7a::api::NEW) s.Execute();
+            if (s.node()->state() == api::DIAState::EXECUTED) s.PushData();
+            if (s.node()->state() == api::DIAState::NEW) s.Execute();
             s.node()->UnregisterChilds();
         }
     }

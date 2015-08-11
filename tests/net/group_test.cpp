@@ -24,9 +24,9 @@ using namespace c7a::net;
 
 static void ThreadInitializeAsyncRead(Group* net) {
     // send a message to all other clients except ourselves.
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
+        if (i == net->my_host_rank()) continue;
         net->connection(i).GetSocket().send(&i, sizeof(size_t));
     }
 
@@ -36,25 +36,25 @@ static void ThreadInitializeAsyncRead(Group* net) {
     Dispatcher::AsyncReadCallback callback =
         [net, &received](Connection& /* s */, const Buffer& buffer) {
             ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
-                      net->MyRank());
+                      net->my_host_rank());
             received++;
         };
 
     // add async reads to net dispatcher
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
+        if (i == net->my_host_rank()) continue;
         dispatcher.AsyncRead(net->connection(i), sizeof(size_t), callback);
     }
 
-    while (received < net->Size() - 1) {
+    while (received < net->num_hosts() - 1) {
         dispatcher.Dispatch();
     }
 }
 
 static void ThreadInitializeSendCyclic(Group* net) {
 
-    size_t id = net->MyRank();
+    size_t id = net->my_host_rank();
 
     if (id != 0) {
         size_t res;
@@ -62,7 +62,7 @@ static void ThreadInitializeSendCyclic(Group* net) {
         ASSERT_EQ(id - 1, res);
     }
 
-    if (id != net->Size() - 1) {
+    if (id != net->num_hosts() - 1) {
         net->SendTo(id + 1, id);
     }
 }
@@ -72,25 +72,25 @@ static void ThreadInitializeBroadcastIntegral(Group* net) {
     static const bool debug = false;
 
     //Broadcast our ID to everyone
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
-        net->SendTo(i, net->MyRank());
+        if (i == net->my_host_rank()) continue;
+        net->SendTo(i, net->my_host_rank());
     }
 
     //Receive the id from everyone. Make sure that the id is correct.
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
+        if (i == net->my_host_rank()) continue;
 
         size_t val;
-        ClientId id;
+        size_t id;
 
         net->ReceiveFromAny<size_t>(&id, &val);
 
         LOG << "Received " << val << " from " << id;
 
-        ASSERT_EQ((int)id, (int)val);
+        ASSERT_EQ(id, val);
     }
 }
 
@@ -98,54 +98,53 @@ static void ThreadInitializeSendReceive(Group* net) {
     static const bool debug = false;
 
     // send a message to all other clients except ourselves.
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
-        net->SendStringTo(i, "Hello " + std::to_string(net->MyRank())
+        if (i == net->my_host_rank()) continue;
+        net->SendStringTo(i, "Hello " + std::to_string(net->my_host_rank())
                           + " -> " + std::to_string(i));
     }
     // receive the n-1 messages from clients in order
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
+        if (i == net->my_host_rank()) continue;
 
         std::string msg;
         net->ReceiveStringFrom(i, &msg);
         sLOG << "Received from client" << i << "msg" << msg;
 
         ASSERT_EQ(msg, "Hello " + std::to_string(i)
-                  + " -> " + std::to_string(net->MyRank()));
+                  + " -> " + std::to_string(net->my_host_rank()));
     }
 
     // *****************************************************************
 
     // send another message to all other clients except ourselves. Now with connection access.
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
-        net->connection(i).SendString("Hello " + std::to_string(net->MyRank())
+        if (i == net->my_host_rank()) continue;
+        net->connection(i).SendString("Hello " + std::to_string(net->my_host_rank())
                                       + " -> " + std::to_string(i));
     }
     // receive the n-1 messages from clients in any order
-    for (size_t i = 0; i != net->Size(); ++i)
+    for (size_t i = 0; i != net->num_hosts(); ++i)
     {
-        if (i == net->MyRank()) continue;
+        if (i == net->my_host_rank()) continue;
 
-        ClientId from;
+        size_t from;
         std::string msg;
         net->ReceiveStringFromAny(&from, &msg);
         sLOG << "Received from client" << i << "msg" << msg;
 
         ASSERT_EQ(msg, "Hello " + std::to_string(from)
-                  + " -> " + std::to_string(net->MyRank()));
+                  + " -> " + std::to_string(net->my_host_rank()));
     }
 }
 
 static void RealGroupConstructAndCall(
     std::function<void(Group*)> thread_function) {
     // randomize base port number for test
-    std::random_device random_device;
-    std::default_random_engine generator(random_device());
+    std::default_random_engine generator({ std::random_device()() });
     std::uniform_int_distribution<int> distribution(10000, 30000);
     const size_t port_base = distribution(generator);
 
@@ -166,15 +165,15 @@ static void RealGroupConstructAndCall(
 
     // lambda to construct Group and call user thread function.
 
-    std::vector<Manager> groups(count);
+    std::vector<std::unique_ptr<Manager> > groups(count);
 
     for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
             [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
-                groups[i].Initialize(i, endpoints);
+                groups[i] = std::make_unique<Manager>(i, endpoints);
                 // run thread function
-                thread_function(&groups[i].GetFlowGroup());
+                thread_function(&groups[i]->GetFlowGroup());
             });
     }
 
@@ -182,7 +181,7 @@ static void RealGroupConstructAndCall(
         threads[i].join();
     }
     for (size_t i = 0; i < count; i++) {
-        groups[i].Close();
+        groups[i]->Close();
     }
 }
 
@@ -245,6 +244,8 @@ TEST(Group, SendCyclic) {
     Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
 }
 
+#if COLLECTIVES_ARE_DISABLED_MAYBE_REMOVE
+
 TEST(Group, TestPrefixSum) {
     for (size_t p = 1; p <= 8; ++p) {
         // Construct Group of p workers which perform a PrefixSum collective
@@ -252,7 +253,19 @@ TEST(Group, TestPrefixSum) {
             p, [](Group* net) {
                 size_t local_value = 1;
                 PrefixSum(*net, local_value);
-                ASSERT_EQ(local_value, net->MyRank() + 1);
+                ASSERT_EQ(local_value, net->my_host_rank() + 1);
+            });
+    }
+}
+
+TEST(Group, TestPrefixSumInHypercube) {
+    for (size_t p = 1; p <= 8; p <<= 1) {
+        // Construct Group of p workers which perform a PrefixSum collective
+        Group::ExecuteLocalMock(
+            p, [](Group* net) {
+                size_t local_value = 1;
+                PrefixSumForPowersOfTwo(*net, local_value);
+                ASSERT_EQ(local_value, net->my_host_rank() + 1);
             });
     }
 }
@@ -262,9 +275,21 @@ TEST(Group, TestAllReduce) {
         // Construct Group of p workers which perform an AllReduce collective
         Group::ExecuteLocalMock(
             p, [](Group* net) {
-                size_t local_value = net->MyRank();
+                size_t local_value = net->my_host_rank();
                 AllReduce(*net, local_value);
-                ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+                ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
+            });
+    }
+}
+
+TEST(Group, TestAllReduceInHypercube) {
+    // Construct a NetGroup of 8 workers which perform an AllReduce collective
+    for (size_t p = 1; p <= 8; p <<= 1) {
+        Group::ExecuteLocalMock(
+            p, [](Group* net) {
+                size_t local_value = net->my_host_rank();
+                AllReduceForPowersOfTwo(*net, local_value);
+                ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
             });
     }
 }
@@ -275,7 +300,7 @@ TEST(Group, TestBroadcast) {
         Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value;
-                if (net->MyRank() == 0) local_value = 42;
+                if (net->my_host_rank() == 0) local_value = 42;
                 Broadcast(*net, local_value);
                 ASSERT_EQ(local_value, 42u);
             });
@@ -287,10 +312,10 @@ TEST(Group, TestReduceToRoot) {
         // Construct Group of p workers which perform an Broadcast collective
         Group::ExecuteLocalMock(
             p, [](Group* net) {
-                size_t local_value = net->MyRank();
+                size_t local_value = net->my_host_rank();
                 ReduceToRoot(*net, local_value);
-                if (net->MyRank() == 0)
-                    ASSERT_EQ(local_value, net->Size() * (net->Size() - 1) / 2);
+                if (net->my_host_rank() == 0)
+                    ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
             });
     }
 }
@@ -315,7 +340,7 @@ TEST(Group, TestBarrier) {
                 result[k++] = 'B'; // B stands for 'Before barrier'
                 local_mtx.unlock();
 
-                sLOG << "Before Barrier, worker" << net->MyRank();
+                sLOG << "Before Barrier, worker" << net->my_host_rank();
 
                 ThreadBarrier(sync_mtx, cv, workers_copy);
 
@@ -323,7 +348,7 @@ TEST(Group, TestBarrier) {
                 result[k++] = 'A'; // A stands for 'After barrier'
                 local_mtx.unlock();
 
-                sLOG << "After Barrier, worker" << net->MyRank();
+                sLOG << "After Barrier, worker" << net->my_host_rank();
             });
         for (int i = 0; i < workers; ++i) {
             sLOG << "Checking position" << i;
@@ -335,5 +360,7 @@ TEST(Group, TestBarrier) {
         }
     }
 }
+
+#endif // COLLECTIVES_ARE_DISABLED_MAYBE_REMOVE
 
 /******************************************************************************/

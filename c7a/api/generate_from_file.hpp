@@ -74,9 +74,9 @@ public:
     //! Executes the generate operation. Reads a file line by line and creates a
     //! element vector, out of which elements are randomly chosen (possibly
     //! duplicated).
-    void Execute() override { }
+    void Execute() final { }
 
-    void PushData() override {
+    void PushData() final {
         LOG << "GENERATING data to file " << result_file_.ToString();
 
         std::ifstream file(path_in_);
@@ -92,18 +92,17 @@ public:
         }
 
         size_t local_elements;
-        if (context_.number_worker() == context_.rank() + 1) {
+        size_t elements_per_worker = size_ / context_.num_workers();
+        if (context_.num_workers() - 1 == context_.my_rank()) {
             //last worker gets leftovers
             local_elements = size_ -
-                             ((context_.number_worker() - 1) *
-                              (size_ / context_.number_worker()));
+                             ((context_.num_workers() - 1) * elements_per_worker);
         }
         else {
-            local_elements = (size_ / context_.number_worker());
+            local_elements = elements_per_worker;
         }
 
-        std::random_device random_device;
-        std::default_random_engine generator(random_device());
+        std::default_random_engine generator({ std::random_device()() });
         std::uniform_int_distribution<int> distribution(0, elements_.size() - 1);
 
         for (size_t i = 0; i < local_elements; i++) {
@@ -114,7 +113,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -130,7 +129,7 @@ public:
      * Returns information about the GeneratorNode as a string.
      * \return Stringified node.
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[GeneratorNode] Id: " + result_file_.ToString();
     }
 
@@ -164,7 +163,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", "DOp");
+    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", NodeType::DOP);
     auto shared_node =
         std::make_shared<GenerateResultNode>(
             ctx, generator_function, filepath, size, stats_node);

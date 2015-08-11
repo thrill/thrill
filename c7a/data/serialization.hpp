@@ -28,10 +28,10 @@ namespace data {
 /*************** Base Template and Callable Serialize/Deserialize *************/
 
 template <typename Archive, typename T, class Enable = void>
-struct Serialization
-{ };
+struct Serialization;
 
 /******************* Serialization of plain old data types ********************/
+
 template <typename Archive, typename T>
 struct Serialization<Archive, T,
                      typename std::enable_if<
@@ -50,6 +50,7 @@ struct Serialization<Archive, T,
 };
 
 /********************** Serialization of strings ******************************/
+
 template <typename Archive>
 struct Serialization<Archive, std::string>
 {
@@ -64,6 +65,7 @@ struct Serialization<Archive, std::string>
 };
 
 /*********************** Serialization of pairs *******************************/
+
 template <typename Archive, typename U, typename V>
 struct Serialization<Archive, std::pair<U, V> >
 {

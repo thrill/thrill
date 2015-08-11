@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -13,12 +14,14 @@
 #define C7A_API_CONTEXT_HEADER
 
 #include <c7a/api/stats_graph.hpp>
-#include <c7a/common/stats.hpp>
 #include <c7a/common/config.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/data/manager.hpp>
+#include <c7a/common/stats.hpp>
+#include <c7a/data/channel.hpp>
+#include <c7a/data/file.hpp>
+#include <c7a/data/multiplexer.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
+#include <c7a/net/manager.hpp>
 
 #include <cassert>
 #include <cstdio>
@@ -33,123 +36,226 @@ namespace api {
 //! \{
 
 /*!
- * The Context of a job is a unique structure inside a worker, which holds
+ * The HostContext contains all data structures shared among workers on the same
+ * host. It is used to construct and destroy them. For testing multiple
+ * instances are run in the same process.
+ */
+class HostContext
+{
+public:
+    HostContext(size_t my_host_rank,
+                const std::vector<net::Endpoint>& endpoints,
+                size_t workers_per_host)
+        : workers_per_host_(workers_per_host),
+          net_manager_(my_host_rank, endpoints),
+          flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+          data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
+    { }
+
+    //! constructor from existing net Groups for use from ConstructLocalMock().
+    HostContext(size_t my_host_rank,
+                std::array<net::Group, net::Manager::kGroupCount>&& groups,
+                size_t workers_per_host)
+        : workers_per_host_(workers_per_host),
+          net_manager_(my_host_rank, std::move(groups)),
+          flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+          data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
+    { }
+
+    //! number of workers per host (all have the same).
+    size_t workers_per_host_;
+
+    //! net manager constructs communication groups to other hosts.
+    net::Manager net_manager_;
+
+    //! the flow control group is used for collective communication.
+    net::FlowControlChannelManager flow_manager_;
+
+    //! data multiplexer transmits large amounts of data asynchronously.
+    data::Multiplexer data_multiplexer_;
+
+    //! Construct a number of mock hosts running in this process.
+    static std::vector<std::unique_ptr<HostContext> >
+    ConstructLocalMesh(size_t host_count, size_t workers_per_host);
+};
+
+/*!
+ * The Context of a job is a unique instance per worker which holds
  *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref c7a::data::Manager "data manager", the
- * \ref c7a::net::Group  "net group" and to the
- * \ref c7a::core::JobManager "job manager". The context can also return the
- * total number of workers and the rank of this worker.
+ *  references to the  \ref c7a::data::Multiplexer "channel multiplexer", the
+ * \ref c7a::net::Group  "net group"
+ * \ref c7a::common::Stats "stats" and
+ * \ref c7a::common::StatsGraph "stats graph".
+ * Threads share the channel multiplexer and
+ * the net group via the context object.
  */
 class Context
 {
 public:
-    Context(core::JobManager& job_manager, int local_worker_id)
-        : job_manager_(job_manager),
-          local_worker_id_(local_worker_id)
+    Context(net::Manager& net_manager,
+            net::FlowControlChannelManager& flow_manager,
+            data::Multiplexer& multiplexer,
+            size_t workers_per_host, size_t local_worker_id)
+        : net_manager_(net_manager),
+          flow_manager_(flow_manager),
+          multiplexer_(multiplexer),
+          local_worker_id_(local_worker_id),
+          workers_per_host_(workers_per_host)
     { }
 
-    //! Returns a reference to the data manager, which gives iterators and
-    //! emitters for data.
-    data::Manager & data_manager() {
-        if (local_worker_id_ != 0)
-        {
-            //TODO (ts)
-            assert(false && "Data Manager does not support multi-threading at the moment.");
-        }
-        return job_manager_.data_manager();
+    Context(HostContext& host_context, size_t local_worker_id)
+        : net_manager_(host_context.net_manager_),
+          flow_manager_(host_context.flow_manager_),
+          multiplexer_(host_context.data_multiplexer_),
+          local_worker_id_(local_worker_id),
+          workers_per_host_(host_context.workers_per_host_)
+    { }
+
+    //! \name System Information
+    //! \{
+
+    //! Returns the total number of hosts.
+    size_t num_hosts() const {
+        return net_manager_.num_hosts();
     }
 
-    // This is forbidden now. Muha. >) (ej)
-    //net::Group & flow_net_group() {
-    //   return job_manager_.net_manager().GetFlowGroup();
-    //}
+    //! Returns the number of workers that is hosted on each host
+    size_t workers_per_host() const {
+        return workers_per_host_;
+    }
+
+    //! Global rank of this worker among all other workers in the system.
+    size_t my_rank() const {
+        return workers_per_host() * host_rank() + local_worker_id();
+    }
+
+    //! Global number of workers in the system.
+    size_t num_workers() const {
+        return num_hosts() * workers_per_host();
+    }
+
+    //! Returns id of this host in the cluser
+    //! A host is a machine in the cluster that hosts multiple workers
+    size_t host_rank() const {
+        return net_manager_.my_host_rank();
+    }
+
+    //! Returns the local id ot this worker on the host
+    //! A worker is _locally_ identified by this id
+    size_t local_worker_id() const {
+        return local_worker_id_;
+    }
+
+    //! \}
+
+    //! \name Network Subsystem
+    //! \{
 
     /**
-     * @brief Gets the flow control channel for a certain thread.
+     * @brief Gets the flow control channel for the current worker.
      *
-     * @return The flow control channel associated with the given ID.
+     * @return The flow control channel instance for this worker.
      */
     net::FlowControlChannel & flow_control_channel() {
-        return job_manager_.flow_manager().GetFlowControlChannel(local_worker_id_);
+        return flow_manager_.GetFlowControlChannel(local_worker_id_);
     }
 
-    //! Returns the total number of workers.
-    size_t number_worker() const {
-        return job_manager_.net_manager().Size();
+    //! Broadcasts a value of an integral type T from the master (the worker
+    //! with rank 0) to all other workers.
+    template <typename T>
+    T Broadcast(const T& value) {
+        return flow_control_channel().Broadcast(value);
     }
 
-    //! Returns the rank of this worker. Between 0 and number_worker() - 1
-    size_t rank() const {
-        return job_manager_.net_manager().MyRank();
+    //! Reduces a value of an integral type T over all workers given a certain
+    //! reduce function.
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
+        return flow_control_channel().AllReduce(value, sumOp);
     }
 
+    //! A collective global barrier.
+    void Barrier() {
+        return flow_control_channel().Barrier();
+    }
+
+    //! \}
+
+    //! \name Data Subsystem
+    //! \{
+
+    //! Returns a new File object containing a sequence of local Blocks.
+    data::File GetFile() {
+        return data::File();
+    }
+
+    //! Returns a reference to a new Channel.  This method alters the state of
+    //! the context and must be called on all Workers to ensure correct
+    //! communication coordination.
+    data::ChannelPtr GetNewChannel() {
+        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
+    }
+
+    //! \}
+
+    //! Returns the stas object for this worker
     common::Stats<common::g_enable_stats> & stats() {
         return stats_;
     }
 
-    int local_worker_id() {
-        return local_worker_id_;
-    }
-
-    int local_worker_count() {
-        return job_manager_.local_worker_count();
-    }
-
+    //! Returns the stats graph object for this worker
     api::StatsGraph & stats_graph() {
         return stats_graph_;
     }
 
 private:
-    core::JobManager& job_manager_;
-    common::Stats<common::g_enable_stats> stats_;
-    api::StatsGraph stats_graph_;
+    //! net::Manager instance that is shared among workers
+    net::Manager& net_manager_;
 
-    //! number of this worker context, 0..p-1, within this compute node.
-    int local_worker_id_;
+    //! net::FlowControlChannelManager instance that is shared among workers
+    net::FlowControlChannelManager& flow_manager_;
+
+    //! data::Multiplexer instance that is shared among workers
+    data::Multiplexer& multiplexer_;
+
+    //! StatsGrapg object that is uniquely held for this worker
+    api::StatsGraph stats_graph_;
+    common::Stats<common::g_enable_stats> stats_;
+
+    //! number of this host context, 0..p-1, within this host
+    size_t local_worker_id_;
+
+    //! number of workers hosted per host
+    size_t workers_per_host_;
 };
 
-//! Executes the given job startpoint with a context instance.
-//! Startpoint may be called multiple times with concurrent threads and
-//! different context instances.
-//!
-//! \returns 0 if execution was fine on all threads. Otherwise, the first
-//! non-zero return value of any thread is returned.
-int Execute(
-    int argc, char* const* argv,
-    std::function<void(Context&)> job_startpoint,
-    size_t local_worker_count = 1, const std::string& log_prefix = "");
+//! Outputs the context as [host id]:[local worker id] to an std::ostream
+static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
+    return os << ctx.host_rank() << ":" << ctx.local_worker_id();
+}
 
 /*!
- * Function to run a number of workers as locally independent threads, which
- * still communicate via TCP sockets.
- */
-void
-ExecuteLocalThreadsTCP(const size_t& workers, const size_t& port_base,
-                       std::function<void(Context&)> job_startpoint);
-
-/*!
- * Helper Function to ExecuteLocalThreads in test suite for many different
- * numbers of local workers as independent threads.
- */
-void ExecuteLocalTestsTCP(std::function<void(Context&)> job_startpoint);
-
-/*!
- * Function to run a number of mock compute nodes as locally independent
+ * Function to run a number of mock hosts as locally independent
  * threads, which communicate via internal stream sockets.
  */
 void
-ExecuteLocalMock(size_t node_count, size_t local_worker_count,
-                 std::function<void(core::JobManager&, size_t)> job_startpoint);
+RunLocalMock(size_t host_count, size_t local_host_count,
+             std::function<void(api::Context&, size_t)> job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
- * different numbers of node and workers as independent threads in one program.
+ * different numbers of workers and hosts as independent threads in one program.
  */
-void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
-                       const std::string& log_prefix = std::string());
+void RunLocalTests(std::function<void(Context&)> job_startpoint);
 
 /*!
- * Executes the given job startpoint with a context instance.  Startpoints may
+ * Runs the given job_startpoint within the same thread -->
+ * one host with one thread
+ */
+void RunSameThread(std::function<void(Context&)> job_startpoint);
+
+/*!
+ * Runs the given job startpoint with a context instance.  Startpoints may
  * be called multiple times with concurrent threads and different context
  * instances across different workers.  The c7a configuration is taken from
  * environment variables starting the C7A_.
@@ -161,7 +267,7 @@ void ExecuteLocalTests(std::function<void(Context&)> job_startpoint,
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
  */
-int ExecuteEnv(
+int Run(
     std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix = std::string());
 

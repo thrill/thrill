@@ -53,7 +53,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wcast-qual")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtautological-compare")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-pure-const -Wsuggest-attribute=const")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion")
@@ -239,9 +239,29 @@ find_package(SWIG)
 include(${SWIG_USE_FILE})
 
 ################################################################################
+### Build Macros
+
+# macro for building main c7a programs with correct libraries
+macro(c7a_build TARGETNAME)
+
+  add_executable(${TARGETNAME} ${ARGN})
+  target_link_libraries(${TARGETNAME} c7a ${ALL_LIBRARIES})
+
+endmacro(c7a_build)
+
+# macro for building a single-source c7a program
+macro(c7a_build_prog PROGNAME)
+
+  string(REPLACE "/" "_" TARGETNAME "${PROGNAME}") # replace slashes
+
+  c7a_build(${TARGETNAME} ${PROGNAME}.cpp ${ARGN})
+
+endmacro(c7a_build_prog)
+
+################################################################################
 ### Descend into Subdirectories
 
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # descend into library source
 add_subdirectory(c7a)

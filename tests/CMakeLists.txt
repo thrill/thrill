@@ -5,20 +5,19 @@
 ################################################################################
 
 # macro for building test programs with correct libraries
-macro(c7a_build TARGETNAME)
+macro(c7a_build_test TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME}
-    c7a gtest gtest_main ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} c7a gtest gtest_main ${ALL_LIBRARIES})
 
-endmacro(c7a_build)
+endmacro(c7a_build_test)
 
 # macro for building test programs, without main() in c7a_tests.cpp
 macro(build_plain PROGNAME)
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
-  c7a_build(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
+  c7a_build_test(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
 
 endmacro(build_plain)
 
@@ -63,7 +62,7 @@ macro(build_test_group TESTNAME)
 
   string(REPLACE "/" "_" TARGETNAME "${TESTNAME}") # replace slashes
 
-  c7a_build(${TARGETNAME} ${ARGN})
+  c7a_build_test(${TARGETNAME} ${ARGN})
   test_only(${TARGETNAME})
 
 endmacro(build_test_group)
@@ -93,13 +92,12 @@ build_test(net/flow_control_test)
 build_test(net/group_test)
 
 build_test(data/block_queue_test)
-build_test(data/channel_multiplexer_test)
 build_test(data/file_test)
-build_test(data/serialization_test)
+build_test(data/multiplexer_header_test)
+build_test(data/multiplexer_test)
 build_test(data/serialization_cereal_test)
-build_test(data/stream_block_header_test)
+build_test(data/serialization_test)
 
-build_test(core/job_manager_test)
 build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/stage_builder_test)
@@ -115,8 +113,6 @@ build_test(api/zip_node_test)
 build_test(examples/wordcount_test)
 
 if (OFF)
-
-  build_only(data/manager_channels_test)
 
   build_test(api/reduce_node_test)
   build_test(core/post_hash_table_test)

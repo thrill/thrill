@@ -77,7 +77,7 @@ public:
               KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
 
     /*!
-     * Constructor for a ReduceToIndexNode. Sets the DataManager, parent, stack,
+     * Constructor for a ReduceToIndexNode. Sets the parent, stack,
      * key_extractor and reduce_function.
      *
      * \param parent Parent DIARef.
@@ -96,10 +96,10 @@ public:
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          channel_(parent.ctx().data_manager().GetNewChannel()),
+          channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
-          reduce_pre_table_(parent.ctx().number_worker(), key_extractor,
-                            reduce_function_, emitters_,
+          reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
+                            reduce_function_, emitters_, 10, 2, 256, 1048576,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -121,11 +121,11 @@ public:
      * Actually executes the reduce to index operation. Uses the member functions PreOp,
      * MainOp and PostOp.
      */
-    void Execute() override {
+    void Execute() final {
         MainOp();
     }
 
-    void PushData() override {
+    void PushData() final {
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -170,7 +170,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces a function stack, which only contains the PostOp function.
@@ -191,7 +191,7 @@ public:
      * Returns "[ReduceToIndexNode]" and its id as a string.
      * \return "[ReduceToIndexNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReduceToIndexNode] Id: " + result_file_.ToString();
     }
 
@@ -224,6 +224,8 @@ private:
         //Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
+        channel_->Close();
+        this->WriteChannelStats(channel_);
     }
 
     //! Hash recieved elements onto buckets and reduce each bucket to a single value.
@@ -282,7 +284,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
@@ -346,7 +348,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, true>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
@@ -420,7 +422,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction,
                                   true, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", "DOp");
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

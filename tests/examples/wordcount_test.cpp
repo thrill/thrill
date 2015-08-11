@@ -66,7 +66,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
             ASSERT_EQ(WordCountPair(this_str, 1), words[4]);
         };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(WordCount, Generate1024DoesNotCrash) {
@@ -74,14 +74,14 @@ TEST(WordCount, Generate1024DoesNotCrash) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) { examples::WordCountGenerated(ctx, 1024); };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(WordCount, ReadBaconDoesNotCrash) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) { examples::WordCountBasic(ctx); };
 
-    api::ExecuteLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

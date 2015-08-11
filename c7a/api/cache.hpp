@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/lop_node.hpp
+ * c7a/api/cache.hpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_LOP_NODE_HEADER
-#define C7A_API_LOP_NODE_HEADER
+#ifndef C7A_API_CACHE_HEADER
+#define C7A_API_CACHE_HEADER
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dia_node.hpp>
@@ -32,7 +32,7 @@ namespace api {
  * the last and this DIANode.
  */
 template <typename ValueType, typename ParentDIARef>
-class LOpNode : public DIANode<ValueType>
+class CacheNode : public DIANode<ValueType>
 {
 public:
     using Super = DIANode<ValueType>;
@@ -44,9 +44,9 @@ public:
      *
      * \param parent Parent DIARef.
      */
-    LOpNode(const ParentDIARef& parent,
-            const std::string& stats_tag,
-            StatsNode* stats_node)
+    CacheNode(const ParentDIARef& parent,
+              const std::string& stats_tag,
+              StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
     {
         auto save_fn =
@@ -58,32 +58,32 @@ public:
     }
 
     //! Virtual destructor for a LOpNode.
-    virtual ~LOpNode() { }
+    virtual ~CacheNode() { }
 
     /*!
      * Pushes elements to next node.
      * Can be skipped for LOps.
      */
-    void Execute() override {
+    void Execute() final {
         // Push local elements to children
         writer_.Close();
     }
 
-    void PushData() override {
+    void PushData() final {
         data::File::Reader reader = file_.GetReader();
         for (size_t i = 0; i < file_.NumItems(); ++i) {
             this->PushElement(reader.Next<ValueType>());
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
-     * Returns "[LOpNode]" and its id as a string.
-     * \return "[LOpNode]"
+     * Returns "[CacheNode]" and its id as a string.
+     * \return "[CacheNode]"
      */
-    std::string ToString() override {
-        return "[LOpNode] Id: " + result_file_.ToString();
+    std::string ToString() final {
+        return "[CacheNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -98,7 +98,7 @@ template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, DIARef>;
+    using LOpChainNode = CacheNode<ValueType, DIARef>;
 
     LOG0 << "WARNING: cast to DIARef creates LOpNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIARef.";
@@ -109,12 +109,12 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
 }
 
 template <typename ValueType, typename Stack>
-auto DIARef<ValueType, Stack>::Collapse() const {
+auto DIARef<ValueType, Stack>::Cache() const {
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
-    using LOpChainNode = LOpNode<ValueType, DIARef>;
+    using LOpChainNode = CacheNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", "LOp");
+    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::CACHE);
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, "", stats_node);
     auto lop_stack = FunctionStack<ValueType>();
@@ -128,6 +128,6 @@ auto DIARef<ValueType, Stack>::Collapse() const {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_LOP_NODE_HEADER
+#endif // !C7A_API_CACHE_HEADER
 
 /******************************************************************************/

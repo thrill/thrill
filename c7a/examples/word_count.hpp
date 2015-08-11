@@ -16,7 +16,7 @@
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/size.hpp>
-#include <c7a/api/write.hpp>
+#include <c7a/api/write_lines_many.hpp>
 #include <c7a/common/string.hpp>
 
 #include <algorithm>
@@ -54,7 +54,7 @@ auto WordCount(const DIARef<std::string, InStack>&input) {
         });
 }
 
-int WordCountBasic(Context& ctx) {
+size_t WordCountBasic(Context& ctx) {
 
     auto lines = ReadLines(ctx, "wordcount.in");
 
@@ -62,10 +62,10 @@ int WordCountBasic(Context& ctx) {
 
     red_words.Map(
         [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second) + "\n";
+            return wc.first + ": " + std::to_string(wc.second);
         })
-    .WriteToFileSystem(
-        "wordcount_" + std::to_string(ctx.rank()) + ".out");
+    .WriteLinesMany(
+        "wordcount_" + std::to_string(ctx.my_rank()) + ".out");
 
     return 0;
 }
@@ -83,12 +83,12 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
 
     reduced_words.Map(
         [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second) + "\n";
+            return wc.first + ": " + std::to_string(wc.second);
         })
-    .WriteToFileSystem(
-        "wordcount_" + std::to_string(ctx.rank()) + ".out");
+    .WriteLinesMany(
+        "wordcount_" + std::to_string(ctx.my_rank()) + ".out");
 
-    return 42; // TODO(tb): FIX reduced_words.Size();
+    return 42;
 }
 
 } // namespace examples

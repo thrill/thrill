@@ -12,8 +12,6 @@
 #include <c7a/common/cmdline_parser.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
-#include <c7a/core/job_manager.hpp>
-#include <c7a/data/manager.hpp>
 
 #include "data_generators.hpp"
 
@@ -60,9 +58,9 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::
     offsets.push_back({ 0, 0, 0 });
 
     std::vector<std::shared_ptr<c7a::data::Channel> > channels;
-    channels.push_back(ctx0.data_manager().GetNewChannel());
-    channels.push_back(ctx1.data_manager().GetNewChannel());
-    channels.push_back(ctx2.data_manager().GetNewChannel());
+    channels.push_back(ctx0.GetNewChannel());
+    channels.push_back(ctx1.GetNewChannel());
+    channels.push_back(ctx2.GetNewChannel());
 
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);
@@ -97,27 +95,39 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::
 }
 
 int main(int argc, const char** argv) {
-    core::JobManager jobMan0, jobMan1, jobMan2;
     c7a::common::ThreadPool connect_pool;
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
     endpoints.push_back("127.0.0.1:8002");
-    connect_pool.Enqueue([&jobMan0, &endpoints]() {
-                             jobMan0.Connect(0, net::Endpoint::ParseEndpointList(endpoints), 1);
-                         });
-    connect_pool.Enqueue([&jobMan1, &endpoints]() {
-                             jobMan1.Connect(1, net::Endpoint::ParseEndpointList(endpoints), 1);
+
+    std::unique_ptr<net::Manager> net_manager1, net_manager2, net_manager3;
+    connect_pool.Enqueue([&net_manager1, &endpoints]() {
+                             net_manager1 = std::make_unique<net::Manager>(
+                                 0, net::Endpoint::ParseEndpointList(endpoints));
                          });
 
-    connect_pool.Enqueue([&jobMan2, &endpoints]() {
-                             jobMan2.Connect(2, net::Endpoint::ParseEndpointList(endpoints), 1);
+    connect_pool.Enqueue([&net_manager2, &endpoints]() {
+                             net_manager2 = std::make_unique<net::Manager>(
+                                 1, net::Endpoint::ParseEndpointList(endpoints));
+                         });
+    connect_pool.Enqueue([&net_manager3, &endpoints]() {
+                             net_manager3 = std::make_unique<net::Manager>(
+                                 2, net::Endpoint::ParseEndpointList(endpoints));
                          });
     connect_pool.LoopUntilEmpty();
 
-    api::Context ctx0(jobMan0, 0);
-    api::Context ctx1(jobMan1, 0);
-    api::Context ctx2(jobMan2, 0);
+    data::Multiplexer datamp1(1, net_manager1->GetDataGroup());
+    data::Multiplexer datamp2(1, net_manager2->GetDataGroup());
+    data::Multiplexer datamp3(1, net_manager3->GetDataGroup());
+
+    net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
+    net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
+    net::FlowControlChannelManager flow_manager3(net_manager3->GetFlowGroup(), 1);
+
+    api::Context ctx1(*net_manager1, flow_manager1, datamp1, 1, 0);
+    api::Context ctx2(*net_manager2, flow_manager2, datamp2, 1, 0);
+    api::Context ctx3(*net_manager3, flow_manager3, datamp3, 1, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
@@ -133,13 +143,13 @@ int main(int argc, const char** argv) {
     if (!clp.Process(argc, argv)) return -1;
 
     if (type == "int")
-        ConductExperiment<int>(bytes, iterations, ctx0, ctx1, ctx2, type);
+        ConductExperiment<int>(bytes, iterations, ctx1, ctx2, ctx3, type);
     if (type == "string")
-        ConductExperiment<std::string>(bytes, iterations, ctx0, ctx1, ctx2, type);
+        ConductExperiment<std::string>(bytes, iterations, ctx1, ctx2, ctx3, type);
     if (type == "pair")
-        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx0, ctx1, ctx2, type);
+        ConductExperiment<std::pair<std::string, int> >(bytes, iterations, ctx1, ctx2, ctx3, type);
     if (type == "triple")
-        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx0, ctx1, ctx2, type);
+        ConductExperiment<std::tuple<std::string, int, std::string> >(bytes, iterations, ctx1, ctx2, ctx3, type);
 }
 
 /******************************************************************************/

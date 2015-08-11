@@ -38,7 +38,7 @@ public:
     using Super::result_file_;
 
     /*!
-     * Constructor for a ReadLinesNode. Sets the DataManager, parents, read_function
+     * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
      *
      * \param ctx Reference to Context, which holds references to data and network.
@@ -53,11 +53,11 @@ public:
 
     virtual ~ReadLinesNode() { }
 
-    //! Executes the read operation. Reads a file line by line and emits it to
-    //! the DataManager after applying the read function on it.
-    void Execute() override { }
+    //! Executes the read operation. Reads a file line by line
+    //! and emmits it after applyung the read function.
+    void Execute() final { }
 
-    void PushData() override {
+    void PushData() final {
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
@@ -65,7 +65,7 @@ public:
         assert(file.good());
 
         InputLineIterator it = GetInputLineIterator(
-            file, context_.rank(), context_.number_worker());
+            file, context_.my_rank(), context_.num_workers());
 
         // Hook Read
         while (it.HasNext()) {
@@ -76,7 +76,7 @@ public:
         }
     }
 
-    void Dispose() override { }
+    void Dispose() final { }
 
     /*!
      * Produces an 'empty' function stack, which only contains the identity
@@ -92,7 +92,7 @@ public:
      * Returns "[ReadLinesNode]" as a string.
      * \return "[ReadLinesNode]"
      */
-    std::string ToString() override {
+    std::string ToString() final {
         return "[ReadLinesNode] Id: " + result_file_.ToString();
     }
 
@@ -182,7 +182,7 @@ private:
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", "DOp");
+    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", NodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

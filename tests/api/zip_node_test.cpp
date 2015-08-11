@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
+#include <c7a/api/cache.hpp>
 #include <c7a/api/generate.hpp>
-#include <c7a/api/lop_node.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/zip.hpp>
 #include <c7a/common/string.hpp>
@@ -61,8 +61,7 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
             }
         };
 
-    // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedIntegerArrays) {
@@ -112,8 +111,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             ASSERT_EQ(100u, zip_result.Size());
         };
 
-    // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
@@ -142,8 +140,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
             ASSERT_EQ(0u, res.size());
         };
 
-    // c7a::api::ExecuteLocalThreadsTCP(1, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedStringArrays) {
@@ -167,7 +164,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                 },
                 test_size);
 
-            DIARef<std::string> input = input_gen.Collapse();
+            DIARef<std::string> input = input_gen.Cache();
 
             std::vector<std::string> vinput = input.AllGather();
             ASSERT_EQ(test_size, vinput.size());
@@ -217,8 +214,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
             ASSERT_EQ(check, res);
         };
 
-    //c7a::api::ExecuteLocalThreadsTCP(2, 8080, start_func);
-    c7a::api::ExecuteLocalTests(start_func);
+    c7a::api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/
