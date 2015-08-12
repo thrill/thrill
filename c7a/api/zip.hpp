@@ -111,8 +111,10 @@ public:
         auto lop_chain0 = parent0.stack().push(pre_op0_fn).emit();
         auto lop_chain1 = parent1.stack().push(pre_op1_fn).emit();
 
-        parent0.node()->RegisterChild(lop_chain0);
-        parent1.node()->RegisterChild(lop_chain1);
+        CallbackPair<typename ParentDIARef0::StackInput> cp0{lop_chain0, this->type()};
+        CallbackPair<typename ParentDIARef1::StackInput> cp1{lop_chain1, this->type()};
+        parent0.node()->RegisterChild(cp0);
+        parent1.node()->RegisterChild(cp1);
     }
 
     ~TwoZipNode() { }
