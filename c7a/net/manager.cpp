@@ -45,7 +45,7 @@ public:
      * where the endpoint at position i corresponds to the worker with id i.
      */
     void Initialize(size_t my_rank_,
-                    const std::vector<Endpoint>& endpoints) {
+                    const std::vector<std::string>& endpoints) {
 
         this->my_rank_ = my_rank_;
         die_unless(my_rank_ < endpoints.size());
@@ -202,15 +202,15 @@ protected:
      * @return The socket addresses to use internally.
      */
     std::vector<SocketAddress> GetAddressList(
-        const std::vector<Endpoint>& endpoints) {
+        const std::vector<std::string>& endpoints) {
 
         std::vector<SocketAddress> addressList;
-        for (const Endpoint& ne : endpoints)
+        for (const std::string& endp : endpoints)
         {
-            addressList.push_back(SocketAddress(ne.hostport));
+            addressList.push_back(SocketAddress(endp));
             if (!addressList.back().IsValid()) {
                 throw Exception(
-                          "Error resolving Endpoint " + ne.hostport
+                          "Error resolving endpoint " + endp
                           + ": " + addressList.back().GetResolveError());
             }
         }
@@ -546,7 +546,7 @@ protected:
 };
 
 Manager::Manager(size_t my_rank,
-                 const std::vector<Endpoint>& endpoints)
+                 const std::vector<std::string>& endpoints)
     : my_rank_(my_rank) {
     Construction(*this).Initialize(my_rank_, endpoints);
 }

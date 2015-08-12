@@ -14,7 +14,6 @@
 #define C7A_NET_MANAGER_HEADER
 
 #include <c7a/net/connection.hpp>
-#include <c7a/net/endpoint.hpp>
 #include <c7a/net/group.hpp>
 
 #include <array>
@@ -69,7 +68,7 @@ public:
      * where the endpoint at position i corresponds to the worker with id i.
      */
     Manager(size_t my_rank_,
-            const std::vector<Endpoint>& endpoints);
+            const std::vector<std::string>& endpoints);
 
     /*!
      * Construct Manager from already initialized net::Groups.
