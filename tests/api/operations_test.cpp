@@ -12,11 +12,11 @@
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/cache.hpp>
 #include <c7a/api/collapse.hpp>
+#include <c7a/api/distribute_from.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
-#include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/write_lines.hpp>
 #include <c7a/api/write_lines_many.hpp>
@@ -124,7 +124,7 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, ScatterAndAllGatherElementsCorrect) {
+TEST(Operations, DistributeFromAndAllGatherElementsCorrect) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -142,7 +142,7 @@ TEST(Operations, ScatterAndAllGatherElementsCorrect) {
                 std::random_shuffle(in_vector.begin(), in_vector.end());
             }
 
-            DIARef<size_t> integers = Scatter(ctx, in_vector).Collapse();
+            DIARef<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 
