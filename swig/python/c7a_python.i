@@ -47,7 +47,7 @@ using namespace c7a;
 %}
 %enddef
 
-%feature("pythonprepend") c7a::Generate(Context&, GeneratorFunction&, size_t)
+%feature("pythonprepend") c7a::PyContext::Generate(GeneratorFunction&, size_t)
    CallbackHelper(GeneratorFunction, generator_function)
 
 %feature("pythonprepend") c7a::PyDIA::Map(MapFunction&) const
@@ -66,9 +66,7 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 %shared_ptr(c7a::PyContext)
 %shared_ptr(c7a::api::Context)
 %template(VectorPyContext) std::vector<std::shared_ptr<c7a::PyContext>>;
-
-%ignore c7a::PyObjectRef;
-%ignore c7a::data::Serialization;
+%template(VectorPyObject) std::vector<PyObject*>;
 
 %ignore c7a::api::HostContext::ConstructLocalMock;
 

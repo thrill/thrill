@@ -12,7 +12,7 @@ class TestOperations(unittest.TestCase):
     def my_thread(self, ctx):
         print("thread in python, rank", ctx.my_rank())
 
-        dia1 = c7a.Generate(ctx, self.my_generator, 50)
+        dia1 = ctx.Generate(self.my_generator, 50)
         dia2 = dia1.Map(lambda x : (x[0], x[1] + " mapped"))
 
         s = dia2.Size()
@@ -30,6 +30,11 @@ class TestOperations(unittest.TestCase):
 
         dia4 = dia3.Filter(lambda x : x[0] == 2)
         print("dia4.AllGather:", dia4.AllGather())
+
+        #####
+
+        dia5 = ctx.Distribute([2,3,5,7,11,13,17,19])
+        print("dia5.AllGather:", dia5.AllGather())
 
     def test_operations(self):
 
