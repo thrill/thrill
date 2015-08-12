@@ -619,15 +619,6 @@ auto Generate(Context & ctx,
               const GeneratorFunction &generator_function,
               size_t size);
 
-/*!
- * Scatter is an initial DOp, which scatters the vector data from the source_id
- * to all workers, partitioning equally, and returning the data in a DIA.
- */
-template <typename ValueType>
-auto Scatter(
-    Context & ctx,
-    const std::vector<ValueType>&in_vector, size_t source_id = 0);
-
 //! \}
 
 } // namespace api

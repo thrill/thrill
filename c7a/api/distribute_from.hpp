@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/scatter.hpp
+ * c7a/api/distribute_from.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_SCATTER_HEADER
-#define C7A_API_SCATTER_HEADER
+#ifndef C7A_API_DISTRIBUTE_FROM_HEADER
+#define C7A_API_DISTRIBUTE_FROM_HEADER
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
@@ -27,18 +27,18 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class ScatterNode : public DOpNode<ValueType>
+class DistributeFromNode : public DOpNode<ValueType>
 {
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
     using Super::result_file_;
 
-    ScatterNode(Context& ctx,
-                const std::vector<ValueType>& in_vector,
-                size_t source_id,
-                StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Scatter", stats_node),
+    DistributeFromNode(Context& ctx,
+                       const std::vector<ValueType>& in_vector,
+                       size_t source_id,
+                       StatsNode* stats_node)
+        : DOpNode<ValueType>(ctx, { }, "DistributeFrom", stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
           channel_(ctx.GetNewChannel()),
@@ -95,7 +95,7 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() final {
-        return "[AllGatherNode] Id: " + result_file_.ToString();
+        return "[DistributeFrom] Id: " + result_file_.ToString();
     }
 
 private:
@@ -108,17 +108,22 @@ private:
     std::vector<data::BlockWriter> emitters_;
 };
 
+/*!
+ * DistributeFrom is an initial DOp, which scatters the vector data from the source_id
+ * to all workers, partitioning equally, and returning the data in a DIA.
+ */
 template <typename ValueType>
-auto Scatter(
+auto DistributeFrom(
     Context & ctx,
     const std::vector<ValueType>&in_vector, size_t source_id) {
 
-    using ScatterNode = api::ScatterNode<ValueType>;
+    using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Scatter", NodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "DistributeFrom", NodeType::DOP);
 
     auto shared_node =
-        std::make_shared<ScatterNode>(
+        std::make_shared<DistributeFromNode>(
             ctx, in_vector, source_id, stats_node);
 
     auto scatter_stack = shared_node->ProduceStack();
@@ -132,6 +137,6 @@ auto Scatter(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_SCATTER_HEADER
+#endif // !C7A_API_DISTRIBUTE_FROM_HEADER
 
 /******************************************************************************/
