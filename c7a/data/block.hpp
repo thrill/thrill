@@ -51,7 +51,7 @@ protected:
 
     //! deleted for shared_ptr<ByteBlock>
     static void deleter(ByteBlock* bb) {
-        operator delete (bb, sizeof(size_t) + bb->size_);
+        operator delete (bb);
     }
 
 public:
