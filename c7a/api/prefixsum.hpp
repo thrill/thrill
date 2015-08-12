@@ -53,8 +53,7 @@ public:
                          };
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        CallbackPair<typename ParentDIARef::StackInput> cp { lop_chain, this->type() };
-        parent.node()->RegisterChild(cp);
+        parent.node()->RegisterChild(lop_chain, this->type());
     }
 
     virtual ~PrefixSumNode() { }

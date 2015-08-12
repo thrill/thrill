@@ -46,8 +46,7 @@ public:
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
 
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        CallbackPair<typename ParentDIARef::StackInput> cp { lop_chain, this->type() };
-        parent.node()->RegisterChild(cp);
+        parent.node()->RegisterChild(lop_chain, this->type());
     }
 
     //! Executes the size operation.

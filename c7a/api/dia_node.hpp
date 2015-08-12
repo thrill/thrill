@@ -26,11 +26,17 @@ namespace api {
 
 template <typename ValueType>
 struct CallbackPair {
+    CallbackPair(const std::function<void(const ValueType&)>& cb,
+                 NodeType type)
+        : cb_(cb), type_(type) { }
+
     void operator () (const ValueType& elem) {
         cb_(elem);
     }
 
+    //! callback to invoke (currently for each item)
     std::function<void(const ValueType&)> cb_;
+    //! node invoked.
     NodeType                              type_;
 };
 
@@ -79,8 +85,9 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(const CallbackPair<ValueType>& callback) {
-        this->callbacks_.push_back(callback);
+    void RegisterChild(const std::function<void(const ValueType&)> callback,
+                       const NodeType& child_type) {
+        callbacks_.emplace_back(callback, child_type);
     }
 
     void UnregisterChilds() final {
@@ -100,7 +107,7 @@ public:
     }
 
     void PushElement(const ValueType& elem) {
-        for (auto& callback : this->callbacks_) {
+        for (auto& callback : callbacks_) {
             callback(elem);
         }
     }
