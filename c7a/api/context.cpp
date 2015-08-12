@@ -43,9 +43,9 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
 
     for (size_t h = 0; h < host_count; h++) {
         std::array<net::Group, kGroupCount> host_group = {
-            std::move(group[0][h]),
-            std::move(group[1][h]),
-            std::move(group[2][h]),
+            { std::move(group[0][h]),
+              std::move(group[1][h]),
+              std::move(group[2][h]) }
         };
 
         host_context.emplace_back(
