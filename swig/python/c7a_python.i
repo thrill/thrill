@@ -8,7 +8,10 @@ using namespace c7a;
 %}
 
 %feature("director") GeneratorFunction;
+
 %feature("director") MapFunction;
+%feature("director") FilterFunction;
+
 %feature("director") KeyExtractorFunction;
 %feature("director") ReduceFunction;
 
@@ -49,6 +52,9 @@ using namespace c7a;
 
 %feature("pythonprepend") c7a::PyDIA::Map(MapFunction&) const
    CallbackHelper(MapFunction, map_function)
+
+%feature("pythonprepend") c7a::PyDIA::Filter(FilterFunction&) const
+   CallbackHelper(FilterFunction, filter_function)
 
 %feature("pythonprepend") c7a::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const
 CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_function)

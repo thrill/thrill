@@ -112,6 +112,9 @@ typedef swig::SwigVar_PyObject PyObjectVarRef;
 
 namespace data {
 
+/*!
+ * c7a serialization interface for PyObjects: call the PyMarshal C API.
+ */
 template <typename Archive>
 struct Serialization<Archive, PyObjectRef>
 {
@@ -160,6 +163,13 @@ public:
     virtual PyObjectVarRef operator () (PyObject* obj) = 0;
 };
 
+class FilterFunction
+{
+public:
+    virtual ~FilterFunction() { }
+    virtual bool operator () (PyObject* obj) = 0;
+};
+
 class KeyExtractorFunction
 {
 public:
@@ -179,6 +189,7 @@ public:
 // import Swig Director classes.
 #include "c7a_pythonPYTHON_wrap.h"
 
+// TODO: this should not be used, parameterize our code to use a HashFunction.
 namespace std {
 template <>
 struct hash<c7a::PyObjectRef>
@@ -196,6 +207,8 @@ struct hash<c7a::PyObjectRef>
 
 namespace c7a {
 
+//! all DIAs used in the python code contain PyObjectRefs, which are reference
+//! counted PyObjects.
 typedef api::DIARef<PyObjectRef> PyDIARef;
 
 /*!
@@ -207,6 +220,7 @@ class PyDIA
     static const bool debug = false;
 
 public:
+    //! underlying C++ DIARef class, which can be freely copied by the object.
     PyDIARef dia_;
 
     explicit PyDIA(const PyDIARef& dia)
@@ -236,6 +250,28 @@ public:
                  // implicitly passed ownership of the reference to the
                  // caller.
                     return PyObjectRef(map_function(obj.get_incref()), true);
+                })
+            .Collapse());
+    }
+
+    PyDIA Filter(FilterFunction& filter_function) const {
+        assert(dia_.IsValid());
+
+        // the object FilterFunction is actually an instance of the Director
+        SwigDirector_FilterFunction& director =
+            *dynamic_cast<SwigDirector_FilterFunction*>(&filter_function);
+
+        return PyDIA(
+            dia_.Filter(
+                [&filter_function,
+                 // this holds a reference count to the callback object for the
+                 // lifetime of the capture object.
+                 ref = PyObjectRef(director.swig_get_self())
+                ](const PyObjectRef& obj) {
+                 // increase reference count, since calling the filter_function
+                 // implicitly passed ownership of the reference to the
+                 // caller.
+                    return filter_function(obj.get_incref());
                 })
             .Collapse());
     }
@@ -272,7 +308,14 @@ public:
                     return PyObjectRef(
                         reduce_function(obj1.get_incref(), obj2.get_incref()),
                         true);
-                }));
+                })
+            // TODO: remove the Cache one ReduceNode can be executed again.
+            .Cache());
+    }
+
+    PyDIA Cache() const {
+        assert(dia_.IsValid());
+        return PyDIA(dia_.Cache());
     }
 
     size_t Size() const {

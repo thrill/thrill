@@ -26,8 +26,10 @@ class TestOperations(unittest.TestCase):
                              lambda x,y : x + y)
 
         print("dia3.Size:", dia3.Size())
-        # TODO: ReduceNode cannot be executed twice!
-        #print("dia3.AllGather:", dia3.AllGather())
+        print("dia3.AllGather:", dia3.AllGather())
+
+        dia4 = dia3.Filter(lambda x : x[0] == 2)
+        print("dia4.AllGather:", dia4.AllGather())
 
     def test_operations(self):
 
