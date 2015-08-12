@@ -574,9 +574,9 @@ Manager::ConstructLocalMesh(size_t host_count) {
 
     for (size_t h = 0; h < host_count; ++h) {
         std::array<Group, kGroupCount> host_group = {
-            std::move(group[0][h]),
-            std::move(group[1][h]),
-            std::move(group[2][h]),
+            { std::move(group[0][h]),
+              std::move(group[1][h]),
+              std::move(group[2][h]) },
         };
 
         nmlist[h] = std::make_unique<Manager>(h, std::move(host_group));
