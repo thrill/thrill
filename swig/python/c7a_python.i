@@ -12,7 +12,7 @@ using namespace c7a;
 %feature("director") KeyExtractorFunction;
 %feature("director") ReduceFunction;
 
-%define ARRAYHELPER(FunctionType,function_var) %{
+%define CallbackHelper(FunctionType,function_var) %{
    if not isinstance(function_var, FunctionType) and callable(function_var):
       class CallableWrapper(FunctionType):
          def __init__(self, f):
@@ -24,31 +24,34 @@ using namespace c7a;
 %}
 %enddef
 
+%define CallbackHelper2(FunctionType1,function_var1,FunctionType2,function_var2) %{
+   if not isinstance(function_var1, FunctionType1) and callable(function_var1):
+      class CallableWrapper(FunctionType1):
+         def __init__(self, f):
+            super(CallableWrapper, self).__init__()
+            self.f_ = f
+         def __call__(self, index):
+            return self.f_(index)
+      function_var1 = CallableWrapper(function_var1)
+   if not isinstance(function_var2, FunctionType2) and callable(function_var2):
+      class CallableWrapper(FunctionType2):
+         def __init__(self, f):
+            super(CallableWrapper, self).__init__()
+            self.f_ = f
+         def __call__(self, index):
+            return self.f_(index)
+      function_var2 = CallableWrapper(function_var2)
+%}
+%enddef
+
 %feature("pythonprepend") c7a::Generate(Context&, GeneratorFunction&, size_t)
-   ARRAYHELPER(GeneratorFunction, generator_function)
+   CallbackHelper(GeneratorFunction, generator_function)
 
 %feature("pythonprepend") c7a::PyDIA::Map(MapFunction&) const
-   ARRAYHELPER(MapFunction, map_function)
+   CallbackHelper(MapFunction, map_function)
 
-%feature("pythonprepend") c7a::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{
-   if not isinstance(key_extractor, KeyExtractorFunction) and callable(key_extractor):
-      class CallableWrapper(KeyExtractorFunction):
-         def __init__(self, f):
-            super(CallableWrapper, self).__init__()
-            self.f_ = f
-         def __call__(self, obj):
-            return self.f_(obj)
-      key_extractor = CallableWrapper(key_extractor)
-
-   if not isinstance(reduce_function, ReduceFunction) and callable(reduce_function):
-      class CallableWrapper(ReduceFunction):
-         def __init__(self, f):
-            super(CallableWrapper, self).__init__()
-            self.f_ = f
-         def __call__(self, obj):
-            return self.f_(obj)
-      reduce_function = CallableWrapper(reduce_function)
-%}
+%feature("pythonprepend") c7a::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const
+CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_function)
 
 %include <std_string.i>
 %include <std_vector.i>
