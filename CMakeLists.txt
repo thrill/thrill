@@ -81,7 +81,7 @@ if(JENKINS_BUILD)
     # enable ThreadSanitizer
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
     # enable UndefinedBehaviorSanitizer
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
   endif()
 
   # build using libc++ with clang in Jenkins
