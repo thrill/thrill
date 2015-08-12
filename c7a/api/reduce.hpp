@@ -102,8 +102,7 @@ public:
         // close the function stack with our pre op and register it at
         // parent node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        CallbackPair<typename ParentDIARef::StackInput> cp { lop_chain, this->type() };
-        parent.node()->RegisterChild(cp);
+        parent.node()->RegisterChild(lop_chain, this->type());
         channel_->OnClose([this]() {
                               this->WriteChannelStats(this->channel_);
                           });
