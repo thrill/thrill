@@ -21,8 +21,13 @@ set_source_files_properties(c7a_python.i PROPERTIES
 
 swig_add_module(c7a_python python c7a_python.i)
 swig_link_libraries(c7a_python c7a ${ALL_LIBRARIES} ${PYTHON_LIBRARIES})
+
 # fixup target shared object name, such that multiple swig target can be made
 set_target_properties(_c7a_python PROPERTIES OUTPUT_NAME "_c7a")
+
+# silence warnings in swig generated code
+set_source_files_properties(c7a_pythonPYTHON_wrap.cxx
+  PROPERTIES COMPILE_FLAGS "-Wno-cast-qual -Wno-missing-field-initializers")
 
 add_test(
   NAME swig_python_test
