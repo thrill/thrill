@@ -28,7 +28,7 @@ namespace api {
 
 //! Construct a number of mock hosts running in this process.
 std::vector<std::unique_ptr<HostContext> >
-HostContext::ConstructLocalMesh(size_t host_count, size_t workers_per_host) {
+HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
     static const size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three full mesh connection cliques, deliver net::Groups.
@@ -69,7 +69,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
 
     // construct a mock network of hosts
     std::vector<std::unique_ptr<HostContext> > host_contexts =
-        HostContext::ConstructLocalMesh(host_count, workers_per_host);
+        HostContext::ConstructLocalMock(host_count, workers_per_host);
 
     // launch thread for each of the workers on this host.
     std::vector<std::thread> threads(host_count * workers_per_host);

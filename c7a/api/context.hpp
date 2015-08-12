@@ -62,6 +62,23 @@ public:
           data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
     { }
 
+    //! Construct a number of mock hosts running in this process.
+    static std::vector<std::unique_ptr<HostContext> >
+    ConstructLocalMock(size_t host_count, size_t workers_per_host);
+
+    //! number of workers per host (all have the same).
+    size_t workers_per_host() const { return workers_per_host_; }
+
+    //! net manager constructs communication groups to other hosts.
+    net::Manager& net_manager() { return net_manager_; }
+
+    //! the flow control group is used for collective communication.
+    net::FlowControlChannelManager& flow_manager() { return flow_manager_; }
+
+    //! data multiplexer transmits large amounts of data asynchronously.
+    data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
+
+protected:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
@@ -73,10 +90,6 @@ public:
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_;
-
-    //! Construct a number of mock hosts running in this process.
-    static std::vector<std::unique_ptr<HostContext> >
-    ConstructLocalMesh(size_t host_count, size_t workers_per_host);
 };
 
 /*!
@@ -104,11 +117,11 @@ public:
     { }
 
     Context(HostContext& host_context, size_t local_worker_id)
-        : net_manager_(host_context.net_manager_),
-          flow_manager_(host_context.flow_manager_),
-          multiplexer_(host_context.data_multiplexer_),
+        : net_manager_(host_context.net_manager()),
+          flow_manager_(host_context.flow_manager()),
+          multiplexer_(host_context.data_multiplexer()),
           local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host_)
+          workers_per_host_(host_context.workers_per_host())
     { }
 
     //! \name System Information
@@ -240,7 +253,7 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
  */
 void
 RunLocalMock(size_t host_count, size_t local_host_count,
-             std::function<void(api::Context&, size_t)> job_startpoint);
+             std::function<void(api::Context&)> job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
@@ -276,6 +289,7 @@ int Run(
 } // namespace api
 
 //! imported from api namespace
+using c7a::api::HostContext;
 using c7a::api::Context;
 
 } // namespace c7a
