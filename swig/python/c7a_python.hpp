@@ -15,6 +15,7 @@
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
+#include <c7a/api/distribute.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/collapse.hpp>
 #include <c7a/api/cache.hpp>
@@ -30,6 +31,8 @@
 #include <vector>
 
 namespace c7a {
+
+#ifndef SWIG
 
 static const bool debug = true;
 
@@ -108,7 +111,11 @@ protected:
     PyObject* obj_;
 };
 
+#endif
+
 typedef swig::SwigVar_PyObject PyObjectVarRef;
+
+#ifndef SWIG
 
 namespace data {
 
@@ -148,6 +155,8 @@ struct Serialization<Archive, PyObjectRef>
 };
 
 } // namespace data
+
+#endif
 
 class GeneratorFunction
 {
@@ -189,6 +198,8 @@ public:
 // import Swig Director classes.
 #include "c7a_pythonPYTHON_wrap.h"
 
+#ifndef SWIG
+
 // TODO: this should not be used, parameterize our code to use a HashFunction.
 namespace std {
 template <>
@@ -204,6 +215,8 @@ struct hash<c7a::PyObjectRef>
 };
 
 } // namespace std
+
+#endif
 
 namespace c7a {
 
@@ -337,26 +350,6 @@ public:
     }
 };
 
-static inline
-PyDIA Generate(
-    Context& ctx, GeneratorFunction& generator_function, size_t size) {
-
-    // the object GeneratorFunction is actually an instance of the Director
-    SwigDirector_GeneratorFunction& director =
-        *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
-
-    PyDIARef dia = api::Generate(
-        ctx, [&generator_function,
-              // this holds a reference count to the callback object for the
-              // lifetime of the capture object.
-              ref = PyObjectRef(director.swig_get_self())
-        ](size_t index) {
-            return PyObjectRef(generator_function(index), true);
-        }, size);
-
-    return PyDIA(dia);
-}
-
 class PyContext : public api::Context
 {
 public:
@@ -386,6 +379,34 @@ public:
         }
 
         return contexts;
+    }
+
+    PyDIA Generate(GeneratorFunction& generator_function, size_t size) {
+
+        // the object GeneratorFunction is actually an instance of the Director
+        SwigDirector_GeneratorFunction& director =
+            *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
+
+        PyDIARef dia = api::Generate(
+            *this, [&generator_function,
+                  // this holds a reference count to the callback object for the
+                  // lifetime of the capture object.
+                  ref = PyObjectRef(director.swig_get_self())
+                ](size_t index) {
+                return PyObjectRef(generator_function(index), true);
+            }, size);
+
+        return PyDIA(dia);
+    }
+
+    PyDIA Distribute(const std::vector<PyObject*>& list) {
+
+        // this acquires a reference count on the objects
+        std::vector<PyObjectRef> list_refed(list.begin(), list.end());
+
+        PyDIARef dia = api::Distribute(*this, std::move(list_refed));
+
+        return PyDIA(dia);
     }
 
 protected:
