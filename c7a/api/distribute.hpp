@@ -41,6 +41,13 @@ public:
           in_vector_(in_vector)
     { }
 
+    DistributeNode(Context& ctx,
+                   std::vector<ValueType>&& in_vector,
+                   StatsNode* stats_node)
+        : DOpNode<ValueType>(ctx, { }, "Distribute", stats_node),
+          in_vector_(std::move(in_vector))
+    { }
+
     void Execute() final { }
 
     void PushData() final {
@@ -68,7 +75,7 @@ public:
 
 private:
     //! Vector pointer to read elements from.
-    const std::vector<ValueType>& in_vector_;
+    std::vector<ValueType> in_vector_;
 };
 
 /*!
@@ -88,6 +95,30 @@ auto Distribute(
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, in_vector, stats_node);
+
+    auto scatter_stack = shared_node->ProduceStack();
+
+    return DIARef<ValueType, decltype(scatter_stack)>(
+        shared_node, scatter_stack, { stats_node });
+}
+
+/*!
+ * Distribute is an initial DOp, which takes a vector of data EQUAL on all
+ * workers, and returns the data in a DIA. Use DistributeFrom to actually
+ * distribute data from a single worker.
+ */
+template <typename ValueType>
+auto Distribute(
+    Context & ctx,
+    std::vector<ValueType>&&in_vector) {
+
+    using DistributeNode = api::DistributeNode<ValueType>;
+
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "Distribute", NodeType::DOP);
+
+    auto shared_node =
+        std::make_shared<DistributeNode>(ctx, std::move(in_vector), stats_node);
 
     auto scatter_stack = shared_node->ProduceStack();
 
