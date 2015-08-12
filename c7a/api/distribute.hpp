@@ -110,7 +110,7 @@ auto Distribute(
 template <typename ValueType>
 auto Distribute(
     Context & ctx,
-    std::vector<ValueType>&&in_vector) {
+    std::vector<ValueType>&& in_vector) {
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
