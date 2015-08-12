@@ -84,13 +84,11 @@ public:
     }
 
     void UnregisterChilds() final {
-        size_t coll_id = 0;
-        for (size_t i = 0; i < this->callbacks_.size(); ++i) {
-            auto cb = this->callbacks_[i];
-            if (cb.type_ == NodeType::COLLAPSE)
-                iter_swap(begin(this->callbacks_) + coll_id++, begin(this->callbacks_) + i);
-        }
-        this->callbacks_.erase(begin(this->callbacks_) + coll_id, end(this->callbacks_));
+        callbacks_.erase(
+            std::remove_if(
+                callbacks_.begin(), callbacks_.end(),
+                [](const auto& cb){ return cb.type_ != NodeType::COLLAPSE; }),
+            callbacks_.end());
     }
 
     std::vector<CallbackPair<ValueType>> & callbacks() {
