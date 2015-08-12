@@ -17,6 +17,7 @@
 #include <c7a/net/endpoint.hpp>
 #include <c7a/net/group.hpp>
 
+#include <array>
 #include <string>
 #include <vector>
 
