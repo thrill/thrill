@@ -171,7 +171,7 @@ private:
         ValueType* tree_;
         ValueType* samples_;
         size_t index_ = 0;
-        size_t ssplitter;
+        size_t ssplitter_;
 
         /*!
          * Target: tree. Size of 'number of splitter'
@@ -183,19 +183,21 @@ private:
                     size_t ssplitter)
             : tree_(splitter_tree),
               samples_(samples),
-              ssplitter(ssplitter) {
-            recurse(samples, samples + ssplitter, 1);
+              ssplitter_(ssplitter) {
+            if (ssplitter != 0)
+                recurse(samples, samples + ssplitter, 1);
         }
 
         void recurse(ValueType* lo, ValueType* hi, unsigned int treeidx) {
 
             // pick middle element as splitter
             ValueType* mid = lo + (ssize_t)(hi - lo) / 2;
+            assert(mid < samples_ + ssplitter_);
             tree_[treeidx] = *mid;
 
             ValueType* midlo = mid, * midhi = mid + 1;
 
-            if (2 * treeidx < ssplitter)
+            if (2 * treeidx < ssplitter_)
             {
                 recurse(lo, midlo, 2 * treeidx + 0);
                 recurse(midhi, hi, 2 * treeidx + 1);
