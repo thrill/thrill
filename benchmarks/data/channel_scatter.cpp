@@ -102,19 +102,18 @@ int main(int argc, const char** argv) {
     endpoints.push_back("127.0.0.1:8002");
 
     std::unique_ptr<net::Manager> net_manager1, net_manager2, net_manager3;
-    connect_pool.Enqueue([&net_manager1, &endpoints]() {
-                             net_manager1 = std::make_unique<net::Manager>(
-                                 0, net::Endpoint::ParseEndpointList(endpoints));
-                         });
-
-    connect_pool.Enqueue([&net_manager2, &endpoints]() {
-                             net_manager2 = std::make_unique<net::Manager>(
-                                 1, net::Endpoint::ParseEndpointList(endpoints));
-                         });
-    connect_pool.Enqueue([&net_manager3, &endpoints]() {
-                             net_manager3 = std::make_unique<net::Manager>(
-                                 2, net::Endpoint::ParseEndpointList(endpoints));
-                         });
+    connect_pool.Enqueue(
+        [&net_manager1, &endpoints]() {
+            net_manager1 = std::make_unique<net::Manager>(0, endpoints);
+        });
+    connect_pool.Enqueue(
+        [&net_manager2, &endpoints]() {
+            net_manager2 = std::make_unique<net::Manager>(1, endpoints);
+        });
+    connect_pool.Enqueue(
+        [&net_manager3, &endpoints]() {
+            net_manager3 = std::make_unique<net::Manager>(2, endpoints);
+        });
     connect_pool.LoopUntilEmpty();
 
     data::Multiplexer datamp1(1, net_manager1->GetDataGroup());

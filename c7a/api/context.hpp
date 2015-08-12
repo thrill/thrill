@@ -44,7 +44,7 @@ class HostContext
 {
 public:
     HostContext(size_t my_host_rank,
-                const std::vector<net::Endpoint>& endpoints,
+                const std::vector<std::string>& endpoints,
                 size_t workers_per_host)
         : workers_per_host_(workers_per_host),
           net_manager_(my_host_rank, endpoints),
