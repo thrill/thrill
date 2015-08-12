@@ -121,9 +121,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
     size_t workers_per_host = 1;
 
     HostContext host_context(
-        my_host_rank,
-        net::Endpoint::ParseEndpointList("127.0.0.1:12345"),
-        workers_per_host);
+        my_host_rank, { "127.0.0.1:12345" }, workers_per_host);
 
     Context ctx(host_context, 0);
     common::NameThisThread("worker " + std::to_string(my_host_rank));
@@ -142,9 +140,7 @@ int RunDistributedTCP(
 
     static const bool debug = false;
 
-    HostContext host_context(
-        my_host_rank, net::Endpoint::ParseEndpointList(endpoints),
-        workers_per_host);
+    HostContext host_context(my_host_rank, endpoints, workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 

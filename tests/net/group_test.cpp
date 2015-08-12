@@ -148,13 +148,13 @@ static void RealGroupConstructAndCall(
     std::uniform_int_distribution<int> distribution(10000, 30000);
     const size_t port_base = distribution(generator);
 
-    std::vector<Endpoint> endpoints = {
-        Endpoint("127.0.0.1:" + std::to_string(port_base + 0)),
-        Endpoint("127.0.0.1:" + std::to_string(port_base + 1)),
-        Endpoint("127.0.0.1:" + std::to_string(port_base + 2)),
-        Endpoint("127.0.0.1:" + std::to_string(port_base + 3)),
-        Endpoint("127.0.0.1:" + std::to_string(port_base + 4)),
-        Endpoint("127.0.0.1:" + std::to_string(port_base + 5))
+    std::vector<std::string> endpoints = {
+        "127.0.0.1:" + std::to_string(port_base + 0),
+        "127.0.0.1:" + std::to_string(port_base + 1),
+        "127.0.0.1:" + std::to_string(port_base + 2),
+        "127.0.0.1:" + std::to_string(port_base + 3),
+        "127.0.0.1:" + std::to_string(port_base + 4),
+        "127.0.0.1:" + std::to_string(port_base + 5)
     };
 
     sLOG1 << "Group test uses ports" << port_base << "-" << port_base + 5;

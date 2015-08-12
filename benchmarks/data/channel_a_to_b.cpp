@@ -77,15 +77,15 @@ int main(int argc, const char** argv) {
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
     std::unique_ptr<net::Manager> net_manager1, net_manager2;
-    connect_pool.Enqueue([&net_manager1, &endpoints]() {
-                             net_manager1 = std::make_unique<net::Manager>(
-                                 0, net::Endpoint::ParseEndpointList(endpoints));
-                         });
+    connect_pool.Enqueue(
+        [&net_manager1, &endpoints]() {
+            net_manager1 = std::make_unique<net::Manager>(0, endpoints);
+        });
 
-    connect_pool.Enqueue([&net_manager2, &endpoints]() {
-                             net_manager2 = std::make_unique<net::Manager>(
-                                 1, net::Endpoint::ParseEndpointList(endpoints));
-                         });
+    connect_pool.Enqueue(
+        [&net_manager2, &endpoints]() {
+            net_manager2 = std::make_unique<net::Manager>(1, endpoints);
+        });
     connect_pool.LoopUntilEmpty();
 
     data::Multiplexer datamp1(1, net_manager1->GetDataGroup());
