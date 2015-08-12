@@ -52,7 +52,7 @@ public:
                                 Super::PushElement(input);
                             };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
-        CallbackPair<typename ParentDIARef::StackInput> cp{lop_chain, this->type()};
+        CallbackPair<typename ParentDIARef::StackInput> cp { lop_chain, this->type() };
         parent.node()->RegisterChild(cp);
     }
 

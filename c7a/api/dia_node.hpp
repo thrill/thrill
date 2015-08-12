@@ -14,9 +14,9 @@
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 namespace c7a {
 namespace api {
@@ -26,12 +26,12 @@ namespace api {
 
 template <typename ValueType>
 struct CallbackPair {
-    void operator()(const ValueType& elem) {
+    void operator () (const ValueType& elem) {
         cb_(elem);
     }
 
     std::function<void(const ValueType&)> cb_;
-    NodeType type_;
+    NodeType                              type_;
 };
 
 /*!
@@ -87,15 +87,15 @@ public:
         callbacks_.erase(
             std::remove_if(
                 callbacks_.begin(), callbacks_.end(),
-                [](const auto& cb){ return cb.type_ != NodeType::COLLAPSE; }),
+                [](const auto& cb) { return cb.type_ != NodeType::COLLAPSE; }),
             callbacks_.end());
     }
 
-    std::vector<CallbackPair<ValueType>> & callbacks() {
+    std::vector<CallbackPair<ValueType> > & callbacks() {
         return callbacks_;
     }
 
-    void callback_functions(std::vector<std::function<void(const ValueType&)>> & cbs) {
+    void callback_functions(std::vector<std::function<void(const ValueType&)> >& cbs) {
         for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
     }
 
@@ -107,7 +107,7 @@ public:
 
 protected:
     //! Callback functions from the child nodes.
-    std::vector<CallbackPair<ValueType>> callbacks_;
+    std::vector<CallbackPair<ValueType> > callbacks_;
 };
 
 //! \}

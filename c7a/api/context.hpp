@@ -70,13 +70,13 @@ public:
     size_t workers_per_host() const { return workers_per_host_; }
 
     //! net manager constructs communication groups to other hosts.
-    net::Manager& net_manager() { return net_manager_; }
+    net::Manager & net_manager() { return net_manager_; }
 
     //! the flow control group is used for collective communication.
-    net::FlowControlChannelManager& flow_manager() { return flow_manager_; }
+    net::FlowControlChannelManager & flow_manager() { return flow_manager_; }
 
     //! data multiplexer transmits large amounts of data asynchronously.
-    data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
+    data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
 
 protected:
     //! number of workers per host (all have the same).
