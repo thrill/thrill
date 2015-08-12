@@ -3,8 +3,6 @@
 
 #include "c7a_python.hpp"
 
-#include <c7a/core/job_manager.hpp>
-
 using namespace c7a;
 
 %}
@@ -29,10 +27,10 @@ using namespace c7a;
 %feature("pythonprepend") c7a::Generate(Context&, GeneratorFunction&, size_t)
    ARRAYHELPER(GeneratorFunction, generator_function)
 
-%feature("pythonprepend") c7a::PythonDIA::Map(MapFunction&) const
+%feature("pythonprepend") c7a::PyDIA::Map(MapFunction&) const
    ARRAYHELPER(MapFunction, map_function)
 
-%feature("pythonprepend") c7a::PythonDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{
+%feature("pythonprepend") c7a::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{
    if not isinstance(key_extractor, KeyExtractorFunction) and callable(key_extractor):
       class CallableWrapper(KeyExtractorFunction):
          def __init__(self, f):
@@ -55,14 +53,15 @@ using namespace c7a;
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_shared_ptr.i>
-%shared_ptr(c7a::core::JobManager)
 
-%template(VectorJobManagerPtr) std::vector<std::shared_ptr<c7a::core::JobManager>>;
-
-%include <c7a/core/job_manager.hpp>
-%include <c7a/api/context.hpp>
+%shared_ptr(c7a::PyContext)
+%shared_ptr(c7a::api::Context)
+%template(VectorPyContext) std::vector<std::shared_ptr<c7a::PyContext>>;
 
 %ignore c7a::PyObjectRef;
 %ignore c7a::data::Serialization;
 
+%ignore c7a::api::HostContext::ConstructLocalMock;
+
+%include <c7a/api/context.hpp>
 %include "c7a_python.hpp"
