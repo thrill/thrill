@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/scatter.hpp>
+#include <c7a/api/distribute_from.hpp>
 #include <c7a/common/string.hpp>
 #include <c7a/examples/word_count.hpp>
 
@@ -39,7 +39,7 @@ TEST(WordCount, WordCountSmallFileCorrectResults) {
                 "a test"
             };
 
-            auto lines = Scatter(ctx, input_vec);
+            auto lines = DistributeFrom(ctx, input_vec, 0);
 
             auto red_words = examples::WordCount(lines);
 
