@@ -9,9 +9,8 @@ class TestOperations(unittest.TestCase):
         #print("generator at index", index)
         return (index, "hello at %d" % (index));
 
-    def my_thread(self,jm):
-        ctx = c7a.Context(jm, 0)
-        print("thread in python, rank", ctx.rank())
+    def my_thread(self, ctx):
+        print("thread in python, rank", ctx.my_rank())
 
         dia1 = c7a.Generate(ctx, self.my_generator, 50)
         dia2 = dia1.Map(lambda x : (x[0], x[1] + " mapped"))
@@ -34,12 +33,12 @@ class TestOperations(unittest.TestCase):
 
         nthreads = 4
 
-        obj = c7a.JobManager.ConstructLocalMesh(nthreads, 1)
+        ctxs = c7a.PyContext.ConstructLocalMock(nthreads, 1)
 
         threads = []
 
         for thrid in range(0,nthreads):
-            t = threading.Thread(target=self.my_thread, args=(obj[thrid],))
+            t = threading.Thread(target=self.my_thread, args=(ctxs[thrid],))
             t.start()
             threads.append(t)
 

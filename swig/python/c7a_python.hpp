@@ -16,7 +16,8 @@
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/api/generate.hpp>
-#include <c7a/api/lop_node.hpp>
+#include <c7a/api/collapse.hpp>
+#include <c7a/api/cache.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/common/string.hpp>
@@ -34,7 +35,7 @@ static const bool debug = true;
 
 /*!
  * This class holds a PyObject* and a reference count on the enclosed
- * object. PythonDIAs contain exclusively items of this class.
+ * object. PyDIAs contain exclusively items of this class.
  */
 class PyObjectRef
 {
@@ -195,36 +196,36 @@ struct hash<c7a::PyObjectRef>
 
 namespace c7a {
 
-typedef api::DIARef<PyObjectRef> PythonDIARef;
+typedef api::DIARef<PyObjectRef> PyDIARef;
 
 /*!
- * This is a wrapper around the C++ DIARef class, which returns plain PythonDIAs
+ * This is a wrapper around the C++ DIARef class, which returns plain PyDIAs
  * again. The C++ function stack is always collapsed.
  */
-class PythonDIA
+class PyDIA
 {
     static const bool debug = false;
 
 public:
-    PythonDIARef dia_;
+    PyDIARef dia_;
 
-    explicit PythonDIA(const PythonDIARef& dia)
+    explicit PyDIA(const PyDIARef& dia)
         : dia_(dia) {
-        sLOG << "create PythonDIA" << this;
+        sLOG << "create PyDIA" << this;
     }
 
-    ~PythonDIA() {
-        sLOG << "delete PythonDIA" << this;
+    ~PyDIA() {
+        sLOG << "delete PyDIA" << this;
     }
 
-    PythonDIA Map(MapFunction& map_function) const {
+    PyDIA Map(MapFunction& map_function) const {
         assert(dia_.IsValid());
 
         // the object MapFunction is actually an instance of the Director
         SwigDirector_MapFunction& director =
             *dynamic_cast<SwigDirector_MapFunction*>(&map_function);
 
-        return PythonDIA(
+        return PyDIA(
             dia_.Map(
                 [&map_function,
                  // this holds a reference count to the callback object for the
@@ -239,7 +240,7 @@ public:
             .Collapse());
     }
 
-    PythonDIA ReduceBy(KeyExtractorFunction& key_extractor,
+    PyDIA ReduceBy(KeyExtractorFunction& key_extractor,
                        ReduceFunction& reduce_function) const {
         assert(dia_.IsValid());
 
@@ -248,7 +249,7 @@ public:
         SwigDirector_ReduceFunction& director2 =
             *dynamic_cast<SwigDirector_ReduceFunction*>(&reduce_function);
 
-        return PythonDIA(
+        return PyDIA(
             dia_.ReduceBy(
                 [&key_extractor,
                  // this holds a reference count to the callback object for the
@@ -294,14 +295,14 @@ public:
 };
 
 static inline
-PythonDIA Generate(
+PyDIA Generate(
     Context& ctx, GeneratorFunction& generator_function, size_t size) {
 
     // the object GeneratorFunction is actually an instance of the Director
     SwigDirector_GeneratorFunction& director =
         *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
 
-    PythonDIARef dia = api::Generate(
+    PyDIARef dia = api::Generate(
         ctx, [&generator_function,
               // this holds a reference count to the callback object for the
               // lifetime of the capture object.
@@ -310,8 +311,43 @@ PythonDIA Generate(
             return PyObjectRef(generator_function(index), true);
         }, size);
 
-    return PythonDIA(dia);
+    return PyDIA(dia);
 }
+
+class PyContext : public api::Context
+{
+public:
+    PyContext(std::unique_ptr<HostContext>&& host_context,
+              size_t local_worker_id)
+        : Context(*host_context, local_worker_id),
+          host_context_(std::move(host_context))
+    { }
+
+    ~PyContext() {
+        std::cout << "Destroy PyContext" << std::endl;
+    }
+
+    static std::vector<std::shared_ptr<PyContext> >
+    ConstructLocalMock(size_t host_count, size_t workers_per_host)
+    {
+        std::vector<std::unique_ptr<HostContext> > host_contexts
+            = HostContext::ConstructLocalMock(host_count, workers_per_host);
+
+        std::vector<std::shared_ptr<PyContext> > contexts;
+
+        for (size_t h = 0; h < host_count; ++h) {
+            for (size_t w = 0; w < workers_per_host; ++w) {
+                contexts.emplace_back(
+                    std::make_shared<PyContext>(std::move(host_contexts[h]), w));
+            }
+        }
+
+        return contexts;
+    }
+
+protected:
+    std::unique_ptr<HostContext> host_context_;
+};
 
 } // namespace c7a
 
