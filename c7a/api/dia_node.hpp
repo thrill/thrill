@@ -16,12 +16,23 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace c7a {
 namespace api {
 
 //! \addtogroup api Interface
 //! \{
+
+template <typename ValueType>
+struct CallbackPair {
+    void operator()(const ValueType& elem) {
+        cb_(elem);
+    }
+
+    std::function<void(const ValueType&)> cb_;
+    NodeType type_;
+};
 
 /*!
  * A DIANode is a typed node representing and operation in c7a. It is the super
@@ -35,8 +46,6 @@ template <typename ValueType>
 class DIANode : public DIABase
 {
 public:
-    using ChildFunction = std::function<void(const ValueType&)>;
-
     /*!
      * Default constructor for a DIANode.
      */
@@ -70,27 +79,37 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(const ChildFunction& callback) {
+    void RegisterChild(const CallbackPair<ValueType>& callback) {
         this->callbacks_.push_back(callback);
     }
 
     void UnregisterChilds() final {
-        this->callbacks_.clear();
+        size_t coll_id = 0;
+        for (size_t i = 0; i < this->callbacks_.size(); ++i) {
+            auto cb = this->callbacks_[i];
+            if (cb.type_ == NodeType::COLLAPSE)
+                iter_swap(begin(this->callbacks_) + coll_id++, begin(this->callbacks_) + i);
+        }
+        this->callbacks_.erase(begin(this->callbacks_) + coll_id, end(this->callbacks_));
     }
 
-    std::vector<ChildFunction> & callbacks() {
+    std::vector<CallbackPair<ValueType>> & callbacks() {
         return callbacks_;
     }
 
+    void callback_functions(std::vector<std::function<void(const ValueType&)>> & cbs) {
+        for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
+    }
+
     void PushElement(const ValueType& elem) {
-        for (auto callback : this->callbacks_) {
+        for (auto& callback : this->callbacks_) {
             callback(elem);
         }
     }
 
 protected:
     //! Callback functions from the child nodes.
-    std::vector<ChildFunction> callbacks_;
+    std::vector<CallbackPair<ValueType>> callbacks_;
 };
 
 //! \}

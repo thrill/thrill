@@ -111,7 +111,8 @@ public:
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
-        parent.node()->RegisterChild(lop_chain);
+        CallbackPair<typename ParentDIARef::StackInput> cp{lop_chain, this->type()};
+        parent.node()->RegisterChild(cp);
     }
 
     //! Virtual destructor for a ReduceToIndexNode.
@@ -140,8 +141,12 @@ public:
         std::tie(local_begin, local_end)
             = common::CalculateLocalRange(result_size_, context_);
 
+        std::vector<std::function<void(const ValueType&)>> cbs;
+        DIANode<ValueType>::callback_functions(cbs);
+
+
         ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<ValueType>::callbacks(),
+                          cbs,
                           [=](Key key, ReduceTable* ht) {
                               return (key - local_begin) % ht->NumBuckets();
                           },

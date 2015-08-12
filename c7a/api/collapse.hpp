@@ -52,7 +52,8 @@ public:
                                 Super::PushElement(input);
                             };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
-        parent.node()->RegisterChild(lop_chain);
+        CallbackPair<typename ParentDIARef::StackInput> cp{lop_chain, this->type()};
+        parent.node()->RegisterChild(cp);
     }
 
     //! Virtual destructor for a LOpNode.
