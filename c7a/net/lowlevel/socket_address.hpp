@@ -76,6 +76,11 @@ public:
     SocketAddress(const char* hostname, const char* servicename);
 
     //! Return pointer to enclosed address as a generic sockattr struct.
+    struct sockaddr * sockaddr() {
+        return &sockaddr_.generic;
+    }
+
+    //! Return pointer to enclosed address as a generic sockattr struct.
     const struct sockaddr * sockaddr() const {
         return &sockaddr_.generic;
     }
