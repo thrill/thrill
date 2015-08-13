@@ -196,7 +196,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
     ASSERT_EQ(1u, table.NumItems());
 }
 
-TEST_F(PostTable, DISABLED_MultipleEmitters) {
+TEST_F(PostTable, MultipleEmitters) {
     std::vector<int> vec1;
 
     auto key_ex = [](int in) {
