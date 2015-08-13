@@ -526,6 +526,12 @@ public:
      */
     void WriteLinesMany(const std::string& filepath) const;
 
+    /*!
+     * WriteBinary is a function, which writes a DIA to one file per worker. The
+     * input DIA can be recreated with ReadBinary and equal filepath.
+     *
+     * \param filepath Destination of the output file.
+     */
     void WriteBinary(const std::string& filepath) const;
 
     /*!
@@ -571,15 +577,20 @@ private:
  * ReadLines is a DOp, which reads a file from the file system and
  * creates an ordered DIA according to a given read function.
  *
- * \tparam ReadFunction Type of the read function.
- *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
  */
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath);
 
+/*!
+ * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
+ * system and  creates an ordered DIA according to a given read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
 template <typename ValueType>
-DIARef<ValueType> ReadBinary(Context& ctx, std::string filepath, ValueType test);
+DIARef<ValueType> ReadBinary(Context& ctx, std::string filepath, ValueType val);
 
 /*!
  * GenerateFromFile is a DOp, which reads a file from the file system and
