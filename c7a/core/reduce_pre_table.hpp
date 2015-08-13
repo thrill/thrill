@@ -220,19 +220,20 @@ public:
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(emit),
           num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(emit),
           index_function_(index_function),
           equal_to_function_(equal_to_function)
     {
         assert(num_partitions >= 0);
         assert(num_partitions == emit_.size());
         assert(num_buckets_init_scale > 0);
+        assert(num_buckets_resize_scale > 1);
         assert(max_num_items_per_bucket > 0);
         assert(max_num_items_table > 0);
 
