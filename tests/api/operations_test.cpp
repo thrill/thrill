@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
+#include <c7a/api/gather.hpp>
 #include <c7a/api/cache.hpp>
 #include <c7a/api/collapse.hpp>
 #include <c7a/api/distribute.hpp>
@@ -185,6 +186,44 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
             ASSERT_EQ(test_size, out_vec.size());
             for (size_t i = 0; i < out_vec.size(); ++i) {
                 ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, DistributeAndGatherElements) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            static const size_t test_size = 1024;
+
+            std::vector<size_t> in_vector;
+
+            // generate data everywhere
+            for (size_t i = 0; i < test_size; ++i) {
+                in_vector.push_back(i);
+            }
+
+            // "randomly" shuffle.
+            std::default_random_engine gen(123456);
+            std::shuffle(in_vector.begin(), in_vector.end(), gen);
+
+            DIARef<size_t> integers = Distribute(ctx, in_vector).Cache();
+
+            std::vector<size_t> out_vec = integers.Gather(0);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            if (ctx.my_rank() == 0) {
+                ASSERT_EQ(test_size, out_vec.size());
+                for (size_t i = 0; i < out_vec.size(); ++i) {
+                    ASSERT_EQ(i, out_vec[i]);
+                }
+            }
+            else {
+                ASSERT_EQ(0u, out_vec.size());
             }
         };
 
