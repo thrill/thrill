@@ -130,12 +130,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-<<<<<<< HEAD
-        ReduceTable table(key_extractor_, reduce_function_, DIANode<ValueType>::callbacks());
-=======
-        ReduceTable table(key_extractor_, reduce_function_,
-                          cbs);
->>>>>>> origin/master
+        ReduceTable table(key_extractor_, reduce_function_, cbs);
 
         if (RobustKey) {
             //we actually want to wire up callbacks in the ctor and NOT use this blocking method

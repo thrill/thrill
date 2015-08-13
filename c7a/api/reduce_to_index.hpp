@@ -138,23 +138,14 @@ public:
 
         size_t local_begin, local_end;
 
-        std::tie(local_begin, local_end)
-            = common::CalculateLocalRange(result_size_, context_);
+        std::tie(local_begin, local_end) = common::CalculateLocalRange(result_size_, context_);
 
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_,
-<<<<<<< HEAD
-                          DIANode<ValueType>::callbacks(),
+        ReduceTable table(key_extractor_, reduce_function_, cbs,
                           core::PostReduceByIndex(),
                           core::PostReduceFlushToIndex<Value>(),
-=======
-                          cbs,
-                          [=](Key key, ReduceTable* ht) {
-                              return (key - local_begin) % ht->NumBuckets();
-                          },
->>>>>>> origin/master
                           local_begin,
                           local_end,
                           neutral_element_);
@@ -166,7 +157,6 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-
             table.Flush();
         }
         else {
