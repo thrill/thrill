@@ -89,7 +89,7 @@ public:
         return std::make_pair(Socket(fds[0]), Socket(fds[1]));
     }
 
-    //Re-definition of standard socket errors.
+    // Re-definition of standard socket errors.
     class Errors
     {
     public:
@@ -124,8 +124,6 @@ public:
     int SetNonBlocking(bool non_blocking) const {
         assert(IsValid());
 
-        if (non_blocking == non_blocking_) return 1;
-
         int old_opts = fcntl(fd_, F_GETFL);
 
         int new_opts = non_blocking
@@ -140,7 +138,6 @@ public:
             return -1;
         }
 
-        non_blocking_ = non_blocking;
         return old_opts;
     }
 
@@ -255,10 +252,8 @@ public:
 
         int r = ::connect(fd_, sa.sockaddr(), sa.socklen());
 
-        if (r == 0) {
-            is_connected_ = true;
+        if (r == 0)
             return r;
-        }
 
         LOG << "Socket::connect()"
             << " fd_=" << fd_
@@ -278,8 +273,6 @@ public:
         int r = ::listen(fd_, backlog);
 
         if (r == 0) {
-            is_listensocket_ = true;
-
             LOG << "Socket::listen()"
                 << " fd_=" << fd_;
         }
@@ -294,7 +287,6 @@ public:
     //! Wait on socket until a new connection comes in.
     Socket accept() const {
         assert(IsValid());
-        assert(is_listensocket_);
 
         struct sockaddr_in6 sa;
         socklen_t salen = sizeof(sa);
@@ -506,15 +498,6 @@ public:
 protected:
     //! the file descriptor of the socket.
     int fd_;
-
-    //! check flag that the socket was turned into listen state
-    bool is_listensocket_ = false;
-
-    //! flag whether the socket was connected
-    bool is_connected_ = false;
-
-    //! flag whether the socket is set to non-blocking mode
-    mutable bool non_blocking_ = false;
 };
 
 // \}
