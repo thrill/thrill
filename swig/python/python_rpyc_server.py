@@ -4,31 +4,57 @@ import sys, marshal, types
 import rpyc
 import c7a
 
-class RemoteContext(c7a.PyContext):
+class RpcDIA():
+    def __init__(self, dia):
+        self._dia = dia
+
+    def AllGather(self):
+        return self._dia.AllGather()
+
+    def Size(self):
+        return self._dia.Size()
+
+    def Map(self, map_function):
+        code1 = marshal.loads(map_function)
+        func1 = types.FunctionType(code1, globals())
+        return RpcDIA(self._dia.Map(func1))
+
+    def ReduceBy(self, key_extractor, reduce_function):
+        code1 = marshal.loads(key_extractor)
+        func1 = types.FunctionType(code1, globals())
+        code2 = marshal.loads(reduce_function)
+        func2 = types.FunctionType(code2, globals())
+        return RpcDIA(self._dia.ReduceBy(func1, func2))
+
+class RpcContext():
     def __init__(self, host_ctx, my_host_rank):
-        super(RemoteContext, self).__init__(host_ctx, my_host_rank)
+        self._ctx = c7a.PyContext(host_ctx, my_host_rank)
 
     def Generate(self, generator_function, size):
-        new_code = marshal.loads(generator_function)
-        func = types.FunctionType(new_code, globals())
-        return super(RemoteContext, self).Generate(func, size)
+        code1 = marshal.loads(generator_function)
+        function1 = types.FunctionType(code1, globals())
+        return RpcDIA(self._ctx.Generate(function1, size))
+
+    def Distribute(self, array):
+        return RpcDIA(self._ctx.Distribute(array))
 
 class MyService(rpyc.Service):
     def on_connect(self):
         # code that runs when a connection is created
         # (to init the serivce, if needed)
-        print("hello")
+        print("hello client")
         pass
 
     def on_disconnect(self):
         # code that runs when the connection has already closed
         # (to finalize the service, if needed)
+        print("client disconnected")
         pass
 
     def exposed_Create(self, my_host_rank, endpoints):
         print("Creating c7a context for rank", my_host_rank, "endpoints", endpoints)
         host_ctx = c7a.HostContext(my_host_rank, endpoints, 1)
-        return RemoteContext(host_ctx, 0)
+        return RpcContext(host_ctx, 0)
 
 if __name__ == "__main__":
     from rpyc.utils.server import ThreadedServer
