@@ -101,6 +101,7 @@ build_test(data/serialization_test)
 build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/post_hash_table_test)
+build_test(core/post_hash_table_probing_test)
 
 build_test(core/stage_builder_test)
 
