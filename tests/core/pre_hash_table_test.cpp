@@ -75,13 +75,8 @@ TEST_F(PreTable, CustomHashFunction) {
     writers.emplace_back(output.GetWriter());
 
     CustomKeyHashFunction<int> cust_hash;
-<<<<<<< HEAD
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
             CustomKeyHashFunction<int>>
-=======
-    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true, 16*1024,
-                              CustomKeyHashFunction<int> >
->>>>>>> origin/master
     table(1, key_ex, red_fn, writers, 8, 2, 20, 100, cust_hash);
 
     for (int i = 0; i < 16; i++) {
