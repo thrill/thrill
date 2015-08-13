@@ -15,8 +15,8 @@
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
 #include <c7a/common/item_serialization_tools.hpp>
+#include <c7a/common/logger.hpp>
 
 #include <fstream>
 #include <string>
@@ -47,8 +47,8 @@ public:
      * \param filepath Path of the input file
      */
     ReadBinaryNode(Context& ctx,
-                  const std::string& filepath,
-                  StatsNode* stats_node)
+                   const std::string& filepath,
+                   StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
           filepath_(filepath + std::to_string(context_.my_rank())),
           bfr_(filepath_)
@@ -56,7 +56,7 @@ public:
         std::ifstream file_(filepath_);
         file_.seekg(0, std::ios::end);
         filesize_ = file_.tellg();
-        file_.close();        
+        file_.close();
     }
 
     virtual ~ReadBinaryNode() { }
@@ -72,11 +72,10 @@ public:
         std::ifstream file(filepath_);
         assert(file.good());
 
-        
         // Hook Read
         while (bfr_.Position() < filesize_) {
             auto item = data::Serialization<BinaryFileReader, ValueType>
-                ::Deserialize(bfr_);
+                        ::Deserialize(bfr_);
             for (auto func : Super::callbacks_) {
                 func(item);
             }
@@ -145,13 +144,13 @@ private:
     BinaryFileReader bfr_;
 };
 
-template<typename ValueType>
-DIARef<ValueType> ReadBinary(Context& ctx, std::string filepath, ValueType test) {
+template <typename ValueType>
+DIARef<ValueType> ReadBinary(Context& ctx, std::string filepath, ValueType) {
 
     StatsNode* stats_node = ctx.stats_graph().AddNode("ReadBinary", NodeType::DOP);
 
     auto shared_node =
-        std::make_shared<ReadBinaryNode<ValueType>>(
+        std::make_shared<ReadBinaryNode<ValueType> >(
             ctx, filepath, stats_node);
 
     auto read_stack = shared_node->ProduceStack();
@@ -165,6 +164,6 @@ DIARef<ValueType> ReadBinary(Context& ctx, std::string filepath, ValueType test)
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_READ_LINES_HEADER
+#endif // !C7A_API_READ_BINARY_HEADER
 
 /******************************************************************************/
