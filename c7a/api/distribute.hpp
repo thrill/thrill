@@ -79,14 +79,19 @@ private:
 };
 
 /*!
- * Distribute is an initial DOp, which takes a vector of data EQUAL on all
+ * Distribute is an Initial-DOp, which takes a vector of data EQUAL on all
  * workers, and returns the data in a DIA. Use DistributeFrom to actually
- * distribute data from a single worker.
+ * distribute data from a single worker, Distribute is more a ToDIA wrapper if
+ * the data is already distributed.
+ *
+ * \param ctx Reference to the Context object
+ *
+ * \param in_vector Vector to convert to a DIA, the contents is COPIED into the
+ * DIANode.
  */
 template <typename ValueType>
-auto Distribute(
-    Context & ctx,
-    const std::vector<ValueType>&in_vector) {
+auto Distribute(Context & ctx,
+                const std::vector<ValueType>&in_vector) {
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
@@ -103,14 +108,19 @@ auto Distribute(
 }
 
 /*!
- * Distribute is an initial DOp, which takes a vector of data EQUAL on all
+ * Distribute is an Initial-DOp, which takes a vector of data EQUAL on all
  * workers, and returns the data in a DIA. Use DistributeFrom to actually
- * distribute data from a single worker.
+ * distribute data from a single worker, Distribute is more a ToDIA wrapper if
+ * the data is already distributed.
+ *
+ * \param ctx Reference to the Context object
+ *
+ * \param in_vector Vector to convert to a DIA, the contents is MOVED into the
+ * DIANode.
  */
 template <typename ValueType>
-auto Distribute(
-    Context & ctx,
-    std::vector<ValueType>&& in_vector) {
+auto Distribute(Context & ctx,
+                std::vector<ValueType>&& in_vector) {
 
     using DistributeNode = api::DistributeNode<ValueType>;
 

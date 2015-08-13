@@ -609,24 +609,6 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
                       size_t size);
 
-/*!
- * Generate is a DOp, which creates an DIA according to a generator
- * function. This function is used to generate a DIA of a certain size by
- * applying it to integers from 0 to size - 1.
- *
- * \tparam GeneratorFunction Type of the generator function. Input type has to
- * be unsigned integer
- *
- * \param ctx Reference to the context object
- * \param generator_function Generator function, which maps integers from 0 to size - 1
- * to elements.
- * \param size Size of the output DIA
- */
-template <typename GeneratorFunction>
-auto Generate(Context & ctx,
-              const GeneratorFunction &generator_function,
-              size_t size);
-
 //! \}
 
 } // namespace api

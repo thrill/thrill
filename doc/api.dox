@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 namespace c7a {
+namespace api {
 
 /** \page api User Interface
 
@@ -24,8 +25,22 @@ DIABase is the untyped super-class of DIANode. DIABase objects form a DAG, in wh
 relation means that a parent has to be executed before the child can be executed. Every DIANode can
 be executed, which performs the actual operation and all uncalculated parent operations. The engine
 uses the DIABase graph to optimize the order of operations.
+
+# List of Actions
+
+## \ref Generate (ctx, generator_function, size)
+
+\copybrief api::Generate
+\copydoc api::Generate
+
+## Distribute(ctx, vector)
+
+\copybrief api::Distribute
+\copydoc api::Distribute
+
 */
 
+} // namespace api
 } // namespace c7a
 
 /******************************************************************************/
