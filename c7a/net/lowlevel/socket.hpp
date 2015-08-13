@@ -61,6 +61,11 @@ public:
     Socket()
         : fd_(-1) { }
 
+    //! Release this socket fd, make the Socket invalid.
+    void Release() {
+        fd_ = -1;
+    }
+
     //! Create a new stream socket.
     static Socket Create() {
         int fd = ::socket(PF_INET, SOCK_STREAM, 0);
