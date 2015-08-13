@@ -129,11 +129,12 @@ public:
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<ValueType,
-                                          KeyExtractor,
-                                          ReduceFunction,
-                                          true,
-                                          SendPair>;
+                    = core::ReducePostTable<ValueType, Key, Value,
+                            KeyExtractor,
+                            ReduceFunction,
+                            SendPair,
+                            core::PostReduceFlushToIndex<Value>,
+                            core::PostReduceByIndex>;
 
         size_t local_begin, local_end;
 
@@ -142,9 +143,8 @@ public:
 
         ReduceTable table(key_extractor_, reduce_function_,
                           DIANode<ValueType>::callbacks(),
-                          [=](Key key, ReduceTable* ht) {
-                              return (key - local_begin) % ht->NumBuckets();
-                          },
+                          core::PostReduceByIndex(),
+                          core::PostReduceFlushToIndex<Value>(),
                           local_begin,
                           local_end,
                           neutral_element_);
