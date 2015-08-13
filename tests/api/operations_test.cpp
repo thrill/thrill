@@ -19,9 +19,9 @@
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/size.hpp>
+#include <c7a/api/write_binary.hpp>
 #include <c7a/api/write_lines.hpp>
 #include <c7a/api/write_lines_many.hpp>
-#include <c7a/api/write_binary.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -79,7 +79,7 @@ TEST(Operations, WriteToSingleFile) {
                                  });
 
             integers.WriteBinary("output");
-            
+
             integers.Map(
                 [](const int& item) {
                     return std::to_string(item);
