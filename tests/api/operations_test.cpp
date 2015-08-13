@@ -17,8 +17,8 @@
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
-#include <c7a/api/read_lines.hpp>
 #include <c7a/api/read_binary.hpp>
+#include <c7a/api/read_lines.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/write_binary.hpp>
 #include <c7a/api/write_lines.hpp>
@@ -79,7 +79,7 @@ TEST(Operations, WriteToSingleFile) {
                                      return std::stoi(line);
                                  });
             std::string binary_path = "output";
-            
+
             integers.WriteBinary(binary_path);
 
             int bla = 5;
