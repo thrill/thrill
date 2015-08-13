@@ -293,7 +293,6 @@ public:
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
      *
-     * \param num_partitions The number of partitions.
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
@@ -321,19 +320,19 @@ public:
                    size_t max_num_items_table = 1048576,
                    const EqualToFunction& equal_to_function = EqualToFunction()
                     )
-            :   key_extractor_(key_extractor),
-                reduce_function_(reduce_function),
-                emit_(std::move(emit)),
-                index_function_(index_function),
-                flush_function_(flush_function),
-                begin_local_index_(begin_local_index),
-                end_local_index_(end_local_index),
-                neutral_element_(neutral_element),
-                num_buckets_init_scale_(num_buckets_init_scale),
+            :   num_buckets_init_scale_(num_buckets_init_scale),
                 num_buckets_resize_scale_(num_buckets_resize_scale),
                 max_num_items_per_bucket_(max_num_items_per_bucket),
                 max_num_items_table_(max_num_items_table),
-                equal_to_function_(equal_to_function)
+                key_extractor_(key_extractor),
+                reduce_function_(reduce_function),
+                emit_(std::move(emit)),
+                index_function_(index_function),
+                equal_to_function_(equal_to_function),
+                flush_function_(flush_function),
+                begin_local_index_(begin_local_index),
+                end_local_index_(end_local_index),
+                neutral_element_(neutral_element)
     {
         assert(num_buckets_init_scale > 0);
         assert(num_buckets_resize_scale > 1);
