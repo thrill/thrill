@@ -376,6 +376,59 @@ public:
         return wb;
     }
 
+    //! Send (data,size) to destination
+    ssize_t sendto(const void* data, size_t size, int flags,
+                   const SocketAddress& dest) {
+        assert(IsValid());
+
+        if (debug) {
+            LOG << "Socket::sendto()"
+                << " fd_=" << fd_
+                << " size=" << size
+                << " data=" << common::hexdump(data, size)
+                << " flags=" << flags
+                << " dest=" << dest;
+        }
+
+        ssize_t r = ::sendto(fd_, data, size, flags,
+                             dest.sockaddr(), dest.socklen());
+
+        LOG << "done Socket::sendto()"
+            << " fd_=" << fd_
+            << " return=" << r;
+
+        return r;
+    }
+
+    //! Send message to socket.
+    ssize_t sendmsg(const struct msghdr* msg, int flags = 0) {
+        assert(IsValid());
+
+        if (debug) {
+            SocketAddress msg_name(
+                reinterpret_cast<struct sockaddr*>(msg->msg_name),
+                msg->msg_namelen);
+
+            LOG << "Socket::sendmsg()"
+                << " fd_=" << fd_
+                << " msg_name=" << msg_name
+                << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
+                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " flags=" << flags;
+        }
+
+        ssize_t r = ::sendmsg(fd_, msg, flags);
+
+        if (r < 0) {
+            LOG << "error! Socket::send()"
+                << " fd_=" << fd_
+                << " return=" << r
+                << " errno=" << strerror(errno);
+        }
+
+        return r;
+    }
+
     //! Recv (outdata,maxsize) from socket (BSD socket API function wrapper)
     ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0) {
         assert(IsValid());
@@ -439,6 +492,78 @@ public:
         return rb;
     }
 
+    //! Recv (outdata,maxsize) and source address from socket (BSD socket API
+    //! function wrapper)
+    ssize_t recvfrom(void* outdata, size_t maxsize, int flags = 0,
+                     SocketAddress* out_source = nullptr) {
+        assert(IsValid());
+
+        LOG << "Socket::recvfrom()"
+            << " fd_=" << fd_
+            << " maxsize=" << maxsize
+            << " flags=" << flags
+            << " out_socklen=" << (out_source ? out_source->socklen() : 0);
+
+        socklen_t out_socklen = out_source ? out_source->socklen() : 0;
+
+        ssize_t r = ::recvfrom(fd_, outdata, maxsize, flags,
+                               out_source ? out_source->sockaddr() : nullptr,
+                               &out_socklen);
+
+        if (debug) {
+            LOG << "done Socket::recvfrom()"
+                << " fd_=" << fd_
+                << " return=" << r
+                << " data="
+                << (r >= 0 ? common::hexdump(outdata, r) : "<error>")
+                << " out_source="
+                << (out_source ? out_source->ToStringHostPort() : "<null>");
+        }
+
+        return r;
+    }
+
+    //! Send message to socket.
+    ssize_t recvmsg(struct msghdr* msg, int flags = 0) {
+        assert(IsValid());
+
+        if (debug) {
+            SocketAddress msg_name(
+                reinterpret_cast<struct sockaddr*>(msg->msg_name),
+                msg->msg_namelen);
+
+            LOG << "Socket::recvmsg()"
+                << " fd_=" << fd_
+                << " msg_name=" << msg_name
+                << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
+                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " flags=" << flags;
+        }
+
+        ssize_t r = ::recvmsg(fd_, msg, flags);
+
+        if (r < 0) {
+            LOG << "error! Socket::send()"
+                << " fd_=" << fd_
+                << " return=" << r
+                << " errno=" << strerror(errno);
+        }
+        else {
+            SocketAddress msg_name(
+                reinterpret_cast<struct sockaddr*>(msg->msg_name),
+                msg->msg_namelen);
+
+            LOG << "Socket::recvmsg()"
+                << " fd_=" << fd_
+                << " msg_name=" << msg_name
+                << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
+                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " flags=" << flags;
+        }
+
+        return r;
+    }
+
     //! \}
 
     //! \name Socket Options and Accelerations
@@ -494,6 +619,24 @@ public:
     void SetNoDelay(bool activate = true);
 
     //! \}
+
+    //! Output a list of scattered iovec vectors for debugging.
+    static inline
+    std::string iovec_tostring(struct iovec* iov, size_t iovlen) {
+        if (iovlen == 0)
+            return "[empty]";
+        if (iovlen == 1)
+            return common::hexdump(iov[0].iov_base, iov[0].iov_len);
+
+        std::ostringstream oss;
+        oss << '[';
+        for (size_t i = 0; i < iovlen; ++i) {
+            if (i != 0) oss << ',';
+            oss << common::hexdump(iov[i].iov_base, iov[i].iov_len);
+        }
+        oss << ']';
+        return oss.str();
+    }
 
 protected:
     //! the file descriptor of the socket.
