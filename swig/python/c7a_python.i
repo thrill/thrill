@@ -65,10 +65,18 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 
 %shared_ptr(c7a::PyContext)
 %shared_ptr(c7a::api::Context)
-%template(VectorPyContext) std::vector<std::shared_ptr<c7a::PyContext>>;
+
 %template(VectorPyObject) std::vector<PyObject*>;
+%template(VectorString) std::vector<std::string>;
+
+%template(VectorPyContext) std::vector<std::shared_ptr<c7a::PyContext>>;
 
 %ignore c7a::api::HostContext::ConstructLocalMock;
+
+%feature("pythonappend") c7a::PyContext::PyContext(HostContext&, size_t) %{
+    # acquire a reference to the HostContext
+    self._host_context = host_context
+    %}
 
 %include <c7a/api/context.hpp>
 %include "c7a_python.hpp"

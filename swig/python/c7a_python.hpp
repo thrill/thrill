@@ -353,10 +353,17 @@ public:
 class PyContext : public api::Context
 {
 public:
+#ifndef SWIG
     PyContext(std::unique_ptr<HostContext>&& host_context,
               size_t local_worker_id)
         : Context(*host_context, local_worker_id),
           host_context_(std::move(host_context))
+    { }
+#endif
+
+    PyContext(HostContext& host_context,
+              size_t local_worker_id)
+        : Context(host_context, local_worker_id)
     { }
 
     ~PyContext() {
