@@ -16,9 +16,9 @@
 
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
+#include <c7a/common/item_serialization_tools.hpp>
 #include <c7a/core/stage_builder.hpp>
 #include <c7a/data/serialization.hpp>
-#include <c7a/common/item_serialization_tools.hpp>
 
 #include <fstream>
 #include <string>
@@ -40,15 +40,15 @@ public:
     using Super::context_;
 
     WriteBinaryNode(const ParentDIARef& parent,
-                       const std::string& path_out,
-                       StatsNode* stats_node)
+                    const std::string& path_out,
+                    StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
                      "WriteBinary", stats_node),
           path_out_(path_out),
           bfw_(path_out_)
     {
         sLOG << "Creating write node.";
-        
+
         auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };
@@ -101,9 +101,8 @@ private:
             outstream_.close();
         }
 
-       
         template <typename Binary>
-        BinaryFileWriter & Put(const Binary& item) {            
+        BinaryFileWriter & Put(const Binary& item) {
             outstream_.write(reinterpret_cast<const char*>(&item), sizeof(item));
             return *this;
         }
@@ -122,7 +121,7 @@ private:
     private:
         std::ofstream outstream_;
     };
-    
+
     BinaryFileWriter bfw_;
 };
 
@@ -147,6 +146,6 @@ void DIARef<ValueType, Stack>::WriteBinary(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_WRITE_LINES_MANY_HEADER
+#endif // !C7A_API_WRITE_BINARY_HEADER
 
 /******************************************************************************/

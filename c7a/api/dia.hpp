@@ -526,7 +526,6 @@ public:
      */
     void WriteLinesMany(const std::string& filepath) const;
 
-    
     void WriteBinary(const std::string& filepath) const;
 
     /*!
