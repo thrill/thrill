@@ -76,6 +76,11 @@ public:
         }
     }
 
+    //! Returns the actual BlockSink.
+    BlockSink* Source() {
+        return sink_;
+    }
+
     //! Return whether an actual BlockSink is attached.
     bool IsValid() const { return sink_ != nullptr; }
 

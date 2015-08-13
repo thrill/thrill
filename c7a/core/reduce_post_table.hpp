@@ -20,6 +20,7 @@
 #include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/file.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -131,32 +132,57 @@ public:
     void
     operator () (ReducePostTable* ht) const {
 
+        using KeyValuePair = typename ReducePostTable::KeyValuePair;
+
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
-        using KeyValuePair = typename ReducePostTable::KeyValuePair;
+        //! initially, spill some items to make sure
+        //! enough memory is available
+        ht->SpillItems(ht->NumItemsSpillDefault());
 
         auto &buckets_ = ht->Items();
 
-        for (size_t i = 0; i < ht->NumBuckets(); i++)
-        {
-            BucketBlock* current = buckets_[i];
+        auto &frame_writers = ht->FrameWriters();
 
-            while (current != NULL)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    ht->EmitAll(std::make_pair(bi->first, bi->second));
-                }
+        for (size_t frame_id = 0; frame_id < ht->NumFrames(); frame_id++) {
 
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
+            // get the actual reader from the writer
+            c7a::data::File* source = (c7a::data::File*)frame_writers[frame_id].Source();
+            data::File::Reader fr = source->GetReader();
+
+            // get the items and insert them again
+            while(fr.HasNext()) {
+                ht->Insert(fr.Next<KeyValuePair>());
             }
 
-            buckets_[i] = NULL;
+            // close the writer
+            frame_writers[frame_id].Close();
+
+            // compute frame offset of current frame
+            size_t offset = frame_id * ht->FrameSize();
+
+            // flush reduced data
+            for (size_t i = offset; i < offset + ht->NumBuckets(); i++)
+            {
+                BucketBlock* current = buckets_[i];
+
+                while (current != NULL)
+                {
+                    for (KeyValuePair* bi = current->items;
+                         bi != current->items + current->size; ++bi)
+                    {
+                        ht->EmitAll(std::make_pair(bi->first, bi->second));
+                    }
+
+                    // destroy block and advance to next
+                    BucketBlock* next = current->next;
+                    current->destroy_items();
+                    operator delete (current);
+                    current = next;
+                }
+
+                buckets_[i] = NULL;
+            }
         }
 
         ht->SetNumItems(0);
@@ -175,38 +201,68 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
+        //! initially, spill some items to make sure
+        //! enough memory is available
+        ht->SpillItems(ht->NumItemsSpillDefault());
+
         auto &buckets_ = ht->Items();
 
         std::vector<Value> elements_to_emit
                 (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
 
-        for (size_t i = 0; i < ht->NumBuckets(); i++)
-        {
-            BucketBlock* current = buckets_[i];
+        size_t index = ht->BeginLocalIndex();
 
-            while (current != NULL)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    elements_to_emit[bi->first - ht->BeginLocalIndex()] =
-                            bi->second;
-                }
+        auto &frame_writers = ht->FrameWriters();
 
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
+        for (size_t frame_id = 0; frame_id < ht->NumFrames(); frame_id++) {
+
+            // get the actual reader from the writer
+            c7a::data::File* source = (c7a::data::File*)frame_writers[frame_id].Source();
+            data::File::Reader fr = source->GetReader();
+
+            // get the items and insert them again
+            while(fr.HasNext()) {
+                ht->Insert(fr.Next<KeyValuePair>());
             }
 
-            buckets_[i] = NULL;
+            // close the writer
+            frame_writers[frame_id].Close();
+
+            // compute frame offset of current frame
+            size_t offset = frame_id * ht->FrameSize();
+
+            elements_to_emit.clear();
+
+            // flush reduced data
+            for (size_t i = offset; i < offset + ht->NumBuckets(); i++)
+            {
+                BucketBlock* current = buckets_[i];
+
+                while (current != NULL)
+                {
+                    for (KeyValuePair* bi = current->items;
+                         bi != current->items + current->size; ++bi)
+                    {
+                        elements_to_emit[bi->first - ht->BeginLocalIndex()] =
+                                bi->second;
+                    }
+
+                    // destroy block and advance to next
+                    BucketBlock* next = current->next;
+                    current->destroy_items();
+                    operator delete (current);
+                    current = next;
+                }
+
+                buckets_[i] = NULL;
+            }
+
+            for (auto element_to_emit : elements_to_emit) {
+            // TODO(ms): why do we need that extra loop? push to first loop!
+                ht->EmitAll(std::make_pair(index++, element_to_emit));
+            }
         }
 
-        size_t index = ht->BeginLocalIndex();
-        for (auto element_to_emit : elements_to_emit) {
-            ht->EmitAll(std::make_pair(index++, element_to_emit));
-        }
         assert(index == ht->EndLocalIndex());
 
         ht->SetNumItems(0);
@@ -319,6 +375,7 @@ public:
                    size_t num_buckets_resize_scale = 2,
                    size_t max_num_items_per_bucket = 256,
                    size_t max_num_items_table = 1048576,
+                   size_t frame_size = 10,
                    const EqualToFunction& equal_to_function = EqualToFunction()
                     )
             :   key_extractor_(key_extractor),
@@ -333,6 +390,7 @@ public:
                 num_buckets_resize_scale_(num_buckets_resize_scale),
                 max_num_items_per_bucket_(max_num_items_per_bucket),
                 max_num_items_table_(max_num_items_table),
+                frame_size_(frame_size),
                 equal_to_function_(equal_to_function)
     {
         assert(num_buckets_init_scale > 0);
@@ -373,6 +431,19 @@ public:
 
         num_buckets_ = num_buckets_init_scale_;
         buckets_.resize(num_buckets_, NULL);
+
+        num_frames_ = (size_t) (static_cast<double>(num_buckets_)
+                                / static_cast<double>(frame_size_));
+        frame_writers_.resize(num_frames_);
+        // prepare writers
+        for (int i = 0; i < num_frames_; i++) {
+            data::File file;
+            frame_writers_.push_back(file.GetWriter(1024));
+        }
+
+        num_items_spill_default_ = frame_size_ * max_num_items_per_bucket_;
+
+        srand(time(NULL));
     }
 
     /*!
@@ -437,7 +508,6 @@ public:
         }
 
         // have an item that needs to be added.
-
         if (current == NULL ||
             current->size == block_size_)
         {
@@ -461,8 +531,8 @@ public:
 
         if (num_items_ > max_num_items_table_)
         {
-            LOG << "flush";
-            throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
+            LOG << "spill";
+            SpillItems(num_items_spill_default_);
         }
 
         if (num_items_bucket > max_num_items_per_bucket_)
@@ -487,10 +557,56 @@ public:
     }
 
     /*!
+    * Spill items.
+    */
+    void SpillItems(size_t num_items_spill) {
+
+        // randomly select frame, get frame id
+        size_t frame_id = (size_t) (rand() % num_frames_);
+
+        // items spilled
+        size_t items_spilled = 0;
+
+        while (items_spilled < num_items_spill) {
+
+            size_t offset = frame_id * frame_size_;
+            // spill items
+            for (size_t i = offset; i < offset + frame_size_; i++) {
+
+                BucketBlock* current = buckets_[i];
+
+                while (current != NULL)
+                {
+                    for (KeyValuePair* bi = current->items;
+                         bi != current->items + current->size; ++bi)
+                    {
+                        frame_writers_[i](*bi);
+                        items_spilled++;
+                    }
+
+                    // destroy block and advance to next
+                    BucketBlock* next = current->next;
+                    current->destroy_items();
+                    operator delete (current);
+                    current = next;
+                }
+
+                buckets_[i] = NULL;
+            }
+
+            frame_id++;
+            if (frame_id >= num_frames_) {
+                frame_id = 0;
+            }
+        }
+
+        num_items_ -= items_spilled;
+    }
+
+    /*!
      * Emits element to all children
      */
     void EmitAll(const KeyValuePair& element) {
-    //void EmitAll(const Key& key, const Value& value) {
         emit_impl_.EmitElement(element, emit_);
     }
 
@@ -531,6 +647,15 @@ public:
     }
 
     /*!
+     * Returns the vector of frame writers.
+     *
+     * @return Vector of frame writers.
+     */
+    std::vector<data::File::Writer>& FrameWriters() {
+        return frame_writers_;
+    }
+
+    /*!
      * Sets the maximum number of items of the hash table. We don't want to push 2vt
      * elements before flush happens.
      *
@@ -545,7 +670,7 @@ public:
      *
      * @return Begin local index.
      */
-    size_t BeginLocalIndex() {
+    size_t BeginLocalIndex() const {
         return begin_local_index_;
     }
 
@@ -554,7 +679,7 @@ public:
      *
      * @return End local index.
      */
-    size_t EndLocalIndex() {
+    size_t EndLocalIndex() const {
         return end_local_index_;
     }
 
@@ -563,8 +688,35 @@ public:
      *
      * @return Neutral element.
      */
-    Value NeutralElement() {
+    Value NeutralElement() const {
         return neutral_element_;
+    }
+
+    /*!
+     * Returns the frame size.
+     *
+     * @return Frame size.
+     */
+    size_t FrameSize() const {
+        return frame_size_;
+    }
+
+    /*!
+     * Returns the number of frames.
+     *
+     * @return Number of frames.
+     */
+    size_t NumFrames() const {
+        return num_frames_;
+    }
+
+    /*!
+     * Returns the number of frames.
+     *
+     * @return Number of frames.
+     */
+    size_t NumItemsSpillDefault() const {
+        return num_items_spill_default_;
     }
 
     /*!
@@ -727,6 +879,15 @@ protected:
     //! Keeps the total number of items in the table.
     size_t num_items_ = 0;
 
+    //! frame size.
+    size_t frame_size_ = 0;
+
+    //! Number of frames.
+    size_t num_frames_ = 0;
+
+    //! Number of items to spill per spill iteration
+    size_t num_items_spill_default_ = 0;
+
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
 
@@ -738,6 +899,9 @@ protected:
 
     //! Data structure for actually storing the items.
     std::vector<BucketBlock*> buckets_;
+
+    //! Data structure for actually storing the items.
+    std::vector<data::File::Writer> frame_writers_;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;

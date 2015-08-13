@@ -25,9 +25,11 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
+#include <c7a/data/file.hpp>
+#include <math.h>
 
 namespace c7a {
-namespace core {
+    namespace core {
 
 /**
  *
@@ -119,18 +121,14 @@ public:
 
         using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
 
-        auto &vector_ = ht->Items();
+        using index_result = typename ReducePostProbingTable::index_result;
 
-        for (size_t i = 0; i < ht->Size(); i++)
-        {
-            KeyValuePair current = vector_[i];
-            if (current.first != ht->Sentinel().first)
-            {
-                ht->EmitAll(std::make_pair(current.first, current.second));
+        // initially, spill some items to make sure enough memory is available
+        ht->SpillItems(ht->NumItemsSpillDefault());
 
-                vector_[i] = ht->Sentinel();
-            }
-        }
+        auto &items = ht->Items();
+
+        auto &frame_writers = ht->FrameWriters();
 
         ht->SetNumItems(0);
     }
@@ -146,20 +144,20 @@ public:
 
         using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
 
-        auto &vector_ = ht->Items();
+        auto &items_ = ht->Items();
 
         std::vector<Value> elements_to_emit
                 (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
 
         for (size_t i = 0; i < ht->Size(); i++)
         {
-            KeyValuePair current = vector_[i];
+            KeyValuePair current = items_[i];
             if (current.first != ht->Sentinel().first)
             {
                 elements_to_emit[current.first - ht->BeginLocalIndex()] =
                         current.second;
 
-                vector_[i] = ht->Sentinel();
+                items_[i] = ht->Sentinel();
             }
         }
 
@@ -196,12 +194,12 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
 };
 
 template <typename ValueType, typename Key, typename Value,
-          typename KeyExtractor, typename ReduceFunction,
-          const bool SendPair = false,
-          typename FlushFunction = PostProbingReduceFlushToDefault,
-          typename IndexFunction = PostProbingReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>
-          >
+        typename KeyExtractor, typename ReduceFunction,
+        const bool SendPair = false,
+        typename FlushFunction = PostProbingReduceFlushToDefault,
+        typename IndexFunction = PostProbingReduceByHashKey<Key>,
+        typename EqualToFunction = std::equal_to<Key>
+>
 class ReducePostProbingTable
 {
     static const bool debug = false;
@@ -254,24 +252,27 @@ public:
                            size_t begin_local_index = 0,
                            size_t end_local_index = 0,
                            Value neutral_element = Value(),
+                           size_t block_size = 10,
                            size_t num_items_init_scale = 10,
                            size_t num_items_resize_scale = 2,
                            double max_items_fill_ratio = 1.0,
                            size_t max_num_items_table = 1048576,
+                           size_t frame_size = 1024,
                            const EqualToFunction& equal_to_function = EqualToFunction())
-        : key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)),
-          index_function_(index_function),
-          flush_function_(flush_function),
-          begin_local_index_(begin_local_index),
-          end_local_index_(end_local_index),
-          neutral_element_(neutral_element),
-          num_items_init_scale_(num_items_init_scale),
-          num_items_resize_scale_(num_items_resize_scale),
-          max_items_fill_ratio_(max_items_fill_ratio),
-          max_num_items_table_(max_num_items_table),
-          equal_to_function_(equal_to_function) {
+            : key_extractor_(key_extractor),
+              reduce_function_(reduce_function),
+              emit_(std::move(emit)),
+              index_function_(index_function),
+              flush_function_(flush_function),
+              begin_local_index_(begin_local_index),
+              end_local_index_(end_local_index),
+              neutral_element_(neutral_element),
+              num_items_init_scale_(num_items_init_scale),
+              num_items_resize_scale_(num_items_resize_scale),
+              max_items_fill_ratio_(max_items_fill_ratio),
+              max_num_items_table_(max_num_items_table),
+              frame_size_(frame_size),
+              equal_to_function_(equal_to_function) {
         assert(num_items_init_scale > 0);
         assert(num_items_resize_scale > 1);
         assert(max_items_fill_ratio >= 0.0 && max_items_fill_ratio <= 1.0);
@@ -298,7 +299,20 @@ public:
 
         table_size_ =  num_items_init_scale_;
         sentinel_ = KeyValuePair(sentinel, Value());
-        vector_.resize(table_size_, sentinel_);
+        items_.resize(table_size_, sentinel_);
+
+        num_frames_ = (size_t) (static_cast<double>(num_items_)
+                                / static_cast<double>(frame_size_));
+        frame_writers_.resize(num_frames_);
+        // prepare writers
+        for (int i = 0; i < num_frames_; i++) {
+            data::File file;
+            frame_writers_.push_back(file.GetWriter(1024));
+        }
+
+        num_items_spill_default_ = frame_size_;
+
+        srand(time(NULL));
     }
 
     /*!
@@ -329,16 +343,16 @@ public:
 
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
-        KeyValuePair* initial = &vector_[h.global_index];
+        KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
-        KeyValuePair* last_item = &vector_[table_size_ - 1];
+        KeyValuePair* last_item = &items_[table_size_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
             if (equal_to_function_(current->first, kv.first))
             {
                 LOG << "match of key: " << kv.first
-                    << " and " << current->first << " ... reducing...";
+                << " and " << current->first << " ... reducing...";
 
                 current->second = reduce_function_(current->second, kv.second);
 
@@ -374,8 +388,8 @@ public:
 
         if (num_items_ > max_num_items_table_)
         {
-            LOG << "flush";
-            throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
+            LOG << "spill";
+            SpillItems(num_items_spill_default_);
         }
 
         if (static_cast<double>(num_items_) /
@@ -399,6 +413,42 @@ public:
         num_items_ = 0;
 
         LOG << "Flushed items";
+    }
+
+    /*!
+    * Spill items.
+    */
+    void SpillItems(size_t num_items_spill) {
+
+        // randomly select frame, get frame id
+        size_t frame_id = (size_t) (rand() % num_frames_);
+
+        // items spilled
+        size_t items_spilled = 0;
+
+        while (items_spilled < num_items_spill) {
+
+            size_t offset = frame_id * frame_size_;
+            // spill items
+            for (size_t i = offset; i < offset + frame_size_; i++) {
+
+                KeyValuePair current = items_[i];
+                if (current.first != sentinel_.first)
+                {
+                    frame_writers_[i](current);
+
+                    items_[i] = sentinel_.first;
+                    items_spilled++;
+                }
+            }
+
+            frame_id++;
+            if (frame_id >= num_frames_) {
+                frame_id = 0;
+            }
+        }
+
+        num_items_ -= items_spilled;
     }
 
     /*!
@@ -443,7 +493,16 @@ public:
      * @return Vector of key/value pairs.
      */
     std::vector<KeyValuePair>& Items() {
-        return vector_;
+        return items_;
+    }
+
+    /*!
+     * Returns the vector of frame writers.
+     *
+     * @return Vector of frame writers.
+     */
+    std::vector<data::File::Writer>& FrameWriters() {
+        return frame_writers_;
     }
 
     /*!
@@ -493,6 +552,33 @@ public:
     }
 
     /*!
+     * Returns the frame size.
+     *
+     * @return Frame size.
+     */
+    size_t FrameSize() {
+        return frame_size_;
+    }
+
+    /*!
+     * Returns the number of frames.
+     *
+     * @return Number of frames.
+     */
+    size_t NumFrames() {
+        return num_frames_;
+    }
+
+    /*!
+     * Returns the number of frames.
+     *
+     * @return Number of frames.
+     */
+    size_t NumItemsSpillDefault() const {
+        return num_items_spill_default_;
+    }
+
+    /*!
      * Resizes the table by increasing the number of slots using some
      * scale factor (num_items_resize_scale_). All items are rehashed as
      * part of the operation.
@@ -504,14 +590,14 @@ public:
         num_items_ = 0;
 
         // move old hash array
-        std::vector<KeyValuePair> vector_old;
-        std::swap(vector_old, vector_);
+        std::vector<KeyValuePair> items_old;
+        std::swap(items_old, items_);
 
         // init new hash array
-        vector_.resize(table_size_, sentinel_);
+        items_.resize(table_size_, sentinel_);
 
         // rehash all items in old array
-        for (KeyValuePair k_v_pair : vector_old)
+        for (KeyValuePair k_v_pair : items_old)
         {
             if (k_v_pair.first != sentinel_.first)
             {
@@ -528,7 +614,7 @@ public:
     void Clear() {
         LOG << "Clearing";
 
-        for (KeyValuePair k_v_pair : vector_)
+        for (KeyValuePair k_v_pair : items_)
         {
             k_v_pair.first = sentinel_.first;
             k_v_pair.second = sentinel_.second;
@@ -546,13 +632,13 @@ public:
         LOG << "Resetting";
         table_size_ = num_items_init_scale_;
 
-        for (KeyValuePair k_v_pair : vector_)
+        for (KeyValuePair k_v_pair : items_)
         {
             k_v_pair.first = sentinel_.first;
             k_v_pair.second = sentinel_.second;
         }
 
-        vector_.resize(table_size_, sentinel_);
+        items_.resize(table_size_, sentinel_);
         num_items_ = 0;
         LOG << "Resetted";
     }
@@ -566,7 +652,7 @@ public:
 
         for (size_t i = 0; i < table_size_; i++)
         {
-            if (vector_[i].first == sentinel_.first)
+            if (items_[i].first == sentinel_.first)
             {
                 log += "item: ";
                 log += std::to_string(i);
@@ -578,10 +664,10 @@ public:
             log += std::to_string(i);
             log += " (";
             //log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
-            //       ? std::to_string(vector_[i].first) : "_";
+            //       ? std::to_string(items_[i].first) : "_";
             log += ", ";
             //log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
-            //       ? std::to_string(vector_[i].second) : "_";
+            //       ? std::to_string(items_[i].second) : "_";
             log += ")\n";
         }
 
@@ -614,6 +700,15 @@ private:
     //! Keeps the total number of items in the table.
     size_t num_items_ = 0;
 
+    //! frame size.
+    size_t frame_size_ = 0;
+
+    //! Number of frames.
+    size_t num_frames_ = 0;
+
+    //! Number of items to spill per spill iteration
+    size_t num_items_spill_default_ = 0;
+
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
 
@@ -624,7 +719,10 @@ private:
     std::vector<EmitterFunction> emit_;
 
     //! Data structure for actually storing the items.
-    std::vector<KeyValuePair> vector_;
+    std::vector<KeyValuePair> items_;
+
+    //! Data structure for actually storing the items.
+    std::vector<data::File::Writer> frame_writers_;
 
     //! Sentinel element used to flag free slots.
     KeyValuePair sentinel_;
