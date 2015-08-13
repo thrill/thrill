@@ -34,10 +34,11 @@ using MyPair = std::pair<int, MyStruct>;
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-        : public c7a::core::PreReduceByHashKey<int> {
+    : public c7a::core::PreReduceByHashKey<int>
+{
 public:
     CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     template <typename ReducePreTable>
@@ -74,8 +75,13 @@ TEST_F(PreTable, CustomHashFunction) {
     writers.emplace_back(output.GetWriter());
 
     CustomKeyHashFunction<int> cust_hash;
+<<<<<<< HEAD
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
             CustomKeyHashFunction<int>>
+=======
+    c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true, 16*1024,
+                              CustomKeyHashFunction<int> >
+>>>>>>> origin/master
     table(1, key_ex, red_fn, writers, 8, 2, 20, 100, cust_hash);
 
     for (int i = 0; i < 16; i++) {
@@ -511,7 +517,7 @@ TEST_F(PreTable, ResizeAndTestPartitionsHaveSameKeys) {
     size_t num_buckets_init_scale = 2;
     size_t bucket_size = 1 * 1024;
     size_t nitems = bucket_size +
-            (num_partitions * num_buckets_init_scale * bucket_size);
+                    (num_partitions * num_buckets_init_scale * bucket_size);
 
     std::vector<File> files(num_partitions);
     std::vector<File::Writer> writers;

@@ -18,7 +18,7 @@
 
 #endif // HAVE_INTELTBB
 
-#include <c7a/common/atomic_movable.hpp>
+#include <atomic>
 #include <mutex>
 #include <queue>
 
@@ -51,7 +51,7 @@ protected:
     std::queue<T> queue_;
 
     //! the mutex to lock before accessing the queue
-    mutable common::MutexMovable mutex_;
+    mutable std::mutex mutex_;
 
 public:
     //! Pushes a copy of source onto back of the queue.

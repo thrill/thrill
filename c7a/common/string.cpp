@@ -10,6 +10,8 @@
 
 #include <c7a/common/string.hpp>
 
+#include <string>
+
 namespace c7a {
 namespace common {
 

@@ -16,6 +16,7 @@
 #include <cassert>
 #include <map>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace c7a {
@@ -30,11 +31,11 @@ class Repository
 public:
     using IdPair = std::pair<size_t, size_t>;
     using ObjectPtr = std::shared_ptr<Object>;
-    
+
     //! construct with initial ids 0.
-    Repository(size_t num_workers_per_node)
+    explicit Repository(size_t num_workers_per_node)
         : next_id_(num_workers_per_node, 0) { }
-    
+
     //! Alllocates the next data target.
     //! Calls to this method alter the internal state -> order of calls is
     //! important and must be deterministic
@@ -97,13 +98,13 @@ public:
         // construct new object
         ObjectPtr value = std::make_shared<Object>(
             std::forward<Types>(construction) ...);
-        
+
         map_.insert(std::make_pair(id, value));
         return std::move(value);
     }
 
     //! return mutable reference to map of ids.
-    std::map<IdPair, ObjectPtr>& map() { return map_; }
+    std::map<IdPair, ObjectPtr> & map() { return map_; }
 
 private:
     //! Next ID to generate, one for each local worker.

@@ -112,8 +112,8 @@ public:
         auto lop_chain0 = parent0.stack().push(pre_op0_fn).emit();
         auto lop_chain1 = parent1.stack().push(pre_op1_fn).emit();
 
-        parent0.node()->RegisterChild(lop_chain0);
-        parent1.node()->RegisterChild(lop_chain1);
+        parent0.node()->RegisterChild(lop_chain0, this->type());
+        parent1.node()->RegisterChild(lop_chain1, this->type());
     }
 
     ~TwoZipNode() { }

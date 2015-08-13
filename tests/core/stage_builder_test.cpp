@@ -95,7 +95,7 @@ TEST(Stage, CountReferencesLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Create new child reference to LOpNode
             auto reduced = quadruples.ReduceBy(modulo_two, add_function);
@@ -145,10 +145,10 @@ TEST(Stage, OverwriteReferenceLOpNode) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Overwrite reference to LOpNode
-            quadruples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
+            quadruples = quadruples.ReduceBy(modulo_two, add_function).Cache();
 
             // Trigger execution
             std::vector<int> out_vec = quadruples.AllGather();
@@ -193,12 +193,12 @@ TEST(Stage, AdditionalChildReferences) {
 
             // Create a child references to Generate
             // Create a new DIA reference to LOpNode
-            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Collapse();
+            DIARef<int> quadruples = integers.FlatMap(duplicate_elements).Cache();
 
             // Create a child reference to LOpNode
-            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function).Collapse();
+            DIARef<int> octuples = quadruples.ReduceBy(modulo_two, add_function).Cache();
             // Create a child reference to LOpNode
-            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function).Collapse();
+            DIARef<int> octuples_second = quadruples.ReduceBy(modulo_two, add_function).Cache();
 
             // Trigger execution
             std::vector<int> out_vec = octuples.AllGather();

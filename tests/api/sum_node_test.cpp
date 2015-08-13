@@ -11,6 +11,7 @@
 
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/read_lines.hpp>
+#include <c7a/api/size.hpp>
 #include <c7a/api/sum.hpp>
 #include <gtest/gtest.h>
 
@@ -75,7 +76,10 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
                                     return in1 + in2;
                                 };
 
-            ASSERT_EQ(136, ones.Sum(add_function));
+            DIARef<int> coll = ones.Collapse();
+
+            ASSERT_EQ(136, coll.Sum(add_function));
+            ASSERT_EQ(16u, coll.Size());
         };
 
     c7a::api::RunLocalTests(start_func);

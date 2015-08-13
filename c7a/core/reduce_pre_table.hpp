@@ -228,8 +228,7 @@ public:
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         assert(num_partitions >= 0);
         assert(num_partitions == emit_.size());
         assert(num_buckets_init_scale > 0);

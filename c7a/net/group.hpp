@@ -132,13 +132,13 @@ public:
         return connections_[connection.peer_id()];
     }
 
-    //! Return number of connections in this group (= number computing nodes)
-    size_t num_connections() const {
+    //! Return number of connections in this group (= number computing hosts)
+    size_t num_hosts() const {
         return connections_.size();
     }
 
-    //! Return my rank in the connection group (computing nodes)
-    size_t my_connection_id() const {
+    //! Return my rank in the connection group (computing hosts)
+    size_t my_host_rank() const {
         return my_rank_;
     }
 
