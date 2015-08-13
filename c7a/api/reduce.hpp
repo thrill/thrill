@@ -123,14 +123,12 @@ public:
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<ValueType,
+                  = core::ReducePostTable<ValueType, Key, Value,
                                           KeyExtractor,
                                           ReduceFunction,
-                                          false,
                                           SendPair>;
 
-        ReduceTable table(key_extractor_, reduce_function_,
-                          DIANode<ValueType>::callbacks());
+        ReduceTable table(key_extractor_, reduce_function_, DIANode<ValueType>::callbacks());
 
         if (RobustKey) {
             //we actually want to wire up callbacks in the ctor and NOT use this blocking method
@@ -141,7 +139,6 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-
             table.Flush();
         }
         else {
@@ -178,6 +175,7 @@ public:
 private:
     //!Key extractor function
     KeyExtractor key_extractor_;
+
     //!Reduce function
     ReduceFunction reduce_function_;
 
@@ -185,8 +183,7 @@ private:
 
     std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey>
-    reduce_pre_table_;
+    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey> reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
