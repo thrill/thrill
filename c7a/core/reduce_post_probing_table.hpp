@@ -259,24 +259,24 @@ public:
                            double max_items_fill_ratio = 1.0,
                            size_t max_num_items_table = 1048576,
                            const EqualToFunction& equal_to_function = EqualToFunction())
-        : key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)),
-          index_function_(index_function),
-          flush_function_(flush_function),
-          begin_local_index_(begin_local_index),
-          end_local_index_(end_local_index),
-          neutral_element_(neutral_element),
-          num_items_init_scale_(num_items_init_scale),
+        : num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
           max_items_fill_ratio_(max_items_fill_ratio),
           max_num_items_table_(max_num_items_table),
-          equal_to_function_(equal_to_function) {
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(std::move(emit)),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function),
+          flush_function_(flush_function),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
+          neutral_element_(neutral_element)
+    {
         assert(num_items_init_scale > 0);
         assert(num_items_resize_scale > 1);
         assert(max_items_fill_ratio >= 0.0 && max_items_fill_ratio <= 1.0);
         assert(max_num_items_table > 0);
-
         init(sentinel);
     }
 
