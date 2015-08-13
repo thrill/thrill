@@ -290,7 +290,7 @@ public:
     }
 
     PyDIA ReduceBy(KeyExtractorFunction& key_extractor,
-                       ReduceFunction& reduce_function) const {
+                   ReduceFunction& reduce_function) const {
         assert(dia_.IsValid());
 
         SwigDirector_KeyExtractorFunction& director1 =

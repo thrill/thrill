@@ -15,14 +15,22 @@ using namespace c7a;
 %feature("director") KeyExtractorFunction;
 %feature("director") ReduceFunction;
 
+%feature("director:except") {
+    if ($error != NULL) {
+        // print backtrace
+        PyErr_PrintEx(0);
+        throw Swig::DirectorMethodException();
+    }
+}
+
 %define CallbackHelper(FunctionType,function_var) %{
    if not isinstance(function_var, FunctionType) and callable(function_var):
       class CallableWrapper(FunctionType):
          def __init__(self, f):
             super(CallableWrapper, self).__init__()
             self.f_ = f
-         def __call__(self, index):
-            return self.f_(index)
+         def __call__(self, *args):
+            return self.f_(*args)
       function_var = CallableWrapper(function_var)
 %}
 %enddef
@@ -33,16 +41,16 @@ using namespace c7a;
          def __init__(self, f):
             super(CallableWrapper, self).__init__()
             self.f_ = f
-         def __call__(self, index):
-            return self.f_(index)
+         def __call__(self, *args):
+            return self.f_(*args)
       function_var1 = CallableWrapper(function_var1)
    if not isinstance(function_var2, FunctionType2) and callable(function_var2):
       class CallableWrapper(FunctionType2):
          def __init__(self, f):
             super(CallableWrapper, self).__init__()
             self.f_ = f
-         def __call__(self, index):
-            return self.f_(index)
+         def __call__(self, *args):
+            return self.f_(*args)
       function_var2 = CallableWrapper(function_var2)
 %}
 %enddef
