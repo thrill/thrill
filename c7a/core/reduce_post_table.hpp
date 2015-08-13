@@ -187,7 +187,6 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    ht->EmitAll(std::make_pair(bi->first, bi->second));
                     elements_to_emit[bi->first - ht->BeginLocalIndex()] =
                             bi->second;
                 }
