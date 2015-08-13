@@ -18,6 +18,7 @@
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
+#include <c7a/api/read_binary.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/write_binary.hpp>
 #include <c7a/api/write_lines.hpp>
@@ -77,10 +78,15 @@ TEST(Operations, WriteToSingleFile) {
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
+            std::string binary_path = "output";
+            
+            integers.WriteBinary(binary_path);
 
-            integers.WriteBinary("output");
+            int bla = 5;
 
-            integers.Map(
+            auto integers2 = ReadBinary(ctx, binary_path, bla);
+
+            integers2.Map(
                 [](const int& item) {
                     return std::to_string(item);
                 })

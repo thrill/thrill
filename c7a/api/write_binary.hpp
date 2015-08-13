@@ -44,7 +44,7 @@ public:
                     StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
                      "WriteBinary", stats_node),
-          path_out_(path_out),
+          path_out_(path_out + std::to_string(context_.my_rank())),
           bfw_(path_out_)
     {
         sLOG << "Creating write node.";
@@ -66,7 +66,7 @@ public:
     //! Closes the output file
     void Execute() final {
         sLOG << "closing file" << path_out_;
-        bfw_.closeStream();
+        bfw_.CloseStream();
     }
 
     void Dispose() final { }
@@ -87,17 +87,11 @@ private:
         : public common::ItemWriterToolsBase<BinaryFileWriter>
     {
     public:
-        //BinaryFileWriter(std::ofstream& file) : outfile_(file) { }
-
         BinaryFileWriter(std::string file) : outstream_(file) { }
 
         virtual ~BinaryFileWriter() { }
 
-        void setStream(std::string file) {
-            outstream_(file);
-        }
-
-        void closeStream() {
+        void CloseStream() {
             outstream_.close();
         }
 
