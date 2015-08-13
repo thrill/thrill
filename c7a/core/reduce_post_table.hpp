@@ -546,7 +546,7 @@ public:
      * @return Begin local index.
      */
     size_t BeginLocalIndex() {
-        begin_local_index_;
+        return begin_local_index_;
     }
 
     /*!
@@ -555,7 +555,7 @@ public:
      * @return End local index.
      */
     size_t EndLocalIndex() {
-        end_local_index_;
+        return end_local_index_;
     }
 
     /*!
@@ -564,7 +564,7 @@ public:
      * @return Neutral element.
      */
     Value NeutralElement() {
-        neutral_element_;
+        return neutral_element_;
     }
 
     /*!
