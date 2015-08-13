@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import unittest
 import threading
 
@@ -21,9 +23,8 @@ class TestOperations(unittest.TestCase):
 
         print("AllGather:", dia2.AllGather())
 
-        # TODO: change to % 10 when things work.
-        dia3 = dia2.ReduceBy(lambda x : (x[0] + 10),
-                             lambda x,y : x + y)
+        dia3 = dia2.ReduceBy(lambda x : x[0] % 10,
+                             lambda x,y : (x + y))
 
         print("dia3.Size:", dia3.Size())
         print("dia3.AllGather:", dia3.AllGather())

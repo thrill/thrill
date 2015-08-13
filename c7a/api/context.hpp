@@ -127,7 +127,7 @@ public:
           local_worker_id_(local_worker_id),
           workers_per_host_(host_context.workers_per_host())
     {
-        assert(local_worker_id < workers_per_host);
+        assert(local_worker_id < workers_per_host());
     }
 
     //! \name System Information
