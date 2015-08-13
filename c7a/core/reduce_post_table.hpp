@@ -135,7 +135,7 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto &vector_ = ht->BucketBlocks();
+        auto &vector_ = ht->Items();
 
         for (size_t i = 0; i < ht->NumBuckets(); i++)
         {
@@ -158,6 +158,8 @@ public:
 
             vector_[i] = NULL;
         }
+
+        ht->SetNumItems(0);
     }
 };
 
@@ -173,7 +175,7 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto &vector_ = ht->BucketBlocks();
+        auto &vector_ = ht->Items();
 
         std::vector<Value> elements_to_emit
                 (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
@@ -206,6 +208,8 @@ public:
             ht->EmitAll(std::make_pair(index++, element_to_emit));
         }
         assert(index == ht->EndLocalIndex());
+
+        ht->SetNumItems(0);
     }
 };
 
@@ -231,8 +235,7 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
     }
 };
 
-template <typename ValueType,
-        typename Key, typename Value,
+template <typename ValueType, typename Key, typename Value,
         typename KeyExtractor, typename ReduceFunction,
         const bool SendPair = false,
         typename FlushFunction = PostReduceFlushToDefault,
@@ -242,9 +245,9 @@ template <typename ValueType,
          >
 class ReducePostTable
 {
-public:
     static const bool debug = false;
 
+public:
     typedef std::pair<Key, Value> KeyValuePair;
 
     typedef std::function<void (const ValueType&)> EmitterFunction;
@@ -510,11 +513,20 @@ public:
     }
 
     /*!
+     * Returns the total num of items in the table.
+     *
+     * @return Number of items in the table.
+     */
+    void SetNumItems(size_t num_items) {
+        num_items_ = num_items;
+    }
+
+    /*!
      * Returns the vector of bucket blocks.
      *
      * @return Vector of bucket blocks.
      */
-    std::vector<BucketBlock*>& BucketBlocks() {
+    std::vector<BucketBlock*>& Items() {
         return vector_;
     }
 
@@ -705,15 +717,15 @@ protected:
     // Maximal number of items per bucket before resize.
     size_t max_num_items_per_bucket_;
 
+    //! Maximal number of items before some items
+    //! are flushed (-> partial flush).
+    size_t max_num_items_table_;
+
     //! Number of buckets
     size_t num_buckets_;
 
     //! Keeps the total number of items in the table.
     size_t num_items_ = 0;
-
-    //! Maximal number of items before some items
-    //! are flushed (-> partial flush).
-    size_t max_num_items_table_;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
