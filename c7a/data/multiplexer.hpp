@@ -13,12 +13,12 @@
 #ifndef C7A_DATA_MULTIPLEXER_HEADER
 #define C7A_DATA_MULTIPLEXER_HEADER
 
-#include <c7a/common/atomic_movable.hpp>
 #include <c7a/data/repository.hpp>
 #include <c7a/net/dispatcher_thread.hpp>
 #include <c7a/net/group.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <memory>
 
 namespace c7a {
@@ -29,7 +29,8 @@ namespace data {
 
 class Channel;
 using ChannelPtr = std::shared_ptr<Channel>;
-class StreamBlockHeader;
+
+struct ChannelBlockHeader;
 
 /*!
  * Multiplexes virtual Connections on Dispatcher.
@@ -37,7 +38,7 @@ class StreamBlockHeader;
  * A worker as a TCP conneciton to each other worker to exchange large amounts
  * of data. Since multiple exchanges can occur at the same time on this single
  * connection we use multiplexing. The slices are called Blocks and are
- * indicated by a \ref StreamBlockHeader. Multiple Blocks form a Stream on a
+ * indicated by a \ref ChannelBlockHeader. Multiple Blocks form a Channel on a
  * single TCP connection. The multiplexer multiplexes all streams on all
  * sockets.
  *
@@ -48,27 +49,38 @@ class StreamBlockHeader;
 class Multiplexer
 {
 public:
-    explicit Multiplexer(size_t num_workers_per_node)
+    explicit Multiplexer(size_t num_workers_per_host, net::Group& group)
         : dispatcher_("multiplexer"),
-          num_workers_per_node_(num_workers_per_node),
-          channels_(num_workers_per_node){ }
+          group_(group),
+          num_workers_per_host_(num_workers_per_host),
+          channels_(num_workers_per_host) {
+        for (size_t id = 0; id < group_.num_hosts(); id++) {
+            if (id == group_.my_host_rank()) continue;
+            AsyncReadChannelBlockHeader(group_.connection(id));
+        }
+    }
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;
     //! non-copyable: delete assignment operator
     Multiplexer& operator = (const Multiplexer&) = delete;
-    //! default move constructor
-    Multiplexer(Multiplexer&&) = default;
 
     //! Closes all client connections
     ~Multiplexer();
 
-    void Connect(net::Group* group) {
-        group_ = group;
-        for (size_t id = 0; id < group_->num_connections(); id++) {
-            if (id == group_->my_connection_id()) continue;
-            AsyncReadStreamBlockHeader(group_->connection(id));
-        }
+    //! total number of hosts.
+    size_t num_hosts() const {
+        return group_.num_hosts();
+    }
+
+    //! my rank among the hosts.
+    size_t my_host_rank() const {
+        return group_.my_host_rank();
+    }
+
+    //! total number of workers.
+    size_t num_workers() const {
+        return num_hosts() * num_workers_per_host_;
     }
 
     //! Allocate the next channel
@@ -99,13 +111,16 @@ private:
     net::DispatcherThread dispatcher_;
 
     // Holds NetConnections for outgoing Channels
-    net::Group* group_ = nullptr;
+    net::Group& group_;
 
-    //! Number of workers per node
-    size_t num_workers_per_node_;
+    //! Number of workers per host
+    size_t num_workers_per_host_;
 
     //! protects critical sections
-    common::MutexMovable mutex_;
+    std::mutex mutex_;
+
+    //! friends for access to network components
+    friend class Channel;
 
     /**************************************************************************/
 
@@ -118,15 +133,15 @@ private:
 
     using Connection = net::Connection;
 
-    //! expects the next StreamBlockHeader from a socket and passes to
-    //! OnStreamBlockHeader
-    void AsyncReadStreamBlockHeader(Connection& s);
+    //! expects the next ChannelBlockHeader from a socket and passes to
+    //! OnChannelBlockHeader
+    void AsyncReadChannelBlockHeader(Connection& s);
 
-    void OnStreamBlockHeader(Connection& s, net::Buffer&& buffer);
+    void OnChannelBlockHeader(Connection& s, net::Buffer&& buffer);
 
-    void OnStreamBlock(
-        Connection& s, const StreamBlockHeader& header, const ChannelPtr& channel,
-        net::Buffer&& buffer);
+    void OnChannelBlock(
+        Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
+        const ByteBlockPtr& bytes);
 };
 
 //! \}

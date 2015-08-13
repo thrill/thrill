@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/data/stream_block_header_test.cpp
+ * tests/data/multiplexer_header_test.cpp
  *
  * Part of Project c7a.
  *
@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/stream_block_header.hpp>
+#include <c7a/data/multiplexer_header.hpp>
 #include <gtest/gtest.h>
 
 using namespace c7a;
@@ -21,13 +21,17 @@ struct StreamTest : public::testing::Test {
         candidate.sender_rank = 6;
     }
 
-    struct StreamBlockHeader candidate;
+    struct ChannelBlockHeader candidate;
 };
 
-TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesHeader) {
-    auto seri = candidate.Serialize();
-    struct StreamBlockHeader result;
-    result.ParseHeader(seri);
+TEST_F(StreamTest, ChannelBlockHeaderParsesAndSerializesHeader) {
+    net::BufferBuilder bb;
+    candidate.Serialize(bb);
+    net::Buffer b = bb.ToBuffer();
+
+    data::ChannelBlockHeader result;
+    net::BufferReader br(b);
+    result.ParseHeader(br);
 
     ASSERT_EQ(candidate.channel_id, result.channel_id);
     ASSERT_EQ(candidate.size, result.size);
@@ -35,10 +39,10 @@ TEST_F(StreamTest, StreamBlockHeaderParsesAndSerializesHeader) {
     ASSERT_EQ(candidate.sender_rank, result.sender_rank);
 }
 
-TEST_F(StreamTest, StreamBlockHeaderIsStreamEnd) {
-    ASSERT_FALSE(candidate.IsStreamEnd());
+TEST_F(StreamTest, ChannelBlockHeaderIsEnd) {
+    ASSERT_FALSE(candidate.IsEnd());
     candidate.size = 0;
-    ASSERT_TRUE(candidate.IsStreamEnd());
+    ASSERT_TRUE(candidate.IsEnd());
 }
 
 /******************************************************************************/

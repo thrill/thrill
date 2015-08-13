@@ -14,6 +14,7 @@
 #include <c7a/api/dia_base.hpp>
 #include <c7a/common/stats.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -22,6 +23,22 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
+
+template <typename ValueType>
+struct CallbackPair {
+    CallbackPair(const std::function<void(const ValueType&)>& cb,
+                 NodeType type)
+        : cb_(cb), type_(type) { }
+
+    void operator () (const ValueType& elem) {
+        cb_(elem);
+    }
+
+    //! callback to invoke (currently for each item)
+    std::function<void(const ValueType&)> cb_;
+    //! node invoked.
+    NodeType                              type_;
+};
 
 /*!
  * A DIANode is a typed node representing and operation in c7a. It is the super
@@ -35,8 +52,6 @@ template <typename ValueType>
 class DIANode : public DIABase
 {
 public:
-    using ChildFunction = std::function<void(const ValueType&)>;
-
     /*!
      * Default constructor for a DIANode.
      */
@@ -70,27 +85,36 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(const ChildFunction& callback) {
-        this->callbacks_.push_back(callback);
+    void RegisterChild(const std::function<void(const ValueType&)> callback,
+                       const NodeType& child_type) {
+        callbacks_.emplace_back(callback, child_type);
     }
 
     void UnregisterChilds() final {
-        this->callbacks_.clear();
+        callbacks_.erase(
+            std::remove_if(
+                callbacks_.begin(), callbacks_.end(),
+                [](const auto& cb) { return cb.type_ != NodeType::COLLAPSE; }),
+            callbacks_.end());
     }
 
-    std::vector<ChildFunction> & callbacks() {
+    std::vector<CallbackPair<ValueType> > & callbacks() {
         return callbacks_;
     }
 
+    void callback_functions(std::vector<std::function<void(const ValueType&)> >& cbs) {
+        for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
+    }
+
     void PushElement(const ValueType& elem) {
-        for (auto callback : this->callbacks_) {
+        for (auto& callback : callbacks_) {
             callback(elem);
         }
     }
 
 protected:
     //! Callback functions from the child nodes.
-    std::vector<ChildFunction> callbacks_;
+    std::vector<CallbackPair<ValueType> > callbacks_;
 };
 
 //! \}

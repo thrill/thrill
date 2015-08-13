@@ -12,11 +12,12 @@
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/cache.hpp>
 #include <c7a/api/collapse.hpp>
+#include <c7a/api/distribute.hpp>
+#include <c7a/api/distribute_from.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
-#include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/write_lines.hpp>
 #include <c7a/api/write_lines_many.hpp>
@@ -81,10 +82,10 @@ TEST(Operations, WriteToSingleFile) {
                 })
             .WriteLines(path);
 
-            //Race condition as one worker might be finished while others
-            //are still writing to output file.
-            ctx.flow_control_channel().Await();
-            
+            // Race condition as one worker might be finished while others are
+            // still writing to output file.
+            ctx.Barrier();
+
             std::ifstream file(path);
             size_t begin = file.tellg();
             file.seekg(0, std::ios::end);
@@ -124,7 +125,40 @@ TEST(Operations, ReadAndAllGatherElementsCorrect) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, ScatterAndAllGatherElementsCorrect) {
+TEST(Operations, DistributeAndAllGatherElements) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            static const size_t test_size = 1024;
+
+            std::vector<size_t> in_vector;
+
+            // generate data everywhere
+            for (size_t i = 0; i < test_size; ++i) {
+                in_vector.push_back(i);
+            }
+
+            // "randomly" shuffle.
+            std::default_random_engine gen(123456);
+            std::shuffle(in_vector.begin(), in_vector.end(), gen);
+
+            DIARef<size_t> integers = Distribute(ctx, in_vector).Collapse();
+
+            std::vector<size_t> out_vec = integers.AllGather();
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            ASSERT_EQ(test_size, out_vec.size());
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i, out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, DistributeFromAndAllGatherElements) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -142,7 +176,7 @@ TEST(Operations, ScatterAndAllGatherElementsCorrect) {
                 std::random_shuffle(in_vector.begin(), in_vector.end());
             }
 
-            DIARef<size_t> integers = Scatter(ctx, in_vector).Collapse();
+            DIARef<size_t> integers = DistributeFrom(ctx, in_vector, 0).Collapse();
 
             std::vector<size_t> out_vec = integers.AllGather();
 

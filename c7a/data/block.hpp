@@ -49,6 +49,11 @@ protected:
     //! use Allocate() for construction.
     explicit ByteBlock(size_t size) : size_(size) { }
 
+    //! deleted for shared_ptr<ByteBlock>
+    static void deleter(ByteBlock* bb) {
+        operator delete (bb);
+    }
+
 public:
     //! Construct a block of given size.
     static std::shared_ptr<ByteBlock> Allocate(size_t block_size) {
@@ -61,7 +66,7 @@ public:
 
         // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
         // this whole procedure with std::make_shared.
-        return std::shared_ptr<ByteBlock>(block);
+        return std::shared_ptr<ByteBlock>(block, deleter);
     }
 
     //! mutable data accessor to memory block

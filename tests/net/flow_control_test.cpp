@@ -28,7 +28,7 @@ using namespace c7a::net;
 static void SingleThreadPrefixSum(Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
-    int myRank = (int)net->my_connection_id();
+    int myRank = (int)net->my_host_rank();
 
     int sum = channel.PrefixSum(myRank);
 
@@ -47,7 +47,7 @@ static void SingleThreadBroadcast(Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     int magic = 1337;
-    int myRank = (int)net->my_connection_id();
+    int myRank = (int)net->my_host_rank();
     int value = myRank + magic;
 
     int res = channel.Broadcast(value);
@@ -78,7 +78,7 @@ static void MultiThreadBroadcast(Group* net) {
     const int count = 4;
     const int magic = 1337;
     ExecuteMultiThreads(net, count, [=](FlowControlChannel& channel, int id) {
-                            int myRank = (int)net->my_connection_id() * count + id + magic;
+                            int myRank = (int)net->my_host_rank() * count + id + magic;
 
                             int res = channel.Broadcast(myRank);
 
@@ -93,12 +93,12 @@ static void SingleThreadAllReduce(Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
-    int myRank = (int)net->my_connection_id();
+    int myRank = (int)net->my_host_rank();
 
     int res = channel.AllReduce(myRank);
 
     int expected = 0;
-    for (size_t i = 0; i < net->num_connections(); i++) {
+    for (size_t i = 0; i < net->num_hosts(); i++) {
         expected += i;
     }
 
@@ -113,11 +113,11 @@ static void MultiThreadAllReduce(Group* net) {
     const int count = 4;
 
     ExecuteMultiThreads(net, count, [=](FlowControlChannel& channel, int id) {
-                            int myRank = (int)net->my_connection_id() * count + id;
+                            int myRank = (int)net->my_host_rank() * count + id;
 
                             int res = channel.AllReduce(myRank);
                             int expected = 0;
-                            for (size_t i = 0; i < net->num_connections() * count; i++) {
+                            for (size_t i = 0; i < net->num_hosts() * count; i++) {
                                 expected += i;
                             }
 
@@ -133,11 +133,11 @@ static void MultiThreadPrefixSum(Group* net) {
     const int count = 4;
 
     ExecuteMultiThreads(net, count, [=](FlowControlChannel& channel, int id) {
-                            int myRank = (int)net->my_connection_id() * count + id;
+                            int myRank = (int)net->my_host_rank() * count + id;
 
                             int res = channel.PrefixSum(myRank);
                             int expected = 0;
-                            for (size_t i = 0; i <= net->my_connection_id() * count + id; i++) {
+                            for (size_t i = 0; i <= net->my_host_rank() * count + id; i++) {
                                 expected += i;
                             }
 

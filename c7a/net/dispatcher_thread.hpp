@@ -15,7 +15,6 @@
 #ifndef C7A_NET_DISPATCHER_THREAD_HEADER
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
-#include <c7a/common/atomic_movable.hpp>
 #include <c7a/common/concurrent_queue.hpp>
 #include <c7a/common/thread_pool.hpp>
 #include <c7a/data/block.hpp>
@@ -62,6 +61,9 @@ public:
     //! Signature of async read callbacks.
     using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
 
+    //! Signature of async read ByteBlock callbacks.
+    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
+
     //! Signature of async write callbacks.
     using AsyncWriteCallback = function<void(Connection&)>;
 
@@ -78,10 +80,6 @@ public:
     DispatcherThread(const DispatcherThread&) = delete;
     //! non-copyable: delete assignment operator
     DispatcherThread& operator = (const DispatcherThread&) = delete;
-    //! move-constructor: default
-    DispatcherThread(DispatcherThread&&) = default;
-    //! move-assignment operator: default
-    DispatcherThread& operator = (DispatcherThread&&) = default;
 
     //! Return internal Dispatcher object
     //Dispatcher & dispatcher() { return dispatcher_; }
@@ -117,6 +115,10 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb);
+
+    //! asynchronously read the full ByteBlock and deliver it to the callback
+    void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
+                   AsyncReadByteBlockCallback done_cb);
 
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
@@ -163,7 +165,7 @@ private:
     class Dispatcher* dispatcher_;
 
     //! termination flag
-    common::AtomicMovable<bool> terminate_ { false };
+    std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
     std::string name_;

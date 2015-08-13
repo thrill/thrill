@@ -19,13 +19,13 @@
 #include <c7a/api/allgather.hpp>
 #include <c7a/api/cache.hpp>
 #include <c7a/api/collapse.hpp>
+#include <c7a/api/distribute_from.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
 #include <c7a/api/read_lines.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/reduce_to_index.hpp>
-#include <c7a/api/scatter.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/api/sort.hpp>
 #include <c7a/api/sum.hpp>

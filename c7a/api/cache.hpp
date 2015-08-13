@@ -54,7 +54,7 @@ public:
                 writer_(input);
             };
         auto lop_chain = parent.stack().push(save_fn).emit();
-        parent.node()->RegisterChild(lop_chain);
+        parent.node()->RegisterChild(lop_chain, this->type());
     }
 
     //! Virtual destructor for a LOpNode.
