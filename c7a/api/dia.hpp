@@ -540,6 +540,20 @@ public:
      */
     std::vector<ValueType> AllGather() const;
 
+    /*!
+     * Gather is an Action, which collects all data of the DIA into a vector at
+     * the given worker. This should only be done if the received data can fit
+     * into RAM of the one worker.
+     */
+    std::vector<ValueType> Gather(size_t target_id) const;
+
+    /*!
+     * Gather is an Action, which collects all data of the DIA into a vector at
+     * the given worker. This should only be done if the received data can fit
+     * into RAM of the one worker.
+     */
+    void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
+
     auto Collapse() const;
 
     auto Cache() const;
