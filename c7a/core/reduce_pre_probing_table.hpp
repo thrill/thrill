@@ -267,7 +267,7 @@ public:
 
             ++current;
 
-            if (current == next_partition)
+            if (current == next_partition) // TODO(ms): overflow save?
             {
                 current -= num_items_per_partition_;
             }
