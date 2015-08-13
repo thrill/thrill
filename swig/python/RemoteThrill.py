@@ -12,7 +12,7 @@ class RemoteDIA():
         # issue async requests
         asyncs = [ref() for ref in anetrefs]
         for a in asyncs: a.wait()
-        # return RemoteDIA
+        # return values of workers as list
         return [a.value for a in asyncs]
 
     def Size(self):
@@ -21,8 +21,29 @@ class RemoteDIA():
         # issue async requests
         asyncs = [ref() for ref in anetrefs]
         for a in asyncs: a.wait()
-        # return RemoteDIA
+        # return values of workers as list
         return [a.value for a in asyncs]
+
+    def Map(self, map_function):
+        # make async objects
+        anetrefs = [rpyc.async(dia.Map) for dia in self._dias]
+        # issue async requests
+        _map_function = marshal.dumps(map_function.__code__)
+        asyncs = [ref(_map_function) for ref in anetrefs]
+        for a in asyncs: a.wait()
+        # return RemoteDIA
+        return RemoteDIA([a.value for a in asyncs])
+
+    def ReduceBy(self, key_extractor, reduce_function):
+        # make async objects
+        anetrefs = [rpyc.async(dia.ReduceBy) for dia in self._dias]
+        # issue async requests
+        _key_extractor = marshal.dumps(key_extractor.__code__)
+        _reduce_function = marshal.dumps(reduce_function.__code__)
+        asyncs = [ref(_key_extractor, _reduce_function) for ref in anetrefs]
+        for a in asyncs: a.wait()
+        # return RemoteDIA
+        return RemoteDIA([a.value for a in asyncs])
 
 class RemoteThrill():
     def __init__(self, rpyc_hosts, thrill_hosts):
@@ -51,8 +72,8 @@ class RemoteThrill():
         # make async objects
         anetrefs = [rpyc.async(ctx.Generate) for ctx in self._ctx]
         # issue async requests
-        mcode = marshal.dumps(generator_function.__code__)
-        asyncs = [ref(mcode, size) for ref in anetrefs]
+        _generator_function = marshal.dumps(generator_function.__code__)
+        asyncs = [ref(_generator_function, size) for ref in anetrefs]
         for a in asyncs: a.wait()
         # return RemoteDIA
         return RemoteDIA([a.value for a in asyncs])
