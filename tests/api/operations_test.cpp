@@ -21,6 +21,7 @@
 #include <c7a/api/size.hpp>
 #include <c7a/api/write_lines.hpp>
 #include <c7a/api/write_lines_many.hpp>
+#include <c7a/api/write_binary.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -59,7 +60,7 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
                                    writer_size++;
                                    return std::to_string(item) + "\n";
                                })
-                           .WriteLinesMany("test1.out");
+                           .WriteBinary("test1.out");
 
                            ASSERT_EQ(generate_size, writer_size);
                        });
@@ -76,6 +77,9 @@ TEST(Operations, WriteToSingleFile) {
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
+
+            integers.WriteBinary("output");
+            
             integers.Map(
                 [](const int& item) {
                     return std::to_string(item);

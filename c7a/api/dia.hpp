@@ -526,6 +526,9 @@ public:
      */
     void WriteLinesMany(const std::string& filepath) const;
 
+    
+    void WriteBinary(const std::string& filepath) const;
+
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
      * each worker. This is only for testing purposes and should not be used on
