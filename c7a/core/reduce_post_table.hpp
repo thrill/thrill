@@ -135,11 +135,11 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto &vector_ = ht->Items();
+        auto &buckets_ = ht->Items();
 
         for (size_t i = 0; i < ht->NumBuckets(); i++)
         {
-            BucketBlock* current = vector_[i];
+            BucketBlock* current = buckets_[i];
 
             while (current != NULL)
             {
@@ -156,7 +156,7 @@ public:
                 current = next;
             }
 
-            vector_[i] = NULL;
+            buckets_[i] = NULL;
         }
 
         ht->SetNumItems(0);
@@ -175,14 +175,14 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto &vector_ = ht->Items();
+        auto &buckets_ = ht->Items();
 
         std::vector<Value> elements_to_emit
                 (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
 
         for (size_t i = 0; i < ht->NumBuckets(); i++)
         {
-            BucketBlock* current = vector_[i];
+            BucketBlock* current = buckets_[i];
 
             while (current != NULL)
             {
@@ -200,7 +200,7 @@ public:
                 current = next;
             }
 
-            vector_[i] = NULL;
+            buckets_[i] = NULL;
         }
 
         size_t index = ht->BeginLocalIndex();
@@ -350,7 +350,7 @@ public:
 
     ~ReducePostTable() {
         // destroy all block chains
-        for (BucketBlock* b_block : vector_)
+        for (BucketBlock* b_block : buckets_)
         {
             BucketBlock* current = b_block;
             while (current != NULL)
@@ -372,7 +372,7 @@ public:
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         num_buckets_ = num_buckets_init_scale_;
-        vector_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, NULL);
     }
 
     /*!
@@ -406,7 +406,7 @@ public:
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
         size_t num_items_bucket = 0;
-        BucketBlock* current = vector_[h.global_index];
+        BucketBlock* current = buckets_[h.global_index];
 
         while (current != NULL)
         {
@@ -446,8 +446,8 @@ public:
                     static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
             current->size = 0;
-            current->next = vector_[h.global_index];
-            vector_[h.global_index] = current;
+            current->next = buckets_[h.global_index];
+            buckets_[h.global_index] = current;
         }
 
         // in-place construct/insert new item in current bucket block
@@ -527,7 +527,7 @@ public:
      * @return Vector of bucket blocks.
      */
     std::vector<BucketBlock*>& Items() {
-        return vector_;
+        return buckets_;
     }
 
     /*!
@@ -578,14 +578,14 @@ public:
         num_items_ = 0;
 
         // move old hash array
-        std::vector<BucketBlock*> vector_old;
-        std::swap(vector_old, vector_);
+        std::vector<BucketBlock*> buckets_old;
+        std::swap(buckets_old, buckets_);
 
         // init new hash array
-        vector_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, NULL);
 
         // rehash all items in old array
-        for (BucketBlock* b_block : vector_old)
+        for (BucketBlock* b_block : buckets_old)
         {
             BucketBlock* current = b_block;
             while (current != NULL)
@@ -613,7 +613,7 @@ public:
     void Clear() {
         LOG << "Clearing";
 
-        for (BucketBlock* b_block : vector_)
+        for (BucketBlock* b_block : buckets_)
         {
             BucketBlock* current = b_block;
             while (current != NULL)
@@ -639,7 +639,7 @@ public:
         LOG << "Resetting";
         num_buckets_ = num_buckets_init_scale_;
 
-        for (BucketBlock*& b_block : vector_)
+        for (BucketBlock*& b_block : buckets_)
         {
             BucketBlock* current = b_block;
             while (current != NULL)
@@ -653,7 +653,7 @@ public:
             b_block = NULL;
         }
 
-        vector_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, NULL);
         num_items_ = 0;
         LOG << "Resetted";
     }
@@ -666,7 +666,7 @@ public:
 
         for (int i = 0; i < num_buckets_; i++)
         {
-            if (vector_[i] == NULL)
+            if (buckets_[i] == NULL)
             {
                 LOG << "bucket id: "
                 << i
@@ -676,7 +676,7 @@ public:
 
             std::string log = "";
 
-            BucketBlock* current = vector_[i];
+            BucketBlock* current = buckets_[i];
             while (current != NULL)
             {
                 log += "block: ";
@@ -737,7 +737,7 @@ protected:
     std::vector<EmitterFunction> emit_;
 
     //! Data structure for actually storing the items.
-    std::vector<BucketBlock*> vector_;
+    std::vector<BucketBlock*> buckets_;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;
