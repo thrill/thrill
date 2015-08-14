@@ -23,11 +23,11 @@ namespace data {
 /*!
  * Simple block reader that allows reading the first value without advancing. 
  */
-template <typename ItemType>
+template <typename ItemType, typename BlockSource>
 class BufferedBlockReader
 {
 private:
-    File::Reader &reader_;
+    BlockReader<BlockSource> reader_;
     ItemType current_;
     bool hasCurrent_;
 public:
@@ -51,17 +51,15 @@ public:
      * Advances this reader to the next value. 
      */
     void Next() {
-        assert(HasValue());
-
         hasCurrent_ = reader_.HasNext();
         if(hasCurrent_)
-            current_ = reader_.Next<ItemType>();
+            current_ = reader_.template Next<ItemType>();
     }
 
     /*!
      * Creates a new instance of this class, based on the given file reader.
      */
-    BufferedBlockReader(File::Reader &reader) : reader_(reader) {
+    BufferedBlockReader(BlockReader<BlockSource> reader) : reader_(reader) {
         Next();    
     }
 };

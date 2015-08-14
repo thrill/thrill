@@ -184,8 +184,7 @@ TEST(File, ReadFileWIthBufferedReader) {
     }    
     fw.Close();
 
-    data::File::Reader fr = file.GetReader();
-    data::BufferedBlockReader<size_t> br(fr);
+    auto br = file.GetBufferedReader<size_t>();
 
     for(size_t i = 0 ; i < size; i++) {
         ASSERT_TRUE(br.HasValue());
