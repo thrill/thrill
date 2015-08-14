@@ -31,22 +31,36 @@ private:
     ItemType current_;
     bool hasCurrent_;
 public:
+    /*!
+     * Returns true if this reader holds a value at the current position.
+     */
     bool HasValue() {
         return hasCurrent_;
     }
 
+    /*!
+     * Gets the value at the current position of this reader.
+     */
     ItemType Value() {
         assert(HasValue());
 
         return current_;
     }
 
+    /*! 
+     * Advances this reader to the next value. 
+     */
     void Next() {
+        assert(HasValue());
+
         hasCurrent_ = reader_.HasNext();
         if(hasCurrent_)
             current_ = reader_.Next<ItemType>();
     }
 
+    /*!
+     * Creates a new instance of this class, based on the given file reader.
+     */
     BufferedBlockReader(File::Reader &reader) : reader_(reader) {
         Next();    
     }
@@ -57,6 +71,6 @@ public:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_READER_HEADER
+#endif // !C7A_DATA_BUFFERED_BLOCK_READER_HEADER
 
 /******************************************************************************/
