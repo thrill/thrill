@@ -3,41 +3,16 @@
  *
  * Part of Project c7a.
  *
+ * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-/******************************************************************************
- * malloc_count.c
- *
- * malloc() allocation counter based on http://ozlabs.org/~jk/code/ and other
- * code preparing LD_PRELOAD shared objects.
- *
- ******************************************************************************
- * Copyright (C) 2013-2014 Timo Bingmann <tb@panthema.net>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *****************************************************************************/
-
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+
+#include <c7a/core/malloc_count.hpp>
 
 #include <dlfcn.h>
 #include <locale.h>
@@ -45,21 +20,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "malloc_count.hpp"
+namespace c7a {
+namespace core {
 
-/* user-defined options for output malloc()/free() operations to stderr */
+//! user-defined options for output malloc()/free() operations to stderr
 
-static const int log_operations = 0;    /* <-- set this to 1 for log output */
+static const int log_operations = 0;    //! <-- set this to 1 for log output
 static const size_t log_operations_threshold = 1024 * 1024;
 
-/* option to use gcc's intrinsics to do thread-safe statistics operations */
+//! option to use gcc's intrinsics to do thread-safe statistics operations
 #define THREAD_SAFE_GCC_INTRINSICS      0
 
-/* to each allocation additional data is added for bookkeeping. due to
- * alignment requirements, we can optionally add more than just one integer. */
+//! to each allocation additional data is added for bookkeeping. due to
+//! alignment requirements, we can optionally add more than just one integer.
 static const size_t alignment = 16; /* bytes (>= 2*sizeof(size_t)) */
 
-/* function pointer to the real procedures, loaded using dlsym */
+//! function pointer to the real procedures, loaded using dlsym
 typedef void* (* malloc_type)(size_t);
 typedef void (* free_type)(void*);
 typedef void* (* realloc_type)(void*, size_t);
@@ -68,16 +44,16 @@ static malloc_type real_malloc = NULL;
 static free_type real_free = NULL;
 static realloc_type real_realloc = NULL;
 
-/* a sentinel value prefixed to each allocation */
+//! a sentinel value prefixed to each allocation
 static const size_t sentinel = 0xDEADC0DE;
 
-/* a simple memory heap for allocations prior to dlsym loading */
+//! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
 static size_t init_heap_use = 0;
 static const int log_operations_init_heap = 0;
 
-/* output */
+//! output
 #define PPREFIX "malloc_count ### "
 
 /*****************************************/
@@ -86,72 +62,96 @@ static const int log_operations_init_heap = 0;
 
 static long long peak = 0, curr = 0, total = 0, num_allocs = 0;
 
-static malloc_count_callback_type callback = NULL;
-static void* callback_cookie = NULL;
-
-/* add allocation to statistics */
+//! add allocation to statistics
 static void inc_count(size_t inc) {
 #if THREAD_SAFE_GCC_INTRINSICS
     long long mycurr = __sync_add_and_fetch(&curr, inc);
     if (mycurr > peak) peak = mycurr;
     total += inc;
-    if (callback) callback(callback_cookie, mycurr);
 #else
     if ((curr += inc) > peak) peak = curr;
     total += inc;
-    if (callback) callback(callback_cookie, curr);
 #endif
     ++num_allocs;
 }
 
-/* decrement allocation to statistics */
+//! decrement allocation to statistics
 static void dec_count(size_t dec) {
 #if THREAD_SAFE_GCC_INTRINSICS
     long long mycurr = __sync_sub_and_fetch(&curr, dec);
-    if (callback) callback(callback_cookie, mycurr);
 #else
     curr -= dec;
-    if (callback) callback(callback_cookie, curr);
 #endif
 }
 
-/* user function to return the currently allocated amount of memory */
-extern size_t malloc_count_current(void) {
+//! user function to return the currently allocated amount of memory
+size_t malloc_count_current(void) {
     return curr;
 }
 
-/* user function to return the peak allocation */
-extern size_t malloc_count_peak(void) {
+//! user function to return the peak allocation
+size_t malloc_count_peak(void) {
     return peak;
 }
 
-/* user function to reset the peak allocation to current */
-extern void malloc_count_reset_peak(void) {
+//! user function to reset the peak allocation to current
+void malloc_count_reset_peak(void) {
     peak = curr;
 }
 
-/* user function to return total number of allocations */
-extern size_t malloc_count_num_allocs(void) {
+//! user function to return total number of allocations
+size_t malloc_count_num_allocs(void) {
     return num_allocs;
 }
 
-/* user function which prints current and peak allocation to stderr */
-extern void malloc_count_print_status(void) {
+//! user function which prints current and peak allocation to stderr
+void malloc_count_print_status(void) {
     fprintf(stderr, PPREFIX "current %'lld, peak %'lld\n",
             curr, peak);
 }
 
-/* user function to supply a memory profile callback */
-void malloc_count_set_callback(malloc_count_callback_type cb, void* cookie) {
-    callback = cb;
-    callback_cookie = cookie;
+static __attribute__ ((constructor)) void init(void) {
+    char* error;
+
+    setlocale(LC_NUMERIC, ""); //! for better readable numbers
+
+    dlerror();
+
+    real_malloc = (malloc_type)dlsym(RTLD_NEXT, "malloc");
+    if ((error = dlerror()) != NULL) {
+        fprintf(stderr, PPREFIX "error %s\n", error);
+        exit(EXIT_FAILURE);
+    }
+
+    real_realloc = (realloc_type)dlsym(RTLD_NEXT, "realloc");
+    if ((error = dlerror()) != NULL) {
+        fprintf(stderr, PPREFIX "error %s\n", error);
+        exit(EXIT_FAILURE);
+    }
+
+    real_free = (free_type)dlsym(RTLD_NEXT, "free");
+    if ((error = dlerror()) != NULL) {
+        fprintf(stderr, PPREFIX "error %s\n", error);
+        exit(EXIT_FAILURE);
+    }
 }
+
+static __attribute__ ((destructor)) void finish(void) {
+    fprintf(stderr, PPREFIX
+            "exiting, total: %'lld, peak: %'lld, current: %'lld\n",
+            total, peak, curr);
+}
+
+} // namespace core
+} // namespace c7a
 
 /****************************************************/
 /* exported symbols that overlay the libc functions */
 /****************************************************/
 
-/* exported malloc symbol that overrides loading from libc */
+using namespace c7a::core;
+
+//! exported malloc symbol that overrides loading from libc
 void * malloc(size_t size) throw () {
     void* ret;
 
@@ -159,7 +159,7 @@ void * malloc(size_t size) throw () {
 
     if (real_malloc)
     {
-        /* call read malloc procedure in libc */
+        //! call read malloc procedure in libc
         ret = (*real_malloc)(alignment + size);
 
         inc_count(size);
@@ -168,7 +168,7 @@ void * malloc(size_t size) throw () {
                     (long long)size, (char*)ret + alignment, curr);
         }
 
-        /* prepend allocation size and check sentinel */
+        //! prepend allocation size and check sentinel
         *(size_t*)ret = size;
         *(size_t*)((char*)ret + alignment - sizeof(size_t)) = sentinel;
 
@@ -184,7 +184,7 @@ void * malloc(size_t size) throw () {
         ret = init_heap + init_heap_use;
         init_heap_use += alignment + size;
 
-        /* prepend allocation size and check sentinel */
+        //! prepend allocation size and check sentinel
         *(size_t*)ret = size;
         *(size_t*)((char*)ret + alignment - sizeof(size_t)) = sentinel;
 
@@ -197,11 +197,11 @@ void * malloc(size_t size) throw () {
     }
 }
 
-/* exported free symbol that overrides loading from libc */
+//! exported free symbol that overrides loading from libc
 void free(void* ptr) throw () {
     size_t size;
 
-    if (!ptr) return;   /* free(NULL) is no operation */
+    if (!ptr) return;   //! free(NULL) is no operation
 
     if ((char*)ptr >= init_heap &&
         (char*)ptr <= init_heap + init_heap_use)
@@ -236,8 +236,8 @@ void free(void* ptr) throw () {
     (*real_free)(ptr);
 }
 
-/* exported calloc() symbol that overrides loading from libc, implemented using
- * our malloc */
+//! exported calloc() symbol that overrides loading from libc, implemented using
+//! our malloc
 void * calloc(size_t nmemb, size_t size) throw () {
     void* ret;
     size *= nmemb;
@@ -247,7 +247,7 @@ void * calloc(size_t nmemb, size_t size) throw () {
     return ret;
 }
 
-/* exported realloc() symbol that overrides loading from libc */
+//! exported realloc() symbol that overrides loading from libc
 void * realloc(void* ptr, size_t size) throw () {
     void* newptr;
     size_t oldsize;
@@ -270,12 +270,12 @@ void * realloc(void* ptr, size_t size) throw () {
         oldsize = *(size_t*)ptr;
 
         if (oldsize >= size) {
-            /* keep old area, just reduce the size */
+            //! keep old area, just reduce the size
             *(size_t*)ptr = size;
             return (char*)ptr + alignment;
         }
         else {
-            /* allocate new area and copy data */
+            //! allocate new area and copy data
             ptr = (char*)ptr + alignment;
             newptr = malloc(size);
             memcpy(newptr, ptr, oldsize);
@@ -284,12 +284,12 @@ void * realloc(void* ptr, size_t size) throw () {
         }
     }
 
-    if (size == 0) { /* special case size == 0 -> free() */
+    if (size == 0) { //! special case size == 0 -> free()
         free(ptr);
         return NULL;
     }
 
-    if (ptr == NULL) { /* special case ptr == 0 -> malloc() */
+    if (ptr == NULL) { //! special case ptr == 0 -> malloc()
         return malloc(size);
     }
 
@@ -322,38 +322,6 @@ void * realloc(void* ptr, size_t size) throw () {
     *(size_t*)newptr = size;
 
     return (char*)newptr + alignment;
-}
-
-static __attribute__ ((constructor)) void init(void) {
-    char* error;
-
-    setlocale(LC_NUMERIC, ""); /* for better readable numbers */
-
-    dlerror();
-
-    real_malloc = (malloc_type)dlsym(RTLD_NEXT, "malloc");
-    if ((error = dlerror()) != NULL) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
-        exit(EXIT_FAILURE);
-    }
-
-    real_realloc = (realloc_type)dlsym(RTLD_NEXT, "realloc");
-    if ((error = dlerror()) != NULL) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
-        exit(EXIT_FAILURE);
-    }
-
-    real_free = (free_type)dlsym(RTLD_NEXT, "free");
-    if ((error = dlerror()) != NULL) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
-        exit(EXIT_FAILURE);
-    }
-}
-
-static __attribute__ ((destructor)) void finish(void) {
-    fprintf(stderr, PPREFIX
-            "exiting, total: %'lld, peak: %'lld, current: %'lld\n",
-            total, peak, curr);
 }
 
 /******************************************************************************/
