@@ -127,6 +127,9 @@ public:
     //! Get index of the given item, or the next greater item, 
     //in this file. The file has to be ordered according to the 
     //given compare function.
+    //
+    // WARNING: This method uses GetItemAt combined with a binary search and
+    // is therefore not efficient. The method will be reimplemented in near future. 
     template <typename ItemType, typename CompareFunction = std::greater<ItemType>>
     size_t GetIndexOf(ItemType item, const CompareFunction func = CompareFunction()) const;
 
