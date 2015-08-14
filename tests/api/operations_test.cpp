@@ -10,11 +10,11 @@
  ******************************************************************************/
 
 #include <c7a/api/allgather.hpp>
-#include <c7a/api/gather.hpp>
 #include <c7a/api/cache.hpp>
 #include <c7a/api/collapse.hpp>
 #include <c7a/api/distribute.hpp>
 #include <c7a/api/distribute_from.hpp>
+#include <c7a/api/gather.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>

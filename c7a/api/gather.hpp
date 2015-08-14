@@ -34,9 +34,9 @@ public:
     using Super::result_file_;
 
     GatherNode(const ParentDIARef& parent,
-                  size_t target_id,
-                  std::vector<ValueType>* out_vector,
-                  StatsNode* stats_node)
+               size_t target_id,
+               std::vector<ValueType>* out_vector,
+               StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Gather", stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
@@ -44,11 +44,11 @@ public:
           emitters_(channel_->OpenWriters())
     {
         assert(target_id_ < context_.num_workers());
-        
+
         auto pre_op_function =
             [=](const ValueType& input) {
-            emitters_[target_id_](input);
-        };
+                emitters_[target_id_](input);
+            };
 
         // close the function stack with our pre op and register it at parent
         // node for output

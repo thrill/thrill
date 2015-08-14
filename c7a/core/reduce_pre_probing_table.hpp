@@ -105,7 +105,8 @@ template <typename Key, typename Value,
           typename IndexFunction = PreProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>
           >
-class ReducePreProbingTable {
+class ReducePreProbingTable
+{
     static const bool debug = false;
 
     typedef std::pair<Key, Value> KeyValuePair;
@@ -152,14 +153,14 @@ public:
     ReducePreProbingTable(size_t num_partitions,
                           KeyExtractor key_extractor,
                           ReduceFunction reduce_function,
-                          std::vector<data::BlockWriter> &emit,
+                          std::vector<data::BlockWriter>& emit,
                           Key sentinel,
                           size_t num_items_init_scale = 10,
                           size_t num_items_resize_scale = 2,
                           double max_partition_fill_ratio = 1.0,
                           size_t max_num_items_table = 1048576,
-                          const IndexFunction &index_function = IndexFunction(),
-                          const EqualToFunction &equal_to_function = EqualToFunction())
+                          const IndexFunction& index_function = IndexFunction(),
+                          const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
@@ -169,8 +170,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         assert(num_partitions >= 0);
         assert(num_partitions == emit_.size());
         assert(num_items_init_scale > 0);
@@ -267,7 +267,8 @@ public:
             if (current == last_item)
             {
                 current -= (num_items_per_partition_ - 1);
-            } else
+            }
+            else
             {
                 ++current;
             }

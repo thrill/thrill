@@ -11,15 +11,15 @@
 #include <c7a/core/reduce_post_table.hpp>
 #include <gtest/gtest.h>
 
+#include <c7a/net/manager.hpp>
 #include <string>
 #include <utility>
 #include <vector>
-#include <c7a/net/manager.hpp>
 
 using namespace c7a::data;
 using namespace c7a::net;
 
-struct PostTable : public::testing::Test {};
+struct PostTable : public::testing::Test { };
 
 std::pair<int, int> pair(int ele) {
     return std::make_pair(ele, ele);
@@ -27,10 +27,11 @@ std::pair<int, int> pair(int ele) {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-        : public c7a::core::PostReduceByHashKey<int> {
+    : public c7a::core::PostReduceByHashKey<int>
+{
 public:
     CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     template <typename ReducePostTable>
@@ -39,7 +40,7 @@ public:
 
         using index_result = typename ReducePostTable::index_result;
 
-        size_t global_index =  v / 2;
+        size_t global_index = v / 2;
         return index_result(global_index);
     }
 
@@ -65,7 +66,7 @@ TEST_F(PostTable, CustomHashFunction) {
     c7a::core::PostReduceFlushToDefault flush_func;
 
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-            c7a::core::PostReduceFlushToDefault, CustomKeyHashFunction<int>>
+                               c7a::core::PostReduceFlushToDefault, CustomKeyHashFunction<int> >
     table(key_ex, red_fn, emitters, cust_hash, flush_func);
 
     ASSERT_EQ(0u, writer1.size());
