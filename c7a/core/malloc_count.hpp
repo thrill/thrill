@@ -3,7 +3,7 @@
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -18,19 +18,19 @@ namespace c7a {
 namespace core {
 
 //! returns the currently allocated amount of memory
-size_t malloc_count_current(void);
+size_t malloc_count_current();
 
 //! returns the current peak memory allocation
-size_t malloc_count_peak(void);
+size_t malloc_count_peak();
 
 //! resets the peak memory allocation to current
-void malloc_count_reset_peak(void);
+void malloc_count_reset_peak();
 
 //! returns the total number of allocations
-size_t malloc_count_num_allocs(void);
+size_t malloc_count_num_allocs();
 
 //! user function which prints current and peak allocation to stderr
-void malloc_count_print_status(void);
+void malloc_count_print_status();
 
 } // namespace core
 } // namespace c7a
