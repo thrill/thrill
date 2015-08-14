@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <functional>
 
 using namespace c7a;
 
@@ -169,6 +170,34 @@ TEST(File, SerializeSomeItemsDynReader) {
         ASSERT_DOUBLE_EQ(i3, 42.0);
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
+    }
+}
+
+TEST(File, RandomGetIndexOf) {
+    static const bool debug = false;
+    const size_t size = 500;
+    
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::minstd_rand0 rand(seed);
+    
+    //Create test file.
+    data::File file;
+
+    data::File::Writer fw = file.GetWriter(53);
+
+    for(size_t i = 0; i < size; i++) {
+        fw(size - i - 1);
+    }
+
+    fw.Close();
+
+    ASSERT_EQ(size, file.NumItems());
+
+    for(size_t i = 0; i < 10; i++) {
+        size_t val = rand() % size;
+        size_t idx = file.GetIndexOf(val, std::less<size_t>());
+
+        ASSERT_EQ(500 - val - 1, idx);
     }
 }
 
