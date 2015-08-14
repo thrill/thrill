@@ -86,6 +86,7 @@ build_test_group(common/tests
   )
 
 build_test(core/allocator_test)
+build_test(core/malloc_tracker_test)
 
 build_test(net/binary_builder_test)
 build_test(net/buffer_test)
