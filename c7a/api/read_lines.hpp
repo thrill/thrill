@@ -19,6 +19,8 @@
 
 #include <fstream>
 #include <string>
+#include <glob.h>
+#include <sys/stat.h>
 
 namespace c7a {
 namespace api {
@@ -42,14 +44,34 @@ public:
      * and file path.
      *
      * \param ctx Reference to Context, which holds references to data and network.
-     * \param filepath Path of the input file
+     * \param path Path of the input file(s)
      */
     ReadLinesNode(Context& ctx,
-                  const std::string& filepath,
+                  const std::string& path,
                   StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
-          filepath_(filepath)
-    { }
+          path_(path)
+    { 
+
+		glob_t glob_result;
+		struct stat filestat;
+		glob(path_.c_str(),GLOB_TILDE,NULL,&glob_result);
+		std::streampos directory_size = 0;
+
+		for(unsigned int i=0;i<glob_result.gl_pathc;++i){
+			std::string filepath = std::string(glob_result.gl_pathv[i]);
+
+			if (stat( filepath.c_str(), &filestat )) {				
+				throw std::runtime_error("ERROR: Invalid file " + filepath);	
+			}
+			if (S_ISDIR( filestat.st_mode )) continue;
+
+			directory_size += filestat.st_size;
+
+			filesize_prefix.push_back(std::make_pair(filepath, directory_size));
+		}
+		globfree(&glob_result);	
+	}
 
     virtual ~ReadLinesNode() { }
 
@@ -61,11 +83,8 @@ public:
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
-        std::ifstream file(filepath_);
-        assert(file.good());
-
         InputLineIterator it = GetInputLineIterator(
-            file, context_.my_rank(), context_.num_workers());
+            filesize_prefix, context_.my_rank(), context_.num_workers());
 
         // Hook Read
         while (it.HasNext()) {
@@ -98,22 +117,24 @@ public:
 
 private:
     //! Path of the input file.
-    std::string filepath_;
+    std::string path_;
+
+	std::vector<std::pair<std::string, std::streampos> > filesize_prefix;
 
     //! InputLineIterator gives you access to lines of a file
     class InputLineIterator
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIterator(std::ifstream& file,
+        InputLineIterator(std::vector<std::pair<std::string, std::streampos>> files,
                           size_t my_id,
                           size_t num_workers)
-            : file_(file),
+            : files_(files),
               my_id_(my_id),
               num_workers_(num_workers) {
             // Find file size and save it
-            file_.seekg(0, std::ios::end);
-            file_size_ = file_.tellg();
+			
+            file_size_ = files[files.size() - 1].second;
 
             // Go to start of 'local part'.
             std::streampos per_worker = file_size_ / num_workers_;
@@ -125,18 +146,30 @@ private:
                 my_end_ = per_worker * (my_id_ + 1) - 1;
             }
 
-            file_.seekg(my_start, std::ios::beg);
+			while(files_[current_file_].second <= my_start) {
+				current_file_++;
+			}
+			
+			file_.open(files_[current_file_].first, std::ifstream::in);
+
+			if (current_file_) {				
+				file_.seekg(my_start - files_[current_file_ - 1].second, std::ios::beg);
+				current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
+			} else {				
+				file_.seekg(my_start, std::ios::beg);
+				current_size_ = files_[0].second;
+			}
 
             // Go to next new line if the stream-pointer is not at the beginning
             // of a line
-            if (my_id != 0) {
-                std::streampos previous = (per_worker * my_id_) - 1;
+            if (file_.tellg() != 0) {
+                std::streampos previous = file_.tellg() - (std::streampos) 1;
                 file_.seekg(previous, std::ios::beg);
-                //file_.unget();
                 if (file_.get() != '\n') {
                     std::string str;
                     std::getline(file_, str);
                 }
+				
             }
         }
 
@@ -144,6 +177,14 @@ private:
         //!
         //! does no checks whether a next element exists!
         std::string Next() {
+			//go to next file
+			if (file_.tellg() >= current_size_ - (std::streampos) 1) {
+				file_.close();
+				current_file_++;
+				file_.open(files_[current_file_].first, std::ifstream::in);
+				assert(file_.good());
+				current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
+			}
             std::string line;
             std::getline(file_, line);
             return line;
@@ -151,12 +192,22 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            return (file_.tellg() <= my_end_);
+            if (current_file_) {
+				return (file_.tellg() + files_[current_file_ - 1].second <= my_end_);
+			} else {
+				return file_.tellg() <= my_end_;
+			}
         }
 
     private:
         //! Input file stream
-        std::ifstream& file_;
+        std::vector<std::pair<std::string, std::streampos> > files_;
+		//! Index of current file in files_
+		size_t current_file_ = 0;
+		//!Size of current file in bytes
+		std::streampos current_size_;
+		//! Current stream, from files_[current_file_]
+		std::ifstream file_;
         //! File size in bytes
         size_t file_size_;
         //! Worker ID
@@ -175,8 +226,8 @@ private:
     //!
     //! \return An InputLineIterator for a given file stream
     InputLineIterator GetInputLineIterator(
-        std::ifstream& file, size_t my_id, size_t num_work) {
-        return InputLineIterator(file, my_id, num_work);
+        std::vector<std::pair<std::string, std::streampos> > files, size_t my_id, size_t num_work) {
+        return InputLineIterator(files, my_id, num_work);
     }
 };
 
