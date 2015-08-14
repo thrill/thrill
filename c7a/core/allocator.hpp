@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/allocator.hpp
+ * c7a/core/allocator.hpp
  *
  * Part of Project c7a.
  *
@@ -9,10 +9,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_ALLOCATOR_HEADER
-#define C7A_COMMON_ALLOCATOR_HEADER
+#ifndef C7A_CORE_ALLOCATOR_HEADER
+#define C7A_CORE_ALLOCATOR_HEADER
 
 #include <c7a/common/logger.hpp>
+#include <c7a/core/memory_manager.hpp>
 
 #include <atomic>
 #include <cassert>
@@ -23,49 +24,7 @@
 #include <vector>
 
 namespace c7a {
-namespace common {
-
-/*!
- * Object shared by allocators and other classes to track memory
- * allocations. These is one global MemoryManager per compute host. To track
- * memory consumption of subcomponents of c7a, one can create local child
- * MemoryManagers which report allocation automatically to their superiors.
- */
-class MemoryManager
-{
-public:
-    explicit MemoryManager(MemoryManager* super)
-        : super_(super)
-    { }
-
-    //! return the superior MemoryManager
-    MemoryManager * super() { return super_; }
-
-    //! return total allocation (local value)
-    size_t total() const { return total_; }
-
-    //! add memory consumption.
-    MemoryManager & add(size_t amount) {
-        total_ += amount;
-        if (super_) super_->add(amount);
-        return *this;
-    }
-
-    //! subtract memory consumption.
-    MemoryManager & subtract(size_t amount) {
-        assert(total_ >= amount);
-        total_ -= amount;
-        if (super_) super_->subtract(amount);
-        return *this;
-    }
-
-protected:
-    //! reference to superior memory counter
-    MemoryManager* super_;
-
-    //! total allocation
-    std::atomic<size_t> total_ { 0 };
-};
+namespace core {
 
 template <typename Type>
 class NewAllocator
@@ -190,9 +149,9 @@ using vector = std::vector<T, NewAllocator<T> >;
 template <typename T>
 using deque = std::deque<T, NewAllocator<T> >;
 
-} // namespace common
+} // namespace core
 } // namespace c7a
 
-#endif // !C7A_COMMON_ALLOCATOR_HEADER
+#endif // !C7A_CORE_ALLOCATOR_HEADER
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/allocator_test.cpp
+ * tests/core/allocator_test.cpp
  *
  * Part of Project c7a.
  *
@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/allocator.hpp>
+#include <c7a/core/allocator.hpp>
 #include <gtest/gtest.h>
 
 #include <deque>
@@ -17,12 +17,12 @@
 using namespace c7a;
 
 TEST(NewAllocator, Test1) {
-    common::MemoryManager stats(nullptr);
+    core::MemoryManager stats(nullptr);
 
     LOG1 << "vector";
     {
-        std::vector<int, common::NewAllocator<int> > my_vector {
-            common::NewAllocator<int>(&stats)
+        std::vector<int, core::NewAllocator<int> > my_vector {
+            core::NewAllocator<int>(&stats)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -31,8 +31,8 @@ TEST(NewAllocator, Test1) {
     }
     LOG1 << "deque";
     {
-        std::deque<size_t, common::NewAllocator<size_t> > my_deque {
-            common::NewAllocator<size_t>(&stats)
+        std::deque<size_t, core::NewAllocator<size_t> > my_deque {
+            core::NewAllocator<size_t>(&stats)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -42,12 +42,12 @@ TEST(NewAllocator, Test1) {
 }
 
 namespace c7a {
-namespace common {
+namespace core {
 
 // forced instantiations
 template class NewAllocator<int>;
 
-} // namespace common
+} // namespace core
 } // namespace c7a
 
 /******************************************************************************/

@@ -85,7 +85,7 @@ build_test_group(common/tests
   common/timed_counter_test.cpp
   )
 
-build_test(common/allocator_test)
+build_test(core/allocator_test)
 
 build_test(net/binary_builder_test)
 build_test(net/buffer_test)

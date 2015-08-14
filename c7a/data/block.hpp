@@ -12,7 +12,7 @@
 #ifndef C7A_DATA_BLOCK_HEADER
 #define C7A_DATA_BLOCK_HEADER
 
-#include <c7a/common/allocator.hpp>
+#include <c7a/core/memory_manager.hpp>
 #include <c7a/data/block_pool.hpp>
 
 #include <cassert>
@@ -44,7 +44,7 @@ class ByteBlock
 protected:
     struct {
         //! the allocated size of the buffer in bytes, excluding the size_ field
-        size_t size_;
+        size_t   size_;
 
         //! reference to BlockPool for deletion.
         BlockPool* block_pool_;

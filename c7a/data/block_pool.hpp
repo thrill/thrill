@@ -12,8 +12,8 @@
 #ifndef C7A_DATA_BLOCK_POOL_HEADER
 #define C7A_DATA_BLOCK_POOL_HEADER
 
-#include <c7a/common/allocator.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/core/memory_manager.hpp>
 
 namespace c7a {
 namespace data {
@@ -26,7 +26,7 @@ class BlockPool
     static const bool debug = false;
 
 public:
-    BlockPool(common::MemoryManager* memory_manager)
+    BlockPool(core::MemoryManager* memory_manager)
         : memory_manager_(memory_manager)
     { }
 
@@ -48,7 +48,7 @@ public:
 
 protected:
     //! local MemoryManager counting only ByteBlock allocations.
-    common::MemoryManager memory_manager_;
+    core::MemoryManager memory_manager_;
 
     //! total number of blocks in system
     std::atomic<size_t> block_count_ { 0 };
