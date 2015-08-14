@@ -15,15 +15,17 @@
 #include <c7a/common/logger.hpp>
 
 #include <atomic>
+#include <deque>
 #include <memory>
 #include <new>
 #include <type_traits>
+#include <vector>
 
 namespace c7a {
 namespace common {
 
 //! Statistics Object shared by all Allocators to track memory allocation.
-class AllocatorStats
+class MemoryManager
 {
 public:
     std::atomic<size_t> total_ { 0 };
@@ -52,9 +54,9 @@ public:
     template <class U>
     struct rebind { using other = NewAllocator<U>; };
 
-    //! Construct Allocator with Stats object
-    NewAllocator(AllocatorStats* stats) noexcept
-        : stats_(stats) { }
+    //! Construct Allocator with MemoryManager object
+    NewAllocator(MemoryManager* memory_manager) noexcept
+        : memory_manager_(memory_manager) { }
 
     //! copy-constructor
     NewAllocator(const NewAllocator&) noexcept = default;
@@ -62,7 +64,7 @@ public:
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
     NewAllocator(const NewAllocator<OtherType>& other) noexcept
-        : stats_(other.stats_) { }
+        : memory_manager_(other.memory_manager_) { }
 
     //! Returns the address of x.
     pointer address(reference x) const noexcept {
@@ -81,10 +83,10 @@ public:
         if (n > max_size())
             throw std::bad_alloc();
 
-        stats_->total_ += n * sizeof(Type);
+        memory_manager_->total_ += n * sizeof(Type);
 
         LOG << "allocate() n=" << n << " sizeof(T)=" << sizeof(Type)
-            << " total=" << stats_->total_;
+            << " total=" << memory_manager_->total_;
 
         return static_cast<Type*>(::operator new (n * sizeof(Type)));
     }
@@ -93,10 +95,10 @@ public:
     //! and not yet released.
     void deallocate(pointer p, size_type n) noexcept {
 
-        stats_->total_ -= n * sizeof(Type);
+        memory_manager_->total_ -= n * sizeof(Type);
 
         LOG << "deallocate() n=" << n << " sizeof(T)=" << sizeof(Type)
-            << " total=" << stats_->total_;
+            << " total=" << memory_manager_->total_;
 
         ::operator delete (p);
     }
@@ -140,10 +142,17 @@ public:
         return true;
     }
 
-    //! pointer to common stats object. If we use a reference here, then the
-    //! allocator cannot be default move/assigned anymore.
-    AllocatorStats* stats_;
+    //! pointer to common MemoryManager object. If we use a reference here, then
+    //! the allocator cannot be default move/assigned anymore.
+    MemoryManager* memory_manager_;
 };
+
+// common containers with our allocator
+template <typename T>
+using vector = std::vector<T, NewAllocator<T> >;
+
+template <typename T>
+using deque = std::deque<T, NewAllocator<T> >;
 
 } // namespace common
 } // namespace c7a
