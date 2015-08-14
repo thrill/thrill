@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace c7a {
 namespace data {
@@ -117,6 +118,17 @@ public:
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
     Reader GetReaderAt(size_t index) const;
+
+    //! Get item at the corresponding position. Do not use this 
+    //method for reading multiple successive items.
+    template <typename ItemType>
+    ItemType GetItemAt(size_t index) const;
+
+    //! Get index of the given item, or the next greater item, 
+    //in this file. The file has to be ordered according to the 
+    //given compare function.
+    template <typename ItemType, typename CompareFunction = std::greater<ItemType>>
+    size_t GetIndexOf(ItemType item, const CompareFunction func = CompareFunction()) const;
 
     //! Seek in File: return a Block range containing items begin, end of
     //! given type.
@@ -277,6 +289,40 @@ File::GetReaderAt(size_t index) const {
     }
 
     return fr;
+}
+
+template <typename ItemType>
+ItemType File::GetItemAt(size_t index) const {
+    
+    Reader reader = this->GetReaderAt<ItemType>(index);
+    ItemType val = reader.Next<ItemType>();
+     
+    return val;
+}
+
+
+template <typename ItemType, typename CompareFunction>
+size_t File::GetIndexOf(ItemType item, const CompareFunction comperator) const {
+   
+    static const bool debug = false;
+
+    LOG << "Looking for item " << item;
+
+    //Use a binary search to find the item.
+    size_t left = 0;
+    size_t right = this->NumItems();
+
+    while(left < right - 1) {
+        size_t mid = (right + left) / 2;
+        ItemType cur = this->GetItemAt<ItemType>(mid);
+        if(comperator(cur, item)) {
+            right = mid;
+        } else {
+            left = mid;
+        }
+    }
+
+    return left;
 }
 
 //! Seek in File: return a Block range containing items begin, end of
