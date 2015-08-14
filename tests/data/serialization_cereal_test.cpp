@@ -22,9 +22,13 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
+using namespace c7a;
 
 static const bool debug = false;
+
+struct SerializationCereal : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
 
 // struct ProtobufObject {
 //     TestSerializeObject(int bla, int blu) : bla_(bla), blu_(blu) { }
@@ -72,9 +76,9 @@ struct CerealObject
     }
 };
 
-TEST(SerializationCereal, cereal_w_FileWriter)
+TEST_F(SerializationCereal, cereal_w_FileWriter)
 {
-    c7a::data::File f;
+    data::File f(block_pool_);
 
     auto w = f.GetWriter();
 
@@ -88,7 +92,7 @@ TEST(SerializationCereal, cereal_w_FileWriter)
     w(co2);
     w.Close();
 
-    File::Reader r = f.GetReader();
+    data::File::Reader r = f.GetReader();
 
     ASSERT_TRUE(r.HasNext());
     CerealObject coserial = r.Next<CerealObject>();
@@ -104,9 +108,9 @@ TEST(SerializationCereal, cereal_w_FileWriter)
     LOG << coserial.a;
 }
 
-TEST(SerializationCereal, cereal_w_BlockQueue)
+TEST_F(SerializationCereal, cereal_w_BlockQueue)
 {
-    BlockQueue q;
+    data::BlockQueue q(block_pool_);
     {
         auto qw = q.GetWriter(16);
         CerealObject myData;

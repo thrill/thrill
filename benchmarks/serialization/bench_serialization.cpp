@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+using namespace c7a;
+
 //! serializes a given object and measures its time
 /*! @param t The object that shall be serialized
  *  @param iterations The number how often the object should be serialized;
@@ -29,9 +31,11 @@
  */
 template <typename T>
 int BenchmarkSerialization(T t, int iterations) {
-    c7a::common::StatsTimer<true> timer(false);
+    common::StatsTimer<true> timer(false);
+    data::BlockPool block_pool(nullptr);
+
     for (int i = 0; i < iterations; ++i) {
-        c7a::data::File f;
+        data::File f(block_pool);
         timer.Start();
         {
             auto w = f.GetWriter();

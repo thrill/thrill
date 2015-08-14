@@ -32,7 +32,9 @@ public:
     using Writer = BlockWriter;
 
     //! Create discarding BlockSink.
-    DiscardSink() { }
+    DiscardSink(BlockPool& block_pool)
+        : BlockSink(block_pool)
+    { }
 
     //! Discards Block.
     void AppendBlock(const Block&) final { }

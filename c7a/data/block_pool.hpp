@@ -16,7 +16,7 @@
 #include <c7a/common/logger.hpp>
 
 namespace c7a {
-namespace common {
+namespace data {
 
 /*!
  * Pool to allocate, keep, swap out/in, and free all ByteBlocks on the host.
@@ -30,10 +30,10 @@ public:
 
 protected:
     //! local MemoryManager counting only ByteBlock allocations.
-    MemoryManager memory_manager_;
+    common::MemoryManager memory_manager_;
 };
 
-} // namespace common
+} // namespace data
 } // namespace c7a
 
 #endif // !C7A_DATA_BLOCK_POOL_HEADER

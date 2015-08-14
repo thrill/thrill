@@ -87,25 +87,33 @@ public:
           tx_timespan_(), rx_timespan_(),
           id_(id),
           multiplexer_(multiplexer),
-          queues_(multiplexer_.num_workers()),
-          cache_files_(multiplexer_.num_workers()),
           expected_closing_blocks_(
               (multiplexer_.num_hosts() - 1) * multiplexer_.num_workers_per_host_),
           received_closing_blocks_(0) {
+
+        sinks_.reserve(multiplexer_.num_workers());
+        queues_.reserve(multiplexer_.num_workers());
+        cache_files_.reserve(multiplexer_.num_workers());
+
         // construct ChannelSink array
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
             for (size_t worker = 0; worker < multiplexer_.num_workers_per_host_; worker++) {
                 if (host == multiplexer_.my_host_rank()) {
-                    sinks_.emplace_back();
+                    sinks_.emplace_back(multiplexer_.block_pool_);
                 }
                 else {
                     sinks_.emplace_back(
+                        multiplexer_.block_pool_,
                         &multiplexer_.dispatcher_,
                         &multiplexer_.group_.connection(host),
                         id,
                         multiplexer_.my_host_rank(), my_local_worker_id, worker,
                         &outgoing_bytes_, &outgoing_blocks_, &tx_timespan_);
                 }
+                // construct inbound queues
+                queues_.emplace_back(multiplexer_.block_pool_);
+                // construct file for caching
+                cache_files_.emplace_back(multiplexer_.block_pool_);
             }
         }
     }

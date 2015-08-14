@@ -20,10 +20,14 @@
 
 using namespace c7a;
 
-TEST(File, PutSomeItemsGetItems) {
+struct File : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
+
+TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -108,10 +112,10 @@ TEST(File, PutSomeItemsGetItems) {
     }
 }
 
-TEST(File, SerializeSomeItems) {
+TEST_F(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -141,10 +145,10 @@ TEST(File, SerializeSomeItems) {
     }
 }
 
-TEST(File, SerializeSomeItemsDynReader) {
+TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -172,11 +176,11 @@ TEST(File, SerializeSomeItemsDynReader) {
     }
 }
 
-TEST(File, SeekReadSlicesOfFiles) {
+TEST_F(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file;
+    data::File file(block_pool_);
 
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(53);
@@ -217,7 +221,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);
@@ -242,7 +246,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);

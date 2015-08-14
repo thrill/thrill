@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+using namespace c7a;
 using namespace c7a::data;
 
 using StringPair = std::pair<std::string, int>;
@@ -61,7 +62,8 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -95,7 +97,8 @@ TEST_F(ReducePreProbingTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -120,7 +123,8 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -145,7 +149,8 @@ TEST_F(ReducePreProbingTable, TestSetMaxSizeSetter) {
 
     auto key_ex = [](int in) { return in; };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -177,7 +182,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
                       return in1 + in2;
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -216,7 +222,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    File output1, output2;
+    data::BlockPool block_pool(nullptr);
+    File output1(block_pool), output2(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
@@ -265,7 +272,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
                       return in1 + in2;
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -303,7 +311,8 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    File output1, output2;
+    data::BlockPool block_pool(nullptr);
+    File output1(block_pool), output2(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
@@ -351,7 +360,8 @@ TEST_F(ReducePreProbingTable, ComplexType) {
                       return StringPair(in1.first, in1.second + in2.second);
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -382,7 +392,8 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
                       return in1 + in2;
                   };
 
-    File output1, output2;
+    data::BlockPool block_pool(nullptr);
+    File output1(block_pool), output2(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
@@ -412,7 +423,8 @@ TEST_F(ReducePreProbingTable, ResizeOnePartition) {
                       return in1 + in2;
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -462,7 +474,8 @@ TEST_F(ReducePreProbingTable, ResizeTwoPartitions) {
                       return in1 + in2;
                   };
 
-    File output1, output2;
+    data::BlockPool block_pool(nullptr);
+    File output1(block_pool), output2(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
@@ -512,9 +525,12 @@ TEST_F(ReducePreProbingTable, ResizeAndTestPartitionsHaveSameKeysAfterResize) {
 
     std::vector<std::vector<int> > keys(num_partitions, std::vector<int>());
 
-    std::vector<File> files(num_partitions);
+    data::BlockPool block_pool(nullptr);
+    std::vector<File> files;
     std::vector<File::Writer> writers;
+    files.reserve(num_partitions);
     for (size_t i = 0; i != num_partitions; ++i) {
+        files.emplace_back(block_pool);
         writers.emplace_back(files[i].GetWriter());
     }
 
@@ -598,7 +614,8 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     size_t total_sum = 0, total_count = 0;
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -636,7 +653,8 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
                       return IntPair(in1.first, in1.second + in2.second);
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
@@ -688,7 +706,8 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    File output;
+    data::BlockPool block_pool(nullptr);
+    File output(block_pool);
     std::vector<File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
