@@ -43,7 +43,7 @@ TEST_F(BlockQueue, FreshQueueIsEmpty) {
 
 TEST_F(BlockQueue, QueueNonEmptyAfterAppend) {
     data::BlockQueue q(block_pool_);
-    data::ByteBlockPtr bytes = data::ByteBlock::Allocate(block_pool_, 16);
+    data::ByteBlockPtr bytes = data::ByteBlock::Allocate(16, block_pool_);
     q.AppendBlock(data::Block(bytes, 0, 0, 0, 0));
     ASSERT_FALSE(q.empty());
 }
