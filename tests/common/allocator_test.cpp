@@ -17,7 +17,7 @@
 using namespace c7a;
 
 TEST(NewAllocator, Test1) {
-    common::MemoryManager stats;
+    common::MemoryManager stats(nullptr);
 
     LOG1 << "vector";
     {
