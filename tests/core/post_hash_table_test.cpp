@@ -40,6 +40,9 @@ public:
         using index_result = typename ReducePostTable::index_result;
 
         size_t global_index =  v / 2;
+
+        (*ht).NumItems();
+
         return index_result(global_index);
     }
 
