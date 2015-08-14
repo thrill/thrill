@@ -163,7 +163,7 @@ TEST(Stage, OverwriteReferenceLOpNode) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Stage, AdditionalChildReferences) {
+TEST(Stage, DISABLED_AdditionalChildReferences) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {

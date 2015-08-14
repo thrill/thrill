@@ -13,6 +13,7 @@
 #define C7A_DATA_BLOCK_HEADER
 
 #include <c7a/common/allocator.hpp>
+#include <c7a/data/block_pool.hpp>
 
 #include <cassert>
 #include <memory>
@@ -59,7 +60,7 @@ protected:
 public:
     //! Construct a block of given size.
     static std::shared_ptr<ByteBlock> Allocate(
-        size_t block_size, common::MemoryManager* /* mm */ = nullptr) {
+        BlockPool& /* block_pool */, size_t block_size) {
         // allocate a new block of uninitialized memory
         ByteBlock* block =
             static_cast<ByteBlock*>(operator new (sizeof(size_t) + block_size));
