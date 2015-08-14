@@ -56,6 +56,11 @@ public:
     using Reader = BlockReader<FileBlockSource>;
     using DynReader = DynBlockReader;
 
+    //! Constructor from BlockPool
+    File(BlockPool& block_pool)
+        : BlockSink(block_pool)
+    { }
+
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
     void AppendBlock(const Block& b) final {

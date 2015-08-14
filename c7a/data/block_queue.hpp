@@ -12,6 +12,7 @@
 #ifndef C7A_DATA_BLOCK_QUEUE_HEADER
 #define C7A_DATA_BLOCK_QUEUE_HEADER
 
+#include <c7a/common/atomic_movable.hpp>
 #include <c7a/common/concurrent_bounded_queue.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
@@ -48,6 +49,11 @@ public:
     using Writer = BlockWriter;
     using Reader = BlockReader<BlockQueueSource>;
     using DynReader = DynBlockReader;
+
+    //! Constructor from BlockPool
+    BlockQueue(BlockPool& block_pool)
+        : BlockSink(block_pool)
+    { }
 
     void AppendBlock(const Block& b) final {
         queue_.emplace(b);
@@ -95,7 +101,7 @@ public:
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
-    std::atomic<bool> write_closed_ = { false };
+    common::AtomicMovable<bool> write_closed_ = { false };
 
     //! whether Pop() has returned a closing Block.
     bool read_closed_ = false;

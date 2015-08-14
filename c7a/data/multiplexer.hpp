@@ -49,8 +49,10 @@ struct ChannelBlockHeader;
 class Multiplexer
 {
 public:
-    explicit Multiplexer(size_t num_workers_per_host, net::Group& group)
-        : dispatcher_("multiplexer"),
+    explicit Multiplexer(data::BlockPool& block_pool,
+                         size_t num_workers_per_host, net::Group& group)
+        : block_pool_(block_pool),
+          dispatcher_("multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
           channels_(num_workers_per_host) {
@@ -83,6 +85,9 @@ public:
         return num_hosts() * num_workers_per_host_;
     }
 
+    //! Get the used BlockPool
+    BlockPool & block_pool() { return block_pool_; }
+
     //! Allocate the next channel
     size_t AllocateChannelId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -105,6 +110,9 @@ public:
 
 private:
     static const bool debug = false;
+
+    //! reference to host-global BlockPool.
+    data::BlockPool& block_pool_;
 
     //! dispatcher used for all communication by data::Multiplexer, the thread
     //! never leaves the data components!
