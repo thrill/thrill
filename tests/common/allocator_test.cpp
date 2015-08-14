@@ -17,9 +17,13 @@
 using namespace c7a::common;
 
 TEST(NewAllocator, Test1) {
+    AllocatorStats stats;
+
     LOG1 << "vector";
     {
-        std::vector<int, NewAllocator<int> > my_vector;
+        std::vector<int, NewAllocator<int> > my_vector {
+            NewAllocator<int>(&stats)
+        };
 
         for (size_t i = 0; i < 100; ++i) {
             my_vector.push_back(i);
@@ -27,7 +31,9 @@ TEST(NewAllocator, Test1) {
     }
     LOG1 << "deque";
     {
-        std::deque<int, NewAllocator<int> > my_deque;
+        std::deque<size_t, NewAllocator<size_t> > my_deque {
+            NewAllocator<size_t>(&stats)
+        };
 
         for (size_t i = 0; i < 100; ++i) {
             my_deque.push_back(i);
@@ -35,7 +41,13 @@ TEST(NewAllocator, Test1) {
     }
 }
 
+namespace c7a {
+namespace common {
+
 // forced instantiations
 template class NewAllocator<int>;
+
+} // namespace common
+} // namespace c7a
 
 /******************************************************************************/
