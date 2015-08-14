@@ -10,6 +10,7 @@
 
 #include <c7a/common/string.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/buffered_block_reader.hpp>
 #include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
 
@@ -170,6 +171,30 @@ TEST(File, SerializeSomeItemsDynReader) {
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
     }
+}
+
+TEST(File, ReadFileWIthBufferedReader) {
+    data::File file;
+    data::File::Writer fw = file.GetWriter(53);
+
+    size_t size = 100;
+
+    for(size_t i = 0; i < size; i++) {
+        fw(i);
+    }    
+    fw.Close();
+
+    data::File::Reader fr = file.GetReader();
+    data::BufferedBlockReader<size_t> br(fr);
+
+    for(size_t i = 0 ; i < size; i++) {
+        ASSERT_TRUE(br.HasValue());
+        ASSERT_EQ(br.Value(), i);
+        br.Next();
+    }
+
+    ASSERT_FALSE(br.HasValue());
+
 }
 
 TEST(File, SeekReadSlicesOfFiles) {
