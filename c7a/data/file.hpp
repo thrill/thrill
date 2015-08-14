@@ -15,6 +15,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/data/block_reader.hpp>
+#include <c7a/data/buffered_block_reader.hpp>
 #include <c7a/data/block_sink.hpp>
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/dyn_block_reader.hpp>
@@ -111,6 +112,10 @@ public:
 
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
+
+    //! Get BufferedBlockReader for beginning of File
+    template <typename ValueType>
+    BufferedBlockReader<ValueType, FileBlockSource> GetBufferedReader() const;
 
     //! return polymorphic BlockReader variant for beginning of File
     DynReader GetDynReader() const;
@@ -235,6 +240,11 @@ protected:
 //! Get BlockReader for beginning of File
 inline typename File::Reader File::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
+}
+
+template <typename ValueType>
+inline BufferedBlockReader<ValueType, FileBlockSource> File::GetBufferedReader() const {
+    return BufferedBlockReader<ValueType, FileBlockSource>(GetReader());
 }
 
 inline
