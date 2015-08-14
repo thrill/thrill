@@ -40,7 +40,7 @@ public:
     //! Allocate a ByteBlock with n bytes backing memory. If returned
     //! ByteBlockPtr is a nullptr, then memory of this BlockSink is exhausted.
     virtual ByteBlockPtr AllocateByteBlock(size_t block_size) {
-        return ByteBlock::Allocate(block_pool_, block_size);
+        return ByteBlock::Allocate(block_size, block_pool_);
     }
 
     //! Release an unused ByteBlock with n bytes backing memory.

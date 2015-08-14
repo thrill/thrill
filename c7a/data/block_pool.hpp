@@ -23,14 +23,35 @@ namespace data {
  */
 class BlockPool
 {
+    static const bool debug = false;
+
 public:
     BlockPool(common::MemoryManager* memory_manager)
         : memory_manager_(memory_manager)
     { }
 
+    void AllocateBlock(size_t block_size) {
+        memory_manager_.add(block_size);
+        ++block_count_;
+
+        LOG << "AllocateBlock() total_count=" << block_count_
+            << " total_size=" << memory_manager_.total();
+    }
+
+    void FreeBlock(size_t block_size) {
+        memory_manager_.subtract(block_size);
+        --block_count_;
+
+        LOG << "FreeBlock() total_count=" << block_count_
+            << " total_size=" << memory_manager_.total();
+    }
+
 protected:
     //! local MemoryManager counting only ByteBlock allocations.
     common::MemoryManager memory_manager_;
+
+    //! total number of blocks in system
+    std::atomic<size_t> block_count_ { 0 };
 };
 
 } // namespace data

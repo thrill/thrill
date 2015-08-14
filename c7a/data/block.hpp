@@ -42,31 +42,41 @@ static const size_t default_block_size = 2 * 1024 * 1024;
 class ByteBlock
 {
 protected:
-    //! the allocated size of the buffer in bytes, excluding the size_ field.
-    size_t size_;
+    struct {
+        //! the allocated size of the buffer in bytes, excluding the size_ field
+        size_t size_;
+
+        //! reference to BlockPool for deletion.
+        BlockPool* block_pool_;
+    } head;
 
     //! the memory block itself follows here, this is just a placeholder
     Byte data_[1];
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
     //! use Allocate() for construction.
-    explicit ByteBlock(size_t size) : size_(size) { }
+    explicit ByteBlock(size_t size, BlockPool* block_pool)
+        : head({ size, block_pool }) { }
 
     //! deleted for shared_ptr<ByteBlock>
     static void deleter(ByteBlock* bb) {
+        bb->head.block_pool_->FreeBlock(bb->size());
         operator delete (bb);
     }
 
 public:
     //! Construct a block of given size.
     static std::shared_ptr<ByteBlock> Allocate(
-        BlockPool& /* block_pool */, size_t block_size) {
+        size_t block_size, BlockPool& block_pool) {
+        // this counts only the bytes and excludes the header. why? -tb
+        block_pool.AllocateBlock(block_size);
+
         // allocate a new block of uninitialized memory
         ByteBlock* block =
-            static_cast<ByteBlock*>(operator new (sizeof(size_t) + block_size));
+            static_cast<ByteBlock*>(operator new (sizeof(head) + block_size));
 
         // initialize block using constructor
-        new (block)ByteBlock(block_size);
+        new (block)ByteBlock(block_size, &block_pool);
 
         // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
         // this whole procedure with std::make_shared.
@@ -84,12 +94,12 @@ public:
     const Byte * begin() const { return data_; }
 
     //! mutable data accessor beyond end of memory block
-    Byte * end() { return data_ + size_; }
+    Byte * end() { return data_ + head.size_; }
     //! const data accessor beyond end of memory block
-    const Byte * end() const { return data_ + size_; }
+    const Byte * end() const { return data_ + head.size_; }
 
     //! the block size
-    size_t size() const { return size_; }
+    size_t size() const { return head.size_; }
 };
 
 using ByteBlockPtr = std::shared_ptr<ByteBlock>;
