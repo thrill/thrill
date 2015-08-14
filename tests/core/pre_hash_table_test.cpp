@@ -76,7 +76,7 @@ TEST_F(PreTable, CustomHashFunction) {
 
     CustomKeyHashFunction<int> cust_hash;
     c7a::core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
-            CustomKeyHashFunction<int>>
+                              CustomKeyHashFunction<int> >
     table(1, key_ex, red_fn, writers, 8, 2, 20, 100, cust_hash);
 
     for (int i = 0; i < 16; i++) {

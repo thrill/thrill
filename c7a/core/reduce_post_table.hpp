@@ -89,7 +89,7 @@ class PostReduceByHashKey
 {
 public:
     PostReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     template <typename ReducePostTable>
@@ -135,7 +135,7 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto &buckets_ = ht->Items();
+        auto& buckets_ = ht->Items();
 
         for (size_t i = 0; i < ht->NumBuckets(); i++)
         {
@@ -175,10 +175,10 @@ public:
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto &buckets_ = ht->Items();
+        auto& buckets_ = ht->Items();
 
         std::vector<Value> elements_to_emit
-                (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
+            (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
 
         for (size_t i = 0; i < ht->NumBuckets(); i++)
         {
@@ -190,7 +190,7 @@ public:
                      bi != current->items + current->size; ++bi)
                 {
                     elements_to_emit[bi->first - ht->BeginLocalIndex()] =
-                            bi->second;
+                        bi->second;
                 }
 
                 // destroy block and advance to next
@@ -212,7 +212,6 @@ public:
         ht->SetNumItems(0);
     }
 };
-
 
 template <bool, typename EmitterType, typename ValueType, typename SendType>
 struct EmitImpl;
@@ -236,13 +235,13 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
 };
 
 template <typename ValueType, typename Key, typename Value,
-        typename KeyExtractor, typename ReduceFunction,
-        const bool SendPair = false,
-        typename FlushFunction = PostReduceFlushToDefault,
-        typename IndexFunction = PostReduceByHashKey<Key>,
-        typename EqualToFunction = std::equal_to<Key>,
-        size_t TargetBlockSize = 16*1024
-         >
+          typename KeyExtractor, typename ReduceFunction,
+          const bool SendPair = false,
+          typename FlushFunction = PostReduceFlushToDefault,
+          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key>,
+          size_t TargetBlockSize = 16*1024
+          >
 class ReducePostTable
 {
     static const bool debug = false;
@@ -257,7 +256,7 @@ public:
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
-            common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+        common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
     //! Block holding reduce key/value pairs.
     struct BucketBlock {
@@ -307,33 +306,32 @@ public:
      * \param equal_to_function Function for checking equality fo two keys.
      */
     ReducePostTable(KeyExtractor key_extractor,
-                   ReduceFunction reduce_function,
-                   std::vector<EmitterFunction>& emit,
-                   const IndexFunction& index_function = IndexFunction(),
-                   const FlushFunction& flush_function = FlushFunction(),
-                   size_t begin_local_index = 0,
-                   size_t end_local_index = 0,
-                   Value neutral_element = Value(),
-                   size_t num_buckets_init_scale = 10,
-                   size_t num_buckets_resize_scale = 2,
-                   size_t max_num_items_per_bucket = 256,
-                   size_t max_num_items_table = 1048576,
-                   const EqualToFunction& equal_to_function = EqualToFunction()
+                    ReduceFunction reduce_function,
+                    std::vector<EmitterFunction>& emit,
+                    const IndexFunction& index_function = IndexFunction(),
+                    const FlushFunction& flush_function = FlushFunction(),
+                    size_t begin_local_index = 0,
+                    size_t end_local_index = 0,
+                    Value neutral_element = Value(),
+                    size_t num_buckets_init_scale = 10,
+                    size_t num_buckets_resize_scale = 2,
+                    size_t max_num_items_per_bucket = 256,
+                    size_t max_num_items_table = 1048576,
+                    const EqualToFunction& equal_to_function = EqualToFunction()
                     )
-            :   num_buckets_init_scale_(num_buckets_init_scale),
-                num_buckets_resize_scale_(num_buckets_resize_scale),
-                max_num_items_per_bucket_(max_num_items_per_bucket),
-                max_num_items_table_(max_num_items_table),
-                key_extractor_(key_extractor),
-                reduce_function_(reduce_function),
-                emit_(std::move(emit)),
-                index_function_(index_function),
-                equal_to_function_(equal_to_function),
-                flush_function_(flush_function),
-                begin_local_index_(begin_local_index),
-                end_local_index_(end_local_index),
-                neutral_element_(neutral_element)
-    {
+        :   num_buckets_init_scale_(num_buckets_init_scale),
+          num_buckets_resize_scale_(num_buckets_resize_scale),
+          max_num_items_per_bucket_(max_num_items_per_bucket),
+          max_num_items_table_(max_num_items_table),
+          key_extractor_(key_extractor),
+          reduce_function_(reduce_function),
+          emit_(std::move(emit)),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function),
+          flush_function_(flush_function),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
+          neutral_element_(neutral_element) {
         assert(num_buckets_init_scale > 0);
         assert(num_buckets_resize_scale > 1);
         assert(max_num_items_per_bucket > 0);
@@ -417,7 +415,7 @@ public:
                 if (equal_to_function_(kv.first, bi->first))
                 {
                     LOG << "match of key: " << kv.first
-                    << " and " << bi->first << " ... reducing...";
+                        << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
 
@@ -442,7 +440,7 @@ public:
         {
             // allocate a new block of uninitialized items, postpend to bucket
             current =
-                    static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+                static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
             current->size = 0;
             current->next = buckets_[h.global_index];
@@ -489,7 +487,7 @@ public:
      * Emits element to all children
      */
     void EmitAll(const KeyValuePair& element) {
-    //void EmitAll(const Key& key, const Value& value) {
+        //void EmitAll(const Key& key, const Value& value) {
         emit_impl_.EmitElement(element, emit_);
     }
 
@@ -525,7 +523,7 @@ public:
      *
      * @return Vector of bucket blocks.
      */
-    std::vector<BucketBlock*>& Items() {
+    std::vector<BucketBlock*> & Items() {
         return buckets_;
     }
 
@@ -668,8 +666,8 @@ public:
             if (buckets_[i] == NULL)
             {
                 LOG << "bucket id: "
-                << i
-                << " empty";
+                    << i
+                    << " empty";
                 continue;
             }
 
@@ -697,9 +695,9 @@ public:
             }
 
             LOG << "bucket id: "
-            << i
-            << " "
-            << log;
+                << i
+                << " "
+                << log;
         }
 
         return;

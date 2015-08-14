@@ -129,12 +129,12 @@ public:
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                    = core::ReducePostTable<ValueType, Key, Value,
-                            KeyExtractor,
-                            ReduceFunction,
-                            SendPair,
-                            core::PostReduceFlushToIndex<Value>,
-                            core::PostReduceByIndex>;
+                  = core::ReducePostTable<ValueType, Key, Value,
+                                          KeyExtractor,
+                                          ReduceFunction,
+                                          SendPair,
+                                          core::PostReduceFlushToIndex<Value>,
+                                          core::PostReduceByIndex>;
 
         size_t local_begin, local_end;
 
