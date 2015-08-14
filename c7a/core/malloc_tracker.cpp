@@ -141,55 +141,209 @@ static __attribute__ ((destructor)) void finish() {
 
 using namespace c7a::core; // NOLINT
 
+static void * preinit_malloc(size_t size) noexcept {
+
+    if (init_heap_use + alignment + size > INIT_HEAP_SIZE) {
+        fprintf(stderr, PPREFIX "init heap full !!!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    void* ret = init_heap + init_heap_use;
+    init_heap_use += alignment + size;
+
+    //! prepend allocation size and check sentinel
+    *reinterpret_cast<size_t*>(ret) = size;
+    *reinterpret_cast<size_t*>(
+        static_cast<char*>(ret) + alignment - sizeof(size_t)) = sentinel;
+
+    if (log_operations_init_heap) {
+        fprintf(stderr, PPREFIX "malloc(%lu) = %p   on init heap\n",
+                size, static_cast<char*>(ret) + alignment);
+    }
+
+    return static_cast<char*>(ret) + alignment;
+}
+
+static void * preinit_realloc(void* ptr, size_t size) noexcept {
+
+    if (log_operations_init_heap) {
+        fprintf(stderr, PPREFIX "realloc(%p) = on init heap\n", ptr);
+    }
+
+    ptr = static_cast<char*>(ptr) - alignment;
+
+    if (*reinterpret_cast<size_t*>(
+            static_cast<char*>(ptr) + alignment - sizeof(size_t)) != sentinel) {
+        fprintf(stderr, PPREFIX
+                "realloc(%p) has no sentinel !!! memory corruption?\n",
+                ptr);
+    }
+
+    size_t oldsize = *reinterpret_cast<size_t*>(ptr);
+
+    if (oldsize >= size) {
+        //! keep old area, just reduce the size
+        *reinterpret_cast<size_t*>(ptr) = size;
+        return static_cast<char*>(ptr) + alignment;
+    }
+    else {
+        //! allocate new area and copy data
+        ptr = static_cast<char*>(ptr) + alignment;
+        void* newptr = malloc(size);
+        memcpy(newptr, ptr, oldsize);
+        free(ptr);
+        return newptr;
+    }
+}
+
+#define HAVE_MALLOC_USABLE_SIZE 1
+
+#if HAVE_MALLOC_USABLE_SIZE
+
+/*
+ * This is a malloc() tracker implementation which uses an available system call
+ * to determine the amount of memory used by an allocation (which may be more
+ * than the allocated size). On Linux's glibc there is malloc_usable_size().
+ */
+
+#include <malloc.h>
+
 //! exported malloc symbol that overrides loading from libc
 void * malloc(size_t size) noexcept {
-    void* ret;
 
-    if (real_malloc)
-    {
-        //! call read malloc procedure in libc
-        ret = (*real_malloc)(alignment + size);
+    if (!real_malloc)
+        return preinit_malloc(size);
 
-        inc_count(size);
-        if (log_operations && size >= log_operations_threshold) {
-            fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
-                    size, static_cast<char*>(ret) + alignment, curr.load());
-        }
+    //! call read malloc procedure in libc
+    void* ret = (*real_malloc)(size);
 
-        //! prepend allocation size and check sentinel
-        *reinterpret_cast<size_t*>(ret) = size;
-        *reinterpret_cast<size_t*>(
-            static_cast<char*>(ret) + alignment - sizeof(size_t)) = sentinel;
+    size_t size_used = malloc_usable_size(ret);
+    inc_count(size_used);
 
-        return static_cast<char*>(ret) + alignment;
+    if (log_operations && size_used >= log_operations_threshold) {
+        fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
+                size_used, ret, curr.load());
     }
-    else
-    {
-        if (init_heap_use + alignment + size > INIT_HEAP_SIZE) {
-            fprintf(stderr, PPREFIX "init heap full !!!\n");
-            exit(EXIT_FAILURE);
-        }
 
-        ret = init_heap + init_heap_use;
-        init_heap_use += alignment + size;
-
-        //! prepend allocation size and check sentinel
-        *reinterpret_cast<size_t*>(ret) = size;
-        *reinterpret_cast<size_t*>(
-            static_cast<char*>(ret) + alignment - sizeof(size_t)) = sentinel;
-
-        if (log_operations_init_heap) {
-            fprintf(stderr, PPREFIX "malloc(%lu) = %p   on init heap\n",
-                    size, static_cast<char*>(ret) + alignment);
-        }
-
-        return static_cast<char*>(ret) + alignment;
-    }
+    return ret;
 }
 
 //! exported free symbol that overrides loading from libc
 void free(void* ptr) noexcept {
-    size_t size;
+
+    if (!ptr) return;   //! free(NULL) is no operation
+
+    if (static_cast<char*>(ptr) >= init_heap &&
+        static_cast<char*>(ptr) <= init_heap + init_heap_use)
+    {
+        if (log_operations_init_heap) {
+            fprintf(stderr, PPREFIX "free(%p)   on init heap\n", ptr);
+        }
+        return;
+    }
+
+    if (!real_free) {
+        fprintf(stderr, PPREFIX
+                "free(%p) outside init heap and without real_free !!!\n", ptr);
+        return;
+    }
+
+    size_t size_used = malloc_usable_size(ptr);
+    dec_count(size_used);
+
+    if (log_operations && size_used >= log_operations_threshold) {
+        fprintf(stderr, PPREFIX "free(%p) -> %lu   (current %lu)\n",
+                ptr, size_used, curr.load());
+    }
+
+    (*real_free)(ptr);
+}
+
+//! exported calloc() symbol that overrides loading from libc, implemented using
+//! our malloc
+void * calloc(size_t nmemb, size_t size) noexcept {
+    size *= nmemb;
+    if (!size) return NULL;
+    void* ret = malloc(size);
+    memset(ret, 0, size);
+    return ret;
+}
+
+//! exported realloc() symbol that overrides loading from libc
+void * realloc(void* ptr, size_t size) noexcept {
+
+    if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
+        static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + init_heap_use)
+    {
+        return preinit_realloc(ptr, size);
+    }
+
+    if (size == 0) { //! special case size == 0 -> free()
+        free(ptr);
+        return NULL;
+    }
+
+    if (ptr == NULL) { //! special case ptr == 0 -> malloc()
+        return malloc(size);
+    }
+
+    size_t oldsize_used = malloc_usable_size(ptr);
+    dec_count(oldsize_used);
+
+    void* newptr = (*real_realloc)(ptr, size);
+
+    size_t newsize_used = malloc_usable_size(newptr);
+    inc_count(newsize_used);
+
+    if (log_operations && newsize_used >= log_operations_threshold)
+    {
+        if (newptr == ptr)
+            fprintf(stderr, PPREFIX
+                    "realloc(%lu -> %lu) = %p   (current %lu)\n",
+                    oldsize_used, newsize_used, newptr, curr.load());
+        else
+            fprintf(stderr, PPREFIX
+                    "realloc(%lu -> %lu) = %p -> %p   (current %lu)\n",
+                    oldsize_used, newsize_used, ptr, newptr, curr.load());
+    }
+
+    return newptr;
+}
+
+#else // GENERIC IMPLEMENTATION
+
+/*
+ * This is a generic implementation to count memory allocation by prefixing
+ * every user allocation with the size. On free, the size can be
+ * retrieves. Obviously, this wastes lots of memory if there are many small
+ * allocations.
+ */
+
+//! exported malloc symbol that overrides loading from libc
+void * malloc(size_t size) noexcept {
+
+    if (!real_malloc)
+        return preinit_malloc(size);
+
+    //! call read malloc procedure in libc
+    void* ret = (*real_malloc)(alignment + size);
+
+    inc_count(size);
+    if (log_operations && size >= log_operations_threshold) {
+        fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
+                size, static_cast<char*>(ret) + alignment, curr.load());
+    }
+
+    //! prepend allocation size and check sentinel
+    *reinterpret_cast<size_t*>(ret) = size;
+    *reinterpret_cast<size_t*>(
+        static_cast<char*>(ret) + alignment - sizeof(size_t)) = sentinel;
+
+    return static_cast<char*>(ret) + alignment;
+}
+
+//! exported free symbol that overrides loading from libc
+void free(void* ptr) noexcept {
 
     if (!ptr) return;   //! free(NULL) is no operation
 
@@ -216,7 +370,7 @@ void free(void* ptr) noexcept {
                 "free(%p) has no sentinel !!! memory corruption?\n", ptr);
     }
 
-    size = *reinterpret_cast<size_t*>(ptr);
+    size_t size = *reinterpret_cast<size_t*>(ptr);
     dec_count(size);
 
     if (log_operations && size >= log_operations_threshold) {
@@ -230,50 +384,20 @@ void free(void* ptr) noexcept {
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
 void * calloc(size_t nmemb, size_t size) noexcept {
-    void* ret;
     size *= nmemb;
     if (!size) return NULL;
-    ret = malloc(size);
+    void* ret = malloc(size);
     memset(ret, 0, size);
     return ret;
 }
 
 //! exported realloc() symbol that overrides loading from libc
 void * realloc(void* ptr, size_t size) noexcept {
-    void* newptr;
-    size_t oldsize;
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
         static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + init_heap_use)
     {
-        if (log_operations_init_heap) {
-            fprintf(stderr, PPREFIX "realloc(%p) = on init heap\n", ptr);
-        }
-
-        ptr = static_cast<char*>(ptr) - alignment;
-
-        if (*reinterpret_cast<size_t*>(
-                static_cast<char*>(ptr) + alignment - sizeof(size_t)) != sentinel) {
-            fprintf(stderr, PPREFIX
-                    "realloc(%p) has no sentinel !!! memory corruption?\n",
-                    ptr);
-        }
-
-        oldsize = *reinterpret_cast<size_t*>(ptr);
-
-        if (oldsize >= size) {
-            //! keep old area, just reduce the size
-            *reinterpret_cast<size_t*>(ptr) = size;
-            return static_cast<char*>(ptr) + alignment;
-        }
-        else {
-            //! allocate new area and copy data
-            ptr = static_cast<char*>(ptr) + alignment;
-            newptr = malloc(size);
-            memcpy(newptr, ptr, oldsize);
-            free(ptr);
-            return newptr;
-        }
+        return preinit_realloc(ptr, size);
     }
 
     if (size == 0) { //! special case size == 0 -> free()
@@ -293,12 +417,12 @@ void * realloc(void* ptr, size_t size) noexcept {
                 "free(%p) has no sentinel !!! memory corruption?\n", ptr);
     }
 
-    oldsize = *reinterpret_cast<size_t*>(ptr);
+    size_t oldsize = *reinterpret_cast<size_t*>(ptr);
 
     dec_count(oldsize);
     inc_count(size);
 
-    newptr = (*real_realloc)(ptr, alignment + size);
+    void* newptr = (*real_realloc)(ptr, alignment + size);
 
     if (log_operations && size >= log_operations_threshold)
     {
@@ -316,5 +440,7 @@ void * realloc(void* ptr, size_t size) noexcept {
 
     return static_cast<char*>(newptr) + alignment;
 }
+
+#endif // IMPLEMENTATION SWITCH
 
 /******************************************************************************/
