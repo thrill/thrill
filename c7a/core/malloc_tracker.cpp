@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/malloc_count.cpp
+ * c7a/core/malloc_tracker.cpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #define _GNU_SOURCE
 #endif
 
-#include <c7a/core/malloc_count.hpp>
+#include <c7a/core/malloc_tracker.hpp>
 
 #include <dlfcn.h>
 #include <stdio.h>
@@ -52,7 +52,7 @@ static size_t init_heap_use = 0;
 static const int log_operations_init_heap = 0;
 
 //! output
-#define PPREFIX "malloc_count ### "
+#define PPREFIX "malloc_tracker ### "
 
 /*****************************************/
 /* run-time memory allocation statistics */
@@ -77,27 +77,27 @@ static void dec_count(size_t dec) {
 }
 
 //! user function to return the currently allocated amount of memory
-size_t malloc_count_current() {
+size_t malloc_tracker_current() {
     return curr;
 }
 
 //! user function to return the peak allocation
-size_t malloc_count_peak() {
+size_t malloc_tracker_peak() {
     return peak;
 }
 
 //! user function to reset the peak allocation to current
-void malloc_count_reset_peak() {
+void malloc_tracker_reset_peak() {
     peak = curr.load();
 }
 
 //! user function to return total number of allocations
-size_t malloc_count_num_allocs() {
+size_t malloc_tracker_num_allocs() {
     return num_allocs;
 }
 
 //! user function which prints current and peak allocation to stderr
-void malloc_count_print_status() {
+void malloc_tracker_print_status() {
     fprintf(stderr, PPREFIX "current %lu, peak %lu\n",
             curr.load(), peak.load());
 }
