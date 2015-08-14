@@ -21,6 +21,9 @@
 #include <string>
 #include <glob.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
 
 namespace c7a {
 namespace api {
@@ -132,8 +135,7 @@ private:
             : files_(files),
               my_id_(my_id),
               num_workers_(num_workers) {
-            // Find file size and save it
-			
+	
             file_size_ = files[files.size() - 1].second;
 
             // Go to start of 'local part'.
@@ -149,13 +151,17 @@ private:
 			while(files_[current_file_].second <= my_start) {
 				current_file_++;
 			}
+
+			c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
 			
 			file_.open(files_[current_file_].first, std::ifstream::in);
 
-			if (current_file_) {				
+			if (current_file_) {
+				offset_ = lseek(c_file_, my_start - files_[current_file_ - 1].second, SEEK_CUR);
 				file_.seekg(my_start - files_[current_file_ - 1].second, std::ios::beg);
 				current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
-			} else {				
+			} else {		
+				offset_ = lseek(c_file_, my_start, SEEK_CUR);
 				file_.seekg(my_start, std::ios::beg);
 				current_size_ = files_[0].second;
 			}
@@ -168,8 +174,16 @@ private:
                 if (file_.get() != '\n') {
                     std::string str;
                     std::getline(file_, str);
-                }
-				
+                }				
+            }
+
+			if (offset_ != 0) {
+                std::streampos previous = file_.tellg() - (std::streampos) 1;
+                file_.seekg(previous, std::ios::beg);
+                if (file_.get() != '\n') {
+                    std::string str;
+                    std::getline(file_, str);
+                }				
             }
         }
 
@@ -208,6 +222,9 @@ private:
 		std::streampos current_size_;
 		//! Current stream, from files_[current_file_]
 		std::ifstream file_;
+
+		int c_file_;
+		off_t offset_;
         //! File size in bytes
         size_t file_size_;
         //! Worker ID
