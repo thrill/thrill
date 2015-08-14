@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/reduce_PostProbing_probing_table.hpp
+ * c7a/core/reduce_post_probing_table.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_REDUCE_PostProbing_PROBING_TABLE_HEADER
-#define C7A_CORE_REDUCE_PostProbing_PROBING_TABLE_HEADER
+#ifndef C7A_CORE_REDUCE_POST_PROBING_TABLE_HEADER
+#define C7A_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
@@ -75,7 +75,7 @@ class PostProbingReduceByHashKey
 {
 public:
     PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
-            : hash_function_(hash_function)
+        : hash_function_(hash_function)
     { }
 
     template <typename ReducePostProbingTable>
@@ -119,7 +119,7 @@ public:
 
         using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
 
-        auto &vector_ = ht->Items();
+        auto& vector_ = ht->Items();
 
         for (size_t i = 0; i < ht->Size(); i++)
         {
@@ -146,10 +146,10 @@ public:
 
         using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
 
-        auto &vector_ = ht->Items();
+        auto& vector_ = ht->Items();
 
         std::vector<Value> elements_to_emit
-                (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
+            (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
 
         for (size_t i = 0; i < ht->Size(); i++)
         {
@@ -157,7 +157,7 @@ public:
             if (current.first != ht->Sentinel().first)
             {
                 elements_to_emit[current.first - ht->BeginLocalIndex()] =
-                        current.second;
+                    current.second;
 
                 vector_[i] = ht->Sentinel();
             }
@@ -172,7 +172,6 @@ public:
         ht->SetNumItems(0);
     }
 };
-
 
 template <bool, typename EmitterType, typename ValueType, typename SendType>
 struct EmitImpl;
@@ -271,8 +270,7 @@ public:
           flush_function_(flush_function),
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
-          neutral_element_(neutral_element)
-    {
+          neutral_element_(neutral_element) {
         assert(num_items_init_scale > 0);
         assert(num_items_resize_scale > 1);
         assert(max_items_fill_ratio >= 0.0 && max_items_fill_ratio <= 1.0);
@@ -296,7 +294,7 @@ public:
 
         sLOG << "creating ReducePostProbingTable with" << emit_.size() << "output emiters";
 
-        table_size_ =  num_items_init_scale_;
+        table_size_ = num_items_init_scale_;
         sentinel_ = KeyValuePair(sentinel, Value());
         vector_.resize(table_size_, sentinel_);
     }
@@ -349,7 +347,8 @@ public:
             if (current == last_item)
             {
                 current -= (table_size_ - 1);
-            } else
+            }
+            else
             {
                 ++current;
             }
@@ -442,7 +441,7 @@ public:
      *
      * @return Vector of key/value pairs.
      */
-    std::vector<KeyValuePair>& Items() {
+    std::vector<KeyValuePair> & Items() {
         return vector_;
     }
 
@@ -651,6 +650,6 @@ private:
 } // namespace core
 } // namespace c7a
 
-#endif // !C7A_CORE_REDUCE_PostProbing_PROBING_TABLE_HEADER
+#endif // !C7A_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
 /******************************************************************************/
