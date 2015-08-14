@@ -74,7 +74,7 @@ public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, false, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -129,12 +129,12 @@ public:
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                    = core::ReducePostTable<ValueType, Key, Value,
-                            KeyExtractor,
-                            ReduceFunction,
-                            SendPair,
-                            core::PostReduceFlushToIndex<Value>,
-                            core::PostReduceByIndex>;
+                  = core::ReducePostTable<ValueType, Key, Value,
+                                          KeyExtractor,
+                                          ReduceFunction,
+                                          SendPair,
+                                          core::PostReduceFlushToIndex<Value>,
+                                          core::PostReduceByIndex>;
 
         size_t local_begin, local_end;
 

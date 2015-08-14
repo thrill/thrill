@@ -10,6 +10,7 @@
 
 #include <c7a/common/string.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/buffered_block_reader.hpp>
 #include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
 
@@ -199,6 +200,28 @@ TEST(File, RandomGetIndexOf) {
 
         ASSERT_EQ(500 - val - 1, idx);
     }
+}
+
+TEST(File, ReadFileWIthBufferedReader) {
+    data::File file;
+    data::File::Writer fw = file.GetWriter(53);
+
+    size_t size = 100;
+
+    for(size_t i = 0; i < size; i++) {
+        fw(i);
+    }    
+    fw.Close();
+
+    auto br = file.GetBufferedReader<size_t>();
+
+    for(size_t i = 0 ; i < size; i++) {
+        ASSERT_TRUE(br.HasValue());
+        ASSERT_EQ(br.Value(), i);
+        br.Next();
+    }
+
+    ASSERT_FALSE(br.HasValue());
 }
 
 TEST(File, SeekReadSlicesOfFiles) {

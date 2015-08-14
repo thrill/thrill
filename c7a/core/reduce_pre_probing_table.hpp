@@ -112,8 +112,7 @@ class ReducePreProbingTable
     typedef std::pair<Key, Value> KeyValuePair;
 
 public:
-    struct index_result
-    {
+    struct index_result {
     public:
         //! which partition number the item belongs to.
         size_t partition_id;
@@ -249,8 +248,8 @@ public:
 
         KeyValuePair* initial = &vector_[h.global_index];
         KeyValuePair* current = initial;
-        KeyValuePair* next_partition = &vector_[h.global_index -
-                                                (h.global_index % num_items_per_partition_) + num_items_per_partition_];
+        KeyValuePair* last_item = &vector_[h.global_index -
+                                           (h.global_index % num_items_per_partition_) + num_items_per_partition_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -265,11 +264,13 @@ public:
                 return;
             }
 
-            ++current;
-
-            if (current == next_partition) // TODO(ms): overflow save?
+            if (current == last_item)
             {
-                current -= num_items_per_partition_;
+                current -= (num_items_per_partition_ - 1);
+            }
+            else
+            {
+                ++current;
             }
 
             if (current == initial)
