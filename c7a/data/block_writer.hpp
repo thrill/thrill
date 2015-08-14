@@ -46,9 +46,8 @@ public:
     explicit BlockWriter(BlockSink* sink,
                          size_t block_size = default_block_size)
         : sink_(sink),
-          block_size_(block_size) {
-        AllocateBlock();
-    }
+          block_size_(block_size)
+    { }
 
     //! non-copyable: delete copy-constructor
     BlockWriter(const BlockWriter&) = delete;
@@ -70,7 +69,7 @@ public:
     void Close() {
         if (!closed_) { //potential race condition
             closed_ = true;
-            MaybeFlushBlock();
+            Flush();
             if (sink_)
                 sink_->Close();
         }
@@ -81,14 +80,24 @@ public:
 
     //! Flush the current block (only really meaningful for a network sink).
     void Flush() {
-        FlushBlock();
-        AllocateBlock();
+        if (!bytes_) return;
+        // don't flush if the block is truly empty.
+        if (current_ == bytes_->begin() && nitems_ == 0) return;
+
+        sLOG0 << "Flush(): flush" << bytes_.get();
+        sink_->AppendBlock(bytes_, 0, current_ - bytes_->begin(),
+                           first_offset_, nitems_);
+
+        // reset
+        nitems_ = 0;
+        bytes_ = ByteBlockPtr();
+        current_ = end_ = nullptr;
     }
 
     //! Directly write Blocks to the underlying BlockSink (after flushing the
     //! current one if need be).
     void AppendBlocks(const std::vector<Block>& blocks) {
-        MaybeFlushBlock();
+        Flush();
 
         for (const Block& b : blocks)
             sink_->AppendBlock(b);
@@ -102,7 +111,7 @@ public:
     //! Mark beginning of an item.
     BlockWriter & MarkItem() {
         if (current_ == end_)
-            Flush();
+            Flush(), AllocateBlock();
 
         if (nitems_ == 0)
             first_offset_ = current_ - bytes_->begin();
@@ -116,6 +125,7 @@ public:
     template <typename T>
     BlockWriter& operator () (const T& x) {
         assert(!closed_);
+
         MarkItem();
         if (self_verify) {
             // for self-verification, prefix T with its hash code
@@ -145,7 +155,7 @@ public:
             size -= partial_size;
             current_ += partial_size;
 
-            Flush();
+            Flush(), AllocateBlock();
         }
 
         // copy remaining bytes.
@@ -160,7 +170,7 @@ public:
         assert(!closed_);
 
         if (C7A_UNLIKELY(current_ == end_))
-            Flush();
+            Flush(), AllocateBlock();
 
         *current_++ = data;
         return *this;
@@ -197,7 +207,7 @@ public:
 protected:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        bytes_ = ByteBlock::Allocate(block_size_);
+        bytes_ = sink_->AllocateByteBlock(block_size_);
         current_ = bytes_->begin();
         end_ = bytes_->end();
         nitems_ = 0;
@@ -225,11 +235,11 @@ protected:
     ByteBlockPtr bytes_;
 
     //! current write pointer into block.
-    Byte* current_;
+    Byte* current_ = nullptr;
 
     //! current end of block pointer. this is == bytes_.end(), just one
     //! indirection less.
-    Byte* end_;
+    Byte* end_ = nullptr;
 
     //! number of items in current block
     size_t nitems_;
