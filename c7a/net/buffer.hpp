@@ -129,23 +129,23 @@ public:
     //! \name Data Access
     //! \{
 
-    //! return iterator to beginning of vector
+    //! return iterator to beginning of Buffer
     iterator data()
     { return data_; }
-    //! return iterator to beginning of vector
+    //! return iterator to beginning of Buffer
     const_iterator data() const
     { return data_; }
 
-    //! return number of items in vector
+    //! return number of items in Buffer
     size_type size() const
     { return size_; }
 
-    //! return the i-th position of the vector
+    //! return the i-th position of the Buffer
     reference operator [] (size_type i) {
         assert(i < size_);
         return *(begin() + i);
     }
-    //! return constant reference to the i-th position of the vector
+    //! return constant reference to the i-th position of the Buffer
     const_reference operator [] (size_type i) const {
         assert(i < size_);
         return *(begin() + i);
@@ -191,7 +191,7 @@ public:
     void Resize(size_type new_size) {
         if (data_)
         {
-            LOG1 << "Warning: resizing non-empty simple_vector";
+            LOG1 << "Warning: resizing non-empty Buffer";
             data_ = reinterpret_cast<value_type*>(::realloc(data_, new_size));
             size_ = new_size;
         }

@@ -14,15 +14,15 @@
 #include <deque>
 #include <vector>
 
-using namespace c7a::common;
+using namespace c7a;
 
 TEST(NewAllocator, Test1) {
-    AllocatorStats stats;
+    common::MemoryManager stats;
 
     LOG1 << "vector";
     {
-        std::vector<int, NewAllocator<int> > my_vector {
-            NewAllocator<int>(&stats)
+        std::vector<int, common::NewAllocator<int> > my_vector {
+            common::NewAllocator<int>(&stats)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -31,8 +31,8 @@ TEST(NewAllocator, Test1) {
     }
     LOG1 << "deque";
     {
-        std::deque<size_t, NewAllocator<size_t> > my_deque {
-            NewAllocator<size_t>(&stats)
+        std::deque<size_t, common::NewAllocator<size_t> > my_deque {
+            common::NewAllocator<size_t>(&stats)
         };
 
         for (size_t i = 0; i < 100; ++i) {
