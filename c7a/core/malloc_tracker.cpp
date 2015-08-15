@@ -26,12 +26,11 @@ namespace core {
 
 //! user-defined options for output malloc()/free() operations to stderr
 
-static const int log_operations = 0;    //! <-- set this to 1 for log output
-static const size_t log_operations_threshold = 1024 * 1024;
+static const int log_operations = 0; //! <-- set this to 1 for log output
+static const size_t log_operations_threshold = 1;
 
-//! to each allocation additional data is added for bookkeeping. due to
-//! alignment requirements, we can optionally add more than just one integer.
-static const size_t alignment = 16; /* bytes (>= 2*sizeof(size_t)) */
+//! to each allocation additional data is added for bookkeeping.
+static const size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
 
 //! function pointer to the real procedures, loaded using dlsym
 typedef void* (* malloc_type)(size_t);
@@ -50,6 +49,9 @@ static const size_t sentinel = 0xDEADC0DE;
 static char init_heap[INIT_HEAP_SIZE];
 static std::atomic<size_t> init_heap_use = { 0 };
 static const int log_operations_init_heap = 0;
+
+//! align allocations to init_heap to this number by rounding up allocations
+static const size_t init_alignment = sizeof(size_t);
 
 //! output
 #define PPREFIX "malloc_tracker ### "
@@ -153,7 +155,9 @@ using namespace c7a::core; // NOLINT
 
 static void * preinit_malloc(size_t size) noexcept {
 
-    size_t offset = init_heap_use.fetch_add(alignment + size);
+    size_t aligned_size = size + (init_alignment - size % init_alignment);
+
+    size_t offset = init_heap_use.fetch_add(padding + aligned_size);
 
     if (offset > INIT_HEAP_SIZE) {
         fprintf(stderr, PPREFIX "init heap full !!!\n");
@@ -164,14 +168,14 @@ static void * preinit_malloc(size_t size) noexcept {
 
     //! prepend allocation size and check sentinel
     *reinterpret_cast<size_t*>(ret) = size;
-    *reinterpret_cast<size_t*>(ret + alignment - sizeof(size_t)) = sentinel;
+    *reinterpret_cast<size_t*>(ret + padding - sizeof(size_t)) = sentinel;
 
     if (log_operations_init_heap) {
-        fprintf(stderr, PPREFIX "malloc(%lu) = %p   on init heap\n",
-                size, ret + alignment);
+        fprintf(stderr, PPREFIX "malloc(%lu / %lu) = %p   on init heap\n",
+                size, aligned_size, ret + padding);
     }
 
-    return ret + alignment;
+    return ret + padding;
 }
 
 static void * preinit_realloc(void* ptr, size_t size) noexcept {
@@ -180,10 +184,10 @@ static void * preinit_realloc(void* ptr, size_t size) noexcept {
         fprintf(stderr, PPREFIX "realloc(%p) = on init heap\n", ptr);
     }
 
-    ptr = static_cast<char*>(ptr) - alignment;
+    ptr = static_cast<char*>(ptr) - padding;
 
     if (*reinterpret_cast<size_t*>(
-            static_cast<char*>(ptr) + alignment - sizeof(size_t)) != sentinel) {
+            static_cast<char*>(ptr) + padding - sizeof(size_t)) != sentinel) {
         fprintf(stderr, PPREFIX
                 "realloc(%p) has no sentinel !!! memory corruption?\n",
                 ptr);
@@ -194,11 +198,11 @@ static void * preinit_realloc(void* ptr, size_t size) noexcept {
     if (oldsize >= size) {
         //! keep old area, just reduce the size
         *reinterpret_cast<size_t*>(ptr) = size;
-        return static_cast<char*>(ptr) + alignment;
+        return static_cast<char*>(ptr) + padding;
     }
     else {
         //! allocate new area and copy data
-        ptr = static_cast<char*>(ptr) + alignment;
+        ptr = static_cast<char*>(ptr) + padding;
         void* newptr = malloc(size);
         memcpy(newptr, ptr, oldsize);
         free(ptr);
@@ -336,20 +340,20 @@ void * malloc(size_t size) noexcept {
         return preinit_malloc(size);
 
     //! call read malloc procedure in libc
-    void* ret = (*real_malloc)(alignment + size);
+    void* ret = (*real_malloc)(padding + size);
 
     inc_count(size);
     if (log_operations && size >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
-                size, static_cast<char*>(ret) + alignment, curr.load());
+                size, static_cast<char*>(ret) + padding, curr.load());
     }
 
     //! prepend allocation size and check sentinel
     *reinterpret_cast<size_t*>(ret) = size;
     *reinterpret_cast<size_t*>(
-        static_cast<char*>(ret) + alignment - sizeof(size_t)) = sentinel;
+        static_cast<char*>(ret) + padding - sizeof(size_t)) = sentinel;
 
-    return static_cast<char*>(ret) + alignment;
+    return static_cast<char*>(ret) + padding;
 }
 
 //! exported free symbol that overrides loading from libc
@@ -372,10 +376,10 @@ void free(void* ptr) noexcept {
         return;
     }
 
-    ptr = static_cast<char*>(ptr) - alignment;
+    ptr = static_cast<char*>(ptr) - padding;
 
     if (*reinterpret_cast<size_t*>(
-            static_cast<char*>(ptr) + alignment - sizeof(size_t)) != sentinel) {
+            static_cast<char*>(ptr) + padding - sizeof(size_t)) != sentinel) {
         fprintf(stderr, PPREFIX
                 "free(%p) has no sentinel !!! memory corruption?\n", ptr);
     }
@@ -419,10 +423,10 @@ void * realloc(void* ptr, size_t size) noexcept {
         return malloc(size);
     }
 
-    ptr = static_cast<char*>(ptr) - alignment;
+    ptr = static_cast<char*>(ptr) - padding;
 
     if (*reinterpret_cast<size_t*>(
-            static_cast<char*>(ptr) + alignment - sizeof(size_t)) != sentinel) {
+            static_cast<char*>(ptr) + padding - sizeof(size_t)) != sentinel) {
         fprintf(stderr, PPREFIX
                 "free(%p) has no sentinel !!! memory corruption?\n", ptr);
     }
@@ -432,7 +436,7 @@ void * realloc(void* ptr, size_t size) noexcept {
     dec_count(oldsize);
     inc_count(size);
 
-    void* newptr = (*real_realloc)(ptr, alignment + size);
+    void* newptr = (*real_realloc)(ptr, padding + size);
 
     if (log_operations && size >= log_operations_threshold)
     {
@@ -448,7 +452,7 @@ void * realloc(void* ptr, size_t size) noexcept {
 
     *reinterpret_cast<size_t*>(newptr) = size;
 
-    return static_cast<char*>(newptr) + alignment;
+    return static_cast<char*>(newptr) + padding;
 }
 
 #endif // IMPLEMENTATION SWITCH

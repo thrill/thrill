@@ -17,12 +17,14 @@ TEST(MallocTracker, Test1) {
 
     size_t curr = core::malloc_tracker_current();
 
-    void* a = malloc(1024);
+    char* a = new char[1024];
+    // dear compiler, please don't optimize away completely!
+    a[0] = 0;
 
     size_t curr2 = core::malloc_tracker_current();
     ASSERT_GE(curr2, curr + 1024);
 
-    free(a);
+    delete[] a;
 
     ASSERT_LE(curr, curr2);
 }
