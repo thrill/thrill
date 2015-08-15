@@ -27,11 +27,16 @@ namespace common {
 
 using StringCount = std::pair<core::string, size_t>;
 
+//! deque without malloc tracking
+template <class Key, class T, class Compare = std::less<Key> >
+using bypass_map = std::map<Key, T, Compare,
+                            core::BypassAllocator<std::pair<const Key, T> > >;
+
 //! mutex for threads_ map
 static std::mutex mutex_;
 
 //! map thread id -> (name, message counter)
-static core::map<std::thread::id, StringCount> threads_;
+static bypass_map<std::thread::id, StringCount> threads_;
 
 //! Defines a name for the current thread, only if no name was set previously
 void NameThisThread(const std::string& name) {
