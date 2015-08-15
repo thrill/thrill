@@ -48,7 +48,7 @@ static const size_t sentinel = 0xDEADC0DE;
 //! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
-static std::atomic<size_t> init_heap_use { 0 };
+static std::atomic<size_t> init_heap_use = { 0 };
 static const int log_operations_init_heap = 0;
 
 //! output
@@ -77,12 +77,12 @@ static void dec_count(size_t dec) {
 }
 
 //! bypass malloc tracker and access malloc() directly
-void* malloc_bypass(size_t size) noexcept {
+void * bypass_malloc(size_t size) noexcept {
     return real_malloc(size);
 }
 
 //! bypass malloc tracker and access free() directly
-void free_bypass(void* ptr) noexcept {
+void bypass_free(void* ptr) noexcept {
     return real_free(ptr);
 }
 
@@ -231,8 +231,8 @@ void * malloc(size_t size) noexcept {
     inc_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
-        fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
-                size_used, ret, curr.load());
+        fprintf(stderr, PPREFIX "malloc(%lu / %lu) = %p   (current %lu)\n",
+                size, size_used, ret, curr.load());
     }
 
     return ret;
@@ -309,12 +309,12 @@ void * realloc(void* ptr, size_t size) noexcept {
     {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
-                    "realloc(%lu -> %lu) = %p   (current %lu)\n",
-                    oldsize_used, newsize_used, newptr, curr.load());
+                    "realloc(%lu -> %lu / %lu) = %p   (current %lu)\n",
+                    oldsize_used, size, newsize_used, newptr, curr.load());
         else
             fprintf(stderr, PPREFIX
-                    "realloc(%lu -> %lu) = %p -> %p   (current %lu)\n",
-                    oldsize_used, newsize_used, ptr, newptr, curr.load());
+                    "realloc(%lu -> %lu / %lu) = %p -> %p   (current %lu)\n",
+                    oldsize_used, size, newsize_used, ptr, newptr, curr.load());
     }
 
     return newptr;

@@ -16,13 +16,13 @@
 
 using namespace c7a;
 
-TEST(NewAllocator, Test1) {
+TEST(Allocator, Test1) {
     core::MemoryManager stats(nullptr);
 
     LOG1 << "vector";
     {
-        std::vector<int, core::NewAllocator<int> > my_vector {
-            core::NewAllocator<int>(&stats)
+        std::vector<int, core::Allocator<int> > my_vector {
+            core::Allocator<int>(&stats)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -31,8 +31,8 @@ TEST(NewAllocator, Test1) {
     }
     LOG1 << "deque";
     {
-        std::deque<size_t, core::NewAllocator<size_t> > my_deque {
-            core::NewAllocator<size_t>(&stats)
+        std::deque<size_t, core::Allocator<size_t> > my_deque {
+            core::Allocator<size_t>(&stats)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -45,7 +45,7 @@ namespace c7a {
 namespace core {
 
 // forced instantiations
-template class NewAllocator<int>;
+template class Allocator<int>;
 
 } // namespace core
 } // namespace c7a
