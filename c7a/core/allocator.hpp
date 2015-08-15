@@ -16,13 +16,13 @@
 #include <c7a/core/memory_manager.hpp>
 
 #include <cassert>
+#include <deque>
+#include <iosfwd>
 #include <memory>
 #include <new>
-#include <type_traits>
 #include <string>
-#include <iosfwd>
+#include <type_traits>
 #include <vector>
-#include <deque>
 
 namespace c7a {
 namespace core {
@@ -110,11 +110,11 @@ public:
 
 //! string with MemoryManager tracking
 using mm_string = std::basic_string<
-    char, std::char_traits<char>, Allocator<char> >;
+          char, std::char_traits<char>, Allocator<char> >;
 
 //! stringbuf with MemoryManager tracking
 using mm_stringbuf = std::basic_stringbuf<
-    char, std::char_traits<char>, Allocator<char> >;
+          char, std::char_traits<char>, Allocator<char> >;
 
 //! vector with MemoryManager tracking
 template <typename T>
