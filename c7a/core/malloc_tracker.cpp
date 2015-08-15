@@ -76,6 +76,16 @@ static void dec_count(size_t dec) {
     curr -= dec;
 }
 
+//! bypass malloc tracker and access malloc() directly
+void* malloc_bypass(size_t size) noexcept {
+    return real_malloc(size);
+}
+
+//! bypass malloc tracker and access free() directly
+void free_bypass(void* ptr) noexcept {
+    return real_free(ptr);
+}
+
 //! user function to return the currently allocated amount of memory
 size_t malloc_tracker_current() {
     return curr;

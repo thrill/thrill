@@ -17,6 +17,12 @@
 namespace c7a {
 namespace core {
 
+//! bypass malloc tracker and access malloc() directly
+void* malloc_bypass(size_t size) noexcept;
+
+//! bypass malloc tracker and access free() directly
+void free_bypass(void* ptr) noexcept;
+
 //! returns the currently allocated amount of memory
 size_t malloc_tracker_current();
 
