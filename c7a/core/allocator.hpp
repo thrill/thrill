@@ -21,6 +21,8 @@
 #include <type_traits>
 #include <string>
 #include <iosfwd>
+#include <vector>
+#include <deque>
 
 namespace c7a {
 namespace core {
@@ -106,27 +108,6 @@ public:
     }
 };
 
-} // namespace core
-} // namespace c7a
-
-// template class prototypes, so we can declare containers without including the
-// whole implementation code.
-namespace std {
-
-template <class T, class Alloc>
-class vector;
-
-template <class T, class Alloc>
-class deque;
-
-template <class Key, class T, class Compare, class Alloc>
-class map;
-
-} // namespace std
-
-namespace c7a {
-namespace core {
-
 //! string with MemoryManager tracking
 using mm_string = std::basic_string<
     char, std::char_traits<char>, Allocator<char> >;
@@ -142,11 +123,6 @@ using mm_vector = std::vector<T, Allocator<T> >;
 //! deque with MemoryManager tracking
 template <typename T>
 using mm_deque = std::deque<T, Allocator<T> >;
-
-//! deque with MemoryManager tracking
-template <class Key, class T, class Compare = std::less<Key> >
-using mm_map = std::map<Key, T, Compare,
-                        Allocator<std::pair<const Key, T> > >;
 
 } // namespace core
 } // namespace c7a
