@@ -39,6 +39,9 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
+    //! C++11 type flag
+    using is_always_equal = std::false_type;
+
     //! Return allocator for different type.
     template <class U>
     struct rebind { using other = Allocator<U>; };
@@ -89,6 +92,18 @@ public:
     //! pointer to common MemoryManager object. If we use a reference here, then
     //! the allocator cannot be default move/assigned anymore.
     MemoryManager* memory_manager_;
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator == (const Allocator<Other>& other) const noexcept {
+        return (memory_manager_ == other.memory_manager_);
+    }
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator != (const Allocator<Other>& other) const noexcept {
+        return (memory_manager_ != other.memory_manager_);
+    }
 };
 
 } // namespace core
@@ -106,9 +121,6 @@ class deque;
 
 template <class Key, class T, class Compare, class Alloc>
 class map;
-
-template <class Key, class T, class Hash, class Pred, class Alloc>
-class unordered_map;
 
 } // namespace std
 

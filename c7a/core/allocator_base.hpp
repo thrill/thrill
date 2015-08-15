@@ -80,18 +80,6 @@ public:
     void destroy(SubType* p) {
         p->~SubType();
     }
-
-    //! Compare to another allocator of same type
-    template <class Other>
-    bool operator == (const AllocatorBase<Other>&) noexcept {
-        return true;
-    }
-
-    //! Compare to another allocator of same type
-    template <class Other>
-    bool operator != (const AllocatorBase<Other>&) noexcept {
-        return true;
-    }
 };
 
 template <typename Type>
@@ -120,7 +108,7 @@ public:
 
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
-    BypassAllocator(const BypassAllocator<OtherType>& other) noexcept { }
+    BypassAllocator(const BypassAllocator<OtherType>& /* other */) noexcept { }
 
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to
@@ -136,6 +124,18 @@ public:
     //! and not yet released.
     void deallocate(pointer p, size_type /* n */) noexcept {
         bypass_free(p);
+    }
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator == (const BypassAllocator<Other>&) const noexcept {
+        return true;
+    }
+
+    //! Compare to another allocator of same type
+    template <class Other>
+    bool operator != (const BypassAllocator<Other>&) const noexcept {
+        return true;
     }
 };
 
@@ -154,9 +154,6 @@ class deque;
 
 template <class Key, class T, class Compare, class Alloc>
 class map;
-
-template <class Key, class T, class Hash, class Pred, class Alloc>
-class unordered_map;
 
 } // namespace std
 
