@@ -143,25 +143,26 @@ using namespace c7a::core; // NOLINT
 
 static void * preinit_malloc(size_t size) noexcept {
 
-    if (init_heap_use + alignment + size > INIT_HEAP_SIZE) {
+    size_t offset = init_heap_use;
+    offset += (alignment + size);
+
+    if (offset > INIT_HEAP_SIZE) {
         fprintf(stderr, PPREFIX "init heap full !!!\n");
         exit(EXIT_FAILURE);
     }
 
-    void* ret = init_heap + init_heap_use;
-    init_heap_use += alignment + size;
+    char* ret = init_heap + offset;
 
     //! prepend allocation size and check sentinel
     *reinterpret_cast<size_t*>(ret) = size;
-    *reinterpret_cast<size_t*>(
-        static_cast<char*>(ret) + alignment - sizeof(size_t)) = sentinel;
+    *reinterpret_cast<size_t*>(ret + alignment - sizeof(size_t)) = sentinel;
 
     if (log_operations_init_heap) {
         fprintf(stderr, PPREFIX "malloc(%lu) = %p   on init heap\n",
-                size, static_cast<char*>(ret) + alignment);
+                size, ret + alignment);
     }
 
-    return static_cast<char*>(ret) + alignment;
+    return ret + alignment;
 }
 
 static void * preinit_realloc(void* ptr, size_t size) noexcept {
