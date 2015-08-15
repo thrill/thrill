@@ -16,13 +16,13 @@
 
 #include <atomic>
 #include <cassert>
+#include <deque>
+#include <iosfwd>
 #include <memory>
 #include <new>
-#include <type_traits>
 #include <string>
-#include <iosfwd>
+#include <type_traits>
 #include <vector>
-#include <deque>
 
 namespace c7a {
 namespace core {
@@ -63,7 +63,7 @@ public:
 
     //! Constructs an element object on the location pointed by p.
     void construct(pointer p, const_reference value) {
-        ::new (static_cast<void*>(p))Type(value);
+        ::new ((void*)p)Type(value);
     }
 
     //! Destroys in-place the object pointed by p.
@@ -74,7 +74,7 @@ public:
     //! Constructs an element object on the location pointed by p.
     template <class SubType, class ... Args>
     void construct(SubType* p, Args&& ... args) {
-        ::new (static_cast<void*>(p))SubType(std::forward<Args>(args) ...);
+        ::new ((void*)p)SubType(std::forward<Args>(args) ...);
     }
 
     //! Destroys in-place the object pointed by p.
