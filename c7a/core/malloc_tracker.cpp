@@ -48,7 +48,7 @@ static const size_t sentinel = 0xDEADC0DE;
 //! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
-static size_t init_heap_use = 0;
+static std::atomic<size_t> init_heap_use { 0 };
 static const int log_operations_init_heap = 0;
 
 //! output
@@ -143,8 +143,7 @@ using namespace c7a::core; // NOLINT
 
 static void * preinit_malloc(size_t size) noexcept {
 
-    size_t offset = init_heap_use;
-    offset += (alignment + size);
+    size_t offset = init_heap_use.fetch_add(alignment + size);
 
     if (offset > INIT_HEAP_SIZE) {
         fprintf(stderr, PPREFIX "init heap full !!!\n");
