@@ -24,7 +24,7 @@ namespace c7a {
 namespace common {
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const std::string& name);
+void NameThisThread(const core::string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();

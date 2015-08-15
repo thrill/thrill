@@ -75,13 +75,13 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     std::vector<std::thread> threads(host_count * workers_per_host);
 
     for (size_t host = 0; host < host_count; host++) {
-        std::string log_prefix = "host " + std::to_string(host);
+        core::string log_prefix = "host " + core::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; worker++) {
             threads[host * workers_per_host + worker] = std::thread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
                     Context ctx(*host_contexts[host], worker);
                     common::NameThisThread(
-                        log_prefix + " worker " + std::to_string(worker));
+                        log_prefix + " worker " + core::to_string(worker));
 
                     LOG << "Starting job on host " << ctx.host_rank();
                     auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);
@@ -124,7 +124,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
         my_host_rank, { "127.0.0.1:12345" }, workers_per_host);
 
     Context ctx(host_context, 0);
-    common::NameThisThread("worker " + std::to_string(my_host_rank));
+    common::NameThisThread("worker " + core::to_string(my_host_rank));
 
     job_startpoint(ctx);
 }
@@ -133,7 +133,7 @@ int RunDistributedTCP(
     size_t my_host_rank,
     const std::vector<std::string>& endpoints,
     std::function<void(Context&)> job_startpoint,
-    const std::string& log_prefix) {
+    const core::string& log_prefix) {
 
     //TODO pull this out of ENV
     const size_t workers_per_host = 1;
@@ -149,7 +149,7 @@ int RunDistributedTCP(
             [&host_context, &job_startpoint, i, log_prefix] {
                 Context ctx(host_context, i);
                 common::NameThisThread(
-                    log_prefix + " worker " + std::to_string(i));
+                    log_prefix + " worker " + core::to_string(i));
 
                 LOG << "Starting job on worker " << ctx.my_rank() << " (" << ctx << ")";
                 auto overall_timer = ctx.stats().CreateTimer("job::overall", "", true);

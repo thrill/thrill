@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstdarg>
 #include <deque>
 #include <iosfwd>
 #include <memory>
@@ -72,7 +73,7 @@ public:
     }
 
     //! Constructs an element object on the location pointed by p.
-    template <class SubType, class ... Args>
+    template <class SubType, typename ... Args>
     void construct(SubType* p, Args&& ... args) {
         ::new ((void*)p)SubType(std::forward<Args>(args) ...);
     }
@@ -156,6 +157,41 @@ using vector = std::vector<T, BypassAllocator<T> >;
 //! deque without malloc tracking
 template <typename T>
 using deque = std::deque<T, BypassAllocator<T> >;
+
+//! Helper for the to_string converters
+template <typename String, typename CharT = typename String::value_type>
+String to_string_helper(size_t n, const CharT* fmt, ...) {
+    CharT* s = static_cast<CharT*>(alloca(sizeof(CharT) * n));
+
+    va_list args;
+    va_start(args, fmt);
+
+    const int len = std::vsnprintf(s, n, fmt, args);
+
+    va_end(args);
+
+    return String(s, s + len);
+}
+
+//! convert to string
+static inline string to_string(int val) {
+    return to_string_helper<string>(4 * sizeof(int), "%d", val);
+}
+
+//! convert to string
+static inline string to_string(unsigned val) {
+    return to_string_helper<string>(4 * sizeof(int), "%u", val);
+}
+
+//! convert to string
+static inline string to_string(long val) {
+    return to_string_helper<string>(4 * sizeof(long), "%ld", val);
+}
+
+//! convert to string
+static inline string to_string(unsigned long val) {
+    return to_string_helper<string>(4 * sizeof(long), "%lu", val);
+}
 
 } // namespace core
 } // namespace c7a

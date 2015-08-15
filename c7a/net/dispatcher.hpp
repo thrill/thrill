@@ -15,6 +15,7 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
+#include <c7a/core/allocator.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/net/buffer.hpp>
 #include <c7a/net/connection.hpp>
@@ -78,7 +79,8 @@ protected:
 
 public:
     //! default constructor
-    Dispatcher() { }
+    Dispatcher(core::MemoryManager& memory_manager)
+        : memory_manager_(memory_manager) { }
 
     //! non-copyable: delete copy-constructor
     Dispatcher(const Dispatcher&) = delete;
@@ -303,11 +305,14 @@ public:
     //! \}
 
 protected:
-    //! low-level file descriptor async processing
-    SubDispatcher dispatcher_;
-
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
+
+    //! superior memory manager
+    core::MemoryManager& memory_manager_;
+
+    //! low-level file descriptor async processing
+    SubDispatcher dispatcher_ { memory_manager_ };
 
     //! struct for timer callbacks
     struct Timer
@@ -332,11 +337,14 @@ protected:
     };
 
     //! priority queue of timer callbacks
-    typedef std::priority_queue<Timer> TimerPQ;
+    using TimerPQ = std::priority_queue<Timer, core::mm_vector<Timer> >;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.
-    TimerPQ timer_pq_;
+    TimerPQ timer_pq_ {
+        std::less<Timer>(),
+        core::mm_vector<Timer>(core::Allocator<Timer>(memory_manager_))
+    };
 
     /**************************************************************************/
 
@@ -394,7 +402,9 @@ protected:
     };
 
     //! deque of asynchronous readers
-    std::deque<AsyncReadBuffer> async_read_;
+    core::mm_deque<AsyncReadBuffer> async_read_ {
+        core::Allocator<AsyncReadBuffer>(memory_manager_)
+    };
 
     /**************************************************************************/
 
@@ -452,7 +462,9 @@ protected:
     };
 
     //! deque of asynchronous writers
-    std::deque<AsyncWriteBuffer> async_write_;
+    core::mm_deque<AsyncWriteBuffer> async_write_ {
+        core::Allocator<AsyncWriteBuffer>(memory_manager_)
+    };
 
     /**************************************************************************/
 
@@ -511,7 +523,9 @@ protected:
     };
 
     //! deque of asynchronous readers
-    std::deque<AsyncReadByteBlock> async_read_block_;
+    core::mm_deque<AsyncReadByteBlock> async_read_block_ {
+        core::Allocator<AsyncReadByteBlock>(memory_manager_)
+    };
 
     /**************************************************************************/
 
@@ -571,7 +585,9 @@ protected:
     };
 
     //! deque of asynchronous writers
-    std::deque<AsyncWriteBlock> async_write_block_;
+    core::mm_deque<AsyncWriteBlock> async_write_block_ {
+        core::Allocator<AsyncWriteBlock>(memory_manager_)
+    };
 
     /**************************************************************************/
 

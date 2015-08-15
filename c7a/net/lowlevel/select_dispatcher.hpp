@@ -16,6 +16,7 @@
 
 #include <c7a/common/config.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/core/allocator.hpp>
 #include <c7a/net/exception.hpp>
 #include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
@@ -45,6 +46,10 @@ class SelectDispatcher : protected Select
     static const bool self_verify_ = common::g_self_verify;
 
 public:
+    //! constructor
+    SelectDispatcher(core::MemoryManager& memory_manager)
+        : memory_manager_(memory_manager) { }
+
     //! type for file descriptor readiness callbacks
     typedef std::function<bool ()> Callback;
 
@@ -53,7 +58,7 @@ public:
         assert(fd >= 0);
         assert(fd <= 32000); // this is an arbitrary limit to catch errors.
         if (static_cast<size_t>(fd) >= watch_.size())
-            watch_.resize(fd + 1);
+            watch_.resize(fd + 1, Watch(memory_manager_));
     }
 
     //! Register a buffered read callback and a default exception callback.
@@ -112,21 +117,28 @@ public:
     void Dispatch(const std::chrono::milliseconds& timeout);
 
 private:
+    //! reference to memory manager
+    core::MemoryManager& memory_manager_;
+
     //! callback vectors per watched file descriptor
     struct Watch
     {
         //! boolean check whether any callbacks are registered
-        bool                 active;
+        bool                     active;
         //! queue of callbacks for fd.
-        std::deque<Callback> read_cb, write_cb;
+        core::mm_deque<Callback> read_cb, write_cb;
         //! only one exception callback for the fd.
-        Callback             except_cb = nullptr;
+        Callback                 except_cb = nullptr;
+
+        Watch(core::MemoryManager& memory_manager)
+            : read_cb(core::Allocator<Callback>(memory_manager)),
+              write_cb(core::Allocator<Callback>(memory_manager)) { }
     };
 
     //! handlers for all registered file descriptors. the fd integer range
     //! should be small enough, otherwise a more complicated data structure is
     //! needed.
-    std::vector<Watch> watch_;
+    core::mm_vector<Watch> watch_ { core::Allocator<Watch>(memory_manager_) };
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {

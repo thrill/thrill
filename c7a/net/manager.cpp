@@ -127,6 +127,9 @@ protected:
     //! Link to manager being initialized
     Manager& mgr_;
 
+    //! Temporary MemoryManager for construction
+    core::MemoryManager memory_manager_ { nullptr };
+
     //! Link to manager's groups to initialize
     std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
 
@@ -145,7 +148,7 @@ protected:
      * The dispatcher instance used by this Manager
      * to perform async operations.
      */
-    Dispatcher dispatcher_;
+    Dispatcher dispatcher_ { memory_manager_ };
 
     // Some definitions for convenience
     using Socket = lowlevel::Socket;
