@@ -63,7 +63,7 @@ struct Multiplexer : public::testing::Test {
 // open a Channel via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaChannel(net::Group* net) {
-    common::NameThisThread("chmp" + std::to_string(net->my_host_rank()));
+    common::NameThisThread("chmp" + core::to_string(net->my_host_rank()));
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)

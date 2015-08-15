@@ -39,11 +39,9 @@ static std::mutex mutex_;
 static bypass_map<std::thread::id, StringCount> threads_;
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const std::string& name) {
+void NameThisThread(const core::string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
-    threads_[std::this_thread::get_id()] = StringCount(
-        // TODO(tb): this copies the string, do it better? -tb
-        core::string(name.begin(), name.end()), 0);
+    threads_[std::this_thread::get_id()] = StringCount(name, 0);
 }
 
 //! Outputs the name of the current thread or 'unknown [id]'

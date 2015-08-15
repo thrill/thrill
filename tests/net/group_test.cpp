@@ -8,6 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <c7a/core/memory_manager.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -20,6 +21,7 @@
 #include <thread>
 #include <vector>
 
+using namespace c7a;
 using namespace c7a::net;
 
 static void ThreadInitializeAsyncRead(Group* net) {
@@ -31,7 +33,8 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 
     size_t received = 0;
-    Dispatcher dispatcher;
+    core::MemoryManager memory_manager(nullptr);
+    Dispatcher dispatcher(memory_manager);
 
     Dispatcher::AsyncReadCallback callback =
         [net, &received](Connection& /* s */, const Buffer& buffer) {

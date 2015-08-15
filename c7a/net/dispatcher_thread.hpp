@@ -17,6 +17,7 @@
 
 #include <c7a/common/concurrent_queue.hpp>
 #include <c7a/common/thread_pool.hpp>
+#include <c7a/core/allocator.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/net/connection.hpp>
 
@@ -72,8 +73,11 @@ public:
 
     //! \}
 
+    //! common global memory stats, should become a HostContext member.
+    core::MemoryManager memory_manager_ { nullptr };
+
 public:
-    explicit DispatcherThread(const std::string& thread_name);
+    explicit DispatcherThread(const core::string& thread_name);
     ~DispatcherThread();
 
     //! non-copyable: delete copy-constructor
@@ -156,7 +160,9 @@ protected:
 
 private:
     //! Queue of jobs to be run by dispatching thread at its discretion.
-    common::ConcurrentQueue<Job> jobqueue_;
+    common::ConcurrentQueue<Job, core::Allocator<Job> > jobqueue_ {
+        core::Allocator<Job>(memory_manager_)
+    };
 
     //! thread of dispatcher
     std::thread thread_;
@@ -168,7 +174,7 @@ private:
     std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
-    std::string name_;
+    core::string name_;
 
     //! self-pipe to wake up thread.
     int self_pipe_[2];

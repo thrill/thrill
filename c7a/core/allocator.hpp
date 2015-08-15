@@ -49,8 +49,8 @@ public:
     struct rebind { using other = Allocator<U>; };
 
     //! Construct Allocator with MemoryManager object
-    Allocator(MemoryManager* memory_manager) noexcept
-        : memory_manager_(memory_manager) { }
+    explicit Allocator(MemoryManager& memory_manager) noexcept
+        : memory_manager_(&memory_manager) { }
 
     //! copy-constructor
     Allocator(const Allocator&) noexcept = default;
@@ -107,6 +107,23 @@ public:
         return (memory_manager_ != other.memory_manager_);
     }
 };
+
+//! operator new with our Allocator
+template <typename T, class ... Args>
+T * mm_new(MemoryManager& memory_manager, Args&& ... args) {
+    Allocator<T> allocator(memory_manager);
+    T* value = allocator.allocate(1);
+    allocator.construct(value, std::forward<Args>(args) ...);
+    return value;
+}
+
+//! operator delete with our Allocator
+template <typename T>
+void mm_delete(MemoryManager& memory_manager, T* value) {
+    Allocator<T> allocator(memory_manager);
+    allocator.destroy(value);
+    allocator.deallocate(value, 1);
+}
 
 //! string with MemoryManager tracking
 using mm_string = std::basic_string<

@@ -21,8 +21,9 @@
 namespace c7a {
 namespace net {
 
-DispatcherThread::DispatcherThread(const std::string& thread_name)
-    : dispatcher_(new Dispatcher),
+DispatcherThread::DispatcherThread(const core::string& thread_name)
+    : dispatcher_(
+          core::mm_new<Dispatcher>(memory_manager_, memory_manager_)),
       name_(thread_name) {
     // allocate self-pipe
     int r = ::pipe(self_pipe_);
@@ -37,7 +38,7 @@ DispatcherThread::~DispatcherThread() {
     close(self_pipe_[0]);
     close(self_pipe_[1]);
 
-    delete dispatcher_;
+    core::mm_delete(memory_manager_, dispatcher_);
 }
 
 //! Terminate the dispatcher thread (if now already done).
