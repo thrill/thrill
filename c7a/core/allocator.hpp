@@ -15,13 +15,12 @@
 #include <c7a/core/allocator_base.hpp>
 #include <c7a/core/memory_manager.hpp>
 
-#include <atomic>
 #include <cassert>
-#include <deque>
 #include <memory>
 #include <new>
 #include <type_traits>
-#include <vector>
+#include <string>
+#include <iosfwd>
 
 namespace c7a {
 namespace core {
@@ -92,12 +91,50 @@ public:
     MemoryManager* memory_manager_;
 };
 
-// common containers with our allocator
-template <typename T>
-using vector = std::vector<T, Allocator<T> >;
+} // namespace core
+} // namespace c7a
 
+// template class prototypes, so we can declare containers without including the
+// whole implementation code.
+namespace std {
+
+template <class T, class Alloc>
+class vector;
+
+template <class T, class Alloc>
+class deque;
+
+template <class Key, class T, class Compare, class Alloc>
+class map;
+
+template <class Key, class T, class Hash, class Pred, class Alloc>
+class unordered_map;
+
+} // namespace std
+
+namespace c7a {
+namespace core {
+
+//! string with MemoryManager tracking
+using mm_string = std::basic_string<
+    char, std::char_traits<char>, Allocator<char> >;
+
+//! stringbuf with MemoryManager tracking
+using mm_stringbuf = std::basic_stringbuf<
+    char, std::char_traits<char>, Allocator<char> >;
+
+//! vector with MemoryManager tracking
 template <typename T>
-using deque = std::deque<T, Allocator<T> >;
+using mm_vector = std::vector<T, Allocator<T> >;
+
+//! deque with MemoryManager tracking
+template <typename T>
+using mm_deque = std::deque<T, Allocator<T> >;
+
+//! deque with MemoryManager tracking
+template <class Key, class T, class Compare = std::less<Key> >
+using mm_map = std::map<Key, T, Compare,
+                        Allocator<std::pair<const Key, T> > >;
 
 } // namespace core
 } // namespace c7a

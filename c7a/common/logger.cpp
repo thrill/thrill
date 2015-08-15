@@ -23,62 +23,91 @@
 namespace c7a {
 namespace common {
 
-static std::mutex logger_mutex_;
-
-//! destructor: output a newline
-Logger<true>::~Logger() {
-    oss_ << "\n";
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(logger_mutex_);
-    std::cout << oss_.str();
-    std::cout.flush();
-}
-
-//! destructor: output a newline
-SpacingLogger<true>::~SpacingLogger() {
-    oss_ << "\n";
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(logger_mutex_);
-    std::cout << oss_.str();
-    std::cout.flush();
-}
-
 /******************************************************************************/
 
-using StringCount = std::pair<std::string, size_t>;
+using StringCount = std::pair<core::string, size_t>;
+
+//! mutex for threads_ map
+static std::mutex mutex_;
 
 //! map thread id -> (name, message counter)
-static std::map<std::thread::id, StringCount> threads_;
-static std::mutex mutex_;
+static core::map<std::thread::id, StringCount> threads_;
 
 //! Defines a name for the current thread, only if no name was set previously
 void NameThisThread(const std::string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
-    threads_[std::this_thread::get_id()] = StringCount(name, 0);
+    threads_[std::this_thread::get_id()] = StringCount(
+        // TODO(tb): this copies the string, do it better? -tb
+        core::string(name.begin(), name.end()), 0);
 }
 
-//! Returns the name of the current thread or 'unknown [id]'
-std::string GetNameForThisThread() {
+//! Outputs the name of the current thread or 'unknown [id]'
+void FormatNameForThisThread(std::ostream& os) {
     std::lock_guard<std::mutex> lock(mutex_);
+
     auto it = threads_.find(std::this_thread::get_id());
     if (it != threads_.end()) {
         StringCount& sc = it->second;
         if (true) {
-            std::ostringstream ss;
             // print "name #msg";
-            ss << sc.first << ' '
+            os << sc.first << ' '
                << std::setfill('0') << std::setw(6) << sc.second++;
-            return ss.str();
         }
         else {
-            return sc.first;
+            os << sc.first;
         }
     }
-    std::ostringstream ss;
-    ss << "unknown " << std::this_thread::get_id();
-    return ss.str();
+    else {
+        os << "unknown " << std::this_thread::get_id();
+    }
+}
+
+//! Returns the name of the current thread or 'unknown [id]'
+std::string GetNameForThisThread() {
+    std::ostringstream oss;
+    FormatNameForThisThread(oss);
+    return oss.str();
+}
+
+/******************************************************************************/
+
+//! mutex for threads_ map
+static std::mutex logger_mutex_;
+
+//! constructor: if real = false the output is suppressed.
+Logger<true>::Logger() : oss_(&buf_) {
+    oss_ << '[';
+    FormatNameForThisThread(oss_);
+    oss_ << "] ";
+}
+
+//! destructor: output a newline
+Logger<true>::~Logger() {
+    oss_ << '\n';
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(logger_mutex_);
+    oss_.flush();
+    core::string out = buf_.str();
+    std::cout.write(out.data(), out.size());
+}
+
+//! constructor: if real = false the output is suppressed.
+SpacingLogger<true>::SpacingLogger() : oss_(&buf_) {
+    oss_ << '[';
+    FormatNameForThisThread(oss_);
+    oss_ << "] ";
+}
+
+//! destructor: output a newline
+SpacingLogger<true>::~SpacingLogger() {
+    oss_ << '\n';
+    // lock the global mutex of logger for serialized output in
+    // multi-threaded programs.
+    std::unique_lock<std::mutex> lock(logger_mutex_);
+    oss_.flush();
+    core::string out = buf_.str();
+    std::cout.write(out.data(), out.size());
 }
 
 } // namespace common

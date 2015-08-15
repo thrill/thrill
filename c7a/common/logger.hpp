@@ -14,6 +14,8 @@
 #ifndef C7A_COMMON_LOGGER_HEADER
 #define C7A_COMMON_LOGGER_HEADER
 
+#include <c7a/core/allocator_base.hpp>
+
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -41,20 +43,17 @@ template <>
 class Logger<true>
 {
 protected:
-    //! collector stream
-    std::ostringstream oss_;
+    //! stringbuf without malloc tracking
+    core::stringbuf buf_;
 
-    //! for access to mutex_
-    template <bool Active>
-    friend class SpacingLogger;
+    //! collector stream
+    std::ostream oss_;
 
 public:
     //! Real active flag
     static const bool active = true;
 
-    Logger() {
-        oss_ << "[" << GetNameForThisThread() << "] ";
-    }
+    Logger();
 
     //! output any type, including io manipulators
     template <typename AnyType>
@@ -96,17 +95,17 @@ protected:
     //! true until the first element it outputted.
     bool first_ = true;
 
+    //! stringbuf without malloc tracking
+    core::stringbuf buf_;
+
     //! collector stream
-    std::ostringstream oss_;
+    std::ostream oss_;
 
 public:
     //! Real active flag
     static const bool active = true;
 
-    //! constructor: if real = false the output is suppressed.
-    SpacingLogger() {
-        oss_ << "[" << GetNameForThisThread() << "] ";
-    }
+    SpacingLogger();
 
     //! output any type, including io manipulators
     template <typename AnyType>

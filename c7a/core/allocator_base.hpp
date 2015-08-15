@@ -163,9 +163,6 @@ class unordered_map;
 namespace c7a {
 namespace core {
 
-//! namespace containing containers templated with BypassAllocator
-namespace bypass {
-
 //! string without malloc tracking
 using string = std::basic_string<
           char, std::char_traits<char>, BypassAllocator<char> >;
@@ -183,11 +180,10 @@ template <typename T>
 using deque = std::deque<T, BypassAllocator<T> >;
 
 //! deque without malloc tracking
-template <class Key, class T, class Compare = std::less<T> >
+template <class Key, class T, class Compare = std::less<Key> >
 using map = std::map<Key, T, Compare,
                      BypassAllocator<std::pair<const Key, T> > >;
 
-} // namespace bypass
 } // namespace core
 } // namespace c7a
 
