@@ -151,23 +151,23 @@ public:
                 bool inclusive = true) {
 
         T res = value;
-        //return value when computing non-exclusive prefix sum
+        // return value when computing non-exclusive prefix sum
         T exclusiveRes = T();
         std::vector<T> localPrefixBuffer(threadCount);
 
-        //Local Reduce
+        // Local Reduce
         if (threadId == 0) {
-            //Master allocate memory.
+            // Master allocate memory.
             localPrefixBuffer[threadId] = value;
             SetLocalShared(&localPrefixBuffer);
             barrier.Await();
-            //Slave store values.
+            // Slave store values.
             barrier.Await();
 
-            //Global Prefix
+            // Global Prefix
 
-            //Everyone except the first one needs
-            //to receive and add.
+            // Everyone except the first one needs
+            // to receive and add.
             if (id != 0) {
                 ReceiveFrom(id - 1, &res);
                 exclusiveRes = res;
@@ -178,27 +178,27 @@ public:
                 res = localPrefixBuffer[i];
             }
 
-            //Everyone except the last one needs to forward.
+            // Everyone except the last one needs to forward.
             if (id != count - 1) {
                 SendTo(id + 1, res);
             }
 
             barrier.Await();
-            //Slave get result
+            // Slave get result
             barrier.Await();
             ClearLocalShared();
 
             res = localPrefixBuffer[threadId];
         }
         else {
-            //Master allocate memory.
+            // Master allocate memory.
             barrier.Await();
-            //Slave store values.
+            // Slave store values.
             (*GetLocalShared<std::vector<T> >())[threadId] = value;
             barrier.Await();
-            //Global Prefix
+            // Global Prefix
             barrier.Await();
-            //Slave get result
+            // Slave get result
             if (inclusive) {
                 res = (*GetLocalShared<std::vector<T> >())[threadId];
             }
@@ -248,19 +248,19 @@ public:
 
         T res;
 
-        //The primary thread of each node has to handle IO
+        // The primary thread of each node has to handle IO
         if (threadId == 0) {
             SetLocalShared(&res);
 
             if (id == 0) {
-                //Master has to send to all.
+                // Master has to send to all.
                 for (int i = 1; i < count; i++) {
                     SendTo(i, value);
                     res = value;
                 }
             }
             else {
-                //Every other node has to receive.
+                // Every other node has to receive.
                 ReceiveFrom(0, &res);
             }
         }
@@ -294,35 +294,35 @@ public:
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
 
-        //Local Reduce
+        // Local Reduce
         if (threadId == 0) {
-            //Master allocate memory.
+            // Master allocate memory.
             localReduceBuffer[threadId] = value;
             SetLocalShared(&localReduceBuffer);
             barrier.Await();
-            //Slave store values.
+            // Slave store values.
             barrier.Await();
 
-            //Master reduce
+            // Master reduce
             for (int i = 1; i < threadCount; i++) {
                 res = sumOp(res, localReduceBuffer[i]);
             }
 
-            //Global Reduce
-            //The master receives from evereyone else.
+            // Global Reduce
+            // The master receives from evereyone else.
             if (id == 0) {
                 T msg;
                 for (int i = 1; i < count; i++) {
                     ReceiveFrom(i, &msg);
                     res = sumOp(msg, res);
                 }
-                //Finally, the result is broadcasted.
+                // Finally, the result is broadcasted.
                 for (int i = 1; i < count; i++) {
                     SendTo(i, res);
                 }
             }
             else {
-                //Each othe worker just sends the value to the master.
+                // Each othe worker just sends the value to the master.
                 SendTo(0, res);
                 ReceiveFrom(0, &res);
             }
@@ -330,20 +330,20 @@ public:
             ClearLocalShared();
             SetLocalShared(&res);
             barrier.Await();
-            //Slave get result
+            // Slave get result
             barrier.Await();
             ClearLocalShared();
         }
         else {
-            //Master allocate memory.
+            // Master allocate memory.
             barrier.Await();
-            //Slave store values.
+            // Slave store values.
             (*GetLocalShared<std::vector<T> >())[threadId] = value;
             barrier.Await();
-            //Master Reduce
-            //Global Reduce
+            // Master Reduce
+            // Global Reduce
             barrier.Await();
-            //Slave get result
+            // Slave get result
             res = *GetLocalShared<T>();
             barrier.Await();
         }

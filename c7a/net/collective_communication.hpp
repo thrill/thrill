@@ -14,7 +14,7 @@
 #ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
 
-//http://memegenerator.net/instance2/1128363 (ts)
+// http://memegenerator.net/instance2/1128363 (ts)
 #if DISABLE_MAYBE_REMOVE
 
 #include <c7a/common/functional.hpp>

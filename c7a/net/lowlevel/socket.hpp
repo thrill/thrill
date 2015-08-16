@@ -98,9 +98,9 @@ public:
     class Errors
     {
     public:
-        //No-one listening on the remote address.
+        // No-one listening on the remote address.
         static const int ConnectionRefused = ECONNREFUSED;
-        //Timeout while attempting connection.
+        // Timeout while attempting connection.
         static const int Timeout = ETIMEDOUT;
     };
 

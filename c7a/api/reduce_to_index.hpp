@@ -151,7 +151,7 @@ public:
                           neutral_element_);
 
         if (PreservesKey) {
-            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
             while (reader.HasNext()) {
@@ -160,7 +160,7 @@ public:
             table.Flush();
         }
         else {
-            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
             while (reader.HasNext()) {
@@ -196,9 +196,9 @@ public:
     }
 
 private:
-    //!Key extractor function
+    //! Key extractor function
     KeyExtractor key_extractor_;
-    //!Reduce function
+    //! Reduce function
     ReduceFunction reduce_function_;
 
     data::ChannelPtr channel_;
@@ -218,10 +218,10 @@ private:
         reduce_pre_table_.Insert(std::move(input));
     }
 
-    //!Receive elements from other workers.
+    //! Receive elements from other workers.
     auto MainOp() {
         LOG << ToString() << " running main op";
-        //Flush hash table before the postOp
+        // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         channel_->Close();
@@ -352,10 +352,10 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
-                                                 //This function should not be
-                                                 //called, it is only here to
-                                                 //give the key type to the
-                                                 //hashtables.
+                                                 // This function should not be
+                                                 // called, it is only here to
+                                                 // give the key type to the
+                                                 // hashtables.
                                                  assert(1 == 0);
                                                  key = key;
                                                  return Key();

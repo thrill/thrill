@@ -18,7 +18,7 @@ struct FutureQueueTest : public::testing::Test {
     FutureQueueTest() : pool(2) { }
     ThreadPool pool;
 
-    //can not put f or result in the struct because it cannot be captured then.
+    // can not put f or result in the struct because it cannot be captured then.
 };
 
 TEST_F(FutureQueueTest, WaitIsTrueWhenDataWasPushed) {

@@ -226,6 +226,12 @@ sub process_cpp {
         expectr($path, $n-2, @data, "#endif // !$guard\n", qr/^#endif /);
     }
 
+    # check for comments that have no space after // or //!
+    for(my $i = 0; $i < @data-1; ++$i) {
+        next if $data[$i] =~ m@^(\s*//)( |! |/|-|\*)@;
+        $data[$i] =~ s@^(\s*//!?)([^ ].+)$@$1 $2@;
+    }
+
     # check terminating /****/ comment
     {
         my $n = scalar(@data)-1;

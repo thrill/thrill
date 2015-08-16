@@ -53,8 +53,8 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
                            input.Map(
                                [&writer_size](const int& item) {
-                                   //file contains ints between 1  and 15
-                                   //fails if wrong integer is generated
+                                   // file contains ints between 1  and 15
+                                   // fails if wrong integer is generated
                                    EXPECT_GE(item, 1);
                                    EXPECT_GE(16, item);
                                    writer_size++;
