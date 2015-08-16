@@ -22,11 +22,10 @@
 #include <atomic>
 
 #if defined(__clang__) || defined (__GNUC__)
-#define ATTRIBUTE_NO_SANITIZE_ADDRESS     \
-    __attribute__ ((no_sanitize_address)) \
-    __attribute__ ((no_sanitize_thread))
+#define ATTRIBUTE_NO_SANITIZE     \
+    __attribute__ ((no_sanitize_address))
 #else
-#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#define ATTRIBUTE_NO_SANITIZE
 #endif
 
 namespace c7a {
@@ -75,7 +74,7 @@ static size_t total_allocs = 0;
 static size_t current_allocs = 0;
 
 //! add allocation to statistics
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
     size_t mycurr = __sync_add_and_fetch(&curr, inc);
     if (mycurr > peak) peak = mycurr;
@@ -85,7 +84,7 @@ static void inc_count(size_t inc) {
 }
 
 //! decrement allocation to statistics
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
     curr -= dec;
     --current_allocs;
@@ -127,7 +126,7 @@ void malloc_tracker_print_status() {
             curr, peak);
 }
 
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((constructor)) void init() {
     char* error;
 
@@ -170,7 +169,7 @@ static __attribute__ ((constructor)) void init() {
     }
 }
 
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((destructor)) void finish() {
     fprintf(stderr, PPREFIX
             "exiting, total: %lu, peak: %lu, current: %lu, "
@@ -188,7 +187,7 @@ static __attribute__ ((destructor)) void finish() {
 
 using namespace c7a::core; // NOLINT
 
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static void * preinit_malloc(size_t size) noexcept {
 
     size_t aligned_size = size + (init_alignment - size % init_alignment);
@@ -216,7 +215,7 @@ static void * preinit_malloc(size_t size) noexcept {
     return ret + padding;
 }
 
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static void * preinit_realloc(void* ptr, size_t size) noexcept {
 
     if (log_operations_init_heap) {
@@ -248,7 +247,7 @@ static void * preinit_realloc(void* ptr, size_t size) noexcept {
     }
 }
 
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 static void preinit_free(void* ptr) noexcept {
     // don't do any real deallocation.
 
@@ -282,7 +281,7 @@ static void preinit_free(void* ptr) noexcept {
 #include <malloc.h>
 
 //! exported malloc symbol that overrides loading from libc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) noexcept {
 
     if (!real_malloc)
@@ -303,7 +302,7 @@ void * malloc(size_t size) noexcept {
 }
 
 //! exported free symbol that overrides loading from libc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void free(void* ptr) noexcept {
 
     if (!ptr) return;   //! free(NULL) is no operation
@@ -333,7 +332,7 @@ void free(void* ptr) noexcept {
 
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void * calloc(size_t nmemb, size_t size) noexcept {
     size *= nmemb;
     void* ret = malloc(size);
@@ -342,7 +341,7 @@ void * calloc(size_t nmemb, size_t size) noexcept {
 }
 
 //! exported realloc() symbol that overrides loading from libc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void * realloc(void* ptr, size_t size) noexcept {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
@@ -393,7 +392,7 @@ void * realloc(void* ptr, size_t size) noexcept {
  */
 
 //! exported malloc symbol that overrides loading from libc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) noexcept {
 
     if (!real_malloc)
@@ -417,7 +416,7 @@ void * malloc(size_t size) noexcept {
 }
 
 //! exported free symbol that overrides loading from libc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void free(void* ptr) noexcept {
 
     if (!ptr) return;   //! free(NULL) is no operation
@@ -455,7 +454,7 @@ void free(void* ptr) noexcept {
 
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void * calloc(size_t nmemb, size_t size) noexcept {
     size *= nmemb;
     if (!size) return NULL;
@@ -465,7 +464,7 @@ void * calloc(size_t nmemb, size_t size) noexcept {
 }
 
 //! exported realloc() symbol that overrides loading from libc
-ATTRIBUTE_NO_SANITIZE_ADDRESS
+ATTRIBUTE_NO_SANITIZE
 void * realloc(void* ptr, size_t size) noexcept {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
