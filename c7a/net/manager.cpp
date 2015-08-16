@@ -36,12 +36,12 @@ public:
     { }
 
     /**
-     * @brief Initializes this Manager and initializes all Groups.
-     * @details Initializes this Manager and initializes all Groups.
+     * \brief Initializes this Manager and initializes all Groups.
+     * \details Initializes this Manager and initializes all Groups.
      * When this method returns, the network system is ready to use.
      *
-     * @param my_rank_ The rank of the worker that owns this Manager.
-     * @param endpoints The ordered list of all endpoints, including the local worker,
+     * \param my_rank_ The rank of the worker that owns this Manager.
+     * \param endpoints The ordered list of all endpoints, including the local worker,
      * where the endpoint at position i corresponds to the worker with id i.
      */
     void Initialize(size_t my_rank_,
@@ -173,8 +173,8 @@ protected:
     const size_t final_timeout_ = 40960;
 
     /**
-     * @brief Represents a welcome message.
-     * @details Represents a welcome message that is exchanged by Connections during
+     * \brief Represents a welcome message.
+     * \details Represents a welcome message that is exchanged by Connections during
      * network initialization.
      */
     struct WelcomeMsg
@@ -199,10 +199,10 @@ protected:
     static const uint64_t c7a_sign = 0x0C7A0C7A0C7A0C7A;
 
     /**
-     * @brief Converts a c7a endpoint list into a list of socket address.
+     * \brief Converts a c7a endpoint list into a list of socket address.
      *
-     * @param endpoints The endpoint list to convert.
-     * @return The socket addresses to use internally.
+     * \param endpoints The endpoint list to convert.
+     * \return The socket addresses to use internally.
      */
     std::vector<SocketAddress> GetAddressList(
         const std::vector<std::string>& endpoints) {
@@ -222,12 +222,12 @@ protected:
     }
 
     /**
-     * @brief Returns wether the initialization is completed.
+     * \brief Returns wether the initialization is completed.
      *
-     * @details Checkts the Groups associated with this Manager and returns true
+     * \details Checkts the Groups associated with this Manager and returns true
      * or false wether the initialization is finished.
      *
-     * @return True if initialization is finished, else false.
+     * \return True if initialization is finished, else false.
      */
     bool IsInitializationFinished() {
 
@@ -248,12 +248,12 @@ protected:
     }
 
     /**
-     * @brief Starts connecting to the net connection specified.
-     * @details Starts connecting to the endpoint specified by the parameters.
+     * \brief Starts connecting to the net connection specified.
+     * \details Starts connecting to the endpoint specified by the parameters.
      * This method executes asynchronously.
      *
-     * @param nc The connection to connect.
-     * @param address The address of the endpoint to connect to.
+     * \param nc The connection to connect.
+     * \param address The address of the endpoint to connect to.
      */
     void AsyncConnect(Connection& nc, const SocketAddress& address) {
         // Start asynchronous connect.
@@ -285,13 +285,13 @@ protected:
     }
 
     /**
-     * @brief Starts connecting to the endpoint specified by the parameters.
-     * @details Starts connecting to the endpoint specified by the parameters.
+     * \brief Starts connecting to the endpoint specified by the parameters.
+     * \details Starts connecting to the endpoint specified by the parameters.
      * This method executes asynchronously.
      *
-     * @param group The id of the Group to connect to.
-     * @param id The id of the worker to connect to.
-     * @param address The address of the endpoint to connect to.
+     * \param group The id of the Group to connect to.
+     * \param id The id of the worker to connect to.
+     * \param address The address of the endpoint to connect to.
      */
     void AsyncConnect(
         size_t group, size_t id, const SocketAddress& address) {
@@ -308,11 +308,11 @@ protected:
     }
 
     /**
-     * @brief Is called whenever a hello is sent.
-     * @details Is called whenever a hello is sent.
+     * \brief Is called whenever a hello is sent.
+     * \details Is called whenever a hello is sent.
      * For outgoing connections, this is the final step in the state machine.
      *
-     * @param conn The connection for which the hello is sent.
+     * \param conn The connection for which the hello is sent.
      */
     void OnHelloSent(Connection& conn) {
         if (conn.state() == ConnectionState::TransportConnected) {
@@ -348,16 +348,16 @@ protected:
     }
 
     /**
-     * @brief Called when a connection initiated by us succeeds.
-     * @details Called when a connection initiated by us succeeds on a betwork level.
+     * \brief Called when a connection initiated by us succeeds.
+     * \details Called when a connection initiated by us succeeds on a betwork level.
      * The c7a welcome messages still have to be exchanged.
      *
-     * @param conn The connection that was connected successfully.
+     * \param conn The connection that was connected successfully.
      *
-     * @param address The associated address. This parameter is needed in case
+     * \param address The associated address. This parameter is needed in case
      * we need to reconnect.
      *
-     * @return A bool indicating wether this callback should stay registered.
+     * \return A bool indicating wether this callback should stay registered.
      */
     bool OnConnected(Connection& conn, const SocketAddress& address) {
 
@@ -434,13 +434,13 @@ protected:
     }
 
     /**
-     * @brief Receives and handels a hello message without sending a reply.
-     * @details Receives and handels a hello message without sending a reply.
+     * \brief Receives and handels a hello message without sending a reply.
+     * \details Receives and handels a hello message without sending a reply.
      *
-     * @param conn The connection the hello was received for.
-     * @param buffer The buffer containing the welcome message.
+     * \param conn The connection the hello was received for.
+     * \param buffer The buffer containing the welcome message.
      *
-     * @return A boolean indicating wether this handler should stay attached.
+     * \return A boolean indicating wether this handler should stay attached.
      */
     bool OnIncomingWelcome(Connection& conn, Buffer&& buffer) {
 
@@ -470,13 +470,13 @@ protected:
     }
 
     /**
-     * @brief Receives and handles a welcome message. Also sends a reply.
-     * @details Receives and handles a welcome message. Also sends a reply.
+     * \brief Receives and handles a welcome message. Also sends a reply.
+     * \details Receives and handles a welcome message. Also sends a reply.
      *
-     * @param conn The connection that received the welcome message.
-     * @param buffer The buffer containing the welcome message.
+     * \param conn The connection that received the welcome message.
+     * \param buffer The buffer containing the welcome message.
      *
-     * @return A boolean indicating wether this handler should stay attached.
+     * \return A boolean indicating wether this handler should stay attached.
      */
     bool OnIncomingWelcomeAndReply(Connection& conn, Buffer&& buffer) {
 
@@ -520,11 +520,11 @@ protected:
     }
 
     /**
-     * @brief Handles incoming connections.
-     * @details Handles incoming connections.
+     * \brief Handles incoming connections.
+     * \details Handles incoming connections.
      *
-     * @param conn The listener connection.
-     * @return A boolean indicating wether this handler should stay attached.
+     * \param conn The listener connection.
+     * \return A boolean indicating wether this handler should stay attached.
      */
     bool OnIncomingConnection(Connection& conn) {
         // accept listening socket
