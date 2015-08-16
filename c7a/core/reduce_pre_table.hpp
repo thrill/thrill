@@ -249,7 +249,7 @@ public:
         for (BucketBlock* b_block : vector_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -280,7 +280,7 @@ public:
         }
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
 
-        vector_.resize(num_buckets_, NULL);
+        vector_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);
     }
 
@@ -319,7 +319,7 @@ public:
         size_t num_items_bucket = 0;
         BucketBlock* current = vector_[h.global_index];
 
-        while (current != NULL)
+        while (current != nullptr)
         {
             // iterate over valid items in a block
             for (KeyValuePair* bi = current->items;
@@ -341,7 +341,7 @@ public:
                 num_items_bucket++;
             }
 
-            if (current->next == NULL)
+            if (current->next == nullptr)
                 break;
 
             current = current->next;
@@ -349,7 +349,7 @@ public:
 
         // have an item that needs to be added.
 
-        if (current == NULL ||
+        if (current == nullptr ||
             current->size == block_size_)
         {
             // allocate a new block of uninitialized items, prepend to bucket
@@ -456,7 +456,7 @@ public:
         {
             BucketBlock* current = vector_[i];
 
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
@@ -476,7 +476,7 @@ public:
                 current = next;
             }
 
-            vector_[i] = NULL;
+            vector_[i] = nullptr;
         }
 
         // reset total counter
@@ -577,13 +577,13 @@ public:
         std::swap(vector_old, vector_);
 
         // init new hash array
-        vector_.resize(num_buckets_, NULL);
+        vector_.resize(num_buckets_, nullptr);
 
         // rehash all items in old array
         for (BucketBlock* b_block : vector_old)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
@@ -611,7 +611,7 @@ public:
         for (BucketBlock* b_block : vector_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -619,7 +619,7 @@ public:
                 operator delete (current);
                 current = next;
             }
-            b_block = NULL;
+            b_block = nullptr;
         }
 
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
@@ -639,7 +639,7 @@ public:
         for (BucketBlock*& b_block : vector_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -647,10 +647,10 @@ public:
                 operator delete (current);
                 current = next;
             }
-            b_block = NULL;
+            b_block = nullptr;
         }
 
-        vector_.resize(num_buckets_, NULL);
+        vector_.resize(num_buckets_, nullptr);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         num_items_ = 0;
         LOG << "Resetted";
@@ -664,7 +664,7 @@ public:
 
         for (int i = 0; i < num_buckets_; i++)
         {
-            if (vector_[i] == NULL)
+            if (vector_[i] == nullptr)
             {
                 LOG << "bucket id: "
                     << i
@@ -675,7 +675,7 @@ public:
             std::string log = "";
 
             BucketBlock* current = vector_[i];
-            while (current != NULL)
+            while (current != nullptr)
             {
                 log += "block: ";
 

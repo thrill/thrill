@@ -141,7 +141,7 @@ public:
         {
             BucketBlock* current = buckets_[i];
 
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
@@ -156,7 +156,7 @@ public:
                 current = next;
             }
 
-            buckets_[i] = NULL;
+            buckets_[i] = nullptr;
         }
 
         ht->SetNumItems(0);
@@ -184,7 +184,7 @@ public:
         {
             BucketBlock* current = buckets_[i];
 
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
@@ -200,7 +200,7 @@ public:
                 current = next;
             }
 
-            buckets_[i] = NULL;
+            buckets_[i] = nullptr;
         }
 
         size_t index = ht->BeginLocalIndex();
@@ -350,7 +350,7 @@ public:
         for (BucketBlock* b_block : buckets_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -369,7 +369,7 @@ public:
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         num_buckets_ = num_buckets_init_scale_;
-        buckets_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, nullptr);
     }
 
     /*!
@@ -405,7 +405,7 @@ public:
         size_t num_items_bucket = 0;
         BucketBlock* current = buckets_[h.global_index];
 
-        while (current != NULL)
+        while (current != nullptr)
         {
             // iterate over valid items in a block
             for (KeyValuePair* bi = current->items;
@@ -427,7 +427,7 @@ public:
                 num_items_bucket++;
             }
 
-            if (current->next == NULL)
+            if (current->next == nullptr)
                 break;
 
             current = current->next;
@@ -435,7 +435,7 @@ public:
 
         // have an item that needs to be added.
 
-        if (current == NULL ||
+        if (current == nullptr ||
             current->size == block_size_)
         {
             // allocate a new block of uninitialized items, postpend to bucket
@@ -579,13 +579,13 @@ public:
         std::swap(buckets_old, buckets_);
 
         // init new hash array
-        buckets_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, nullptr);
 
         // rehash all items in old array
         for (BucketBlock* b_block : buckets_old)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
@@ -613,7 +613,7 @@ public:
         for (BucketBlock* b_block : buckets_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -621,7 +621,7 @@ public:
                 operator delete (current);
                 current = next;
             }
-            b_block = NULL;
+            b_block = nullptr;
         }
 
         num_items_ = 0;
@@ -639,7 +639,7 @@ public:
         for (BucketBlock*& b_block : buckets_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -647,10 +647,10 @@ public:
                 operator delete (current);
                 current = next;
             }
-            b_block = NULL;
+            b_block = nullptr;
         }
 
-        buckets_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, nullptr);
         num_items_ = 0;
         LOG << "Resetted";
     }
@@ -663,7 +663,7 @@ public:
 
         for (int i = 0; i < num_buckets_; i++)
         {
-            if (buckets_[i] == NULL)
+            if (buckets_[i] == nullptr)
             {
                 LOG << "bucket id: "
                     << i
@@ -674,7 +674,7 @@ public:
             std::string log = "";
 
             BucketBlock* current = buckets_[i];
-            while (current != NULL)
+            while (current != nullptr)
             {
                 log += "block: ";
 

@@ -51,7 +51,7 @@ public:
      *
      */
     explicit FlowControlChannelManager(net::Group& group, int local_worker_count)
-        : barrier(local_worker_count), shmem(NULL) {
+        : barrier(local_worker_count), shmem(nullptr) {
 
         for (int i = 0; i < local_worker_count; i++) {
             channels.emplace_back(group, i, local_worker_count, barrier, &shmem);

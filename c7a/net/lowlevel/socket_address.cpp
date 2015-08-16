@@ -56,7 +56,7 @@ std::string SocketAddress::ToStringHost() const {
     if (sockaddr()->sa_family == AF_INET)
     {
         if (inet_ntop(AF_INET,
-                      &sockaddr_in()->sin_addr, str, sizeof(str)) == NULL)
+                      &sockaddr_in()->sin_addr, str, sizeof(str)) == nullptr)
         {
             sLOG << "Error in inet_ntop: " << strerror(errno);
             return "<error>";
@@ -66,7 +66,7 @@ std::string SocketAddress::ToStringHost() const {
     else if (sockaddr()->sa_family == AF_INET6)
     {
         if (inet_ntop(AF_INET6,
-                      &sockaddr_in6()->sin6_addr, str, sizeof(str)) == NULL)
+                      &sockaddr_in6()->sin6_addr, str, sizeof(str)) == nullptr)
         {
             sLOG << "Error in inet_ntop: " << strerror(errno);
             return "<error>";
@@ -170,7 +170,7 @@ SocketAddress::ResolveAll(const char* hostname, const char* servicename) {
         return salist;
     }
 
-    for (struct addrinfo* ap = result; ap != NULL; ap = ap->ai_next)
+    for (struct addrinfo* ap = result; ap != nullptr; ap = ap->ai_next)
     {
         salist.push_back(SocketAddress(ap->ai_addr, ap->ai_addrlen));
     }

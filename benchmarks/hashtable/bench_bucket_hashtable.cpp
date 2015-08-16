@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
                       return in1;
                   };
 
-    srand(time(NULL));
+    srand(time(nullptr));
 
     clp.SetVerboseProcess(false);
 
