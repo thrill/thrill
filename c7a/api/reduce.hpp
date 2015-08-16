@@ -67,7 +67,7 @@ class ReduceNode : public DOpNode<ValueType>
     using ReduceArg = typename common::FunctionTraits<ReduceFunction>
                       ::template arg<0>;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
     using Super::result_file_;

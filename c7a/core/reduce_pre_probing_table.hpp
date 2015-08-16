@@ -109,7 +109,7 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
 public:
     struct index_result {

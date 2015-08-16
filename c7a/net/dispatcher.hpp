@@ -53,17 +53,17 @@ class Dispatcher
 
 protected:
     //! switch between different low-level dispatchers
-    typedef lowlevel::SelectDispatcher SubDispatcher;
-    // typedef lowlevel::EPollDispatcher SubDispatcher;
+    using SubDispatcher = lowlevel::SelectDispatcher;
+    // using SubDispatcher =  lowlevel::EPollDispatcher ;
 
     //! import into class namespace
-    typedef lowlevel::Socket Socket;
+    using Socket = lowlevel::Socket;
 
     //! import into class namespace
-    typedef std::chrono::steady_clock steady_clock;
+    using steady_clock = std::chrono::steady_clock;
 
     //! import into class namespace
-    typedef std::chrono::milliseconds milliseconds;
+    using milliseconds = std::chrono::milliseconds;
 
 #if defined(_LIBCPP_VERSION) || defined(__clang__)
     template <typename Signature>
