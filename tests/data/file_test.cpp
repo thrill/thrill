@@ -15,10 +15,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
-#include <functional>
 
 using namespace c7a;
 
@@ -177,16 +177,16 @@ TEST(File, SerializeSomeItemsDynReader) {
 TEST(File, RandomGetIndexOf) {
     static const bool debug = false;
     const size_t size = 500;
-    
+
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::minstd_rand0 rand(seed);
-    
-    //Create test file.
+
+    // Create test file.
     data::File file;
 
     data::File::Writer fw = file.GetWriter(53);
 
-    for(size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         fw(size - i - 1);
     }
 
@@ -194,7 +194,7 @@ TEST(File, RandomGetIndexOf) {
 
     ASSERT_EQ(size, file.NumItems());
 
-    for(size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 10; i++) {
         size_t val = rand() % size;
         size_t idx = file.GetIndexOf(val, std::less<size_t>());
 
@@ -208,14 +208,14 @@ TEST(File, ReadFileWIthBufferedReader) {
 
     size_t size = 100;
 
-    for(size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         fw(i);
-    }    
+    }
     fw.Close();
 
     auto br = file.GetBufferedReader<size_t>();
 
-    for(size_t i = 0 ; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         ASSERT_TRUE(br.HasValue());
         ASSERT_EQ(br.Value(), i);
         br.Next();

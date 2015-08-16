@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/buffered:block_reader.hpp
+ * c7a/data/buffered_block_reader.hpp
  *
  * Part of Project c7a.
  *
@@ -21,7 +21,7 @@ namespace data {
 //! \{
 
 /*!
- * Simple block reader that allows reading the first value without advancing. 
+ * Simple block reader that allows reading the first value without advancing.
  */
 template <typename ItemType, typename BlockSource>
 class BufferedBlockReader
@@ -30,6 +30,7 @@ private:
     BlockReader<BlockSource> reader_;
     ItemType current_;
     bool hasCurrent_;
+
 public:
     /*!
      * Returns true if this reader holds a value at the current position.
@@ -47,12 +48,12 @@ public:
         return current_;
     }
 
-    /*! 
-     * Advances this reader to the next value. 
+    /*!
+     * Advances this reader to the next value.
      */
     void Next() {
         hasCurrent_ = reader_.HasNext();
-        if(hasCurrent_)
+        if (hasCurrent_)
             current_ = reader_.template Next<ItemType>();
     }
 
@@ -60,7 +61,7 @@ public:
      * Creates a new instance of this class, based on the given file reader.
      */
     BufferedBlockReader(BlockReader<BlockSource> reader) : reader_(reader) {
-        Next();    
+        Next();
     }
 };
 
