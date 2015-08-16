@@ -32,18 +32,18 @@ void page_rank(Context& ctx) {
 
     static const double s = 0.85;
 
-	using PageWithLinks = std::pair<size_t, std::vector<int> >;
+    using PageWithLinks = std::pair<size_t, std::vector<int> >;
     using PageWithRank = std::pair<size_t, double>;
     using Page = std::tuple<size_t, double, std::vector<int> >;
 
     DIARef<PageWithRank> ranks =
         ReadLines(ctx, "pagerank.in")
-        .Map([](const std::string& input) {				
-				auto splitted = c7a::common::split(input, " ");
-				return std::make_pair((size_t) std::stoi(splitted[0]), 1.0);
-			}).Cache();
+        .Map([](const std::string& input) {
+                 auto splitted = c7a::common::split(input, " ");
+                 return std::make_pair((size_t)std::stoi(splitted[0]), 1.0);
+             }).Cache();
 
-	size_t size = ranks.Size();
+    size_t size = ranks.Size();
 
     auto links = ReadLines(ctx, "pagerank.in")
                  .Map([](const std::string& line) {
@@ -54,7 +54,7 @@ void page_rank(Context& ctx) {
                               links.push_back(std::stoi(splitted[i]));
                           }
                           return std::make_pair(std::stoi(splitted[0]), links);
-					 });
+                      });
 
     for (size_t i = 1; i <= 10; ++i) {
         std::cout << "Iteration: " << i << std::endl;
@@ -62,7 +62,7 @@ void page_rank(Context& ctx) {
         auto pages =
             links
             .Zip(ranks, [](PageWithLinks first, PageWithRank second) {
-					return std::make_tuple(first.first, second.second, first.second);
+                     return std::make_tuple(first.first, second.second, first.second);
                  });
 
         auto contribs =
@@ -84,10 +84,10 @@ void page_rank(Context& ctx) {
                     return rank1 + rank2;
                 },
                 size)
-			.Map([](PageWithRank page) {
-			 		return std::make_pair(page.first, (1 - s) + page.second * s);
-			 	})
-			.Cache();
+            .Map([](PageWithRank page) {
+                     return std::make_pair(page.first, (1 - s) + page.second * s);
+                 })
+            .Cache();
     }
 
     ranks.Map([](PageWithRank item) {

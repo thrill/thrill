@@ -332,7 +332,7 @@ protected:
     };
 
     //! priority queue of timer callbacks
-    typedef std::priority_queue<Timer> TimerPQ;
+    using TimerPQ = std::priority_queue<Timer>;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.

@@ -12,8 +12,8 @@
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/data/discard_sink.hpp>
-#include <math.h>
 #include <cmath>
+#include <math.h>
 #include <numeric>
 
 using IntPair = std::pair<int, int>;
@@ -107,18 +107,17 @@ int main(int argc, char* argv[]) {
     if (values.size() % 2 == 0)
     {
         median = (values[values.size() / 2 - 1] + values[values.size() / 2]) / 2;
-    } else
+    }
+    else
     {
         median = values[values.size() / 2];
     }
 
-    //table.Flush();
+    // table.Flush();
 
     std::cout << timer.Microseconds() << " " << mean << " " << median << " " << stdev << std::endl;
 
     return 0;
 }
-
-
 
 /******************************************************************************/
