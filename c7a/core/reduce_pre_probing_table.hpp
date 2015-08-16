@@ -401,7 +401,7 @@ public:
      * Returns the size of the table. The size corresponds to the number of slots.
      * A slot may be free or used.
      *
-     * @return Size of the table.
+     * \return Size of the table.
      */
     size_t Size() const {
         return table_size_;
@@ -410,7 +410,7 @@ public:
     /*!
      * Returns the total num of items in the table in all partitions.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     size_t NumItems() const {
         return num_items_;
@@ -419,7 +419,7 @@ public:
     /*!
      * Returns the maximal number of items any partition can hold.
      *
-     * @return Maximal number of items a partition can hold.
+     * \return Maximal number of items a partition can hold.
      */
     size_t NumItemsPerPartition() const {
         return num_items_per_partition_;
@@ -428,7 +428,7 @@ public:
     /*!
      * Returns the number of partitions.
      *
-     * @return The number of partitions.
+     * \return The number of partitions.
      */
     size_t NumPartitions() const {
         return num_partitions_;
@@ -439,7 +439,7 @@ public:
      *
      * \param partition_id The id of the partition the number of
      *                  items to be returned..
-     * @return The number of items in the partitions.
+     * \return The number of items in the partitions.
      */
     size_t PartitionNumItems(size_t partition_id) {
         return items_per_partition_[partition_id];

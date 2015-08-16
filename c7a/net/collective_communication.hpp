@@ -30,16 +30,16 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-//! @brief   Calculate for every worker his prefix sum. Works only for worker
+//! \brief   Calculate for every worker his prefix sum. Works only for worker
 //!          numbers which are powers of two.
-//! @details The prefix sum is the aggregatation of the values of all workers
+//! \details The prefix sum is the aggregatation of the values of all workers
 //!          with lesser index, including himself, according to a summation
 //!          operator. This function currently only supports worker numbers
 //!          which are powers of two.
 //!
-//! @param   net The current worker onto which to apply the operation
-//! @param   value The value to be summed up
-//! @param   sumOp A custom summation operator
+//! \param   net The current worker onto which to apply the operation
+//! \param   value The value to be summed up
+//! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     T total_sum = value;
@@ -73,14 +73,14 @@ static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = Bi
          << ": value after prefix sum =" << value;
 }
 
-//! @brief   Perform a reduce to the worker with index 0.
-//! @details This function aggregates the values of all workers according to a
+//! \brief   Perform a reduce to the worker with index 0.
+//! \details This function aggregates the values of all workers according to a
 //!          summation operator and sends the aggregate to the root, which is
 //!          the worker with index 0.
 //!
-//! @param   net The current worker onto which to apply the operation
-//! @param   value The value to be added to the aggregation
-//! @param   sumOp A custom summation operator
+//! \param   net The current worker onto which to apply the operation
+//! \param   value The value to be added to the aggregation
+//! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     bool active = true;
@@ -99,10 +99,10 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     }
 }
 
-//! @brief   Broadcasts the value of the worker with index 0 to all the others.
+//! \brief   Broadcasts the value of the worker with index 0 to all the others.
 //!
-//! @param   net The current worker onto which to apply the operation
-//! @param   value The value to be added to the aggregation
+//! \param   net The current worker onto which to apply the operation
+//! \param   value The value to be added to the aggregation
 template <typename T>
 void Broadcast(Group& net, T& value) {
     if (net.my_host_rank() > 0) {
@@ -116,25 +116,25 @@ void Broadcast(Group& net, T& value) {
     }
 }
 
-//! @brief   Perform an All-Reduce on the workers.
-//! @details This is done by aggregating all values according to a summation
+//! \brief   Perform an All-Reduce on the workers.
+//! \details This is done by aggregating all values according to a summation
 //!          operator and sending them backto all workers.
 //!
-//! @param   net The current worker onto which to apply the operation
-//! @param   value The value to be added to the aggregation
-//! @param   sumOp A custom summation operator
+//! \param   net The current worker onto which to apply the operation
+//! \param   value The value to be added to the aggregation
+//! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 void AllReduce(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     ReduceToRoot(net, value, sumOp);
     Broadcast(net, value);
 }
 
-//! @brief   Perform an All-Reduce for powers of two. This is done with the
+//! \brief   Perform an All-Reduce for powers of two. This is done with the
 //!          Hypercube algorithm from the ParAlg script.
 //!
-//! @param   net The current worker onto which to apply the operation
-//! @param   value The value to be added to the aggregation
-//! @param   sumOp A custom summation operator
+//! \param   net The current worker onto which to apply the operation
+//! \param   value The value to be added to the aggregation
+//! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     // For each dimension of the hypercube, exchange data between workers with
@@ -164,14 +164,14 @@ void AllReduceForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySum
     sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value << "\n";
 }
 
-//! @brief   Perform a barrier for all workers.
-//! @details All workers synchronize to this point. This operation can be used if
+//! \brief   Perform a barrier for all workers.
+//! \details All workers synchronize to this point. This operation can be used if
 //!          one wants to be sure that all workers continue their operation
 //!          synchronously after this point.
 //!
-//! @param   mtx A common mutex onto which to lock
-//! @param   cv  A condition variable which locks on the given mutex
-//! @param   num_workers The total number of workers in the network
+//! \param   mtx A common mutex onto which to lock
+//! \param   cv  A condition variable which locks on the given mutex
+//! \param   num_workers The total number of workers in the network
 static inline
 void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_workers) {
     std::unique_lock<std::mutex> lck(mtx);
@@ -185,14 +185,14 @@ void ThreadBarrier(std::mutex& mtx, std::condition_variable& cv, int& num_worker
     }
 }
 
-//! @brief   Calculate for every worker his prefix sum.
-//! @details The prefix sum is the aggregatation of the values of all workers
+//! \brief   Calculate for every worker his prefix sum.
+//! \details The prefix sum is the aggregatation of the values of all workers
 //!          with lesser index, including himself, according to a summation
 //!          operator. The run-time is in O(log n).
 //!
-//! @param   net The current worker onto which to apply the operation
-//! @param   value The value to be summed up
-//! @param   sumOp A custom summation operator
+//! \param   net The current worker onto which to apply the operation
+//! \param   value The value to be summed up
+//! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
 static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     static const bool debug = false;

@@ -497,7 +497,7 @@ public:
     /*!
      * Returns the total num of buckets in the table in all partitions.
      *
-     * @return Number of buckets in the table.
+     * \return Number of buckets in the table.
      */
     size_t NumBuckets() const {
         return num_buckets_;
@@ -506,7 +506,7 @@ public:
     /*!
      * Returns the total num of items in the table in all partitions.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     size_t NumItems() const {
         return num_items_;
@@ -515,7 +515,7 @@ public:
     /*!
      * Returns the number of buckets any partition can hold.
      *
-     * @return Number of buckets a partition can hold.
+     * \return Number of buckets a partition can hold.
      */
     size_t NumBucketsPerPartition() const {
         return num_buckets_per_partition_;
@@ -524,7 +524,7 @@ public:
     /*!
      * Returns the number of partitions.
      *
-     * @return The number of partitions.
+     * \return The number of partitions.
      */
     size_t NumPartitions() const {
         return num_partitions_;
@@ -535,7 +535,7 @@ public:
      *
      * \param partition_id The id of the partition the number of
      *                  items to be returned..
-     * @return The number of items in the partitions.
+     * \return The number of items in the partitions.
      */
     size_t PartitionNumItems(size_t partition_id) {
         return items_per_partition_[partition_id];

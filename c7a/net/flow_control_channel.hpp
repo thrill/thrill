@@ -27,8 +27,8 @@ namespace net {
 //! \{
 
 /**
- * @brief Provides a blocking collection for communication.
- * @details This wraps a raw net group and should be used for
+ * \brief Provides a blocking collection for communication.
+ * \details This wraps a raw net group and should be used for
  * flow control with integral types.
  *
  * Important notice on threading: It is not allowed to call two different methods of two different
@@ -77,12 +77,12 @@ protected:
     void** shmem;
 
     /**
-     * @brief Sends a value of an integral type T to a certain other worker.
-     * @details This method can block if there is unsufficient space
+     * \brief Sends a value of an integral type T to a certain other worker.
+     * \details This method can block if there is unsufficient space
      * in the send buffer. This method may only be called by thread with ID 0.
      *
-     * @param destination The id of the worker to send the value to.
-     * @param value The value to send.
+     * \param destination The id of the worker to send the value to.
+     * \param value The value to send.
      */
     template <typename T>
     void SendTo(size_t destination, T value) {
@@ -93,11 +93,11 @@ protected:
     }
 
     /**
-     * @brief Receives a value of an integral type T from a certain other worker.
-     * @details This method blocks until the data is received. This method may only be called by thread with ID 0.
+     * \brief Receives a value of an integral type T from a certain other worker.
+     * \details This method blocks until the data is received. This method may only be called by thread with ID 0.
      *
-     * @param source The id of the worker to receive the value from.
-     * @param value A pointer to a memory location where the
+     * \param source The id of the worker to receive the value from.
+     * \param value A pointer to a memory location where the
      * received value is stored.
      */
     template <typename T>
@@ -128,23 +128,23 @@ protected:
 
 public:
     /**
-     * @brief Creates a new instance of this class, wrapping a group.
+     * \brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(net::Group& group, int threadId, int threadCount, common::Barrier& barrier, void** shmem)
         : group(group), id(group.my_host_rank()), count(group.num_hosts()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
 
     /**
-     * @brief Calculates the prefix sum over all workers, given a certain sum
+     * \brief Calculates the prefix sum over all workers, given a certain sum
      * operation.
-     * @details This method blocks until the sum is caluclated. Values
+     * \details This method blocks until the sum is caluclated. Values
      * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
      * are the values of workers 0, 2, 3.
      *
-     * @param value The local value of this worker.
-     * @param sumOp The operation to use for
+     * \param value The local value of this worker.
+     * \param sumOp The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
-     * @param inclusive Whether the prefix sum is inclusive or exclusive.
-     * @return The prefix sum for the position of this worker.
+     * \param inclusive Whether the prefix sum is inclusive or exclusive.
+     * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T PrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp(),
@@ -216,17 +216,17 @@ public:
     }
 
     /**
-     * @brief Calculates the exclusive prefix sum over all workers, given a
+     * \brief Calculates the exclusive prefix sum over all workers, given a
      * certain sum operation.
      *
-     * @details This method blocks until the sum is caluclated. Values
+     * \details This method blocks until the sum is caluclated. Values
      * are applied in order, that means sumOp(sumOp(a, b), c) if a, b, c
      * are the values of workers 0, 2, 3.
      *
-     * @param value The local value of this worker.
-     * @param sumOp The operation to use for
+     * \param value The local value of this worker.
+     * \param sumOp The operation to use for
      * calculating the prefix sum. The default operation is a normal addition.
-     * @return The prefix sum for the position of this worker.
+     * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T ExPrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp()) {
@@ -234,14 +234,14 @@ public:
     }
 
     /**
-     * @brief Broadcasts a value of an integral type T from the master
+     * \brief Broadcasts a value of an integral type T from the master
      * (the worker with id 0) to all other workers.
-     * @details This method is blocking on all workers except the master.
+     * \details This method is blocking on all workers except the master.
      *
-     * @param value The value to broadcast. This value is ignored for each
+     * \param value The value to broadcast. This value is ignored for each
      * worker except the master. We use this signature to keep the decision
      * wether a node is the master transparent.
-     * @return The value sent by the master.
+     * \return The value sent by the master.
      */
     template <typename T>
     T Broadcast(const T& value) {
@@ -279,15 +279,15 @@ public:
     }
 
     /**
-     * @brief Reduces a value of an integral type T over all workers given a
+     * \brief Reduces a value of an integral type T over all workers given a
      * certain reduce function.
-     * @details This method is blocking. The reduce happens in order as with
+     * \details This method is blocking. The reduce happens in order as with
      * prefix sum. The operation is assumed to be associative.
      *
-     * @param value The value to use for the reduce operation.
-     * @param sumOp The operation to use for
+     * \param value The value to use for the reduce operation.
+     * \param sumOp The operation to use for
      * calculating the reduced value. The default operation is a normal addition.
-     * @return The result of the reduce operation.
+     * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
@@ -352,7 +352,7 @@ public:
     }
 
     /**
-     * @brief A trivial global barrier.
+     * \brief A trivial global barrier.
      */
     void Barrier() {
         int i = 0;
