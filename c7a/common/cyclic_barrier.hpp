@@ -20,7 +20,7 @@ namespace c7a {
 namespace common {
 
 /**
- * @brief Implements a cyclic barrier that can be shared between threads.
+ * \brief Implements a cyclic barrier that can be shared between threads.
  */
 class Barrier
 {
@@ -34,9 +34,9 @@ private:
 
 public:
     /**
-     * @brief Creates a new barrier that waits for n threads.
+     * \brief Creates a new barrier that waits for n threads.
      *
-     * @param n The count of threads to wait for.
+     * \param n The count of threads to wait for.
      */
     explicit Barrier(int n) : threadCount(n), current(0) {
         counts[0] = 0;
@@ -44,8 +44,8 @@ public:
     }
 
     /**
-     * @brief Waits for n threads to arrive.
-     * @details This method blocks and returns as soon as n threads are waiting inside the method.
+     * \brief Waits for n threads to arrive.
+     * \details This method blocks and returns as soon as n threads are waiting inside the method.
      */
     void Await() {
         std::atomic_thread_fence(std::memory_order_release);

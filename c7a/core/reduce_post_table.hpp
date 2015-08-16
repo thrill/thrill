@@ -494,7 +494,7 @@ public:
     /*!
      * Returns the total num of buckets in the table.
      *
-     * @return Number of buckets in the table.
+     * \return Number of buckets in the table.
      */
     size_t NumBuckets() const {
         return num_buckets_;
@@ -503,7 +503,7 @@ public:
     /*!
      * Returns the total num of items in the table.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     size_t NumItems() const {
         return num_items_;
@@ -512,7 +512,7 @@ public:
     /*!
      * Returns the total num of items in the table.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     void SetNumItems(size_t num_items) {
         num_items_ = num_items;
@@ -521,7 +521,7 @@ public:
     /*!
      * Returns the vector of bucket blocks.
      *
-     * @return Vector of bucket blocks.
+     * \return Vector of bucket blocks.
      */
     std::vector<BucketBlock*> & Items() {
         return buckets_;
@@ -540,7 +540,7 @@ public:
     /*!
      * Returns the begin local index.
      *
-     * @return Begin local index.
+     * \return Begin local index.
      */
     size_t BeginLocalIndex() {
         return begin_local_index_;
@@ -549,7 +549,7 @@ public:
     /*!
      * Returns the end local index.
      *
-     * @return End local index.
+     * \return End local index.
      */
     size_t EndLocalIndex() {
         return end_local_index_;
@@ -558,7 +558,7 @@ public:
     /*!
      * Returns the neutral element.
      *
-     * @return Neutral element.
+     * \return Neutral element.
      */
     Value NeutralElement() {
         return neutral_element_;

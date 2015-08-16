@@ -30,7 +30,6 @@ namespace c7a {
 namespace core {
 
 /**
- *
  * A data structure which takes an arbitrary value and extracts a key using
  * a key extractor function from that value. A key may also be provided initially as
  * part of a key/value pair, not requiring to extract a key.
@@ -412,7 +411,7 @@ public:
      * Returns the size of the table. The size corresponds to the number of slots.
      * A slot may be free or used.
      *
-     * @return Size of the table.
+     * \return Size of the table.
      */
     size_t Size() const {
         return table_size_;
@@ -421,7 +420,7 @@ public:
     /*!
      * Returns the total num of items in the table in all partitions.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     size_t NumItems() const {
         return num_items_;
@@ -430,7 +429,7 @@ public:
     /*!
      * Returns the total num of items in the table.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     void SetNumItems(size_t num_items) {
         num_items_ = num_items;
@@ -439,7 +438,7 @@ public:
     /*!
      * Returns the vector of key/value pairs.
      *
-     * @return Vector of key/value pairs.
+     * \return Vector of key/value pairs.
      */
     std::vector<KeyValuePair> & Items() {
         return vector_;
@@ -458,7 +457,7 @@ public:
     /*!
      * Returns the begin local index.
      *
-     * @return Begin local index.
+     * \return Begin local index.
      */
     size_t BeginLocalIndex() {
         return begin_local_index_;
@@ -467,7 +466,7 @@ public:
     /*!
      * Returns the end local index.
      *
-     * @return End local index.
+     * \return End local index.
      */
     size_t EndLocalIndex() {
         return end_local_index_;
@@ -476,7 +475,7 @@ public:
     /*!
      * Returns the neutral element.
      *
-     * @return Neutral element.
+     * \return Neutral element.
      */
     Value NeutralElement() {
         return neutral_element_;
@@ -485,7 +484,7 @@ public:
     /*!
      * Returns the neutral element.
      *
-     * @return Neutral element.
+     * \return Neutral element.
      */
     KeyValuePair Sentinel() {
         return sentinel_;

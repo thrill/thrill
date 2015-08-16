@@ -53,7 +53,7 @@ public:
      * each virtual client. This is ideal for testing network communication
      * protocols. See tests/net/test-net-group.cpp for examples.
      *
-     * @param num_clients The number of clients in the mesh.
+     * \param num_clients The number of clients in the mesh.
      */
     static std::vector<Group> ConstructLocalMesh(size_t num_clients);
 
@@ -61,8 +61,8 @@ public:
     //! for testing, and starts a thread for each client, which gets passed the
     //! Group object. This is ideal for testing network communication
     //! protocols. See tests/net/test-net-group.cpp for examples.
-    //! @param num_clients The number of clients to spawn.
-    //! @param thread_function The function to execute for each client.
+    //! \param num_clients The number of clients to spawn.
+    //! \param thread_function The function to execute for each client.
     static void ExecuteLocalMock(
         size_t num_clients,
         const std::function<void(Group*)>& thread_function);
@@ -113,12 +113,12 @@ public:
     }
 
     /**
-     * @brief Assigns a connection to this net group.
-     * @details This method swaps the net connection to memory managed by this group.
+     * \brief Assigns a connection to this net group.
+     * \details This method swaps the net connection to memory managed by this group.
      *          The reference given to that method will be invalid afterwards.
      *
-     * @param connection The connection to assign.
-     * @return A ref to the assigned connection, which is always valid, but might be different from the
+     * \param connection The connection to assign.
+     * \return A ref to the assigned connection, which is always valid, but might be different from the
      * inut connection.
      */
     Connection & AssignConnection(Connection& connection) {
@@ -170,8 +170,8 @@ public:
      * Receive a fixed-length integral type from any worker into out_value, puts
      * worker id in *src.
      *
-     * @param out_src The id of the client the data was received from.
-     * @param out_value The received value.
+     * \param out_src The id of the client the data was received from.
+     * \param out_value The received value.
      */
     template <typename T>
     void ReceiveFromAny(size_t* out_src, T* out_value) {
@@ -231,8 +231,8 @@ public:
      * Receives a string message from any worker into out_data, which will be
      * resized as needed, puts worker id in *src.
      *
-     * @param out_src The id of the worker the string was received from.
-     * @param out_data The string received from the worker.
+     * \param out_src The id of the worker the string was received from.
+     * \param out_data The string received from the worker.
      */
     void ReceiveStringFromAny(size_t* out_src, std::string* out_data) {
         fd_set fd_set;
@@ -287,33 +287,33 @@ public:
     }
 
     /**
-     * @brief Sends a string to a worker.
-     * @details Sends a string to a worker.
+     * \brief Sends a string to a worker.
+     * \details Sends a string to a worker.
      *
-     * @param dest The worker to send the string to.
-     * @param data The string to send.
+     * \param dest The worker to send the string to.
+     * \param data The string to send.
      */
     void SendStringTo(size_t dest, const std::string& data) {
         connection(dest).SendString(data);
     }
 
     /**
-     * @brief Receives a string from the given worker.
-     * @details Receives a string from the given worker.
+     * \brief Receives a string from the given worker.
+     * \details Receives a string from the given worker.
      *
-     * @param src The worker to receive the string from.
-     * @param data A pointer to the string where the received string should be stored.
+     * \param src The worker to receive the string from.
+     * \param data A pointer to the string where the received string should be stored.
      */
     void ReceiveStringFrom(size_t src, std::string* data) {
         connection(src).ReceiveString(data);
     }
 
     /**
-     * @brief Sends a fixed lentgh type to the given worker.
-     * @details Sends a fixed lentgh type to the given worker.
+     * \brief Sends a fixed lentgh type to the given worker.
+     * \details Sends a fixed lentgh type to the given worker.
      *
-     * @param dest The worker to send the data to.
-     * @param data The data to send.
+     * \param dest The worker to send the data to.
+     * \param data The data to send.
      */
     template <typename T>
     void SendTo(size_t dest, const T& data) {
@@ -321,11 +321,11 @@ public:
     }
 
     /**
-     * @brief Receives a fixed length type from the given worker.
-     * @details Receives a fixed length type from the given worker.
+     * \brief Receives a fixed length type from the given worker.
+     * \details Receives a fixed length type from the given worker.
      *
-     * @param src The worker to receive the fixed length type from.
-     * @param data A pointer to the location where the received data should be stored.
+     * \param src The worker to receive the fixed length type from.
+     * \param data A pointer to the location where the received data should be stored.
      */
     template <typename T>
     void ReceiveFrom(size_t src, T* data) {
@@ -333,10 +333,10 @@ public:
     }
 
     /**
-     * @brief Broadcasts a string to all workers.
-     * @details Broadcasts a string to all workers.
+     * \brief Broadcasts a string to all workers.
+     * \details Broadcasts a string to all workers.
      *
-     * @param data The string to broadcast.
+     * \param data The string to broadcast.
      */
     void BroadcastString(const std::string& data) {
         for (size_t i = 0; i < connections_.size(); i++)
@@ -347,10 +347,10 @@ public:
     }
 
     /**
-     * @brief Broadcasts a fixed length type to all workers.
-     * @details Broadcasts a fixed length type to all workers.
+     * \brief Broadcasts a fixed length type to all workers.
+     * \details Broadcasts a fixed length type to all workers.
      *
-     * @param data The data to broadcast.
+     * \param data The data to broadcast.
      */
     template <typename T>
     void BroadcastString(const T& data) {

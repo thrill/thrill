@@ -181,9 +181,9 @@ public:
     //! \{
 
     /**
-     * @brief Gets the flow control channel for the current worker.
+     * \brief Gets the flow control channel for the current worker.
      *
-     * @return The flow control channel instance for this worker.
+     * \return The flow control channel instance for this worker.
      */
     net::FlowControlChannel & flow_control_channel() {
         return flow_manager_.GetFlowControlChannel(local_worker_id_);

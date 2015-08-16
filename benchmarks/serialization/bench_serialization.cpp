@@ -25,8 +25,8 @@
 using namespace c7a;
 
 //! serializes a given object and measures its time
-/*! @param t The object that shall be serialized
- *  @param iterations The number how often the object should be serialized;
+/*! \param t The object that shall be serialized
+ *  \param iterations The number how often the object should be serialized;
  *                    The measured time will be divided by number of iterations
  */
 template <typename T>
@@ -49,8 +49,8 @@ int BenchmarkSerialization(T t, int iterations) {
 }
 
 //! serializes the test string and measures its time
-/*! @param t The object that shall be serialized
- *  @param iterations The number how often the object should be serialized;
+/*! \param t The object that shall be serialized
+ *  \param iterations The number how often the object should be serialized;
  *                    The measured time will be divided by number of iterations
  */
 int SerialString(int iterations) {
@@ -58,8 +58,8 @@ int SerialString(int iterations) {
 }
 
 //! serializes the test vector and measures its time
-/*! @param t The object that shall be serialized
- *  @param iterations The number how often the object should be serialized;
+/*! \param t The object that shall be serialized
+ *  \param iterations The number how often the object should be serialized;
  *                    The measured time will be divided by number of iterations
  */
 int SerialVector(int iterations) {
@@ -67,8 +67,8 @@ int SerialVector(int iterations) {
 }
 
 //! serializes the test tuples and measures its time
-/*! @param t The object that shall be serialized
- *  @param iterations The number how often the object should be serialized;
+/*! \param t The object that shall be serialized
+ *  \param iterations The number how often the object should be serialized;
  *                    The measured time will be divided by number of iterations
  */
 int SerialTuple(int iterations) {
@@ -76,8 +76,8 @@ int SerialTuple(int iterations) {
 }
 
 //! generates an vector with random ints
-/*! @param res The vector that should be filled with random ints
- *  @param n The number of ints in the vector
+/*! \param res The vector that should be filled with random ints
+ *  \param n The number of ints in the vector
  */
 void GetRandomIntVector(std::vector<int64_t>& res, int n) {
     res.reserve(n);
@@ -97,8 +97,8 @@ void PrintSQLPlotTool(std::string datatype, size_t size, int iterations, int tim
 }
 
 //! generates random chars and fills a vector
-/*! @param s The vector that should be filled with random chars
- *  @param len The number of chars in the vector
+/*! \param s The vector that should be filled with random chars
+ *  \param len The number of chars in the vector
  */
 void GetRandomString(std::vector<char>& s, const int len) {
     s.reserve(len);
