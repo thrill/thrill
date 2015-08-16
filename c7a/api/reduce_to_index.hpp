@@ -65,7 +65,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
     using Super::result_file_;

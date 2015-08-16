@@ -247,9 +247,9 @@ class ReducePostTable
     static const bool debug = false;
 
 public:
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
-    typedef std::function<void (const ValueType&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const ValueType&)>;
 
     EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
 

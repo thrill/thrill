@@ -40,11 +40,11 @@ template <typename T, typename Allocator>
 class OurConcurrentQueue
 {
 public:
-    typedef T value_type;
-    typedef T& reference;
-    typedef const T& const_reference;
-    typedef std::size_t size_type;
-    typedef std::ptrdiff_t difference_type;
+    using value_type = T;
+    using reference = T &;
+    using const_reference = const T &;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
 
 protected:
     //! the actual data queue
