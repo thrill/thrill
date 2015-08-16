@@ -26,7 +26,9 @@ TEST(MallocTracker, Test1) {
     }
 
     size_t curr2 = core::malloc_tracker_current();
-    ASSERT_GE(curr2 + a[0], curr + 1024);
+
+    volatile char* av = a;
+    ASSERT_GE(curr2 + av[0], curr + 1024);
 
     free(a);
 
