@@ -64,7 +64,7 @@ protected:
 
 protected:
     //! option and parameter list type
-    typedef std::vector<Argument*> ArgumentList;
+    using ArgumentList = std::vector<Argument*>;
 
     //! list of options available
     ArgumentList optlist_;

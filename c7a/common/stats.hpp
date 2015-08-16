@@ -50,7 +50,7 @@ class Stats<true>
 {
 public:
     using NamedTimedcounter = std::pair<std::string, TimedCounter>;
-    typedef decltype (std::chrono::high_resolution_clock::now ()) TimeStamp;
+    using TimeStamp = decltype(std::chrono::high_resolution_clock::now());
 
     Stats(const Stats& rhs) = delete;
     Stats(Stats&&) = delete;

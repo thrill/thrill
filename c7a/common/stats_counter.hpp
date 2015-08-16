@@ -37,7 +37,7 @@ class StatsCounter<_ValueType, true>
 {
 public:
     //! The counter's value type
-    typedef _ValueType ValueType;
+    using ValueType = _ValueType;
 
 protected:
     //! The counter's value
@@ -97,7 +97,7 @@ class StatsCounter<_ValueType, false>
 {
 public:
     //! The counter's value type
-    typedef _ValueType ValueType;
+    using ValueType = _ValueType;
 
 public:
     StatsCounter(const ValueType& = ValueType()) // NOLINT
