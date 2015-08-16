@@ -94,7 +94,7 @@ public:
     { return ClearRead(fd).ClearWrite(fd).ClearException(fd); }
 
     //! Do a select(), which modifies the enclosed file descriptor objects.
-    int select(struct timeval* timeout = NULL) {
+    int select(struct timeval* timeout = nullptr) {
         return ::select(max_fd_ + 1,
                         &read_set_, &write_set_, &except_set_, timeout);
     }
@@ -102,7 +102,7 @@ public:
     //! Do a select() with timeout (in ms)
     int select_timeout(double timeout) {
         if (timeout == std::numeric_limits<double>::infinity())
-            return select(NULL);
+            return select(nullptr);
         else {
             struct timeval tv;
             tv.tv_sec = static_cast<long>(timeout / 1000);

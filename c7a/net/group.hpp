@@ -196,7 +196,7 @@ public:
             sLOG0 << "select from fd=" << fd;
         }
 
-        int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
+        int retval = select(max_fd + 1, &fd_set, nullptr, nullptr, nullptr);
 
         if (retval < 0) {
             perror("select()");
@@ -255,7 +255,7 @@ public:
             sLOG0 << "select from fd=" << fd;
         }
 
-        int retval = select(max_fd + 1, &fd_set, NULL, NULL, NULL);
+        int retval = select(max_fd + 1, &fd_set, nullptr, nullptr, nullptr);
 
         if (retval < 0) {
             perror("select()");

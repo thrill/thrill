@@ -23,7 +23,7 @@ using namespace c7a::common;
 static void TestWaitFor(int count, int slowThread = -1) {
 
     // TODO(ej): use new C++11 random things instead.
-    srand(time(NULL));
+    srand(time(nullptr));
     int maxWaitTime = 100000;
 
     Barrier barrier(count);
