@@ -61,7 +61,7 @@ public:
 protected:
     ssize_t bytes_;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness_ { std::random_device()() };
     std::uniform_int_distribution<size_t> uniform_dist_ { 1, 100 };
 };
@@ -123,7 +123,7 @@ std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size
     std::vector<std::string> result;
     size_t remaining = bytes;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
@@ -140,7 +140,7 @@ std::vector<Tuple> generate(size_t bytes, size_t min_size, size_t max_size) {
     std::vector<Tuple> result;
     size_t remaining = bytes;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
@@ -158,7 +158,7 @@ std::vector<Triple> generate(size_t bytes, size_t min_size, size_t max_size) {
     std::vector<Triple> result;
     size_t remaining = bytes;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 

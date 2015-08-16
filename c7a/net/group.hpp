@@ -32,8 +32,8 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-//TODO(ej) Cleanup the Group. Make to a sole collection holding a bunch of connections.
-//Move everything else into appropriate channel.
+// TODO(ej) Cleanup the Group. Make to a sole collection holding a bunch of connections.
+// Move everything else into appropriate channel.
 
 /*!
  * Collection of NetConnections to workers, allows point-to-point client

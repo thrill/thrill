@@ -557,10 +557,10 @@ public:
             log += "item: ";
             log += std::to_string(i);
             log += " (";
-            //log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
+            // log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
             //       ? std::to_string(vector_[i].first) : "_";
             log += ", ";
-            //log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
+            // log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
             //       ? std::to_string(vector_[i].second) : "_";
             log += ")\n";
         }

@@ -101,7 +101,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             ASSERT_EQ(test_size / 10, res.size());
 
             for (size_t i = 0; i != res.size(); ++i) {
-                //sLOG1 << i << res[i].a << res[i].b;
+                // sLOG1 << i << res[i].a << res[i].b;
                 ASSERT_EQ(static_cast<long>(i), res[i].a);
                 ASSERT_EQ(static_cast<long>(2 * test_size - test_size / 10 + i), res[i].b);
             }
@@ -202,7 +202,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
                 for (size_t i = 0; i < std::min(v1.size(), v2.size()); ++i) {
                     check.push_back(v1[i] + v2[i]);
-                    //sLOG1 << check.back();
+                    // sLOG1 << check.back();
                 }
             }
 

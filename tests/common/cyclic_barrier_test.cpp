@@ -27,7 +27,7 @@ static void TestWaitFor(int count, int slowThread = -1) {
     int maxWaitTime = 100000;
 
     Barrier barrier(count);
-    //Need to use atomic here, since setting a bool might not be atomic.
+    // Need to use atomic here, since setting a bool might not be atomic.
     std::vector<std::atomic<bool> > flags(count);
     std::vector<std::thread> threads(count);
 
