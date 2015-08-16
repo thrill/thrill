@@ -178,8 +178,7 @@ TEST(File, RandomGetIndexOf) {
     static const bool debug = false;
     const size_t size = 500;
 
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::minstd_rand0 rng(seed);
+    std::minstd_rand0 rng;
 
     // Create test file.
     data::File file;
