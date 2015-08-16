@@ -11,10 +11,10 @@
 
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/manager.hpp>
-#include <c7a/net/manager.hpp>
 
 #include <deque>
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
 

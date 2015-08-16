@@ -30,7 +30,7 @@ class CustomKeyHashFunction
     : public c7a::core::PostReduceByHashKey<int>
 {
 public:
-    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+    explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 

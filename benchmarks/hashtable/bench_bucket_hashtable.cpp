@@ -12,13 +12,16 @@
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/core/reduce_pre_table.hpp>
 #include <c7a/data/discard_sink.hpp>
+
+#include <algorithm>
 #include <cmath>
-#include <math.h>
 #include <numeric>
+#include <utility>
+#include <vector>
 
 using IntPair = std::pair<int, int>;
 
-using namespace c7a;
+using namespace c7a; // NOLINT
 
 int main(int argc, char* argv[]) {
 

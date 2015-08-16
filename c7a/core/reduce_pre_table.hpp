@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -88,7 +89,7 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class PreReduceByHashKey
 {
 public:
-    PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
+    explicit PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
@@ -116,7 +117,7 @@ class PreReduceByIndex
 public:
     size_t size_;
 
-    PreReduceByIndex(size_t size)
+    explicit PreReduceByIndex(size_t size)
         : size_(size)
     { }
 
@@ -181,7 +182,7 @@ protected:
         BucketBlock  * next;
 
         //! memory area of items
-        KeyValuePair items[block_size_];
+        KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
         void         destroy_items() {

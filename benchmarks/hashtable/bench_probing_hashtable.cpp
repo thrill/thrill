@@ -15,14 +15,16 @@
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/discard_sink.hpp>
 #include <c7a/data/file.hpp>
+
+#include <algorithm>
 #include <cmath>
-#include <math.h>
 #include <numeric>
+#include <utility>
+#include <vector>
 
 using IntPair = std::pair<int, int>;
 
-using namespace c7a;
-using namespace c7a::data;
+using namespace c7a; // NOLINT
 
 int main(int argc, char* argv[]) {
 

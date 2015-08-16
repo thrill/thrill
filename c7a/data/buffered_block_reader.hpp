@@ -32,36 +32,28 @@ private:
     bool hasCurrent_;
 
 public:
-    /*!
-     * Returns true if this reader holds a value at the current position.
-     */
+    //! Creates a new instance of this class, based on the given file reader.
+    explicit BufferedBlockReader(BlockReader<BlockSource> reader) : reader_(reader) {
+        Next();
+    }
+
+    //! Returns true if this reader holds a value at the current position.
     bool HasValue() {
         return hasCurrent_;
     }
 
-    /*!
-     * Gets the value at the current position of this reader.
-     */
+    //! Gets the value at the current position of this reader.
     ItemType Value() {
         assert(HasValue());
 
         return current_;
     }
 
-    /*!
-     * Advances this reader to the next value.
-     */
+    //! Advances this reader to the next value.
     void Next() {
         hasCurrent_ = reader_.HasNext();
         if (hasCurrent_)
             current_ = reader_.template Next<ItemType>();
-    }
-
-    /*!
-     * Creates a new instance of this class, based on the given file reader.
-     */
-    BufferedBlockReader(BlockReader<BlockSource> reader) : reader_(reader) {
-        Next();
     }
 };
 

@@ -73,7 +73,7 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class PostProbingReduceByHashKey
 {
 public:
-    PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+    explicit PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
@@ -217,7 +217,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        index_result(size_t g_id) {
+        explicit index_result(size_t g_id) {
             global_index = g_id;
         }
     };
