@@ -12,8 +12,11 @@
 #define C7A_BENCHMARKS_SERIALIZATION_DATA_HEADER
 
 #include <cereal/types/vector.hpp>
+
 #include <stdint.h>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 /*
@@ -28,7 +31,7 @@ const std::string bench_string = "shgfkghsdfjhgsfjhfgjhfgjsffghgsfdhgsfdfkdjhfio
  */
 struct BenchVector {
     BenchVector() { }
-    BenchVector(std::vector<int64_t> bv) : bench_vector(bv) { }
+    explicit BenchVector(std::vector<int64_t> bv) : bench_vector(bv) { }
 
     std::vector<int64_t> bench_vector;
 

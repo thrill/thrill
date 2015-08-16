@@ -179,7 +179,7 @@ TEST(File, RandomGetIndexOf) {
     const size_t size = 500;
 
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::minstd_rand0 rand(seed);
+    std::minstd_rand0 rng(seed);
 
     // Create test file.
     data::File file;
@@ -195,7 +195,7 @@ TEST(File, RandomGetIndexOf) {
     ASSERT_EQ(size, file.NumItems());
 
     for (size_t i = 0; i < 10; i++) {
-        size_t val = rand() % size;
+        size_t val = rng() % size;
         size_t idx = file.GetIndexOf(val, std::less<size_t>());
 
         ASSERT_EQ(500 - val - 1, idx);

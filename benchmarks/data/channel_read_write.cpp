@@ -13,13 +13,17 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
 
-#include "data_generators.hpp"
-
 #include <iostream>
 #include <random>
 #include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+
+#include "data_generators.hpp"
 
 using namespace c7a; // NOLINT
+using common::StatsTimer;
 
 //! Creates two threads (workers) that work with one context instance
 //! one worker sends elements to the other worker.
@@ -29,10 +33,9 @@ using namespace c7a; // NOLINT
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx, const std::string& type_as_string) {
-    using namespace c7a::common;
 
     auto data = generate<Type>(bytes, 1, 100);
-    ThreadPool pool;
+    common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         auto channel = ctx.GetNewChannel();
         StatsTimer<true> write_timer;

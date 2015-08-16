@@ -9,7 +9,6 @@
 #ifndef C7A_BENCH_SERIALIZATION_HEADER
 #define C7A_BENCH_SERIALIZATION_HEADER
 
-#include "data.hpp"
 #include <c7a/common/stats_timer.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/data/serialization.hpp>
@@ -18,9 +17,10 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-// #include <random>
 #include <string>
 #include <vector>
+
+#include "data.hpp"
 
 //! serializes a given object and measures its time
 /*! \param t The object that shall be serialized

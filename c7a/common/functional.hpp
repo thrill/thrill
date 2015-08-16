@@ -14,6 +14,7 @@
 #define C7A_COMMON_FUNCTIONAL_HEADER
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 
 namespace c7a {
