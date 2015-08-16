@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
                       return in1;
                   };
 
-    srand(time(nullptr));
+    std::default_random_engine rng({ std::random_device()() });
 
     clp.SetVerboseProcess(false);
 
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
     std::vector<int> elements(size);
 
     for (size_t i = 0; i < elements.size(); i++) {
-        elements[i] = rand() % modulo;
+        elements[i] = rng() % modulo;
     }
 
     std::vector<data::DiscardSink> sinks(workers);
