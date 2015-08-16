@@ -175,7 +175,6 @@ TEST(File, SerializeSomeItemsDynReader) {
 }
 
 TEST(File, RandomGetIndexOf) {
-    static const bool debug = false;
     const size_t size = 500;
 
     std::minstd_rand0 rng;
