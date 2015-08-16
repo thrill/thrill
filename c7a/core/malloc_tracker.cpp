@@ -21,6 +21,14 @@
 
 #include <atomic>
 
+#if defined(__clang__) || defined (__GNUC__)
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS     \
+    __attribute__ ((no_sanitize_address)) \
+    __attribute__ ((no_sanitize_thread))
+#else
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+
 namespace c7a {
 namespace core {
 
@@ -47,7 +55,7 @@ static const size_t sentinel = 0xDEADC0DE;
 //! a simple memory heap for allocations prior to dlsym loading
 #define INIT_HEAP_SIZE 1024 * 1024
 static char init_heap[INIT_HEAP_SIZE];
-static std::atomic<size_t> init_heap_use = { 0 };
+static size_t init_heap_use = 0;
 static const int log_operations_init_heap = 0;
 
 //! align allocations to init_heap to this number by rounding up allocations
@@ -60,15 +68,16 @@ static const size_t init_alignment = sizeof(size_t);
 /* run-time memory allocation statistics */
 /*****************************************/
 
-static std::atomic<size_t> peak = { 0 };
-static std::atomic<size_t> curr = { 0 };
-static std::atomic<size_t> total = { 0 };
-static std::atomic<size_t> total_allocs = { 0 };
-static std::atomic<size_t> current_allocs = { 0 };
+static size_t peak = 0;
+static size_t curr = 0;
+static size_t total = 0;
+static size_t total_allocs = 0;
+static size_t current_allocs = 0;
 
 //! add allocation to statistics
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static void inc_count(size_t inc) {
-    size_t mycurr = (curr += inc);
+    size_t mycurr = __sync_add_and_fetch(&curr, inc);
     if (mycurr > peak) peak = mycurr;
     total += inc;
     ++total_allocs;
@@ -76,6 +85,7 @@ static void inc_count(size_t inc) {
 }
 
 //! decrement allocation to statistics
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static void dec_count(size_t dec) {
     curr -= dec;
     --current_allocs;
@@ -103,7 +113,7 @@ size_t malloc_tracker_peak() {
 
 //! user function to reset the peak allocation to current
 void malloc_tracker_reset_peak() {
-    peak = curr.load();
+    peak = curr;
 }
 
 //! user function to return total number of allocations
@@ -114,9 +124,10 @@ size_t malloc_tracker_total_allocs() {
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status() {
     fprintf(stderr, PPREFIX "current %lu, peak %lu\n",
-            curr.load(), peak.load());
+            curr, peak);
 }
 
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static __attribute__ ((constructor)) void init() {
     char* error;
 
@@ -159,12 +170,13 @@ static __attribute__ ((constructor)) void init() {
     }
 }
 
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static __attribute__ ((destructor)) void finish() {
     fprintf(stderr, PPREFIX
             "exiting, total: %lu, peak: %lu, current: %lu, "
             "allocs: %lu, unfreed: %lu\n",
-            total.load(), peak.load(), curr.load(),
-            total_allocs.load(), current_allocs.load());
+            total, peak, curr,
+            total_allocs, current_allocs);
 }
 
 } // namespace core
@@ -176,11 +188,12 @@ static __attribute__ ((destructor)) void finish() {
 
 using namespace c7a::core; // NOLINT
 
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static void * preinit_malloc(size_t size) noexcept {
 
     size_t aligned_size = size + (init_alignment - size % init_alignment);
 
-    size_t offset = init_heap_use.fetch_add(padding + aligned_size);
+    size_t offset = __sync_fetch_and_add(&init_heap_use, padding + aligned_size);
 
     if (offset > INIT_HEAP_SIZE) {
         fprintf(stderr, PPREFIX "init heap full !!!\n");
@@ -203,6 +216,7 @@ static void * preinit_malloc(size_t size) noexcept {
     return ret + padding;
 }
 
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static void * preinit_realloc(void* ptr, size_t size) noexcept {
 
     if (log_operations_init_heap) {
@@ -234,6 +248,7 @@ static void * preinit_realloc(void* ptr, size_t size) noexcept {
     }
 }
 
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 static void preinit_free(void* ptr) noexcept {
     // don't do any real deallocation.
 
@@ -249,7 +264,7 @@ static void preinit_free(void* ptr) noexcept {
     size_t size = *reinterpret_cast<size_t*>(ptr);
     dec_count(size);
 
-    if (log_operations_init_heap || 1) {
+    if (log_operations_init_heap) {
         fprintf(stderr, PPREFIX "free(%p) -> %lu   on init heap\n", ptr, size);
     }
 }
@@ -267,6 +282,7 @@ static void preinit_free(void* ptr) noexcept {
 #include <malloc.h>
 
 //! exported malloc symbol that overrides loading from libc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void * malloc(size_t size) noexcept {
 
     if (!real_malloc)
@@ -280,13 +296,14 @@ void * malloc(size_t size) noexcept {
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%lu / %lu) = %p   (current %lu)\n",
-                size, size_used, ret, curr.load());
+                size, size_used, ret, curr);
     }
 
     return ret;
 }
 
 //! exported free symbol that overrides loading from libc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void free(void* ptr) noexcept {
 
     if (!ptr) return;   //! free(NULL) is no operation
@@ -308,7 +325,7 @@ void free(void* ptr) noexcept {
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "free(%p) -> %lu   (current %lu)\n",
-                ptr, size_used, curr.load());
+                ptr, size_used, curr);
     }
 
     (*real_free)(ptr);
@@ -316,6 +333,7 @@ void free(void* ptr) noexcept {
 
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void * calloc(size_t nmemb, size_t size) noexcept {
     size *= nmemb;
     void* ret = malloc(size);
@@ -324,6 +342,7 @@ void * calloc(size_t nmemb, size_t size) noexcept {
 }
 
 //! exported realloc() symbol that overrides loading from libc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void * realloc(void* ptr, size_t size) noexcept {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
@@ -354,11 +373,11 @@ void * realloc(void* ptr, size_t size) noexcept {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
                     "realloc(%lu -> %lu / %lu) = %p   (current %lu)\n",
-                    oldsize_used, size, newsize_used, newptr, curr.load());
+                    oldsize_used, size, newsize_used, newptr, curr);
         else
             fprintf(stderr, PPREFIX
                     "realloc(%lu -> %lu / %lu) = %p -> %p   (current %lu)\n",
-                    oldsize_used, size, newsize_used, ptr, newptr, curr.load());
+                    oldsize_used, size, newsize_used, ptr, newptr, curr);
     }
 
     return newptr;
@@ -374,6 +393,7 @@ void * realloc(void* ptr, size_t size) noexcept {
  */
 
 //! exported malloc symbol that overrides loading from libc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void * malloc(size_t size) noexcept {
 
     if (!real_malloc)
@@ -385,7 +405,7 @@ void * malloc(size_t size) noexcept {
     inc_count(size);
     if (log_operations && size >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%lu) = %p   (current %lu)\n",
-                size, static_cast<char*>(ret) + padding, curr.load());
+                size, static_cast<char*>(ret) + padding, curr);
     }
 
     //! prepend allocation size and check sentinel
@@ -397,6 +417,7 @@ void * malloc(size_t size) noexcept {
 }
 
 //! exported free symbol that overrides loading from libc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void free(void* ptr) noexcept {
 
     if (!ptr) return;   //! free(NULL) is no operation
@@ -426,7 +447,7 @@ void free(void* ptr) noexcept {
 
     if (log_operations && size >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "free(%p) -> %lu   (current %lu)\n",
-                ptr, size, curr.load());
+                ptr, size, curr);
     }
 
     (*real_free)(ptr);
@@ -434,6 +455,7 @@ void free(void* ptr) noexcept {
 
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void * calloc(size_t nmemb, size_t size) noexcept {
     size *= nmemb;
     if (!size) return NULL;
@@ -443,6 +465,7 @@ void * calloc(size_t nmemb, size_t size) noexcept {
 }
 
 //! exported realloc() symbol that overrides loading from libc
+ATTRIBUTE_NO_SANITIZE_ADDRESS
 void * realloc(void* ptr, size_t size) noexcept {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
@@ -480,11 +503,11 @@ void * realloc(void* ptr, size_t size) noexcept {
         if (newptr == ptr)
             fprintf(stderr, PPREFIX
                     "realloc(%lu -> %lu) = %p   (current %lu)\n",
-                    oldsize, size, newptr, curr.load());
+                    oldsize, size, newptr, curr);
         else
             fprintf(stderr, PPREFIX
                     "realloc(%lu -> %lu) = %p -> %p   (current %lu)\n",
-                    oldsize, size, ptr, newptr, curr.load());
+                    oldsize, size, ptr, newptr, curr);
     }
 
     *reinterpret_cast<size_t*>(newptr) = size;
