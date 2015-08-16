@@ -33,7 +33,8 @@ private:
 
 public:
     //! Creates a new instance of this class, based on the given file reader.
-    explicit BufferedBlockReader(BlockReader<BlockSource> reader) : reader_(reader) {
+    explicit BufferedBlockReader(BlockSource&& source)
+        : reader_(std::move(source)) {
         Next();
     }
 

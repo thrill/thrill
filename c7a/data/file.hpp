@@ -243,8 +243,10 @@ inline typename File::Reader File::GetReader() const {
 }
 
 template <typename ValueType>
-inline BufferedBlockReader<ValueType, FileBlockSource> File::GetBufferedReader() const {
-    return BufferedBlockReader<ValueType, FileBlockSource>(GetReader());
+inline BufferedBlockReader<ValueType, FileBlockSource>
+File::GetBufferedReader() const {
+    return BufferedBlockReader<ValueType, FileBlockSource>(
+        FileBlockSource(*this, 0, 0));
 }
 
 inline
