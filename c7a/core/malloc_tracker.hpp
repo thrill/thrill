@@ -33,7 +33,7 @@ size_t malloc_tracker_peak();
 void malloc_tracker_reset_peak();
 
 //! returns the total number of allocations
-size_t malloc_tracker_num_allocs();
+size_t malloc_tracker_total_allocs();
 
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status();
