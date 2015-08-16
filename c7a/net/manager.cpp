@@ -52,7 +52,7 @@ public:
 
         LOG << "Client " << my_rank_ << " starting: " << endpoints[my_rank_];
 
-        //If we heldy any connections, do not allow a new initialization.
+        // If we heldy any connections, do not allow a new initialization.
         if (connections_.size() != 0) {
             throw new Exception("This net manager has already been initialized.");
         }
@@ -61,11 +61,11 @@ public:
             mgr_.groups_[i].Initialize(my_rank_, endpoints.size());
         }
 
-        //Parse endpoints.
+        // Parse endpoints.
         std::vector<SocketAddress> address_list
             = GetAddressList(endpoints);
 
-        //Create listening socket.
+        // Create listening socket.
         {
             Socket listen_socket = Socket::Create();
             listen_socket.SetReuseAddr();
@@ -85,27 +85,27 @@ public:
 
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
-        //Initiate connections to all hosts with higher id.
+        // Initiate connections to all hosts with higher id.
         for (uint32_t g = 0; g < kGroupCount; g++) {
             for (size_t id = my_rank_ + 1; id < address_list.size(); ++id) {
                 AsyncConnect(g, id, address_list[id]);
             }
         }
 
-        //Add reads to the dispatcher to accept new connections.
+        // Add reads to the dispatcher to accept new connections.
         dispatcher_.AddRead(listener_,
                             [=]() {
                                 return OnIncomingConnection(listener_);
                             });
 
-        //Dispatch until everything is connected.
+        // Dispatch until everything is connected.
         while (!IsInitializationFinished())
         {
             LOG << "Client " << my_rank_ << " dispatching.";
             dispatcher_.Dispatch();
         }
 
-        //All connected, Dispose listener.
+        // All connected, Dispose listener.
         listener_.Close();
 
         LOG << "Client " << my_rank_ << " done";
@@ -236,8 +236,8 @@ protected:
             for (size_t id = 0; id < groups_[g].num_hosts(); ++id) {
                 if (id == my_rank_) continue;
 
-                //Just checking the state works since this implicitey checks the
-                //size. Unset connections have state ConnectionState::Invalid.
+                // Just checking the state works since this implicitey checks the
+                // size. Unset connections have state ConnectionState::Invalid.
                 if (groups_[g].connection(id).state()
                     != ConnectionState::Connected)
                     return false;
@@ -361,7 +361,7 @@ protected:
      */
     bool OnConnected(Connection& conn, const SocketAddress& address) {
 
-        //First, check if everything went well.
+        // First, check if everything went well.
         int err = conn.GetSocket().GetError();
 
         if (conn.state() != ConnectionState::Connecting) {
@@ -396,7 +396,7 @@ protected:
             return false;
         }
         else if (err != 0) {
-            //Other failure. Fail hard.
+            // Other failure. Fail hard.
             conn.set_state(ConnectionState::Invalid);
 
             throw Exception("Error connecting asynchronously to client "

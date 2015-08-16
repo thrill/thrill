@@ -74,14 +74,14 @@ static void ThreadInitializeBroadcastIntegral(Group* net) {
 
     static const bool debug = false;
 
-    //Broadcast our ID to everyone
+    // Broadcast our ID to everyone
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;
         net->SendTo(i, net->my_host_rank());
     }
 
-    //Receive the id from everyone. Make sure that the id is correct.
+    // Receive the id from everyone. Make sure that the id is correct.
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;

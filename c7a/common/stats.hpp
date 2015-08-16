@@ -185,7 +185,7 @@ public:
     }
 
     void AddReport(const std::string& /*group*/, const std::string& /*label*/, const std::string& /*content*/) {
-        //do nothing
+        // do nothing
     }
 };
 

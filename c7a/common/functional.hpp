@@ -28,7 +28,7 @@ struct Identity {
     }
 };
 
-//thanks to http://stackoverflow.com/a/7127988
+// thanks to http://stackoverflow.com/a/7127988
 template <typename T>
 struct is_pair : public std::false_type { };
 

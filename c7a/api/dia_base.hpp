@@ -148,9 +148,9 @@ public:
         return state_ = state;
     }
 
-    //Why are these stupid functions here?
-    //Because we do not want to include the stats.hpp into every
-    //single node class
+    // Why are these stupid functions here?
+    // Because we do not want to include the stats.hpp into every
+    // single node class
     inline void StartExecutionTimer() {
         START_TIMER(execution_timer_);
     }
@@ -184,7 +184,7 @@ protected:
     //! State of the DIANode. State is NEW on creation.
     DIAState state_ = DIAState::NEW;
 
-    //!Returns the state of this DIANode as a string. Used by ToString.
+    //! Returns the state of this DIANode as a string. Used by ToString.
     std::string state_string_() {
         switch (state_) {
         case DIAState::NEW:

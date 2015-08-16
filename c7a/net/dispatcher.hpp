@@ -22,8 +22,8 @@
 #include <c7a/net/lowlevel/select_dispatcher.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
 
-//TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
-//#include <c7a/net/lowlevel/epoll-dispatcher.hpp>
+// TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
+// #include <c7a/net/lowlevel/epoll-dispatcher.hpp>
 
 #if defined(_LIBCPP_VERSION) || defined(__clang__)
 #include <c7a/common/delegate.hpp>
@@ -55,7 +55,7 @@ class Dispatcher
 protected:
     //! switch between different low-level dispatchers
     typedef lowlevel::SelectDispatcher SubDispatcher;
-    //typedef lowlevel::EPollDispatcher SubDispatcher;
+    // typedef lowlevel::EPollDispatcher SubDispatcher;
 
     //! import into class namespace
     typedef lowlevel::Socket Socket;

@@ -54,7 +54,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(4).size(), 16u);
     ASSERT_EQ(file.block(5).size(), 14u);
 
-    //Total size is equal to sum of block sizes
+    // Total size is equal to sum of block sizes
     ASSERT_EQ(file.TotalSize(), 94u);
 
     const unsigned char block_data_bytes[] = {
@@ -129,7 +129,7 @@ TEST_F(File, SerializeSomeItems) {
         fw(std::string("test"));
     }
 
-    //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
+    // std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
 
     // get items back from file.
     {

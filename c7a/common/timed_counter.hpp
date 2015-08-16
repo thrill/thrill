@@ -26,9 +26,9 @@ class TimedCounter
 public:
     typedef std::chrono::high_resolution_clock::time_point TimePoint;
 
-    //no copy ctor
+    // no copy ctor
     TimedCounter(const TimedCounter& that) = delete;
-    //move is okay
+    // move is okay
     TimedCounter(TimedCounter&& rhs) {
         occurences_ = rhs.occurences_;
     }
