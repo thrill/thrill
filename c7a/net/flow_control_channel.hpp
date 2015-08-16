@@ -110,20 +110,20 @@ protected:
 
     template <typename T>
     void SetLocalShared(T* value) {
-        assert(*shmem == NULL);
+        assert(*shmem == nullptr);
         assert(threadId == 0);
         *shmem = value;
     }
 
     template <typename T>
     T * GetLocalShared() {
-        assert(*shmem != NULL);
+        assert(*shmem != nullptr);
         return *(reinterpret_cast<T**>(shmem));
     }
 
     void ClearLocalShared() {
         assert(threadId == 0);
-        *shmem = NULL;
+        *shmem = nullptr;
     }
 
 public:
