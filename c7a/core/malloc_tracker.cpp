@@ -22,8 +22,9 @@
 #include <atomic>
 
 #if defined(__clang__) || defined (__GNUC__)
-#define ATTRIBUTE_NO_SANITIZE     \
-    __attribute__ ((no_sanitize_address))
+#define ATTRIBUTE_NO_SANITIZE             \
+    __attribute__ ((no_sanitize_address)) \
+    __attribute__ ((no_sanitize_thread))
 #else
 #define ATTRIBUTE_NO_SANITIZE
 #endif

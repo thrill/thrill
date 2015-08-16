@@ -30,7 +30,7 @@ namespace core {
 template <typename Type>
 class Allocator : public AllocatorBase<Type>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     using value_type = Type;
