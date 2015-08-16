@@ -138,7 +138,7 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2](msg1);
-                  //writers[2].Flush();
+                  // writers[2].Flush();
                   writers[2](msg2);
                   for (auto& w : writers) {
                       sLOG << "close worker";
@@ -181,7 +181,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   std::string msg1 = "I came from worker 0";
                   std::string msg2 = "I am another message from worker 0";
                   writers[2](msg1);
-                  //writers[2].Flush();
+                  // writers[2].Flush();
                   writers[2](msg2);
                   for (auto& w : writers) {
                       sLOG << "close worker";

@@ -94,7 +94,7 @@ public:
         size_t local_elements;
         size_t elements_per_worker = size_ / context_.num_workers();
         if (context_.num_workers() - 1 == context_.my_rank()) {
-            //last worker gets leftovers
+            // last worker gets leftovers
             local_elements = size_ -
                              ((context_.num_workers() - 1) * elements_per_worker);
         }

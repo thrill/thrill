@@ -132,7 +132,7 @@ private:
             if (my_id != 0) {
                 std::streampos previous = (per_worker * my_id_) - 1;
                 file_.seekg(previous, std::ios::beg);
-                //file_.unget();
+                // file_.unget();
                 if (file_.get() != '\n') {
                     std::string str;
                     std::getline(file_, str);

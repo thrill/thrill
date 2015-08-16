@@ -487,7 +487,7 @@ public:
      * Emits element to all children
      */
     void EmitAll(const KeyValuePair& element) {
-        //void EmitAll(const Key& key, const Value& value) {
+        // void EmitAll(const Key& key, const Value& value) {
         emit_impl_.EmitElement(element, emit_);
     }
 

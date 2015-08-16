@@ -123,7 +123,7 @@ public:
         return peer_id_;
     }
 
-    //TODO(ej) Make setters internal/friend NetManager
+    // TODO(ej) Make setters internal/friend NetManager
 
     /**
      * @brief Sets the state of this connection.

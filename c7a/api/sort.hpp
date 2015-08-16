@@ -119,11 +119,11 @@ private:
     //! Local data
     std::vector<ValueType> data_;
 
-    //!Emitter to send samples to process 0
+    //! Emitter to send samples to process 0
     data::ChannelPtr channel_id_samples_;
     std::vector<data::BlockWriter> emitters_samples_;
 
-    //!Emitters to send data to other workers specified by splitters.
+    //! Emitters to send data to other workers specified by splitters.
     data::ChannelPtr channel_id_data_;
     std::vector<data::BlockWriter> emitters_data_;
 
@@ -343,7 +343,7 @@ private:
         }
         channel_id_samples_->Close();
 
-        //code from SS2NPartition, slightly altered
+        // code from SS2NPartition, slightly altered
 
         ValueType* splitter_tree = new ValueType[workers_algo + 1];
 
@@ -367,7 +367,7 @@ private:
 
         delete[] splitter_tree;
 
-        //end of SS2N
+        // end of SS2N
 
         for (size_t i = 0; i < emitters_data_.size(); i++)
             emitters_data_[i].Close();

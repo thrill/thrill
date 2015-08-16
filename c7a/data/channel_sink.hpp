@@ -35,7 +35,7 @@ class ChannelSink : public BlockSink
 {
 public:
     using ChannelId = size_t;
-    //use ptr because the default ctor cannot leave references unitialized
+    // use ptr because the default ctor cannot leave references unitialized
     using StatsCounterPtr = common::StatsCounter<size_t, common::g_enable_stats>*;
     using StatsTimerPtr = common::StatsTimer<common::g_enable_stats>*;
 
@@ -88,7 +88,7 @@ public:
         }
 
         net::BufferBuilder bb;
-        //bb.Put(MagicByte::CHANNEL_BLOCK);
+        // bb.Put(MagicByte::CHANNEL_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();
@@ -122,7 +122,7 @@ public:
         header.receiver_local_worker_id = partners_local_worker_id_;
 
         net::BufferBuilder bb;
-        //bb.Put(MagicByte::CHANNEL_BLOCK);
+        // bb.Put(MagicByte::CHANNEL_BLOCK);
         header.Serialize(bb);
 
         net::Buffer buffer = bb.ToBuffer();

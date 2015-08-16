@@ -35,7 +35,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
                        const std::string& type_as_string) {
     using namespace c7a::common;
 
-    //prepare file with random data
+    // prepare file with random data
     auto data0 = generate<Type>(bytes / 2, 1, 100);
     auto data1 = generate<Type>(bytes / 2, 1, 100);
     std::vector<c7a::data::File> files;
@@ -54,11 +54,11 @@ void ConductExperiment(uint64_t bytes, int iterations,
         auto writer2 = files[2].GetWriter();
     }
 
-    //worker 0 and worker 1 hold 50% each
-    //worker 0 keeps 2/3 of his data, sends 1/3 to worker 1
-    //worker 1 keeps first 1/3 of his data, sends 2/3 to worker 2
-    //worker 2 receives 2/3 from worker 1
-    //afterwards everybody holds 33% of the data
+    // worker 0 and worker 1 hold 50% each
+    // worker 0 keeps 2/3 of his data, sends 1/3 to worker 1
+    // worker 1 keeps first 1/3 of his data, sends 2/3 to worker 2
+    // worker 2 receives 2/3 from worker 1
+    // afterwards everybody holds 33% of the data
     std::vector<std::vector<size_t> > offsets;
     offsets.push_back({ (size_t)(2 * data0.size() / 3), data0.size(), data0.size() });
     offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
