@@ -103,21 +103,21 @@ public:
     }
 
     /**
-     * @brief Gets the state of this connection.
+     * \brief Gets the state of this connection.
      */
     ConnectionState state() const {
         return state_;
     }
 
     /**
-     * @brief Gets the id of the net group this connection is associated with.
+     * \brief Gets the id of the net group this connection is associated with.
      */
     size_t group_id() const {
         return group_id_;
     }
 
     /**
-     * @brief Gets the id of the worker this connection is connected to.
+     * \brief Gets the id of the worker this connection is connected to.
      */
     size_t peer_id() const {
         return peer_id_;
@@ -126,21 +126,21 @@ public:
     // TODO(ej) Make setters internal/friend NetManager
 
     /**
-     * @brief Sets the state of this connection.
+     * \brief Sets the state of this connection.
      */
     void set_state(ConnectionState state) {
         this->state_ = state;
     }
 
     /**
-     * @brief Sets the group id of this connection.
+     * \brief Sets the group id of this connection.
      */
     void set_group_id(size_t groupId) {
         this->group_id_ = groupId;
     }
 
     /**
-     * @brief Sets the id of the worker this connection is connected to.
+     * \brief Sets the id of the worker this connection is connected to.
      */
     void set_peer_id(size_t peerId) {
         this->peer_id_ = peerId;
