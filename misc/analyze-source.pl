@@ -241,25 +241,25 @@ sub process_cpp {
         }
     }
 
-    # check for assert() in test cases
-    if ($path =~ /^tests/)
-    {
-        for(my $i = 0; $i < @data-1; ++$i) {
+    for(my $i = 0; $i < @data-1; ++$i) {
+        # check for @-style doxygen commands
+        if ($data[$i] =~ m!\@(param|tparam|return|result|brief|details|c|i)\s!) {
+            print("found \@-style doxygen command in $path:$i\n");
+        }
+
+        # check for assert() in test cases
+        if ($path =~ /^tests/) {
             if ($data[$i] =~ m/(?<!static_)assert\(/) {
-                print("found assert() in test $path line $i\n");
+                print("found assert() in test $path:$i\n");
             }
+        }
+
+        # check for NULL -> replace with nullptr.
+        if ($data[$i] =~ s/\bNULL\b/nullptr/g) {
+            print("replacing NULL in test $path line $i\n");
         }
     }
 
-    # check for @-style doxygen commands
-    {
-        foreach my $ln (@data)
-        {
-            if ($ln =~ m!\@(param|tparam|return|result|brief|details|c|i)\s!) {
-                print("found \@-style doxygen command in $path\n");
-            }
-        }
-    }
     # run uncrustify if in filter
     if (filter_uncrustify($path))
     {
