@@ -60,7 +60,7 @@ TEST_F(PostTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
@@ -97,7 +97,7 @@ TEST_F(PostTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
@@ -125,7 +125,7 @@ TEST_F(PostTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
@@ -144,7 +144,7 @@ TEST_F(PostTable, FlushIntegers) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
@@ -176,7 +176,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
@@ -211,7 +211,7 @@ TEST_F(PostTable, MultipleEmitters) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     std::vector<int> writer2;
@@ -249,7 +249,7 @@ TEST_F(PostTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    typedef std::function<void (const StringPair&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const StringPair&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<StringPair> writer1;
     emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value); });

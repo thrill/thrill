@@ -256,7 +256,13 @@ sub process_cpp {
 
         # check for NULL -> replace with nullptr.
         if ($data[$i] =~ s/\bNULL\b/nullptr/g) {
-            print("replacing NULL in test $path line $i\n");
+            print("replacing NULL in test $path:$i\n");
+        }
+
+        # check for typedef, issue warnings.
+        if ($data[$i] =~ m/\btypedef\b/) {
+        #if ($data[$i] =~ s/\btypedef\b(.+)\b(\w+);$/using $2 = $1;/) {
+            print("found typedef in $path:$i\n");
         }
     }
 

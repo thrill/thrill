@@ -81,7 +81,7 @@ struct make_index_sequence_helper;
 
 template <size_t ... Indexes>
 struct make_index_sequence_helper<0, Indexes ...>{
-    typedef index_sequence<Indexes ...> type;
+    using type = index_sequence<Indexes ...>;
 };
 
 template <size_t CurrentIndex, size_t ... Indexes>

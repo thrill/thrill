@@ -24,7 +24,7 @@ namespace common {
 class TimedCounter
 {
 public:
-    typedef std::chrono::high_resolution_clock::time_point TimePoint;
+    using TimePoint = std::chrono::high_resolution_clock::time_point;
 
     // no copy ctor
     TimedCounter(const TimedCounter& that) = delete;
