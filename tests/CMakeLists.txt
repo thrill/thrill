@@ -100,6 +100,9 @@ build_test(data/serialization_test)
 
 build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
+build_test(core/post_hash_table_test)
+build_test(core/post_hash_table_probing_test)
+
 build_test(core/stage_builder_test)
 
 build_test(api/function_stack_test)
@@ -111,13 +114,6 @@ build_test(api/sum_node_test)
 build_test(api/zip_node_test)
 
 build_test(examples/wordcount_test)
-
-if (OFF)
-
-  build_test(api/reduce_node_test)
-  build_test(core/post_hash_table_test)
-
-endif()
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 

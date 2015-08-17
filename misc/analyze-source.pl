@@ -226,12 +226,43 @@ sub process_cpp {
         expectr($path, $n-2, @data, "#endif // !$guard\n", qr/^#endif /);
     }
 
+    # check for comments that have no space after // or //!
+    for(my $i = 0; $i < @data-1; ++$i) {
+        next if $data[$i] =~ m@^(\s*//)( |! |/|-|\*)@;
+        $data[$i] =~ s@^(\s*//!?)([^ ].+)$@$1 $2@;
+    }
+
     # check terminating /****/ comment
     {
         my $n = scalar(@data)-1;
         if ($data[$n] !~ m!^/\*{78}/$!) {
             push(@data, "\n");
             push(@data, "/".('*'x78)."/\n");
+        }
+    }
+
+    for(my $i = 0; $i < @data-1; ++$i) {
+        # check for @-style doxygen commands
+        if ($data[$i] =~ m!\@(param|tparam|return|result|brief|details|c|i)\s!) {
+            print("found \@-style doxygen command in $path:$i\n");
+        }
+
+        # check for assert() in test cases
+        if ($path =~ /^tests/) {
+            if ($data[$i] =~ m/(?<!static_)assert\(/) {
+                print("found assert() in test $path:$i\n");
+            }
+        }
+
+        # check for NULL -> replace with nullptr.
+        if ($data[$i] =~ s/\bNULL\b/nullptr/g) {
+            print("replacing NULL in test $path:$i\n");
+        }
+
+        # check for typedef, issue warnings.
+        if ($data[$i] =~ m/\btypedef\b/) {
+        #if ($data[$i] =~ s/\btypedef\b(.+)\b(\w+);$/using $2 = $1;/) {
+            print("found typedef in $path:$i\n");
         }
     }
 

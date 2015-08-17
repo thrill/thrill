@@ -65,7 +65,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
     using Super::result_file_;
@@ -74,7 +74,7 @@ public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename c7a::core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, false, 16*1024, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -129,41 +129,38 @@ public:
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<ValueType,
+                  = core::ReducePostTable<ValueType, Key, Value,
                                           KeyExtractor,
                                           ReduceFunction,
-                                          true,
-                                          SendPair>;
+                                          SendPair,
+                                          core::PostReduceFlushToIndex<Value>,
+                                          core::PostReduceByIndex>;
 
         size_t local_begin, local_end;
 
-        std::tie(local_begin, local_end)
-            = common::CalculateLocalRange(result_size_, context_);
+        std::tie(local_begin, local_end) = common::CalculateLocalRange(result_size_, context_);
 
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_,
-                          cbs,
-                          [=](Key key, ReduceTable* ht) {
-                              return (key - local_begin) % ht->NumBuckets();
-                          },
+        ReduceTable table(key_extractor_, reduce_function_, cbs,
+                          core::PostReduceByIndex(),
+                          core::PostReduceFlushToIndex<Value>(),
                           local_begin,
                           local_end,
                           neutral_element_);
 
         if (PreservesKey) {
-            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-
             table.Flush();
         }
         else {
-            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
             while (reader.HasNext()) {
@@ -199,9 +196,9 @@ public:
     }
 
 private:
-    //!Key extractor function
+    //! Key extractor function
     KeyExtractor key_extractor_;
-    //!Reduce function
+    //! Reduce function
     ReduceFunction reduce_function_;
 
     data::ChannelPtr channel_;
@@ -221,10 +218,10 @@ private:
         reduce_pre_table_.Insert(std::move(input));
     }
 
-    //!Receive elements from other workers.
+    //! Receive elements from other workers.
     auto MainOp() {
         LOG << ToString() << " running main op";
-        //Flush hash table before the postOp
+        // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         channel_->Close();
@@ -355,10 +352,10 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
-                                                 //This function should not be
-                                                 //called, it is only here to
-                                                 //give the key type to the
-                                                 //hashtables.
+                                                 // This function should not be
+                                                 // called, it is only here to
+                                                 // give the key type to the
+                                                 // hashtables.
                                                  assert(1 == 0);
                                                  key = key;
                                                  return Key();

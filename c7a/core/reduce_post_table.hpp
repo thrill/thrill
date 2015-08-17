@@ -1,12 +1,13 @@
 /*******************************************************************************
  * c7a/core/reduce_post_table.hpp
  *
- * Hash table with support for reduce and partitions.
+ * Hash table with support for reduce.
  *
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -16,9 +17,14 @@
 #define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
+#include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_writer.hpp>
 
+#include <algorithm>
+#include <cassert>
+#include <cstring>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,59 +32,185 @@
 namespace c7a {
 namespace core {
 
-template <bool, typename T, typename Key, typename Value, typename Table>
-struct FlushImpl;
+/**
+ *
+ * A data structure which takes an arbitrary value and extracts a key using
+ * a key extractor function from that value. A key may also be provided initially
+ * as part of a key/value pair, not requiring to extract a key.
+ *
+ * Afterwards, the key is hashed and the hash is used to assign that key/value pair
+ * to some bucket. A bucket can have one or more slots to store items. There are
+ * max_num_items_per_bucket slots in each bucket.
+ *
+ * In case a slot already has a key/value pair and the key of that value and the key of
+ * the value to be inserted are them same, the values are reduced according to
+ * some reduce function. No key/value is added to the current bucket.
+ *
+ * If the keys are different, the next slot (moving down) is considered. If the
+ * slot is occupied, the same procedure happens again. This prociedure may be considered
+ * as linear probing within the scope of a bucket.
+ *
+ * Finally, the key/value pair to be inserted may either:
+ *
+ * 1.) Be reduced with some other key/value pair, sharing the same key.
+ * 2.) Inserted at a free slot in the bucket.
+ * 3.) Trigger a resize of the data structure in case there are no more free slots
+ *     in the bucket.
+ *
+ * The following illustrations shows the general structure of the data structure.
+ * There are several buckets containing one or more slots. Each slot may store a item.
+ * In order to optimize I/O, slots are organized in bucket blocks. Bucket blocks are
+ * connected by pointers. Key/value pairs are directly stored in a bucket block, no
+ * pointers are required here.
+ *
+ *
+ *     Partition 0 Partition 1 Partition 2 Partition 3 Partition 4
+ *     B00 B01 B02 B10 B11 B12 B20 B21 B22 B30 B31 B32 B40 B41 B42
+ *    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+ *    ||  |   |   ||  |   |   ||  |   |   ||  |   |   ||  |   |  ||
+ *    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+ *      |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+ *      V   V   V   V   V   V   V   V   V   V   V   V   V   V   >
+ *    +---+       +---+
+ *    |   |       |   |
+ *    +---+       +---+         ...
+ *    |   |       |   |
+ *    +---+       +---+
+ *      |           |
+ *      V           V
+ *    +---+       +---+
+ *    |   |       |   |
+ *    +---+       +---+         ...
+ *    |   |       |   |
+ *    +---+       +---+
+ *
+ */
+template <typename Key, typename HashFunction = std::hash<Key> >
+class PostReduceByHashKey
+{
+public:
+    explicit PostReduceByHashKey(const HashFunction& hash_function = HashFunction())
+        : hash_function_(hash_function)
+    { }
 
-template <typename T, typename Key, typename Value, typename Table>
-struct FlushImpl<true, T, Key, Value, Table>{
-    void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
-                    size_t begin_local_index_, size_t end_local_index_,
-                    Table* table, Value neutral_element_) {
-        // retrieve items
+    template <typename ReducePostTable>
+    typename ReducePostTable::index_result
+    operator () (Key v, ReducePostTable* ht) const {
 
-        std::vector<Value> elements_to_emit
-            (end_local_index_ - begin_local_index_, neutral_element_);
+        using index_result = typename ReducePostTable::index_result;
 
-        for (size_t i = 0; i < num_buckets_; i++) {
-            if ((*vector_)[i] != nullptr) {
-                T curr_node = (*vector_)[i];
-                do {
-                    elements_to_emit[curr_node->key - begin_local_index_] =
-                        curr_node->value;
-                    auto del = curr_node;
-                    curr_node = curr_node->next;
-                    delete del;
-                } while (curr_node != nullptr);
+        size_t hashed = hash_function_(v);
 
-                (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
-            }
-        }
+        size_t global_index = hashed % ht->NumBuckets();
+        return index_result(global_index);
+    }
 
-        size_t index = begin_local_index_;
-        for (auto element_to_emit : elements_to_emit) {
-            table->EmitAll(std::make_pair(index++, element_to_emit));
-        }
-        assert(index == end_local_index_);
+private:
+    HashFunction hash_function_;
+};
+
+class PostReduceByIndex
+{
+public:
+    PostReduceByIndex() { }
+
+    template <typename ReducePostTable>
+    typename ReducePostTable::index_result
+    operator () (size_t key, ReducePostTable* ht) const {
+
+        using index_result = typename ReducePostTable::index_result;
+
+        size_t global_index = (key - ht->BeginLocalIndex()) % ht->NumBuckets();
+        return index_result(global_index);
     }
 };
 
-template <typename T, typename Key, typename Value, typename Table>
-struct FlushImpl<false, T, Key, Value, Table>{
-    void FlushToAll(std::vector<T>* vector_, size_t num_buckets_,
-                    size_t, size_t, Table* table, Value) {
-        for (size_t i = 0; i < num_buckets_; i++) {
-            if ((*vector_)[i] != nullptr) {
-                T curr_node = (*vector_)[i];
-                do {
-                    table->EmitAll(std::make_pair(curr_node->key, curr_node->value));
-                    auto del = curr_node;
-                    curr_node = curr_node->next;
-                    delete del;
-                } while (curr_node != nullptr);
+class PostReduceFlushToDefault
+{
+public:
+    template <typename ReducePostTable>
+    void
+    operator () (ReducePostTable* ht) const {
 
-                (*vector_)[i] = nullptr;                         //TODO(ms) I can't see deallocation of the nodes. Is that done somewhere else?
+        using BucketBlock = typename ReducePostTable::BucketBlock;
+
+        using KeyValuePair = typename ReducePostTable::KeyValuePair;
+
+        auto& buckets_ = ht->Items();
+
+        for (size_t i = 0; i < ht->NumBuckets(); i++)
+        {
+            BucketBlock* current = buckets_[i];
+
+            while (current != nullptr)
+            {
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    ht->EmitAll(std::make_pair(bi->first, bi->second));
+                }
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
             }
+
+            buckets_[i] = nullptr;
         }
+
+        ht->SetNumItems(0);
+    }
+};
+
+template <typename Value>
+class PostReduceFlushToIndex
+{
+public:
+    template <typename ReducePostTable>
+    void
+    operator () (ReducePostTable* ht) const {
+
+        using BucketBlock = typename ReducePostTable::BucketBlock;
+
+        using KeyValuePair = typename ReducePostTable::KeyValuePair;
+
+        auto& buckets_ = ht->Items();
+
+        std::vector<Value> elements_to_emit
+            (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
+
+        for (size_t i = 0; i < ht->NumBuckets(); i++)
+        {
+            BucketBlock* current = buckets_[i];
+
+            while (current != nullptr)
+            {
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    elements_to_emit[bi->first - ht->BeginLocalIndex()] =
+                        bi->second;
+                }
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+
+            buckets_[i] = nullptr;
+        }
+
+        size_t index = ht->BeginLocalIndex();
+        for (auto element_to_emit : elements_to_emit) {
+            ht->EmitAll(std::make_pair(index++, element_to_emit));
+        }
+        assert(index == ht->EndLocalIndex());
+
+        ht->SetNumItems(0);
     }
 };
 
@@ -103,327 +235,524 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
     }
 };
 
-template <typename ValueType,
-          typename KeyExtractor,
-          typename ReduceFunction,
-          const bool ToIndex = false,
-          const bool SendPair = false>
+template <typename ValueType, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool SendPair = false,
+          typename FlushFunction = PostReduceFlushToDefault,
+          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key>,
+          size_t TargetBlockSize = 16*1024
+          >
 class ReducePostTable
 {
-public:
     static const bool debug = false;
 
-    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-
+public:
     using KeyValuePair = std::pair<Key, Value>;
 
-protected:
-    template <typename Key, typename Value>
-    struct node {
-        Key   key;
-        Value value;
-        node  * next;
+    using EmitterFunction = std::function<void(const ValueType&)>;
+
+    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
+
+    //! calculate number of items such that each BucketBlock has about 1 MiB of
+    //! size, or at least 8 items.
+    static constexpr size_t block_size_ =
+        common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+
+    //! Block holding reduce key/value pairs.
+    struct BucketBlock {
+        //! number of _used_/constructed items in this block. next is unused if
+        //! size != block_size.
+        size_t       size;
+
+        //! link of linked list to next block
+        BucketBlock  * next;
+
+        //! memory area of items
+        KeyValuePair items[block_size_]; // NOLINT
+
+        //! helper to destroy all allocated items
+        void         destroy_items() {
+            for (KeyValuePair* i = items; i != items + size; ++i)
+                i->~KeyValuePair();
+        }
     };
 
-public:
-    typedef std::function<size_t(Key, ReducePostTable*)> HashFunction;
+    struct index_result
+    {
+    public:
+        //! index within the whole hashtable
+        size_t global_index;
 
-    typedef std::function<void (const ValueType&)> EmitterFunction;
+        explicit index_result(size_t g_id) {
+            global_index = g_id;
+        }
+    };
 
-    ReducePostTable(size_t num_buckets, size_t num_buckets_resize_scale,
-                    size_t max_num_items_per_bucket, size_t max_num_items_table,
-                    KeyExtractor key_extractor, ReduceFunction reduce_function,
+    /**
+     * A data structure which takes an arbitrary value and extracts a key using a key extractor
+     * function from that value. Afterwards, the value is hashed based on the key into some slot.
+     *
+     * \param key_extractor Key extractor function to extract a key from a value.
+     * \param reduce_function Reduce function to reduce to values.
+     * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
+     * \param num_buckets_init_scale Used to calculate the initial number of buckets
+     *                  (num_partitions * num_buckets_init_scale).
+     * \param num_buckets_resize_scale Used to calculate the number of buckets during resize
+     *                  (size * num_buckets_resize_scale).
+     * \param max_num_items_per_bucket Maximal number of items allowed in a bucket. Used to decide when to resize.
+     * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
+     *                  of the partition with the most items gets flushed.
+     * \param index_function Function to be used for computing the bucket the item to be inserted.
+     * \param equal_to_function Function for checking equality fo two keys.
+     */
+    ReducePostTable(KeyExtractor key_extractor,
+                    ReduceFunction reduce_function,
                     std::vector<EmitterFunction>& emit,
-                    HashFunction hash_function = [](Key key,
-                                                    ReducePostTable* pt) {
-                                                     return std::hash<Key>() (key) % pt->num_buckets_;
-                                                 },
+                    const IndexFunction& index_function = IndexFunction(),
+                    const FlushFunction& flush_function = FlushFunction(),
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
-                    Value neutral_element = Value()
+                    Value neutral_element = Value(),
+                    size_t num_buckets_init_scale = 10,
+                    size_t num_buckets_resize_scale = 2,
+                    size_t max_num_items_per_bucket = 256,
+                    size_t max_num_items_table = 1048576,
+                    const EqualToFunction& equal_to_function = EqualToFunction()
                     )
-        : num_buckets_init_scale_(num_buckets),
+        : num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(std::move(emit)),
-          hash_function_(hash_function),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function),
+          flush_function_(flush_function),
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
-          neutral_element_(neutral_element)
-    {
+          neutral_element_(neutral_element) {
+        assert(num_buckets_init_scale > 0);
+        assert(num_buckets_resize_scale > 1);
+        assert(max_num_items_per_bucket > 0);
+        assert(max_num_items_table > 0);
+
         init();
     }
 
-    ReducePostTable(KeyExtractor key_extractor,
-                    ReduceFunction reduce_function,
-                    std::vector<EmitterFunction>& emit,
-                    HashFunction hash_function = [](Key key,
-                                                    ReducePostTable* pt) {
-                                                     return std::hash<Key>() (key) % pt->num_buckets_;
-                                                 },
-                    size_t begin_local_index = 0,
-                    size_t end_local_index = 0,
-                    Value neutral_element = Value()
-                    )
-        : key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)),
-          hash_function_(hash_function),
-          begin_local_index_(begin_local_index),
-          end_local_index_(end_local_index),
-          neutral_element_(neutral_element)
-    {
-        init();
+    //! non-copyable: delete copy-constructor
+    ReducePostTable(const ReducePostTable&) = delete;
+    //! non-copyable: delete assignment operator
+    ReducePostTable& operator = (const ReducePostTable&) = delete;
+
+    ~ReducePostTable() {
+        // destroy all block chains
+        for (BucketBlock* b_block : buckets_)
+        {
+            BucketBlock* current = b_block;
+            while (current != nullptr)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+        }
     }
 
-    ~ReducePostTable() { }
-
+    /**
+     * Initializes the data structure by calculating some metrics based on input.
+     */
     void init() {
+
+        sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
+
         num_buckets_ = num_buckets_init_scale_;
-        vector_.resize(num_buckets_, nullptr);
+        buckets_.resize(num_buckets_, nullptr);
     }
 
+    /*!
+     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
+     * inserts the pair into the hashtable.
+     */
     void Insert(const Value& p) {
         Key key = key_extractor_(p);
+
         Insert(std::make_pair(key, p));
     }
 
     /*!
-     * Inserts a key/value pair.
+     * Inserts a value into the table, potentially reducing it in case both the key of the value
+     * already in the table and the key of the value to be inserted are the same.
      *
-     * Optionally, this may be reduce using the reduce function
-     * in case the key already exists.
+     * An insert may trigger a partial flush of the partition with the most items if the maximal
+     * number of items in the table (max_num_items_table) is reached.
+     *
+     * Alternatively, it may trigger a resize of table in case maximal number of items per
+     * bucket is reached.
+     *
+     * \param p Value to be inserted into the table.
      */
-    void Insert(const KeyValuePair& p) {
+    void Insert(const KeyValuePair& kv) {
 
-        size_t hashed_key = hash_function_(p.first, this);
+        index_result h = index_function_(kv.first, this);
 
-        LOG << "key: "
-            << p.first
-            << " to idx: "
-            << hashed_key;
+        assert(h.global_index >= 0 && h.global_index < num_buckets_);
 
-        // TODO(ms): the first nullptr case is identical. remove and use null as
-        // sentinel.
+        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
-        assert(hashed_key < vector_.size());
+        size_t num_items_bucket = 0;
+        BucketBlock* current = buckets_[h.global_index];
 
-        // bucket is empty
-        if (vector_[hashed_key] == nullptr) {
-            LOG << "bucket empty, inserting...";
+        while (current != nullptr)
+        {
+            // iterate over valid items in a block
+            for (KeyValuePair* bi = current->items;
+                 bi != current->items + current->size; ++bi)
+            {
+                // if item and key equals, then reduce.
+                if (equal_to_function_(kv.first, bi->first))
+                {
+                    LOG << "match of key: " << kv.first
+                        << " and " << bi->first << " ... reducing...";
 
-            node<Key, Value>* n = new node<Key, Value>;
-            n->key = p.first;
-            n->value = p.second;
-            n->next = nullptr;
-            vector_[hashed_key] = n;
-
-            // increase total counter
-            table_size_++;
-        }
-        else {
-            LOG << "bucket not empty, checking if key already exists...";
-
-            // check if item with same key
-            node<Key, Value>* curr_node = vector_[hashed_key];
-            do {
-                if (p.first == curr_node->key) {
-                    LOG << "match of key: "
-                        << p.first
-                        << " and "
-                        << curr_node->key
-                        << " ... reducing...";
-
-                    (*curr_node).value = reduce_function_(curr_node->value, p.second);
+                    bi->second = reduce_function_(bi->second, kv.second);
 
                     LOG << "...finished reduce!";
-
-                    break;
+                    return;
                 }
 
-                curr_node = curr_node->next;
-            } while (curr_node != nullptr);
-
-            // no item found with key
-            if (curr_node == nullptr) {
-                LOG << "key doesn't exist, appending...";
-
-                // insert at first pos
-                node<Key, Value>* n = new node<Key, Value>;
-                n->key = p.first;
-                n->value = p.second;
-                n->next = vector_[hashed_key];
-                vector_[hashed_key] = n;
-
-                // increase total counter
-                table_size_++;
-
-                LOG << "key appended, metrics updated!";
+                // increase num items in bucket for visited item
+                num_items_bucket++;
             }
+
+            if (current->next == nullptr)
+                break;
+
+            current = current->next;
         }
 
-        if (table_size_ > max_num_items_table_) {
+        // have an item that needs to be added.
+
+        if (current == nullptr ||
+            current->size == block_size_)
+        {
+            // allocate a new block of uninitialized items, postpend to bucket
+            current =
+                static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+
+            current->size = 0;
+            current->next = buckets_[h.global_index];
+            buckets_[h.global_index] = current;
+        }
+
+        // in-place construct/insert new item in current bucket block
+        new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
+
+        // increase total counter
+        num_items_++;
+
+        // increase num items in bucket for inserted item
+        num_items_bucket++;
+
+        if (num_items_ > max_num_items_table_)
+        {
+            LOG << "flush";
             throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
+        }
+
+        if (num_items_bucket > max_num_items_per_bucket_)
+        {
+            LOG << "resize";
+            ResizeUp();
         }
     }
 
-    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
     /*!
-     * Emits element to all childs
+    * Flushes all items in the whole table.
+    */
+    void Flush() {
+        LOG << "Flushing items";
+
+        flush_function_(this);
+
+        // reset total counter
+        num_items_ = 0;
+
+        LOG << "Flushed items";
+    }
+
+    /*!
+     * Emits element to all children
      */
     void EmitAll(const KeyValuePair& element) {
+        // void EmitAll(const Key& key, const Value& value) {
         emit_impl_.EmitElement(element, emit_);
     }
 
     /*!
-     * Flushes all items.
+     * Returns the total num of buckets in the table.
+     *
+     * \return Number of buckets in the table.
      */
-    void Flush() {
-
-        FlushImpl<ToIndex, node<Key, Value>*, Key, Value,
-                  ReducePostTable<ValueType,
-                                  KeyExtractor,
-                                  ReduceFunction,
-                                  ToIndex,
-                                  SendPair> > flush_impl;
-        flush_impl.FlushToAll(&vector_, num_buckets_, begin_local_index_,
-                              end_local_index_, this, neutral_element_);
-        table_size_ = 0;
-    }
-
-    /*!
-     * Returns the total num of items.
-     */
-    size_t Size() {
-        return table_size_;
-    }
-
-    /*!
-     * Returns the total num of buckets.
-     */
-    size_t NumBuckets() {
+    size_t NumBuckets() const {
         return num_buckets_;
     }
 
     /*!
-     * Sets the maximum size of the hash table. We don't want to push 2vt elements before flush happens.
+     * Returns the total num of items in the table.
+     *
+     * \return Number of items in the table.
      */
-    void SetMaxSize(size_t size) {
+    size_t NumItems() const {
+        return num_items_;
+    }
+
+    /*!
+     * Returns the total num of items in the table.
+     *
+     * \return Number of items in the table.
+     */
+    void SetNumItems(size_t num_items) {
+        num_items_ = num_items;
+    }
+
+    /*!
+     * Returns the vector of bucket blocks.
+     *
+     * \return Vector of bucket blocks.
+     */
+    std::vector<BucketBlock*> & Items() {
+        return buckets_;
+    }
+
+    /*!
+     * Sets the maximum number of items of the hash table. We don't want to push 2vt
+     * elements before flush happens.
+     *
+     * \param size The maximal number of items the table may hold.
+     */
+    void SetMaxNumItems(size_t size) {
         max_num_items_table_ = size;
     }
 
     /*!
+     * Returns the begin local index.
+     *
+     * \return Begin local index.
+     */
+    size_t BeginLocalIndex() {
+        return begin_local_index_;
+    }
+
+    /*!
+     * Returns the end local index.
+     *
+     * \return End local index.
+     */
+    size_t EndLocalIndex() {
+        return end_local_index_;
+    }
+
+    /*!
+     * Returns the neutral element.
+     *
+     * \return Neutral element.
+     */
+    Value NeutralElement() {
+        return neutral_element_;
+    }
+
+    /*!
      * Resizes the table by increasing the number of buckets using some
-     * resize scale factor. All items are rehashed as part of the operation
+     * scale factor (num_items_resize_scale_). All items are rehashed as
+     * part of the operation.
      */
     void ResizeUp() {
         LOG << "Resizing";
         num_buckets_ *= num_buckets_resize_scale_;
-        // init new array
-        std::vector<node<Key, Value>*> vector_old = vector_;
-        std::vector<node<Key, Value>*> vector_new;
-        vector_new.resize(num_buckets_, nullptr);
-        vector_ = vector_new;
+        num_items_ = 0;
+
+        // move old hash array
+        std::vector<BucketBlock*> buckets_old;
+        std::swap(buckets_old, buckets_);
+
+        // init new hash array
+        buckets_.resize(num_buckets_, nullptr);
+
         // rehash all items in old array
-        for (auto bucket : vector_old) {
-            Insert(bucket);
+        for (BucketBlock* b_block : buckets_old)
+        {
+            BucketBlock* current = b_block;
+            while (current != nullptr)
+            {
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    Insert(*bi);
+                }
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
         }
         LOG << "Resized";
     }
 
     /*!
-     * Removes all items in the table, but NOT flushing them.
+     * Removes all items from the table, but does not flush them nor does
+     * it resets the table to it's initial size.
      */
     void Clear() {
         LOG << "Clearing";
-        std::fill(vector_.begin(), vector_.end(), nullptr);
-        table_size_ = 0;
+
+        for (BucketBlock* b_block : buckets_)
+        {
+            BucketBlock* current = b_block;
+            while (current != nullptr)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+            b_block = nullptr;
+        }
+
+        num_items_ = 0;
         LOG << "Cleared";
     }
 
     /*!
-     * Removes all items in the table, but NOT flushing them.
+     * Removes all items from the table, but does not flush them. However, it does
+     * reset the table to it's initial size.
      */
     void Reset() {
         LOG << "Resetting";
         num_buckets_ = num_buckets_init_scale_;
-        vector_.resize(num_buckets_, nullptr);
-        table_size_ = 0;
+
+        for (BucketBlock*& b_block : buckets_)
+        {
+            BucketBlock* current = b_block;
+            while (current != nullptr)
+            {
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+            b_block = nullptr;
+        }
+
+        buckets_.resize(num_buckets_, nullptr);
+        num_items_ = 0;
         LOG << "Resetted";
     }
 
-    // prints content of hash table
+    /*!
+     * Prints content of hash table.
+     */
     void Print() {
-        for (size_t i = 0; i < num_buckets_; i++) {
-            if (vector_[i] == nullptr) {
-                LOG << "bucket "
+        LOG << "Printing";
+
+        for (int i = 0; i < num_buckets_; i++)
+        {
+            if (buckets_[i] == nullptr)
+            {
+                LOG << "bucket id: "
                     << i
                     << " empty";
+                continue;
             }
-            else {
-                std::string log = "";
 
-                // check if item with same key
-                node<Key, Value>* curr_node = vector_[i];
-                Value curr_item;
-                do {
-                    curr_item = curr_node->value;
+            std::string log = "";
 
-                    log += "(";
-                    //log += curr_item.second;
-                    log += ") ";
+            BucketBlock* current = buckets_[i];
+            while (current != nullptr)
+            {
+                log += "block: ";
 
-                    curr_node = curr_node->next;
-                } while (curr_node != nullptr);
-
-                LOG << "bucket "
-                    << i
-                    << ": "
-                    << log;
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    log += "item: ";
+                    log += std::to_string(i);
+                    log += " (";
+                    log += std::is_arithmetic<Key>::value || strcmp(typeid(Key).name(), "string")
+                           ? std::to_string(bi->first) : "_";
+                    log += ", ";
+                    log += std::is_arithmetic<Value>::value || strcmp(typeid(Value).name(), "string")
+                           ? std::to_string(bi->second) : "_";
+                    log += ")\n";
+                }
+                current = current->next;
             }
+
+            LOG << "bucket id: "
+                << i
+                << " "
+                << log;
         }
 
         return;
     }
 
-private:
-    // TODO(ms): reformat using doxygen-style comments
+protected:
+    //! Scale factor to compute the initial bucket size.
+    size_t num_buckets_init_scale_;
 
-    //! num buckets
+    //! Scale factor to compute the number of buckets
+    //! during resize relative to current size.
+    size_t num_buckets_resize_scale_;
+
+    // Maximal number of items per bucket before resize.
+    size_t max_num_items_per_bucket_;
+
+    //! Maximal number of items before some items
+    //! are flushed (-> partial flush).
+    size_t max_num_items_table_;
+
+    //! Number of buckets
     size_t num_buckets_;
 
-    //! set number of buckets per partition based on num_partitions
-    size_t num_buckets_init_scale_ = 65536;
+    //! Keeps the total number of items in the table.
+    size_t num_items_ = 0;
 
-    // multiplied with some scaling factor, must be equal to or greater than 1
-
-    size_t num_buckets_resize_scale_ = 2;   // resize scale on max_num_items_per_bucket_
-
-    size_t max_num_items_per_bucket_ = 256; // max num of items per bucket before resize
-
-    size_t table_size_ = 0;                 // total number of items
-
-    size_t max_num_items_table_ = 1048576;  // max num of items before spilling of largest partition
-
+    //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
 
+    //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 
+    //! Set of emitters, one per partition.
     std::vector<EmitterFunction> emit_;
 
-    std::vector<node<Key, Value>*> vector_;
+    //! Data structure for actually storing the items.
+    std::vector<BucketBlock*> buckets_;
 
-    HashFunction hash_function_;
+    //! Index Calculation functions: Hash or ByIndex.
+    IndexFunction index_function_;
 
+    //! Comparator function for keys.
+    EqualToFunction equal_to_function_;
+
+    //! Comparator function for keys.
+    FlushFunction flush_function_;
+
+    //! Begin local index (reduce to index)
     size_t begin_local_index_;
 
+    //! End local index (reduce to index)
     size_t end_local_index_;
 
+    //! Neutral element (reduce to index)
     Value neutral_element_;
 };
 

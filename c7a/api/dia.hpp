@@ -124,30 +124,25 @@ public:
     DIARef(const DIARef<ValueType, AnyStack>& rhs)
 #if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
-    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                            "Consider whether you can use auto instead of DIARef.")))
+    __attribute__ ((warning(     // NOLINT
+                        "Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                        "Consider whether you can use auto instead of DIARef.")))
 #else
-    __attribute__ ((deprecated))
+    __attribute__ ((deprecated)) // NOLINT
 #endif
-    ;
+    ;                            // NOLINT
 
-    /*!
-     * Returns a pointer to the according DIANode.
-     */
+    //! Returns a pointer to the according DIANode.
     const DIANodePtr & node() const {
         return node_;
     }
 
-    /*!
-     * Returns the number of references to the according DIANode.
-     */
+    //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         return node_.use_count();
     }
 
-    /*!
-     * Returns the stored function chain.
-     */
+    //! Returns the stored function chain.
     const Stack & stack() const {
         return stack_;
     }
@@ -548,6 +543,20 @@ public:
      */
     std::vector<ValueType> AllGather() const;
 
+    /*!
+     * Gather is an Action, which collects all data of the DIA into a vector at
+     * the given worker. This should only be done if the received data can fit
+     * into RAM of the one worker.
+     */
+    std::vector<ValueType> Gather(size_t target_id) const;
+
+    /*!
+     * Gather is an Action, which collects all data of the DIA into a vector at
+     * the given worker. This should only be done if the received data can fit
+     * into RAM of the one worker.
+     */
+    void Gather(size_t target_id, std::vector<ValueType>* out_vector)  const;
+
     auto Collapse() const;
 
     auto Cache() const;
@@ -610,24 +619,6 @@ template <typename GeneratorFunction>
 auto GenerateFromFile(Context & ctx, std::string filepath,
                       const GeneratorFunction &generator_function,
                       size_t size);
-
-/*!
- * Generate is a DOp, which creates an DIA according to a generator
- * function. This function is used to generate a DIA of a certain size by
- * applying it to integers from 0 to size - 1.
- *
- * \tparam GeneratorFunction Type of the generator function. Input type has to
- * be unsigned integer
- *
- * \param ctx Reference to the context object
- * \param generator_function Generator function, which maps integers from 0 to size - 1
- * to elements.
- * \param size Size of the output DIA
- */
-template <typename GeneratorFunction>
-auto Generate(Context & ctx,
-              const GeneratorFunction &generator_function,
-              size_t size);
 
 //! \}
 

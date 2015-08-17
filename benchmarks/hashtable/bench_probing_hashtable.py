@@ -10,13 +10,13 @@ result_dir = "./bench_probing_hashtable"
 
 num_runs = 5
 
-workers = [10,100,1000]
-num_buckets_init_scales = [1000,10000,100000]
-num_buckets_resize_scales = [2,5,10]
+workers = [1000]
+num_buckets_init_scales = [100]
+num_buckets_resize_scales = [2]
 max_partition_fill_ratios = [1.0]
 max_num_items_tables = [1048576]
 
-modulae = [1000,10000,100000]
+modulae = [100000]
 amounts= [10,12,14,16,18,20,22,24,26,28]
 
 if not os.path.exists(result_dir): os.makedirs(result_dir)
@@ -33,7 +33,7 @@ for worker in workers:
                             for amount in amounts:
                                 results = []
                                 for _ in range(num_runs):
-                                    process = subprocess.Popen(['../../build/benchmarks/bench_probing_hashtable', '-s', str(pow(2,amount)), '-w', str(worker), '-m', str(modulo), '-i', str(a), '-r', str(b), '-f', str(c), '-t', str(d)], stdout=subprocess.PIPE)
+                                    process = subprocess.Popen(['../../build/benchmarks/hashtable_bench_probing_hashtable', '-s', str(pow(2,amount)), '-w', str(worker), '-m', str(modulo), '-i', str(a), '-r', str(b), '-f', str(c), '-t', str(d)], stdout=subprocess.PIPE)
                                     process.wait()
                                     time = process.communicate()[0]
                                     results.append(float(time))

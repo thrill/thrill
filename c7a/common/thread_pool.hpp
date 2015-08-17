@@ -39,7 +39,7 @@ namespace common {
 class ThreadPool
 {
 public:
-    typedef delegate<void ()> Job;
+    using Job = delegate<void()>;
 
 protected:
     //! Deque of scheduled jobs.

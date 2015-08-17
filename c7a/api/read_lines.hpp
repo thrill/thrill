@@ -81,7 +81,7 @@ public:
     virtual ~ReadLinesNode() { }
 
     //! Executes the read operation. Reads a file line by line
-    //! and emmits it after applyung the read function.
+    //! and emits it after applying the read function.
     void Execute() final { }
 
     void PushData() final {

@@ -67,7 +67,7 @@ class ReduceNode : public DOpNode<ValueType>
     using ReduceArg = typename common::FunctionTraits<ReduceFunction>
                       ::template arg<0>;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
     using Super::result_file_;
@@ -123,19 +123,17 @@ public:
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
-                  = core::ReducePostTable<ValueType,
+                  = core::ReducePostTable<ValueType, Key, Value,
                                           KeyExtractor,
                                           ReduceFunction,
-                                          false,
                                           SendPair>;
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_,
-                          cbs);
+        ReduceTable table(key_extractor_, reduce_function_, cbs);
 
         if (RobustKey) {
-            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" <<
@@ -143,11 +141,10 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-
             table.Flush();
         }
         else {
-            //we actually want to wire up callbacks in the ctor and NOT use this blocking method
+            // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" <<
@@ -178,17 +175,17 @@ public:
     }
 
 private:
-    //!Key extractor function
+    //! Key extractor function
     KeyExtractor key_extractor_;
-    //!Reduce function
+
+    //! Reduce function
     ReduceFunction reduce_function_;
 
     data::ChannelPtr channel_;
 
     std::vector<data::BlockWriter> emitters_;
 
-    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey>
-    reduce_pre_table_;
+    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey> reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -197,10 +194,10 @@ private:
         reduce_pre_table_.Insert(input);
     }
 
-    //!Receive elements from other workers.
+    //! Receive elements from other workers.
     auto MainOp() {
         LOG << ToString() << " running main op";
-        //Flush hash table before the postOp
+        // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
         channel_->Close();
@@ -301,10 +298,10 @@ auto DIARef<ValueType, Stack>::ReducePair(
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
-                                                 //This function should not be
-                                                 //called, it is only here to
-                                                 //give the key type to the
-                                                 //hashtables.
+                                                 // This function should not be
+                                                 // called, it is only here to
+                                                 // give the key type to the
+                                                 // hashtables.
                                                  assert(1 == 0);
                                                  key = key;
                                                  return Key();
