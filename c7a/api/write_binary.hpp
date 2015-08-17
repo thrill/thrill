@@ -108,8 +108,7 @@ void DIARef<ValueType, Stack>::WriteBinary(
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", NodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(
-            *this, filepath, stats_node);
+        std::make_shared<WriteResultNode>(*this, filepath, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
