@@ -22,6 +22,8 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
+#include <utility>
 
 namespace c7a {
 namespace api {
@@ -87,7 +89,8 @@ private:
         : public common::ItemWriterToolsBase<BinaryFileWriter>
     {
     public:
-        BinaryFileWriter(std::string file) : outstream_(file) { }
+        explicit BinaryFileWriter(const std::string& file)
+            : outstream_(file) { }
 
         virtual ~BinaryFileWriter() { }
 

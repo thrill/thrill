@@ -15,18 +15,17 @@
 
 #include <c7a/api/dia.hpp>
 #include <c7a/api/dop_node.hpp>
-#include <c7a/net/buffer_builder.hpp>
 #include <c7a/common/logger.hpp>
-//C7A_{/UN}LIKELY
+#include <c7a/net/buffer_builder.hpp>
+// C7A_{/UN}LIKELY
 #include <c7a/common/item_serialization_tools.hpp>
 
+#include <fcntl.h>
 #include <fstream>
-#include <string>
 #include <glob.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <fcntl.h>
-
 
 namespace c7a {
 namespace api {
@@ -57,26 +56,26 @@ public:
                   StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
           path_(path)
-    { 
-		glob_t glob_result;
-		struct stat filestat;
-		glob(path_.c_str(),GLOB_TILDE,NULL,&glob_result);
-		size_t directory_size = 0;
+    {
+        glob_t glob_result;
+        struct stat filestat;
+        glob(path_.c_str(), GLOB_TILDE, nullptr, &glob_result);
+        size_t directory_size = 0;
 
-		for(unsigned int i=0;i<glob_result.gl_pathc;++i){
-			std::string filepath = std::string(glob_result.gl_pathv[i]);
+        for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
+            std::string filepath = std::string(glob_result.gl_pathv[i]);
 
-			if (stat( filepath.c_str(), &filestat )) {				
-				throw std::runtime_error("ERROR: Invalid file " + filepath);	
-			}
-			if (S_ISDIR( filestat.st_mode )) continue;
+            if (stat(filepath.c_str(), &filestat)) {
+                throw std::runtime_error("ERROR: Invalid file " + filepath);
+            }
+            if (S_ISDIR(filestat.st_mode)) continue;
 
-			directory_size += filestat.st_size;
+            directory_size += filestat.st_size;
 
-			filesize_prefix.push_back(std::make_pair(filepath, directory_size));
-		}
-		globfree(&glob_result);	
-	}
+            filesize_prefix.push_back(std::make_pair(filepath, directory_size));
+        }
+        globfree(&glob_result);
+    }
 
     virtual ~ReadLinesNode() { }
 
@@ -121,22 +120,21 @@ private:
     //! Path of the input file.
     std::string path_;
 
-	std::vector<std::pair<std::string, size_t> > filesize_prefix;
+    std::vector<std::pair<std::string, size_t> > filesize_prefix;
 
     //! InputLineIterator gives you access to lines of a file
     class InputLineIterator
     {
     public:
-		
-		const size_t read_size = 2 * 1024 * 1024;
+        const size_t read_size = 2 * 1024 * 1024;
         //! Creates an instance of iterator that reads file line based
-        InputLineIterator(std::vector<std::pair<std::string, size_t>> files,
+        InputLineIterator(std::vector<std::pair<std::string, size_t> > files,
                           size_t my_id,
                           size_t num_workers)
             : files_(files),
               my_id_(my_id),
               num_workers_(num_workers) {
-	
+
             file_size_ = files[files.size() - 1].second;
 
             // Go to start of 'local part'.
@@ -149,120 +147,123 @@ private:
                 my_end_ = per_worker * (my_id_ + 1) - 1;
             }
 
-			while(files_[current_file_].second <= my_start) {
-				current_file_++;
-			}
+            while (files_[current_file_].second <= my_start) {
+                current_file_++;
+            }
 
-			c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
+            c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
 
-			//find offset in current file:
-			//offset = start - sum of previous file sizes 
-			if (current_file_) {
-				offset_ = lseek(c_file_, my_start - files_[current_file_ - 1].second, SEEK_CUR);
-				current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
-			} else {		
-				offset_ = lseek(c_file_, my_start, SEEK_CUR);
-				current_size_ = files_[0].second;
-			}
+            // find offset in current file:
+            // offset = start - sum of previous file sizes
+            if (current_file_) {
+                offset_ = lseek(c_file_, my_start - files_[current_file_ - 1].second, SEEK_CUR);
+                current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
+            }
+            else {
+                offset_ = lseek(c_file_, my_start, SEEK_CUR);
+                current_size_ = files_[0].second;
+            }
 
-
-			if (offset_ != 0) {
-				offset_ = lseek(c_file_, -1, SEEK_CUR);	
-				bb_.Reserve(read_size);
-				ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-				bb_.set_size(buffer_size);
-				buffer_ = bb_.ToBuffer();
-				current_ = 1;
-				if (buffer_[0] != '\n') {
-					bool found_n = false;
-					//find next newline, discard all previous data as previous worker already covers it
-					while (!found_n) {
-						for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) { 
-							if (C7A_UNLIKELY(*it == '\n')) {
-								current_ = it - buffer_.begin() + 1;
-								found_n = true;
-								break;
-							}
-						}
-						//no newline found: read new data into buffer_builder
-						if (!found_n) {
-							current_ = 0;							
-							offset_ += buffer_.size();
-							bb_.Reserve(read_size);
-							buffer_size = read(c_file_, bb_.data(), read_size);
-							bb_.set_size(buffer_size);
-							buffer_ = bb_.ToBuffer();
-						}
-					}					
-					assert(buffer_[current_ - 1] == '\n');
-				}
-            } else {
-				bb_.Reserve(read_size);
-				ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-				bb_.set_size(buffer_size);
-				buffer_ = bb_.ToBuffer();
-			}
+            if (offset_ != 0) {
+                offset_ = lseek(c_file_, -1, SEEK_CUR);
+                bb_.Reserve(read_size);
+                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+                bb_.set_size(buffer_size);
+                buffer_ = bb_.ToBuffer();
+                current_ = 1;
+                if (buffer_[0] != '\n') {
+                    bool found_n = false;
+                    // find next newline, discard all previous data as previous worker already covers it
+                    while (!found_n) {
+                        for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                            if (C7A_UNLIKELY(*it == '\n')) {
+                                current_ = it - buffer_.begin() + 1;
+                                found_n = true;
+                                break;
+                            }
+                        }
+                        // no newline found: read new data into buffer_builder
+                        if (!found_n) {
+                            current_ = 0;
+                            offset_ += buffer_.size();
+                            bb_.Reserve(read_size);
+                            buffer_size = read(c_file_, bb_.data(), read_size);
+                            bb_.set_size(buffer_size);
+                            buffer_ = bb_.ToBuffer();
+                        }
+                    }
+                    assert(buffer_[current_ - 1] == '\n');
+                }
+            }
+            else {
+                bb_.Reserve(read_size);
+                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+                bb_.set_size(buffer_size);
+                buffer_ = bb_.ToBuffer();
+            }
         }
 
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
         std::string Next() {
-			while (true) {
-				std::string ret;
-				for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) { 
-					if (C7A_UNLIKELY(*it == '\n')) {
-						size_t strlen = it - buffer_.begin() - current_;
-						current_ = it - buffer_.begin() + 1;
-						return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
-					}
-				}
-				ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
-				current_ = 0;
-				bb_.Reserve(read_size);
-				ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-				offset_ += buffer_.size();
-				if (buffer_size) {
-					bb_.set_size(buffer_size);
-					buffer_ = bb_.ToBuffer();
-				} else {
-					close(c_file_);
-					current_file_++;
-					offset_ = 0;
-					c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);					
-					bb_.Reserve(read_size);
-					ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-					bb_.set_size(buffer_size);
-					buffer_ = bb_.ToBuffer();
-					
-					if (ret.length()) {
-						return ret;
-					}
-				}
-			}
+            while (true) {
+                std::string ret;
+                for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                    if (C7A_UNLIKELY(*it == '\n')) {
+                        size_t strlen = it - buffer_.begin() - current_;
+                        current_ = it - buffer_.begin() + 1;
+                        return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
+                    }
+                }
+                ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
+                current_ = 0;
+                bb_.Reserve(read_size);
+                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+                offset_ += buffer_.size();
+                if (buffer_size) {
+                    bb_.set_size(buffer_size);
+                    buffer_ = bb_.ToBuffer();
+                }
+                else {
+                    close(c_file_);
+                    current_file_++;
+                    offset_ = 0;
+                    c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
+                    bb_.Reserve(read_size);
+                    ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+                    bb_.set_size(buffer_size);
+                    buffer_ = bb_.ToBuffer();
+
+                    if (ret.length()) {
+                        return ret;
+                    }
+                }
+            }
         }
 
         //! returns true, if an element is available in local part
         bool HasNext() {
             if (current_file_) {
-				return (offset_ + current_ + files_[current_file_ - 1].second <= my_end_);
-			} else {
-				return offset_ + current_ <= my_end_;
-			}
+                return (offset_ + current_ + files_[current_file_ - 1].second <= my_end_);
+            }
+            else {
+                return offset_ + current_ <= my_end_;
+            }
         }
 
     private:
         //! Input file stream
         std::vector<std::pair<std::string, size_t> > files_;
-		//! Index of current file in files_
-		size_t current_file_ = 0;
-		//!Size of current file in bytes
-		size_t current_size_;
-		//! Current stream, from files_[current_file_]
-		std::ifstream file_;
+        //! Index of current file in files_
+        size_t current_file_ = 0;
+        //! Size of current file in bytes
+        size_t current_size_;
+        //! Current stream, from files_[current_file_]
+        std::ifstream file_;
 
-		int c_file_;
-		size_t offset_;
+        int c_file_;
+        size_t offset_;
         //! File size in bytes
         size_t file_size_;
         //! Worker ID
@@ -272,9 +273,9 @@ private:
         //! end of local block
         size_t my_end_;
 
-		net::BufferBuilder bb_;
-		net::Buffer buffer_;
-		size_t current_ = 0;
+        net::BufferBuilder bb_;
+        net::Buffer buffer_;
+        size_t current_ = 0;
     };
 
     //! Returns an InputLineIterator with a given input file stream.

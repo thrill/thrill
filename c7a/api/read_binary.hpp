@@ -112,7 +112,8 @@ private:
         : public common::ItemReaderToolsBase<BinaryFileReader>
     {
     public:
-        BinaryFileReader(std::string file) : instream_(file) { }
+        explicit BinaryFileReader(const std::string& file)
+            : instream_(file) { }
 
         virtual ~BinaryFileReader() { }
 
