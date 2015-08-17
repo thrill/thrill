@@ -17,6 +17,8 @@
 #include <c7a/api/dop_node.hpp>
 #include <c7a/net/buffer_builder.hpp>
 #include <c7a/common/logger.hpp>
+//C7A_{/UN}LIKELY
+#include <c7a/common/item_serialization_tools.hpp>
 
 #include <fstream>
 #include <string>
@@ -176,7 +178,7 @@ private:
 					//find next newline, discard all previous data as previous worker already covers it
 					while (!found_n) {
 						for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) { 
-							if (*it == '\n') {
+							if (C7A_UNLIKELY(*it == '\n')) {
 								current_ = it - buffer_.begin() + 1;
 								found_n = true;
 								break;
@@ -209,7 +211,7 @@ private:
 			while (true) {
 				std::string ret;
 				for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) { 
-					if (*it == '\n') {
+					if (C7A_UNLIKELY(*it == '\n')) {
 						size_t strlen = it - buffer_.begin() - current_;
 						current_ = it - buffer_.begin() + 1;
 						return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
