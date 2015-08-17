@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/memory_manager.hpp>
+#include <c7a/mem/memory_manager.hpp>
 #include <c7a/net/collective_communication.hpp>
 #include <c7a/net/dispatcher.hpp>
 #include <c7a/net/flow_control_channel.hpp>
@@ -33,7 +33,7 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 
     size_t received = 0;
-    core::MemoryManager memory_manager(nullptr);
+    mem::MemoryManager memory_manager(nullptr);
     Dispatcher dispatcher(memory_manager);
 
     Dispatcher::AsyncReadCallback callback =

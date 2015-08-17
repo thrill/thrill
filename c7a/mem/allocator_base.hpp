@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/allocator_base.hpp
+ * c7a/mem/allocator_base.hpp
  *
  * Part of Project c7a.
  *
@@ -9,10 +9,10 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_ALLOCATOR_BASE_HEADER
-#define C7A_CORE_ALLOCATOR_BASE_HEADER
+#ifndef C7A_MEM_ALLOCATOR_BASE_HEADER
+#define C7A_MEM_ALLOCATOR_BASE_HEADER
 
-#include <c7a/core/malloc_tracker.hpp>
+#include <c7a/mem/malloc_tracker.hpp>
 
 #include <atomic>
 #include <cassert>
@@ -26,7 +26,7 @@
 #include <vector>
 
 namespace c7a {
-namespace core {
+namespace mem {
 
 template <typename Type>
 class AllocatorBase
@@ -193,9 +193,9 @@ static inline string to_string(unsigned long val) {
     return to_string_helper<string>(4 * sizeof(long), "%lu", val);
 }
 
-} // namespace core
+} // namespace mem
 } // namespace c7a
 
-#endif // !C7A_CORE_ALLOCATOR_BASE_HEADER
+#endif // !C7A_MEM_ALLOCATOR_BASE_HEADER
 
 /******************************************************************************/

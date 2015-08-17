@@ -16,7 +16,7 @@
 
 #include <c7a/common/config.hpp>
 #include <c7a/common/logger.hpp>
-#include <c7a/core/allocator.hpp>
+#include <c7a/mem/allocator.hpp>
 #include <c7a/net/exception.hpp>
 #include <c7a/net/lowlevel/select.hpp>
 #include <c7a/net/lowlevel/socket.hpp>
@@ -47,7 +47,7 @@ class SelectDispatcher : protected Select
 
 public:
     //! constructor
-    SelectDispatcher(core::MemoryManager& memory_manager)
+    SelectDispatcher(mem::MemoryManager& memory_manager)
         : memory_manager_(memory_manager) { }
 
     //! type for file descriptor readiness callbacks
@@ -118,27 +118,27 @@ public:
 
 private:
     //! reference to memory manager
-    core::MemoryManager& memory_manager_;
+    mem::MemoryManager& memory_manager_;
 
     //! callback vectors per watched file descriptor
     struct Watch
     {
         //! boolean check whether any callbacks are registered
-        bool                     active;
+        bool                    active;
         //! queue of callbacks for fd.
-        core::mm_deque<Callback> read_cb, write_cb;
+        mem::mm_deque<Callback> read_cb, write_cb;
         //! only one exception callback for the fd.
-        Callback                 except_cb = nullptr;
+        Callback                except_cb = nullptr;
 
-        Watch(core::MemoryManager& memory_manager)
-            : read_cb(core::Allocator<Callback>(memory_manager)),
-              write_cb(core::Allocator<Callback>(memory_manager)) { }
+        Watch(mem::MemoryManager& memory_manager)
+            : read_cb(mem::Allocator<Callback>(memory_manager)),
+              write_cb(mem::Allocator<Callback>(memory_manager)) { }
     };
 
     //! handlers for all registered file descriptors. the fd integer range
     //! should be small enough, otherwise a more complicated data structure is
     //! needed.
-    core::mm_vector<Watch> watch_ { core::Allocator<Watch>(memory_manager_) };
+    mem::mm_vector<Watch> watch_ { mem::Allocator<Watch>(memory_manager_) };
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/malloc_tracker_test.cpp
+ * tests/mem/malloc_tracker_test.cpp
  *
  * Part of Project c7a.
  *
@@ -8,14 +8,14 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/malloc_tracker.hpp>
+#include <c7a/mem/malloc_tracker.hpp>
 #include <gtest/gtest.h>
 
 using namespace c7a;
 
 TEST(MallocTracker, Test1) {
 
-    size_t curr = core::malloc_tracker_current();
+    size_t curr = mem::malloc_tracker_current();
     ASSERT_GE(curr, 0);
 
     char* a = nullptr;
@@ -25,7 +25,7 @@ TEST(MallocTracker, Test1) {
         a[0] = 0;
     }
 
-    size_t curr2 = core::malloc_tracker_current();
+    size_t curr2 = mem::malloc_tracker_current();
 
     volatile char* av = a;
     ASSERT_GE(curr2 + av[0], curr + 1024);

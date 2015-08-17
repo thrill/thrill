@@ -14,7 +14,7 @@
 #ifndef C7A_COMMON_LOGGER_HEADER
 #define C7A_COMMON_LOGGER_HEADER
 
-#include <c7a/core/allocator_base.hpp>
+#include <c7a/mem/allocator_base.hpp>
 
 #include <sstream>
 #include <stdexcept>
@@ -24,7 +24,7 @@ namespace c7a {
 namespace common {
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const core::string& name);
+void NameThisThread(const mem::string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();
@@ -44,7 +44,7 @@ class Logger<true>
 {
 protected:
     //! stringbuf without malloc tracking
-    core::stringbuf buf_;
+    mem::stringbuf buf_;
 
     //! collector stream
     std::ostream oss_;
@@ -96,7 +96,7 @@ protected:
     bool first_ = true;
 
     //! stringbuf without malloc tracking
-    core::stringbuf buf_;
+    mem::stringbuf buf_;
 
     //! collector stream
     std::ostream oss_;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/allocator_test.cpp
+ * tests/mem/allocator_test.cpp
  *
  * Part of Project c7a.
  *
@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/allocator.hpp>
+#include <c7a/mem/allocator.hpp>
 #include <gtest/gtest.h>
 
 #include <deque>
@@ -17,12 +17,12 @@
 using namespace c7a;
 
 TEST(Allocator, Test1) {
-    core::MemoryManager memory_manager(nullptr);
+    mem::MemoryManager memory_manager(nullptr);
 
     LOG1 << "vector";
     {
-        std::vector<int, core::Allocator<int> > my_vector {
-            core::Allocator<int>(memory_manager)
+        std::vector<int, mem::Allocator<int> > my_vector {
+            mem::Allocator<int>(memory_manager)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -31,8 +31,8 @@ TEST(Allocator, Test1) {
     }
     LOG1 << "deque";
     {
-        std::deque<size_t, core::Allocator<size_t> > my_deque {
-            core::Allocator<size_t>(memory_manager)
+        std::deque<size_t, mem::Allocator<size_t> > my_deque {
+            mem::Allocator<size_t>(memory_manager)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -42,13 +42,13 @@ TEST(Allocator, Test1) {
 }
 
 namespace c7a {
-namespace core {
+namespace mem {
 
 // forced instantiations
 template class BypassAllocator<int>;
 template class Allocator<int>;
 
-} // namespace core
+} // namespace mem
 } // namespace c7a
 
 /******************************************************************************/

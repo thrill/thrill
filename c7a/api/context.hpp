@@ -16,11 +16,11 @@
 #include <c7a/api/stats_graph.hpp>
 #include <c7a/common/config.hpp>
 #include <c7a/common/stats.hpp>
-#include <c7a/core/memory_manager.hpp>
 #include <c7a/data/block_pool.hpp>
 #include <c7a/data/channel.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/data/multiplexer.hpp>
+#include <c7a/mem/memory_manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/manager.hpp>
@@ -91,7 +91,7 @@ protected:
     size_t workers_per_host_;
 
     //! host-global memory manager
-    core::MemoryManager memory_manager_ { nullptr };
+    mem::MemoryManager memory_manager_ { nullptr };
 
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;

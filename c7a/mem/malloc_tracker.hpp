@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/malloc_tracker.hpp
+ * c7a/mem/malloc_tracker.hpp
  *
  * Part of Project c7a.
  *
@@ -9,13 +9,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_MALLOC_TRACKER_HEADER
-#define C7A_CORE_MALLOC_TRACKER_HEADER
+#ifndef C7A_MEM_MALLOC_TRACKER_HEADER
+#define C7A_MEM_MALLOC_TRACKER_HEADER
 
 #include <stdlib.h>
 
 namespace c7a {
-namespace core {
+namespace mem {
 
 //! bypass malloc tracker and access malloc() directly
 void * bypass_malloc(size_t size) noexcept;
@@ -38,9 +38,9 @@ size_t malloc_tracker_total_allocs();
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status();
 
-} // namespace core
+} // namespace mem
 } // namespace c7a
 
-#endif // !C7A_CORE_MALLOC_TRACKER_HEADER
+#endif // !C7A_MEM_MALLOC_TRACKER_HEADER
 
 /******************************************************************************/
