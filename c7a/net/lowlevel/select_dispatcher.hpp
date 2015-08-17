@@ -46,7 +46,7 @@ class SelectDispatcher : protected Select
 
 public:
     //! type for file descriptor readiness callbacks
-    typedef std::function<bool ()> Callback;
+    using Callback = std::function<bool()>;
 
     //! Grow table if needed
     void CheckSize(int fd) {

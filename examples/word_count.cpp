@@ -15,7 +15,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/examples/word_count.hpp>
 
-using namespace c7a;
+using namespace c7a; // NOLINT
 
 int main(int argc, char* argv[]) {
 

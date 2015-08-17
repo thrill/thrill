@@ -44,14 +44,14 @@ protected:
 
 public:
     /**
-     * @brief Initializes a certain count of flow control channels.
+     * \brief Initializes a certain count of flow control channels.
      *
-     * @param group The net group to use for initialization.
-     * @param local_worker_count The count of threads to spawn flow channels for.
+     * \param group The net group to use for initialization.
+     * \param local_worker_count The count of threads to spawn flow channels for.
      *
      */
     explicit FlowControlChannelManager(net::Group& group, int local_worker_count)
-        : barrier(local_worker_count), shmem(NULL) {
+        : barrier(local_worker_count), shmem(nullptr) {
 
         for (int i = 0; i < local_worker_count; i++) {
             channels.emplace_back(group, i, local_worker_count, barrier, &shmem);
@@ -59,16 +59,16 @@ public:
     }
 
     /**
-     * @brief Gets all flow control channels for all threads.
-     * @return A flow channel for each thread.
+     * \brief Gets all flow control channels for all threads.
+     * \return A flow channel for each thread.
      */
     std::vector<FlowControlChannel> & GetFlowControlChannels() {
         return channels;
     }
 
     /**
-     * @brief Gets the flow control channel for a certain thread.
-     * @return The flow control channel for a certain thread.
+     * \brief Gets the flow control channel for a certain thread.
+     * \return The flow control channel for a certain thread.
      */
     FlowControlChannel & GetFlowControlChannel(int threadId) {
         return channels[threadId];

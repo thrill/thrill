@@ -76,6 +76,11 @@ public:
     SocketAddress(const char* hostname, const char* servicename);
 
     //! Return pointer to enclosed address as a generic sockattr struct.
+    struct sockaddr * sockaddr() {
+        return &sockaddr_.generic;
+    }
+
+    //! Return pointer to enclosed address as a generic sockattr struct.
     const struct sockaddr * sockaddr() const {
         return &sockaddr_.generic;
     }
@@ -160,12 +165,12 @@ public:
     //! Resolve the given host name using getaddrinfo() and replace this object
     //! with the first socket address if found.
     bool Resolve(const char* hostname,
-                 const char* servicename = NULL);
+                 const char* servicename = nullptr);
 
     //! Resolve the given host name using getaddrinfo() and return only the
     //! first socket address if found.
     static SocketAddress ResolveOne(const char* hostname,
-                                    const char* servicename = NULL);
+                                    const char* servicename = nullptr);
 
     //! Parse the address for a :port notation and then resolve the
     //! given host name using getaddrinfo() and return only the first
@@ -177,7 +182,7 @@ public:
     //! Resolve the given host name using getaddrinfo() and return all
     //! resulting socket addresses as a vector.
     static std::vector<SocketAddress>
-    ResolveAll(const char* hostname, const char* servicename = NULL);
+    ResolveAll(const char* hostname, const char* servicename = nullptr);
 
     //! Return textual message of the last error occurring in the resolve
     //! method.

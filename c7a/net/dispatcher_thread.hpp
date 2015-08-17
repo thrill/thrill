@@ -81,9 +81,6 @@ public:
     //! non-copyable: delete assignment operator
     DispatcherThread& operator = (const DispatcherThread&) = delete;
 
-    //! Return internal Dispatcher object
-    //Dispatcher & dispatcher() { return dispatcher_; }
-
     //! Terminate the dispatcher thread (if now already done).
     void Terminate();
 

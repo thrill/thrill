@@ -4,6 +4,7 @@
  * Part of Project c7a.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -14,12 +15,17 @@
 #include <c7a/data/block_writer.hpp>
 #include <c7a/data/discard_sink.hpp>
 #include <c7a/data/file.hpp>
-#include <math.h>
+
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+#include <random>
+#include <utility>
+#include <vector>
 
 using IntPair = std::pair<int, int>;
 
-using namespace c7a;
-using namespace c7a::data;
+using namespace c7a; // NOLINT
 
 int main(int argc, char* argv[]) {
 
@@ -33,7 +39,7 @@ int main(int argc, char* argv[]) {
                       return in1;
                   };
 
-    srand(time(NULL));
+    std::default_random_engine rng({ std::random_device()() });
 
     clp.SetVerboseProcess(false);
 
@@ -72,7 +78,7 @@ int main(int argc, char* argv[]) {
     std::vector<int> elements(size);
 
     for (size_t i = 0; i < elements.size(); i++) {
-        elements[i] = rand() % modulo;
+        elements[i] = rng() % modulo;
     }
 
     std::vector<data::DiscardSink> sinks(workers);
@@ -90,10 +96,33 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < size; i++) {
         table.Insert(std::move(elements[i]));
     }
-    table.Flush();
 
     timer.Stop();
-    std::cout << timer.Microseconds() << std::endl;
+
+    std::vector<size_t> values;
+    size_t sum = 0;
+    for (size_t i = 0; i < table.NumPartitions(); i++) {
+        size_t num = table.PartitionNumItems(i);
+        values.push_back(num);
+        sum += num;
+    }
+    double mean = static_cast<double>(sum) / static_cast<double>(table.NumPartitions());
+    double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
+    double stdev = std::sqrt(sq_sum / static_cast<double>(values.size()) - mean * mean);
+    double median;
+    std::sort(values.begin(), values.end());
+    if (values.size() % 2 == 0)
+    {
+        median = (values[values.size() / 2 - 1] + values[values.size() / 2]) / 2;
+    }
+    else
+    {
+        median = values[values.size() / 2];
+    }
+
+    // table.Flush();
+
+    std::cout << timer.Microseconds() << " " << mean << " " << median << " " << stdev << std::endl;
 
     return 0;
 }

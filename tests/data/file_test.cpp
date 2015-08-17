@@ -10,10 +10,12 @@
 
 #include <c7a/common/string.hpp>
 #include <c7a/data/block_queue.hpp>
+#include <c7a/data/buffered_block_reader.hpp>
 #include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -50,7 +52,7 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(4).size(), 16u);
     ASSERT_EQ(file.block(5).size(), 14u);
 
-    //Total size is equal to sum of block sizes
+    // Total size is equal to sum of block sizes
     ASSERT_EQ(file.TotalSize(), 94u);
 
     const unsigned char block_data_bytes[] = {
@@ -125,7 +127,7 @@ TEST(File, SerializeSomeItems) {
         fw(std::string("test"));
     }
 
-    //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
+    // std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
 
     // get items back from file.
     {
@@ -170,6 +172,54 @@ TEST(File, SerializeSomeItemsDynReader) {
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
     }
+}
+
+TEST(File, RandomGetIndexOf) {
+    const size_t size = 500;
+
+    std::minstd_rand0 rng;
+
+    // Create test file.
+    data::File file;
+
+    data::File::Writer fw = file.GetWriter(53);
+
+    for (size_t i = 0; i < size; i++) {
+        fw(size - i - 1);
+    }
+
+    fw.Close();
+
+    ASSERT_EQ(size, file.NumItems());
+
+    for (size_t i = 0; i < 10; i++) {
+        size_t val = rng() % size;
+        size_t idx = file.GetIndexOf(val, std::less<size_t>());
+
+        ASSERT_EQ(500 - val - 1, idx);
+    }
+}
+
+TEST(File, ReadFileWIthBufferedReader) {
+    data::File file;
+    data::File::Writer fw = file.GetWriter(53);
+
+    size_t size = 100;
+
+    for (size_t i = 0; i < size; i++) {
+        fw(i);
+    }
+    fw.Close();
+
+    auto br = file.GetBufferedReader<size_t>();
+
+    for (size_t i = 0; i < size; i++) {
+        ASSERT_TRUE(br.HasValue());
+        ASSERT_EQ(br.Value(), i);
+        br.Next();
+    }
+
+    ASSERT_FALSE(br.HasValue());
 }
 
 TEST(File, SeekReadSlicesOfFiles) {

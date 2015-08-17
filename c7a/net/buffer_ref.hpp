@@ -34,7 +34,7 @@ class BufferRef
 {
 protected:
     //! type used to store the bytes
-    typedef unsigned char Byte;
+    using Byte = unsigned char;
 
     //! Allocated buffer pointer.
     const Byte* data_;

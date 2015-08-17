@@ -14,6 +14,7 @@
 #define C7A_COMMON_FUNCTIONAL_HEADER
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 
 namespace c7a {
@@ -28,7 +29,7 @@ struct Identity {
     }
 };
 
-//thanks to http://stackoverflow.com/a/7127988
+// thanks to http://stackoverflow.com/a/7127988
 template <typename T>
 struct is_pair : public std::false_type { };
 
@@ -81,13 +82,13 @@ struct make_index_sequence_helper;
 
 template <size_t ... Indexes>
 struct make_index_sequence_helper<0, Indexes ...>{
-    typedef index_sequence<Indexes ...> type;
+    using type = index_sequence<Indexes ...>;
 };
 
 template <size_t CurrentIndex, size_t ... Indexes>
 struct make_index_sequence_helper {
-    typedef typename make_index_sequence_helper<
-            CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type type;
+    using type = typename make_index_sequence_helper<
+              CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type;
 };
 
 template <size_t Length>
