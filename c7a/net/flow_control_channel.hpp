@@ -12,8 +12,8 @@
 #ifndef C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 #define C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 
-#include <c7a/common/cyclic_barrier.hpp>
 #include <c7a/common/functional.hpp>
+#include <c7a/common/thread_barrier.hpp>
 #include <c7a/net/group.hpp>
 
 #include <functional>
@@ -69,7 +69,7 @@ protected:
     /**
      * The shared barrier used to synchronize between worker threads on this node.
      */
-    common::Barrier& barrier;
+    common::ThreadBarrier& barrier;
 
     /**
      * A shared memory location to work upon.
@@ -130,8 +130,14 @@ public:
     /**
      * \brief Creates a new instance of this class, wrapping a group.
      */
-    explicit FlowControlChannel(net::Group& group, int threadId, int threadCount, common::Barrier& barrier, void** shmem)
-        : group(group), id(group.my_host_rank()), count(group.num_hosts()), threadId(threadId), threadCount(threadCount), barrier(barrier), shmem(shmem) { }
+    explicit FlowControlChannel(net::Group& group,
+                                int threadId, int threadCount,
+                                common::ThreadBarrier& barrier,
+                                void** shmem)
+        : group(group),
+          id(group.my_host_rank()), count(group.num_hosts()),
+          threadId(threadId), threadCount(threadCount),
+          barrier(barrier), shmem(shmem) { }
 
     /**
      * \brief Calculates the prefix sum over all workers, given a certain sum
