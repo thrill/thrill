@@ -14,13 +14,15 @@
 #include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 
-#include "data_generators.hpp"
-
 #include <iostream>
 #include <random>
 #include <string>
+#include <tuple>
+
+#include "data_generators.hpp"
 
 using namespace c7a; // NOLINT
+using c7a::common::StatsTimer;
 
 unsigned g_iterations = 1;
 uint64_t g_bytes;
@@ -28,7 +30,6 @@ uint64_t g_bytes;
 template <typename Type>
 void ExperimentAllPairs(
     api::Context& ctx, const std::string& type_as_string) {
-    using namespace c7a::common;
 
     for (size_t src = 0; src < ctx.num_workers(); ++src) {
         for (size_t tgt = 0; tgt < ctx.num_workers(); ++tgt) {
@@ -93,7 +94,6 @@ void ExperimentAllPairs(
 template <typename Type>
 void ExperimentFull(
     api::Context& ctx, const std::string& type_as_string) {
-    using namespace c7a::common;
 
     // transmit data to all workers.
 

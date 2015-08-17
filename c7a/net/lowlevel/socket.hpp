@@ -26,6 +26,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstring>
+#include <string>
 #include <utility>
 
 namespace c7a {

@@ -14,6 +14,7 @@
 #define C7A_COMMON_FUNCTIONAL_HEADER
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 
 namespace c7a {
@@ -86,8 +87,8 @@ struct make_index_sequence_helper<0, Indexes ...>{
 
 template <size_t CurrentIndex, size_t ... Indexes>
 struct make_index_sequence_helper {
-    typedef typename make_index_sequence_helper<
-            CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type type;
+    using type = typename make_index_sequence_helper<
+              CurrentIndex - 1, CurrentIndex - 1, Indexes ...>::type;
 };
 
 template <size_t Length>

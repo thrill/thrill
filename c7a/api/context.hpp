@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <string>
 #include <vector>
 
