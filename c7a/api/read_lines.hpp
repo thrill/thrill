@@ -134,6 +134,7 @@ private:
 
             file_size_ = files[files.size() - 1].second;
 
+            // REVIEW(an): use CalculateLocalRange()
             // Go to start of 'local part'.
             size_t per_worker = file_size_ / num_workers_;
             size_t my_start = per_worker * my_id_;
@@ -170,6 +171,9 @@ private:
                 current_ = 1;
                 if (buffer_[0] != '\n') {
                     bool found_n = false;
+                    // REVIEW(an): im not sure this is what we want: when a file
+                    // ends, shouldn't that be considered as a newline?
+
                     // find next newline, discard all previous data as previous worker already covers it
                     while (!found_n) {
                         for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
@@ -226,6 +230,11 @@ private:
                     close(c_file_);
                     current_file_++;
                     offset_ = 0;
+
+                    // REVIEW(an): you must extract all the open() commands
+                    // (this and first) into a function OpenFile() if we are to
+                    // add decompressors.
+
                     c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
                     bb_.Reserve(read_size);
                     ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
@@ -270,6 +279,9 @@ private:
         //! end of local block
         size_t my_end_;
 
+        // REVIEW(an): you dont need both, apparently you need the BufferBuilder
+        // in the code, because you resize the buffer. Then you dont need the
+        // Buffer. remove it. Goal: allocate 2 MiB ONCE and reuse it everywhere!
         net::BufferBuilder bb_;
         net::Buffer buffer_;
         size_t current_ = 0;
@@ -283,6 +295,7 @@ private:
     //!
     //! \return An InputLineIterator for a given file stream
     InputLineIterator GetInputLineIterator(
+        // REVIEW(an): please make some using typedefs!
         std::vector<std::pair<std::string, size_t> > files, size_t my_id, size_t num_work) {
         return InputLineIterator(files, my_id, num_work);
     }
