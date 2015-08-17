@@ -32,8 +32,62 @@ std::string GetNameForThisThread();
 /******************************************************************************/
 
 /*!
- * A simple logging class which outputs a std::endl during destruction.
- * Depending on the real parameter the output may be suppressed.
+
+\brief LOG and sLOG for development and debugging
+
+This is a short description of how to use \ref LOG and \ref sLOG for rapid
+development of modules with debug output, and how to **keep it afterwards**.
+
+There are two classes Logger and SpacingLogger, but one does not use these
+directly.
+
+Instead there are the macros: \ref LOG and \ref sLOG that can be used as such:
+\code
+LOG << "This will be printed with a newline";
+sLOG << "Print variables a" << a << "b" << b << "c" << c;
+\endcode
+
+There macros only print the lines if the boolean variable **debug** is
+true. This variable is searched for in the scope of the LOG, which means it can
+be set or overridden in the function scope, the class scope, from **inherited
+classes**, or even the global scope.
+
+\code
+class MyClass
+{
+    static const bool debug = true;
+
+    void func1()
+    {
+        LOG << "Hello World";
+
+        LOG0 << "This is temporarily disabled.";
+    }
+
+    void func2()
+    {
+        static const bool debug = false;
+        LOG << "This is not printed any more.";
+
+        LOG1 << "But this is forced.";
+    }
+};
+\endcode
+
+There are two variation of \ref LOG and \ref sLOG: append 0 or 1 for temporarily
+disabled or enabled debug lines. These macros are then \ref LOG0, \ref LOG1,
+\ref sLOG0, and \ref sLOG1. The suffix overrides the debug variable's setting.
+
+After a module works as intended, one can just set `debug = false`, and all
+debug output will disappear.
+
+## Critique of LOG and sLOG
+
+The macros are only for rapid module-based development. It cannot be used as an
+extended logging system for our network framework, where logs of network
+execution and communication are collected for later analysis. Something else is
+needed here.
+
  */
 template <bool Active>
 class Logger

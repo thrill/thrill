@@ -17,4 +17,7 @@ file(COPY "data/run_data_benchmark.sh" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 c7a_build_prog(serialization/bench_serialization)
 
+add_subdirectory(word_count)
+add_subdirectory(page_rank)
+
 ################################################################################

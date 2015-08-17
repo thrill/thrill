@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/common/cyclic_barrier_test.cpp
+ * tests/common/thread_barrier_test.cpp
  *
  * Part of Project c7a.
  *
@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cyclic_barrier.hpp>
+#include <c7a/common/thread_barrier.hpp>
 #include <gtest/gtest.h>
 
 #include <unistd.h>
@@ -25,7 +25,7 @@ static void TestWaitFor(int count, int slowThread = -1) {
 
     int maxWaitTime = 100000;
 
-    Barrier barrier(count);
+    ThreadBarrier barrier(count);
     // Need to use atomic here, since setting a bool might not be atomic.
     std::vector<std::atomic<bool> > flags(count);
     std::vector<std::thread> threads(count);
@@ -62,14 +62,15 @@ static void TestWaitFor(int count, int slowThread = -1) {
     }
 }
 
-TEST(Barrier, TestWaitForSingleThread) {
+TEST(ThreadBarrier, TestWaitForSingleThread) {
     int count = 8;
     for (int i = 0; i < count; i++) {
         TestWaitFor(count, i);
     }
 }
 
-TEST(Barrier, TestWaitFor) {
+TEST(ThreadBarrier, TestWaitFor) {
     TestWaitFor(32);
 }
+
 /******************************************************************************/
