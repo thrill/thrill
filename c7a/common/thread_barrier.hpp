@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/cyclic_barrier.hpp
+ * c7a/common/thread_barrier.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_CYCLIC_BARRIER_HEADER
-#define C7A_COMMON_CYCLIC_BARRIER_HEADER
+#ifndef C7A_COMMON_THREAD_BARRIER_HEADER
+#define C7A_COMMON_THREAD_BARRIER_HEADER
 
 #include <atomic>
 #include <condition_variable>
@@ -22,7 +22,7 @@ namespace common {
 /**
  * \brief Implements a cyclic barrier that can be shared between threads.
  */
-class Barrier
+class ThreadBarrier
 {
 
 private:
@@ -38,7 +38,7 @@ public:
      *
      * \param n The count of threads to wait for.
      */
-    explicit Barrier(int n) : threadCount(n), current(0) {
+    explicit ThreadBarrier(int n) : threadCount(n), current(0) {
         counts[0] = 0;
         counts[1] = 0;
     }
@@ -70,6 +70,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_CYCLIC_BARRIER_HEADER
+#endif // !C7A_COMMON_THREAD_BARRIER_HEADER
 
 /******************************************************************************/
