@@ -264,9 +264,7 @@ add_subdirectory(c7a)
 # descend into testsuite
 add_subdirectory(tests)
 
-# descend into example programs source
-add_subdirectory(examples)
-
+# descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
 
 ###############################################################################
@@ -285,7 +283,8 @@ if(TRY_COMPILE_HEADERS)
   list(SORT header_files)
 
   foreach(file ${header_files})
-    string(REPLACE "/" "_" compilename "${file}") # replace / to _ to fix warnings
+    # replace / to _ to fix warnings
+    string(REPLACE "/" "_" compilename "${file}")
     string(REPLACE "." "_" compilename "${compilename}")
 
     check_cxx_source_compiles(
