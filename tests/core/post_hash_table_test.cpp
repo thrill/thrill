@@ -30,7 +30,7 @@ class CustomKeyHashFunction
     : public c7a::core::PostReduceByHashKey<int>
 {
 public:
-    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+    explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
@@ -39,6 +39,8 @@ public:
     operator () (Key v, ReducePostTable* ht) const {
 
         using index_result = typename ReducePostTable::index_result;
+
+        (*ht).NumItems();
 
         size_t global_index = v / 2;
         return index_result(global_index);

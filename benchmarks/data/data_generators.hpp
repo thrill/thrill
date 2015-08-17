@@ -14,9 +14,13 @@
 
 #include <c7a/common/functional.hpp>
 
+#include <algorithm>
 #include <limits>
 #include <random>
+#include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 using namespace c7a; // NOLINT
 
@@ -27,7 +31,7 @@ template <>
 class Generator<size_t>
 {
 public:
-    Generator(size_t bytes)
+    explicit Generator(size_t bytes)
         : size_((bytes + sizeof(size_t) - 1) / sizeof(size_t)) { }
 
     bool HasNext() const { return size_ > 0; }
@@ -47,7 +51,7 @@ template <>
 class Generator<std::string>
 {
 public:
-    Generator(size_t bytes)
+    explicit Generator(size_t bytes)
         : bytes_(bytes) { }
 
     bool HasNext() const { return bytes_ > 0; }
@@ -94,7 +98,7 @@ template <typename ... Types>
 class Generator<std::tuple<Types ...> >
 {
 public:
-    Generator(size_t bytes)
+    explicit Generator(size_t bytes)
         : gen_(Generator<Types>(bytes) ...) { }
 
     bool HasNext() const {

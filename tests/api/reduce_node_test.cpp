@@ -13,11 +13,11 @@
 #include <c7a/api/generate.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/reduce_to_index.hpp>
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 using c7a::api::Context;

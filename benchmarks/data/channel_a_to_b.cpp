@@ -13,13 +13,17 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
 
-#include "data_generators.hpp"
-
 #include <iostream>
 #include <random>
 #include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+
+#include "data_generators.hpp"
 
 using namespace c7a; // NOLINT
+using common::StatsTimer;
 
 //! Creates two threads that work with two context instances
 //! one worker sends elements to the other worker.
@@ -29,10 +33,9 @@ using namespace c7a; // NOLINT
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::Context& ctx2, const std::string& type_as_string) {
-    using namespace c7a::common;
 
     auto data = generate<Type>(bytes, 1, 100);
-    ThreadPool pool;
+    common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &ctx1, &write_timer]() {
@@ -72,7 +75,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
 }
 
 int main(int argc, const char** argv) {
-    c7a::common::ThreadPool connect_pool;
+    common::ThreadPool connect_pool;
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");

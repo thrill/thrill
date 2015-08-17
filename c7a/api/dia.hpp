@@ -124,30 +124,25 @@ public:
     DIARef(const DIARef<ValueType, AnyStack>& rhs)
 #if __GNUC__ && !__clang__
     // the attribute warning does not work with gcc?
-    __attribute__ ((warning("Casting to DIARef creates LOpNode instead of inline chaining.\n"
-                            "Consider whether you can use auto instead of DIARef.")))
+    __attribute__ ((warning(     // NOLINT
+                        "Casting to DIARef creates LOpNode instead of inline chaining.\n"
+                        "Consider whether you can use auto instead of DIARef.")))
 #else
-    __attribute__ ((deprecated))
+    __attribute__ ((deprecated)) // NOLINT
 #endif
-    ;
+    ;                            // NOLINT
 
-    /*!
-     * Returns a pointer to the according DIANode.
-     */
+    //! Returns a pointer to the according DIANode.
     const DIANodePtr & node() const {
         return node_;
     }
 
-    /*!
-     * Returns the number of references to the according DIANode.
-     */
+    //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
         return node_.use_count();
     }
 
-    /*!
-     * Returns the stored function chain.
-     */
+    //! Returns the stored function chain.
     const Stack & stack() const {
         return stack_;
     }

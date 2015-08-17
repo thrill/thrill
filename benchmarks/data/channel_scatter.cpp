@@ -13,13 +13,17 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/common/thread_pool.hpp>
 
-#include "data_generators.hpp"
-
 #include <iostream>
 #include <random>
 #include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+
+#include "data_generators.hpp"
 
 using namespace c7a; // NOLINT
+using common::StatsTimer;
 
 //! Creates three threads / workers that work with three context instances
 //! Worker 0 and 1 hold 50% of the DIA each
@@ -33,12 +37,11 @@ template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations,
                        api::Context& ctx0, api::Context& ctx1, api::Context& ctx2,
                        const std::string& type_as_string) {
-    using namespace c7a::common;
 
     // prepare file with random data
     auto data0 = generate<Type>(bytes / 2, 1, 100);
     auto data1 = generate<Type>(bytes / 2, 1, 100);
-    std::vector<c7a::data::File> files;
+    std::vector<data::File> files;
     {
         files.emplace_back(ctx0.GetFile());
         auto writer0 = files[0].GetWriter();
@@ -64,7 +67,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
     offsets.push_back({ 0, (size_t)(data1.size() / 3), data1.size() });
     offsets.push_back({ 0, 0, 0 });
 
-    std::vector<std::shared_ptr<c7a::data::Channel> > channels;
+    std::vector<std::shared_ptr<data::Channel> > channels;
     channels.push_back(ctx0.GetNewChannel());
     channels.push_back(ctx1.GetNewChannel());
     channels.push_back(ctx2.GetNewChannel());
@@ -72,7 +75,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
     std::vector<StatsTimer<true> > read_timers(3);
     std::vector<StatsTimer<true> > write_timers(3);
 
-    ThreadPool pool;
+    common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         for (int id = 0; id < 3; id++) {
             pool.Enqueue([&files, &channels, &offsets, &read_timers, &write_timers, id]() {
@@ -102,7 +105,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
 }
 
 int main(int argc, const char** argv) {
-    c7a::common::ThreadPool connect_pool;
+    common::ThreadPool connect_pool;
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
@@ -141,7 +144,7 @@ int main(int argc, const char** argv) {
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
-    clp.SetDescription("c7a::data benchmark for disk I/O");
+    clp.SetDescription("c7a data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     int iterations;
     uint64_t bytes;

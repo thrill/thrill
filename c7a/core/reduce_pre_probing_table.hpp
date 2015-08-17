@@ -74,7 +74,7 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class PreProbingReduceByHashKey
 {
 public:
-    PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+    explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 

@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -88,7 +89,7 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class PostReduceByHashKey
 {
 public:
-    PostReduceByHashKey(const HashFunction& hash_function = HashFunction())
+    explicit PostReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
@@ -268,7 +269,7 @@ public:
         BucketBlock  * next;
 
         //! memory area of items
-        KeyValuePair items[block_size_];
+        KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
         void         destroy_items() {
@@ -283,7 +284,7 @@ public:
         //! index within the whole hashtable
         size_t global_index;
 
-        index_result(size_t g_id) {
+        explicit index_result(size_t g_id) {
             global_index = g_id;
         }
     };
@@ -319,7 +320,7 @@ public:
                     size_t max_num_items_table = 1048576,
                     const EqualToFunction& equal_to_function = EqualToFunction()
                     )
-        :   num_buckets_init_scale_(num_buckets_init_scale),
+        : num_buckets_init_scale_(num_buckets_init_scale),
           num_buckets_resize_scale_(num_buckets_resize_scale),
           max_num_items_per_bucket_(max_num_items_per_bucket),
           max_num_items_table_(max_num_items_table),
