@@ -28,13 +28,57 @@ namespace c7a {
 namespace common {
 
 /*!
- * ThreadPool is a fixed number of std::threads which process work from a
- * concurrent job queue. The pool can either run until a) all jobs are done AND
- * all threads are idle, or b) until a termination flag is set. The thread use
- * condition variable to wait for new jobs and do not remain busy waiting.
+ * ThreadPool starts a fixed number p of std::threads which process Jobs that
+ * are \ref Enqueue "enqueued" into a concurrent job queue. The jobs
+ * themselves can enqueue more jobs that will be processed when a thread is
+ * ready.
  *
- * Jobs are plain std::function<void()> objects (actually: our delegates), hence
- * the pool user must pass in ALL CONTEXT himself.
+ * The ThreadPool can either run until
+ *
+ * 1. all jobs are done AND all threads are idle, when called with
+ * LoopUntilEmpty(), or
+ *
+ * 2. until Terminate() is called when run with LoopUntilTerminate().
+ *
+ * Jobs are plain std::function<void()> objects (actually: common::delegate),
+ * hence the pool user must pass in ALL CONTEXT himself. The best method to pass
+ * parameters to Jobs is to use lambda captures. Alternatively, old-school
+ * objects implementing operator(), or std::binds can be used.
+ *
+ * The ThreadPool uses a condition variable to wait for new jobs and does not
+ * remain busy waiting.
+ *
+ * Note that the threads in the pool start **before** the two loop functions are
+ * called. In case of LoopUntilEmpty() the threads continue to be idle
+ * afterwards, and can be reused, until the ThreadPool is destroyed.
+
+\code
+ThreadPool pool(4); // pool with 4 threads
+
+int value = 0;
+pool.Enqueue([&value]() {
+  // increment value in another thread.
+  ++value;
+});
+
+pool.LoopUntilEmpty();
+\endcode
+
+ * ## Synchronization Primitives
+ *
+ * Beyond threads from the ThreadPool, the framework contains two fast
+ * synchronized queue containers:
+ *
+ * - \ref ConcurrentQueue
+ * - \ref ConcurrentBoundedQueue.
+ *
+ * If the Intel Thread Building Blocks are available, then these use their
+ * lock-free implementations, which are very fast, but do busy-waiting for
+ * items. Otherwise, compatible replacements are used.
+ *
+ * The \ref ConcurrentQueue has no busy-waiting pop(), only a try_pop()
+ * method. This should be preferred! The \ref ConcurrentBoundedQueue<T> has a
+ * blocking pop(), but it probably does busy-waiting.
  */
 class ThreadPool
 {
