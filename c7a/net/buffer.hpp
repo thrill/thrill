@@ -213,6 +213,11 @@ public:
         return std::string(reinterpret_cast<const char*>(data_), size_);
     }
 
+	std::string PartialToString(size_t begin, size_t length) const {
+		assert(size_ >= begin + length);
+		return std::string(reinterpret_cast<const char*>(data_ + begin), length);
+	}
+
     //! make ostream-able
     friend std::ostream& operator << (std::ostream& os, const Buffer& b) {
         return os << "[Buffer size=" << b.size() << "]";
