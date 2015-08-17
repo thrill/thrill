@@ -74,7 +74,7 @@ public:
     //! \}
 
     //! common global memory stats, should become a HostContext member.
-    mem::MemoryManager memory_manager_ { nullptr };
+    mem::Manager mem_manager_ { nullptr };
 
 public:
     explicit DispatcherThread(const mem::string& thread_name);
@@ -158,7 +158,7 @@ protected:
 private:
     //! Queue of jobs to be run by dispatching thread at its discretion.
     common::ConcurrentQueue<Job, mem::Allocator<Job> > jobqueue_ {
-        mem::Allocator<Job>(memory_manager_)
+        mem::Allocator<Job>(mem_manager_)
     };
 
     //! thread of dispatcher

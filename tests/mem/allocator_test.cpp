@@ -17,12 +17,12 @@
 using namespace c7a;
 
 TEST(Allocator, Test1) {
-    mem::MemoryManager memory_manager(nullptr);
+    mem::Manager mem_manager(nullptr);
 
     LOG1 << "vector";
     {
         std::vector<int, mem::Allocator<int> > my_vector {
-            mem::Allocator<int>(memory_manager)
+            mem::Allocator<int>(mem_manager)
         };
 
         for (size_t i = 0; i < 100; ++i) {
@@ -32,7 +32,7 @@ TEST(Allocator, Test1) {
     LOG1 << "deque";
     {
         std::deque<size_t, mem::Allocator<size_t> > my_deque {
-            mem::Allocator<size_t>(memory_manager)
+            mem::Allocator<size_t>(mem_manager)
         };
 
         for (size_t i = 0; i < 100; ++i) {

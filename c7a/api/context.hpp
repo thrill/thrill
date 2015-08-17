@@ -20,7 +20,7 @@
 #include <c7a/data/channel.hpp>
 #include <c7a/data/file.hpp>
 #include <c7a/data/multiplexer.hpp>
-#include <c7a/mem/memory_manager.hpp>
+#include <c7a/mem/manager.hpp>
 #include <c7a/net/flow_control_channel.hpp>
 #include <c7a/net/flow_control_manager.hpp>
 #include <c7a/net/manager.hpp>
@@ -91,7 +91,7 @@ protected:
     size_t workers_per_host_;
 
     //! host-global memory manager
-    mem::MemoryManager memory_manager_ { nullptr };
+    mem::Manager mem_manager_ { nullptr };
 
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
@@ -100,7 +100,7 @@ protected:
     net::FlowControlChannelManager flow_manager_;
 
     //! data block pool
-    data::BlockPool block_pool_ { &memory_manager_ };
+    data::BlockPool block_pool_ { &mem_manager_ };
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_;

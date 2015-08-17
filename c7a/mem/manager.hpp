@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/mem/memory_manager.hpp
+ * c7a/mem/manager.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_MEM_MEMORY_MANAGER_HEADER
-#define C7A_MEM_MEMORY_MANAGER_HEADER
+#ifndef C7A_MEM_MANAGER_HEADER
+#define C7A_MEM_MANAGER_HEADER
 
 #include <c7a/common/logger.hpp>
 
@@ -22,32 +22,32 @@ namespace mem {
 
 /*!
  * Object shared by allocators and other classes to track memory
- * allocations. These is one global MemoryManager per compute host. To track
+ * allocations. These is one global mem::Manager per compute host. To track
  * memory consumption of subcomponents of c7a, one can create local child
- * MemoryManagers which report allocation automatically to their superiors.
+ * mem::Managers which report allocation automatically to their superiors.
  */
-class MemoryManager
+class Manager
 {
 public:
-    explicit MemoryManager(MemoryManager* super)
+    explicit Manager(Manager* super)
         : super_(super)
     { }
 
-    //! return the superior MemoryManager
-    MemoryManager * super() { return super_; }
+    //! return the superior Manager
+    Manager * super() { return super_; }
 
     //! return total allocation (local value)
     size_t total() const { return total_; }
 
     //! add memory consumption.
-    MemoryManager & add(size_t amount) {
+    Manager & add(size_t amount) {
         total_ += amount;
         if (super_) super_->add(amount);
         return *this;
     }
 
     //! subtract memory consumption.
-    MemoryManager & subtract(size_t amount) {
+    Manager & subtract(size_t amount) {
         assert(total_ >= amount);
         total_ -= amount;
         if (super_) super_->subtract(amount);
@@ -56,7 +56,7 @@ public:
 
 protected:
     //! reference to superior memory counter
-    MemoryManager* super_;
+    Manager* super_;
 
     //! total allocation
     std::atomic<size_t> total_ { 0 };
@@ -65,6 +65,6 @@ protected:
 } // namespace mem
 } // namespace c7a
 
-#endif // !C7A_MEM_MEMORY_MANAGER_HEADER
+#endif // !C7A_MEM_MANAGER_HEADER
 
 /******************************************************************************/
