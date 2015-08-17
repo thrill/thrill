@@ -20,50 +20,50 @@ namespace c7a {
 namespace common {
 
 /**
- * \brief Implements a cyclic barrier that can be shared between threads.
+ * Implements a cyclic barrier that can be shared between threads.
  */
 class ThreadBarrier
 {
 
 private:
-    std::mutex m;
-    std::condition_variable_any event;
-    const int threadCount;
-    int counts[2];
-    int current;
+    std::mutex mutex_;
+    std::condition_variable_any event_;
+    const size_t thread_count_;
+    size_t counts_[2] = { 0, 0 };
+    size_t current_ = 0;
 
 public:
     /**
-     * \brief Creates a new barrier that waits for n threads.
+     * Creates a new barrier that waits for n threads.
      *
-     * \param n The count of threads to wait for.
+     * \param n The number of threads to wait for.
      */
-    explicit ThreadBarrier(int n) : threadCount(n), current(0) {
-        counts[0] = 0;
-        counts[1] = 0;
-    }
+    explicit ThreadBarrier(size_t n)
+        : thread_count_(n) { }
 
     /**
-     * \brief Waits for n threads to arrive.
-     * \details This method blocks and returns as soon as n threads are waiting inside the method.
+     * Waits for n threads to arrive.
+     *
+     * This method blocks and returns as soon as n threads are waiting inside
+     * the method.
      */
     void Await() {
         std::atomic_thread_fence(std::memory_order_release);
-        m.lock();
-        int localCurrent = current;
-        counts[localCurrent]++;
+        mutex_.lock();
+        size_t local_ = current_;
+        counts_[local_]++;
 
-        if (counts[localCurrent] < threadCount) {
-            while (counts[localCurrent] < threadCount) {
-                event.wait(m);
+        if (counts_[local_] < thread_count_) {
+            while (counts_[local_] < thread_count_) {
+                event_.wait(mutex_);
             }
         }
         else {
-            current = current ? 0 : 1;
-            counts[current] = 0;
-            event.notify_all();
+            current_ = current_ ? 0 : 1;
+            counts_[current_] = 0;
+            event_.notify_all();
         }
-        m.unlock();
+        mutex_.unlock();
     }
 };
 
