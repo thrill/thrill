@@ -3,7 +3,6 @@
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
@@ -16,14 +15,14 @@
 
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
-#include <c7a/common/item_serialization_tools.hpp>
 #include <c7a/core/stage_builder.hpp>
-#include <c7a/data/serialization.hpp>
+#include <c7a/data/block_writer.hpp>
+#include <c7a/data/block_sink.hpp>
 
 #include <fstream>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 namespace c7a {
 namespace api {
@@ -38,7 +37,6 @@ class WriteBinaryNode : public ActionNode
 
 public:
     using Super = ActionNode;
-    using Super::result_file_;
     using Super::context_;
 
     WriteBinaryNode(const ParentDIARef& parent,
@@ -46,13 +44,12 @@ public:
                     StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
                      "WriteBinary", stats_node),
-          path_out_(path_out + std::to_string(context_.my_rank())),
-          bfw_(path_out_)
+          path_out_(path_out + std::to_string(context_.my_rank()))
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](ValueType input) {
-                             PreOp(input);
+        auto pre_op_fn = [=](const ValueType& input) {
+                             writer_(input);
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
@@ -60,66 +57,46 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(ValueType input) {
-        // file_ << input;
-        data::Serialization<BinaryFileWriter, ValueType>::Serialize(input, bfw_);
-    }
-
     //! Closes the output file
     void Execute() final {
         sLOG << "closing file" << path_out_;
-        bfw_.CloseStream();
+        writer_.Close();
     }
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
     std::string ToString() final {
         return "[WriteNode] Id:" + result_file_.ToString();
     }
 
-private:
-    //! Path of the output file.
-    std::string path_out_;
-
-    class BinaryFileWriter
-        : public common::ItemWriterToolsBase<BinaryFileWriter>
+protected:
+    class OStreamSink : public data::BlockSink
     {
     public:
-        explicit BinaryFileWriter(const std::string& file)
+        explicit OStreamSink(const std::string& file)
             : outstream_(file) { }
 
-        virtual ~BinaryFileWriter() { }
+        void AppendBlock(const data::Block& b) final {
+            outstream_.write(
+                reinterpret_cast<const char*>(b.data_begin()), b.size());
+        }
 
-        void CloseStream() {
+        void Close() final {
             outstream_.close();
         }
 
-        template <typename Binary>
-        BinaryFileWriter & Put(const Binary& item) {
-            outstream_.write(reinterpret_cast<const char*>(&item), sizeof(item));
-            return *this;
-        }
-
-        BinaryFileWriter & PutByte(const uint8_t& byte) {
-            outstream_.put(byte);
-            return *this;
-        }
-
-        BinaryFileWriter & Append(const void* data, size_t size) {
-            const char* cdata = reinterpret_cast<const char*>(data);
-            outstream_.write(cdata, size);
-            return *this;
-        }
-
-    private:
+    protected:
         std::ofstream outstream_;
     };
 
-    BinaryFileWriter bfw_;
+    //! Path of the output file.
+    std::string path_out_;
+
+    //! BlockSink which writes to an actual file
+    OStreamSink sink_ { path_out_ };
+
+    //! BlockWriter to sink.
+    data::BlockWriter writer_ { &sink_ };
 };
 
 template <typename ValueType, typename Stack>
@@ -131,9 +108,8 @@ void DIARef<ValueType, Stack>::WriteBinary(
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", NodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(*this,
-                                          filepath,
-                                          stats_node);
+        std::make_shared<WriteResultNode>(
+            *this, filepath, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
