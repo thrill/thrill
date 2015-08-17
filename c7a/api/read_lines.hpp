@@ -48,7 +48,9 @@ public:
      * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
      *
-     * \param ctx Reference to Context, which holds references to data and network.
+     * \param ctx Reference to Context, which holds references to data and
+     * network.
+     *
      * \param path Path of the input file(s)
      */
     ReadLinesNode(Context& ctx,
@@ -63,12 +65,13 @@ public:
         size_t directory_size = 0;
 
         for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
-            std::string filepath = std::string(glob_result.gl_pathv[i]);
+            const char* filepath = glob_result.gl_pathv[i];
 
-            if (stat(filepath.c_str(), &filestat)) {
-                throw std::runtime_error("ERROR: Invalid file " + filepath);
+            if (stat(filepath, &filestat)) {
+                throw std::runtime_error(
+                    "ERROR: Invalid file " + std::string(filepath));
             }
-            if (S_ISDIR(filestat.st_mode)) continue;
+            if (!S_ISREG(filestat.st_mode)) continue;
 
             directory_size += filestat.st_size;
 
@@ -77,10 +80,6 @@ public:
         globfree(&glob_result);
     }
 
-    virtual ~ReadLinesNode() { }
-
-    //! Executes the read operation. Reads a file line by line
-    //! and emits it after applying the read function.
     void Execute() final { }
 
     void PushData() final {
@@ -108,10 +107,6 @@ public:
         return FunctionStack<std::string>();
     }
 
-    /*!
-     * Returns "[ReadLinesNode]" as a string.
-     * \return "[ReadLinesNode]"
-     */
     std::string ToString() final {
         return "[ReadLinesNode] Id: " + result_file_.ToString();
     }
@@ -127,10 +122,12 @@ private:
     {
     public:
         const size_t read_size = 2 * 1024 * 1024;
+
         //! Creates an instance of iterator that reads file line based
-        InputLineIterator(std::vector<std::pair<std::string, size_t> > files,
-                          size_t my_id,
-                          size_t num_workers)
+        InputLineIterator(
+            const std::vector<std::pair<std::string, size_t> >& files,
+            size_t my_id,
+            size_t num_workers)
             : files_(files),
               my_id_(my_id),
               num_workers_(num_workers) {
