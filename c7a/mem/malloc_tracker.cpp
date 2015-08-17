@@ -40,10 +40,10 @@ static const size_t log_operations_threshold = 1;
 //! to each allocation additional data is added for bookkeeping.
 static const size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
 
-//! function pointer to the real procedures, loaded using dlsym
-typedef void* (* malloc_type)(size_t);
-typedef void (* free_type)(void*);
-typedef void* (* realloc_type)(void*, size_t);
+//! function pointer to the real procedures, loaded using dlsym()
+using malloc_type = void* (*)(size_t);
+using free_type = void (*)(void*);
+using realloc_type = void* (*)(void*, size_t);
 
 static malloc_type real_malloc = nullptr;
 static free_type real_free = nullptr;

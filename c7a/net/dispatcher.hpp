@@ -79,8 +79,8 @@ protected:
 
 public:
     //! default constructor
-    Dispatcher(mem::MemoryManager& memory_manager)
-        : memory_manager_(memory_manager) { }
+    Dispatcher(mem::Manager& mem_manager)
+        : mem_manager_(mem_manager) { }
 
     //! non-copyable: delete copy-constructor
     Dispatcher(const Dispatcher&) = delete;
@@ -309,10 +309,10 @@ protected:
     std::atomic<bool> terminate_ { false };
 
     //! superior memory manager
-    mem::MemoryManager& memory_manager_;
+    mem::Manager& mem_manager_;
 
     //! low-level file descriptor async processing
-    SubDispatcher dispatcher_ { memory_manager_ };
+    SubDispatcher dispatcher_ { mem_manager_ };
 
     //! struct for timer callbacks
     struct Timer
@@ -343,7 +343,7 @@ protected:
     //! order. Currently not addressable.
     TimerPQ timer_pq_ {
         std::less<Timer>(),
-        mem::mm_vector<Timer>(mem::Allocator<Timer>(memory_manager_))
+        mem::mm_vector<Timer>(mem::Allocator<Timer>(mem_manager_))
     };
 
     /**************************************************************************/
@@ -403,7 +403,7 @@ protected:
 
     //! deque of asynchronous readers
     mem::mm_deque<AsyncReadBuffer> async_read_ {
-        mem::Allocator<AsyncReadBuffer>(memory_manager_)
+        mem::Allocator<AsyncReadBuffer>(mem_manager_)
     };
 
     /**************************************************************************/
@@ -463,7 +463,7 @@ protected:
 
     //! deque of asynchronous writers
     mem::mm_deque<AsyncWriteBuffer> async_write_ {
-        mem::Allocator<AsyncWriteBuffer>(memory_manager_)
+        mem::Allocator<AsyncWriteBuffer>(mem_manager_)
     };
 
     /**************************************************************************/
@@ -524,7 +524,7 @@ protected:
 
     //! deque of asynchronous readers
     mem::mm_deque<AsyncReadByteBlock> async_read_block_ {
-        mem::Allocator<AsyncReadByteBlock>(memory_manager_)
+        mem::Allocator<AsyncReadByteBlock>(mem_manager_)
     };
 
     /**************************************************************************/
@@ -586,7 +586,7 @@ protected:
 
     //! deque of asynchronous writers
     mem::mm_deque<AsyncWriteBlock> async_write_block_ {
-        mem::Allocator<AsyncWriteBlock>(memory_manager_)
+        mem::Allocator<AsyncWriteBlock>(mem_manager_)
     };
 
     /**************************************************************************/

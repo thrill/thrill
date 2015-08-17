@@ -47,8 +47,8 @@ class SelectDispatcher : protected Select
 
 public:
     //! constructor
-    SelectDispatcher(mem::MemoryManager& memory_manager)
-        : memory_manager_(memory_manager) { }
+    SelectDispatcher(mem::Manager& mem_manager)
+        : mem_manager_(mem_manager) { }
 
     //! type for file descriptor readiness callbacks
     using Callback = std::function<bool()>;
@@ -58,7 +58,7 @@ public:
         assert(fd >= 0);
         assert(fd <= 32000); // this is an arbitrary limit to catch errors.
         if (static_cast<size_t>(fd) >= watch_.size())
-            watch_.resize(fd + 1, Watch(memory_manager_));
+            watch_.resize(fd + 1, Watch(mem_manager_));
     }
 
     //! Register a buffered read callback and a default exception callback.
@@ -118,7 +118,7 @@ public:
 
 private:
     //! reference to memory manager
-    mem::MemoryManager& memory_manager_;
+    mem::Manager& mem_manager_;
 
     //! callback vectors per watched file descriptor
     struct Watch
@@ -130,15 +130,15 @@ private:
         //! only one exception callback for the fd.
         Callback                except_cb = nullptr;
 
-        Watch(mem::MemoryManager& memory_manager)
-            : read_cb(mem::Allocator<Callback>(memory_manager)),
-              write_cb(mem::Allocator<Callback>(memory_manager)) { }
+        Watch(mem::Manager& mem_manager)
+            : read_cb(mem::Allocator<Callback>(mem_manager)),
+              write_cb(mem::Allocator<Callback>(mem_manager)) { }
     };
 
     //! handlers for all registered file descriptors. the fd integer range
     //! should be small enough, otherwise a more complicated data structure is
     //! needed.
-    mem::mm_vector<Watch> watch_ { mem::Allocator<Watch>(memory_manager_) };
+    mem::mm_vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {

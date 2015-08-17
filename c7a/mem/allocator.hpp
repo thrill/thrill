@@ -13,7 +13,7 @@
 #define C7A_MEM_ALLOCATOR_HEADER
 
 #include <c7a/mem/allocator_base.hpp>
-#include <c7a/mem/memory_manager.hpp>
+#include <c7a/mem/manager.hpp>
 
 #include <cassert>
 #include <deque>
@@ -48,9 +48,9 @@ public:
     template <class U>
     struct rebind { using other = Allocator<U>; };
 
-    //! Construct Allocator with MemoryManager object
-    explicit Allocator(MemoryManager& memory_manager) noexcept
-        : memory_manager_(&memory_manager) { }
+    //! Construct Allocator with Manager object
+    explicit Allocator(Manager& manager) noexcept
+        : manager_(&manager) { }
 
     //! copy-constructor
     Allocator(const Allocator&) noexcept = default;
@@ -58,7 +58,7 @@ public:
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
     Allocator(const Allocator<OtherType>& other) noexcept
-        : memory_manager_(other.memory_manager_) { }
+        : manager_(other.manager_) { }
 
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to
@@ -67,11 +67,11 @@ public:
         if (n > this->max_size())
             throw std::bad_alloc();
 
-        memory_manager_->add(n * sizeof(Type));
+        manager_->add(n * sizeof(Type));
 
         if (debug) {
             printf("allocate() n=%lu sizeof(T)=%lu total=%lu\n",
-                   n, sizeof(Type), memory_manager_->total());
+                   n, sizeof(Type), manager_->total());
         }
 
         return static_cast<Type*>(bypass_malloc(n * sizeof(Type)));
@@ -81,37 +81,37 @@ public:
     //! and not yet released.
     void deallocate(pointer p, size_type n) noexcept {
 
-        memory_manager_->subtract(n * sizeof(Type));
+        manager_->subtract(n * sizeof(Type));
 
         if (debug) {
             printf("deallocate() n=%lu sizeof(T)=%lu total=%lu\n",
-                   n, sizeof(Type), memory_manager_->total());
+                   n, sizeof(Type), manager_->total());
         }
 
         bypass_free(p);
     }
 
-    //! pointer to common MemoryManager object. If we use a reference here, then
+    //! pointer to common Manager object. If we use a reference here, then
     //! the allocator cannot be default move/assigned anymore.
-    MemoryManager* memory_manager_;
+    Manager* manager_;
 
     //! Compare to another allocator of same type
     template <class Other>
     bool operator == (const Allocator<Other>& other) const noexcept {
-        return (memory_manager_ == other.memory_manager_);
+        return (manager_ == other.manager_);
     }
 
     //! Compare to another allocator of same type
     template <class Other>
     bool operator != (const Allocator<Other>& other) const noexcept {
-        return (memory_manager_ != other.memory_manager_);
+        return (manager_ != other.manager_);
     }
 };
 
 //! operator new with our Allocator
 template <typename T, class ... Args>
-T * mm_new(MemoryManager& memory_manager, Args&& ... args) {
-    Allocator<T> allocator(memory_manager);
+T * mm_new(Manager& manager, Args&& ... args) {
+    Allocator<T> allocator(manager);
     T* value = allocator.allocate(1);
     allocator.construct(value, std::forward<Args>(args) ...);
     return value;
@@ -119,25 +119,25 @@ T * mm_new(MemoryManager& memory_manager, Args&& ... args) {
 
 //! operator delete with our Allocator
 template <typename T>
-void mm_delete(MemoryManager& memory_manager, T* value) {
-    Allocator<T> allocator(memory_manager);
+void mm_delete(Manager& manager, T* value) {
+    Allocator<T> allocator(manager);
     allocator.destroy(value);
     allocator.deallocate(value, 1);
 }
 
-//! string with MemoryManager tracking
+//! string with Manager tracking
 using mm_string = std::basic_string<
           char, std::char_traits<char>, Allocator<char> >;
 
-//! stringbuf with MemoryManager tracking
+//! stringbuf with Manager tracking
 using mm_stringbuf = std::basic_stringbuf<
           char, std::char_traits<char>, Allocator<char> >;
 
-//! vector with MemoryManager tracking
+//! vector with Manager tracking
 template <typename T>
 using mm_vector = std::vector<T, Allocator<T> >;
 
-//! deque with MemoryManager tracking
+//! deque with Manager tracking
 template <typename T>
 using mm_deque = std::deque<T, Allocator<T> >;
 
