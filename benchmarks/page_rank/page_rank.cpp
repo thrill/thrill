@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/page_rank.cpp
+ * benchmarks/page_rank/page_rank.cpp
  *
  * Part of Project c7a.
  *
