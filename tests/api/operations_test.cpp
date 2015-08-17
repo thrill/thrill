@@ -69,12 +69,12 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 }
 
 TEST(Operations, ReadFolder) {
-	std::function<void(Context&)> start_func =
-		[](Context& ctx) {
-		ASSERT_EQ(ReadLines(ctx, "read_folder/*").Size(), 20);
-	};
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+            ASSERT_EQ(ReadLines(ctx, "read_folder/*").Size(), 20);
+        };
 
-	api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Operations, WriteToSingleFile) {
