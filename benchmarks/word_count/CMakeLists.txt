@@ -1,5 +1,5 @@
 ################################################################################
-# examples/CMakeLists.txt
+# benchmarks/word_count/CMakeLists.txt
 #
 # CMake file for c7a example programs.
 ################################################################################

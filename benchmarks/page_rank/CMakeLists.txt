@@ -1,5 +1,5 @@
 ################################################################################
-# examples/CMakeLists.txt
+# benchmarks/page_rank/CMakeLists.txt
 #
 # CMake file for c7a example programs.
 ################################################################################

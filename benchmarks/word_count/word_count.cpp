@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count.cpp
+ * benchmarks/word_count/word_count.cpp
  *
  * Runner program for WordCount example. See c7a/examples/word_count.hpp for the
  * source to the example.
