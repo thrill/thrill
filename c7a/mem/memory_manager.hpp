@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/memory_manager.hpp
+ * c7a/mem/memory_manager.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_MEMORY_MANAGER_HEADER
-#define C7A_CORE_MEMORY_MANAGER_HEADER
+#ifndef C7A_MEM_MEMORY_MANAGER_HEADER
+#define C7A_MEM_MEMORY_MANAGER_HEADER
 
 #include <c7a/common/logger.hpp>
 
@@ -18,7 +18,7 @@
 #include <cassert>
 
 namespace c7a {
-namespace core {
+namespace mem {
 
 /*!
  * Object shared by allocators and other classes to track memory
@@ -62,9 +62,9 @@ protected:
     std::atomic<size_t> total_ { 0 };
 };
 
-} // namespace core
+} // namespace mem
 } // namespace c7a
 
-#endif // !C7A_CORE_MEMORY_MANAGER_HEADER
+#endif // !C7A_MEM_MEMORY_MANAGER_HEADER
 
 /******************************************************************************/

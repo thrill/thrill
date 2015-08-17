@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/allocator.hpp
+ * c7a/mem/allocator.hpp
  *
  * Part of Project c7a.
  *
@@ -9,11 +9,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_ALLOCATOR_HEADER
-#define C7A_CORE_ALLOCATOR_HEADER
+#ifndef C7A_MEM_ALLOCATOR_HEADER
+#define C7A_MEM_ALLOCATOR_HEADER
 
-#include <c7a/core/allocator_base.hpp>
-#include <c7a/core/memory_manager.hpp>
+#include <c7a/mem/allocator_base.hpp>
+#include <c7a/mem/memory_manager.hpp>
 
 #include <cassert>
 #include <deque>
@@ -25,7 +25,7 @@
 #include <vector>
 
 namespace c7a {
-namespace core {
+namespace mem {
 
 template <typename Type>
 class Allocator : public AllocatorBase<Type>
@@ -141,9 +141,9 @@ using mm_vector = std::vector<T, Allocator<T> >;
 template <typename T>
 using mm_deque = std::deque<T, Allocator<T> >;
 
-} // namespace core
+} // namespace mem
 } // namespace c7a
 
-#endif // !C7A_CORE_ALLOCATOR_HEADER
+#endif // !C7A_MEM_ALLOCATOR_HEADER
 
 /******************************************************************************/

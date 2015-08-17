@@ -128,7 +128,7 @@ protected:
     Manager& mgr_;
 
     //! Temporary MemoryManager for construction
-    core::MemoryManager memory_manager_ { nullptr };
+    mem::MemoryManager memory_manager_ { nullptr };
 
     //! Link to manager's groups to initialize
     std::array<Group, kGroupCount>& groups_ = mgr_.groups_;

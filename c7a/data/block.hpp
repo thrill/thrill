@@ -12,8 +12,8 @@
 #ifndef C7A_DATA_BLOCK_HEADER
 #define C7A_DATA_BLOCK_HEADER
 
-#include <c7a/core/memory_manager.hpp>
 #include <c7a/data/block_pool.hpp>
+#include <c7a/mem/memory_manager.hpp>
 
 #include <cassert>
 #include <memory>

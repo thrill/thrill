@@ -25,12 +25,12 @@ namespace common {
 
 /******************************************************************************/
 
-using StringCount = std::pair<core::string, size_t>;
+using StringCount = std::pair<mem::string, size_t>;
 
 //! deque without malloc tracking
 template <class Key, class T, class Compare = std::less<Key> >
 using bypass_map = std::map<Key, T, Compare,
-                            core::BypassAllocator<std::pair<const Key, T> > >;
+                            mem::BypassAllocator<std::pair<const Key, T> > >;
 
 //! mutex for threads_ map
 static std::mutex mutex_;
@@ -39,7 +39,7 @@ static std::mutex mutex_;
 static bypass_map<std::thread::id, StringCount> threads_;
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const core::string& name) {
+void NameThisThread(const mem::string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
     threads_[std::this_thread::get_id()] = StringCount(name, 0);
 }
@@ -91,7 +91,7 @@ Logger<true>::~Logger() {
     // multi-threaded programs.
     std::unique_lock<std::mutex> lock(logger_mutex_);
     oss_.flush();
-    core::string out = buf_.str();
+    mem::string out = buf_.str();
     std::cout.write(out.data(), out.size());
 }
 
@@ -109,7 +109,7 @@ SpacingLogger<true>::~SpacingLogger() {
     // multi-threaded programs.
     std::unique_lock<std::mutex> lock(logger_mutex_);
     oss_.flush();
-    core::string out = buf_.str();
+    mem::string out = buf_.str();
     std::cout.write(out.data(), out.size());
 }
 

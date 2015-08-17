@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/malloc_tracker.cpp
+ * c7a/mem/malloc_tracker.cpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #define _GNU_SOURCE
 #endif
 
-#include <c7a/core/malloc_tracker.hpp>
+#include <c7a/mem/malloc_tracker.hpp>
 
 #include <dlfcn.h>
 #include <stdio.h>
@@ -30,7 +30,7 @@
 #endif
 
 namespace c7a {
-namespace core {
+namespace mem {
 
 //! user-defined options for output malloc()/free() operations to stderr
 
@@ -179,14 +179,14 @@ static __attribute__ ((destructor)) void finish() {
             total_allocs, current_allocs);
 }
 
-} // namespace core
+} // namespace mem
 } // namespace c7a
 
 /****************************************************/
 /* exported symbols that overlay the libc functions */
 /****************************************************/
 
-using namespace c7a::core; // NOLINT
+using namespace c7a::mem; // NOLINT
 
 ATTRIBUTE_NO_SANITIZE
 static void * preinit_malloc(size_t size) noexcept {
