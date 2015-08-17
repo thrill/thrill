@@ -13,12 +13,14 @@ namespace c7a {
 namespace common {
 
 /******************************************************************************/
-/** \page common Common Utilities and Helpers
+/** \page common Common Tools and Helpers
+
+The namespace common contains many common tools and helpers shared by higher layers. Each file or component in common must be usable independently of all others.
 
 - \subpage common_logger
 - \subpage common_stats
 - \subpage common_cmdline
-- \subpage common_thread_pool
+- \ref common::ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
 
 */
 
@@ -132,39 +134,6 @@ One feature worth naming is that the parser also supports lists of strings, i.e.
 
 \example tests/common/cmdline_parser_example.cpp
 This example is documented in \ref common_cmdline tutorial.
-
-*/
-
-/******************************************************************************/
-/** \page common_thread_pool Thread Pool
-
-The ThreadPool starts p worker threads which process Jobs that are \ref ThreadPool::Enqueue "enqueued" to the pool. The Jobs themselves can enqueue more jobs that will be processed when a thread is ready.
-
-The ThreadPool terminates when the queue is empty and all threads are idle when called with \ref ThreadPool::LoopUntilEmpty "LoopUntilEmpty", or runs until \ref ThreadPool::Terminate "Terminate" is called when run with \ref ThreadPool::LoopUntilTerminate "LoopUntilTerminate". Note that the threads in the pool start **before** the two loop functions are called. In case of LoopUntilEmpty the threads continue to be idle afterwards, and can be reused, until the ThreadPool is destroyed.
-
-Jobs have `std::function<void()>` signature. The best method to pass parameters to Jobs is to use lambda captures. Alternatively, old-school objects implementing operator(), or std::binds can be used.
-
-\code
-ThreadPool pool(4); // pool with 4 threads
-
-int value = 0;
-pool.Enqueue([&value]() {
-  // increment value in another thread.
-  ++value;
-});
-
-pool.LoopUntilEmpty();
-\endcode
-
-## Synchronization Primitives
-
-Beyond threads from the ThreadPool, the framework contains two fast synchronized queue containers:
-- concurrent_queue
-- concurrent_bounded_queue.
-
-If the Intel Thread Building Blocks are available, then these use their lock-free implementations, which are very fast, but do busy-waiting for items. Otherwise, compatible replacements are used.
-
-The concurrent_queue has no busy-waiting pop(), only a try_pop() method. This should be preferred! The concurrent_bounded_queue<T> has a blocking pop(), but it probably does busy-waiting.
 
 */
 
