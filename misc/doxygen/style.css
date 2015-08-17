@@ -159,3 +159,22 @@ div.groupHeader {
 div.line {
    line-height: 1.2;
 }
+
+/* My own table style class with plain lines */
+
+table.mystyle1 {
+   margin: 0 auto;
+   max-width: 80ex;
+   border-collapse: collapse;
+   border-spacing: 0;
+}
+
+table.mystyle1 tr {
+   border-collapse: collapse;
+}
+
+table.mystyle1 td {
+   border: 1px solid black;
+   padding: 4px;
+   border-collapse: collapse;
+}
