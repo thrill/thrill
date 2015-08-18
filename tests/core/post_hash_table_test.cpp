@@ -48,7 +48,7 @@ private:
     HashFunction hash_function_;
 };
 
-TEST_F(PostTable, DISABLED_CustomHashFunction) {
+TEST_F(PostTable, CustomHashFunction) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -70,19 +70,16 @@ TEST_F(PostTable, DISABLED_CustomHashFunction) {
     table(key_ex, red_fn, emitters, cust_hash, flush_func);
 
     ASSERT_EQ(0u, writer1.size());
-    //ASSERT_EQ(0u, table.NumItems());
 
     for (int i = 0; i < 16; i++) {
         table.Insert(std::move(pair(i)));
     }
 
     ASSERT_EQ(0u, writer1.size());
-    //ASSERT_EQ(16u, table.NumItems());
 
     table.Flush();
 
     ASSERT_EQ(16u, writer1.size());
-    //ASSERT_EQ(0u, table.NumItems());
 }
 
 TEST_F(PostTable, AddIntegers) {
@@ -102,23 +99,22 @@ TEST_F(PostTable, AddIntegers) {
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
-    //ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumBlocks());
 
     table.Insert(pair(1));
-
-    //ASSERT_EQ(1u, table.NumItems());
-
     table.Insert(pair(2));
     table.Insert(pair(3));
 
-    //ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(3u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
+    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(3u, writer1.size());
 }
 
-TEST_F(PostTable, DISABLED_CreateEmptyTable) {
+TEST_F(PostTable, CreateEmptyTable) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -135,10 +131,10 @@ TEST_F(PostTable, DISABLED_CreateEmptyTable) {
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
-    //ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(0u, table.NumBlocks());
 }
 
-TEST_F(PostTable, DISABLED_FlushIntegers) {
+TEST_F(PostTable, FlushIntegers) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -154,23 +150,27 @@ TEST_F(PostTable, DISABLED_FlushIntegers) {
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
+    ASSERT_EQ(0u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
+
     table.Insert(pair(1));
     table.Insert(pair(2));
     table.Insert(pair(3));
 
-    //ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
+    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(3u, writer1.size());
-    //ASSERT_EQ(0u, table.NumItems());
 
     table.Insert(pair(1));
 
-    //ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(1u, table.NumBlocks());
 }
 
-TEST_F(PostTable, DISABLED_FlushIntegersInSequence) {
+TEST_F(PostTable, FlushIntegersInSequence) {
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -186,23 +186,35 @@ TEST_F(PostTable, DISABLED_FlushIntegersInSequence) {
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
+    ASSERT_EQ(0u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
+
     table.Insert(pair(1));
     table.Insert(pair(2));
     table.Insert(pair(3));
 
-    //ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
+    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(3u, writer1.size());
-    //ASSERT_EQ(0u, table.NumItems());
 
-    table.Insert(pair(1));
+    table.Insert(pair(4));
+    table.Insert(pair(5));
+    table.Insert(pair(6));
 
-    //ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(3u, table.NumBlocks());
+    ASSERT_EQ(3u, writer1.size());
+
+    table.Flush();
+
+    ASSERT_EQ(0u, table.NumBlocks());
+    ASSERT_EQ(6u, writer1.size());
 }
 
-TEST_F(PostTable, DISABLED_MultipleEmitters) {
+TEST_F(PostTable, MultipleEmitters) {
     std::vector<int> vec1;
 
     auto key_ex = [](int in) {
@@ -227,20 +239,16 @@ TEST_F(PostTable, DISABLED_MultipleEmitters) {
     table.Insert(pair(2));
     table.Insert(pair(3));
 
-    //ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(0u, writer1.size());
+    ASSERT_EQ(0u, writer2.size());
 
     table.Flush();
 
-    //ASSERT_EQ(0u, table.NumItems());
     ASSERT_EQ(3u, writer1.size());
     ASSERT_EQ(3u, writer2.size());
-
-    table.Insert(pair(1));
-
-    //ASSERT_EQ(1u, table.NumItems());
 }
 
-TEST_F(PostTable, DISABLED_ComplexType) {
+TEST_F(PostTable, ComplexType) {
     using StringPair = std::pair<std::string, int>;
 
     auto key_ex = [](StringPair in) {
@@ -263,15 +271,15 @@ TEST_F(PostTable, DISABLED_ComplexType) {
     table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
     table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
 
-    //ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumBlocks());
 
     table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
 
-    //ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(3u, table.NumBlocks());
 
     table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
 
-    //ASSERT_EQ(4u, table.NumItems());
+    ASSERT_EQ(4u, table.NumBlocks());
 }
 
 // TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
