@@ -39,6 +39,21 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
+//! Signature of timer callbacks.
+using TimerCallback = common::delegate<bool()>;
+
+//! Signature of async connection readability/writability callbacks.
+using AsyncCallback = common::delegate<bool()>;
+
+//! Signature of async read callbacks.
+using AsyncReadCallback = common::delegate<void(Connection& c, Buffer&& buffer)>;
+
+//! Signature of async read ByteBlock callbacks.
+using AsyncReadByteBlockCallback = common::delegate<void(Connection& c)>;
+
+//! Signature of async write callbacks.
+using AsyncWriteCallback = common::delegate<void(Connection&)>;
+
 /**
  * Dispatcher is a high level wrapper for asynchronous callback
  * processing.. One can register Connection objects for readability and
@@ -63,9 +78,6 @@ protected:
     //! import into class namespace
     using milliseconds = std::chrono::milliseconds;
 
-    template <typename Signature>
-    using delegate = common::delegate<Signature>;
-
     //! for access to terminate_
     friend class DispatcherThread;
 
@@ -82,9 +94,6 @@ public:
     //! \name Timeout Callbacks
     //! \{
 
-    //! callback signature for timer events
-    using TimerCallback = delegate<bool()>;
-
     //! Register a relative timeout callback
     void AddTimer(const std::chrono::milliseconds& timeout,
                   const TimerCallback& cb) {
@@ -98,16 +107,13 @@ public:
     //! \name Connection Callbacks
     //! \{
 
-    //! callback signature for socket readable/writable events
-    using ConnectionCallback = delegate<bool()>;
-
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const ConnectionCallback& read_cb) {
+    void AddRead(Connection& c, const AsyncCallback& read_cb) {
         return dispatcher_.AddRead(c.GetSocket().fd(), read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
+    void AddWrite(Connection& c, const AsyncCallback& write_cb) {
         return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
     }
 
@@ -120,9 +126,6 @@ public:
 
     //! \name Asynchronous Data Reader/Writer Callbacks
     //! \{
-
-    //! callback signature for async read callbacks, they may acquire the buffer
-    using AsyncReadCallback = delegate<void(Connection& c, Buffer&& buffer)>;
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
@@ -142,9 +145,6 @@ public:
         AddRead(c, [&arb, &c]() { return arb(c); });
     }
 
-    //! callback signature for async read callbacks, they may acquire the buffer
-    using AsyncReadByteBlockCallback = delegate<void(Connection& c)>;
-
     //! asynchronously read the full ByteBlock and deliver it to the callback
     void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
                    AsyncReadByteBlockCallback done_cb) {
@@ -163,9 +163,6 @@ public:
         AsyncReadByteBlock& arbb = async_read_block_.back();
         AddRead(c, [&arbb, &c]() { return arbb(c); });
     }
-
-    //! callback signature for async write callbacks
-    using AsyncWriteCallback = delegate<void(Connection&)>;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.

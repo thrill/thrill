@@ -30,6 +30,21 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
+//! Signature of timer callbacks.
+using TimerCallback = common::delegate<bool()>;
+
+//! Signature of async connection readability/writability callbacks.
+using AsyncCallback = common::delegate<bool()>;
+
+//! Signature of async read callbacks.
+using AsyncReadCallback = common::delegate<void(Connection& c, Buffer&& buffer)>;
+
+//! Signature of async read ByteBlock callbacks.
+using AsyncReadByteBlockCallback = common::delegate<void(Connection& c)>;
+
+//! Signature of async write callbacks.
+using AsyncWriteCallback = common::delegate<void(Connection&)>;
+
 /**
  * DispatcherThread contains a net::Dispatcher object and an associated thread
  * that runs in the dispatching loop.
@@ -41,24 +56,6 @@ class DispatcherThread
 public:
     //! \name Imported Typedefs
     //! \{
-
-    template <typename Signature>
-    using delegate = common::delegate<Signature>;
-
-    //! Signature of timer callbacks.
-    using TimerCallback = delegate<bool()>;
-
-    //! Signature of async connection readability/writability callbacks.
-    using ConnectionCallback = delegate<bool()>;
-
-    //! Signature of async read callbacks.
-    using AsyncReadCallback = delegate<void(Connection& c, Buffer&& buffer)>;
-
-    //! Signature of async read ByteBlock callbacks.
-    using AsyncReadByteBlockCallback = delegate<void(Connection& c)>;
-
-    //! Signature of async write callbacks.
-    using AsyncWriteCallback = delegate<void(Connection&)>;
 
     //! Signature of async jobs to be run by the dispatcher thread.
     using Job = common::ThreadPool::Job;
@@ -93,10 +90,10 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const ConnectionCallback& read_cb);
+    void AddRead(Connection& c, const AsyncCallback& read_cb);
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const ConnectionCallback& write_cb);
+    void AddWrite(Connection& c, const AsyncCallback& write_cb);
 
     //! Cancel all callbacks on a given connection.
     void Cancel(Connection& c);

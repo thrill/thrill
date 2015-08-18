@@ -64,7 +64,7 @@ void DispatcherThread::AddTimer(
 
 //! Register a buffered read callback and a default exception callback.
 void DispatcherThread::AddRead(
-    Connection& c, const ConnectionCallback& read_cb) {
+    Connection& c, const AsyncCallback& read_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddRead(c, read_cb);
             });
@@ -73,7 +73,7 @@ void DispatcherThread::AddRead(
 
 //! Register a buffered write callback and a default exception callback.
 void DispatcherThread::AddWrite(
-    Connection& c, const ConnectionCallback& write_cb) {
+    Connection& c, const AsyncCallback& write_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddWrite(c, write_cb);
             });
