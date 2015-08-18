@@ -16,6 +16,7 @@
 
 #include <c7a/common/config.hpp>
 #include <c7a/common/logger.hpp>
+#include <c7a/common/delegate.hpp>
 #include <c7a/mem/allocator.hpp>
 #include <c7a/net/exception.hpp>
 #include <c7a/net/lowlevel/select.hpp>
@@ -51,7 +52,7 @@ public:
         : mem_manager_(mem_manager) { }
 
     //! type for file descriptor readiness callbacks
-    using Callback = std::function<bool()>;
+    using Callback = common::delegate<bool()>;
 
     //! Grow table if needed
     void CheckSize(int fd) {
@@ -124,11 +125,11 @@ private:
     struct Watch
     {
         //! boolean check whether any callbacks are registered
-        bool                    active;
+        bool                    active = false;
         //! queue of callbacks for fd.
         mem::mm_deque<Callback> read_cb, write_cb;
         //! only one exception callback for the fd.
-        Callback                except_cb = nullptr;
+        Callback                except_cb;
 
         Watch(mem::Manager& mem_manager)
             : read_cb(mem::Allocator<Callback>(mem_manager)),
