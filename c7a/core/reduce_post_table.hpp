@@ -124,10 +124,19 @@ public:
     }
 };
 
+template <typename Key,
+            typename ReduceFunction,
+            typename IndexFunction = PostReduceByHashKey<Key>,
+            typename EqualToFunction = std::equal_to<Key>>
 class PostReduceFlushToDefault
 {
 public:
-    PostReduceFlushToDefault() {}
+    PostReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
+                             const EqualToFunction& equal_to_function = EqualToFunction()) :
+            index_function_(index_function),
+            equal_to_function_(equal_to_function)
+    {
+    }
 
     template <typename ReducePostTable>
     void
@@ -161,8 +170,11 @@ public:
             if (file.NumItems() > 0)  {
 
                 // compute size of second reduce table
+//                size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
+//                                  / static_cast<double>(ht->MaxNumBlocksPerBucket() * ht->block_size_));
+
                 size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-                                  / static_cast<double>(ht->MaxNumBlocksPerBucket() * ht->block_size_));
+                                                         / static_cast<double>(ht->block_size_));
 
                 // adjust size of second reduce table
                 second_reduce.resize(frame_length, NULL);
@@ -179,7 +191,7 @@ public:
 
                     KeyValuePair kv = reader.Next<KeyValuePair>();
 
-                    size_t global_index = ht->index_function_(kv.first, ht, frame_length);
+                    size_t global_index = index_function_(kv.first, ht, frame_length);
 
                     BucketBlock* current = second_reduce[global_index];
                     while (current != NULL)
@@ -189,7 +201,7 @@ public:
                              bi != current->items + current->size; ++bi)
                         {
                             // if item and key equals, then reduce.
-                            if (ht->equal_to_function_(kv.first, bi->first))
+                            if (equal_to_function_(kv.first, bi->first))
                             {
                                 bi->second = ht->reduce_function_(bi->second, kv.second);
                                 return;
@@ -233,7 +245,7 @@ public:
                         {
                             // insert in second reduce table
 
-                            size_t global_index = ht->index_function_(from->first, ht, frame_length);
+                            size_t global_index = index_function_(from->first, ht, frame_length);
                             BucketBlock* current = second_reduce[global_index];
                             while (current != NULL)
                             {
@@ -242,7 +254,7 @@ public:
                                      bi != current->items + current->size; ++bi)
                                 {
                                     // if item and key equals, then reduce.
-                                    if (ht->equal_to_function_(from->first, bi->first))
+                                    if (equal_to_function_(from->first, bi->first))
                                     {
                                         bi->second = ht->reduce_function_(bi->second, from->second);
                                         return;
@@ -340,6 +352,10 @@ public:
         }
         ht->SetNumBlocks(0);
     }
+private:
+    //ReduceFunction reduce_function_;
+    IndexFunction index_function_;
+    EqualToFunction equal_to_function_;
 };
 
 template <typename Value>
@@ -417,9 +433,9 @@ public:
         while (to_spill &&
                bucket_idx != bucket_idx_init) {
 
-            BucketBlock* first = buckets[bucket_idx];
+            BucketBlock* current = buckets[bucket_idx];
 
-            if (first == NULL || first->next == NULL) {
+            if (current == NULL) {
                 if (bucket_idx >= ht->NumBuckets()-1) {
                     bucket_idx = 0;
                     bucket_idx_init++;
@@ -429,18 +445,28 @@ public:
                 continue;
             }
 
-            for (KeyValuePair* bi = first->next->items;
-                 bi != first->next->items + first->next->size; ++bi)
+            if (current->next != NULL) {
+                current = current->next;
+            }
+
+            for (KeyValuePair* bi = current->items;
+                 bi != current->items + current->size; ++bi)
             {
-                data::File::Writer& writer = frame_writers[0];
+                data::File::Writer& writer = frame_writers[bucket_idx / ht->FrameSize()];
                 writer(*bi);
             }
 
+            BucketBlock* next = current->next;
+
             // destroy block
-            BucketBlock* next = first->next->next;
-            first->next->destroy_items();
-            operator delete (first->next);
-            first->next = next;
+            current->destroy_items();
+            operator delete (current);
+
+            if (buckets[bucket_idx]->next == NULL) {
+                buckets[bucket_idx] = NULL;
+            } else {
+                buckets[bucket_idx]->next = next;
+            }
 
             to_spill = false;
         }
@@ -475,7 +501,7 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostReduceFlushToDefault,
+          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           typename SpillFunction = PostRandomBlockSpill,
@@ -548,7 +574,7 @@ public:
                     Value neutral_element = Value(),
                     size_t num_buckets = 1024,
                     size_t max_num_blocks_per_bucket = 16,
-                    size_t max_num_blocks_table = 1,
+                    size_t max_num_blocks_table = 1024*16,
                     size_t frame_size = 32,
                     const EqualToFunction& equal_to_function = EqualToFunction(),
                     const SpillFunction& spill_function = PostRandomBlockSpill()
@@ -562,11 +588,11 @@ public:
             neutral_element_(neutral_element),
             frame_size_(frame_size),
             key_extractor_(key_extractor),
-            reduce_function_(reduce_function),
             index_function_(index_function),
             equal_to_function_(equal_to_function),
             flush_function_(flush_function),
-            spill_function_(spill_function)
+            spill_function_(spill_function),
+            reduce_function_(reduce_function)
     {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
@@ -933,12 +959,8 @@ protected:
     //! frame size.
     size_t frame_size_ = 0;
 
-public:
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
-
-    //! Reduce function for reducing two values.
-    ReduceFunction reduce_function_;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;
@@ -951,6 +973,10 @@ public:
 
     //! Spill function.
     SpillFunction spill_function_;
+
+public:
+    //! Reduce function for reducing two values.
+    ReduceFunction reduce_function_;
 };
 
 } // namespace core
