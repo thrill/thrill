@@ -142,6 +142,18 @@ public:
     }
 };
 
+template <>
+class BypassAllocator<void>
+{
+public:
+    using pointer = void*;
+    using const_pointer = const void*;
+    using value_type = void;
+
+    template <class U>
+    struct rebind { using other = BypassAllocator<U>; };
+};
+
 //! string without malloc tracking
 using string = std::basic_string<
           char, std::char_traits<char>, BypassAllocator<char> >;
