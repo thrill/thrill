@@ -1,8 +1,10 @@
 /*******************************************************************************
  * c7a/common/delegate.hpp
  *
- * Replacement for std::function with some code borrowed from
+ * Replacement for std::function with ideas and base code borrowed from
  * http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
+ *
+ * Massively rewritten, commented, simplified, and improved.
  *
  * Part of Project c7a.
  *
@@ -131,8 +133,7 @@ public:
               // allocate memory for T in shared_ptr with appropriate deleter
               typename Allocator::template rebind<
                   typename std::decay<T>::type>::other().allocate(1),
-              store_deleter<typename std::decay<T>::type>),
-          store_size_(sizeof(typename std::decay<T>::type)) {
+              store_deleter<typename std::decay<T>::type>) {
 
         using Functor = typename std::decay<T>::type;
         using Rebind = typename Allocator::template rebind<Functor>::other;
@@ -144,7 +145,6 @@ public:
         object_ptr_ = store_.get();
 
         caller_ = functor_caller<Functor>;
-        deleter_ = deleter_caller<Functor>;
     }
 
     //! constructor from any functor object T, which may be a lambda with
@@ -202,68 +202,6 @@ public:
     }
 
     //! \}
-
-#if 0
-    //! constructor for a class method C::operator() given by pointer
-    template <class C, typename =
-                  typename std::enable_if < std::is_class<C>{ } > ::type>
-    explicit delegate(const C* const o) noexcept
-        : object_ptr_(const_cast<C*>(o)) { }
-
-    //! constructor for a class method C::operator() given by reference
-    template <class C, typename =
-                  typename std::enable_if < std::is_class<C>{ } > ::type>
-    explicit delegate(const C& o) noexcept
-        : object_ptr_(const_cast<C*>(&o)) { }
-
-    //! assignment operator to change the class::method to call, the object
-    //! itself remains unchanged.
-    template <class C>
-    delegate& operator = (R(C::* const method_ptr)(A ...)) {
-        return *this = delegate(static_cast<C*>(object_ptr_), method_ptr);
-    }
-
-    //! assignment operator to change the class::method to call, the object
-    //! itself remains unchanged.
-    template <class C>
-    delegate& operator = (R(C::* const method_ptr)(A ...) const) {
-        return *this = delegate(static_cast<C const*>(object_ptr_), method_ptr);
-    }
-
-    //! operator to change the functor via assignment?
-    template <
-        typename T,
-        typename = typename std::enable_if <
-                   !std::is_same<delegate, typename std::decay<T>::type>{ }
-        > ::type
-        >
-    delegate& operator = (T&& f) {
-        using Functor = typename std::decay<T>::type;
-        using Rebind = typename Allocator::template rebind<Functor>::other;
-
-        // if ((sizeof(Functor) > store_size_) || !store_.unique())
-        // {
-        store_.reset(Rebind().allocate(1), store_deleter<Functor>);
-
-        //     store_size_ = sizeof(Functor);
-        // }
-        // else
-        // {
-        //     deleter_(store_.get());
-        // }
-
-        // copy-construct T into shared_ptr memory.
-        Rebind().construct(
-            static_cast<Functor*>(store_.get()), Functor(std::forward<T>(f)));
-
-        object_ptr_ = store_.get();
-
-        caller_ = functor_caller<Functor>;
-        deleter_ = deleter_caller<Functor>;
-
-        return *this;
-    }
-#endif
 
     //! \name Miscellaneous
     //! \{
@@ -332,10 +270,9 @@ private:
     //! contents.
     void* object_ptr_;
 
-    Deleter deleter_ = nullptr;
-
+    //! shared_ptr used to contain a memory object containing the callable, like
+    //! lambdas with closures, or our own wrappers.
     std::shared_ptr<void> store_;
-    std::size_t store_size_ = 0;
 
     //! private constructor for plain
     delegate(const Caller& m, void* const o) noexcept
@@ -348,13 +285,6 @@ private:
 
         Rebind().destroy(static_cast<T*>(p));
         Rebind().deallocate(static_cast<T*>(p), 1);
-    }
-
-    template <class T>
-    static void deleter_caller(void* const p) {
-        using Rebind = typename Allocator::template rebind<T>::other;
-
-        Rebind().destroy(static_cast<T*>(p));
     }
 
     //! \name Callers for simple function and immediate class::method calls.

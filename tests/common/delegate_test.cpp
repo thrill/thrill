@@ -133,7 +133,7 @@ class Functor
 public:
     int x;
 
-    int operator () (int a) const {
+    int operator () (int a) {
         return a + x;
     }
 };
@@ -161,6 +161,12 @@ TEST(Delegate, TestLambda) {
     {
         TestDelegate d = TestDelegate::from([](int x) { return x + 1; });
         ASSERT_EQ(42, d(41));
+    }
+    {
+        // test a lambda with capture
+        int val = 10;
+        TestDelegate d = TestDelegate::from([&](int x) { return x + val; });
+        ASSERT_EQ(42, d(32));
     }
     {
         TestDelegate d = [](int x) { return x + 1; };
