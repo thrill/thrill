@@ -31,10 +31,64 @@ template <typename T, typename Allocator = std::allocator<void> >
 class delegate;
 
 /*!
- * This is a faster replacement for std::function. Besides being faster, we use
- * it in places where move-only lambda captures are necessary. std::function is
- * required to be copy-constructible, and hence does not allow move-only
- * captures.
+ * This is a faster replacement than std::function. Besides being faster and
+ * doing less allocations when used correctly, we use it in places where
+ * move-only lambda captures are necessary. std::function is required by the
+ * standard to be copy-constructible, and hence does not allow move-only
+ * lambda captures.
+ *
+ * A delegate contains a reference to any of the following callable objects:
+ * - an immediate function (called via one indirection)
+ * - a mutable function pointer (copied into the delegate)
+ * - an immediate class::method call (called via one indirection)
+ * - a functor object (the whole object is copied into the delegate)
+ *
+ * All callable objects must have the signature ReturnType(Arguments ...). If a
+ * callable has this signature, it can be bound to the delegate.
+ *
+ * To implement all this the delegate contains one pointer to a "caller stub"
+ * function, which depends on the contained object and can be an immediate
+ * function call, a pointer to the object associated with the callable, and a
+ * memory pointer (managed by shared_ptr) for holding larger callables that need
+ * to be copied.
+ *
+ * A functor object can be a lambda function with its capture, an internally
+ * wrapped mutable class::method class stored as pair<object, method_ptr>, or
+ * any other old-school functor object.
+ *
+ * Delegates can be constructed similar to std::function.
+\code
+// in defining the delegate we decide the ReturnType(Arguments ...) signature
+using MyDelegate = delegate<int(double)>;
+
+// this is a plain function bound to the delegate as a function pointer
+int func(double a) { return a + 10; }
+MyDelegate d1 = MyDelegate(func);
+
+class AClass {
+public:
+    int method(double d) { return d * d; }
+};
+
+AClass a;
+
+// this is class::method bound to the delegate via indirection, warning: this
+// creates a needless allocation, because it is stored as pair<Class,Method>
+MyDelegate d2 = MyDelegate(a, &AClass::method);
+// same as above
+MyDelegate d3 = MyDelegate::from(a, &AClass::method);
+
+// class::method bound to the delegate via instantiation of an immediate caller
+// to the method AClass::method. this is preferred and does not require any
+// memory allocation!
+MyDelegate d4 = MyDelegate::from<AClass, &AClass::method>(a);
+
+// a lambda with capture bound to the delegate, this always performs a memory
+// allocation to copy the capture closure.
+double offset = 42.0;
+MyDelegate d5 = [&](double a) { return a + offset; };
+\endcode
+ *
  */
 template <class R, class ... A, typename Allocator>
 class delegate<R(A ...), Allocator>
