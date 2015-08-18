@@ -15,8 +15,8 @@
 #define C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
 #include <c7a/common/config.hpp>
-#include <c7a/common/logger.hpp>
 #include <c7a/common/delegate.hpp>
+#include <c7a/common/logger.hpp>
 #include <c7a/mem/allocator.hpp>
 #include <c7a/net/exception.hpp>
 #include <c7a/net/lowlevel/select.hpp>
