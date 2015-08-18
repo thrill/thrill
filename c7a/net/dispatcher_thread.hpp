@@ -20,10 +20,7 @@
 #include <c7a/data/block.hpp>
 #include <c7a/mem/allocator.hpp>
 #include <c7a/net/connection.hpp>
-
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
 #include <c7a/common/delegate.hpp>
-#endif
 
 #include <string>
 
@@ -45,28 +42,23 @@ public:
     //! \name Imported Typedefs
     //! \{
 
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
     template <typename Signature>
-    using function = common::delegate<Signature>;
-#else
-    template <typename Signature>
-    using function = std::function<Signature>;
-#endif
+    using delegate = common::delegate<Signature>;
 
     //! Signature of timer callbacks.
-    using TimerCallback = function<bool()>;
+    using TimerCallback = delegate<bool()>;
 
     //! Signature of async connection readability/writability callbacks.
-    using ConnectionCallback = function<bool()>;
+    using ConnectionCallback = delegate<bool()>;
 
     //! Signature of async read callbacks.
-    using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
+    using AsyncReadCallback = delegate<void(Connection& c, Buffer&& buffer)>;
 
     //! Signature of async read ByteBlock callbacks.
-    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
+    using AsyncReadByteBlockCallback = delegate<void(Connection& c)>;
 
     //! Signature of async write callbacks.
-    using AsyncWriteCallback = function<void(Connection&)>;
+    using AsyncWriteCallback = delegate<void(Connection&)>;
 
     //! Signature of async jobs to be run by the dispatcher thread.
     using Job = common::ThreadPool::Job;
