@@ -15,6 +15,7 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
+#include <c7a/common/delegate.hpp>
 #include <c7a/data/block.hpp>
 #include <c7a/mem/allocator.hpp>
 #include <c7a/net/buffer.hpp>
@@ -24,10 +25,6 @@
 
 // TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
 // #include <c7a/net/lowlevel/epoll-dispatcher.hpp>
-
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
-#include <c7a/common/delegate.hpp>
-#endif
 
 #include <atomic>
 #include <chrono>
@@ -66,13 +63,8 @@ protected:
     //! import into class namespace
     using milliseconds = std::chrono::milliseconds;
 
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
     template <typename Signature>
-    using function = common::delegate<Signature>;
-#else
-    template <typename Signature>
-    using function = std::function<Signature>;
-#endif
+    using delegate = common::delegate<Signature>;
 
     //! for access to terminate_
     friend class DispatcherThread;
@@ -91,7 +83,7 @@ public:
     //! \{
 
     //! callback signature for timer events
-    using TimerCallback = function<bool()>;
+    using TimerCallback = delegate<bool()>;
 
     //! Register a relative timeout callback
     void AddTimer(const std::chrono::milliseconds& timeout,
@@ -107,7 +99,7 @@ public:
     //! \{
 
     //! callback signature for socket readable/writable events
-    using ConnectionCallback = function<bool()>;
+    using ConnectionCallback = delegate<bool()>;
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const ConnectionCallback& read_cb) {
@@ -130,7 +122,7 @@ public:
     //! \{
 
     //! callback signature for async read callbacks, they may acquire the buffer
-    using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
+    using AsyncReadCallback = delegate<void(Connection& c, Buffer&& buffer)>;
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
@@ -151,7 +143,7 @@ public:
     }
 
     //! callback signature for async read callbacks, they may acquire the buffer
-    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
+    using AsyncReadByteBlockCallback = delegate<void(Connection& c)>;
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
     void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
@@ -173,7 +165,7 @@ public:
     }
 
     //! callback signature for async write callbacks
-    using AsyncWriteCallback = function<void(Connection&)>;
+    using AsyncWriteCallback = delegate<void(Connection&)>;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
