@@ -36,7 +36,7 @@ static void ThreadInitializeAsyncRead(Group* net) {
     mem::Manager mem_manager(nullptr);
     Dispatcher dispatcher(mem_manager);
 
-    Dispatcher::AsyncReadCallback callback =
+    AsyncReadCallback callback =
         [net, &received](Connection& /* s */, const Buffer& buffer) {
             ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
                       net->my_host_rank());

@@ -42,9 +42,8 @@ ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
 void Multiplexer::AsyncReadChannelBlockHeader(Connection& s) {
     dispatcher_.AsyncRead(
         s, sizeof(ChannelBlockHeader),
-        [this](Connection& s, net::Buffer&& buffer) {
-            OnChannelBlockHeader(s, std::move(buffer));
-        });
+        net::AsyncReadCallback::from<
+            Multiplexer, & Multiplexer::OnChannelBlockHeader>(this));
 }
 
 void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
@@ -52,46 +51,50 @@ void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
     // received invalid Buffer: the connection has closed?
     if (!buffer.IsValid()) return;
 
-    ChannelBlockHeader header;
     net::BufferReader br(buffer);
-    header.ParseHeader(br);
+    on_channel.header.ParseHeader(br);
 
     // received channel id
-    auto id = header.channel_id;
-    auto local_worker = header.receiver_local_worker_id;
-    ChannelPtr channel = GetOrCreateChannel(id, local_worker);
+    auto id = on_channel.header.channel_id;
+    auto local_worker = on_channel.header.receiver_local_worker_id;
+    on_channel.channel = GetOrCreateChannel(id, local_worker);
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    if (header.IsEnd()) {
+    size_t sender_worker_rank =
+        on_channel.header.sender_rank * num_workers_per_host_ +
+        on_channel.header.sender_local_worker_id;
+
+    if (on_channel.header.IsEnd()) {
         sLOG << "end of stream on" << s << "in channel" << id << "from worker" << sender_worker_rank;
-        channel->OnCloseChannel(sender_worker_rank);
+        on_channel.channel->OnCloseChannel(sender_worker_rank);
 
         AsyncReadChannelBlockHeader(s);
     }
     else {
         sLOG << "stream header from" << s << "on channel" << id
-             << "from" << header.sender_rank;
+             << "from" << on_channel.header.sender_rank;
 
-        ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+        on_channel.bytes = ByteBlock::Allocate(on_channel.header.size, block_pool_);
 
         dispatcher_.AsyncRead(
-            s, bytes,
-            [this, header, channel, bytes](Connection& s) {
-                OnChannelBlock(s, header, channel, bytes);
-            });
+            s, on_channel.bytes,
+            net::AsyncReadByteBlockCallback::from<
+                Multiplexer, & Multiplexer::OnChannelBlock>(this));
     }
 }
 
-void Multiplexer::OnChannelBlock(
-    Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-    const ByteBlockPtr& bytes) {
+void Multiplexer::OnChannelBlock(Connection& s) {
 
-    size_t sender_worker_rank = header.sender_rank * num_workers_per_host_ + header.sender_local_worker_id;
-    sLOG << "got block on" << s << "in channel" << header.channel_id << "from worker" << sender_worker_rank;
+    size_t sender_worker_rank =
+        on_channel.header.sender_rank * num_workers_per_host_ +
+        on_channel.header.sender_local_worker_id;
 
-    channel->OnChannelBlock(
+    sLOG << "got block on" << s << "in channel"
+         << on_channel.header.channel_id << "from worker" << sender_worker_rank;
+
+    on_channel.channel->OnChannelBlock(
         sender_worker_rank,
-        Block(bytes, 0, header.size, header.first_item, header.nitems));
+        Block(on_channel.bytes, 0, on_channel.header.size,
+              on_channel.header.first_item, on_channel.header.nitems));
 
     AsyncReadChannelBlockHeader(s);
 }

@@ -145,11 +145,19 @@ private:
     //! OnChannelBlockHeader
     void AsyncReadChannelBlockHeader(Connection& s);
 
+    //! structure containing information during reception of packets
+    struct {
+        //! block header received
+        ChannelBlockHeader header;
+        //! reference to destination channel
+        ChannelPtr         channel;
+        //! byte buffer being received into
+        ByteBlockPtr       bytes;
+    } on_channel;
+
     void OnChannelBlockHeader(Connection& s, net::Buffer&& buffer);
 
-    void OnChannelBlock(
-        Connection& s, const ChannelBlockHeader& header, const ChannelPtr& channel,
-        const ByteBlockPtr& bytes);
+    void OnChannelBlock(Connection& s);
 };
 
 //! \}
