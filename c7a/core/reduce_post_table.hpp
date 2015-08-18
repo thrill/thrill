@@ -392,14 +392,62 @@ public:
     }
 };
 
-class PostRandomSpill
+class PostRandomBlockSpill
 {
 public:
     template <typename ReducePostTable>
     void
-    operator () (size_t num_items_spill,  ReducePostTable* ht) const {
-        (*ht).NumBlocks();
-        num_items_spill++;
+    operator () (ReducePostTable* ht) const {
+
+        using BucketBlock = typename ReducePostTable::BucketBlock;
+
+        using KeyValuePair = typename ReducePostTable::KeyValuePair;
+
+        auto& buckets = ht->Items();
+
+        auto &frame_writers = ht->FrameWriters();
+
+        // randomly select bucket, get bucket idx
+        size_t bucket_idx = (size_t) (rand() % ht->NumBuckets());
+        size_t bucket_idx_init = bucket_idx;
+        bucket_idx_init--;
+
+        bool to_spill = true;
+
+        while (to_spill &&
+               bucket_idx != bucket_idx_init) {
+
+            BucketBlock* first = buckets[bucket_idx];
+
+            if (first == NULL || first->next == NULL) {
+                if (bucket_idx >= ht->NumBuckets()-1) {
+                    bucket_idx = 0;
+                    bucket_idx_init++;
+                } else {
+                    bucket_idx++;
+                }
+                continue;
+            }
+
+            for (KeyValuePair* bi = first->next->items;
+                 bi != first->next->items + first->next->size; ++bi)
+            {
+                data::File::Writer& writer = frame_writers[0];
+                writer(*bi);
+            }
+
+            // destroy block
+            BucketBlock* next = first->next->next;
+            first->next->destroy_items();
+            operator delete (first->next);
+            first->next = next;
+
+            to_spill = false;
+        }
+
+        if (!to_spill) {
+            ht->SetNumBlocks(ht->NumBlocks()-1);
+        }
     }
 };
 
@@ -430,7 +478,7 @@ template <typename ValueType, typename Key, typename Value,
           typename FlushFunction = PostReduceFlushToDefault,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          typename SpillFunction = PostRandomSpill,
+          typename SpillFunction = PostRandomBlockSpill,
           size_t TargetBlockSize = 16*1024
           >
 class ReducePostTable
@@ -475,15 +523,20 @@ public:
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param num_buckets_init_scale Used to calculate the initial number of buckets
-     *                  (num_partitions * num_buckets_init_scale).
-     * \param num_buckets_resize_scale Used to calculate the number of buckets during resize
-     *                  (size * num_buckets_resize_scale).
-     * \param max_num_items_per_bucket Maximal number of items allowed in a bucket. Used to decide when to resize.
-     * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
-     *                  of the partition with the most items gets flushed.
      * \param index_function Function to be used for computing the bucket the item to be inserted.
-     * \param equal_to_function Function for checking equality fo two keys.
+     * \param flush_function Function to be used for flushing all items in the table.
+     * \param begin_local_index Begin index for reduce to index.
+     * \param end_local_index End index for reduce to index.
+     * \param neutral element Neutral element for reduce to index.
+     * \param num_buckets Number of buckets in the table.
+     * \param max_num_blocks_per_bucket Maximal number of blocks allowed in a bucket. It the number is exceeded,
+     *        no more blocks are added to a bucket, instead, items get spilled to disk.
+     * \param max_num_blocks_table Maximal number of blocks allowed in the table. It the number is exceeded,
+     *        no more blocks are added to a bucket, instead, items get spilled to disk using some spilling strategy
+     *        defined in spill_function.
+     * \param frame_size Number of buckets (=frame) exactly one file writer to be used for.
+     * \param equal_to_function Function for checking equality of two keys.
+     * \param spill_function Function implementing a strategy to spill items to disk.
      */
     ReducePostTable(KeyExtractor key_extractor,
                     ReduceFunction reduce_function,
@@ -498,7 +551,7 @@ public:
                     size_t max_num_blocks_table = 1,
                     size_t frame_size = 32,
                     const EqualToFunction& equal_to_function = EqualToFunction(),
-                    const SpillFunction& spill_function = PostRandomSpill()
+                    const SpillFunction& spill_function = PostRandomBlockSpill()
     )
         :   num_buckets_(num_buckets),
             max_num_blocks_per_bucket_(max_num_blocks_per_bucket),
@@ -515,6 +568,8 @@ public:
             flush_function_(flush_function),
             spill_function_(spill_function)
     {
+        sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
+
         assert(num_buckets > 0 &&
                        (num_buckets & (num_buckets - 1)) == 0
                && "num_buckets must be a power of two");
@@ -527,7 +582,14 @@ public:
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
-        init();
+        buckets_.resize(num_buckets_, NULL);
+        num_frames_ = num_buckets_ / frame_size_;
+        frame_files_.resize(num_frames_);
+        for (size_t i = 0; i < num_frames_; i++) {
+            frame_writers_.push_back(frame_files_[i].GetWriter(1024));
+        }
+
+        srand(time(NULL));
     }
 
     //! non-copyable: delete copy-constructor
@@ -549,23 +611,6 @@ public:
                 current = next;
             }
         }
-    }
-
-    /**
-     * Initializes the data structure by calculating some metrics based on input.
-     */
-    void init() {
-
-        sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
-
-        buckets_.resize(num_buckets_, NULL);
-        num_frames_ = num_buckets_ / frame_size_;
-        frame_files_.resize(num_frames_);
-        for (size_t i = 0; i < num_frames_; i++) {
-            frame_writers_.push_back(frame_files_[i].GetWriter(1024));
-        }
-
-        srand(time(NULL));
     }
 
     /*!
@@ -642,7 +687,7 @@ public:
             }
 
             if (num_blocks_ == max_num_blocks_table_) {
-                SpillBlock();
+                spill_function_(this);
             }
 
             // allocate a new block of uninitialized items, postpend to bucket
@@ -674,54 +719,6 @@ public:
     }
 
     /*!
-    * Spill block.
-    */
-    void SpillBlock() {
-
-        // randomly select bucket, get bucket idx
-        size_t bucket_idx = (size_t) (rand() % num_buckets_);
-        size_t bucket_idx_init = bucket_idx;
-        bucket_idx_init--;
-
-        bool to_spill = true;
-
-        while (to_spill &&
-                bucket_idx != bucket_idx_init) {
-
-            BucketBlock* first = buckets_[bucket_idx];
-
-            if (first == NULL || first->next == NULL) {
-                if (bucket_idx >= num_buckets_-1) {
-                    bucket_idx = 0;
-                    bucket_idx_init++;
-                } else {
-                    bucket_idx++;
-                }
-                continue;
-            }
-
-            for (KeyValuePair* bi = first->next->items;
-                 bi != first->next->items + first->next->size; ++bi)
-            {
-                data::File::Writer& writer = frame_writers_[0];
-                writer(*bi);
-            }
-
-            // destroy block
-            BucketBlock* next = first->next->next;
-            first->next->destroy_items();
-            operator delete (first->next);
-            first->next = next;
-
-            to_spill = false;
-        }
-
-        if (!to_spill) {
-            --num_blocks_;
-        }
-    }
-
-    /*!
      * Emits element to all children
      */
     void EmitAll(const KeyValuePair& element) {
@@ -739,18 +736,18 @@ public:
     }
 
     /*!
-     * Returns the total num of items in the table.
+     * Returns the total num of blocks in the table.
      *
-     * @return Number of items in the table.
+     * @return Number of blocks in the table.
      */
     size_t NumBlocks() const {
         return num_blocks_;
     }
 
     /*!
-     * Returns the total num of items in the table.
+     * Returns the total num of blocks in the table.
      *
-     * @return Number of items in the table.
+     * @return Number of blocks in the table.
      */
     void SetNumBlocks(size_t num_blocks) {
         num_blocks_ = num_blocks;
@@ -766,7 +763,7 @@ public:
     }
 
     /*!
-     * Returns the maximal number of items per bucket.
+     * Returns the maximal number of blocks per bucket.
      *
      * @return Maximal number of items per bucket.
      */
@@ -775,10 +772,10 @@ public:
     }
 
     /*!
-     * Sets the maximum number of items of the hash table. We don't want to push 2vt
+     * Sets the maximum number of blocks of the hash table. We don't want to push 2vt
      * elements before flush happens.
      *
-     * \param size The maximal number of items the table may hold.
+     * \param size The maximal number of blocks the table may hold.
      */
     void SetMaxNumBlocksTable(size_t size) {
         max_num_blocks_table_ = size;
@@ -899,11 +896,11 @@ protected:
     //! Number of buckets
     size_t num_buckets_;
 
-    // Maximal number of items per bucket before resize.
+    // Maximal number of blocks per bucket before spilling.
     size_t max_num_blocks_per_bucket_;
 
-    //! Maximal number of items before some items
-    //! are flushed (-> partial flush).
+    //! Maximal number of blocks before some items
+    //! are spilled.
     size_t max_num_blocks_table_;
 
     //! Keeps the total number of blocks in the table.
@@ -915,13 +912,13 @@ protected:
     //! Set of emitters, one per partition.
     std::vector<EmitterFunction> emit_;
 
-    //! Data structure for actually storing the items.
+    //! Store the items.
     std::vector<BucketBlock*> buckets_;
 
-    //! Data structure for storing the files for frames.
+    //! Store the files for frames.
     std::vector<data::File> frame_files_;
 
-    //! Data structure for storing the writers for frames.
+    //! Store the writers for frames.
     std::vector<data::File::Writer> frame_writers_;
 
     //! Begin local index (reduce to index)
