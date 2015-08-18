@@ -42,9 +42,8 @@ ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
 void Multiplexer::AsyncReadChannelBlockHeader(Connection& s) {
     dispatcher_.AsyncRead(
         s, sizeof(ChannelBlockHeader),
-        [this](Connection& s, net::Buffer&& buffer) {
-            OnChannelBlockHeader(s, std::move(buffer));
-        });
+        net::AsyncReadCallback::from<
+        Multiplexer, &Multiplexer::OnChannelBlockHeader>(this));
 }
 
 void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
