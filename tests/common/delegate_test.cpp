@@ -9,11 +9,13 @@
  ******************************************************************************/
 
 #include <c7a/common/delegate.hpp>
+#include <c7a/mem/allocator_base.hpp>
 #include <gtest/gtest.h>
 
-using namespace c7a::common;
+using namespace c7a;
+using common::delegate;
 
-using TestDelegate = delegate<int(int)>;
+using TestDelegate = delegate<int(int), mem::BypassAllocator<void> >;
 
 class A
 {

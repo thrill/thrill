@@ -25,7 +25,7 @@
 namespace c7a {
 namespace common {
 
-template <typename T>
+template <typename T, typename Allocator = std::allocator<void> >
 class delegate;
 
 /*!
@@ -34,13 +34,14 @@ class delegate;
  * required to be copy-constructible, and hence does not allow move-only
  * captures.
  */
-template <class R, class ... A>
-class delegate<R(A ...)>
+template <class R, class ... A, typename Allocator>
+class delegate<R(A ...), Allocator>
 {
-    //! typedef of the function caller stub pointer.
-    using stub_ptr_type = R (*)(void*, A&& ...);
+    //! type of the function caller stub pointer.
+    using StubPtr = R (*)(void*, A&& ...);
 
-    delegate(void* const o, const stub_ptr_type m) noexcept
+    //! private constructor for plain
+    delegate(void* const o, const StubPtr m) noexcept
         : object_ptr_(o), stub_ptr_(m) { }
 
 public:
@@ -68,7 +69,7 @@ public:
     explicit delegate(const C& o) noexcept
         : object_ptr_(const_cast<C*>(&o)) { }
 
-    //! constructor from a class method C::method with given pointer.
+    //! constructor from a class::method with given class pointer.
     template <class C>
     delegate(C* const object_ptr, R(C::* const method_ptr)(A ...))
         : delegate(member_pair<C>(object_ptr, method_ptr)) { }
@@ -88,7 +89,7 @@ public:
     delegate(C const& object, R(C::* const method_ptr)(A ...) const)
         : delegate(const_member_pair<C>(&object, method_ptr)) { }
 
-    //! constructor from a functor object, which may be a lambda or a
+    //! constructor from a functor object T, which may be a lambda or a
     //! member_pair or const_member_pair wrapper.
     template <
         typename T,
@@ -97,18 +98,24 @@ public:
         > ::type
         >
     delegate(T&& f)
-        : store_(operator new (sizeof(typename std::decay<T>::type)),
-                 functor_deleter<typename std::decay<T>::type>),
+        : store_(
+              // allocate memory for T in shared_ptr with appropriate deleter
+              typename Allocator::template rebind<
+                  typename std::decay<T>::type>::other().allocate(1),
+              functor_deleter<typename std::decay<T>::type>),
           store_size_(sizeof(typename std::decay<T>::type)) {
 
-        using functor_type = typename std::decay<T>::type;
+        using Functor = typename std::decay<T>::type;
+        using Rebind = typename Allocator::template rebind<Functor>::other;
 
-        new (store_.get())functor_type(std::forward<T>(f));
+        // copy-construct T into shared_ptr memory.
+        Rebind().construct(
+            static_cast<Functor*>(store_.get()), Functor(std::forward<T>(f)));
 
         object_ptr_ = store_.get();
 
-        stub_ptr_ = functor_stub<functor_type>;
-        deleter_ = deleter_stub<functor_type>;
+        stub_ptr_ = functor_stub<Functor>;
+        deleter_ = deleter_stub<Functor>;
     }
 
     //! copy assignment operator
@@ -137,26 +144,27 @@ public:
         > ::type
         >
     delegate& operator = (T&& f) {
-        using functor_type = typename std::decay<T>::type;
+        using Functor = typename std::decay<T>::type;
+        using Rebind = typename Allocator::template rebind<Functor>::other;
 
-        if ((sizeof(functor_type) > store_size_) || !store_.unique())
+        if ((sizeof(Functor) > store_size_) || !store_.unique())
         {
-            store_.reset(operator new (sizeof(functor_type)),
-                         functor_deleter<functor_type>);
+            store_.reset(Rebind().allocate(1), functor_deleter<Functor>);
 
-            store_size_ = sizeof(functor_type);
+            store_size_ = sizeof(Functor);
         }
         else
         {
             deleter_(store_.get());
         }
 
-        new (store_.get())functor_type(std::forward<T>(f));
+        Rebind().construct(
+            static_cast<Functor*>(store_.get()), Functor(std::forward<T>(f)));
 
         object_ptr_ = store_.get();
 
-        stub_ptr_ = functor_stub<functor_type>;
-        deleter_ = deleter_stub<functor_type>;
+        stub_ptr_ = functor_stub<Functor>;
+        deleter_ = deleter_stub<Functor>;
 
         return *this;
     }
@@ -282,7 +290,7 @@ public:
     }
 
 private:
-    using deleter_type = void (*)(void*);
+    using Deleter = void (*)(void*);
 
     //! pointer to function held by the delegate: either a plain function or a
     //! class method.
@@ -290,9 +298,9 @@ private:
 
     //! function caller stub which depends on the type of function in
     //! object_ptr_.
-    stub_ptr_type stub_ptr_ { };
+    StubPtr stub_ptr_ { };
 
-    deleter_type deleter_ = nullptr;
+    Deleter deleter_ = nullptr;
 
     std::shared_ptr<void> store_ = nullptr;
     std::size_t store_size_ = 0;
@@ -300,14 +308,17 @@ private:
     //! deleter for functor closures
     template <class T>
     static void functor_deleter(void* const p) {
-        static_cast<T*>(p)->~T();
+        using Rebind = typename Allocator::template rebind<T>::other;
 
-        operator delete (p);
+        Rebind().destroy(static_cast<T*>(p));
+        Rebind().deallocate(static_cast<T*>(p), 1);
     }
 
     template <class T>
     static void deleter_stub(void* const p) {
-        static_cast<T*>(p)->~T();
+        using Rebind = typename Allocator::template rebind<T>::other;
+
+        Rebind().destroy(static_cast<T*>(p));
     }
 
     //! function caller stub for plain functions.
