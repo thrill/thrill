@@ -633,7 +633,6 @@ public:
             current->size == block_size_)
         {
             if (num_blocks_bucket == max_num_blocks_per_bucket_) {
-                std::cout << "1111" << std::endl;
                 data::File::Writer& writer = frame_writers_[global_index / frame_size_];
                 KeyValuePair* bi = buckets_[global_index]->items;
                 writer(*bi);
@@ -643,7 +642,6 @@ public:
             }
 
             if (num_blocks_ == max_num_blocks_table_) {
-                std::cout << "2" << std::endl;
                 SpillBlock();
             }
 
@@ -653,11 +651,8 @@ public:
 
             current->size = 0;
             current->next = buckets_[global_index];
-            current->next = NULL;
             buckets_[global_index] = current;
             num_blocks_++;
-            std::cout << "3" << std::endl;
-            std::cout << global_index << std::endl;
         }
 
         // in-place construct/insert new item in current bucket block
@@ -858,7 +853,7 @@ public:
     void Print() {
         LOG << "Printing";
 
-        for (int i = 0; i < num_buckets_; i++)
+        for (size_t i = 0; i < num_buckets_; i++)
         {
             if (buckets_[i] == NULL)
             {
