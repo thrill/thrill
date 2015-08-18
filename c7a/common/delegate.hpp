@@ -370,6 +370,34 @@ private:
     //! \}
 };
 
+//! constructor for wrapping a class::method with object pointer.
+template <class C, typename R, typename ... A>
+delegate<R(A ...)>
+make_delegate(C* const object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
+    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+}
+
+//! constructor for wrapping a const class::method with object pointer.
+template <class C, typename R, typename ... A>
+delegate<R(A ...)>
+make_delegate(C* const object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
+    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+}
+
+//! constructor for wrapping a class::method with object reference.
+template <class C, typename R, typename ... A>
+delegate<R(A ...)>
+make_delegate(C& object_ptr, R(C::* const method_ptr)(A ...)) noexcept {
+    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+}
+
+//! constructor for wrapping a const class::method with object reference.
+template <class C, typename R, typename ... A>
+delegate<R(A ...)>
+make_delegate(C const& object_ptr, R(C::* const method_ptr)(A ...) const) noexcept {
+    return delegate<R(A ...)>::template from<C>(object_ptr, method_ptr);
+}
+
 } // namespace common
 } // namespace c7a
 

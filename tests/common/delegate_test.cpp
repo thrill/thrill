@@ -87,43 +87,65 @@ TEST(Delegate, TestClassFunction) {
     }
 
     {
-        // constructor from a class::method with object pointer.
+        // constructor from an indirect class::method with object pointer.
         TestDelegate d = TestDelegate(&a, &A::func);
         ASSERT_EQ(42, d(40));
     }
     {
-        // constructor from a class::method with object pointer.
+        // constructor from an indirect class::method with object pointer.
         TestDelegate d = TestDelegate(&a, &A::const_func);
         ASSERT_EQ(42, d(40));
     }
     {
-        // constructor from a class::method with object reference.
+        // constructor from an indirect class::method with object reference.
         TestDelegate d = TestDelegate(a, &A::func);
         ASSERT_EQ(42, d(40));
     }
     {
-        // constructor from a class::method with object reference.
+        // constructor from an indirect class::method with object reference.
         TestDelegate d = TestDelegate(a, &A::const_func);
         ASSERT_EQ(42, d(40));
     }
+
     {
-        // constructor from a class::method with object pointer.
+        // constructor from an indirect class::method with object pointer.
         TestDelegate d = TestDelegate::from(&a, &A::func);
         ASSERT_EQ(42, d(40));
     }
     {
-        // constructor from a class::method with object pointer.
+        // constructor from an indirect class::method with object pointer.
         TestDelegate d = TestDelegate::from(&a, &A::const_func);
         ASSERT_EQ(42, d(40));
     }
     {
-        // constructor from a class::method with object reference.
+        // constructor from an indirect class::method with object reference.
         TestDelegate d = TestDelegate::from(a, &A::func);
         ASSERT_EQ(42, d(40));
     }
     {
-        // constructor from a class::method with object reference.
+        // constructor from an indirect class::method with object reference.
         TestDelegate d = TestDelegate::from(a, &A::const_func);
+        ASSERT_EQ(42, d(40));
+    }
+
+    {
+        // constructor from an indirect class::method with object pointer.
+        TestDelegate d = common::make_delegate(&a, &A::func);
+        ASSERT_EQ(42, d(40));
+    }
+    {
+        // constructor from an indirect class::method with object pointer.
+        TestDelegate d = common::make_delegate(&a, &A::const_func);
+        ASSERT_EQ(42, d(40));
+    }
+    {
+        // constructor from an indirect class::method with object reference.
+        TestDelegate d = common::make_delegate(a, &A::func);
+        ASSERT_EQ(42, d(40));
+    }
+    {
+        // constructor from an indirect class::method with object reference.
+        TestDelegate d = common::make_delegate(a, &A::const_func);
         ASSERT_EQ(42, d(40));
     }
 }
