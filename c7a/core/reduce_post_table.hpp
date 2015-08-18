@@ -20,6 +20,8 @@
 #include <c7a/common/functional.hpp>
 #include <c7a/common/logger.hpp>
 #include <c7a/data/block_writer.hpp>
+#include <c7a/data/file.hpp>
+#include <c7a/data/block_sink.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -27,6 +29,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
+#include <cmath>
 
 namespace c7a {
 namespace core {
@@ -93,15 +97,14 @@ public:
     { }
 
     template <typename ReducePostTable>
-    typename ReducePostTable::index_result
-    operator () (Key v, ReducePostTable* ht) const {
-
-        using index_result = typename ReducePostTable::index_result;
+    size_t
+    operator () (Key v, ReducePostTable* ht, size_t num_buckets) const {
 
         size_t hashed = hash_function_(v);
 
-        size_t global_index = hashed % ht->NumBuckets();
-        return index_result(global_index);
+        (*ht).NumBlocks();
+
+        return hashed % num_buckets;
     }
 
 private:
@@ -114,52 +117,228 @@ public:
     PostReduceByIndex() { }
 
     template <typename ReducePostTable>
-    typename ReducePostTable::index_result
-    operator () (size_t key, ReducePostTable* ht) const {
+    size_t
+    operator () (size_t key, ReducePostTable* ht, size_t num_buckets) const {
 
-        using index_result = typename ReducePostTable::index_result;
-
-        size_t global_index = (key - ht->BeginLocalIndex()) % ht->NumBuckets();
-        return index_result(global_index);
+        return (key - ht->BeginLocalIndex()) % num_buckets;
     }
 };
 
 class PostReduceFlushToDefault
 {
 public:
+    PostReduceFlushToDefault() {}
+
     template <typename ReducePostTable>
     void
     operator () (ReducePostTable* ht) const {
 
-        using BucketBlock = typename ReducePostTable::BucketBlock;
-
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
-        auto& buckets_ = ht->Items();
+        using BucketBlock = typename ReducePostTable::BucketBlock;
 
-        for (size_t i = 0; i < ht->NumBuckets(); i++)
-        {
-            BucketBlock* current = buckets_[i];
+        auto &buckets_ = ht->Items();
 
-            while (current != NULL)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    ht->EmitAll(std::make_pair(bi->first, bi->second));
+        auto &frame_files = ht->FrameFiles();
+
+        auto &frame_writers = ht->FrameWriters();
+
+        //! Data structure for second reduce table
+        std::vector<BucketBlock*> second_reduce;
+
+        for (size_t frame_id = 0; frame_id < ht->NumFrames(); frame_id++) {
+
+            // compute frame offset of current frame
+            size_t offset = frame_id * ht->FrameSize();
+
+            // get the actual reader from the file
+            data::File& file = frame_files[frame_id];
+            data::File::Writer& writer = frame_writers[frame_id];
+            writer.Close(); // also closes the file
+
+            // only if items have been spilled,
+            // process a second reduce
+            if (file.NumItems() > 0)  {
+
+                // compute size of second reduce table
+                size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
+                                  / static_cast<double>(ht->MaxNumBlocksPerBucket() * ht->block_size_));
+
+                // adjust size of second reduce table
+                second_reduce.resize(frame_length, NULL);
+
+                /////
+                // reduce data from spilled files
+                /////
+
+                data::File::Reader reader = file.GetReader();
+
+                // get the items and insert them in secondary
+                // table
+                while(reader.HasNext()) {
+
+                    KeyValuePair kv = reader.Next<KeyValuePair>();
+
+                    size_t global_index = ht->index_function_(kv.first, ht, frame_length);
+
+                    BucketBlock* current = second_reduce[global_index];
+                    while (current != NULL)
+                    {
+                        // iterate over valid items in a block
+                        for (KeyValuePair* bi = current->items;
+                             bi != current->items + current->size; ++bi)
+                        {
+                            // if item and key equals, then reduce.
+                            if (ht->equal_to_function_(kv.first, bi->first))
+                            {
+                                bi->second = ht->reduce_function_(bi->second, kv.second);
+                                return;
+                            }
+                        }
+
+                        if (current->next == NULL)
+                            break;
+
+                        current = current->next;
+                    }
+
+                    // have an item that needs to be added.
+                    if (current == NULL ||
+                        current->size == ht->block_size_)
+                    {
+                        // allocate a new block of uninitialized items, postpend to bucket
+                        current = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+
+                        current->size = 0;
+                        current->next = second_reduce[global_index];
+                        second_reduce[global_index] = current;
+                    }
+
+                    // in-place construct/insert new item in current bucket block
+                    new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
                 }
 
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
+                /////
+                // reduce data from primary table
+                /////
+
+                for (size_t i = offset; i < offset + ht->FrameSize(); i++)
+                {
+                    BucketBlock* current = buckets_[i];
+
+                    while (current != NULL)
+                    {
+                        for (KeyValuePair* from = current->items;
+                             from != current->items + current->size; ++from)
+                        {
+                            // insert in second reduce table
+
+                            size_t global_index = ht->index_function_(from->first, ht, frame_length);
+                            BucketBlock* current = second_reduce[global_index];
+                            while (current != NULL)
+                            {
+                                // iterate over valid items in a block
+                                for (KeyValuePair* bi = current->items;
+                                     bi != current->items + current->size; ++bi)
+                                {
+                                    // if item and key equals, then reduce.
+                                    if (ht->equal_to_function_(from->first, bi->first))
+                                    {
+                                        bi->second = ht->reduce_function_(bi->second, from->second);
+                                        return;
+                                    }
+                                }
+
+                                if (current->next == NULL)
+                                    break;
+
+                                current = current->next;
+                            }
+
+                            // have an item that needs to be added.
+                            if (current == NULL ||
+                                current->size == ht->block_size_)
+                            {
+                                // allocate a new block of uninitialized items, postpend to bucket
+                                current = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+
+                                current->size = 0;
+                                current->next = second_reduce[global_index];
+                                second_reduce[global_index] = current;
+                            }
+
+                            // in-place construct/insert new item in current bucket block
+                            new (current->items + current->size++)KeyValuePair(from->first, std::move(from->second));
+                        }
+
+                        // destroy block and advance to next
+                        BucketBlock* next = current->next;
+                        current->destroy_items();
+                        operator delete (current);
+                        current = next;
+                    }
+
+                    buckets_[i] = NULL;
+                }
+
+                /////
+                // emit data
+                /////
+
+                for (size_t i = 0; i < frame_length; i++)
+                {
+                    BucketBlock* current = second_reduce[i];
+
+                    while (current != NULL)
+                    {
+                        for (KeyValuePair* bi = current->items;
+                             bi != current->items + current->size; ++bi)
+                        {
+                            ht->EmitAll(std::make_pair(bi->first, bi->second));
+                        }
+
+                        // destroy block and advance to next
+                        BucketBlock* next = current->next;
+                        current->destroy_items();
+                        operator delete (current);
+                        current = next;
+                    }
+
+                    second_reduce[i] = NULL;
+                }
+
+            // no spilled items, just flush already reduced
+            // data in primary table in current frame
+            } else
+            {
+                /////
+                // emit data
+                /////
+
+                for (size_t i = offset; i < offset + ht->FrameSize(); i++)
+                {
+                    BucketBlock* current = buckets_[i];
+
+                    while (current != NULL)
+                    {
+                        for (KeyValuePair* bi = current->items;
+                             bi != current->items + current->size; ++bi)
+                        {
+                            ht->EmitAll(std::make_pair(bi->first, bi->second));
+                        }
+
+                        // destroy block and advance to next
+                        BucketBlock* next = current->next;
+                        current->destroy_items();
+                        operator delete (current);
+                        current = next;
+                    }
+
+                    buckets_[i] = NULL;
+                }
             }
-
-            buckets_[i] = NULL;
         }
-
-        ht->SetNumItems(0);
+        ht->SetNumBlocks(0);
     }
 };
 
@@ -209,7 +388,18 @@ public:
         }
         assert(index == ht->EndLocalIndex());
 
-        ht->SetNumItems(0);
+        ht->SetNumBlocks(0);
+    }
+};
+
+class PostRandomSpill
+{
+public:
+    template <typename ReducePostTable>
+    void
+    operator () (size_t num_items_spill,  ReducePostTable* ht) const {
+        (*ht).NumBlocks();
+        num_items_spill++;
     }
 };
 
@@ -240,6 +430,7 @@ template <typename ValueType, typename Key, typename Value,
           typename FlushFunction = PostReduceFlushToDefault,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
+          typename SpillFunction = PostRandomSpill,
           size_t TargetBlockSize = 16*1024
           >
 class ReducePostTable
@@ -277,17 +468,6 @@ public:
         }
     };
 
-    struct index_result
-    {
-    public:
-        //! index within the whole hashtable
-        size_t global_index;
-
-        index_result(size_t g_id) {
-            global_index = g_id;
-        }
-    };
-
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
@@ -313,29 +493,39 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
-                    size_t num_buckets_init_scale = 10,
-                    size_t num_buckets_resize_scale = 2,
-                    size_t max_num_items_per_bucket = 256,
-                    size_t max_num_items_table = 1048576,
-                    const EqualToFunction& equal_to_function = EqualToFunction()
-                    )
-        :   num_buckets_init_scale_(num_buckets_init_scale),
-          num_buckets_resize_scale_(num_buckets_resize_scale),
-          max_num_items_per_bucket_(max_num_items_per_bucket),
-          max_num_items_table_(max_num_items_table),
-          key_extractor_(key_extractor),
-          reduce_function_(reduce_function),
-          emit_(std::move(emit)),
-          index_function_(index_function),
-          equal_to_function_(equal_to_function),
-          flush_function_(flush_function),
-          begin_local_index_(begin_local_index),
-          end_local_index_(end_local_index),
-          neutral_element_(neutral_element) {
-        assert(num_buckets_init_scale > 0);
-        assert(num_buckets_resize_scale > 1);
-        assert(max_num_items_per_bucket > 0);
-        assert(max_num_items_table > 0);
+                    size_t num_buckets = 1024,
+                    size_t max_num_blocks_per_bucket = 16,
+                    size_t max_num_blocks_table = 1,
+                    size_t frame_size = 32,
+                    const EqualToFunction& equal_to_function = EqualToFunction(),
+                    const SpillFunction& spill_function = PostRandomSpill()
+    )
+        :   num_buckets_(num_buckets),
+            max_num_blocks_per_bucket_(max_num_blocks_per_bucket),
+            max_num_blocks_table_(max_num_blocks_table),
+            emit_(std::move(emit)),
+            begin_local_index_(begin_local_index),
+            end_local_index_(end_local_index),
+            neutral_element_(neutral_element),
+            frame_size_(frame_size),
+            key_extractor_(key_extractor),
+            reduce_function_(reduce_function),
+            index_function_(index_function),
+            equal_to_function_(equal_to_function),
+            flush_function_(flush_function),
+            spill_function_(spill_function)
+    {
+        assert(num_buckets > 0 &&
+                       (num_buckets & (num_buckets - 1)) == 0
+               && "num_buckets must be a power of two");
+        assert(max_num_blocks_per_bucket > 0);
+        assert(max_num_blocks_table > 0);
+        assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
+               && "frame_size must be a power of two");
+        assert(frame_size <= num_buckets &&
+               "frame_size must be less than or equal to num_buckets");
+        assert(begin_local_index >= 0);
+        assert(end_local_index >= 0);
 
         init();
     }
@@ -368,8 +558,14 @@ public:
 
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
-        num_buckets_ = num_buckets_init_scale_;
         buckets_.resize(num_buckets_, NULL);
+        num_frames_ = num_buckets_ / frame_size_;
+        frame_files_.resize(num_frames_);
+        for (size_t i = 0; i < num_frames_; i++) {
+            frame_writers_.push_back(frame_files_[i].GetWriter(1024));
+        }
+
+        srand(time(NULL));
     }
 
     /*!
@@ -396,17 +592,19 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        index_result h = index_function_(kv.first, this);
+        size_t global_index = index_function_(kv.first, this, num_buckets_);
 
-        assert(h.global_index >= 0 && h.global_index < num_buckets_);
+        assert(global_index >= 0 && global_index < num_buckets_);
 
-        LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
+        LOG << "key: " << kv.first << " to bucket id: " << global_index;
 
-        size_t num_items_bucket = 0;
-        BucketBlock* current = buckets_[h.global_index];
+        size_t num_blocks_bucket = 0;
+        BucketBlock* current = buckets_[global_index];
 
         while (current != NULL)
         {
+            num_blocks_bucket++;
+
             // iterate over valid items in a block
             for (KeyValuePair* bi = current->items;
                  bi != current->items + current->size; ++bi)
@@ -422,9 +620,6 @@ public:
                     LOG << "...finished reduce!";
                     return;
                 }
-
-                // increase num items in bucket for visited item
-                num_items_bucket++;
             }
 
             if (current->next == NULL)
@@ -434,39 +629,39 @@ public:
         }
 
         // have an item that needs to be added.
-
         if (current == NULL ||
             current->size == block_size_)
         {
+            if (num_blocks_bucket == max_num_blocks_per_bucket_) {
+                std::cout << "1" << std::endl;
+                data::File::Writer& writer = frame_writers_[global_index / frame_size_];
+                KeyValuePair* bi = buckets_[global_index]->items;
+                writer(*bi);
+                bi->first = std::move(kv.first);
+                bi->second = std::move(kv.second);
+                return;
+            }
+
+            if (num_blocks_ == max_num_blocks_table_) {
+                std::cout << "2" << std::endl;
+                SpillBlock();
+            }
+
             // allocate a new block of uninitialized items, postpend to bucket
             current =
                 static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
             current->size = 0;
-            current->next = buckets_[h.global_index];
-            buckets_[h.global_index] = current;
+            current->next = buckets_[global_index];
+            current->next = NULL;
+            buckets_[global_index] = current;
+            num_blocks_++;
+            std::cout << "3" << std::endl;
+            std::cout << global_index << std::endl;
         }
 
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
-
-        // increase total counter
-        num_items_++;
-
-        // increase num items in bucket for inserted item
-        num_items_bucket++;
-
-        if (num_items_ > max_num_items_table_)
-        {
-            LOG << "flush";
-            throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
-        }
-
-        if (num_items_bucket > max_num_items_per_bucket_)
-        {
-            LOG << "resize";
-            ResizeUp();
-        }
     }
 
     /*!
@@ -477,10 +672,64 @@ public:
 
         flush_function_(this);
 
-        // reset total counter
-        num_items_ = 0;
+        // reset total block counter
+        num_blocks_ = 0;
 
         LOG << "Flushed items";
+    }
+
+    /*!
+    * Spill block.
+    */
+    void SpillBlock() {
+
+        // randomly select bucket, get bucket idx
+        size_t bucket_idx = (size_t) (rand() % num_buckets_);
+        size_t bucket_idx_init = bucket_idx;
+        bucket_idx_init--;
+
+        bool to_spill = true;
+
+        while (to_spill &&
+                bucket_idx != bucket_idx_init) {
+
+            BucketBlock* first = buckets_[bucket_idx];
+
+            if (first == NULL || first->next == NULL) {
+                if (bucket_idx >= num_buckets_) {
+                    bucket_idx = 0;
+                    bucket_idx_init++;
+                } else {
+                    bucket_idx++;
+                }
+                continue;
+            }
+
+            if (first->next == NULL) {
+                std::cout << "444" << std::endl;
+            }
+
+            std::cout << "333: " << bucket_idx << std::endl;
+
+//            for (KeyValuePair* bi = first->next->items;
+//                 bi != first->next->items + first->next->size; ++bi)
+//            {
+//                //data::File::Writer& writer = frame_writers_[0];
+//                //writer(*bi);
+//            }
+//
+//            // destroy block
+//            BucketBlock* next = first->next->next;
+//            first->next->destroy_items();
+//            operator delete (first->next);
+//            first->next = next;
+
+            to_spill = false;
+        }
+
+        if (!to_spill) {
+            --num_blocks_;
+        }
     }
 
     /*!
@@ -505,8 +754,8 @@ public:
      *
      * @return Number of items in the table.
      */
-    size_t NumItems() const {
-        return num_items_;
+    size_t NumBlocks() const {
+        return num_blocks_;
     }
 
     /*!
@@ -514,8 +763,8 @@ public:
      *
      * @return Number of items in the table.
      */
-    void SetNumItems(size_t num_items) {
-        num_items_ = num_items;
+    void SetNumBlocks(size_t num_blocks) {
+        num_blocks_ = num_blocks;
     }
 
     /*!
@@ -528,13 +777,22 @@ public:
     }
 
     /*!
+     * Returns the maximal number of items per bucket.
+     *
+     * @return Maximal number of items per bucket.
+     */
+    size_t MaxNumBlocksPerBucket() const {
+        return max_num_blocks_per_bucket_;
+    }
+
+    /*!
      * Sets the maximum number of items of the hash table. We don't want to push 2vt
      * elements before flush happens.
      *
      * \param size The maximal number of items the table may hold.
      */
-    void SetMaxNumItems(size_t size) {
-        max_num_items_table_ = size;
+    void SetMaxNumBlocksTable(size_t size) {
+        max_num_blocks_table_ = size;
     }
 
     /*!
@@ -565,94 +823,39 @@ public:
     }
 
     /*!
-     * Resizes the table by increasing the number of buckets using some
-     * scale factor (num_items_resize_scale_). All items are rehashed as
-     * part of the operation.
+     * Returns the vector of frame files.
+     *
+     * @return Vector of frame files.
      */
-    void ResizeUp() {
-        LOG << "Resizing";
-        num_buckets_ *= num_buckets_resize_scale_;
-        num_items_ = 0;
-
-        // move old hash array
-        std::vector<BucketBlock*> buckets_old;
-        std::swap(buckets_old, buckets_);
-
-        // init new hash array
-        buckets_.resize(num_buckets_, NULL);
-
-        // rehash all items in old array
-        for (BucketBlock* b_block : buckets_old)
-        {
-            BucketBlock* current = b_block;
-            while (current != NULL)
-            {
-                for (KeyValuePair* bi = current->items;
-                     bi != current->items + current->size; ++bi)
-                {
-                    Insert(*bi);
-                }
-
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
-            }
-        }
-        LOG << "Resized";
+    std::vector<data::File>& FrameFiles() {
+        return frame_files_;
     }
 
     /*!
-     * Removes all items from the table, but does not flush them nor does
-     * it resets the table to it's initial size.
+     * Returns the vector of frame writers.
+     *
+     * @return Vector of frame writers.
      */
-    void Clear() {
-        LOG << "Clearing";
-
-        for (BucketBlock* b_block : buckets_)
-        {
-            BucketBlock* current = b_block;
-            while (current != NULL)
-            {
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
-            }
-            b_block = NULL;
-        }
-
-        num_items_ = 0;
-        LOG << "Cleared";
+    std::vector<data::File::Writer>& FrameWriters() {
+        return frame_writers_;
     }
 
     /*!
-     * Removes all items from the table, but does not flush them. However, it does
-     * reset the table to it's initial size.
+     * Returns the frame size.
+     *
+     * @return Frame size.
      */
-    void Reset() {
-        LOG << "Resetting";
-        num_buckets_ = num_buckets_init_scale_;
+    size_t FrameSize() const {
+        return frame_size_;
+    }
 
-        for (BucketBlock*& b_block : buckets_)
-        {
-            BucketBlock* current = b_block;
-            while (current != NULL)
-            {
-                // destroy block and advance to next
-                BucketBlock* next = current->next;
-                current->destroy_items();
-                operator delete (current);
-                current = next;
-            }
-            b_block = NULL;
-        }
-
-        buckets_.resize(num_buckets_, NULL);
-        num_items_ = 0;
-        LOG << "Resetted";
+    /*!
+     * Returns the number of frames.
+     *
+     * @return Number of frames.
+     */
+    size_t NumFrames() const {
+        return num_frames_;
     }
 
     /*!
@@ -704,31 +907,21 @@ public:
     }
 
 protected:
-    //! Scale factor to compute the initial bucket size.
-    size_t num_buckets_init_scale_;
-
-    //! Scale factor to compute the number of buckets
-    //! during resize relative to current size.
-    size_t num_buckets_resize_scale_;
-
-    // Maximal number of items per bucket before resize.
-    size_t max_num_items_per_bucket_;
-
-    //! Maximal number of items before some items
-    //! are flushed (-> partial flush).
-    size_t max_num_items_table_;
-
     //! Number of buckets
     size_t num_buckets_;
 
-    //! Keeps the total number of items in the table.
-    size_t num_items_ = 0;
+    // Maximal number of items per bucket before resize.
+    size_t max_num_blocks_per_bucket_;
 
-    //! Key extractor function for extracting a key from a value.
-    KeyExtractor key_extractor_;
+    //! Maximal number of items before some items
+    //! are flushed (-> partial flush).
+    size_t max_num_blocks_table_;
 
-    //! Reduce function for reducing two values.
-    ReduceFunction reduce_function_;
+    //! Keeps the total number of blocks in the table.
+    size_t num_blocks_ = 0;
+
+    //! Number of frames.
+    size_t num_frames_ = 0;
 
     //! Set of emitters, one per partition.
     std::vector<EmitterFunction> emit_;
@@ -736,14 +929,11 @@ protected:
     //! Data structure for actually storing the items.
     std::vector<BucketBlock*> buckets_;
 
-    //! Index Calculation functions: Hash or ByIndex.
-    IndexFunction index_function_;
+    //! Data structure for storing the files for frames.
+    std::vector<data::File> frame_files_;
 
-    //! Comparator function for keys.
-    EqualToFunction equal_to_function_;
-
-    //! Comparator function for keys.
-    FlushFunction flush_function_;
+    //! Data structure for storing the writers for frames.
+    std::vector<data::File::Writer> frame_writers_;
 
     //! Begin local index (reduce to index)
     size_t begin_local_index_;
@@ -753,6 +943,28 @@ protected:
 
     //! Neutral element (reduce to index)
     Value neutral_element_;
+
+    //! frame size.
+    size_t frame_size_ = 0;
+
+public:
+    //! Key extractor function for extracting a key from a value.
+    KeyExtractor key_extractor_;
+
+    //! Reduce function for reducing two values.
+    ReduceFunction reduce_function_;
+
+    //! Index Calculation functions: Hash or ByIndex.
+    IndexFunction index_function_;
+
+    //! Comparator function for keys.
+    EqualToFunction equal_to_function_;
+
+    //! Flush function.
+    FlushFunction flush_function_;
+
+    //! Spill function.
+    SpillFunction spill_function_;
 };
 
 } // namespace core

@@ -113,7 +113,11 @@ TEST_F(PostTable, AddIntegers) {
 
     table.Insert(pair(2));
 
-    ASSERT_EQ(3u, table.NumItems());
+    ASSERT_EQ(1u, table.NumItems());
+
+    table.Flush();
+
+    ASSERT_EQ(3u, writer1.size());
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
