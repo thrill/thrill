@@ -633,7 +633,7 @@ public:
             current->size == block_size_)
         {
             if (num_blocks_bucket == max_num_blocks_per_bucket_) {
-                std::cout << "1" << std::endl;
+                std::cout << "1111" << std::endl;
                 data::File::Writer& writer = frame_writers_[global_index / frame_size_];
                 KeyValuePair* bi = buckets_[global_index]->items;
                 writer(*bi);
@@ -696,7 +696,7 @@ public:
             BucketBlock* first = buckets_[bucket_idx];
 
             if (first == NULL || first->next == NULL) {
-                if (bucket_idx >= num_buckets_) {
+                if (bucket_idx >= num_buckets_-1) {
                     bucket_idx = 0;
                     bucket_idx_init++;
                 } else {
@@ -705,24 +705,18 @@ public:
                 continue;
             }
 
-            if (first->next == NULL) {
-                std::cout << "444" << std::endl;
+            for (KeyValuePair* bi = first->next->items;
+                 bi != first->next->items + first->next->size; ++bi)
+            {
+                data::File::Writer& writer = frame_writers_[0];
+                writer(*bi);
             }
 
-            std::cout << "333: " << bucket_idx << std::endl;
-
-//            for (KeyValuePair* bi = first->next->items;
-//                 bi != first->next->items + first->next->size; ++bi)
-//            {
-//                //data::File::Writer& writer = frame_writers_[0];
-//                //writer(*bi);
-//            }
-//
-//            // destroy block
-//            BucketBlock* next = first->next->next;
-//            first->next->destroy_items();
-//            operator delete (first->next);
-//            first->next = next;
+            // destroy block
+            BucketBlock* next = first->next->next;
+            first->next->destroy_items();
+            operator delete (first->next);
+            first->next = next;
 
             to_spill = false;
         }
