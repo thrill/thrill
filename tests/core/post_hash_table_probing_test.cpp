@@ -273,6 +273,100 @@ TEST_F(PostTable, ComplexType) {
     ASSERT_EQ(4u, table.NumItems());
 }
 
-// TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
+TEST_F(PostTable, WithinTableItemsLimit) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    typedef std::function<void (const int&)> EmitterFunction;
+    std::vector<EmitterFunction> emitters;
+    std::vector<int> writer1;
+    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+
+    size_t size = 32 * 1024;
+    double fill_rate = 0.5;
+
+    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomSpill>
+    table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
+          c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 16,
+                                     std::equal_to<int>(), c7a::core::PostRandomSpill());
+
+    ASSERT_EQ(0u, table.NumItems());
+
+    size_t num_items = size * fill_rate;
+    ASSERT_EQ(0.0, table.FillRate());
+
+    for (size_t i = 0; i < num_items; ++i) {
+        table.Insert(pair(i));
+    }
+    ASSERT_EQ(num_items, table.NumItems());
+    ASSERT_EQ(fill_rate, table.FillRate());
+
+    ASSERT_EQ(0u, writer1.size());
+
+    table.Flush();
+
+    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(num_items, writer1.size());
+    ASSERT_EQ(0.0, table.FillRate());
+}
+
+TEST_F(PostTable, AboveTableItemsLimit) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    typedef std::function<void (const int&)> EmitterFunction;
+    std::vector<EmitterFunction> emitters;
+    std::vector<int> writer1;
+    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+
+    size_t size = 32 * 1024;
+    double fill_rate = 0.5;
+
+    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomSpill>
+            table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
+                  c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 16,
+                  std::equal_to<int>(), c7a::core::PostRandomSpill());
+
+    size_t num_items = size * fill_rate;
+
+    ASSERT_EQ(0.0, table.FillRate());
+    ASSERT_EQ(0u, table.NumItems());
+
+    for (size_t i = 0; i < num_items; ++i) {
+        table.Insert(pair(i));
+    }
+
+    ASSERT_EQ(fill_rate, table.FillRate());
+    ASSERT_EQ(num_items, table.NumItems());
+
+    size_t on_top = 1024;
+
+    for (size_t i = num_items; i < num_items+on_top; ++i) {
+        table.Insert(pair(i));
+    }
+
+    ASSERT_TRUE(table.FillRate() <= fill_rate);
+    ASSERT_TRUE(table.NumItems() <= num_items);
+
+    ASSERT_EQ(0u, writer1.size());
+
+    table.Flush();
+
+    ASSERT_EQ(num_items + 1024, writer1.size());
+    ASSERT_EQ(0.0, table.FillRate());
+    ASSERT_EQ(0u, table.NumItems());
+}
 
 /******************************************************************************/

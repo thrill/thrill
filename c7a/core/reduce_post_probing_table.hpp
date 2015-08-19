@@ -152,7 +152,7 @@ public:
             if (file.NumItems() > 0)  {
 
                 size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-                                                         / static_cast<double>(ht->MaxItemsFillRate()));
+                                                         / ht->MaxItemsFillRate());
 
                 // adjust size of second reduce table
                 second_reduce.resize(frame_length, ht->Sentinel());
@@ -245,7 +245,7 @@ public:
                 /////
                 for (size_t i = 0; i < frame_length; i++)
                 {
-                    KeyValuePair current = items[i];
+                    KeyValuePair current = second_reduce[i];
                     if (current.first != ht->Sentinel().first)
                     {
                         ht->EmitAll(std::make_pair(current.first, current.second));
@@ -332,8 +332,8 @@ public:
 
         auto &frame_writers = ht->FrameWriters();
 
-        size_t num_blocks = 16;
-        size_t block_size = 32;
+        size_t num_blocks = 4;
+        size_t block_size = 1024;
         size_t valid_blocks = 0;
 
         size_t num_items = 0;
@@ -345,7 +345,10 @@ public:
 
             num_items = 0;
 
-            for (size_t global_index = block_size*block_idx; global_index < block_size; global_index++)
+            size_t offset = block_size*block_idx;
+
+            for (size_t global_index = offset;
+                 global_index < offset + block_size; global_index++)
             {
                 KeyValuePair current = items[global_index];
                 if (current.first != ht->Sentinel().first)
@@ -604,12 +607,21 @@ public:
     }
 
     /*!
-     * Returns the total num of items in the table in all partitions.
+     * Returns the total num of items in the table.
      *
      * @return Number of items in the table.
      */
     size_t NumItems() const {
         return num_items_;
+    }
+
+    /*!
+     * Returns the fill rate of the table.
+     *
+     * @return Fill rate of the table.
+     */
+    double FillRate() {
+        return static_cast<double>(num_items_) / static_cast<double>(size_);
     }
 
     /*!
@@ -669,7 +681,7 @@ public:
      *
      * @return Max Items Fill Rate.
      */
-    size_t MaxItemsFillRate() const {
+    double MaxItemsFillRate() const {
         return max_items_fill_rate_;
     }
 
