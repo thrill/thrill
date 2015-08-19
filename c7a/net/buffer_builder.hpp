@@ -43,6 +43,15 @@ class BufferBuilder
 protected:
     //! type used to store the bytes
     using Byte = unsigned char;
+	
+    //! simple pointer iterators
+    using iterator = Byte *;
+    //! simple pointer iterators
+    using const_iterator = const Byte *;
+    //! simple pointer references
+    using reference = Byte &;
+    //! simple pointer references
+    using const_reference = const Byte &;
 
     //! Allocated buffer pointer.
     Byte* data_;
@@ -221,6 +230,12 @@ public:
         return std::string(reinterpret_cast<const char*>(data_), size_);
     }
 
+	//! copy part of contents into std::string
+    std::string PartialToString(size_t begin, size_t length) const {
+        assert(size_ >= begin + length);
+        return std::string(reinterpret_cast<const char*>(data_ + begin), length);
+    }
+
     //! Explicit conversion to Buffer MOVING the memory ownership.
     net::Buffer ToBuffer() {
         net::Buffer b = net::Buffer::Acquire(data_, size_);
@@ -315,6 +330,37 @@ public:
     //! Put a single byte to the buffer (used via CRTP from ItemWriterToolsBase)
     BufferBuilder & PutByte(Byte data) {
         return Put<uint8_t>(data);
+    }
+
+    //! \}
+
+	//! \name Access
+	//! \{
+
+    //! return mutable iterator to first element
+    iterator begin()
+    { return data_; }
+    //! return constant iterator to first element
+    const_iterator begin() const
+    { return data_; }
+    //! return constant iterator to first element
+    const_iterator cbegin() const
+    { return begin(); }
+
+    //! return mutable iterator beyond last element
+    iterator end()
+    { return data_ + size_; }
+    //! return constant iterator beyond last element
+    const_iterator end() const
+    { return data_ + size_; }
+    //! return constant iterator beyond last element
+    const_iterator cend() const
+    { return end(); }
+
+	//! return the i-th position of the vector
+    reference operator [] (size_t i) {
+        assert(i < size_);
+        return *(begin() + i);
     }
 
     //! \}
