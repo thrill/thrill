@@ -180,7 +180,7 @@ public:
     virtual ~StatsGraph() {
         for (auto node : nodes_) {
             delete node;
-            node = NULL;
+            node = nullptr;
         }
     }
 

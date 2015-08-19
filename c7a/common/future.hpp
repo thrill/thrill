@@ -101,7 +101,7 @@ class FutureX
 {
 public:
     //! tuple to hold all values given by callback
-    typedef std::tuple<Ts ...> Values;
+    using Values = std::tuple<Ts ...>;
 
 protected:
     //! Mutex for the condition variable

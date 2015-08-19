@@ -135,7 +135,7 @@ int RunDistributedTCP(
     std::function<void(Context&)> job_startpoint,
     const std::string& log_prefix) {
 
-    //TODO pull this out of ENV
+    // TODO pull this out of ENV
     const size_t workers_per_host = 1;
 
     static const bool debug = false;

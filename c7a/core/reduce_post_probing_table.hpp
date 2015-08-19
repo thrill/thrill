@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/reduce_pre_probing_table.hpp
+ * c7a/core/reduce_post_probing_table.hpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
-#define C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
+#ifndef C7A_CORE_REDUCE_POST_PROBING_TABLE_HEADER
+#define C7A_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
 #include <c7a/common/function_traits.hpp>
 #include <c7a/common/logger.hpp>
@@ -30,7 +30,6 @@ namespace c7a {
 namespace core {
 
 /**
- *
  * A data structure which takes an arbitrary value and extracts a key using
  * a key extractor function from that value. A key may also be provided initially as
  * part of a key/value pair, not requiring to extract a key.
@@ -71,64 +70,158 @@ namespace core {
  *
  */
 template <typename Key, typename HashFunction = std::hash<Key> >
-class PreProbingReduceByHashKey
+class PostProbingReduceByHashKey
 {
 public:
-    explicit PreProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
+    explicit PostProbingReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
-    template <typename ReducePreProbingTable>
-    typename ReducePreProbingTable::index_result
-    operator () (Key v, ReducePreProbingTable* ht) const {
+    template <typename ReducePostProbingTable>
+    typename ReducePostProbingTable::index_result
+    operator () (Key v, ReducePostProbingTable* ht) const {
 
-        using index_result = typename ReducePreProbingTable::index_result;
+        using index_result = typename ReducePostProbingTable::index_result;
 
         size_t hashed = hash_function_(v);
 
-        size_t local_index = hashed %
-                             ht->NumItemsPerPartition();
-        size_t partition_id = hashed % ht->NumPartitions();
-        size_t global_index = partition_id *
-                              ht->NumItemsPerPartition() +
-                              local_index;
-        return index_result(partition_id, local_index, global_index);
+        size_t global_index = hashed % ht->Size();
+        return index_result(global_index);
     }
 
 private:
     HashFunction hash_function_;
 };
 
-template <typename Key, typename Value,
+class PostProbingReduceByIndex
+{
+public:
+    PostProbingReduceByIndex() { }
+
+    template <typename ReducePostProbingTable>
+    typename ReducePostProbingTable::index_result
+    operator () (size_t key, ReducePostProbingTable* ht) const {
+
+        using index_result = typename ReducePostProbingTable::index_result;
+
+        size_t global_index = (key - ht->BeginLocalIndex()) % ht->Size();
+        return index_result(global_index);
+    }
+};
+
+class PostProbingReduceFlushToDefault
+{
+public:
+    template <typename ReducePostProbingTable>
+    void
+    operator () (ReducePostProbingTable* ht) const {
+
+        using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
+
+        auto& vector_ = ht->Items();
+
+        for (size_t i = 0; i < ht->Size(); i++)
+        {
+            KeyValuePair current = vector_[i];
+            if (current.first != ht->Sentinel().first)
+            {
+                ht->EmitAll(std::make_pair(current.first, current.second));
+
+                vector_[i] = ht->Sentinel();
+            }
+        }
+
+        ht->SetNumItems(0);
+    }
+};
+
+template <typename Value>
+class PostProbingReduceFlushToIndex
+{
+public:
+    template <typename ReducePostProbingTable>
+    void
+    operator () (ReducePostProbingTable* ht) const {
+
+        using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
+
+        auto& vector_ = ht->Items();
+
+        std::vector<Value> elements_to_emit
+            (ht->EndLocalIndex() - ht->BeginLocalIndex(), ht->NeutralElement());
+
+        for (size_t i = 0; i < ht->Size(); i++)
+        {
+            KeyValuePair current = vector_[i];
+            if (current.first != ht->Sentinel().first)
+            {
+                elements_to_emit[current.first - ht->BeginLocalIndex()] =
+                    current.second;
+
+                vector_[i] = ht->Sentinel();
+            }
+        }
+
+        size_t index = ht->BeginLocalIndex();
+        for (auto element_to_emit : elements_to_emit) {
+            ht->EmitAll(std::make_pair(index++, element_to_emit));
+        }
+        assert(index == ht->EndLocalIndex());
+
+        ht->SetNumItems(0);
+    }
+};
+
+template <bool, typename EmitterType, typename ValueType, typename SendType>
+struct EmitImpl;
+
+template <typename EmitterType, typename ValueType, typename SendType>
+struct EmitImpl<true, EmitterType, ValueType, SendType>{
+    void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
+        for (auto& emitter : emitters) {
+            emitter(ele);
+        }
+    }
+};
+
+template <typename EmitterType, typename ValueType, typename SendType>
+struct EmitImpl<false, EmitterType, ValueType, SendType>{
+    void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
+        for (auto& emitter : emitters) {
+            emitter(ele.second);
+        }
+    }
+};
+
+template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool RobustKey = false,
-          typename IndexFunction = PreProbingReduceByHashKey<Key>,
+          const bool SendPair = false,
+          typename FlushFunction = PostProbingReduceFlushToDefault,
+          typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>
           >
-class ReducePreProbingTable
+class ReducePostProbingTable
 {
     static const bool debug = false;
 
+public:
     using KeyValuePair = std::pair<Key, Value>;
 
-public:
-    struct index_result {
+    using EmitterFunction = std::function<void(const ValueType&)>;
+
+    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
+
+    struct index_result
+    {
     public:
-        //! which partition number the item belongs to.
-        size_t partition_id;
-        //! index within the partition's sub-hashtable of this item
-        size_t local_index;
         //! index within the whole hashtable
         size_t global_index;
 
-        index_result(size_t p_id, size_t p_off, size_t g_id) {
-            partition_id = p_id;
-            local_index = p_off;
+        explicit index_result(size_t g_id) {
             global_index = g_id;
         }
     };
 
-public:
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
@@ -150,43 +243,46 @@ public:
      * \param index_function Function to be used for computing the slot the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
-    ReducePreProbingTable(size_t num_partitions,
-                          KeyExtractor key_extractor,
-                          ReduceFunction reduce_function,
-                          std::vector<data::BlockWriter>& emit,
-                          Key sentinel,
-                          size_t num_items_init_scale = 10,
-                          size_t num_items_resize_scale = 2,
-                          double max_partition_fill_ratio = 1.0,
-                          size_t max_num_items_table = 1048576,
-                          const IndexFunction& index_function = IndexFunction(),
-                          const EqualToFunction& equal_to_function = EqualToFunction())
-        : num_partitions_(num_partitions),
-          num_items_init_scale_(num_items_init_scale),
+    ReducePostProbingTable(KeyExtractor key_extractor,
+                           ReduceFunction reduce_function,
+                           std::vector<EmitterFunction>& emit,
+                           Key sentinel,
+                           const IndexFunction& index_function = IndexFunction(),
+                           const FlushFunction& flush_function = FlushFunction(),
+                           size_t begin_local_index = 0,
+                           size_t end_local_index = 0,
+                           Value neutral_element = Value(),
+                           size_t num_items_init_scale = 10,
+                           size_t num_items_resize_scale = 2,
+                           double max_items_fill_ratio = 1.0,
+                           size_t max_num_items_table = 1048576,
+                           const EqualToFunction& equal_to_function = EqualToFunction())
+        : num_items_init_scale_(num_items_init_scale),
           num_items_resize_scale_(num_items_resize_scale),
-          max_partition_fill_ratio_(max_partition_fill_ratio),
+          max_items_fill_ratio_(max_items_fill_ratio),
           max_num_items_table_(max_num_items_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          emit_(emit),
+          emit_(std::move(emit)),
           index_function_(index_function),
-          equal_to_function_(equal_to_function) {
-        assert(num_partitions >= 0);
-        assert(num_partitions == emit_.size());
+          equal_to_function_(equal_to_function),
+          flush_function_(flush_function),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
+          neutral_element_(neutral_element) {
         assert(num_items_init_scale > 0);
         assert(num_items_resize_scale > 1);
-        assert(max_partition_fill_ratio >= 0.0 && max_partition_fill_ratio <= 1.0);
+        assert(max_items_fill_ratio >= 0.0 && max_items_fill_ratio <= 1.0);
         assert(max_num_items_table > 0);
-
         init(sentinel);
     }
 
     //! non-copyable: delete copy-constructor
-    ReducePreProbingTable(const ReducePreProbingTable&) = delete;
+    ReducePostProbingTable(const ReducePostProbingTable&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePreProbingTable& operator = (const ReducePreProbingTable&) = delete;
+    ReducePostProbingTable& operator = (const ReducePostProbingTable&) = delete;
 
-    ~ReducePreProbingTable() { }
+    ~ReducePostProbingTable() { }
 
     /**
      * Initializes the data structure by calculating some metrics based on input.
@@ -195,22 +291,11 @@ public:
      */
     void init(Key sentinel) {
 
-        sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
-        for (size_t i = 0; i < emit_.size(); i++)
-            emit_stats_.push_back(0);
+        sLOG << "creating ReducePostProbingTable with" << emit_.size() << "output emiters";
 
-        table_size_ = num_partitions_ * num_items_init_scale_;
-        if (num_partitions_ > table_size_ &&
-            table_size_ % num_partitions_ != 0) {
-            throw std::invalid_argument("partition_size must be less than or equal to num_items "
-                                        "AND partition_size a divider of num_items");
-        }
-        num_items_per_partition_ = table_size_ / num_partitions_;
-
-        // set the key to initial key
+        table_size_ = num_items_init_scale_;
         sentinel_ = KeyValuePair(sentinel, Value());
         vector_.resize(table_size_, sentinel_);
-        items_per_partition_.resize(num_partitions_, 0);
     }
 
     /*!
@@ -239,17 +324,11 @@ public:
 
         index_result h = index_function_(kv.first, this);
 
-        if (!(h.partition_id >= 0 && h.partition_id < num_partitions_))
-            std::cout << "bamm" << std::endl;
-
-        assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
-        assert(h.local_index >= 0 && h.local_index < num_items_per_partition_);
         assert(h.global_index >= 0 && h.global_index < table_size_);
 
         KeyValuePair* initial = &vector_[h.global_index];
         KeyValuePair* current = initial;
-        KeyValuePair* last_item = &vector_[h.global_index -
-                                           (h.global_index % num_items_per_partition_) + num_items_per_partition_ - 1];
+        KeyValuePair* last_item = &vector_[table_size_ - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -266,7 +345,7 @@ public:
 
             if (current == last_item)
             {
-                current -= (num_items_per_partition_ - 1);
+                current -= (table_size_ - 1);
             }
             else
             {
@@ -289,20 +368,17 @@ public:
 
             // increase total counter
             num_items_++;
-
-            // increase counter for partition
-            items_per_partition_[h.partition_id]++;
         }
 
         if (num_items_ > max_num_items_table_)
         {
             LOG << "flush";
-            FlushLargestPartition();
+            throw std::invalid_argument("Hashtable overflown. No external memory functionality implemented yet");
         }
 
-        if (static_cast<double>(items_per_partition_[h.partition_id]) /
-            static_cast<double>(num_items_per_partition_)
-            > max_partition_fill_ratio_)
+        if (static_cast<double>(num_items_) /
+            static_cast<double>(table_size_)
+            > max_items_fill_ratio_)
         {
             LOG << "resize";
             ResizeUp();
@@ -313,88 +389,22 @@ public:
     * Flushes all items in the whole table.
     */
     void Flush() {
-        LOG << "Flushing all items";
+        LOG << "Flushing items";
 
-        // retrieve items
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            FlushPartition(i);
-        }
-
-        LOG << "Flushed all items";
-    }
-
-    /*!
-     * Retrieves all items belonging to the partition
-     * having the most items. Retrieved items are then pushed
-     * to the provided emitter.
-     */
-    void FlushLargestPartition() {
-        LOG << "Flushing items of largest partition";
-
-        // get partition with max size
-        size_t p_size_max = 0;
-        size_t p_idx = 0;
-        for (size_t i = 0; i < num_partitions_; i++)
-        {
-            if (items_per_partition_[i] > p_size_max)
-            {
-                p_size_max = items_per_partition_[i];
-                p_idx = i;
-            }
-        }
-
-        LOG << "currMax: "
-            << p_size_max
-            << " currentIdx: "
-            << p_idx
-            << " currentIdx*p_size: "
-            << p_idx * num_items_per_partition_
-            << " CurrentIdx*p_size+p_size-1 "
-            << p_idx * num_items_per_partition_ + num_items_per_partition_ - 1;
-
-        LOG << "Largest patition id: "
-            << p_idx;
-
-        FlushPartition(p_idx);
-
-        LOG << "Flushed items of largest partition";
-    }
-
-    /*!
-     * Flushes all items of a partition.
-     *
-     * \param partition_id The id of the partition to be flushed.
-     */
-    void FlushPartition(size_t partition_id) {
-        LOG << "Flushing items of partition with id: "
-            << partition_id;
-
-        for (size_t i = partition_id * num_items_per_partition_;
-             i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
-        {
-            KeyValuePair current = vector_[i];
-            if (current.first != sentinel_.first)
-            {
-                if (RobustKey) {
-                    emit_[partition_id](std::move(current.second));
-                }
-                else {
-                    emit_[partition_id](std::move(current));
-                }
-                vector_[i] = sentinel_;
-            }
-        }
+        flush_function_(this);
 
         // reset total counter
-        num_items_ -= items_per_partition_[partition_id];
-        // reset partition specific counter
-        items_per_partition_[partition_id] = 0;
-        // flush elements pushed into emitter
-        emit_[partition_id].Flush();
+        num_items_ = 0;
 
-        LOG << "Flushed items of partition with id: "
-            << partition_id;
+        LOG << "Flushed items";
+    }
+
+    /*!
+     * Emits element to all children
+     */
+    void EmitAll(const KeyValuePair& element) {
+        // void EmitAll(const Key& key, const Value& value) {
+        emit_impl_.EmitElement(element, emit_);
     }
 
     /*!
@@ -417,32 +427,21 @@ public:
     }
 
     /*!
-     * Returns the maximal number of items any partition can hold.
+     * Returns the total num of items in the table.
      *
-     * \return Maximal number of items a partition can hold.
+     * \return Number of items in the table.
      */
-    size_t NumItemsPerPartition() const {
-        return num_items_per_partition_;
+    void SetNumItems(size_t num_items) {
+        num_items_ = num_items;
     }
 
     /*!
-     * Returns the number of partitions.
+     * Returns the vector of key/value pairs.
      *
-     * \return The number of partitions.
+     * \return Vector of key/value pairs.
      */
-    size_t NumPartitions() const {
-        return num_partitions_;
-    }
-
-    /*!
-     * Returns the number of items of a partition.
-     *
-     * \param partition_id The id of the partition the number of
-     *                  items to be returned..
-     * \return The number of items in the partitions.
-     */
-    size_t PartitionNumItems(size_t partition_id) {
-        return items_per_partition_[partition_id];
+    std::vector<KeyValuePair> & Items() {
+        return vector_;
     }
 
     /*!
@@ -456,15 +455,39 @@ public:
     }
 
     /*!
-     * Closes all emitter.
+     * Returns the begin local index.
+     *
+     * \return Begin local index.
      */
-    void CloseEmitter() {
-        sLOG << "emit stats: ";
-        unsigned int i = 0;
-        for (auto& e : emit_) {
-            e.Close();
-            sLOG << "emitter " << i << " pushed " << emit_stats_[i++];
-        }
+    size_t BeginLocalIndex() {
+        return begin_local_index_;
+    }
+
+    /*!
+     * Returns the end local index.
+     *
+     * \return End local index.
+     */
+    size_t EndLocalIndex() {
+        return end_local_index_;
+    }
+
+    /*!
+     * Returns the neutral element.
+     *
+     * \return Neutral element.
+     */
+    Value NeutralElement() {
+        return neutral_element_;
+    }
+
+    /*!
+     * Returns the neutral element.
+     *
+     * \return Neutral element.
+     */
+    KeyValuePair Sentinel() {
+        return sentinel_;
     }
 
     /*!
@@ -475,9 +498,7 @@ public:
     void ResizeUp() {
         LOG << "Resizing";
         table_size_ *= num_items_resize_scale_;
-        num_items_per_partition_ = table_size_ / num_partitions_;
         // reset items_per_partition and table_size
-        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         num_items_ = 0;
 
         // move old hash array
@@ -511,7 +532,6 @@ public:
             k_v_pair.second = sentinel_.second;
         }
 
-        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         num_items_ = 0;
         LOG << "Cleared";
     }
@@ -522,8 +542,7 @@ public:
      */
     void Reset() {
         LOG << "Resetting";
-        table_size_ = num_partitions_ * num_items_init_scale_;
-        num_items_per_partition_ = table_size_ / num_partitions_;
+        table_size_ = num_items_init_scale_;
 
         for (KeyValuePair k_v_pair : vector_)
         {
@@ -532,7 +551,6 @@ public:
         }
 
         vector_.resize(table_size_, sentinel_);
-        std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         num_items_ = 0;
         LOG << "Resetted";
     }
@@ -571,9 +589,6 @@ public:
     }
 
 private:
-    //! Number of partitions
-    size_t num_partitions_;
-
     //! Scale factor to compute the initial size
     //! (=number of slots for items).
     size_t num_items_init_scale_;
@@ -584,24 +599,18 @@ private:
 
     //! Maximal allowed fill ratio per partition before
     //! resize.
-    double max_partition_fill_ratio_;
+    double max_items_fill_ratio_;
 
     //! Maximal number of items before some items
     //! are flushed (-> partial flush).
     size_t max_num_items_table_;
 
-    //! Keeps the total number of items in the table.
-    size_t num_items_ = 0;
-
-    //! Maximal number of items allowed per partition.
-    size_t num_items_per_partition_;
-
-    //! Number of items per partition.
-    std::vector<size_t> items_per_partition_;
-
     //! Size of the table, which is the number of slots
     //! available for items.
     size_t table_size_ = 0;
+
+    //! Keeps the total number of items in the table.
+    size_t num_items_ = 0;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
@@ -610,10 +619,7 @@ private:
     ReduceFunction reduce_function_;
 
     //! Set of emitters, one per partition.
-    std::vector<data::BlockWriter>& emit_;
-
-    //! Emitter stats.
-    std::vector<int> emit_stats_;
+    std::vector<EmitterFunction> emit_;
 
     //! Data structure for actually storing the items.
     std::vector<KeyValuePair> vector_;
@@ -626,11 +632,23 @@ private:
 
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;
+
+    //! Comparator function for keys.
+    FlushFunction flush_function_;
+
+    //! Begin local index (reduce to index)
+    size_t begin_local_index_;
+
+    //! End local index (reduce to index)
+    size_t end_local_index_;
+
+    //! Neutral element (reduce to index)
+    Value neutral_element_;
 };
 
 } // namespace core
 } // namespace c7a
 
-#endif // !C7A_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
+#endif // !C7A_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
 /******************************************************************************/

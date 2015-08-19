@@ -699,7 +699,7 @@ void CmdlineParser::AddOptParamStringlist(const std::string& name,
 /******************************************************************************/
 
 void CmdlineParser::PrintUsage(std::ostream& os) {
-    std::ios state(NULL);
+    std::ios state(nullptr);
     state.copyfmt(os);
 
     os << "Usage: " << progname_
@@ -943,7 +943,7 @@ bool CmdlineParser::Process(int argc, const char* const* argv, std::ostream& os)
 }
 
 void CmdlineParser::PrintResult(std::ostream& os) {
-    std::ios state(NULL);
+    std::ios state(nullptr);
     state.copyfmt(os);
 
     int maxlong = std::max(param_maxlong_, opt_maxlong_);

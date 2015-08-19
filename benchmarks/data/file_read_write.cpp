@@ -13,13 +13,15 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/common/stats_timer.hpp>
 
-#include "data_generators.hpp"
-
 #include <iostream>
 #include <random>
 #include <string>
+#include <tuple>
+
+#include "data_generators.hpp"
 
 using namespace c7a; // NOLINT
+using common::StatsTimer;
 
 //! Writes and reads random elements from a file.
 //! Elements are genreated before the timer startet
@@ -29,7 +31,6 @@ using namespace c7a; // NOLINT
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
 void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, const std::string& type_as_string) {
-    using namespace c7a::common;
 
     for (unsigned i = 0; i < iterations; i++) {
         auto file = ctx.GetFile();

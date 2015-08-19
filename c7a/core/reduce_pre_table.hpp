@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -88,7 +89,7 @@ template <typename Key, typename HashFunction = std::hash<Key> >
 class PreReduceByHashKey
 {
 public:
-    PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
+    explicit PreReduceByHashKey(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
@@ -116,7 +117,7 @@ class PreReduceByIndex
 public:
     size_t size_;
 
-    PreReduceByIndex(size_t size)
+    explicit PreReduceByIndex(size_t size)
         : size_(size)
     { }
 
@@ -137,15 +138,15 @@ public:
 template <typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool RobustKey = false,
-          size_t TargetBlockSize = 16*1024,
           typename IndexFunction = PreReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>
+          typename EqualToFunction = std::equal_to<Key>,
+          size_t TargetBlockSize = 16*1024
           >
 class ReducePreTable
 {
     static const bool debug = false;
 
-    typedef std::pair<Key, Value> KeyValuePair;
+    using KeyValuePair = std::pair<Key, Value>;
 
 public:
     struct index_result
@@ -181,7 +182,7 @@ protected:
         BucketBlock  * next;
 
         //! memory area of items
-        KeyValuePair items[block_size_];
+        KeyValuePair items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
         void         destroy_items() {
@@ -232,6 +233,7 @@ public:
         assert(num_partitions >= 0);
         assert(num_partitions == emit_.size());
         assert(num_buckets_init_scale > 0);
+        assert(num_buckets_resize_scale > 1);
         assert(max_num_items_per_bucket > 0);
         assert(max_num_items_table > 0);
 
@@ -248,7 +250,7 @@ public:
         for (BucketBlock* b_block : vector_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -279,7 +281,7 @@ public:
         }
         num_buckets_per_partition_ = num_buckets_ / num_partitions_;
 
-        vector_.resize(num_buckets_, NULL);
+        vector_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);
     }
 
@@ -318,7 +320,7 @@ public:
         size_t num_items_bucket = 0;
         BucketBlock* current = vector_[h.global_index];
 
-        while (current != NULL)
+        while (current != nullptr)
         {
             // iterate over valid items in a block
             for (KeyValuePair* bi = current->items;
@@ -340,7 +342,7 @@ public:
                 num_items_bucket++;
             }
 
-            if (current->next == NULL)
+            if (current->next == nullptr)
                 break;
 
             current = current->next;
@@ -348,7 +350,7 @@ public:
 
         // have an item that needs to be added.
 
-        if (current == NULL ||
+        if (current == nullptr ||
             current->size == block_size_)
         {
             // allocate a new block of uninitialized items, prepend to bucket
@@ -455,16 +457,20 @@ public:
         {
             BucketBlock* current = vector_[i];
 
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
                     if (RobustKey) {
                         emit_[partition_id](bi->second);
+                        sLOG << "Pushing value";
+                        emit_stats_[partition_id]++;
                     }
                     else {
                         emit_[partition_id](*bi);
+                        sLOG << "pushing pair";
+                        emit_stats_[partition_id]++;
                     }
                 }
 
@@ -475,7 +481,7 @@ public:
                 current = next;
             }
 
-            vector_[i] = NULL;
+            vector_[i] = nullptr;
         }
 
         // reset total counter
@@ -492,7 +498,7 @@ public:
     /*!
      * Returns the total num of buckets in the table in all partitions.
      *
-     * @return Number of buckets in the table.
+     * \return Number of buckets in the table.
      */
     size_t NumBuckets() const {
         return num_buckets_;
@@ -501,7 +507,7 @@ public:
     /*!
      * Returns the total num of items in the table in all partitions.
      *
-     * @return Number of items in the table.
+     * \return Number of items in the table.
      */
     size_t NumItems() const {
         return num_items_;
@@ -510,7 +516,7 @@ public:
     /*!
      * Returns the number of buckets any partition can hold.
      *
-     * @return Number of buckets a partition can hold.
+     * \return Number of buckets a partition can hold.
      */
     size_t NumBucketsPerPartition() const {
         return num_buckets_per_partition_;
@@ -519,7 +525,7 @@ public:
     /*!
      * Returns the number of partitions.
      *
-     * @return The number of partitions.
+     * \return The number of partitions.
      */
     size_t NumPartitions() const {
         return num_partitions_;
@@ -530,7 +536,7 @@ public:
      *
      * \param partition_id The id of the partition the number of
      *                  items to be returned..
-     * @return The number of items in the partitions.
+     * \return The number of items in the partitions.
      */
     size_t PartitionNumItems(size_t partition_id) {
         return items_per_partition_[partition_id];
@@ -576,13 +582,13 @@ public:
         std::swap(vector_old, vector_);
 
         // init new hash array
-        vector_.resize(num_buckets_, NULL);
+        vector_.resize(num_buckets_, nullptr);
 
         // rehash all items in old array
         for (BucketBlock* b_block : vector_old)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
@@ -610,7 +616,7 @@ public:
         for (BucketBlock* b_block : vector_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -618,7 +624,7 @@ public:
                 operator delete (current);
                 current = next;
             }
-            b_block = NULL;
+            b_block = nullptr;
         }
 
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
@@ -638,7 +644,7 @@ public:
         for (BucketBlock*& b_block : vector_)
         {
             BucketBlock* current = b_block;
-            while (current != NULL)
+            while (current != nullptr)
             {
                 // destroy block and advance to next
                 BucketBlock* next = current->next;
@@ -646,10 +652,10 @@ public:
                 operator delete (current);
                 current = next;
             }
-            b_block = NULL;
+            b_block = nullptr;
         }
 
-        vector_.resize(num_buckets_, NULL);
+        vector_.resize(num_buckets_, nullptr);
         std::fill(items_per_partition_.begin(), items_per_partition_.end(), 0);
         num_items_ = 0;
         LOG << "Resetted";
@@ -663,7 +669,7 @@ public:
 
         for (int i = 0; i < num_buckets_; i++)
         {
-            if (vector_[i] == NULL)
+            if (vector_[i] == nullptr)
             {
                 LOG << "bucket id: "
                     << i
@@ -674,7 +680,7 @@ public:
             std::string log = "";
 
             BucketBlock* current = vector_[i];
-            while (current != NULL)
+            while (current != nullptr)
             {
                 log += "block: ";
 

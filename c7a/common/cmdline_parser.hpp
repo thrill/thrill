@@ -36,18 +36,64 @@ std::string FormatIecUnits(uint64_t number);
 /******************************************************************************/
 
 /**
- * Command line parser which automatically fills variables and prints nice
- * usage messages.
- *
- * This is a straightforward command line parser in C++, which will recognize
- * short options -s, long options --long and parameters, both required and
- * optional. It will automatically parse integers and <b>byte sizes</b> with
- * SI/IEC suffixes (e.g. 1 GiB). It also works with lists of strings,
- * e.g. multiple filenames.
- *
- * Maybe most important it will nicely format the options and parameters
- * description using word wrapping.
- */
+
+Command line parser which automatically fills variables and prints nice usage
+messages.
+
+This is a straightforward command line parser in C++, which will recognize short
+options -s, long options --long and parameters, both required and optional. It
+will automatically parse integers and <b>byte sizes</b> with SI/IEC suffixes
+(e.g. 1 GiB). It also works with lists of strings, e.g. multiple filenames.
+
+\snippet tests/common/cmdline_parser_example.cpp example
+
+When running the program above without arguments, it will print:
+\verbatim
+$ ./common_cmdline_parser_example
+Missing required argument for parameter 'filename'
+
+Usage: ./common_cmdline_parser_example [options] <filename>
+
+This may some day be a useful program, which solves many serious problems of
+the real world and achives global peace.
+
+Author: Timo Bingmann <tb@panthema.net>
+
+Parameters:
+  filename  A filename to process
+Options:
+  -r, --rounds N  Run N rounds of the experiment.
+  -s, --size      Number of bytes to process.
+\endverbatim
+
+Nice output, notice the line wrapping of the description and formatting of
+parameters and arguments. These too are wrapped if the description is too long.
+
+We now try to give the program some arguments:
+\verbatim
+$ ./common_cmdline_parser_example -s 2GiB -r 42 /dev/null
+Option -s, --size set to 2147483648.
+Option -r, --rounds N set to 42.
+Parameter filename set to "/dev/null".
+Command line parsed okay.
+Parameters:
+  filename        (string)            "/dev/null"
+Options:
+  -r, --rounds N  (unsigned integer)  42
+  -s, --size      (bytes)             2147483648
+\endverbatim
+
+The output shows pretty much what happens. The command line parser is by default
+in a verbose mode outputting all arguments and values parsed. The debug summary
+shows to have values the corresponding variables were set.
+
+One feature worth naming is that the parser also supports lists of strings,
+i.e. \c std::vector<std::string> via \ref AddParamStringlist() and similar.
+
+\example tests/common/cmdline_parser_example.cpp
+This example is documented in \ref common_cmdline tutorial.
+
+*/
 class CmdlineParser
 {
 protected:
@@ -64,7 +110,7 @@ protected:
 
 protected:
     //! option and parameter list type
-    typedef std::vector<Argument*> ArgumentList;
+    using ArgumentList = std::vector<Argument*>;
 
     //! list of options available
     ArgumentList optlist_;

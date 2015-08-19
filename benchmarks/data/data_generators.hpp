@@ -14,9 +14,13 @@
 
 #include <c7a/common/functional.hpp>
 
+#include <algorithm>
 #include <limits>
 #include <random>
+#include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 using namespace c7a; // NOLINT
 
@@ -27,7 +31,7 @@ template <>
 class Generator<size_t>
 {
 public:
-    Generator(size_t bytes)
+    explicit Generator(size_t bytes)
         : size_((bytes + sizeof(size_t) - 1) / sizeof(size_t)) { }
 
     bool HasNext() const { return size_ > 0; }
@@ -47,7 +51,7 @@ template <>
 class Generator<std::string>
 {
 public:
-    Generator(size_t bytes)
+    explicit Generator(size_t bytes)
         : bytes_(bytes) { }
 
     bool HasNext() const { return bytes_ > 0; }
@@ -61,7 +65,7 @@ public:
 protected:
     ssize_t bytes_;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness_ { std::random_device()() };
     std::uniform_int_distribution<size_t> uniform_dist_ { 1, 100 };
 };
@@ -94,7 +98,7 @@ template <typename ... Types>
 class Generator<std::tuple<Types ...> >
 {
 public:
-    Generator(size_t bytes)
+    explicit Generator(size_t bytes)
         : gen_(Generator<Types>(bytes) ...) { }
 
     bool HasNext() const {
@@ -123,7 +127,7 @@ std::vector<std::string> generate(size_t bytes, size_t min_size, size_t max_size
     std::vector<std::string> result;
     size_t remaining = bytes;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
@@ -140,7 +144,7 @@ std::vector<Tuple> generate(size_t bytes, size_t min_size, size_t max_size) {
     std::vector<Tuple> result;
     size_t remaining = bytes;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 
@@ -158,7 +162,7 @@ std::vector<Triple> generate(size_t bytes, size_t min_size, size_t max_size) {
     std::vector<Triple> result;
     size_t remaining = bytes;
 
-    //init randomness
+    // init randomness
     std::default_random_engine randomness({ std::random_device()() });
     std::uniform_int_distribution<size_t> uniform_dist(min_size, max_size);
 

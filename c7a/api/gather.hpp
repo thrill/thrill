@@ -1,16 +1,16 @@
 /*******************************************************************************
- * c7a/api/allgather.hpp
+ * c7a/api/gather.hpp
  *
  * Part of Project c7a.
  *
- * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_ALLGATHER_HEADER
-#define C7A_API_ALLGATHER_HEADER
+#ifndef C7A_API_GATHER_HEADER
+#define C7A_API_GATHER_HEADER
 
 #include <c7a/api/action_node.hpp>
 #include <c7a/api/dia.hpp>
@@ -26,24 +26,29 @@ namespace api {
 //! \{
 
 template <typename ValueType, typename ParentDIARef>
-class AllGatherNode : public ActionNode
+class GatherNode : public ActionNode
 {
 public:
     using Super = ActionNode;
     using Super::context_;
     using Super::result_file_;
 
-    AllGatherNode(const ParentDIARef& parent,
-                  std::vector<ValueType>* out_vector,
-                  StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "AllGather", stats_node),
+    GatherNode(const ParentDIARef& parent,
+               size_t target_id,
+               std::vector<ValueType>* out_vector,
+               StatsNode* stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, "Gather", stats_node),
+          target_id_(target_id),
           out_vector_(out_vector),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters())
     {
-        auto pre_op_function = [=](const ValueType& input) {
-                                   PreOp(input);
-                               };
+        assert(target_id_ < context_.num_workers());
+
+        auto pre_op_function =
+            [=](const ValueType& input) {
+                emitters_[target_id_](input);
+            };
 
         // close the function stack with our pre op and register it at parent
         // node for output
@@ -51,13 +56,6 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(const ValueType& element) {
-        for (size_t i = 0; i < emitters_.size(); i++) {
-            emitters_[i](element);
-        }
-    }
-
-    //! Closes the output file
     void Execute() final {
         // data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitters_.size(); i++) {
@@ -75,49 +73,57 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[AllGatherNode]" and its id as a string.
-     * \return "[AllGatherNode]"
-     */
     std::string ToString() final {
-        return "[AllGatherNode] Id: " + result_file_.ToString();
+        return "[GatherNode] Id: " + result_file_.ToString();
     }
 
 private:
+    //! target worker id, which collects vector, all other workers do not get
+    //! the data.
+    size_t target_id_;
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
     data::ChannelPtr channel_;
     std::vector<data::BlockWriter> emitters_;
-
-    static const bool debug = false;
 };
 
+/*!
+ * Gather is an Action, which collects all data of the DIA into a vector at the
+ * given worker. This should only be done if the received data can fit into RAM
+ * of the one worker.
+ */
 template <typename ValueType, typename Stack>
-std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+std::vector<ValueType>
+DIARef<ValueType, Stack>::Gather(size_t target_id) const {
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<ValueType, DIARef>;
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Gather", NodeType::ACTION);
     auto shared_node =
-        std::make_shared<AllGatherNode>(*this, &output, stats_node);
+        std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 
     return std::move(output);
 }
 
+/*!
+ * Gather is an Action, which collects all data of the DIA into a vector at the
+ * given worker. This should only be done if the received data can fit into RAM
+ * of the one worker.
+ */
 template <typename ValueType, typename Stack>
-void DIARef<ValueType, Stack>::AllGather(
-    std::vector<ValueType>* out_vector)  const {
+void DIARef<ValueType, Stack>::Gather(
+    size_t target_id, std::vector<ValueType>* out_vector)  const {
 
-    using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
+    using GatherNode = api::GatherNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Gather", NodeType::ACTION);
     auto shared_node =
-        std::make_shared<AllGatherNode>(*this, out_vector, stats_node);
+        std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
@@ -127,6 +133,6 @@ void DIARef<ValueType, Stack>::AllGather(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_ALLGATHER_HEADER
+#endif // !C7A_API_GATHER_HEADER
 
 /******************************************************************************/

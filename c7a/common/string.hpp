@@ -28,7 +28,7 @@ namespace common {
  * \param size  length of binary data
  * \return      string of hexadecimal pairs
  */
-std::string hexdump(const void* const data, size_t size) __attribute__ ((pure));
+std::string hexdump(const void* const data, size_t size);
 
 /**
  * Dump a (binary) string as a sequence of hexadecimal pairs.
@@ -36,7 +36,7 @@ std::string hexdump(const void* const data, size_t size) __attribute__ ((pure));
  * \param str  binary data to output in hex
  * \return     string of hexadecimal pairs
  */
-std::string hexdump(const std::string& str) __attribute__ ((pure));
+std::string hexdump(const std::string& str);
 
 /**
  * Checks if the given match string is located at the start of this string.
@@ -62,10 +62,10 @@ bool ends_with(const std::string& str, const std::string& match) {
  * substrings. Multiple consecutive separators are considered individually and
  * will result in empty split substrings.
  *
- * @param str    string to split
- * @param sep    separator character
- * @param limit  maximum number of parts returned
- * @return       vector containing each split substring
+ * \param str    string to split
+ * \param sep    separator character
+ * \param limit  maximum number of parts returned
+ * \return       vector containing each split substring
  */
 static inline
 std::vector<std::string> split(
@@ -101,10 +101,10 @@ std::vector<std::string> split(
  * substrings. Multiple consecutive separators are considered individually and
  * will result in empty split substrings.
  *
- * @param str     string to split
- * @param sepstr  separator string, NOT a set of characters!
- * @param limit   maximum number of parts returned
- * @return        vector containing each split substring
+ * \param str     string to split
+ * \param sepstr  separator string, NOT a set of characters!
+ * \param limit   maximum number of parts returned
+ * \return        vector containing each split substring
  */
 static inline
 std::vector<std::string> split(
@@ -140,10 +140,10 @@ std::vector<std::string> split(
  * Join a sequence of strings by some glue string between each pair from the
  * sequence. The sequence in given as a range between two iterators.
  *
- * @param glue  string to glue
- * @param first the beginning iterator of the range to join
- * @param last  the ending iterator of the range to join
- * @return      string constructed from the range with the glue between them.
+ * \param glue  string to glue
+ * \param first the beginning iterator of the range to join
+ * \param last  the ending iterator of the range to join
+ * \return      string constructed from the range with the glue between them.
  */
 template <typename Iterator>
 static inline
@@ -168,9 +168,9 @@ std::string join(const std::string& glue, Iterator first, Iterator last) {
  * Join a Container (like a vector) of strings using some glue string between
  * each pair from the sequence.
  *
- * @param glue  string to glue
- * @param parts the vector of strings to join
- * @return      string constructed from the vector with the glue between them.
+ * \param glue  string to glue
+ * \param parts the vector of strings to join
+ * \return      string constructed from the vector with the glue between them.
  */
 template <typename Container>
 static inline
@@ -184,10 +184,10 @@ std::string join(const std::string& glue, const Container& parts) {
  * probable. Uses the pseudo-random number generator from stdlib; take care to
  * seed it using srand() before calling this function.
  *
- * @param size     length of result
- * @param rng      Random number generator to use, e.g. std::default_random_engine.
- * @param letters  character set to choose from
- * @return         random string of given length
+ * \param size     length of result
+ * \param rng      Random number generator to use, e.g. std::default_random_engine.
+ * \param letters  character set to choose from
+ * \return         random string of given length
  */
 template <typename RandomEngine = std::default_random_engine>
 static inline std::string
