@@ -352,6 +352,8 @@ public:
 
 class PyContext : public api::Context
 {
+    static const bool debug = true;
+
 public:
 #ifndef SWIG
     PyContext(std::unique_ptr<HostContext>&& host_context,
@@ -367,7 +369,7 @@ public:
     { }
 
     ~PyContext() {
-        std::cout << "Destroy PyContext" << std::endl;
+        LOG << "Destroy PyContext";
     }
 
     static std::vector<std::shared_ptr<PyContext> >
