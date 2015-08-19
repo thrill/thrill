@@ -27,6 +27,9 @@ my $launch_emacs = 0;
 # write changes to files (dangerous!)
 my $write_changes = 0;
 
+# have autopep8 python formatter?
+my $have_autopep8;
+
 # function testing whether to uncrustify a path
 sub filter_uncrustify($) {
     my ($path) = @_;
@@ -385,25 +388,32 @@ sub process_py {
     # check source header
     my $i = 0;
     expect($path, $i, @data, "#!/usr/bin/env python\n"); ++$i;
+    expect($path, $i, @data, ('#'x74)."\n"); ++$i;
     expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
-    expect($path, $i, @data, "# $path\n"); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
     # skip over comment
-    while ($data[$i] ne ('#'x80)."\n") {
+    while ($data[$i] ne ('#'x74)."\n") {
         expect_re($path, $i, @data, '^#( .*)?\n$');
         return unless ++$i < @data;
     }
 
-    expect($path, $i, @data, ('#'x80)."\n"); ++$i;
+    expect($path, $i, @data, ('#'x74)."\n"); ++$i;
 
     # check terminating ####### comment
     {
         my $n = scalar(@data)-1;
-        if ($data[$n] !~ m!^#{80}$!) {
+        if ($data[$n] !~ m!^#{74}$!) {
             push(@data, "\n");
-            push(@data, ("#"x80)."\n");
+            push(@data, ("#"x74)."\n");
         }
+    }
+
+    # run python source through autopep8
+    if ($have_autopep8)
+    {
+        my $data = join("", @data);
+        @data = filter_program($data, "autopep8", "-");
     }
 
     return if array_equal(\@data, \@origdata);
@@ -440,6 +450,13 @@ my ($uncrustver) = filter_program("", "uncrustify", "--version");
     or die("Requires uncrustify 0.61 to run correctly. ".
            "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
 
+$have_autopep8 = 1;
+my ($check_autopep8) = filter_program("", "autopep8", "--version");
+if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
+    $have_autopep8 = 0;
+    warn("Could not find autopep8 - automatic python formatter.");
+}
+
 use File::Find;
 my @filelist;
 find(sub { !-d && push(@filelist, $File::Find::name) }, ".");
@@ -461,7 +478,7 @@ foreach my $file (@filelist)
         process_pl_cmake($file);
     }
     elsif ($file =~ /^swig.*\.py$/) {
-        process_pl_cmake($file);
+        process_py($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
         process_pl_cmake($file);

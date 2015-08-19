@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-################################################################################
+##########################################################################
 # swig/python/python_rpyc_server.py
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -16,13 +16,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <http://www.gnu.org/licenses/>.
-################################################################################
+##########################################################################
 
-import sys, marshal, types
+import sys
+import marshal
+import types
 import rpyc
 import c7a
 
+
 class RpcDIA():
+
     def __init__(self, dia):
         self._dia = dia
 
@@ -44,7 +48,9 @@ class RpcDIA():
         func2 = types.FunctionType(code2, globals())
         return RpcDIA(self._dia.ReduceBy(func1, func2))
 
+
 class RpcContext():
+
     def __init__(self, host_ctx, my_host_rank):
         self._ctx = c7a.PyContext(host_ctx, my_host_rank)
 
@@ -56,7 +62,9 @@ class RpcContext():
     def Distribute(self, array):
         return RpcDIA(self._ctx.Distribute(array))
 
+
 class MyService(rpyc.Service):
+
     def on_connect(self):
         # code that runs when a connection is created
         # (to init the serivce, if needed)
@@ -70,14 +78,15 @@ class MyService(rpyc.Service):
         pass
 
     def exposed_Create(self, my_host_rank, endpoints):
-        print("Creating c7a context for rank", my_host_rank, "endpoints", endpoints)
+        print("Creating c7a context for rank",
+              my_host_rank, "endpoints", endpoints)
         host_ctx = c7a.HostContext(my_host_rank, endpoints, 1)
         return RpcContext(host_ctx, 0)
 
 if __name__ == "__main__":
     from rpyc.utils.server import ThreadedServer
-    t = ThreadedServer(MyService, port = int(sys.argv[1]),
-                       protocol_config = {"allow_public_attrs" : True})
+    t = ThreadedServer(MyService, port=int(sys.argv[1]),
+                       protocol_config={"allow_public_attrs": True})
     t.start()
 
-################################################################################
+##########################################################################

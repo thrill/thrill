@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-################################################################################
+##########################################################################
 # swig/python/RemoteThrill.py
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -16,11 +16,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program.  If not, see <http://www.gnu.org/licenses/>.
-################################################################################
+##########################################################################
 
-import marshal, rpyc
+import marshal
+import rpyc
+
 
 class RemoteDIA():
+
     def __init__(self, dias):
         self._dias = dias
 
@@ -29,7 +32,8 @@ class RemoteDIA():
         anetrefs = [rpyc.async(dia.AllGather) for dia in self._dias]
         # issue async requests
         asyncs = [ref() for ref in anetrefs]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # return values of workers as list
         return [a.value for a in asyncs]
 
@@ -38,7 +42,8 @@ class RemoteDIA():
         anetrefs = [rpyc.async(dia.Size) for dia in self._dias]
         # issue async requests
         asyncs = [ref() for ref in anetrefs]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # return values of workers as list
         return [a.value for a in asyncs]
 
@@ -48,7 +53,8 @@ class RemoteDIA():
         # issue async requests
         _map_function = marshal.dumps(map_function.__code__)
         asyncs = [ref(_map_function) for ref in anetrefs]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # return RemoteDIA
         return RemoteDIA([a.value for a in asyncs])
 
@@ -59,11 +65,14 @@ class RemoteDIA():
         _key_extractor = marshal.dumps(key_extractor.__code__)
         _reduce_function = marshal.dumps(reduce_function.__code__)
         asyncs = [ref(_key_extractor, _reduce_function) for ref in anetrefs]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # return RemoteDIA
         return RemoteDIA([a.value for a in asyncs])
 
+
 class RemoteThrill():
+
     def __init__(self, rpyc_hosts, thrill_hosts):
         # connect to rpyc servers
         self._conn = [rpyc.connect(*hp) for hp in rpyc_hosts]
@@ -73,7 +82,8 @@ class RemoteThrill():
         anetrefs = [rpyc.async(conn.root.Create) for conn in self._conn]
         # issue async requests
         asyncs = [ref(rank, thrill_hosts) for rank, ref in enumerate(anetrefs)]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # get created c7a contexts
         self._ctx = [a.value for a in asyncs]
 
@@ -82,7 +92,8 @@ class RemoteThrill():
         anetrefs = [rpyc.async(ctx.Distribute) for ctx in self._ctx]
         # issue async requests
         asyncs = [ref(array) for ref in anetrefs]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # return RemoteDIA
         return RemoteDIA([a.value for a in asyncs])
 
@@ -92,8 +103,9 @@ class RemoteThrill():
         # issue async requests
         _generator_function = marshal.dumps(generator_function.__code__)
         asyncs = [ref(_generator_function, size) for ref in anetrefs]
-        for a in asyncs: a.wait()
+        for a in asyncs:
+            a.wait()
         # return RemoteDIA
         return RemoteDIA([a.value for a in asyncs])
 
-################################################################################
+##########################################################################
