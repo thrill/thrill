@@ -112,11 +112,10 @@ public:
     { }
 
     /*!
-     * Copy-Constructor of a DIARef with empty function chain
-     * from a DIARef with a non-empty chain.
-     * The functionality of the chain is stored in a newly created LOpNode.
-     * The current DIARef than points to this LOpNode.
-     * This is needed to support assignment operations between DIARef's.
+     * Copy-Constructor of a DIARef with empty function chain from a DIARef with
+     * a non-empty chain.  The functionality of the chain is stored in a newly
+     * created LOpNode.  The current DIARef than points to this LOpNode.  This
+     * is needed to support assignment operations between DIARef's.
      *
      * \param rhs DIA containing a non-empty function chain.
      */
@@ -191,10 +190,9 @@ public:
     }
 
     /*!
-     * Filter is a LOp, which filters elements from  this DIARef
-     * according to the filter_function given by the
-     * user. The filter_function maps each element to a boolean.
-     * The function chain of the returned DIARef is this DIARef's
+     * Filter is a LOp, which filters elements from this DIARef according to the
+     * filter_function given by the user. The filter_function maps each element
+     * to a boolean.  The function chain of the returned DIARef is this DIARef's
      * stack_ chained with filter_function.
      *
      * \tparam FilterFunction Type of the map function.
@@ -252,8 +250,8 @@ public:
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function.
+     * \tparam KeyExtractor Type of the key_extractor function.  The
+     * key_extractor function is equal to a map function.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
