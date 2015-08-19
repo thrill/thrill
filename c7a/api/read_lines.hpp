@@ -146,7 +146,7 @@ private:
                 current_file_++;
             }
 
-            c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
+            c_file_ = OpenFile(files_[current_file_].first);
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
@@ -230,7 +230,7 @@ private:
                     // (this and first) into a function OpenFile() if we are to
                     // add decompressors.
 
-                    c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
+                    c_file_ = OpenFile(files_[current_file_].first);
                     ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
                     bb_.set_size(buffer_size);
 
@@ -250,6 +250,12 @@ private:
                 return offset_ + current_ < my_end_;
             }
         }
+
+		//! Open file and return file handle
+		//! \param path Path to open
+		int OpenFile(const std::string& path) {
+			return open(path.c_str(), O_RDONLY);
+		}
 
     private:
         //! Input files with inclusive size prefixsum.
