@@ -35,16 +35,13 @@ public:
     { }
 
     template <typename ReducePostProbingTable>
-    typename ReducePostProbingTable::index_result
-    operator () (Key v, ReducePostProbingTable* ht) const {
-
-        using index_result = typename ReducePostProbingTable::index_result;
-
-        size_t global_index = v / 2;
+    size_t
+    operator () (Key v, ReducePostProbingTable* ht, size_t size) const {
 
         (*ht).NumItems();
+        size++;
 
-        return index_result(global_index);
+        return v / 2;
     }
 
 private:
@@ -66,10 +63,10 @@ TEST_F(PostTable, CustomHashFunction) {
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
     CustomKeyHashFunction<int> cust_hash;
-    c7a::core::PostProbingReduceFlushToDefault flush_func;
+    c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)> flush_func;
 
     c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                      c7a::core::PostProbingReduceFlushToDefault, CustomKeyHashFunction<int> >
+                                      c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int> >
     table(key_ex, red_fn, emitters, -1, cust_hash, flush_func);
 
     ASSERT_EQ(0u, writer1.size());
@@ -113,7 +110,7 @@ TEST_F(PostTable, AddIntegers) {
 
     table.Insert(pair(2));
 
-    ASSERT_EQ(1u, table.NumItems());
+    ASSERT_EQ(3u, table.NumItems());
 
     table.Flush();
 
