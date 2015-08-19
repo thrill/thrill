@@ -96,7 +96,7 @@ protected:
     OStreamSink sink_ { path_out_ };
 
     //! BlockWriter to sink.
-    data::BlockWriter writer_ { &sink_ };
+    data::BlockWriterNoVerify writer_ { &sink_ };
 };
 
 template <typename ValueType, typename Stack>
