@@ -18,6 +18,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/net/buffer_builder.hpp>
 // C7A_{/UN}LIKELY
+#include <c7a/common/math.hpp>
 #include <c7a/common/item_serialization_tools.hpp>
 
 #include <fcntl.h>
@@ -134,16 +135,11 @@ private:
 
             file_size_ = files[files.size() - 1].second;
 
-            // REVIEW(an): use CalculateLocalRange()
             // Go to start of 'local part'.
-            size_t per_worker = file_size_ / num_workers_;
-            size_t my_start = per_worker * my_id_;
-            if (my_id_ == (num_workers - 1)) {
-                my_end_ = file_size_ - 1;
-            }
-            else {
-                my_end_ = per_worker * (my_id_ + 1) - 1;
-            }
+			auto my_start_and_end = common::CalculateLocalRange(file_size_, num_workers_, my_id_);
+			
+			size_t my_start = std::get<0>(my_start_and_end);
+			my_end_ = std::get<1>(my_start_and_end);
 
             while (files_[current_file_].second <= my_start) {
                 current_file_++;
@@ -251,10 +247,10 @@ private:
         //! returns true, if an element is available in local part
         bool HasNext() {
             if (current_file_) {
-                return (offset_ + current_ + files_[current_file_ - 1].second <= my_end_);
+                return (offset_ + current_ + files_[current_file_ - 1].second < my_end_);
             }
             else {
-                return offset_ + current_ <= my_end_;
+                return offset_ + current_ < my_end_;
             }
         }
 
@@ -276,7 +272,7 @@ private:
         size_t my_id_;
         //! total number of workers
         size_t num_workers_;
-        //! end of local block
+        //! (exclusive) end of local block
         size_t my_end_;
 
         // REVIEW(an): you dont need both, apparently you need the BufferBuilder
