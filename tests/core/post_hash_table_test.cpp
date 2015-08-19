@@ -36,10 +36,10 @@ public:
 
     template <typename ReducePostTable>
     size_t
-    operator () (Key v, ReducePostTable* ht, size_t num_buckets) const {
+    operator () (Key v, ReducePostTable* ht, size_t size) const {
 
         (*ht).NumBlocks();
-        num_buckets++;
+        size++;
 
         return v / 2;
     }

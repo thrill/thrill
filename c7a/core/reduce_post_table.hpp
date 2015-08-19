@@ -98,13 +98,13 @@ public:
 
     template <typename ReducePostTable>
     size_t
-    operator () (Key v, ReducePostTable* ht, size_t num_buckets) const {
-
-        size_t hashed = hash_function_(v);
+    operator () (Key v, ReducePostTable* ht, size_t size) const {
 
         (*ht).NumBlocks();
 
-        return hashed % num_buckets;
+        size_t hashed = hash_function_(v);
+
+        return hashed % size;
     }
 
 private:
@@ -118,9 +118,9 @@ public:
 
     template <typename ReducePostTable>
     size_t
-    operator () (size_t key, ReducePostTable* ht, size_t num_buckets) const {
+    operator () (size_t key, ReducePostTable* ht, size_t size) const {
 
-        return (key - ht->BeginLocalIndex()) % num_buckets;
+        return (key - ht->BeginLocalIndex()) % size;
     }
 };
 
@@ -168,10 +168,6 @@ public:
             // only if items have been spilled,
             // process a second reduce
             if (file.NumItems() > 0)  {
-
-                // compute size of second reduce table
-//                size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-//                                  / static_cast<double>(ht->MaxNumBlocksPerBucket() * ht->block_size_));
 
                 size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
                                                          / static_cast<double>(ht->block_size_));
@@ -233,7 +229,6 @@ public:
                 /////
                 // reduce data from primary table
                 /////
-
                 for (size_t i = offset; i < offset + ht->FrameSize(); i++)
                 {
                     BucketBlock* current = buckets_[i];
@@ -296,7 +291,6 @@ public:
                 /////
                 // emit data
                 /////
-
                 for (size_t i = 0; i < frame_length; i++)
                 {
                     BucketBlock* current = second_reduce[i];
@@ -326,7 +320,6 @@ public:
                 /////
                 // emit data
                 /////
-
                 for (size_t i = offset; i < offset + ht->FrameSize(); i++)
                 {
                     BucketBlock* current = buckets_[i];
@@ -771,9 +764,7 @@ public:
     }
 
     /*!
-     * Returns the total num of blocks in the table.
-     *
-     * @return Number of blocks in the table.
+     * Sets the total num of blocks in the table.
      */
     void SetNumBlocks(size_t num_blocks) {
         num_blocks_ = num_blocks;
@@ -812,7 +803,7 @@ public:
      *
      * @return Begin local index.
      */
-    size_t BeginLocalIndex() {
+    size_t BeginLocalIndex() const {
         return begin_local_index_;
     }
 
@@ -821,7 +812,7 @@ public:
      *
      * @return End local index.
      */
-    size_t EndLocalIndex() {
+    size_t EndLocalIndex() const {
         return end_local_index_;
     }
 
@@ -830,7 +821,7 @@ public:
      *
      * @return Neutral element.
      */
-    Value NeutralElement() {
+    Value NeutralElement() const {
         return neutral_element_;
     }
 
@@ -919,7 +910,7 @@ public:
     }
 
 protected:
-    //! Number of buckets
+    //! Number of buckets.
     size_t num_buckets_;
 
     // Maximal number of blocks per bucket before spilling.
@@ -947,16 +938,16 @@ protected:
     //! Store the writers for frames.
     std::vector<data::File::Writer> frame_writers_;
 
-    //! Begin local index (reduce to index)
+    //! Begin local index (reduce to index).
     size_t begin_local_index_;
 
-    //! End local index (reduce to index)
+    //! End local index (reduce to index).
     size_t end_local_index_;
 
-    //! Neutral element (reduce to index)
+    //! Neutral element (reduce to index).
     Value neutral_element_;
 
-    //! frame size.
+    //! Frame size.
     size_t frame_size_ = 0;
 
     //! Key extractor function for extracting a key from a value.
