@@ -165,10 +165,10 @@ private:
                 bb_.set_size(buffer_size);
                 buffer_ = bb_.ToBuffer();
                 current_ = 1;
+
+				//Move to next newline, if local part does not start at the beginning of a line.
                 if (buffer_[0] != '\n') {
                     bool found_n = false;
-                    // REVIEW(an): im not sure this is what we want: when a file
-                    // ends, shouldn't that be considered as a newline?
 
                     // find next newline, discard all previous data as previous worker already covers it
                     while (!found_n) {
@@ -185,11 +185,15 @@ private:
                             offset_ += buffer_.size();
                             bb_.Reserve(read_size);
                             buffer_size = read(c_file_, bb_.data(), read_size);
+							//EOF = newline per definition
+							if (!buffer_size) {
+								found_n = true;
+							}
                             bb_.set_size(buffer_size);
                             buffer_ = bb_.ToBuffer();
                         }
                     }
-                    assert(buffer_[current_ - 1] == '\n');
+                    assert(buffer_[current_ - 1] == '\n' || !buffer_size);
                 }
             }
             else {
