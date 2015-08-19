@@ -5,7 +5,61 @@ import threading
 
 import c7a
 
+def run_c7a_threads(num_threads, thread_func):
+    # construct a local context mock network
+    ctxs = c7a.PyContext.ConstructLocalMock(num_threads, 1)
+
+    # but then start python threads for each context
+    threads = []
+    for thrid in range(0, num_threads):
+        t = threading.Thread(target=thread_func, args=(ctxs[thrid],))
+        t.start()
+        threads.append(t)
+
+    # wait for computation to finish
+    for thr in threads:
+        thr.join()
+
+def run_tests(thread_func):
+    for num_threads in [1,2,4,5,8]:
+        run_c7a_threads(num_threads, thread_func)
+
 class TestOperations(unittest.TestCase):
+
+    def test_generate_allgather(self):
+
+        def test(ctx):
+            test_size = 1024
+
+            dia1 = ctx.Generate(lambda x : [int(x), "hello %d" % (x)], test_size)
+            self.assertEqual(dia1.Size(), test_size)
+
+            check = [[int(x), "hello %d" % (x)] for x in range(0,test_size)]
+            self.assertEqual(dia1.AllGather(), check)
+
+        run_tests(test)
+
+    def test_generate_map_allgather(self):
+
+        def test(ctx):
+            test_size = 1024
+
+            dia1 = ctx.Generate(lambda x : int(x), test_size)
+            self.assertEqual(dia1.Size(), test_size)
+
+            dia2 = dia1.Map(lambda x : [int(x), "hello %d" % (x)])
+
+            check = [[int(x), "hello %d" % (x)] for x in range(0,test_size)]
+            self.assertEqual(dia2.Size(), test_size)
+            self.assertEqual(dia2.AllGather(), check)
+
+            dia3 = dia1.Map(lambda x : [int(x), "two %d" % (x)])
+
+            check = [[int(x), "two %d" % (x)] for x in range(0,test_size)]
+            self.assertEqual(dia3.Size(), test_size)
+            self.assertEqual(dia3.AllGather(), check)
+
+        run_tests(test)
 
     def my_generator(self,index):
         #print("generator at index", index)
@@ -14,7 +68,7 @@ class TestOperations(unittest.TestCase):
     def my_thread(self, ctx):
         print("thread in python, rank", ctx.my_rank())
 
-        dia1 = ctx.Generate(self.my_generator, 50)
+        dia1 = ctx.Generate(lambda x : [int(x), x], 50)
         dia2 = dia1.Map(lambda x : (x[0], x[1] + " mapped"))
 
         s = dia2.Size()
@@ -37,23 +91,8 @@ class TestOperations(unittest.TestCase):
         dia5 = ctx.Distribute([2,3,5,7,11,13,17,19])
         print("dia5.AllGather:", dia5.AllGather())
 
-    def test_operations(self):
-
-        nthreads = 4
-
-        ctxs = c7a.PyContext.ConstructLocalMock(nthreads, 1)
-
-        threads = []
-
-        for thrid in range(0,nthreads):
-            t = threading.Thread(target=self.my_thread, args=(ctxs[thrid],))
-            t.start()
-            threads.append(t)
-
-        for thr in threads:
-            thr.join()
-
-        print("Done")
+    def notest_operations(self):
+        run_c7a_threads(4, self.my_thread)
 
 if __name__ == '__main__':
     unittest.main()
