@@ -271,6 +271,21 @@ static void preinit_free(void* ptr) noexcept {
 
 #define HAVE_MALLOC_USABLE_SIZE 1
 
+#if __APPLE__
+
+#define NOEXCEPT
+#define MALLOC_USABLE_SIZE malloc_size
+#include <malloc/malloc.h>
+
+#else
+
+#define NOEXCEPT noexcept
+#define MALLOC_USABLE_SIZE malloc_usable_size
+#include <malloc.h>
+
+#endif
+
+
 #if HAVE_MALLOC_USABLE_SIZE
 
 /*
@@ -279,11 +294,9 @@ static void preinit_free(void* ptr) noexcept {
  * than the allocated size). On Linux's glibc there is malloc_usable_size().
  */
 
-#include <malloc.h>
-
 //! exported malloc symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
-void * malloc(size_t size) noexcept {
+void * malloc(size_t size) NOEXCEPT {
 
     if (!real_malloc)
         return preinit_malloc(size);
@@ -291,7 +304,7 @@ void * malloc(size_t size) noexcept {
     //! call real malloc procedure in libc
     void* ret = (*real_malloc)(size);
 
-    size_t size_used = malloc_usable_size(ret);
+    size_t size_used = MALLOC_USABLE_SIZE(ret);
     inc_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
@@ -304,7 +317,7 @@ void * malloc(size_t size) noexcept {
 
 //! exported free symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
-void free(void* ptr) noexcept {
+void free(void* ptr) NOEXCEPT {
 
     if (!ptr) return;   //! free(nullptr) is no operation
 
@@ -320,7 +333,7 @@ void free(void* ptr) noexcept {
         return;
     }
 
-    size_t size_used = malloc_usable_size(ptr);
+    size_t size_used = MALLOC_USABLE_SIZE(ptr);
     dec_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
@@ -334,7 +347,7 @@ void free(void* ptr) noexcept {
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
 ATTRIBUTE_NO_SANITIZE
-void * calloc(size_t nmemb, size_t size) noexcept {
+void * calloc(size_t nmemb, size_t size) NOEXCEPT {
     size *= nmemb;
     void* ret = malloc(size);
     memset(ret, 0, size);
@@ -343,7 +356,7 @@ void * calloc(size_t nmemb, size_t size) noexcept {
 
 //! exported realloc() symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
-void * realloc(void* ptr, size_t size) noexcept {
+void * realloc(void* ptr, size_t size) NOEXCEPT {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
         static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + init_heap_use)
@@ -360,12 +373,12 @@ void * realloc(void* ptr, size_t size) noexcept {
         return malloc(size);
     }
 
-    size_t oldsize_used = malloc_usable_size(ptr);
+    size_t oldsize_used = MALLOC_USABLE_SIZE(ptr);
     dec_count(oldsize_used);
 
     void* newptr = (*real_realloc)(ptr, size);
 
-    size_t newsize_used = malloc_usable_size(newptr);
+    size_t newsize_used = MALLOC_USABLE_SIZE(newptr);
     inc_count(newsize_used);
 
     if (log_operations && newsize_used >= log_operations_threshold)
@@ -394,7 +407,7 @@ void * realloc(void* ptr, size_t size) noexcept {
 
 //! exported malloc symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
-void * malloc(size_t size) noexcept {
+void * malloc(size_t size) NOEXCEPT {
 
     if (!real_malloc)
         return preinit_malloc(size);
@@ -418,7 +431,7 @@ void * malloc(size_t size) noexcept {
 
 //! exported free symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
-void free(void* ptr) noexcept {
+void free(void* ptr) NOEXCEPT {
 
     if (!ptr) return;   //! free(nullptr) is no operation
 
@@ -456,7 +469,7 @@ void free(void* ptr) noexcept {
 //! exported calloc() symbol that overrides loading from libc, implemented using
 //! our malloc
 ATTRIBUTE_NO_SANITIZE
-void * calloc(size_t nmemb, size_t size) noexcept {
+void * calloc(size_t nmemb, size_t size) NOEXCEPT {
     size *= nmemb;
     if (!size) return nullptr;
     void* ret = malloc(size);
@@ -466,7 +479,7 @@ void * calloc(size_t nmemb, size_t size) noexcept {
 
 //! exported realloc() symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
-void * realloc(void* ptr, size_t size) noexcept {
+void * realloc(void* ptr, size_t size) NOEXCEPT {
 
     if (static_cast<char*>(ptr) >= static_cast<char*>(init_heap) &&
         static_cast<char*>(ptr) <= static_cast<char*>(init_heap) + init_heap_use)
