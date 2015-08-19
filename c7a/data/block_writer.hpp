@@ -36,14 +36,15 @@ namespace data {
  * File, a ChannelSink, etc. for further delivery. The BlockWriter takes care of
  * segmenting items when a Block is full.
  */
-class BlockWriter
-    : public common::ItemWriterToolsBase<BlockWriter>
+template <bool DisableSelfVerify>
+class BlockWriterBase
+    : public common::ItemWriterToolsBase<BlockWriterBase<DisableSelfVerify> >
 {
 public:
-    static const bool self_verify = common::g_self_verify;
+    static const bool self_verify = common::g_self_verify && !DisableSelfVerify;
 
     //! Start build (appending blocks) to a File
-    explicit BlockWriter(BlockSink* sink,
+    explicit BlockWriterBase(BlockSink* sink,
                          size_t block_size = default_block_size)
         : sink_(sink),
           block_size_(block_size) {
@@ -51,17 +52,17 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    BlockWriter(const BlockWriter&) = delete;
+    BlockWriterBase(const BlockWriterBase&) = delete;
     //! non-copyable: delete assignment operator
-    BlockWriter& operator = (const BlockWriter&) = delete;
+    BlockWriterBase& operator = (const BlockWriterBase&) = delete;
 
     //! move-constructor
-    BlockWriter(BlockWriter&&) = default;
+    BlockWriterBase(BlockWriterBase&&) = default;
     //! move-assignment
-    BlockWriter& operator = (BlockWriter&&) = default;
+    BlockWriterBase& operator = (BlockWriterBase&&) = default;
 
     //! On destruction, the last partial block is flushed.
-    ~BlockWriter() {
+    ~BlockWriterBase() {
         if (bytes_)
             Close();
     }
@@ -100,7 +101,7 @@ public:
     //! \{
 
     //! Mark beginning of an item.
-    BlockWriter & MarkItem() {
+    BlockWriterBase & MarkItem() {
         if (current_ == end_)
             Flush();
 
@@ -114,14 +115,14 @@ public:
 
     //! operator() appends a complete item
     template <typename T>
-    BlockWriter& operator () (const T& x) {
+    BlockWriterBase& operator () (const T& x) {
         assert(!closed_);
         MarkItem();
         if (self_verify) {
             // for self-verification, prefix T with its hash code
             Put(typeid(T).hash_code());
         }
-        Serialization<BlockWriter, T>::Serialize(x, *this);
+        Serialization<BlockWriterBase, T>::Serialize(x, *this);
         return *this;
     }
 
@@ -131,7 +132,7 @@ public:
     //! \{
 
     //! Append a memory range to the block
-    BlockWriter & Append(const void* data, size_t size) {
+    BlockWriterBase & Append(const void* data, size_t size) {
         assert(!closed_);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -156,7 +157,7 @@ public:
     }
 
     //! Append a single byte to the block
-    BlockWriter & PutByte(Byte data) {
+    BlockWriterBase & PutByte(Byte data) {
         assert(!closed_);
 
         if (C7A_UNLIKELY(current_ == end_))
@@ -168,14 +169,14 @@ public:
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    BlockWriter & Append(const std::string& str) {
+    BlockWriterBase & Append(const std::string& str) {
         return Append(str.data(), str.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BlockWriter & Put(const Type& item) {
+    BlockWriterBase & Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -246,6 +247,9 @@ protected:
     //! Flag if Close was called explicitly
     bool closed_ = false;
 };
+
+using BlockWriter = BlockWriterBase<false>;
+using BlockWriterNoVerify = BlockWriterBase<true>;
 
 //! \}
 
