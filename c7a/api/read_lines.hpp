@@ -77,7 +77,7 @@ public:
 
             directory_size += filestat.st_size;
 
-            filesize_prefix.push_back(std::make_pair(filepath, directory_size));
+            filesize_prefix.emplace_back(std::move(filepath), directory_size);
         }
         globfree(&glob_result);
     }
@@ -259,7 +259,7 @@ private:
 
     private:
         //! Input files with inclusive size prefixsum.
-        std::vector<FileSizePair > files_;
+        std::vector<FileSizePair> files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! Size of current file in bytes
