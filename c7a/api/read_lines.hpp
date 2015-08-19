@@ -19,6 +19,7 @@
 #include <c7a/net/buffer_builder.hpp>
 // C7A_{/UN}LIKELY
 #include <c7a/common/math.hpp>
+#include <c7a/common/string.hpp>
 #include <c7a/common/item_serialization_tools.hpp>
 
 #include <fcntl.h>
@@ -75,6 +76,10 @@ public:
             }
             if (!S_ISREG(filestat.st_mode)) continue;
 
+			if (IsCompressed(filepath)) {
+				contains_compressed_file_ = true;
+			}
+
             directory_size += filestat.st_size;
 
             filesize_prefix.emplace_back(std::move(filepath), directory_size);
@@ -86,11 +91,12 @@ public:
 
     void PushData() final {
         InputLineIterator it = GetInputLineIterator(
-            filesize_prefix, context_.my_rank(), context_.num_workers());
+            filesize_prefix, context_.my_rank(), context_.num_workers(), contains_compressed_file_);
 
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
+			LOG1 << item;
             for (auto func : Super::callbacks_) {
                 func(item);
             }
@@ -114,6 +120,17 @@ public:
     }
 
 private:
+	//Returns true, if file at filepath is compressed (e.g, ends with '.[gz/bz2,xz,lzo]')
+	bool IsCompressed(const std::string& path) {
+		return common::ends_with(path, ".gz") ||
+			common::ends_with(path, ".bz2") ||
+			common::ends_with(path, ".xz") ||
+			common::ends_with(path, ".lzo");
+	}
+
+	//! True, if at least one input file is compressed.
+	bool contains_compressed_file_ = false;
+
     //! Path of the input file.
     std::string path_;
 
@@ -127,12 +144,14 @@ private:
 
         //! Creates an instance of iterator that reads file line based
         InputLineIterator(
-            const std::vector<FileSizePair >& files,
+            const std::vector<FileSizePair>& files,
             size_t my_id,
-            size_t num_workers)
+            size_t num_workers,
+			bool contains_compressed_file)
             : files_(files),
               my_id_(my_id),
-              num_workers_(num_workers) {
+              num_workers_(num_workers),
+			  contains_compressed_file_(contains_compressed_file) {
 
             input_size_ = files[files.size() - 1].second;
 
@@ -142,22 +161,42 @@ private:
 			size_t my_start = std::get<0>(my_start_and_end);
 			my_end_ = std::get<1>(my_start_and_end);
 
+
             while (files_[current_file_].second <= my_start) {
                 current_file_++;
             }
+
+			if (contains_compressed_file_) {
+				for (size_t file_nr = current_file_; file_nr < files_.size(); file_nr++) {
+					if (files[current_file_].second == my_end_) {
+						break; 
+					}
+					if (files[current_file_].second > my_end_) {
+						if (current_file_) {
+							my_end_ = files_[current_file_ - 1].second;
+						} else {
+							my_end_ = 0;
+						}
+						break;
+					}
+				}
+			}
 
             c_file_ = OpenFile(files_[current_file_].first);
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            if (current_file_) {
-                offset_ = lseek(c_file_, my_start - files_[current_file_ - 1].second, SEEK_CUR);
-                current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
-            }
-            else {
-                offset_ = lseek(c_file_, my_start, SEEK_CUR);
-                current_size_ = files_[0].second;
-            }
+			// cannot seek in compressed file
+			if (!contains_compressed_file_) {
+				if (current_file_) {
+					offset_ = lseek(c_file_, my_start - files_[current_file_ - 1].second, SEEK_CUR);
+					current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
+				}
+				else {
+					offset_ = lseek(c_file_, my_start, SEEK_CUR);
+					current_size_ = files_[0].second;
+				}
+			}
 
             if (offset_ != 0) {
                 offset_ = lseek(c_file_, -1, SEEK_CUR);
@@ -211,9 +250,10 @@ private:
                     if (C7A_UNLIKELY(*it == '\n')) {
                         size_t strlen = it - bb_.begin() - current_;
                         current_ = it - bb_.begin() + 1;
-                        return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
+						return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
                     }
                 }
+
                 ret.append(bb_.PartialToString(current_, bb_.size() - current_));
                 current_ = 0;
                 ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
@@ -225,10 +265,6 @@ private:
                     close(c_file_);
                     current_file_++;
                     offset_ = 0;
-
-                    // REVIEW(an): you must extract all the open() commands
-                    // (this and first) into a function OpenFile() if we are to
-                    // add decompressors.
 
                     c_file_ = OpenFile(files_[current_file_].first);
                     ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
@@ -243,18 +279,96 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            if (current_file_) {
-                return (offset_ + current_ + files_[current_file_ - 1].second < my_end_);
-            }
-            else {
-                return offset_ + current_ < my_end_;
-            }
+			if (!contains_compressed_file_) {
+				if (current_file_) {
+					return (offset_ + current_ + files_[current_file_ - 1].second < my_end_);
+				}
+				else {
+					return offset_ + current_ < my_end_;
+				}
+			} else {
+				//if block is fully read, read next block. needs to be done here
+				// as HasNext() has to know if file is finished
+				if (current_ >= bb_.size() - 2) {
+					current_ = 0;
+					ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+					offset_ += bb_.size();
+					if (buffer_size > 1) {
+						bb_.set_size(buffer_size);
+						return true;
+					}
+					else {						
+						//already at last file
+						if (current_file_ >= files_.size() - 1) {
+							return false;
+						}
+						close(c_file_);
+						//if (this worker reads at least one more file)
+						if (my_end_ > files_[current_file_].second) {
+							current_file_++;
+							offset_ = 0;
+
+							c_file_ = OpenFile(files_[current_file_].first);
+							bb_.set_size(read(c_file_, bb_.data(), read_size));
+							return true;
+						} else {
+							return false;
+						}
+					}
+                } else {
+					if (current_file_) {
+						return files_[current_file_ - 1].second < my_end_;
+					} else {
+						return my_end_;
+					}
+				}
+			}
         }
 
 		//! Open file and return file handle
 		//! \param path Path to open
 		int OpenFile(const std::string& path) {
-			return open(path.c_str(), O_RDONLY);
+
+			//path too short, can't end with .[gz/bz2,xz,lzo]
+			if (path.size() < 4) return open(path.c_str(), O_RDONLY);
+
+			const char* decompressor = nullptr;
+
+			if (common::ends_with(path, ".gz")) {
+				decompressor = "gzip";
+			} else if (common::ends_with(path, ".bz2")) {
+				decompressor = "bzip2";
+			} else if (common::ends_with(path, ".xz")) {
+				decompressor = "xz";
+			} else if (common::ends_with(path, ".lzo")) {
+				decompressor = "lzop";
+			}
+
+			//not a compressed file
+			if (!decompressor) return open(path.c_str(), O_RDONLY);
+
+			// create pipe, fork and call decompressor as child
+			int pipefd[2]; // pipe[0] = read, pipe[1] = write
+			if (pipe(pipefd) != 0) {
+				LOG1 << "Error creating pipe: " << strerror(errno);
+				exit(-1);
+			}
+
+			pid_t pid = fork();
+			if (pid == 0) {
+				close(pipefd[0]);               // close read end
+				dup2(pipefd[1], STDOUT_FILENO); // replace stdout with pipe
+
+				execlp(decompressor, decompressor, "-dc", path.c_str(), NULL);
+
+				std::cout << "Pipe execution failed: " << strerror(errno) << std::endl;
+				close(pipefd[1]); // close write end
+				exit(-1);
+			}
+			
+			close(pipefd[1]);     // close write end
+
+			return pipefd[0];
 		}
 
     private:
@@ -267,7 +381,7 @@ private:
 		//! File handle to files_[current_file_]
         int c_file_;
 		//! Offset of current block in c_file_.
-        size_t offset_;
+        size_t offset_ = 0;
         //! Size of all files combined (in bytes)
         size_t input_size_;
         //! Worker ID
@@ -280,6 +394,8 @@ private:
         net::BufferBuilder bb_;
 		//! Start of next element in current buffer.
         size_t current_ = 0;
+		//! True, if at least one input file is compressed
+		bool contains_compressed_file_;
     };
 
     //! Returns an InputLineIterator with a given input file stream.
@@ -289,10 +405,9 @@ private:
     //! \param num_work Number of workers
     //!
     //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(
-        // REVIEW(an): please make some using typedefs!
-        std::vector<FileSizePair> files, size_t my_id, size_t num_work) {
-        return InputLineIterator(files, my_id, num_work);
+    InputLineIterator GetInputLineIterator(std::vector<FileSizePair> files,
+		size_t my_id, size_t num_work, bool contains_compressed_file) {
+        return InputLineIterator(files, my_id, num_work, contains_compressed_file);
     }
 };
 
