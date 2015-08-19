@@ -13,12 +13,12 @@
 #define C7A_SWIG_PYTHON_C7A_PYTHON_HEADER
 
 #include <c7a/api/allgather.hpp>
+#include <c7a/api/cache.hpp>
+#include <c7a/api/collapse.hpp>
 #include <c7a/api/context.hpp>
 #include <c7a/api/dia.hpp>
 #include <c7a/api/distribute.hpp>
 #include <c7a/api/generate.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/cache.hpp>
 #include <c7a/api/reduce.hpp>
 #include <c7a/api/size.hpp>
 #include <c7a/common/string.hpp>
@@ -373,8 +373,7 @@ public:
     }
 
     static std::vector<std::shared_ptr<PyContext> >
-    ConstructLocalMock(size_t host_count, size_t workers_per_host)
-    {
+    ConstructLocalMock(size_t host_count, size_t workers_per_host) {
         std::vector<std::unique_ptr<HostContext> > host_contexts
             = HostContext::ConstructLocalMock(host_count, workers_per_host);
 
@@ -398,10 +397,10 @@ public:
 
         PyDIARef dia = api::Generate(
             *this, [&generator_function,
-                  // this holds a reference count to the callback object for the
-                  // lifetime of the capture object.
-                  ref = PyObjectRef(director.swig_get_self())
-                ](size_t index) {
+                    // this holds a reference count to the callback object for the
+                    // lifetime of the capture object.
+                    ref = PyObjectRef(director.swig_get_self())
+            ](size_t index) {
                 return PyObjectRef(generator_function(index), true);
             }, size);
 
