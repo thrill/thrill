@@ -41,18 +41,18 @@ class Buffer
 {
 public:
     //! value type stored in the buffer
-    typedef unsigned char value_type;
+    using value_type = unsigned char;
     //! size and offset type of buffer
-    typedef size_t size_type;
+    using size_type = size_t;
 
     //! simple pointer iterators
-    typedef value_type* iterator;
+    using iterator = value_type *;
     //! simple pointer iterators
-    typedef const value_type* const_iterator;
+    using const_iterator = const value_type *;
     //! simple pointer references
-    typedef value_type& reference;
+    using reference = value_type &;
     //! simple pointer references
-    typedef const value_type& const_reference;
+    using const_reference = const value_type &;
 
 protected:
     //! protected constructor used to acquire ownership of a buffer

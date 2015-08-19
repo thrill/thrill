@@ -42,10 +42,10 @@ template <>
 class StatsTimer<true>
 {
 public:
-    typedef std::chrono::steady_clock steady_clock;
-    typedef std::chrono::steady_clock::time_point time_point;
+    using steady_clock = std::chrono::steady_clock;
+    using time_point = std::chrono::steady_clock::time_point;
 
-    typedef std::chrono::microseconds duration;
+    using duration = std::chrono::microseconds;
 
 protected:
     //! boolean whether the timer is currently running
@@ -153,10 +153,10 @@ template <>
 class StatsTimer<false>
 {
 public:
-    typedef std::chrono::steady_clock steady_clock;
-    typedef std::chrono::steady_clock::time_point time_point;
+    using steady_clock = std::chrono::steady_clock;
+    using time_point = std::chrono::steady_clock::time_point;
 
-    typedef std::chrono::microseconds duration;
+    using duration = std::chrono::microseconds;
 
 public:
     //! Initialize and optionally immediately start the timer

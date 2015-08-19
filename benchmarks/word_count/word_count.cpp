@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count.cpp
+ * benchmarks/word_count/word_count.cpp
  *
  * Runner program for WordCount example. See c7a/examples/word_count.hpp for the
  * source to the example.
@@ -15,7 +15,7 @@
 #include <c7a/common/logger.hpp>
 #include <c7a/examples/word_count.hpp>
 
-using namespace c7a;
+using namespace c7a; // NOLINT
 
 int main(int argc, char* argv[]) {
 

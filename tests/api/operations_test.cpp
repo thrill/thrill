@@ -14,6 +14,7 @@
 #include <c7a/api/collapse.hpp>
 #include <c7a/api/distribute.hpp>
 #include <c7a/api/distribute_from.hpp>
+#include <c7a/api/gather.hpp>
 #include <c7a/api/generate.hpp>
 #include <c7a/api/generate_from_file.hpp>
 #include <c7a/api/prefixsum.hpp>
@@ -52,8 +53,8 @@ TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
 
                            input.Map(
                                [&writer_size](const int& item) {
-                                   //file contains ints between 1  and 15
-                                   //fails if wrong integer is generated
+                                   // file contains ints between 1  and 15
+                                   // fails if wrong integer is generated
                                    EXPECT_GE(item, 1);
                                    EXPECT_GE(16, item);
                                    writer_size++;
@@ -191,6 +192,44 @@ TEST(Operations, DistributeFromAndAllGatherElements) {
     api::RunLocalTests(start_func);
 }
 
+TEST(Operations, DistributeAndGatherElements) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            static const size_t test_size = 1024;
+
+            std::vector<size_t> in_vector;
+
+            // generate data everywhere
+            for (size_t i = 0; i < test_size; ++i) {
+                in_vector.push_back(i);
+            }
+
+            // "randomly" shuffle.
+            std::default_random_engine gen(123456);
+            std::shuffle(in_vector.begin(), in_vector.end(), gen);
+
+            DIARef<size_t> integers = Distribute(ctx, in_vector).Cache();
+
+            std::vector<size_t> out_vec = integers.Gather(0);
+
+            std::sort(out_vec.begin(), out_vec.end());
+
+            if (ctx.my_rank() == 0) {
+                ASSERT_EQ(test_size, out_vec.size());
+                for (size_t i = 0; i < out_vec.size(); ++i) {
+                    ASSERT_EQ(i, out_vec[i]);
+                }
+            }
+            else {
+                ASSERT_EQ(0u, out_vec.size());
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(Operations, GenerateIntegers) {
 
     static const size_t test_size = 1000;
@@ -229,7 +268,7 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             std::function<double(int)> double_elements =
                 [](int in) {
-                    return (double)2 * in;
+                    return static_cast<double>(2 * in);
                 };
 
             auto doubled = integers.Map(double_elements);
@@ -261,10 +300,11 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
                 },
                 16);
 
-            auto flatmap_double = [](int in, auto emit) {
-                                      emit((double)2 * in);
-                                      emit((double)2 * (in + 16));
-                                  };
+            auto flatmap_double =
+                [](int in, auto emit) {
+                    emit(static_cast<double>(2 * in));
+                    emit(static_cast<double>(2 * (in + 16)));
+                };
 
             auto doubled = integers.FlatMap<double>(flatmap_double);
 
@@ -356,21 +396,21 @@ TEST(Operations, FilterResultsCorrectly) {
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return (size_t)index + 1;
                 },
                 16);
 
-            std::function<bool(int)> even = [](int in) {
-                                                return (in % 2 == 0);
-                                            };
+            std::function<bool(size_t)> even = [](size_t in) {
+                                                   return (in % 2 == 0);
+                                               };
 
             auto doubled = integers.Filter(even);
 
-            std::vector<int> out_vec = doubled.AllGather();
+            std::vector<size_t> out_vec = doubled.AllGather();
 
-            int i = 1;
+            size_t i = 1;
 
-            for (int element : out_vec) {
+            for (size_t element : out_vec) {
                 ASSERT_DOUBLE_EQ(element, (i++ *2));
             }
 
@@ -385,24 +425,24 @@ TEST(Operations, DIARefCasting) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            auto even = [](int in) {
+            auto even = [](size_t in) {
                             return (in % 2 == 0);
                         };
 
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return (int)index + 1;
+                    return index + 1;
                 },
                 16);
 
-            DIARef<int> doubled = integers.Filter(even).Collapse();
+            DIARef<size_t> doubled = integers.Filter(even).Collapse();
 
-            std::vector<int> out_vec = doubled.AllGather();
+            std::vector<size_t> out_vec = doubled.AllGather();
 
-            int i = 1;
+            size_t i = 1;
 
-            for (int element : out_vec) {
+            for (size_t element : out_vec) {
                 ASSERT_DOUBLE_EQ(element, (i++ *2));
             }
 
@@ -419,21 +459,21 @@ TEST(Operations, ForLoop) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) -> int {
+                [](const size_t& index) -> size_t {
                     return index;
                 },
                 16);
 
-            auto flatmap_duplicate = [](int in, auto emit) {
+            auto flatmap_duplicate = [](size_t in, auto emit) {
                                          emit(in);
                                          emit(in);
                                      };
 
-            auto map_multiply = [](int in) {
+            auto map_multiply = [](size_t in) {
                                     return 2 * in;
                                 };
 
-            DIARef<int> squares = integers.Collapse();
+            DIARef<size_t> squares = integers.Collapse();
 
             // run loop four times, inflating DIA of 16 items -> 256
             for (size_t i = 0; i < 4; ++i) {
@@ -442,11 +482,11 @@ TEST(Operations, ForLoop) {
                 squares = multiplied.Cache();
             }
 
-            std::vector<int> out_vec = squares.AllGather();
+            std::vector<size_t> out_vec = squares.AllGather();
 
             ASSERT_EQ(256u, out_vec.size());
             for (size_t i = 0; i != 256; ++i) {
-                ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
+                ASSERT_EQ(out_vec[i], 16 * (i / 16));
             }
             ASSERT_EQ(256u, squares.Size());
         };

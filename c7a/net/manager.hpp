@@ -27,10 +27,10 @@ namespace net {
 //! \{
 
 /**
- * @brief Initializes communication channels, manages communication channels and
+ * \brief Initializes communication channels, manages communication channels and
  * handles errors.
  *
- * @details This class is responsible for initializing the three net::Groups for
+ * \details This class is responsible for initializing the three net::Groups for
  * the major network components, SystemControl, FlowControl and DataManagement,
  */
 class Manager
@@ -59,12 +59,12 @@ public:
     Manager& operator = (const Manager&) = delete;
 
     /*!
-     * @brief Initializes this Manager and initializes all Groups.
-     * @details Initializes this Manager and initializes all Groups.
+     * \brief Initializes this Manager and initializes all Groups.
+     * \details Initializes this Manager and initializes all Groups.
      * When this method returns, the network system is ready to use.
      *
-     * @param my_rank_ The rank of the worker that owns this Manager.
-     * @param endpoints The ordered list of all endpoints, including the local worker,
+     * \param my_rank_ The rank of the worker that owns this Manager.
+     * \param endpoints The ordered list of all endpoints, including the local worker,
      * where the endpoint at position i corresponds to the worker with id i.
      */
     Manager(size_t my_rank_,
@@ -83,21 +83,21 @@ public:
     ConstructLocalMesh(size_t node_count);
 
     /**
-     * @brief Returns the net group for the system control channel.
+     * \brief Returns the net group for the system control channel.
      */
     Group & GetSystemGroup() {
         return groups_[0];
     }
 
     /**
-     * @brief Returns the net group for the flow control channel.
+     * \brief Returns the net group for the flow control channel.
      */
     Group & GetFlowGroup() {
         return groups_[1];
     }
 
     /**
-     * @brief Returns the net group for the data manager.
+     * \brief Returns the net group for the data manager.
      */
     Group & GetDataGroup() {
         return groups_[2];

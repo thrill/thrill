@@ -44,7 +44,7 @@ TEST(API, FunctionStackTest) {
 
     auto save_fn =
         [&total](double input) {
-            //elements.push_back(input);
+            // elements.push_back(input);
             total += input;
         };
 

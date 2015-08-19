@@ -26,6 +26,9 @@ DispatcherThread::DispatcherThread(const std::string& thread_name)
       name_(thread_name) {
     // allocate self-pipe
     int r = ::pipe(self_pipe_);
+    if (r != 0) {
+        LOG1 << "Error opening self-pipe: " << strerror(errno);
+    }
     die_unless(r == 0);
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);

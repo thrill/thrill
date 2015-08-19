@@ -54,7 +54,7 @@ public:
     virtual ~ReadLinesNode() { }
 
     //! Executes the read operation. Reads a file line by line
-    //! and emmits it after applyung the read function.
+    //! and emits it after applying the read function.
     void Execute() final { }
 
     void PushData() final {
@@ -132,7 +132,7 @@ private:
             if (my_id != 0) {
                 std::streampos previous = (per_worker * my_id_) - 1;
                 file_.seekg(previous, std::ios::beg);
-                //file_.unget();
+                // file_.unget();
                 if (file_.get() != '\n') {
                     std::string str;
                     std::getline(file_, str);

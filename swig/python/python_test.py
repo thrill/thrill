@@ -93,7 +93,8 @@ class TestOperations(unittest.TestCase):
 
             dia2 = dia1.Map(lambda x: [int(x), "hello %d" % (x)])
 
-            check = [[int(x * x), "hello %d" % (x * x)] for x in range(0, test_size)]
+            check = [[int(x * x), "hello %d" % (x * x)]
+                     for x in range(0, test_size)]
             self.assertEqual(dia2.AllGather(), check)
 
         run_tests(test)

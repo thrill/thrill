@@ -105,6 +105,18 @@ private:
     size_t size_;
 };
 
+/*!
+ * Generate is an Initial-DOp, which creates a DIA of given size using a
+ * generator function. The generator function called for each index in the range
+ * of `[0,size)` and must output exactly one item.
+ *
+ * \param ctx Reference to the Context object
+ *
+ * \param generator_function Generator function, which maps `size_t` from
+ * `[0,size)` to elements. Input type has to be `size_t`.
+ *
+ * \param size Size of the output DIA
+ */
 template <typename GeneratorFunction>
 auto Generate(Context & ctx,
               const GeneratorFunction &generator_function,
