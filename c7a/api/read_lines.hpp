@@ -133,10 +133,10 @@ private:
               my_id_(my_id),
               num_workers_(num_workers) {
 
-            file_size_ = files[files.size() - 1].second;
+            input_size_ = files[files.size() - 1].second;
 
             // Go to start of 'local part'.
-			auto my_start_and_end = common::CalculateLocalRange(file_size_, num_workers_, my_id_);
+			auto my_start_and_end = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
 			
 			size_t my_start = std::get<0>(my_start_and_end);
 			my_end_ = std::get<1>(my_start_and_end);
@@ -163,18 +163,17 @@ private:
                 bb_.Reserve(read_size);
                 ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
                 bb_.set_size(buffer_size);
-                buffer_ = bb_.ToBuffer();
                 current_ = 1;
 
 				//Move to next newline, if local part does not start at the beginning of a line.
-                if (buffer_[0] != '\n') {
+                if (bb_[0] != '\n') {
                     bool found_n = false;
 
                     // find next newline, discard all previous data as previous worker already covers it
                     while (!found_n) {
-                        for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                        for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
                             if (C7A_UNLIKELY(*it == '\n')) {
-                                current_ = it - buffer_.begin() + 1;
+                                current_ = it - bb_.begin() + 1;
                                 found_n = true;
                                 break;
                             }
@@ -182,25 +181,22 @@ private:
                         // no newline found: read new data into buffer_builder
                         if (!found_n) {
                             current_ = 0;
-                            offset_ += buffer_.size();
-                            bb_.Reserve(read_size);
+                            offset_ += bb_.size();
                             buffer_size = read(c_file_, bb_.data(), read_size);
 							//EOF = newline per definition
 							if (!buffer_size) {
 								found_n = true;
 							}
                             bb_.set_size(buffer_size);
-                            buffer_ = bb_.ToBuffer();
                         }
                     }
-                    assert(buffer_[current_ - 1] == '\n' || !buffer_size);
+                    assert(bb_[current_ - 1] == '\n' || !buffer_size);
                 }
             }
-            else {
+            else {				
                 bb_.Reserve(read_size);
                 ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
                 bb_.set_size(buffer_size);
-                buffer_ = bb_.ToBuffer();
             }
         }
 
@@ -210,21 +206,19 @@ private:
         std::string Next() {
             while (true) {
                 std::string ret;
-                for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
                     if (C7A_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - buffer_.begin() - current_;
-                        current_ = it - buffer_.begin() + 1;
-                        return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
+                        size_t strlen = it - bb_.begin() - current_;
+                        current_ = it - bb_.begin() + 1;
+                        return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
                     }
                 }
-                ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
+                ret.append(bb_.PartialToString(current_, bb_.size() - current_));
                 current_ = 0;
-                bb_.Reserve(read_size);
                 ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                offset_ += buffer_.size();
+                offset_ += bb_.size();
                 if (buffer_size) {
                     bb_.set_size(buffer_size);
-                    buffer_ = bb_.ToBuffer();
                 }
                 else {
                     close(c_file_);
@@ -236,10 +230,8 @@ private:
                     // add decompressors.
 
                     c_file_ = open(files_[current_file_].first.c_str(), O_RDONLY);
-                    bb_.Reserve(read_size);
                     ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
                     bb_.set_size(buffer_size);
-                    buffer_ = bb_.ToBuffer();
 
                     if (ret.length()) {
                         return ret;
@@ -259,31 +251,27 @@ private:
         }
 
     private:
-        //! Input file stream
+        //! Input files with inclusive size prefixsum.
         std::vector<std::pair<std::string, size_t> > files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! Size of current file in bytes
         size_t current_size_;
-        //! Current stream, from files_[current_file_]
-        std::ifstream file_;
-
+		//! File handle to files_[current_file_]
         int c_file_;
+		//! Offset of current block in c_file_.
         size_t offset_;
-        //! File size in bytes
-        size_t file_size_;
+        //! Size of all files combined (in bytes)
+        size_t input_size_;
         //! Worker ID
         size_t my_id_;
         //! total number of workers
         size_t num_workers_;
         //! (exclusive) end of local block
         size_t my_end_;
-
-        // REVIEW(an): you dont need both, apparently you need the BufferBuilder
-        // in the code, because you resize the buffer. Then you dont need the
-        // Buffer. remove it. Goal: allocate 2 MiB ONCE and reuse it everywhere!
+		//! Byte buffer to create line-std::strings
         net::BufferBuilder bb_;
-        net::Buffer buffer_;
+		//! Start of next element in current buffer.
         size_t current_ = 0;
     };
 
