@@ -338,6 +338,54 @@ sub process_pl_cmake {
     my $i = 0;
     if ($data[$i] =~ m/#!/) { ++$i; } # bash line
     expect($path, $i, @data, ('#'x80)."\n"); ++$i;
+    expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # skip over comment
+    while ($data[$i] ne ('#'x80)."\n") {
+        expect_re($path, $i, @data, '^#( .*)?\n$');
+        return unless ++$i < @data;
+    }
+
+    expect($path, $i, @data, ('#'x80)."\n"); ++$i;
+
+    # check terminating ####### comment
+    {
+        my $n = scalar(@data)-1;
+        if ($data[$n] !~ m!^#{80}$!) {
+            push(@data, "\n");
+            push(@data, ("#"x80)."\n");
+        }
+    }
+
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
+
+    if ($write_changes)
+    {
+        open(F, "> $path") or die("Cannot write $path: $!");
+        print(F join("", @data));
+        close(F);
+    }
+}
+
+sub process_py {
+    my ($path) = @_;
+
+    # read file
+    open(F, $path) or die("Cannot read file $path: $!");
+    my @data = <F>;
+    close(F);
+
+    my @origdata = @data;
+
+    # check source header
+    my $i = 0;
+    expect($path, $i, @data, "#!/usr/bin/env python\n"); ++$i;
+    expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "# $path\n"); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
@@ -409,7 +457,10 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.(h|cpp|hpp|h\.in|dox)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.(pl|pro)$/) {
+    elsif ($file =~ /\.pl$/) {
+        process_pl_cmake($file);
+    }
+    elsif ($file =~ /^swig.*\.py$/) {
         process_pl_cmake($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {

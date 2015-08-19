@@ -115,8 +115,7 @@ public:
           flow_manager_(flow_manager),
           multiplexer_(multiplexer),
           local_worker_id_(local_worker_id),
-          workers_per_host_(workers_per_host)
-    {
+          workers_per_host_(workers_per_host) {
         assert(local_worker_id < workers_per_host);
     }
 
@@ -125,8 +124,7 @@ public:
           flow_manager_(host_context.flow_manager()),
           multiplexer_(host_context.data_multiplexer()),
           local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host())
-    {
+          workers_per_host_(host_context.workers_per_host()) {
         assert(local_worker_id < workers_per_host());
     }
 
