@@ -44,6 +44,7 @@ public:
     using Super = DOpNode<std::string>;
     using Super::context_;
     using Super::result_file_;
+	using FileSizePair = std::pair<std::string, size_t>;
 
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
@@ -126,7 +127,7 @@ private:
 
         //! Creates an instance of iterator that reads file line based
         InputLineIterator(
-            const std::vector<std::pair<std::string, size_t> >& files,
+            const std::vector<FileSizePair >& files,
             size_t my_id,
             size_t num_workers)
             : files_(files),
@@ -252,7 +253,7 @@ private:
 
     private:
         //! Input files with inclusive size prefixsum.
-        std::vector<std::pair<std::string, size_t> > files_;
+        std::vector<FileSizePair > files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! Size of current file in bytes
@@ -284,7 +285,7 @@ private:
     //! \return An InputLineIterator for a given file stream
     InputLineIterator GetInputLineIterator(
         // REVIEW(an): please make some using typedefs!
-        std::vector<std::pair<std::string, size_t> > files, size_t my_id, size_t num_work) {
+        std::vector<FileSizePair> files, size_t my_id, size_t num_work) {
         return InputLineIterator(files, my_id, num_work);
     }
 };
