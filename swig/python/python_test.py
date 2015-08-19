@@ -41,7 +41,7 @@ def run_c7a_threads(num_threads, thread_func):
 
 
 def run_tests(thread_func):
-    for num_threads in [1, 2, 4, 5, 8]:
+    for num_threads in [1, 2, 4, 7]:
         run_c7a_threads(num_threads, thread_func)
 
 
@@ -80,6 +80,21 @@ class TestOperations(unittest.TestCase):
             check = [[int(x), "two %d" % (x)] for x in range(0, test_size)]
             self.assertEqual(dia3.Size(), test_size)
             self.assertEqual(dia3.AllGather(), check)
+
+        run_tests(test)
+
+    def test_distribute_allgather(self):
+
+        def test(ctx):
+            test_size = 1024
+
+            dia1 = ctx.Distribute([x * x for x in range(0, test_size)])
+            self.assertEqual(dia1.Size(), test_size)
+
+            dia2 = dia1.Map(lambda x: [int(x), "hello %d" % (x)])
+
+            check = [[int(x * x), "hello %d" % (x * x)] for x in range(0, test_size)]
+            self.assertEqual(dia2.AllGather(), check)
 
         run_tests(test)
 
