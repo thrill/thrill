@@ -4,7 +4,7 @@
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

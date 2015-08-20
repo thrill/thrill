@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/data/multiplexer_header.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

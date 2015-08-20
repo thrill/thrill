@@ -4,7 +4,7 @@
  * Dynamized instantiation of BlockReader which can polymorphically read from
  * different block sources using the same object type.
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

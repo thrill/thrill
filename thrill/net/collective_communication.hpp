@@ -4,7 +4,7 @@
  * This file provides collective communication primitives, which are to be used
  * with c7a::net::Groups.
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.

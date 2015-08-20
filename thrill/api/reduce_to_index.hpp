@@ -3,7 +3,7 @@
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *

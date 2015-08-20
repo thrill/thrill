@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/examples/word_count.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *

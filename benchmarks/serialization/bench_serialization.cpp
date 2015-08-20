@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/serialization/bench_serialization.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.

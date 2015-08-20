@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/common/math.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/net/flow_control_channel.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
  *

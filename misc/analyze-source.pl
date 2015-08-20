@@ -179,7 +179,7 @@ sub process_cpp {
 
     # skip over custom file comments
     my $j = $i;
-    while ($data[$i] !~ /^ \* Part of Project c7a/) {
+    while ($data[$i] !~ /^ \* Part of Project Thrill/) {
         expect_re($path, $i, @data, '^ \*( .*)?\n$');
         if (++$i >= @data) {
             $i = $j; # restore read position
@@ -187,9 +187,9 @@ sub process_cpp {
         }
     }
 
-    # check "Part of Project c7a"
+    # check "Part of Project Thrill"
     expect($path, $i-1, @data, " *\n");
-    expect($path, $i, @data, " * Part of Project c7a.\n"); ++$i;
+    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
 
     # read authors

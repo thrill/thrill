@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/core/post_hash_table_probing_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
