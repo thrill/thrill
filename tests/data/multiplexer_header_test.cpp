@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/multiplexer_header.hpp>
+#include <thrill/data/multiplexer_header.hpp>
 #include <gtest/gtest.h>
 
 using namespace c7a;

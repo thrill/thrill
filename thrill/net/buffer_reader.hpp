@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/buffer_reader.hpp
+ * thrill/net/buffer_reader.hpp
  *
  * Look at the Doxygen below....
  *
@@ -14,8 +14,8 @@
 #ifndef C7A_NET_BUFFER_READER_HEADER
 #define C7A_NET_BUFFER_READER_HEADER
 
-#include <c7a/common/item_serialization_tools.hpp>
-#include <c7a/net/buffer_ref.hpp>
+#include <thrill/common/item_serialization_tools.hpp>
+#include <thrill/net/buffer_ref.hpp>
 
 #include <algorithm>
 #include <string>

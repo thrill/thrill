@@ -7,8 +7,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/function_stack.hpp>
-#include <c7a/common/logger.hpp>
+#include <thrill/api/function_stack.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <gtest/gtest.h>
 

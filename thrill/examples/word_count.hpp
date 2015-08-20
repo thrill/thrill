@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/examples/word_count.hpp
+ * thrill/examples/word_count.hpp
  *
  * Part of Project c7a.
  *
@@ -12,12 +12,12 @@
 #ifndef C7A_EXAMPLES_WORD_COUNT_HEADER
 #define C7A_EXAMPLES_WORD_COUNT_HEADER
 
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/reduce.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/write_lines_many.hpp>
-#include <c7a/common/string.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/reduce.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/write_lines_many.hpp>
+#include <thrill/common/string.hpp>
 
 #include <algorithm>
 #include <random>

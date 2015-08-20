@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/read_lines.hpp
+ * thrill/api/read_lines.hpp
  *
  * Part of Project c7a.
  *
@@ -13,9 +13,9 @@
 #ifndef C7A_API_READ_LINES_HEADER
 #define C7A_API_READ_LINES_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <fstream>
 #include <string>

@@ -7,10 +7,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/serialization.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/serialization.hpp>
 #include <gtest/gtest.h>
 
 #include <string>

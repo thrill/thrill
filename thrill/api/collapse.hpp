@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/collapse.hpp
+ * thrill/api/collapse.hpp
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,8 @@
 #ifndef C7A_API_COLLAPSE_HEADER
 #define C7A_API_COLLAPSE_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dia_node.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dia_node.hpp>
 
 #include <string>
 #include <vector>

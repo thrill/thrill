@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/sum.hpp
+ * thrill/api/sum.hpp
  *
  * Part of Project c7a.
  *
@@ -12,12 +12,12 @@
 #ifndef C7A_API_SUM_HEADER
 #define C7A_API_SUM_HEADER
 
-#include <c7a/api/action_node.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/core/stage_builder.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/api/action_node.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/core/stage_builder.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/flow_control_manager.hpp>
+#include <thrill/net/group.hpp>
 
 #include <string>
 #include <type_traits>

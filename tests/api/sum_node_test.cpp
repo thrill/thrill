@@ -9,10 +9,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/sum.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>

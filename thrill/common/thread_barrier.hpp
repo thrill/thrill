@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/thread_barrier.hpp
+ * thrill/common/thread_barrier.hpp
  *
  * Part of Project c7a.
  *

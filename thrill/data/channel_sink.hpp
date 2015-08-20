@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/channel_sink.hpp
+ * thrill/data/channel_sink.hpp
  *
  * Part of Project c7a.
  *
@@ -12,14 +12,14 @@
 #ifndef C7A_DATA_CHANNEL_SINK_HEADER
 #define C7A_DATA_CHANNEL_SINK_HEADER
 
-#include <c7a/common/logger.hpp>
-#include <c7a/common/stats_counter.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/data/block.hpp>
-#include <c7a/data/block_sink.hpp>
-#include <c7a/data/multiplexer_header.hpp>
-#include <c7a/net/buffer.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_counter.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/data/block_sink.hpp>
+#include <thrill/data/multiplexer_header.hpp>
+#include <thrill/net/buffer.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
 
 namespace c7a {
 namespace data {

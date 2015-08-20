@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/serialization.hpp
+ * thrill/data/serialization.hpp
  *
  * Part of Project c7a.
  *

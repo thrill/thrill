@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/dispatcher.hpp
+ * thrill/net/dispatcher.hpp
  *
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
@@ -15,17 +15,17 @@
 #ifndef C7A_NET_DISPATCHER_HEADER
 #define C7A_NET_DISPATCHER_HEADER
 
-#include <c7a/data/block.hpp>
-#include <c7a/net/buffer.hpp>
-#include <c7a/net/connection.hpp>
-#include <c7a/net/lowlevel/select_dispatcher.hpp>
-#include <c7a/net/lowlevel/socket.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/net/buffer.hpp>
+#include <thrill/net/connection.hpp>
+#include <thrill/net/lowlevel/select_dispatcher.hpp>
+#include <thrill/net/lowlevel/socket.hpp>
 
 // TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
-// #include <c7a/net/lowlevel/epoll-dispatcher.hpp>
+// #include <thrill/net/lowlevel/epoll-dispatcher.hpp>
 
 #if defined(_LIBCPP_VERSION) || defined(__clang__)
-#include <c7a/common/delegate.hpp>
+#include <thrill/common/delegate.hpp>
 #endif
 
 #include <atomic>

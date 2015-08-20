@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/dia_base.hpp
+ * thrill/api/dia_base.hpp
  *
  * Untyped super class of DIANode. Used to build the execution graph.
  *
@@ -15,8 +15,8 @@
 #ifndef C7A_API_DIA_BASE_HEADER
 #define C7A_API_DIA_BASE_HEADER
 
-#include <c7a/api/context.hpp>
-#include <c7a/common/stats.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/common/stats.hpp>
 
 #include <string>
 #include <vector>

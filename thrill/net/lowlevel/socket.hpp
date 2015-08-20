@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/socket.hpp
+ * thrill/net/lowlevel/socket.hpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -14,9 +14,9 @@
 #ifndef C7A_NET_LOWLEVEL_SOCKET_HEADER
 #define C7A_NET_LOWLEVEL_SOCKET_HEADER
 
-#include <c7a/common/logger.hpp>
-#include <c7a/common/string.hpp>
-#include <c7a/net/lowlevel/socket_address.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/string.hpp>
+#include <thrill/net/lowlevel/socket_address.hpp>
 
 #include <fcntl.h>
 #include <netinet/in.h>

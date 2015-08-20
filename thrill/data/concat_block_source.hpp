@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/concat_block_source.hpp
+ * thrill/data/concat_block_source.hpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #ifndef C7A_DATA_CONCAT_BLOCK_SOURCE_HEADER
 #define C7A_DATA_CONCAT_BLOCK_SOURCE_HEADER
 
-#include <c7a/data/block.hpp>
+#include <thrill/data/block.hpp>
 
 #include <utility>
 #include <vector>

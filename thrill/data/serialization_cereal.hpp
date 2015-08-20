@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/serialization_cereal.hpp
+ * thrill/data/serialization_cereal.hpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #ifndef C7A_DATA_SERIALIZATION_CEREAL_HEADER
 #define C7A_DATA_SERIALIZATION_CEREAL_HEADER
 
-#include <c7a/data/serialization.hpp>
+#include <thrill/data/serialization.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/details/traits.hpp>
 

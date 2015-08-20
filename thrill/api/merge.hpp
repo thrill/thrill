@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/merge.hpp
+ * thrill/api/merge.hpp
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
@@ -15,12 +15,12 @@
 #ifndef C7A_API_MERGE_HEADER
 #define C7A_API_MERGE_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/multiplexer.hpp>
-#include <c7a/net/collective_communication.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/multiplexer.hpp>
+#include <thrill/net/collective_communication.hpp>
 
 #include <algorithm>
 #include <functional>

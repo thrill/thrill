@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/context.cpp
+ * thrill/api/context.cpp
  *
  * Part of Project c7a.
  *
@@ -9,11 +9,11 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/context.hpp>
+#include <thrill/api/context.hpp>
 
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/common/stats.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats.hpp>
 
 #include <atomic>
 #include <memory>

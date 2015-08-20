@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/stage_builder.hpp
+ * thrill/core/stage_builder.hpp
  *
  * Part of Project c7a.
  *
@@ -11,9 +11,9 @@
 #ifndef C7A_CORE_STAGE_BUILDER_HEADER
 #define C7A_CORE_STAGE_BUILDER_HEADER
 
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/dia_base.hpp>
-#include <c7a/common/logger.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/dia_base.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <algorithm>
 #include <set>

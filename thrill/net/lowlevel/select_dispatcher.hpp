@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/select_dispatcher.hpp
+ * thrill/net/lowlevel/select_dispatcher.hpp
  *
  * Asynchronous callback wrapper around select()
  *
@@ -14,11 +14,11 @@
 #ifndef C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 #define C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
-#include <c7a/common/config.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/net/exception.hpp>
-#include <c7a/net/lowlevel/select.hpp>
-#include <c7a/net/lowlevel/socket.hpp>
+#include <thrill/common/config.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/net/exception.hpp>
+#include <thrill/net/lowlevel/select.hpp>
+#include <thrill/net/lowlevel/socket.hpp>
 
 #include <cerrno>
 #include <chrono>

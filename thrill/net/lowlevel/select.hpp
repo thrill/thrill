@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/select.hpp
+ * thrill/net/lowlevel/select.hpp
  *
  * Lightweight wrapper around select()
  *

@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/function_traits.hpp>
+#include <thrill/common/function_traits.hpp>
 #include <gtest/gtest.h>
 
 #include <string>

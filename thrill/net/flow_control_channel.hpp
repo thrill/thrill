@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/flow_control_channel.hpp
+ * thrill/net/flow_control_channel.hpp
  *
  * Part of Project c7a.
  *
@@ -12,9 +12,9 @@
 #ifndef C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 #define C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
 
-#include <c7a/common/functional.hpp>
-#include <c7a/common/thread_barrier.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/common/functional.hpp>
+#include <thrill/common/thread_barrier.hpp>
+#include <thrill/net/group.hpp>
 
 #include <functional>
 #include <string>

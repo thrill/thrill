@@ -211,7 +211,7 @@ sub process_cpp {
 
         # construct include guard macro name: PROGRAM_FILE_NAME_HEADER
         my $guard = $path;
-        $guard =~ s!c7a/!!;
+        $guard =~ s!thrill/!!;
         $guard =~ tr!/-!__!;
         $guard =~ s!\.h(pp)?(\.in)?$!!;
         $guard = "C7A_".uc($guard)."_HEADER";
@@ -414,14 +414,14 @@ foreach my $arg (@ARGV) {
     }
 }
 
-(-e "c7a/CMakeLists.txt")
+(-e "thrill/CMakeLists.txt")
     or die("Please run this script in the C7A source base directory.");
 
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");
 ($uncrustver eq "uncrustify 0.61\n")
     or die("Requires uncrustify 0.61 to run correctly. ".
-           "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
+           "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
 
 use File::Find;
 my @filelist;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/stats.hpp
+ * thrill/common/stats.hpp
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,8 @@
 #ifndef C7A_COMMON_STATS_HEADER
 #define C7A_COMMON_STATS_HEADER
 
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/common/timed_counter.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/common/timed_counter.hpp>
 
 #include <cmath> //sqrt
 #include <iostream>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/buffer_builder.hpp
+ * thrill/net/buffer_builder.hpp
  *
  * Classes BufferBuilder and BinaryBufferReader to construct data blocks with variable
  * length content. Programs construct blocks using BufferBuilder::Put<type>()
@@ -17,8 +17,8 @@
 #ifndef C7A_NET_BUFFER_BUILDER_HEADER
 #define C7A_NET_BUFFER_BUILDER_HEADER
 
-#include <c7a/common/item_serialization_tools.hpp>
-#include <c7a/net/buffer.hpp>
+#include <thrill/common/item_serialization_tools.hpp>
+#include <thrill/net/buffer.hpp>
 
 #include <algorithm>
 #include <cassert>

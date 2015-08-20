@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/buffer.hpp>
+#include <thrill/net/buffer.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>

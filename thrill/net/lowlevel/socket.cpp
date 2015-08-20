@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/socket.cpp
+ * thrill/net/lowlevel/socket.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,7 +10,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/lowlevel/socket.hpp>
+#include <thrill/net/lowlevel/socket.hpp>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

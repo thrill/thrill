@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/stats_counter.hpp>
+#include <thrill/common/stats_counter.hpp>
 #include <gtest/gtest.h>
 
 using namespace c7a::common;

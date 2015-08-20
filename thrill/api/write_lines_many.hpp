@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/write_lines_many.hpp
+ * thrill/api/write_lines_many.hpp
  *
  * Part of Project c7a.
  *
@@ -14,9 +14,9 @@
 #ifndef C7A_API_WRITE_LINES_MANY_HEADER
 #define C7A_API_WRITE_LINES_MANY_HEADER
 
-#include <c7a/api/action_node.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/core/stage_builder.hpp>
+#include <thrill/api/action_node.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/core/stage_builder.hpp>
 
 #include <fstream>
 #include <string>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/system_control_channel.hpp
+ * thrill/net/system_control_channel.hpp
  *
  * Part of Project c7a.
  *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/multiplexer.hpp
+ * thrill/data/multiplexer.hpp
  *
  * Part of Project c7a.
  *
@@ -13,9 +13,9 @@
 #ifndef C7A_DATA_MULTIPLEXER_HEADER
 #define C7A_DATA_MULTIPLEXER_HEADER
 
-#include <c7a/data/repository.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/data/repository.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
+#include <thrill/net/group.hpp>
 
 #include <algorithm>
 #include <atomic>

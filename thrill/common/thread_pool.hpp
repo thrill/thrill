@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/thread_pool.hpp
+ * thrill/common/thread_pool.hpp
  *
  * A ThreadPool of std::threads to work on jobs
  *
@@ -14,7 +14,7 @@
 #ifndef C7A_COMMON_THREAD_POOL_HEADER
 #define C7A_COMMON_THREAD_POOL_HEADER
 
-#include <c7a/common/delegate.hpp>
+#include <thrill/common/delegate.hpp>
 
 #include <atomic>
 #include <cassert>

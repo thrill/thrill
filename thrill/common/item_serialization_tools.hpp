@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/item_serialization_tools.hpp
+ * thrill/common/item_serialization_tools.hpp
  *
  * Abstract methods common to many serializer and deserializers: serialize
  * Varint (7-bit encoding), and Strings by prefixing them with their length.

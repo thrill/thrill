@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/cmdline_parser.cpp
+ * thrill/common/cmdline_parser.cpp
  *
  * Part of Project c7a.
  *
@@ -8,7 +8,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
+#include <thrill/common/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <cstdlib>

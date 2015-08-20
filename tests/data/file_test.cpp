@@ -8,10 +8,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/string.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/buffered_block_reader.hpp>
-#include <c7a/data/file.hpp>
+#include <thrill/common/string.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/buffered_block_reader.hpp>
+#include <thrill/data/file.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>

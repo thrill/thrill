@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/dia_node.hpp
+ * thrill/api/dia_node.hpp
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,8 @@
 #ifndef C7A_API_DIA_NODE_HEADER
 #define C7A_API_DIA_NODE_HEADER
 
-#include <c7a/api/dia_base.hpp>
-#include <c7a/common/stats.hpp>
+#include <thrill/api/dia_base.hpp>
+#include <thrill/common/stats.hpp>
 
 #include <algorithm>
 #include <string>

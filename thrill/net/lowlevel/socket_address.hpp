@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/socket_address.hpp
+ * thrill/net/lowlevel/socket_address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *

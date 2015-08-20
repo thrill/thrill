@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/timed_counter.hpp
+ * thrill/common/timed_counter.hpp
  *
  * Part of Project c7a.
  *

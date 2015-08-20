@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/action_node.hpp
+ * thrill/api/action_node.hpp
  *
  * Part of Project c7a.
  *
@@ -11,7 +11,7 @@
 #ifndef C7A_API_ACTION_NODE_HEADER
 #define C7A_API_ACTION_NODE_HEADER
 
-#include <c7a/api/dia_node.hpp>
+#include <thrill/api/dia_node.hpp>
 
 #include <string>
 #include <vector>

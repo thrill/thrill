@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/repository.hpp
+ * thrill/data/repository.hpp
  *
  * Part of Project c7a.
  *

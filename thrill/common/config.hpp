@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/config.hpp
+ * thrill/common/config.hpp
  *
  * Global configuration flags.
  *

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/zip.hpp
+ * thrill/api/zip.hpp
  *
  * DIANode for a zip operation. Performs the actual zip operation
  *
@@ -15,10 +15,10 @@
 #ifndef C7A_API_ZIP_HEADER
 #define C7A_API_ZIP_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/data/file.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <functional>

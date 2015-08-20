@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/reduce.hpp
+ * thrill/api/reduce.hpp
  *
  * DIANode for a reduce operation. Performs the actual reduce operation
  *
@@ -15,12 +15,12 @@
 #ifndef C7A_API_REDUCE_HEADER
 #define C7A_API_REDUCE_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/functional.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/core/reduce_post_table.hpp>
-#include <c7a/core/reduce_pre_table.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/functional.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/core/reduce_post_table.hpp>
+#include <thrill/core/reduce_pre_table.hpp>
 
 #include <functional>
 #include <string>

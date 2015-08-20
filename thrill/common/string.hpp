@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/string.hpp
+ * thrill/common/string.hpp
  *
  * Some string helper functions
  *

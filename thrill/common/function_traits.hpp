@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/function_traits.hpp
+ * thrill/common/function_traits.hpp
  *
  * Part of Project c7a.
  *

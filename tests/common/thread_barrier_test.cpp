@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/thread_barrier.hpp>
+#include <thrill/common/thread_barrier.hpp>
 #include <gtest/gtest.h>
 
 #include <unistd.h>

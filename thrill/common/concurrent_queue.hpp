@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/concurrent_queue.hpp
+ * thrill/common/concurrent_queue.hpp
  *
  * Part of Project c7a.
  *

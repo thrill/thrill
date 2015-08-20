@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block_sink.hpp
+ * thrill/data/block_sink.hpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #ifndef C7A_DATA_BLOCK_SINK_HEADER
 #define C7A_DATA_BLOCK_SINK_HEADER
 
-#include <c7a/data/block.hpp>
+#include <thrill/data/block.hpp>
 #include <memory>
 
 namespace c7a {
