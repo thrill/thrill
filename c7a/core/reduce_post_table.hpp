@@ -98,11 +98,11 @@ public:
 
     template <typename ReducePostTable>
     size_t
-    operator () (Key v, ReducePostTable* ht, size_t size) const {
+    operator () (const Key& k, ReducePostTable* ht, const size_t& size) const {
 
         (*ht).NumBlocks();
 
-        size_t hashed = hash_function_(v);
+        size_t hashed = hash_function_(k);
 
         return hashed % size;
     }
@@ -118,9 +118,9 @@ public:
 
     template <typename ReducePostTable>
     size_t
-    operator () (size_t key, ReducePostTable* ht, size_t size) const {
+    operator () (const size_t& k, ReducePostTable* ht, const size_t& size) const {
 
-        return (key - ht->BeginLocalIndex()) % size;
+        return (k - ht->BeginLocalIndex()) % size;
     }
 };
 
@@ -146,11 +146,11 @@ public:
 
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
-        auto &buckets_ = ht->Items();
+        auto& buckets_ = ht->Items();
 
-        auto &frame_files = ht->FrameFiles();
+        auto& frame_files = ht->FrameFiles();
 
-        auto &frame_writers = ht->FrameWriters();
+        auto& frame_writers = ht->FrameWriters();
 
         //! Data structure for second reduce table
         std::vector<BucketBlock*> second_reduce;
@@ -199,7 +199,7 @@ public:
                             // if item and key equals, then reduce.
                             if (equal_to_function_(kv.first, bi->first))
                             {
-                                bi->second = ht->reduce_function_(bi->second, kv.second);
+                                bi->second = std::move(ht->reduce_function_(bi->second, kv.second));
                                 return;
                             }
                         }
@@ -239,7 +239,6 @@ public:
                              from != current->items + current->size; ++from)
                         {
                             // insert in second reduce table
-
                             size_t global_index = index_function_(from->first, ht, frame_length);
                             BucketBlock* current = second_reduce[global_index];
                             while (current != NULL)
@@ -251,7 +250,7 @@ public:
                                     // if item and key equals, then reduce.
                                     if (equal_to_function_(from->first, bi->first))
                                     {
-                                        bi->second = ht->reduce_function_(bi->second, from->second);
+                                        bi->second = std::move(ht->reduce_function_(bi->second, from->second));
                                         return;
                                     }
                                 }
@@ -414,7 +413,7 @@ public:
 
         auto& buckets = ht->Items();
 
-        auto &frame_writers = ht->FrameWriters();
+        auto& frame_writers = ht->FrameWriters();
 
         // randomly select bucket, get bucket idx
         size_t bucket_idx = (size_t) (rand() % ht->NumBuckets());
@@ -679,7 +678,7 @@ public:
                     LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
-                    bi->second = reduce_function_(bi->second, kv.second);
+                    bi->second = std::move(reduce_function_(bi->second, kv.second));
 
                     LOG << "...finished reduce!";
                     return;
@@ -696,7 +695,8 @@ public:
         if (current == NULL ||
             current->size == block_size_)
         {
-            if (num_blocks_bucket == max_num_blocks_per_bucket_) {
+            if (num_blocks_bucket == max_num_blocks_per_bucket_)
+            {
                 data::File::Writer& writer = frame_writers_[global_index / frame_size_];
                 KeyValuePair* bi = buckets_[global_index]->items;
                 writer(*bi);
@@ -705,7 +705,8 @@ public:
                 return;
             }
 
-            if (num_blocks_ == max_num_blocks_table_) {
+            if (num_blocks_ == max_num_blocks_table_)
+            {
                 spill_function_(this);
             }
 
@@ -720,6 +721,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
+        // TODO(ms): need to check maximal num items somehow
         new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
     }
 
@@ -766,7 +768,7 @@ public:
     /*!
      * Sets the total num of blocks in the table.
      */
-    void SetNumBlocks(size_t num_blocks) {
+    void SetNumBlocks(const size_t &num_blocks) {
         num_blocks_ = num_blocks;
     }
 
@@ -775,7 +777,7 @@ public:
      *
      * @return Vector of bucket blocks.
      */
-    std::vector<BucketBlock*> & Items() {
+    std::vector<BucketBlock*>& Items() {
         return buckets_;
     }
 
@@ -794,7 +796,7 @@ public:
      *
      * \param size The maximal number of blocks the table may hold.
      */
-    void SetMaxNumBlocksTable(size_t size) {
+    void SetMaxNumBlocksTable(const size_t &size) {
         max_num_blocks_table_ = size;
     }
 

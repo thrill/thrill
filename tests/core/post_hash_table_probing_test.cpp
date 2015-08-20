@@ -36,10 +36,10 @@ public:
 
     template <typename ReducePostProbingTable>
     size_t
-    operator () (Key v, ReducePostProbingTable* ht, size_t size) const {
+    operator () (const Key& v, ReducePostProbingTable* ht, const size_t& size) const {
 
         (*ht).NumItems();
-        size++;
+        size_t i = size+1;
 
         return v / 2;
     }
@@ -316,7 +316,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
     ASSERT_EQ(0.0, table.FillRate());
 }
 
-TEST_F(PostTable, AboveTableItemsLimit) {
+TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
     auto key_ex = [](int in) {
         return in;
     };

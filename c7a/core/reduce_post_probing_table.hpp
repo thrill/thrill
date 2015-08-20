@@ -83,11 +83,11 @@ public:
 
     template <typename ReducePostProbingTable>
     size_t
-    operator () (Key v, ReducePostProbingTable* ht, size_t size) const {
+    operator () (const Key& k, ReducePostProbingTable* ht, const size_t& size) const {
 
         (*ht).NumItems();
 
-        size_t hashed = hash_function_(v);
+        size_t hashed = hash_function_(k);
 
         return hashed % size;
     }
@@ -103,9 +103,9 @@ public:
 
     template <typename ReducePostProbingTable>
     size_t
-    operator () (size_t key, ReducePostProbingTable* ht, size_t size) const {
+    operator () (const size_t& k, ReducePostProbingTable* ht, const size_t& size) const {
 
-        return (key - ht->BeginLocalIndex()) % size;
+        return (k - ht->BeginLocalIndex()) % size;
     }
 };
 
@@ -128,11 +128,11 @@ public:
 
         using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
 
-        auto &items = ht->Items();
+        auto& items = ht->Items();
 
-        auto &frame_files = ht->FrameFiles();
+        auto& frame_files = ht->FrameFiles();
 
-        auto &frame_writers = ht->FrameWriters();
+        auto& frame_writers = ht->FrameWriters();
 
         //! Data structure for second reduce table
         std::vector<KeyValuePair> second_reduce;
@@ -179,7 +179,7 @@ public:
                     {
                         if (equal_to_function_(current->first, kv.first))
                         {
-                            current->second = ht->reduce_function_(current->second, kv.second);
+                            current->second = std::move(ht->reduce_function_(current->second, kv.second));
 
                             return;
                         }
@@ -204,7 +204,7 @@ public:
                 /////
                 for (size_t i = offset; i < offset + ht->FrameSize(); i++)
                 {
-                    KeyValuePair kv = items[i];
+                    KeyValuePair& kv = items[i];
                     if (kv.first != ht->Sentinel().first)
                     {
                         size_t global_index = index_function_(kv.first, ht, frame_length);
@@ -217,7 +217,7 @@ public:
                         {
                             if (equal_to_function_(current->first, kv.first))
                             {
-                                current->second = ht->reduce_function_(current->second, kv.second);
+                                current->second = std::move(ht->reduce_function_(current->second, kv.second));
 
                                 return;
                             }
@@ -236,7 +236,8 @@ public:
                         current->first = std::move(kv.first);
                         current->second = std::move(kv.second);
 
-                        items[i] = ht->Sentinel();
+                        items[i].first = std::move(ht->Sentinel().first);
+                        items[i].second = std::move(ht->Sentinel().second);
                     }
                 }
 
@@ -245,12 +246,13 @@ public:
                 /////
                 for (size_t i = 0; i < frame_length; i++)
                 {
-                    KeyValuePair current = second_reduce[i];
+                    KeyValuePair& current = second_reduce[i];
                     if (current.first != ht->Sentinel().first)
                     {
                         ht->EmitAll(std::make_pair(current.first, current.second));
 
-                        second_reduce[i] = ht->Sentinel();
+                        second_reduce[i].first = std::move(ht->Sentinel().first);
+                        second_reduce[i].second = std::move(ht->Sentinel().second);
                     }
                 }
 
@@ -263,12 +265,13 @@ public:
                 /////
                 for (size_t i = offset; i < offset + ht->FrameSize(); i++)
                 {
-                    KeyValuePair current = items[i];
+                    KeyValuePair& current = items[i];
                     if (current.first != ht->Sentinel().first)
                     {
                         ht->EmitAll(std::make_pair(current.first, current.second));
 
-                        items[i] = ht->Sentinel();
+                        items[i].first = std::move(ht->Sentinel().first);
+                        items[i].second = std::move(ht->Sentinel().second);
                     }
                 }
             }
@@ -299,13 +302,14 @@ public:
 
         for (size_t i = 0; i < ht->Size(); i++)
         {
-            KeyValuePair current = vector_[i];
+            KeyValuePair& current = vector_[i];
             if (current.first != ht->Sentinel().first)
             {
                 elements_to_emit[current.first - ht->BeginLocalIndex()] =
                     current.second;
 
-                vector_[i] = ht->Sentinel();
+                vector_[i].first = std::move(ht->Sentinel().first);
+                vector_[i].second = std::move(ht->Sentinel().second);
             }
         }
 
@@ -330,12 +334,12 @@ public:
 
         auto& items = ht->Items();
 
-        auto &frame_writers = ht->FrameWriters();
+        auto& frame_writers = ht->FrameWriters();
 
         size_t num_blocks = 4;
         size_t block_size = 1024;
-        size_t valid_blocks = 0;
 
+        size_t valid_blocks = 0;
         size_t num_items = 0;
 
         while (valid_blocks < num_blocks) {
@@ -347,16 +351,17 @@ public:
 
             size_t offset = block_size*block_idx;
 
-            for (size_t global_index = offset;
+            for (size_t global_index = offset; // TODO(ms): use pointer arithmetic for loop
                  global_index < offset + block_size; global_index++)
             {
-                KeyValuePair current = items[global_index];
+                KeyValuePair& current = items[global_index];
                 if (current.first != ht->Sentinel().first)
                 {
                     data::File::Writer& writer = frame_writers[global_index / ht->FrameSize()];
                     writer(current);
 
-                    items[global_index] = ht->Sentinel();
+                    items[global_index].first = std::move(ht->Sentinel().first);
+                    items[global_index].second = std::move(ht->Sentinel().second);
 
                     num_items++;
                 }
@@ -530,7 +535,7 @@ public:
                 LOG << "match of key: " << kv.first
                     << " and " << current->first << " ... reducing...";
 
-                current->second = reduce_function_(current->second, kv.second);
+                current->second = std::move(reduce_function_(current->second, kv.second));
 
                 LOG << "...finished reduce!";
                 return;
@@ -557,21 +562,19 @@ public:
             }
         }
 
-        // insert new pair
-        if (equal_to_function_(current->first, sentinel_.first))
-        {
-            current->first = std::move(kv.first);
-            current->second = std::move(kv.second);
-
-            // increase total counter
-            num_items_++;
-        }
-
-        if (static_cast<double>(num_items_) / static_cast<double>(size_)
+        if (static_cast<double>(num_items_+1) / static_cast<double>(size_)
             > max_items_fill_rate_)
         {
             spill_function_(this);
         }
+
+        // insert data
+        // TODO(ms): need to check maximal num items somehow
+        current->first = std::move(kv.first);
+        current->second = std::move(kv.second);
+
+        // increase total counter
+        num_items_++;
     }
 
     /*!
@@ -672,7 +675,7 @@ public:
      *
      * @return Vector of key/value pairs.
      */
-    std::vector<KeyValuePair> & Items() {
+    std::vector<KeyValuePair>& Items() {
         return items_;
     }
 
