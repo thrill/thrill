@@ -1,18 +1,18 @@
 /*******************************************************************************
  * tests/data/file_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/string.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/buffered_block_reader.hpp>
-#include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/string.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/buffered_block_reader.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -20,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 struct File : public::testing::Test {
     data::BlockPool block_pool_ { nullptr };

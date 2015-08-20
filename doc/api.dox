@@ -1,13 +1,13 @@
 /*******************************************************************************
  * doc/api.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 /** \page api User Interface
@@ -16,7 +16,7 @@ From the user's perspective, a DIA (Distributed Immutable Array) is an immutable
 which can only be accessed by Operations and Actions. Operations transform a DIA into
 another DIA, Actions aggregate data of the DIA and make it accessible to the user program.
 
-Inside the c7a framework, a DIA only consists of a reference to a DIANode and a lambda
+Inside the Thrill framework, a DIA only consists of a reference to a DIANode and a lambda
 function, which can transform elements from the DIANode to this DIA. Distributed Operations(DOps)
 and Actions both need a global barrier and thus form a new DIANode. Every DOp and Action
 has an own node type, which are sub-classes of DIANode.
@@ -41,6 +41,6 @@ uses the DIABase graph to optimize the order of operations.
 */
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

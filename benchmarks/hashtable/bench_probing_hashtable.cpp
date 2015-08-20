@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/hashtable/bench_probing_hashtable.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
@@ -9,12 +9,12 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/core/reduce_pre_probing_table.hpp>
-#include <c7a/data/block_writer.hpp>
-#include <c7a/data/discard_sink.hpp>
-#include <c7a/data/file.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/data/block_writer.hpp>
+#include <thrill/data/discard_sink.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -25,7 +25,7 @@
 
 using IntPair = std::pair<int, int>;
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 

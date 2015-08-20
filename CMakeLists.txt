@@ -1,7 +1,7 @@
 ################################################################################
 # CMakeLists.txt
 #
-# Build script for c7a.
+# Build script for Thrill.
 ################################################################################
 
 cmake_minimum_required(VERSION 2.8)
@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # project: we only use C++
-project(c7a CXX)
+project(thrill CXX)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -165,8 +165,8 @@ if(USE_GCOV)
   # command sequence to gather, clean and generate HTML coverage report
   add_custom_target(lcov-html
     COMMAND ${LCOV} -q --directory . --capture --output-file lcov.info
-    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' '*/tests/c7a_tests.cpp' ${LCOV_FLAGS} --output-file lcov-clean.info
-    COMMAND ${GENHTML} -q -o coverage --title "c7a ${GITDESC}" --prefix ${PROJECT_SOURCE_DIR} ${GENHTML_FLAGS} lcov-clean.info
+    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' ${LCOV_FLAGS} --output-file lcov-clean.info
+    COMMAND ${GENHTML} -q -o coverage --title "Thrill ${GITDESC}" --prefix ${PROJECT_SOURCE_DIR} ${GENHTML_FLAGS} lcov-clean.info
     DEPENDS lcov-runtests
     COMMENT "Capturing code coverage counters and create HTML coverage report"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -188,7 +188,7 @@ add_subdirectory(extlib/gtest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
-set(C7A_VALGRIND_OPTS
+set(THRILL_VALGRIND_OPTS
   --leak-check=full --track-origins=yes)
 #  --error-exitcode=1)
 #  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
@@ -240,22 +240,22 @@ endif()
 ################################################################################
 ### Build Macros
 
-# macro for building main c7a programs with correct libraries
-macro(c7a_build TARGETNAME)
+# macro for building main thrill programs with correct libraries
+macro(thrill_build TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME} c7a ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} thrill ${ALL_LIBRARIES})
 
-endmacro(c7a_build)
+endmacro(thrill_build)
 
-# macro for building a single-source c7a program
-macro(c7a_build_prog PROGNAME)
+# macro for building a single-source thrill program
+macro(thrill_build_prog PROGNAME)
 
   string(REPLACE "/" "_" TARGETNAME "${PROGNAME}") # replace slashes
 
-  c7a_build(${TARGETNAME} ${PROGNAME}.cpp ${ARGN})
+  thrill_build(${TARGETNAME} ${PROGNAME}.cpp ${ARGN})
 
-endmacro(c7a_build_prog)
+endmacro(thrill_build_prog)
 
 ################################################################################
 ### Descend into Subdirectories
@@ -263,7 +263,7 @@ endmacro(c7a_build_prog)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # descend into library source
-add_subdirectory(c7a)
+add_subdirectory(thrill)
 
 # descend into testsuite
 add_subdirectory(tests)
@@ -281,9 +281,9 @@ if(TRY_COMPILE_HEADERS)
   set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
   set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${ALL_LIBRARIES})
+    ${CMAKE_BINARY_DIR}/thrill/libthrill.a ${ALL_LIBRARIES})
 
-  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
+  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "thrill/*.hpp")
   list(SORT header_files)
 
   foreach(file ${header_files})

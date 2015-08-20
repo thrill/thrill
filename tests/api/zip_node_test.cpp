@@ -1,30 +1,27 @@
 /*******************************************************************************
  * tests/api/zip_node_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/cache.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/zip.hpp>
-#include <c7a/common/string.hpp>
 #include <gtest/gtest.h>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/zip.hpp>
+#include <thrill/common/string.hpp>
 
 #include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
 
-using namespace c7a;
-
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 struct MyStruct {
     int a, b;
@@ -61,7 +58,7 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
             }
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedIntegerArrays) {
@@ -111,7 +108,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             ASSERT_EQ(100u, zip_result.Size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
@@ -140,7 +137,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
             ASSERT_EQ(0u, res.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedStringArrays) {
@@ -214,7 +211,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
             ASSERT_EQ(check, res);
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

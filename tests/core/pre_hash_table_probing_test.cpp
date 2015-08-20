@@ -1,23 +1,23 @@
 /*******************************************************************************
  * tests/core/pre_hash_table_probing_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_pre_probing_table.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
 
-#include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/file.hpp>
 
 #include <string>
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 using StringPair = std::pair<std::string, int>;
 using IntPair = std::pair<int, int>;

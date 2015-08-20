@@ -1,20 +1,20 @@
 /*******************************************************************************
  * tests/common/stats_timer_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/stats.hpp> //for forced instantiation below
-#include <c7a/common/stats_timer.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/stats.hpp> //for forced instantiation below
+#include <thrill/common/stats_timer.hpp>
 
 #include <thread>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(StatsTimer, Test1) {
     StatsTimer<true> timer1;
@@ -42,7 +42,7 @@ TEST(StatsTimer, Test1) {
     ASSERT_EQ(timer2.Seconds(), 0);
 }
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 // forced instantiations
@@ -52,6 +52,6 @@ template class Stats<true>;
 template class Stats<false>;
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

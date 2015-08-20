@@ -1,18 +1,18 @@
 /*******************************************************************************
  * tests/common/delegate_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/delegate.hpp>
-#include <c7a/mem/allocator_base.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/delegate.hpp>
+#include <thrill/mem/allocator_base.hpp>
 
-using namespace c7a;
+using namespace thrill;
 using common::delegate;
 
 using TestDelegate = delegate<int(int), mem::BypassAllocator<void> >;

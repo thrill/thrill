@@ -1,23 +1,22 @@
 /*******************************************************************************
  * tests/core/post_hash_table_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_post_table.hpp>
 #include <gtest/gtest.h>
+#include <thrill/core/reduce_post_table.hpp>
 
-#include <c7a/net/manager.hpp>
 #include <string>
+#include <thrill/net/manager.hpp>
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
-using namespace c7a::net;
+using namespace thrill; // NOLINT
 
 struct PostTable : public::testing::Test { };
 
@@ -27,7 +26,7 @@ std::pair<int, int> pair(int ele) {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-    : public c7a::core::PostReduceByHashKey<int>
+    : public core::PostReduceByHashKey<int>
 {
 public:
     explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
@@ -65,10 +64,10 @@ TEST_F(PostTable, CustomHashFunction) {
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
     CustomKeyHashFunction<int> cust_hash;
-    c7a::core::PostReduceFlushToDefault flush_func;
+    core::PostReduceFlushToDefault flush_func;
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                               c7a::core::PostReduceFlushToDefault, CustomKeyHashFunction<int> >
+    core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                          core::PostReduceFlushToDefault, CustomKeyHashFunction<int> >
     table(key_ex, red_fn, emitters, cust_hash, flush_func);
 
     ASSERT_EQ(0u, writer1.size());
@@ -101,7 +100,7 @@ TEST_F(PostTable, AddIntegers) {
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
     table.Insert(pair(1));
@@ -129,7 +128,7 @@ TEST_F(PostTable, CreateEmptyTable) {
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
     ASSERT_EQ(0u, table.NumItems());
@@ -148,7 +147,7 @@ TEST_F(PostTable, FlushIntegers) {
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
     table.Insert(pair(1));
@@ -180,7 +179,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
     table.Insert(pair(1));
@@ -217,7 +216,7 @@ TEST_F(PostTable, MultipleEmitters) {
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
     emitters.push_back([&writer2](const int value) { writer2.push_back(value); });
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
     table.Insert(pair(1));
@@ -253,7 +252,7 @@ TEST_F(PostTable, ComplexType) {
     std::vector<StringPair> writer1;
     emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
     table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
