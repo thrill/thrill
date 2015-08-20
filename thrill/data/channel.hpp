@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace c7a {
 namespace data {
@@ -269,6 +270,7 @@ public:
     }
 
     void CallClosedCallbacksEventually() {
+        std::lock_guard<std::mutex> lock(mutex_);
         if (closed()) {
             for (const auto& cb : closed_callbacks_)
                 cb();
@@ -332,6 +334,9 @@ protected:
 
     //! Callbacks that are called once when the channel is closed (r+w)
     std::vector<ClosedCallback> closed_callbacks_;
+
+    // protects against race conditions in closed_callbacks_ loop
+    std::mutex mutex_;
 
     //! for calling methods to deliver blocks
     friend class Multiplexer;
