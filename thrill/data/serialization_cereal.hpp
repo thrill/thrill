@@ -59,23 +59,23 @@ namespace serialization_cereal {
 
 /*!
  * An output archive designed to save data in a compact binary
- * representation. Originally cereal::BinaryOutputArchive, adapted for c7a
+ * representation. Originally cereal::BinaryOutputArchive, adapted for thrill
  * BlockWriter interface.
  */
 template <typename Writer>
-class c7aOutputArchive
-    : public cereal::OutputArchive<c7aOutputArchive<Writer>,
+class ThrillOutputArchive
+    : public cereal::OutputArchive<ThrillOutputArchive<Writer>,
                                    cereal::AllowEmptyClassElision>
 {
 public:
-    //! Construct, outputting to the provided c7a writer
-    explicit c7aOutputArchive(Writer& writer)
-        : cereal::OutputArchive<c7aOutputArchive<Writer>,
+    //! Construct, outputting to the provided thrill writer
+    explicit ThrillOutputArchive(Writer& writer)
+        : cereal::OutputArchive<ThrillOutputArchive<Writer>,
                                 cereal::AllowEmptyClassElision>(this),
           writer_(writer)
     { }
 
-    //! Writes size bytes of data to the c7a writer
+    //! Writes size bytes of data to the thrill writer
     void saveBinary(const void* data, std::size_t size) {
         writer_.Append(data, size);
     }
@@ -84,21 +84,21 @@ private:
     Writer& writer_;
 };
 
-//! An input archive designed to load data saved using c7aOutputArchive
+//! An input archive designed to load data saved using ThrillOutputArchive
 template <typename Reader>
-class c7aInputArchive
-    : public cereal::InputArchive<c7aInputArchive<Reader>,
+class ThrillInputArchive
+    : public cereal::InputArchive<ThrillInputArchive<Reader>,
                                   cereal::AllowEmptyClassElision>
 {
 public:
-    //! Construct, loading from the provided c7a reader
-    explicit c7aInputArchive(Reader& reader)
-        : cereal::InputArchive<c7aInputArchive<Reader>,
+    //! Construct, loading from the provided thrill reader
+    explicit ThrillInputArchive(Reader& reader)
+        : cereal::InputArchive<ThrillInputArchive<Reader>,
                                cereal::AllowEmptyClassElision>(this),
           reader_(reader)
     { }
 
-    //! Reads size bytes of data from the input c7a reader
+    //! Reads size bytes of data from the input thrill reader
     void loadBinary(void* const data, std::size_t size) {
         reader_.Read(data, size);
     }
@@ -114,7 +114,7 @@ private:
 template <class T, typename Writer>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<Writer>& ar, T const& t) {
+CEREAL_SAVE_FUNCTION_NAME(ThrillOutputArchive<Writer>& ar, T const& t) {
     ar.saveBinary(std::addressof(t), sizeof(t));
 }
 
@@ -122,7 +122,7 @@ CEREAL_SAVE_FUNCTION_NAME(c7aOutputArchive<Writer>& ar, T const& t) {
 template <class Reader, class T>
 inline
 typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<Reader>& ar, T& t) {
+CEREAL_LOAD_FUNCTION_NAME(ThrillInputArchive<Reader>& ar, T& t) {
     ar.loadBinary(std::addressof(t), sizeof(t));
 }
 
@@ -130,7 +130,7 @@ CEREAL_LOAD_FUNCTION_NAME(c7aInputArchive<Reader>& ar, T& t) {
 template <class Writer, class T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
-    c7aOutputArchive<Writer>& ar, cereal::NameValuePair<T>& t) {
+    ThrillOutputArchive<Writer>& ar, cereal::NameValuePair<T>& t) {
     ar(t.value);
 }
 
@@ -138,7 +138,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 template <class Reader, class T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
-    c7aInputArchive<Reader>& ar, cereal::NameValuePair<T>& t) {
+    ThrillInputArchive<Reader>& ar, cereal::NameValuePair<T>& t) {
     ar(t.value);
 }
 
@@ -146,7 +146,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 template <class Writer, class T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
-    c7aOutputArchive<Writer>& ar, cereal::SizeTag<T>& t) {
+    ThrillOutputArchive<Writer>& ar, cereal::SizeTag<T>& t) {
     ar(t.size);
 }
 
@@ -154,7 +154,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 template <class Reader, class T>
 inline void
 CEREAL_SERIALIZE_FUNCTION_NAME(
-    c7aInputArchive<Reader>& ar, cereal::SizeTag<T>& t) {
+    ThrillInputArchive<Reader>& ar, cereal::SizeTag<T>& t) {
     ar(t.size);
 }
 
@@ -162,7 +162,7 @@ CEREAL_SERIALIZE_FUNCTION_NAME(
 template <class T, typename Writer>
 inline
 void CEREAL_SAVE_FUNCTION_NAME(
-    c7aOutputArchive<Writer>& ar, cereal::BinaryData<T> const& bd) {
+    ThrillOutputArchive<Writer>& ar, cereal::BinaryData<T> const& bd) {
     ar.saveBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
@@ -170,7 +170,7 @@ void CEREAL_SAVE_FUNCTION_NAME(
 template <class Reader, class T>
 inline
 void CEREAL_LOAD_FUNCTION_NAME(
-    c7aInputArchive<Reader>& ar, cereal::BinaryData<T>& bd) {
+    ThrillInputArchive<Reader>& ar, cereal::BinaryData<T>& bd) {
     ar.loadBinary(bd.data, static_cast<std::size_t>(bd.size));
 }
 
@@ -191,14 +191,14 @@ struct Serialization<Archive, T, typename std::enable_if<
 {
     static void Serialize(const T& t, Archive& ar) {
         // Create an output archive
-        serialization_cereal::c7aOutputArchive<Archive> oarchive(ar);
+        serialization_cereal::ThrillOutputArchive<Archive> oarchive(ar);
         // Write the data to the archive
         oarchive(t);
     }
 
     static T Deserialize(Archive& ar) {
         // Create an output archive
-        serialization_cereal::c7aInputArchive<Archive> iarchive(ar);
+        serialization_cereal::ThrillInputArchive<Archive> iarchive(ar);
         // Read the data from the archive
         T res;
         iarchive(res);
@@ -214,12 +214,12 @@ struct Serialization<Archive, T, typename std::enable_if<
 } // namespace thrill
 
 // register archives for polymorphic support
-// CEREAL_REGISTER_ARCHIVE(thrill::data::c7aOutputArchive)
-// CEREAL_REGISTER_ARCHIVE(thrill::data::c7aInputArchive)
+// CEREAL_REGISTER_ARCHIVE(thrill::data::ThrillOutputArchive)
+// CEREAL_REGISTER_ARCHIVE(thrill::data::ThrillInputArchive)
 
 // tie input and output archives together
-// CEREAL_SETUP_ARCHIVE_TRAITS(thrill::data::c7aInputArchive,
-//                             thrill::data::c7aOutputArchive)
+// CEREAL_SETUP_ARCHIVE_TRAITS(thrill::data::ThrillInputArchive,
+//                             thrill::data::ThrillOutputArchive)
 
 #endif // !THRILL_DATA_SERIALIZATION_CEREAL_HEADER
 
