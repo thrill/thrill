@@ -94,14 +94,12 @@ protected:
 };
 
 /*!
- * The Context of a job is a unique instance per worker which holds
- *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref data::Multiplexer "channel multiplexer", the
- * \ref net::Group  "net group"
- * \ref common::Stats "stats" and
- * \ref common::StatsGraph "stats graph".
- * Threads share the channel multiplexer and
- * the net group via the context object.
+ * The Context of a job is a unique instance per worker which holds references
+ * to all underlying parts of Thrill. The context is able to give references to
+ * the \ref data::Multiplexer "channel multiplexer", the \ref net::Group "net
+ * group" \ref common::Stats "stats" and \ref common::StatsGraph "stats graph".
+ * Threads share the channel multiplexer and the net group via the context
+ * object.
  */
 class Context
 {
@@ -269,10 +267,10 @@ void RunLocalTests(std::function<void(Context&)> job_startpoint);
 void RunSameThread(std::function<void(Context&)> job_startpoint);
 
 /*!
- * Runs the given job startpoint with a context instance.  Startpoints may
- * be called multiple times with concurrent threads and different context
- * instances across different workers.  The c7a configuration is taken from
- * environment variables starting the THRILL_.
+ * Runs the given job startpoint with a context instance.  Startpoints may be
+ * called multiple times with concurrent threads and different context instances
+ * across different workers.  The Thrill configuration is taken from environment
+ * variables starting the THRILL_.
  *
  * THRILL_RANK contains the rank of this worker
  *

@@ -177,9 +177,9 @@ protected:
     struct WelcomeMsg
     {
         /**
-         * The c7a flag.
+         * The Thrill signature flag.
          */
-        uint64_t c7a;
+        uint64_t thrill_sign;
         /**
          * The id of the Group associated with the sending Connection.
          */
@@ -191,12 +191,12 @@ protected:
     };
 
     /**
-     * The c7a flag - introduced by Master Timo.
+     * The Thrill signature flag - introduced by Master Timo.
      */
-    static const uint64_t c7a_sign = 0x0C7A0C7A0C7A0C7A;
+    static const uint64_t thrill_sign = 0x0C7A0C7A0C7A0C7A;
 
     /**
-     * \brief Converts a c7a endpoint list into a list of socket address.
+     * \brief Converts a Thrill endpoint list into a list of socket address.
      *
      * \param endpoints The endpoint list to convert.
      * \return The socket addresses to use internally.
@@ -347,7 +347,7 @@ protected:
     /**
      * \brief Called when a connection initiated by us succeeds.
      * \details Called when a connection initiated by us succeeds on a betwork level.
-     * The c7a welcome messages still have to be exchanged.
+     * The Thrill welcome messages still have to be exchanged.
      *
      * \param conn The connection that was connected successfully.
      *
@@ -412,7 +412,7 @@ protected:
             << " group=" << conn.group_id();
 
         // send welcome message
-        const WelcomeMsg hello = { c7a_sign, conn.group_id(), my_rank_ };
+        const WelcomeMsg hello = { thirll_sign, conn.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(conn, &hello, sizeof(hello),
                                    [=](Connection& nc) {
@@ -447,7 +447,7 @@ protected:
 
         const WelcomeMsg* msg
             = reinterpret_cast<const WelcomeMsg*>(buffer.data());
-        die_unequal(msg->c7a, c7a_sign);
+        die_unequal(msg->thill_sign, thrill_sign);
         // We already know those values since we connected actively. So, check
         // for any errors.
         if (conn.peer_id() != msg->id) {
@@ -481,7 +481,7 @@ protected:
         die_unless(conn.state() != ConnectionState::TransportConnected);
 
         const WelcomeMsg* msg_in = reinterpret_cast<const WelcomeMsg*>(buffer.data());
-        die_unequal(msg_in->c7a, c7a_sign);
+        die_unequal(msg_in->thrill_sign, thrill_sign);
 
         LOG << "client " << my_rank_ << " got signature from client"
             << " group " << msg_in->group_id
@@ -503,7 +503,7 @@ protected:
 
         // send welcome message (via new connection's place)
 
-        const WelcomeMsg msg_out = { c7a_sign, msg_in->group_id, my_rank_ };
+        const WelcomeMsg msg_out = { thrill_sign, msg_in->group_id, my_rank_ };
 
         dispatcher_.AsyncWriteCopy(c, &msg_out, sizeof(msg_out),
                                    [=](Connection& nc) {

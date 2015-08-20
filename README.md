@@ -1,13 +1,13 @@
 # Thrill - A Distributed Big Data Framework in C++
 
-THE code repository for the almighty c7a-framework.
-![build status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=c7a&build=15)
+THE code repository for the almighty Thrill-framework.
+![build status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=thrill&build=15)
 
-- <a href="http://i10login.iti.kit.edu/c7a-coverage/">Code Coverage</a>
+- <a href="http://i10login.iti.kit.edu/thrill-coverage/">Code Coverage</a>
 - <a href="https://github.com/PdF14-MR/thrill/wiki/Styleguide">Styleguide</a> ist im wiki.
 - Unit-test schreiben? Lies <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">hier</a>
 - abgegebene Version des <a href="https://github.com/PdF14-MR/research-proposal/blob/b08aed24d22bcf4837f87da10763f89ff3a46212/c7a-proposal-abgabe20150424.pdf">Research Proposal PDF</a>
-- <a href="https://github.com/PdF14-MR/thrill/wiki/Running-c7a-on-the-BW-HPC-cluster">Testen am BW HPC Cluster </a>
+</a>
 
 Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
 

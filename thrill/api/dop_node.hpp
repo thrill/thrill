@@ -23,8 +23,8 @@ namespace api {
 //! \{
 
 /*!
- * A DOpNode is a typed node representing and distributed operations in c7a.  It
- * is the super class for all distributed operation nodes.
+ * A DOpNode is a typed node representing and distributed operations in Thrill.
+ * It is the super class for all distributed operation nodes.
  *
  * \tparam ValueType Type of the items in the DIA.
  */
