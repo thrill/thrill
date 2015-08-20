@@ -412,7 +412,7 @@ protected:
             << " group=" << conn.group_id();
 
         // send welcome message
-        const WelcomeMsg hello = { thirll_sign, conn.group_id(), my_rank_ };
+        const WelcomeMsg hello = { thrill_sign, conn.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(conn, &hello, sizeof(hello),
                                    [=](Connection& nc) {
@@ -447,7 +447,7 @@ protected:
 
         const WelcomeMsg* msg
             = reinterpret_cast<const WelcomeMsg*>(buffer.data());
-        die_unequal(msg->thill_sign, thrill_sign);
+        die_unequal(msg->thrill_sign, thrill_sign);
         // We already know those values since we connected actively. So, check
         // for any errors.
         if (conn.peer_id() != msg->id) {
