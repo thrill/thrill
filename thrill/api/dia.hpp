@@ -42,13 +42,13 @@ template <typename T>
 class DIANode;
 
 /*!
- * DIARef is the interface between the user and the c7a framework. A DIARef can
- * be imagined as an immutable array, even though the data does not need to be
- * which represents the state after the previous DOp or Action. Additionally, a
- * DIARef stores the local lambda function chain of type Stack, which can transform
- * elements of the DIANode to elements of this DIARef. DOps/Actions create a
- * DIARef and a new DIANode, to which the DIARef links to. LOps only create a
- * new DIARef, which link to the previous DIANode.
+ * DIARef is the interface between the user and the Thrill framework. A DIARef
+ * can be imagined as an immutable array, even though the data does not need to
+ * be which represents the state after the previous DOp or Action. Additionally,
+ * a DIARef stores the local lambda function chain of type Stack, which can
+ * transform elements of the DIANode to elements of this DIARef. DOps/Actions
+ * create a DIARef and a new DIANode, to which the DIARef links to. LOps only
+ * create a new DIARef, which link to the previous DIANode.
  *
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.

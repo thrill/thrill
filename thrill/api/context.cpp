@@ -172,10 +172,10 @@ int RunDistributedTCP(
 }
 
 /*!
- * Runs the given job startpoint with a context instance.  Startpoints may
- * be called multiple times with concurrent threads and different context
- * instances across different workers.  The c7a configuration is taken from
- * environment variables starting the THRILL_.
+ * Runs the given job startpoint with a context instance.  Startpoints may be
+ * called multiple times with concurrent threads and different context instances
+ * across different workers.  The Thrill configuration is taken from environment
+ * variables starting the THRILL_.
  *
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.

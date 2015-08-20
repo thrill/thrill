@@ -41,10 +41,10 @@ struct CallbackPair {
 };
 
 /*!
- * A DIANode is a typed node representing and operation in c7a. It is the super
- * class for all operation nodes and stores the state of the operation. The type
- * of a DIANode is the type, in which the DIA is after the last global barrier
- * in the operation (between MainOp and PostOp).
+ * A DIANode is a typed node representing and operation in Thrill. It is the
+ * super class for all operation nodes and stores the state of the
+ * operation. The type of a DIANode is the type, in which the DIA is after the
+ * last global barrier in the operation (between MainOp and PostOp).
  *
  * \tparam ValueType Type of the DIA between MainOp and PostOp
  */

@@ -283,7 +283,7 @@ protected:
     //! Underlying socket.
     Socket socket_;
 
-    //! The connection state of this connection in the c7a network state
+    //! The connection state of this connection in the Thrill network state
     //! machine.
     ConnectionState state_ = ConnectionState::Invalid;
 
