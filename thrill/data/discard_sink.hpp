@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/discard_sink.hpp
+ * thrill/data/discard_sink.hpp
  *
  * Part of Project c7a.
  *
@@ -12,9 +12,9 @@
 #ifndef C7A_DATA_DISCARD_SINK_HEADER
 #define C7A_DATA_DISCARD_SINK_HEADER
 
-#include <c7a/data/block.hpp>
-#include <c7a/data/block_sink.hpp>
-#include <c7a/data/block_writer.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/data/block_sink.hpp>
+#include <thrill/data/block_writer.hpp>
 
 namespace c7a {
 namespace data {

@@ -12,7 +12,7 @@
 #ifndef C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 #define C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
-#include <c7a/common/functional.hpp>
+#include <thrill/common/functional.hpp>
 
 #include <algorithm>
 #include <limits>

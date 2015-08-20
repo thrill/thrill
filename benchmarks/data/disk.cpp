@@ -8,11 +8,11 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/context.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/write_lines_many.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/stats_timer.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <iostream>
 #include <string>

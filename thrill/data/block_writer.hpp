@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block_writer.hpp
+ * thrill/data/block_writer.hpp
  *
  * Part of Project c7a.
  *
@@ -12,11 +12,11 @@
 #ifndef C7A_DATA_BLOCK_WRITER_HEADER
 #define C7A_DATA_BLOCK_WRITER_HEADER
 
-#include <c7a/common/config.hpp>
-#include <c7a/common/item_serialization_tools.hpp>
-#include <c7a/data/block.hpp>
-#include <c7a/data/block_sink.hpp>
-#include <c7a/data/serialization.hpp>
+#include <thrill/common/config.hpp>
+#include <thrill/common/item_serialization_tools.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/data/block_sink.hpp>
+#include <thrill/data/serialization.hpp>
 
 #include <algorithm>
 #include <string>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/function_stack.hpp
+ * thrill/api/function_stack.hpp
  *
  * Part of Project c7a.
  *
@@ -11,8 +11,8 @@
 #ifndef C7A_API_FUNCTION_STACK_HEADER
 #define C7A_API_FUNCTION_STACK_HEADER
 
-#include <c7a/common/function_traits.hpp>
-#include <c7a/common/functional.hpp>
+#include <thrill/common/function_traits.hpp>
+#include <thrill/common/functional.hpp>
 
 #include <array>
 #include <cassert>

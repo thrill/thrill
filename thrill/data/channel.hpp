@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/channel.hpp
+ * thrill/data/channel.hpp
  *
  * Part of Project c7a.
  *
@@ -13,16 +13,16 @@
 #ifndef C7A_DATA_CHANNEL_HEADER
 #define C7A_DATA_CHANNEL_HEADER
 
-#include <c7a/common/stats_counter.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/channel_sink.hpp>
-#include <c7a/data/concat_block_source.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/multiplexer.hpp>
-#include <c7a/data/multiplexer_header.hpp>
-#include <c7a/net/connection.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/common/stats_counter.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/channel_sink.hpp>
+#include <thrill/data/concat_block_source.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/multiplexer.hpp>
+#include <thrill/data/multiplexer_header.hpp>
+#include <thrill/net/connection.hpp>
+#include <thrill/net/group.hpp>
 
 #include <sstream>
 #include <string>

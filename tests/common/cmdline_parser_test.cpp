@@ -8,7 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
+#include <thrill/common/cmdline_parser.hpp>
 #include <gtest/gtest.h>
 
 #include <sstream>

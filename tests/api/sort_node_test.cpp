@@ -8,9 +8,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/sort.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/sort.hpp>
 
 #include <gtest/gtest.h>
 

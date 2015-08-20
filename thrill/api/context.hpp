@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/context.hpp
+ * thrill/api/context.hpp
  *
  * Part of Project c7a.
  *
@@ -13,15 +13,15 @@
 #ifndef C7A_API_CONTEXT_HEADER
 #define C7A_API_CONTEXT_HEADER
 
-#include <c7a/api/stats_graph.hpp>
-#include <c7a/common/config.hpp>
-#include <c7a/common/stats.hpp>
-#include <c7a/data/channel.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/multiplexer.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/manager.hpp>
+#include <thrill/api/stats_graph.hpp>
+#include <thrill/common/config.hpp>
+#include <thrill/common/stats.hpp>
+#include <thrill/data/channel.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/multiplexer.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/flow_control_manager.hpp>
+#include <thrill/net/manager.hpp>
 
 #include <cassert>
 #include <cstdio>

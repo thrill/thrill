@@ -8,7 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/delegate.hpp>
+#include <thrill/common/delegate.hpp>
 #include <gtest/gtest.h>
 
 using namespace c7a::common;

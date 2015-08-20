@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/allgather.hpp
+ * thrill/api/allgather.hpp
  *
  * Part of Project c7a.
  *
@@ -12,9 +12,9 @@
 #ifndef C7A_API_ALLGATHER_HEADER
 #define C7A_API_ALLGATHER_HEADER
 
-#include <c7a/api/action_node.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/core/stage_builder.hpp>
+#include <thrill/api/action_node.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/core/stage_builder.hpp>
 
 #include <string>
 #include <vector>

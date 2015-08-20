@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/stats_graph.hpp
+ * thrill/api/stats_graph.hpp
  *
  * Simple Graph to represent execution stages.
  *
@@ -13,7 +13,7 @@
 #ifndef C7A_API_STATS_GRAPH_HEADER
 #define C7A_API_STATS_GRAPH_HEADER
 
-#include <c7a/common/logger.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <fstream>
 #include <string>

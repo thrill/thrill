@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/cache.hpp
+ * thrill/api/cache.hpp
  *
  * Part of Project c7a.
  *
@@ -11,9 +11,9 @@
 #ifndef C7A_API_CACHE_HEADER
 #define C7A_API_CACHE_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dia_node.hpp>
-#include <c7a/data/file.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dia_node.hpp>
+#include <thrill/data/file.hpp>
 
 #include <string>
 #include <vector>

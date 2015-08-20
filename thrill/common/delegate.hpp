@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/delegate.hpp
+ * thrill/common/delegate.hpp
  *
  * Replacement for std::function borrowed from
  * http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11

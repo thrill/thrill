@@ -8,9 +8,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/common/thread_pool.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/common/thread_pool.hpp>
 #include <gtest/gtest.h>
 
 #include <numeric>

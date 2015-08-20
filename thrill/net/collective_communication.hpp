@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/collective_communication.hpp
+ * thrill/net/collective_communication.hpp
  *
  * This file provides collective communication primitives, which are to be used
  * with c7a::net::Groups.
@@ -17,8 +17,8 @@
 // http://memegenerator.net/instance2/1128363 (ts)
 #if DISABLE_MAYBE_REMOVE
 
-#include <c7a/common/functional.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/common/functional.hpp>
+#include <thrill/net/group.hpp>
 
 #include <condition_variable>
 #include <functional>

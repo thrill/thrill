@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/exception.hpp
+ * thrill/net/exception.hpp
  *
  * Part of Project c7a.
  *

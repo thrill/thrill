@@ -259,7 +259,7 @@ endmacro(c7a_build_prog)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # descend into library source
-add_subdirectory(c7a)
+add_subdirectory(thrill)
 
 # descend into testsuite
 add_subdirectory(tests)
@@ -277,9 +277,9 @@ if(TRY_COMPILE_HEADERS)
   set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
   set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${ALL_LIBRARIES})
+    ${CMAKE_BINARY_DIR}/thrill/libc7a.a ${ALL_LIBRARIES})
 
-  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
+  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "thrill/*.hpp")
   list(SORT header_files)
 
   foreach(file ${header_files})

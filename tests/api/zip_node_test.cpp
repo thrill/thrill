@@ -8,12 +8,12 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/cache.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/zip.hpp>
-#include <c7a/common/string.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/zip.hpp>
+#include <thrill/common/string.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>

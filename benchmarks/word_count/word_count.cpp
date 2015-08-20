@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/word_count/word_count.cpp
  *
- * Runner program for WordCount example. See c7a/examples/word_count.hpp for the
+ * Runner program for WordCount example. See thrill/examples/word_count.hpp for the
  * source to the example.
  *
  * Part of Project c7a.
@@ -11,9 +11,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/examples/word_count.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/examples/word_count.hpp>
 
 using namespace c7a; // NOLINT
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/group.cpp
+ * thrill/net/group.cpp
  *
  * net::Group is a collection of Connections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -12,8 +12,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/net/group.hpp>
 
 #include <string>
 #include <thread>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/file.hpp
+ * thrill/data/file.hpp
  *
  * Part of Project c7a.
  *
@@ -12,13 +12,13 @@
 #ifndef C7A_DATA_FILE_HEADER
 #define C7A_DATA_FILE_HEADER
 
-#include <c7a/common/logger.hpp>
-#include <c7a/data/block.hpp>
-#include <c7a/data/block_reader.hpp>
-#include <c7a/data/block_sink.hpp>
-#include <c7a/data/block_writer.hpp>
-#include <c7a/data/buffered_block_reader.hpp>
-#include <c7a/data/dyn_block_reader.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/data/block_reader.hpp>
+#include <thrill/data/block_sink.hpp>
+#include <thrill/data/block_writer.hpp>
+#include <thrill/data/buffered_block_reader.hpp>
+#include <thrill/data/dyn_block_reader.hpp>
 
 #include <cassert>
 #include <functional>

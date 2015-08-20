@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/c7a.hpp
+ * thrill/c7a.hpp
  *
  * Part of Project c7a.
  *
@@ -13,25 +13,25 @@
 #ifndef C7A_C7A_HEADER
 #define C7A_C7A_HEADER
 
-#include <c7a/api/context.hpp>
-#include <c7a/api/dia.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/cache.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/distribute_from.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/prefixsum.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/reduce.hpp>
-#include <c7a/api/reduce_to_index.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/sort.hpp>
-#include <c7a/api/sum.hpp>
-#include <c7a/api/write_lines.hpp>
-#include <c7a/api/write_lines_many.hpp>
-#include <c7a/api/zip.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_to_index.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sort.hpp>
+#include <thrill/api/sum.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/zip.hpp>
 
 namespace c7a {
 

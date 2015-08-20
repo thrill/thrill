@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 // [example]
-#include <c7a/common/cmdline_parser.hpp>
+#include <thrill/common/cmdline_parser.hpp>
 #include <iostream>
 #include <string>
 

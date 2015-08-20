@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block.hpp
+ * thrill/data/block.hpp
  *
  * Part of Project c7a.
  *

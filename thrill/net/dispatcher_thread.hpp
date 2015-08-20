@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/dispatcher_thread.hpp
+ * thrill/net/dispatcher_thread.hpp
  *
  * Asynchronous callback wrapper around select(), epoll(), or other kernel-level
  * dispatchers.
@@ -15,13 +15,13 @@
 #ifndef C7A_NET_DISPATCHER_THREAD_HEADER
 #define C7A_NET_DISPATCHER_THREAD_HEADER
 
-#include <c7a/common/concurrent_queue.hpp>
-#include <c7a/common/thread_pool.hpp>
-#include <c7a/data/block.hpp>
-#include <c7a/net/connection.hpp>
+#include <thrill/common/concurrent_queue.hpp>
+#include <thrill/common/thread_pool.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/net/connection.hpp>
 
 #if defined(_LIBCPP_VERSION) || defined(__clang__)
-#include <c7a/common/delegate.hpp>
+#include <thrill/common/delegate.hpp>
 #endif
 
 #include <string>

@@ -7,7 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/timed_counter.hpp>
+#include <thrill/common/timed_counter.hpp>
 #include <gtest/gtest.h>
 
 #include <thread>

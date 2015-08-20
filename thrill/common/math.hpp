@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/math.hpp
+ * thrill/common/math.hpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #ifndef C7A_COMMON_MATH_HEADER
 #define C7A_COMMON_MATH_HEADER
 
-#include <c7a/api/context.hpp>
+#include <thrill/api/context.hpp>
 
 #include <algorithm>
 #include <tuple>

@@ -8,10 +8,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_post_probing_table.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 #include <gtest/gtest.h>
 
-#include <c7a/net/manager.hpp>
+#include <thrill/net/manager.hpp>
 #include <string>
 #include <utility>
 #include <vector>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/system_control_channel.cpp
+ * thrill/net/system_control_channel.cpp
  *
  * Part of Project c7a.
  *
@@ -7,7 +7,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/system_control_channel.hpp>
+#include <thrill/net/system_control_channel.hpp>
 
 namespace c7a {
 namespace net {

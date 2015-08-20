@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/concurrent_bounded_queue.hpp>
-#include <c7a/common/thread_pool.hpp>
+#include <thrill/common/concurrent_bounded_queue.hpp>
+#include <thrill/common/thread_pool.hpp>
 #include <gtest/gtest.h>
 
 #include <atomic>

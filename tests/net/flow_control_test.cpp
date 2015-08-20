@@ -8,11 +8,11 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/group.hpp>
-#include <c7a/net/manager.hpp>
+#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/flow_control_manager.hpp>
+#include <thrill/net/group.hpp>
+#include <thrill/net/manager.hpp>
 #include <gtest/gtest.h>
 
 #include <functional>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/manager.hpp
+ * thrill/net/manager.hpp
  *
  * Part of Project c7a.
  *
@@ -13,8 +13,8 @@
 #ifndef C7A_NET_MANAGER_HEADER
 #define C7A_NET_MANAGER_HEADER
 
-#include <c7a/net/connection.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/net/connection.hpp>
+#include <thrill/net/group.hpp>
 
 #include <array>
 #include <string>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/logger.hpp
+ * thrill/common/logger.hpp
  *
  * Simple and less simple logging classes.
  *

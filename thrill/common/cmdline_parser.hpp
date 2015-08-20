@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/cmdline_parser.hpp
+ * thrill/common/cmdline_parser.hpp
  *
  * Part of Project c7a.
  *

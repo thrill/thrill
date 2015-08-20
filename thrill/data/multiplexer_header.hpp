@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/multiplexer_header.hpp
+ * thrill/data/multiplexer_header.hpp
  *
  * Part of Project c7a.
  *
@@ -13,10 +13,10 @@
 #ifndef C7A_DATA_MULTIPLEXER_HEADER_HEADER
 #define C7A_DATA_MULTIPLEXER_HEADER_HEADER
 
-#include <c7a/data/block.hpp>
-#include <c7a/net/buffer_builder.hpp>
-#include <c7a/net/buffer_reader.hpp>
-#include <c7a/net/connection.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/net/buffer_builder.hpp>
+#include <thrill/net/buffer_reader.hpp>
+#include <thrill/net/connection.hpp>
 
 #include <cstdio>
 #include <cstdlib>

@@ -7,16 +7,16 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/cache.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/reduce_to_index.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/sum.hpp>
-#include <c7a/api/write_lines.hpp>
-#include <c7a/api/zip.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/string.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/reduce_to_index.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/zip.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/string.hpp>
 
 #include <random>
 #include <string>

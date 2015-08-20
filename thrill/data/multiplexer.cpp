@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/multiplexer.cpp
+ * thrill/data/multiplexer.cpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/channel.hpp>
-#include <c7a/data/multiplexer.hpp>
+#include <thrill/data/channel.hpp>
+#include <thrill/data/multiplexer.hpp>
 
 #include <algorithm>
 

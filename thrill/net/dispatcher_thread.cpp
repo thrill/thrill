@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/dispatcher_thread.cpp
+ * thrill/net/dispatcher_thread.cpp
  *
  * Part of Project c7a.
  *
@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
+#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
 
 #include <unistd.h>
 

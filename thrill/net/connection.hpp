@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/connection.hpp
+ * thrill/net/connection.hpp
  *
  * Contains net::Connection, a richer set of network point-to-point primitives.
  *
@@ -15,10 +15,10 @@
 #ifndef C7A_NET_CONNECTION_HEADER
 #define C7A_NET_CONNECTION_HEADER
 
-#include <c7a/common/config.hpp>
-#include <c7a/net/buffer.hpp>
-#include <c7a/net/exception.hpp>
-#include <c7a/net/lowlevel/socket.hpp>
+#include <thrill/common/config.hpp>
+#include <thrill/net/buffer.hpp>
+#include <thrill/net/exception.hpp>
+#include <thrill/net/lowlevel/socket.hpp>
 
 #include <cassert>
 #include <cerrno>

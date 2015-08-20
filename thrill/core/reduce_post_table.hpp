@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/core/reduce_post_table.hpp
+ * thrill/core/reduce_post_table.hpp
  *
  * Hash table with support for reduce.
  *
@@ -16,10 +16,10 @@
 #ifndef C7A_CORE_REDUCE_POST_TABLE_HEADER
 #define C7A_CORE_REDUCE_POST_TABLE_HEADER
 
-#include <c7a/common/function_traits.hpp>
-#include <c7a/common/functional.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/data/block_writer.hpp>
+#include <thrill/common/function_traits.hpp>
+#include <thrill/common/functional.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/block_writer.hpp>
 
 #include <algorithm>
 #include <cassert>

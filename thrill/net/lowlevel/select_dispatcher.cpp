@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/lowlevel/select_dispatcher.cpp
+ * thrill/net/lowlevel/select_dispatcher.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/lowlevel/select_dispatcher.hpp>
+#include <thrill/net/lowlevel/select_dispatcher.hpp>
 
 #include <sstream>
 

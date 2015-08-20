@@ -9,10 +9,10 @@
 #ifndef C7A_BENCH_SERIALIZATION_HEADER
 #define C7A_BENCH_SERIALIZATION_HEADER
 
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/serialization.hpp>
-#include <c7a/data/serialization_cereal.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_cereal.hpp>
 
 #include <cstdlib>
 #include <iomanip>

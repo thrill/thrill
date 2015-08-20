@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/buffered_block_reader.hpp
+ * thrill/data/buffered_block_reader.hpp
  *
  * Part of Project c7a.
  *
@@ -12,7 +12,7 @@
 #ifndef C7A_DATA_BUFFERED_BLOCK_READER_HEADER
 #define C7A_DATA_BUFFERED_BLOCK_READER_HEADER
 
-#include <c7a/data/block_reader.hpp>
+#include <thrill/data/block_reader.hpp>
 
 namespace c7a {
 namespace data {

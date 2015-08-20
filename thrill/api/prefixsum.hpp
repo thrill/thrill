@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/prefixsum.hpp
+ * thrill/api/prefixsum.hpp
  *
  * Part of Project c7a.
  *
@@ -13,12 +13,12 @@
 #ifndef C7A_API_PREFIXSUM_HEADER
 #define C7A_API_PREFIXSUM_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/flow_control_manager.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/flow_control_manager.hpp>
 
 #include <string>
 

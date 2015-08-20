@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/block_queue.hpp
+ * thrill/data/block_queue.hpp
  *
  * Part of Project c7a.
  *
@@ -12,12 +12,12 @@
 #ifndef C7A_DATA_BLOCK_QUEUE_HEADER
 #define C7A_DATA_BLOCK_QUEUE_HEADER
 
-#include <c7a/common/concurrent_bounded_queue.hpp>
-#include <c7a/data/block.hpp>
-#include <c7a/data/block_reader.hpp>
-#include <c7a/data/block_writer.hpp>
-#include <c7a/data/dyn_block_reader.hpp>
-#include <c7a/data/file.hpp>
+#include <thrill/common/concurrent_bounded_queue.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/data/block_reader.hpp>
+#include <thrill/data/block_writer.hpp>
+#include <thrill/data/dyn_block_reader.hpp>
+#include <thrill/data/file.hpp>
 
 #include <atomic>
 #include <memory>

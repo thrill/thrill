@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_pre_table.hpp>
-#include <c7a/data/file.hpp>
+#include <thrill/core/reduce_pre_table.hpp>
+#include <thrill/data/file.hpp>
 #include <gtest/gtest.h>
 
 #include <string>

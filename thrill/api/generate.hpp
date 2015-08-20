@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/generate.hpp
+ * thrill/api/generate.hpp
  *
  * DIANode for a generate operation. Performs the actual generate operation
  *
@@ -14,10 +14,10 @@
 #ifndef C7A_API_GENERATE_HEADER
 #define C7A_API_GENERATE_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/common/math.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
 
 #include <fstream>
 #include <random>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/future.hpp
+ * thrill/common/future.hpp
  *
  * Part of Project c7a.
  *

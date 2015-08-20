@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/data/dyn_block_reader.hpp
+ * thrill/data/dyn_block_reader.hpp
  *
  * Dynamized instantiation of BlockReader which can polymorphically read from
  * different block sources using the same object type.
@@ -15,7 +15,7 @@
 #ifndef C7A_DATA_DYN_BLOCK_READER_HEADER
 #define C7A_DATA_DYN_BLOCK_READER_HEADER
 
-#include <c7a/data/block_reader.hpp>
+#include <thrill/data/block_reader.hpp>
 
 namespace c7a {
 namespace data {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/manager.cpp
+ * thrill/net/manager.cpp
  *
  * Part of Project c7a.
  *
@@ -9,8 +9,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/manager.hpp>
+#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/manager.hpp>
 
 #include <deque>
 #include <map>

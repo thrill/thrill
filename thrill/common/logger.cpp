@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/common/logger.cpp
+ * thrill/common/logger.cpp
  *
  * Simple and less simple logging classes.
  *
@@ -10,7 +10,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <iomanip>
 #include <iostream>

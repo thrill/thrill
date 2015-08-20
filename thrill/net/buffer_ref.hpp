@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/buffer_ref.hpp
+ * thrill/net/buffer_ref.hpp
  *
  * Look at the Doxygen below....
  *
@@ -14,8 +14,8 @@
 #ifndef C7A_NET_BUFFER_REF_HEADER
 #define C7A_NET_BUFFER_REF_HEADER
 
-#include <c7a/net/buffer.hpp>
-#include <c7a/net/buffer_builder.hpp>
+#include <thrill/net/buffer.hpp>
+#include <thrill/net/buffer_builder.hpp>
 
 #include <string>
 

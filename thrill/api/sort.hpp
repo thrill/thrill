@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/sort.hpp
+ * thrill/api/sort.hpp
  *
  * Part of Project c7a.
  *
@@ -14,13 +14,13 @@
 #ifndef C7A_API_SORT_HEADER
 #define C7A_API_SORT_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/common/math.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/group.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/flow_control_manager.hpp>
+#include <thrill/net/group.hpp>
 
 #include <algorithm>
 #include <functional>

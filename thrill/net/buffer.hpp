@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/buffer.hpp
+ * thrill/net/buffer.hpp
  *
  * Contains binary byte buffer used by most network classes.
  *
@@ -14,7 +14,7 @@
 #ifndef C7A_NET_BUFFER_HEADER
 #define C7A_NET_BUFFER_HEADER
 
-#include <c7a/common/logger.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <algorithm>
 #include <cassert>

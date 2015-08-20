@@ -9,10 +9,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/context.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/functional.hpp>
-#include <c7a/common/logger.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/functional.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <iostream>
 #include <random>

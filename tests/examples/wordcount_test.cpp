@@ -8,10 +8,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/distribute_from.hpp>
-#include <c7a/common/string.hpp>
-#include <c7a/examples/word_count.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/distribute_from.hpp>
+#include <thrill/common/string.hpp>
+#include <thrill/examples/word_count.hpp>
 
 #include <gtest/gtest.h>
 

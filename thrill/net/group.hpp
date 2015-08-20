@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/net/group.hpp
+ * thrill/net/group.hpp
  *
  * net::Group is a collection of NetConnections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -16,8 +16,8 @@
 #ifndef C7A_NET_GROUP_HEADER
 #define C7A_NET_GROUP_HEADER
 
-#include <c7a/common/logger.hpp>
-#include <c7a/net/connection.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/net/connection.hpp>
 
 #include <algorithm>
 #include <cassert>

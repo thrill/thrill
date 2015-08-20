@@ -1,5 +1,5 @@
 /*******************************************************************************
- * c7a/api/distribute_from.hpp
+ * thrill/api/distribute_from.hpp
  *
  * Part of Project c7a.
  *
@@ -12,10 +12,10 @@
 #ifndef C7A_API_DISTRIBUTE_FROM_HEADER
 #define C7A_API_DISTRIBUTE_FROM_HEADER
 
-#include <c7a/api/dia.hpp>
-#include <c7a/api/dop_node.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/common/math.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/dop_node.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
 
 #include <string>
 #include <vector>
