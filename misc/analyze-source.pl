@@ -415,7 +415,7 @@ foreach my $arg (@ARGV) {
 }
 
 (-e "thrill/CMakeLists.txt")
-    or die("Please run this script in the C7A source base directory.");
+    or die("Please run this script in the Thrill source base directory.");
 
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");

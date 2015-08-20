@@ -6,15 +6,15 @@ set -e
 
 ip addr list
 
-# set and export environment for c7a
-C7A_HOSTLIST=$(./getSlurmHostlist.sh | awk -f map_ib0.awk)
-C7A_RANK=$(./getSlurmRank.sh)
+# set and export environment for Thrill
+THRILL_HOSTLIST=$(./getSlurmHostlist.sh | awk -f map_ib0.awk)
+THRILL_RANK=$(./getSlurmRank.sh)
 
-export C7A_HOSTLIST C7A_RANK
+export THRILL_HOSTLIST THRILL_RANK
 
 date
-echo "C7A_HOSTLIST: $C7A_HOSTLIST"
-echo "C7A_RANK:     $C7A_RANK"
+echo "THRILL_HOSTLIST: $THRILL_HOSTLIST"
+echo "THRILL_RANK:     $THRILL_RANK"
 
 # note: for running a command with gdb:
 # gdb -q -x ./backtrace --args $COMMAND
