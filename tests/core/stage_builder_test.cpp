@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/c7a.hpp>
+#include <thrill/thrill.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
