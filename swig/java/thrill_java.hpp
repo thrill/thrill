@@ -1,7 +1,7 @@
 /*******************************************************************************
- * swig/perl5/c7a_perl5.hpp
+ * swig/java/thrill_java.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -9,17 +9,17 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_SWIG_PERL5_C7A_PERL5_HEADER
-#define C7A_SWIG_PERL5_C7A_PERL5_HEADER
+#ifndef THRILL_SWIG_JAVA_THRILL_JAVA_HEADER
+#define THRILL_SWIG_JAVA_THRILL_JAVA_HEADER
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/lop_node.hpp>
-#include <c7a/api/reduce.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/common/string.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/lop_node.hpp>
+#include <thrill/api/reduce.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/common/string.hpp>
 
 // #include <Python.h>
 // #include <bytesobject.h>
@@ -28,12 +28,19 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 
 static const bool debug = true;
 
-void testCall(size_t i) {
-    std::cout << "testCall in C++" << i << std::endl;
+class GeneratorFunction
+{
+public:
+    virtual ~GeneratorFunction() { }
+    virtual std::string call(size_t index) const = 0;
+};
+
+void printHello(size_t i, const GeneratorFunction& gen) {
+    std::cout << "Hello from C++: " << gen.call(i) << std::endl;
 }
 
 #if 0
@@ -151,13 +158,6 @@ struct Serialization<Archive, PyObjectRef>
 
 } // namespace data
 
-class GeneratorFunction
-{
-public:
-    virtual ~GeneratorFunction() { }
-    virtual PyObjectVarRef operator () (size_t index) = 0;
-};
-
 class MapFunction
 {
 public:
@@ -179,16 +179,16 @@ public:
     virtual PyObjectVarRef operator () (PyObject* obj1, PyObject* obj2) = 0;
 };
 
-} // namespace c7a
+} // namespace thrill
 
 // import Swig Director classes.
-#include "c7a_pythonPYTHON_wrap.h"
+#include "thrill_pythonPYTHON_wrap.h"
 
 namespace std {
 template <>
-struct hash<c7a::PyObjectRef>
-    : public std::unary_function<c7a::PyObjectRef, size_t>{
-    std::size_t operator () (const c7a::PyObjectRef& ob) const {
+struct hash<thrill::PyObjectRef>
+    : public std::unary_function<thrill::PyObjectRef, size_t>{
+    std::size_t operator () (const thrill::PyObjectRef& ob) const {
         auto h = PyObject_Hash(ob.get());
         if (h == -1) {
             throw std::exception();
@@ -199,7 +199,7 @@ struct hash<c7a::PyObjectRef>
 
 } // namespace std
 
-namespace c7a {
+namespace thrill {
 
 typedef api::DIARef<PyObjectRef> PythonDIARef;
 
@@ -321,8 +321,8 @@ PythonDIA Generate(
 
 #endif
 
-} // namespace c7a
+} // namespace thrill
 
-#endif // !C7A_SWIG_PERL5_C7A_PERL5_HEADER
+#endif // !THRILL_SWIG_JAVA_THRILL_JAVA_HEADER
 
 /******************************************************************************/

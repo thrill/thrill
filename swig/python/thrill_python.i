@@ -1,9 +1,9 @@
-%module(directors="1") c7a
+%module(directors="1") thrill
 %{
 
-#include "c7a_python.hpp"
+#include "thrill_python.hpp"
 
-using namespace c7a;
+using namespace thrill;
 
 %}
 
@@ -55,36 +55,36 @@ using namespace c7a;
 %}
 %enddef
 
-%feature("pythonprepend") c7a::PyContext::Generate(GeneratorFunction&, size_t)
+%feature("pythonprepend") thrill::PyContext::Generate(GeneratorFunction&, size_t)
    CallbackHelper(GeneratorFunction, generator_function)
 
-%feature("pythonprepend") c7a::PyDIA::Map(MapFunction&) const
+%feature("pythonprepend") thrill::PyDIA::Map(MapFunction&) const
    CallbackHelper(MapFunction, map_function)
 
-%feature("pythonprepend") c7a::PyDIA::Filter(FilterFunction&) const
+%feature("pythonprepend") thrill::PyDIA::Filter(FilterFunction&) const
    CallbackHelper(FilterFunction, filter_function)
 
-%feature("pythonprepend") c7a::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const
+%feature("pythonprepend") thrill::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const
 CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_function)
 
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_shared_ptr.i>
 
-%shared_ptr(c7a::PyContext)
-%shared_ptr(c7a::api::Context)
+%shared_ptr(thrill::PyContext)
+%shared_ptr(thrill::api::Context)
 
 %template(VectorPyObject) std::vector<PyObject*>;
 %template(VectorString) std::vector<std::string>;
 
-%template(VectorPyContext) std::vector<std::shared_ptr<c7a::PyContext>>;
+%template(VectorPyContext) std::vector<std::shared_ptr<thrill::PyContext>>;
 
-%ignore c7a::api::HostContext::ConstructLocalMock;
+%ignore thrill::api::HostContext::ConstructLocalMock;
 
-%feature("pythonappend") c7a::PyContext::PyContext(HostContext&, size_t) %{
+%feature("pythonappend") thrill::PyContext::PyContext(HostContext&, size_t) %{
     # acquire a reference to the HostContext
     self._host_context = host_context
     %}
 
-%include <c7a/api/context.hpp>
-%include "c7a_python.hpp"
+%include <thrill/api/context.hpp>
+%include "thrill_python.hpp"

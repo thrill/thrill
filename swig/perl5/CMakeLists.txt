@@ -10,19 +10,19 @@ include_directories(${PERL_INCLUDE_PATH})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SWIG_MODULE_c7a_perl5_EXTRA_DEPS
-  c7a_perl5.hpp
+set(SWIG_MODULE_thrill_perl5_EXTRA_DEPS
+  thrill_perl5.hpp
   )
 
-set_source_files_properties(c7a_perl5.i PROPERTIES
+set_source_files_properties(thrill_perl5.i PROPERTIES
   CPLUSPLUS ON
-  SWIG_MODULE_NAME c7a
+  SWIG_MODULE_NAME thrill
   SWIG_FLAGS "-Wall;-O;")
 
-swig_add_module(c7a_perl5 perl5 c7a_perl5.i)
-swig_link_libraries(c7a_perl5 c7a ${ALL_LIBRARIES} ${PERL_LIBRARY})
+swig_add_module(thrill_perl5 perl5 thrill_perl5.i)
+swig_link_libraries(thrill_perl5 thrill ${ALL_LIBRARIES} ${PERL_LIBRARY})
 # fixup target shared object name, such that multiple swig target can be made
-set_target_properties(c7a_perl5 PROPERTIES OUTPUT_NAME "c7a")
+set_target_properties(thrill_perl5 PROPERTIES OUTPUT_NAME "thrill")
 
 add_test(
   NAME swig_perl5_test

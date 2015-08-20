@@ -22,7 +22,7 @@ import sys
 import marshal
 import types
 import rpyc
-import c7a
+import thrill
 
 
 class RpcDIA():
@@ -52,7 +52,7 @@ class RpcDIA():
 class RpcContext():
 
     def __init__(self, host_ctx, my_host_rank):
-        self._ctx = c7a.PyContext(host_ctx, my_host_rank)
+        self._ctx = thrill.PyContext(host_ctx, my_host_rank)
 
     def Generate(self, generator_function, size):
         code1 = marshal.loads(generator_function)
@@ -78,9 +78,9 @@ class MyService(rpyc.Service):
         pass
 
     def exposed_Create(self, my_host_rank, endpoints):
-        print("Creating c7a context for rank",
+        print("Creating thrill context for rank",
               my_host_rank, "endpoints", endpoints)
-        host_ctx = c7a.HostContext(my_host_rank, endpoints, 1)
+        host_ctx = thrill.HostContext(my_host_rank, endpoints, 1)
         return RpcContext(host_ctx, 0)
 
 if __name__ == "__main__":

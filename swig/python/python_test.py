@@ -21,12 +21,12 @@
 import unittest
 import threading
 
-import c7a
+import thrill
 
 
-def run_c7a_threads(num_threads, thread_func):
+def run_thrill_threads(num_threads, thread_func):
     # construct a local context mock network
-    ctxs = c7a.PyContext.ConstructLocalMock(num_threads, 1)
+    ctxs = thrill.PyContext.ConstructLocalMock(num_threads, 1)
 
     # but then start python threads for each context
     threads = []
@@ -42,7 +42,7 @@ def run_c7a_threads(num_threads, thread_func):
 
 def run_tests(thread_func):
     for num_threads in [1, 2, 4, 7]:
-        run_c7a_threads(num_threads, thread_func)
+        run_thrill_threads(num_threads, thread_func)
 
 
 class TestOperations(unittest.TestCase):
@@ -130,7 +130,7 @@ class TestOperations(unittest.TestCase):
         print("dia5.AllGather:", dia5.AllGather())
 
     def notest_operations(self):
-        run_c7a_threads(4, self.my_thread)
+        run_thrill_threads(4, self.my_thread)
 
 if __name__ == '__main__':
     unittest.main()

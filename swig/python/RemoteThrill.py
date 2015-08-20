@@ -78,13 +78,13 @@ class RemoteThrill():
         self._conn = [rpyc.connect(*hp) for hp in rpyc_hosts]
         # set up background serving threads
         self._bgthr = [rpyc.BgServingThread(conn) for conn in self._conn]
-        # make async objects to create c7a contexts
+        # make async objects to create Thrill contexts
         anetrefs = [rpyc.async(conn.root.Create) for conn in self._conn]
         # issue async requests
         asyncs = [ref(rank, thrill_hosts) for rank, ref in enumerate(anetrefs)]
         for a in asyncs:
             a.wait()
-        # get created c7a contexts
+        # get created Thrill contexts
         self._ctx = [a.value for a in asyncs]
 
     def Distribute(self, array):

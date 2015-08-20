@@ -21,8 +21,8 @@
 use strict;
 use warnings;
 
-use c7a;
+use thrill;
 
-c7a::testCall(42);
+thrill::testCall(42);
 
 ################################################################################
