@@ -33,12 +33,12 @@
 #include <thrill/api/write_lines_many.hpp>
 #include <thrill/api/zip.hpp>
 
-namespace c7a {
+namespace thrill {
 
 // our public interface classes and methods. all others should be in a
 // sub-namespace.
 
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_THRILL_HEADER
 

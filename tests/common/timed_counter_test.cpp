@@ -12,7 +12,7 @@
 
 #include <thread>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(TimedCounter, TriggerIncreasesCount) {
     TimedCounter candidate;

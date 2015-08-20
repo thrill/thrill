@@ -16,7 +16,7 @@
 #include <condition_variable>
 #include <mutex>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /**
@@ -68,7 +68,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_THREAD_BARRIER_HEADER
 

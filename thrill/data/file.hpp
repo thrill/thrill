@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -354,7 +354,7 @@ File::GetItemRange(size_t begin, size_t end) const {
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_FILE_HEADER
 

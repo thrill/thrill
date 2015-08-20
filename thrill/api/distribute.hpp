@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -139,7 +139,7 @@ auto Distribute(Context & ctx,
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_DISTRIBUTE_HEADER
 

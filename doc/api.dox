@@ -7,7 +7,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 /** \page api User Interface
@@ -41,6 +41,6 @@ uses the DIABase graph to optimize the order of operations.
 */
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

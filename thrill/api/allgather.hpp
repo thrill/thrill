@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -125,7 +125,7 @@ void DIARef<ValueType, Stack>::AllGather(
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_ALLGATHER_HEADER
 

@@ -22,7 +22,7 @@
 
 #include "data_generators.hpp"
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 using common::StatsTimer;
 
 //! Creates three threads / workers that work with three context instances
@@ -133,7 +133,7 @@ int main(int argc, const char** argv) {
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
-    clp.SetDescription("c7a data benchmark for disk I/O");
+    clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     int iterations;
     uint64_t bytes;

@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-using c7a::net::Buffer;
+using thrill::net::Buffer;
 
 TEST(Buffer, Test1) {
     Buffer b1;

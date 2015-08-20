@@ -14,7 +14,7 @@
 #include <sstream>
 #include <string>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(CmdlineParser, Test1) {
     int a_int = 0;

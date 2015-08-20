@@ -18,7 +18,7 @@
 
 #include <sstream>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \defgroup data_internal Data Internals
@@ -211,15 +211,15 @@ struct Serialization<Archive, T, typename std::enable_if<
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 // register archives for polymorphic support
-// CEREAL_REGISTER_ARCHIVE(c7a::data::c7aOutputArchive)
-// CEREAL_REGISTER_ARCHIVE(c7a::data::c7aInputArchive)
+// CEREAL_REGISTER_ARCHIVE(thrill::data::c7aOutputArchive)
+// CEREAL_REGISTER_ARCHIVE(thrill::data::c7aInputArchive)
 
 // tie input and output archives together
-// CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive,
-//                             c7a::data::c7aOutputArchive)
+// CEREAL_SETUP_ARCHIVE_TRAITS(thrill::data::c7aInputArchive,
+//                             thrill::data::c7aOutputArchive)
 
 #endif // !THRILL_DATA_SERIALIZATION_CEREAL_HEADER
 

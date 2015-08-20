@@ -24,7 +24,7 @@
 #include <string>
 #include <utility>
 
-namespace c7a {
+namespace thrill {
 namespace examples {
 
 using WordCountPair = std::pair<std::string, size_t>;
@@ -92,7 +92,7 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
 }
 
 } // namespace examples
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_EXAMPLES_WORD_COUNT_HEADER
 

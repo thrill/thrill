@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -96,10 +96,10 @@ protected:
 /*!
  * The Context of a job is a unique instance per worker which holds
  *  references to all underlying parts of c7a. The context is able to give
- *  references to the  \ref c7a::data::Multiplexer "channel multiplexer", the
- * \ref c7a::net::Group  "net group"
- * \ref c7a::common::Stats "stats" and
- * \ref c7a::common::StatsGraph "stats graph".
+ *  references to the  \ref data::Multiplexer "channel multiplexer", the
+ * \ref net::Group  "net group"
+ * \ref common::Stats "stats" and
+ * \ref common::StatsGraph "stats graph".
  * Threads share the channel multiplexer and
  * the net group via the context object.
  */
@@ -290,10 +290,10 @@ int Run(
 } // namespace api
 
 //! imported from api namespace
-using c7a::api::HostContext;
-using c7a::api::Context;
+using api::HostContext;
+using api::Context;
 
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_CONTEXT_HEADER
 

@@ -24,7 +24,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -177,7 +177,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_GENERATE_FROM_FILE_HEADER
 

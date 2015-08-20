@@ -11,7 +11,7 @@
 #include <thrill/common/future_queue.hpp>
 #include <thrill/common/thread_pool.hpp>
 
-using namespace c7a::common;
+using namespace thrill::common;
 using namespace std::literals;
 
 struct FutureQueueTest : public::testing::Test {

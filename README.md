@@ -1,4 +1,4 @@
-# c7a
+# Thrill - A Distributed Big Data Framework in C++
 
 THE code repository for the almighty c7a-framework.
 ![build status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=c7a&build=15)

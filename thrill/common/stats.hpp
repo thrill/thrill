@@ -27,7 +27,7 @@
 #define STOP_TIMER(timer)       if (timer) timer->Stop();
 #define Trigger(timed_counter)  if (timed_counter) timed_counter->Trigger();
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 //! Helper to create Counters, TimedCounters and Timers.
@@ -190,7 +190,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_STATS_HEADER
 

@@ -13,7 +13,7 @@
 
 #include <string>
 
-using namespace c7a::common;
+using namespace thrill::common;
 using namespace std::literals;
 
 struct FutureTest : public::testing::Test {

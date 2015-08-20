@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -609,9 +609,9 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 } // namespace api
 
 //! imported from api namespace
-using c7a::api::DIARef;
+using api::DIARef;
 
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_DIA_HEADER
 

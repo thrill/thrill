@@ -20,7 +20,7 @@
 #include <thread>
 #include <vector>
 
-using namespace c7a::net;
+using namespace thrill::net;
 
 static void ThreadInitializeAsyncRead(Group* net) {
     // send a message to all other clients except ourselves.

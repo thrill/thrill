@@ -15,9 +15,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::DIARef;
-using c7a::Context;
+using namespace thrill; // NOLINT
 
 TEST(Stage, CountReferencesSimple) {
 

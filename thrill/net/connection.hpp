@@ -27,7 +27,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -297,7 +297,7 @@ protected:
 // \}
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_CONNECTION_HEADER
 

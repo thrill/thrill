@@ -13,7 +13,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/thread_pool.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 //! Construct running thread pool of num_threads
@@ -110,6 +110,6 @@ void ThreadPool::Worker() {
 }
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

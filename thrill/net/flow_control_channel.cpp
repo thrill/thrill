@@ -10,12 +10,12 @@
 
 #include <thrill/net/flow_control_channel.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 // TODO
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

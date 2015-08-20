@@ -19,11 +19,7 @@
 #include <random>
 #include <string>
 
-using namespace c7a::core;
-using namespace c7a::net;
-
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
@@ -54,7 +50,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
             ASSERT_EQ((int)generate_size, ones.Sum(add_function));
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
@@ -82,7 +78,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
             ASSERT_EQ(16u, coll.Size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

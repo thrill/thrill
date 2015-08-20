@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 //! Parse a string like "343KB" or "44 GiB" into the corresponding size in
@@ -357,7 +357,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_CMDLINE_PARSER_HEADER
 

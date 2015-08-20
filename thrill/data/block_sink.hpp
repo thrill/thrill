@@ -15,7 +15,7 @@
 #include <memory>
 #include <thrill/data/block.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -47,7 +47,7 @@ public:
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_BLOCK_SINK_HEADER
 

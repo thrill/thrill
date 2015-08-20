@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -434,7 +434,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_SORT_HEADER
 

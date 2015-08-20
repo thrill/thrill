@@ -14,7 +14,7 @@
 #ifndef THRILL_COMMON_CONFIG_HEADER
 #define THRILL_COMMON_CONFIG_HEADER
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 //! global ndebug flag as a boolean, NDEBUG means no debug in Release mode.
@@ -39,7 +39,7 @@ static const bool g_enable_stats = false;
 #endif
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_CONFIG_HEADER
 

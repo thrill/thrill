@@ -19,8 +19,7 @@
 #include <utility>
 #include <vector>
 
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(Sort, SortKnownIntegers) {
 
@@ -50,7 +49,7 @@ TEST(Sort, SortKnownIntegers) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntegers) {
@@ -81,7 +80,7 @@ TEST(Sort, SortRandomIntegers) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntegersCustomCompareFunction) {
@@ -116,7 +115,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(Sort, SortRandomIntIntStructs) {
@@ -153,7 +152,7 @@ TEST(Sort, SortRandomIntIntStructs) {
             ASSERT_EQ(100u, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

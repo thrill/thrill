@@ -20,7 +20,7 @@
 #include <thread>
 #include <utility>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 static std::mutex logger_mutex_;
@@ -82,6 +82,6 @@ std::string GetNameForThisThread() {
 }
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

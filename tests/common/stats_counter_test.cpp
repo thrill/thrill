@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <thrill/common/stats_counter.hpp>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(StatsCounter, Test1) {
     StatsCounter<long, true> counter;
@@ -43,7 +43,7 @@ TEST(StatsCounter, Test2) {
     ASSERT_EQ(counter2, 0);
 }
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 // forced instantiations
@@ -51,6 +51,6 @@ template class StatsCounter<long, true>;
 template class StatsCounter<long, false>;
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

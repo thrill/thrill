@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(ThreadPool1, LoopUntilEmpty) {
     size_t job_num = 256;

@@ -14,7 +14,7 @@
 #include <cstddef>
 #include <tuple>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 #ifndef C7A_DOXYGEN_IGNORE
@@ -59,7 +59,7 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...)>
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_FUNCTION_TRAITS_HEADER
 

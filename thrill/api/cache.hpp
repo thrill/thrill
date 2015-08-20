@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -126,7 +126,7 @@ auto DIARef<ValueType, Stack>::Cache() const {
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_CACHE_HEADER
 

@@ -6,8 +6,6 @@
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
-#ifndef C7A_BENCH_SERIALIZATION_HEADER
-#define C7A_BENCH_SERIALIZATION_HEADER
 
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/file.hpp>
@@ -22,6 +20,8 @@
 
 #include "data.hpp"
 
+using namespace thrill; // NOLINT
+
 //! serializes a given object and measures its time
 /*! \param t The object that shall be serialized
  *  \param iterations The number how often the object should be serialized;
@@ -29,9 +29,9 @@
  */
 template <typename T>
 int BenchmarkSerialization(T t, int iterations) {
-    c7a::common::StatsTimer<true> timer(false);
+    common::StatsTimer<true> timer(false);
     for (int i = 0; i < iterations; ++i) {
-        c7a::data::File f;
+        data::File f;
         timer.Start();
         {
             auto w = f.GetWriter();
@@ -150,5 +150,4 @@ int main() {
     return 1;
 }
 
-#endif
 /******************************************************************************/

@@ -12,10 +12,10 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 
-using c7a::net::BufferBuilder;
-using c7a::net::BufferRef;
-using c7a::net::BufferReader;
-using c7a::net::Buffer;
+using thrill::net::BufferBuilder;
+using thrill::net::BufferRef;
+using thrill::net::BufferReader;
+using thrill::net::Buffer;
 
 TEST(BufferBuilder, Test1) {
     // construct a binary blob

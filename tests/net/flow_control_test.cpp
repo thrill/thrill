@@ -20,7 +20,7 @@
 #include <thread>
 #include <vector>
 
-using namespace c7a::net;
+using namespace thrill::net;
 
 /**
  * Calculates a prefix sum over all worker ids.

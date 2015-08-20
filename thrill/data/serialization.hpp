@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -227,7 +227,7 @@ struct Serialization<Archive, std::array<T, N> >
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_SERIALIZATION_HEADER
 

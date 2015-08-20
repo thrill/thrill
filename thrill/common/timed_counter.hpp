@@ -16,7 +16,7 @@
 #include <memory>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 //! TimedCounter counts the number of \ref Trigger() invokes.
@@ -83,7 +83,7 @@ private:
 using TimedCounterPtr = std::shared_ptr<TimedCounter>;
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_TIMED_COUNTER_HEADER
 

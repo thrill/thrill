@@ -9,7 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 
 /******************************************************************************/
 /** \mainpage Thrill Documentation Overview
@@ -52,6 +52,6 @@ namespace c7a {
 
 */
 
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

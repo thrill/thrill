@@ -20,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
@@ -78,6 +78,6 @@ void Group::ExecuteLocalMock(
 }
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

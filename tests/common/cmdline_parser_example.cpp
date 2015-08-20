@@ -14,7 +14,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 
 int main(int argc, char* argv[]) {
-    c7a::common::CmdlineParser cp;
+    thrill::common::CmdlineParser cp;
 
     // add description and author
     cp.SetDescription("This may some day be a useful program, which solves "

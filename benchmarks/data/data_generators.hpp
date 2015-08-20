@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 
 template <typename Type>
 class Generator;

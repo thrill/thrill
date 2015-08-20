@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 namespace lowlevel {
 
@@ -279,7 +279,7 @@ public:
 
 } // namespace lowlevel
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
 

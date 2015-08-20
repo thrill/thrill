@@ -21,7 +21,7 @@
 
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -108,7 +108,7 @@ size_t DIARef<ValueType, Stack>::Size() const {
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_SIZE_HEADER
 

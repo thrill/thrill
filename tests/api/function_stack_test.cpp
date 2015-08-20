@@ -7,17 +7,18 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/function_stack.hpp>
 #include <thrill/common/logger.hpp>
-
-#include <gtest/gtest.h>
 
 #include <string>
 #include <vector>
 
+using namespace thrill; // NOLINT
+
 TEST(API, FunctionStackTest) {
-    using c7a::api::FunctionStack;
-    using c7a::api::MakeFunctionStack;
+    using api::FunctionStack;
+    using api::MakeFunctionStack;
 
     static const bool debug = false;
 
@@ -81,8 +82,8 @@ TEST(API, FunctionStackTest) {
 }
 
 TEST(API, SimpleDeductionTest) {
-    using c7a::api::FunctionStack;
-    using c7a::api::MakeFunctionStack;
+    using api::FunctionStack;
+    using api::MakeFunctionStack;
 
     auto fmap_fn1 =
         [=](int input, auto emit_func) {

@@ -24,12 +24,12 @@
 #include <thrill/net/connection.hpp>
 #include <thrill/net/group.hpp>
 
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <mutex>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -380,7 +380,7 @@ using ChannelPtr = std::shared_ptr<Channel>;
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_CHANNEL_HEADER
 

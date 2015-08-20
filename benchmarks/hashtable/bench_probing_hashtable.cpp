@@ -25,7 +25,7 @@
 
 using IntPair = std::pair<int, int>;
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 

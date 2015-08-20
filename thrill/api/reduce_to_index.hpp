@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -72,7 +72,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
 
 public:
     using Emitter = data::BlockWriter;
-    using PreHashTable = typename c7a::core::ReducePreTable<
+    using PreHashTable = typename core::ReducePreTable<
               Key, Value,
               KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
 
@@ -442,7 +442,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_REDUCE_TO_INDEX_HEADER
 

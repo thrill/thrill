@@ -29,7 +29,7 @@
 #include <string>
 #include <utility>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 namespace lowlevel {
 
@@ -653,7 +653,7 @@ protected:
 
 } // namespace lowlevel
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_LOWLEVEL_SOCKET_HEADER
 

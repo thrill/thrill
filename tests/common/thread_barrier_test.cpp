@@ -19,7 +19,7 @@
 #include <thread>
 #include <vector>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 static void TestWaitFor(int count, int slowThread = -1) {
 

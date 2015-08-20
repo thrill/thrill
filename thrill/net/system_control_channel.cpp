@@ -9,7 +9,7 @@
 
 #include <thrill/net/system_control_channel.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 void MasterSystemControlChannel::setCallback(MasterControlCallback /* callback */)
@@ -31,6 +31,6 @@ void WorkerSystemControlChannel::notifyBackupComplete()
 { }
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

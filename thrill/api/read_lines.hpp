@@ -20,7 +20,7 @@
 #include <fstream>
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -197,7 +197,7 @@ DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_READ_LINES_HEADER
 

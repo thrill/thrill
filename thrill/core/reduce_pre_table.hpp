@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace core {
 
 /**
@@ -763,7 +763,7 @@ protected:
 };
 
 } // namespace core
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 

@@ -19,7 +19,7 @@
 
 #include <algorithm>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -129,7 +129,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_STATS_COUNTER_HEADER
 

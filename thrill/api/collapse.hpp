@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -95,7 +95,7 @@ auto DIARef<ValueType, Stack>::Collapse() const {
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_COLLAPSE_HEADER
 

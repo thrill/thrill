@@ -14,7 +14,7 @@
 
 #include <atomic>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     ThreadPool pool(8);

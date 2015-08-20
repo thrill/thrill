@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -588,6 +588,6 @@ Manager::ConstructLocalMesh(size_t host_count) {
 //! \}
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

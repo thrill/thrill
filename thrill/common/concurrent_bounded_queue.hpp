@@ -23,7 +23,7 @@
 #include <mutex>
 #include <queue>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -137,7 +137,7 @@ using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 #endif // !HAVE_INTELTBB
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 

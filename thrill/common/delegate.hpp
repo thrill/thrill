@@ -22,7 +22,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 template <typename T>
@@ -322,7 +322,7 @@ private:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_DELEGATE_HEADER
 

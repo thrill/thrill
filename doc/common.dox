@@ -9,7 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 
 //! Contains many common tools and helpers shared by higher layers. See \ref common.
 namespace common {
@@ -25,7 +25,7 @@ The namespace common contains many common tools and helpers shared by higher lay
 - \ref ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
 - \ref delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
 
-See the \ref c7a::common "namespace common" for a full list of utilities.
+See the \ref thrill::common "namespace common" for a full list of utilities.
 
 */
 
@@ -46,6 +46,6 @@ and \ref tests/common/stats_counter_test.cpp
  */
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/
