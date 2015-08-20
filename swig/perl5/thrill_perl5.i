@@ -1,13 +1,13 @@
-%module(directors="1") c7a
+%module(directors="1") thrill
 %{
 
 #undef Zero
 #undef seed
-#include "c7a_perl5.hpp"
+#include "thrill_perl5.hpp"
 
-#include <c7a/core/job_manager.hpp>
+#include <thrill/core/job_manager.hpp>
 
-using namespace c7a;
+using namespace thrill;
 
 %}
 
@@ -25,13 +25,13 @@ using namespace c7a;
 /* %} */
 /* %enddef */
 
-/* %feature("pythonprepend") c7a::Generate(Context&, GeneratorFunction&, size_t) */
+/* %feature("pythonprepend") thrill::Generate(Context&, GeneratorFunction&, size_t) */
 /*    ARRAYHELPER(GeneratorFunction, generator_function) */
 
-/* %feature("pythonprepend") c7a::PythonDIA::Map(MapFunction&) const */
+/* %feature("pythonprepend") thrill::PythonDIA::Map(MapFunction&) const */
 /*    ARRAYHELPER(MapFunction, map_function) */
 
-/* %feature("pythonprepend") c7a::PythonDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{ */
+/* %feature("pythonprepend") thrill::PythonDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{ */
 /*    if not isinstance(key_extractor, KeyExtractorFunction) and callable(key_extractor): */
 /*       class CallableWrapper(KeyExtractorFunction): */
 /*          def __init__(self, f): */
@@ -54,14 +54,14 @@ using namespace c7a;
 %include <std_string.i>
 %include <std_vector.i>
 /* %include <std_shared_ptr.i> */
-/* %shared_ptr(c7a::core::JobManager) */
+/* %shared_ptr(thrill::core::JobManager) */
 
-/* %template(VectorJobManagerPtr) std::vector<std::shared_ptr<c7a::core::JobManager>>; */
+/* %template(VectorJobManagerPtr) std::vector<std::shared_ptr<thrill::core::JobManager>>; */
 
-/* %include <c7a/core/job_manager.hpp> */
-/* %include <c7a/api/context.hpp> */
+/* %include <thrill/core/job_manager.hpp> */
+/* %include <thrill/api/context.hpp> */
 
-/* %ignore c7a::PyObjectRef; */
-/* %ignore c7a::data::Serialization; */
+/* %ignore thrill::PyObjectRef; */
+/* %ignore thrill::data::Serialization; */
 
-%include "c7a_perl5.hpp"
+%include "thrill_perl5.hpp"

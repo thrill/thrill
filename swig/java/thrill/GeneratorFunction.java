@@ -1,4 +1,4 @@
-package c7a;
+package thrill;
 
 public interface GeneratorFunction {
     public String call(long i);

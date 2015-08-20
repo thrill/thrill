@@ -1,7 +1,7 @@
 /*******************************************************************************
- * swig/java/c7a_java.hpp
+ * swig/python/thrill_python.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
@@ -9,45 +9,36 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_SWIG_JAVA_C7A_JAVA_HEADER
-#define C7A_SWIG_JAVA_C7A_JAVA_HEADER
+#ifndef THRILL_SWIG_PYTHON_THRILL_PYTHON_HEADER
+#define THRILL_SWIG_PYTHON_THRILL_PYTHON_HEADER
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/context.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/lop_node.hpp>
-#include <c7a/api/reduce.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/common/string.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/distribute.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/reduce.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/common/string.hpp>
 
-// #include <Python.h>
-// #include <bytesobject.h>
-// #include <marshal.h>
+#include <Python.h>
+#include <bytesobject.h>
+#include <marshal.h>
 
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
+
+#ifndef SWIG
 
 static const bool debug = true;
 
-class GeneratorFunction
-{
-public:
-    virtual ~GeneratorFunction() { }
-    virtual std::string call(size_t index) const = 0;
-};
-
-void printHello(size_t i, const GeneratorFunction& gen) {
-    std::cout << "Hello from C++: " << gen.call(i) << std::endl;
-}
-
-#if 0
-
 /*!
  * This class holds a PyObject* and a reference count on the enclosed
- * object. PythonDIAs contain exclusively items of this class.
+ * object. PyDIAs contain exclusively items of this class.
  */
 class PyObjectRef
 {
@@ -120,10 +111,17 @@ protected:
     PyObject* obj_;
 };
 
+#endif
+
 typedef swig::SwigVar_PyObject PyObjectVarRef;
+
+#ifndef SWIG
 
 namespace data {
 
+/*!
+ * Thrill serialization interface for PyObjects: call the PyMarshal C API.
+ */
 template <typename Archive>
 struct Serialization<Archive, PyObjectRef>
 {
@@ -158,11 +156,27 @@ struct Serialization<Archive, PyObjectRef>
 
 } // namespace data
 
+#endif
+
+class GeneratorFunction
+{
+public:
+    virtual ~GeneratorFunction() { }
+    virtual PyObjectVarRef operator () (size_t index) = 0;
+};
+
 class MapFunction
 {
 public:
     virtual ~MapFunction() { }
     virtual PyObjectVarRef operator () (PyObject* obj) = 0;
+};
+
+class FilterFunction
+{
+public:
+    virtual ~FilterFunction() { }
+    virtual bool operator () (PyObject* obj) = 0;
 };
 
 class KeyExtractorFunction
@@ -179,16 +193,19 @@ public:
     virtual PyObjectVarRef operator () (PyObject* obj1, PyObject* obj2) = 0;
 };
 
-} // namespace c7a
+} // namespace thrill
 
 // import Swig Director classes.
-#include "c7a_pythonPYTHON_wrap.h"
+#include "thrill_pythonPYTHON_wrap.h"
 
+#ifndef SWIG
+
+// TODO: this should not be used, parameterize our code to use a HashFunction.
 namespace std {
 template <>
-struct hash<c7a::PyObjectRef>
-    : public std::unary_function<c7a::PyObjectRef, size_t>{
-    std::size_t operator () (const c7a::PyObjectRef& ob) const {
+struct hash<thrill::PyObjectRef>
+    : public std::unary_function<thrill::PyObjectRef, size_t>{
+    std::size_t operator () (const thrill::PyObjectRef& ob) const {
         auto h = PyObject_Hash(ob.get());
         if (h == -1) {
             throw std::exception();
@@ -199,38 +216,43 @@ struct hash<c7a::PyObjectRef>
 
 } // namespace std
 
-namespace c7a {
+#endif
 
-typedef api::DIARef<PyObjectRef> PythonDIARef;
+namespace thrill {
+
+//! all DIAs used in the python code contain PyObjectRefs, which are reference
+//! counted PyObjects.
+typedef api::DIARef<PyObjectRef> PyDIARef;
 
 /*!
- * This is a wrapper around the C++ DIARef class, which returns plain PythonDIAs
+ * This is a wrapper around the C++ DIARef class, which returns plain PyDIAs
  * again. The C++ function stack is always collapsed.
  */
-class PythonDIA
+class PyDIA
 {
     static const bool debug = false;
 
 public:
-    PythonDIARef dia_;
+    //! underlying C++ DIARef class, which can be freely copied by the object.
+    PyDIARef dia_;
 
-    explicit PythonDIA(const PythonDIARef& dia)
+    explicit PyDIA(const PyDIARef& dia)
         : dia_(dia) {
-        sLOG << "create PythonDIA" << this;
+        sLOG << "create PyDIA" << this;
     }
 
-    ~PythonDIA() {
-        sLOG << "delete PythonDIA" << this;
+    ~PyDIA() {
+        sLOG << "delete PyDIA" << this;
     }
 
-    PythonDIA Map(MapFunction& map_function) const {
+    PyDIA Map(MapFunction& map_function) const {
         assert(dia_.IsValid());
 
         // the object MapFunction is actually an instance of the Director
         SwigDirector_MapFunction& director =
             *dynamic_cast<SwigDirector_MapFunction*>(&map_function);
 
-        return PythonDIA(
+        return PyDIA(
             dia_.Map(
                 [&map_function,
                  // this holds a reference count to the callback object for the
@@ -245,8 +267,30 @@ public:
             .Collapse());
     }
 
-    PythonDIA ReduceBy(KeyExtractorFunction& key_extractor,
-                       ReduceFunction& reduce_function) const {
+    PyDIA Filter(FilterFunction& filter_function) const {
+        assert(dia_.IsValid());
+
+        // the object FilterFunction is actually an instance of the Director
+        SwigDirector_FilterFunction& director =
+            *dynamic_cast<SwigDirector_FilterFunction*>(&filter_function);
+
+        return PyDIA(
+            dia_.Filter(
+                [&filter_function,
+                 // this holds a reference count to the callback object for the
+                 // lifetime of the capture object.
+                 ref = PyObjectRef(director.swig_get_self())
+                ](const PyObjectRef& obj) {
+                 // increase reference count, since calling the filter_function
+                 // implicitly passed ownership of the reference to the
+                 // caller.
+                    return filter_function(obj.get_incref());
+                })
+            .Collapse());
+    }
+
+    PyDIA ReduceBy(KeyExtractorFunction& key_extractor,
+                   ReduceFunction& reduce_function) const {
         assert(dia_.IsValid());
 
         SwigDirector_KeyExtractorFunction& director1 =
@@ -254,7 +298,7 @@ public:
         SwigDirector_ReduceFunction& director2 =
             *dynamic_cast<SwigDirector_ReduceFunction*>(&reduce_function);
 
-        return PythonDIA(
+        return PyDIA(
             dia_.ReduceBy(
                 [&key_extractor,
                  // this holds a reference count to the callback object for the
@@ -277,7 +321,14 @@ public:
                     return PyObjectRef(
                         reduce_function(obj1.get_incref(), obj2.get_incref()),
                         true);
-                }));
+                })
+            // TODO: remove the Cache one ReduceNode can be executed again.
+            .Cache());
+    }
+
+    PyDIA Cache() const {
+        assert(dia_.IsValid());
+        return PyDIA(dia_.Cache());
     }
 
     size_t Size() const {
@@ -299,30 +350,79 @@ public:
     }
 };
 
-static inline
-PythonDIA Generate(
-    Context& ctx, GeneratorFunction& generator_function, size_t size) {
+class PyContext : public api::Context
+{
+    static const bool debug = true;
 
-    // the object GeneratorFunction is actually an instance of the Director
-    SwigDirector_GeneratorFunction& director =
-        *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
-
-    PythonDIARef dia = api::Generate(
-        ctx, [&generator_function,
-              // this holds a reference count to the callback object for the
-              // lifetime of the capture object.
-              ref = PyObjectRef(director.swig_get_self())
-        ](size_t index) {
-            return PyObjectRef(generator_function(index), true);
-        }, size);
-
-    return PythonDIA(dia);
-}
-
+public:
+#ifndef SWIG
+    PyContext(std::unique_ptr<HostContext>&& host_context,
+              size_t local_worker_id)
+        : Context(*host_context, local_worker_id),
+          host_context_(std::move(host_context))
+    { }
 #endif
 
-} // namespace c7a
+    PyContext(HostContext& host_context,
+              size_t local_worker_id)
+        : Context(host_context, local_worker_id)
+    { }
 
-#endif // !C7A_SWIG_JAVA_C7A_JAVA_HEADER
+    ~PyContext() {
+        LOG << "Destroy PyContext";
+    }
+
+    static std::vector<std::shared_ptr<PyContext> >
+    ConstructLocalMock(size_t host_count, size_t workers_per_host) {
+        std::vector<std::unique_ptr<HostContext> > host_contexts
+            = HostContext::ConstructLocalMock(host_count, workers_per_host);
+
+        std::vector<std::shared_ptr<PyContext> > contexts;
+
+        for (size_t h = 0; h < host_count; ++h) {
+            for (size_t w = 0; w < workers_per_host; ++w) {
+                contexts.emplace_back(
+                    std::make_shared<PyContext>(std::move(host_contexts[h]), w));
+            }
+        }
+
+        return contexts;
+    }
+
+    PyDIA Generate(GeneratorFunction& generator_function, size_t size) {
+
+        // the object GeneratorFunction is actually an instance of the Director
+        SwigDirector_GeneratorFunction& director =
+            *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
+
+        PyDIARef dia = api::Generate(
+            *this, [&generator_function,
+                    // this holds a reference count to the callback object for the
+                    // lifetime of the capture object.
+                    ref = PyObjectRef(director.swig_get_self())
+            ](size_t index) {
+                return PyObjectRef(generator_function(index), true);
+            }, size);
+
+        return PyDIA(dia);
+    }
+
+    PyDIA Distribute(const std::vector<PyObject*>& list) {
+
+        // this acquires a reference count on the objects
+        std::vector<PyObjectRef> list_refed(list.begin(), list.end());
+
+        PyDIARef dia = api::Distribute(*this, std::move(list_refed));
+
+        return PyDIA(dia);
+    }
+
+protected:
+    std::unique_ptr<HostContext> host_context_;
+};
+
+} // namespace thrill
+
+#endif // !THRILL_SWIG_PYTHON_THRILL_PYTHON_HEADER
 
 /******************************************************************************/

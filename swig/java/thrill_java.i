@@ -1,11 +1,11 @@
-%module(directors="1") c7a
+%module(directors="1") thrill
 %{
 
-#include "c7a_java.hpp"
+#include "thrill_java.hpp"
 
-#include <c7a/core/job_manager.hpp>
+#include <thrill/core/job_manager.hpp>
 
-using namespace c7a;
+using namespace thrill;
 
 %}
 
@@ -14,7 +14,7 @@ using namespace c7a;
 %pragma(java) jniclasscode=%{
      static {
          try {
-             System.loadLibrary("c7a");
+             System.loadLibrary("thrill");
          }
          catch (UnsatisfiedLinkError e) {
              System.err.println("Native code library failed to load.\n" + e);
@@ -27,11 +27,11 @@ using namespace c7a;
 
 %rename(GeneratorFunctionNative) GeneratorFunction;
 
-%typemap(jstype) const c7a::GeneratorFunction& "GeneratorFunction";
-%typemap(javainterfaces) c7a::GeneratorFunction "GeneratorFunction"
+%typemap(jstype) const thrill::GeneratorFunction& "GeneratorFunction";
+%typemap(javainterfaces) thrill::GeneratorFunction "GeneratorFunction"
 %typemap(javain, pgcppname="n",
          pre="    GeneratorFunctionNative n = makeNative($javainput);")
-     const c7a::GeneratorFunction&  "GeneratorFunctionNative.getCPtr(n)"
+     const thrill::GeneratorFunction&  "GeneratorFunctionNative.getCPtr(n)"
 
 %pragma(java) modulecode=%{
   // (2.4)
@@ -68,13 +68,13 @@ using namespace c7a;
 /* %} */
 /* %enddef */
 
-/* %feature("pythonprepend") c7a::Generate(Context&, GeneratorFunction&, size_t) */
+/* %feature("pythonprepend") thrill::Generate(Context&, GeneratorFunction&, size_t) */
 /*    ARRAYHELPER(GeneratorFunction, generator_function) */
 
-/* %feature("pythonprepend") c7a::PythonDIA::Map(MapFunction&) const */
+/* %feature("pythonprepend") thrill::PythonDIA::Map(MapFunction&) const */
 /*    ARRAYHELPER(MapFunction, map_function) */
 
-/* %feature("pythonprepend") c7a::PythonDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{ */
+/* %feature("pythonprepend") thrill::PythonDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const %{ */
 /*    if not isinstance(key_extractor, KeyExtractorFunction) and callable(key_extractor): */
 /*       class CallableWrapper(KeyExtractorFunction): */
 /*          def __init__(self, f): */
@@ -97,14 +97,14 @@ using namespace c7a;
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_shared_ptr.i>
-%shared_ptr(c7a::core::JobManager)
+%shared_ptr(thrill::core::JobManager)
 
-%template(VectorJobManagerPtr) std::vector<std::shared_ptr<c7a::core::JobManager>>;
+%template(VectorJobManagerPtr) std::vector<std::shared_ptr<thrill::core::JobManager>>;
 
-%include <c7a/core/job_manager.hpp>
-%include <c7a/api/context.hpp>
+%include <thrill/core/job_manager.hpp>
+%include <thrill/api/context.hpp>
 
-/* %ignore c7a::PyObjectRef; */
-/* %ignore c7a::data::Serialization; */
+/* %ignore thrill::PyObjectRef; */
+/* %ignore thrill::data::Serialization; */
 
-%include "c7a_java.hpp"
+%include "thrill_java.hpp"

@@ -1,5 +1,5 @@
 
-import c7a.*;
+import thrill.*;
 
 class MyGen implements GeneratorFunction {
     public String call(long i) {
@@ -9,6 +9,6 @@ class MyGen implements GeneratorFunction {
 
 public class JavaTest {
     public static void main(String argv[]) {
-        c7a.printHello(42, new MyGen());
+        thrill.printHello(42, new MyGen());
     }
 }
