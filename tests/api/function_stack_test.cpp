@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/function_stack_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chunk Norris can compile it.

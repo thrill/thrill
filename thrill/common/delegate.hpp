@@ -4,7 +4,7 @@
  * Replacement for std::function borrowed from
  * http://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

@@ -4,7 +4,7 @@
  * Runner program for WordCount example. See thrill/examples/word_count.hpp for the
  * source to the example.
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *

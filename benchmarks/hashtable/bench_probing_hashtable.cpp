@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/hashtable/bench_probing_hashtable.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>

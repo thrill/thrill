@@ -3,7 +3,7 @@
  *
  * Untyped super class of DIANode. Used to build the execution graph.
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/common/function_traits.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chunk Norris can compile it.

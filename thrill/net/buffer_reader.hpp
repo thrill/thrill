@@ -3,7 +3,7 @@
  *
  * Look at the Doxygen below....
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013-2015 Timo Bingmann <tb@panthema.net>
  *
