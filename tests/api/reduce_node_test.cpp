@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/reduce_node_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -9,19 +9,18 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/reduce.hpp>
-#include <c7a/api/reduce_to_index.hpp>
 #include <gtest/gtest.h>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_to_index.hpp>
 
 #include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
 
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
@@ -58,7 +57,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
@@ -97,7 +96,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReducePairToIndexCorrectResults) {
@@ -159,7 +158,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
             }
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
@@ -225,7 +224,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
             }
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/
