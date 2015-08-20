@@ -1,7 +1,7 @@
 ################################################################################
 # thrill/CMakeLists.txt
 #
-# CMake file for c7a library
+# CMake file for Thrill library
 ################################################################################
 
 file(GLOB_RECURSE SRCS
@@ -12,6 +12,6 @@ file(GLOB_RECURSE SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/*/*.hpp
 )
 
-add_library(c7a STATIC ${SRCS})
+add_library(thrill STATIC ${SRCS})
 
 ################################################################################
