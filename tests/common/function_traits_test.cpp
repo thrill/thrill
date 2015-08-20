@@ -1,20 +1,22 @@
 /*******************************************************************************
  * tests/common/function_traits_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/function_traits.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/function_traits.hpp>
 
 #include <string>
 
+using namespace thrill; // NOLINT
+
 TEST(FunctionTraits, LambdaParametersTest) {
-    using c7a::common::FunctionTraits;
+    using common::FunctionTraits;
 
     auto lambda1 =
         [=](int x, char c) -> std::string {
@@ -40,7 +42,7 @@ TEST(FunctionTraits, LambdaParametersTest) {
 }
 
 TEST(FunctionTraits, MutableLambdaParametersTest) {
-    using c7a::common::FunctionTraits;
+    using common::FunctionTraits;
 
     auto lambda1 =
         [=](int x, char c) mutable -> std::string {

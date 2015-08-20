@@ -1,21 +1,21 @@
 /*******************************************************************************
  * benchmarks/word_count/word_count.cpp
  *
- * Runner program for WordCount example. See c7a/examples/word_count.hpp for the
+ * Runner program for WordCount example. See thrill/examples/word_count.hpp for the
  * source to the example.
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/examples/word_count.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/examples/word_count.hpp>
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 

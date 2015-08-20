@@ -1,22 +1,22 @@
 /*******************************************************************************
  * tests/core/post_hash_table_probing_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_post_probing_table.hpp>
 #include <gtest/gtest.h>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
-#include <c7a/net/manager.hpp>
 #include <string>
+#include <thrill/net/manager.hpp>
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 struct PostTable : public::testing::Test { };
 

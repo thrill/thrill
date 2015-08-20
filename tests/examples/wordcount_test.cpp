@@ -1,17 +1,17 @@
 /*******************************************************************************
  * tests/examples/wordcount_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/distribute_from.hpp>
-#include <c7a/common/string.hpp>
-#include <c7a/examples/word_count.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/distribute_from.hpp>
+#include <thrill/common/string.hpp>
+#include <thrill/examples/word_count.hpp>
 
 #include <gtest/gtest.h>
 
@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 TEST(WordCount, WordCountSmallFileCorrectResults) {
 

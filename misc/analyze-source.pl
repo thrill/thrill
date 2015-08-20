@@ -179,7 +179,7 @@ sub process_cpp {
 
     # skip over custom file comments
     my $j = $i;
-    while ($data[$i] !~ /^ \* Part of Project c7a/) {
+    while ($data[$i] !~ /^ \* Part of Project Thrill/) {
         expect_re($path, $i, @data, '^ \*( .*)?\n$');
         if (++$i >= @data) {
             $i = $j; # restore read position
@@ -187,9 +187,9 @@ sub process_cpp {
         }
     }
 
-    # check "Part of Project c7a"
+    # check "Part of Project Thrill"
     expect($path, $i-1, @data, " *\n");
-    expect($path, $i, @data, " * Part of Project c7a.\n"); ++$i;
+    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
 
     # read authors
@@ -211,10 +211,10 @@ sub process_cpp {
 
         # construct include guard macro name: PROGRAM_FILE_NAME_HEADER
         my $guard = $path;
-        $guard =~ s!c7a/!!;
+        $guard =~ s!thrill/!!;
         $guard =~ tr!/-!__!;
         $guard =~ s!\.h(pp)?(\.in)?$!!;
-        $guard = "C7A_".uc($guard)."_HEADER";
+        $guard = "THRILL_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
         expect($path, $i, @data, "#pragma once\n"); ++$i;
@@ -414,14 +414,14 @@ foreach my $arg (@ARGV) {
     }
 }
 
-(-e "c7a/CMakeLists.txt")
-    or die("Please run this script in the C7A source base directory.");
+(-e "thrill/CMakeLists.txt")
+    or die("Please run this script in the Thrill source base directory.");
 
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");
 ($uncrustver eq "uncrustify 0.61\n")
     or die("Requires uncrustify 0.61 to run correctly. ".
-           "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
+           "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
 
 use File::Find;
 my @filelist;

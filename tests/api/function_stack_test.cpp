@@ -1,23 +1,24 @@
 /*******************************************************************************
  * tests/api/function_stack_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/function_stack.hpp>
-#include <c7a/common/logger.hpp>
-
 #include <gtest/gtest.h>
+#include <thrill/api/function_stack.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <string>
 #include <vector>
 
+using namespace thrill; // NOLINT
+
 TEST(API, FunctionStackTest) {
-    using c7a::api::FunctionStack;
-    using c7a::api::MakeFunctionStack;
+    using api::FunctionStack;
+    using api::MakeFunctionStack;
 
     static const bool debug = false;
 
@@ -81,8 +82,8 @@ TEST(API, FunctionStackTest) {
 }
 
 TEST(API, SimpleDeductionTest) {
-    using c7a::api::FunctionStack;
-    using c7a::api::MakeFunctionStack;
+    using api::FunctionStack;
+    using api::MakeFunctionStack;
 
     auto fmap_fn1 =
         [=](int input, auto emit_func) {
