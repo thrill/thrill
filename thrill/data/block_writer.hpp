@@ -136,7 +136,7 @@ public:
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
-        while (C7A_UNLIKELY(current_ + size > end_)) {
+        while (THRILL_UNLIKELY(current_ + size > end_)) {
             // partial copy of beginning of buffer
             size_t partial_size = end_ - current_;
             std::copy(cdata, cdata + partial_size, current_);
@@ -159,7 +159,7 @@ public:
     BlockWriter & PutByte(Byte data) {
         assert(!closed_);
 
-        if (C7A_UNLIKELY(current_ == end_))
+        if (THRILL_UNLIKELY(current_ == end_))
             Flush();
 
         *current_++ = data;
@@ -182,7 +182,7 @@ public:
         assert(!closed_);
 
         // fast path for writing item into block if it fits.
-        if (C7A_LIKELY(current_ + sizeof(Type) <= end_)) {
+        if (THRILL_LIKELY(current_ + sizeof(Type) <= end_)) {
             *reinterpret_cast<Type*>(current_) = item;
 
             current_ += sizeof(Type);

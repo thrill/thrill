@@ -17,7 +17,7 @@
 namespace thrill {
 namespace common {
 
-#ifndef C7A_DOXYGEN_IGNORE
+#ifndef THRILL_DOXYGEN_IGNORE
 
 // taken from: http://stackoverflow.com/questions/7943525/is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
 template <typename T>
