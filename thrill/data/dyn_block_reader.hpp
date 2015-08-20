@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_DYN_BLOCK_READER_HEADER
-#define C7A_DATA_DYN_BLOCK_READER_HEADER
+#ifndef THRILL_DATA_DYN_BLOCK_READER_HEADER
+#define THRILL_DATA_DYN_BLOCK_READER_HEADER
 
 #include <thrill/data/block_reader.hpp>
 
@@ -98,6 +98,6 @@ DynBlockReader ConstructDynBlockReader(Params&& ... params) {
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_DYN_BLOCK_READER_HEADER
+#endif // !THRILL_DATA_DYN_BLOCK_READER_HEADER
 
 /******************************************************************************/

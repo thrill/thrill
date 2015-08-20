@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_MERGE_HEADER
-#define C7A_API_MERGE_HEADER
+#ifndef THRILL_API_MERGE_HEADER
+#define THRILL_API_MERGE_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -230,6 +230,6 @@ auto DIARef<ValueType, Stack>::Merge(
 } // namespace c7a
 
 //! \}
-#endif // !C7A_API_MERGE_HEADER
+#endif // !THRILL_API_MERGE_HEADER
 
 /******************************************************************************/

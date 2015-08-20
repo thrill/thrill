@@ -7,8 +7,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/data/multiplexer_header.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/multiplexer_header.hpp>
 
 using namespace c7a;
 using namespace c7a::data;

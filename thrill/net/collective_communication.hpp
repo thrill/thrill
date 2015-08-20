@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
-#define C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
+#ifndef THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
+#define THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
 // http://memegenerator.net/instance2/1128363 (ts)
 #if DISABLE_MAYBE_REMOVE
@@ -220,6 +220,6 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 
 #endif // DISABLE_MAYBE_REMOVE
 
-#endif // !C7A_NET_COLLECTIVE_COMMUNICATION_HEADER
+#endif // !THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
 /******************************************************************************/

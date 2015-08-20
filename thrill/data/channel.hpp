@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_CHANNEL_HEADER
-#define C7A_DATA_CHANNEL_HEADER
+#ifndef THRILL_DATA_CHANNEL_HEADER
+#define THRILL_DATA_CHANNEL_HEADER
 
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -382,6 +382,6 @@ using ChannelPtr = std::shared_ptr<Channel>;
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_CHANNEL_HEADER
+#endif // !THRILL_DATA_CHANNEL_HEADER
 
 /******************************************************************************/

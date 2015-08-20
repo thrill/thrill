@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_CONTEXT_HEADER
-#define C7A_API_CONTEXT_HEADER
+#ifndef THRILL_API_CONTEXT_HEADER
+#define THRILL_API_CONTEXT_HEADER
 
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
@@ -295,6 +295,6 @@ using c7a::api::Context;
 
 } // namespace c7a
 
-#endif // !C7A_API_CONTEXT_HEADER
+#endif // !THRILL_API_CONTEXT_HEADER
 
 /******************************************************************************/

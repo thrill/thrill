@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_DISPATCHER_HEADER
-#define C7A_NET_DISPATCHER_HEADER
+#ifndef THRILL_NET_DISPATCHER_HEADER
+#define THRILL_NET_DISPATCHER_HEADER
 
 #include <thrill/data/block.hpp>
 #include <thrill/net/buffer.hpp>
@@ -589,6 +589,6 @@ protected:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_DISPATCHER_HEADER
+#endif // !THRILL_NET_DISPATCHER_HEADER
 
 /******************************************************************************/

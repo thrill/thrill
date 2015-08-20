@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_STAGE_BUILDER_HEADER
-#define C7A_CORE_STAGE_BUILDER_HEADER
+#ifndef THRILL_CORE_STAGE_BUILDER_HEADER
+#define THRILL_CORE_STAGE_BUILDER_HEADER
 
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia_base.hpp>
@@ -115,6 +115,6 @@ public:
 } // namespace core
 } // namespace c7a
 
-#endif // !C7A_CORE_STAGE_BUILDER_HEADER
+#endif // !THRILL_CORE_STAGE_BUILDER_HEADER
 
 /******************************************************************************/

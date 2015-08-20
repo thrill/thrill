@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_GENERATE_FROM_FILE_HEADER
-#define C7A_API_GENERATE_FROM_FILE_HEADER
+#ifndef THRILL_API_GENERATE_FROM_FILE_HEADER
+#define THRILL_API_GENERATE_FROM_FILE_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -179,6 +179,6 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_GENERATE_FROM_FILE_HEADER
+#endif // !THRILL_API_GENERATE_FROM_FILE_HEADER
 
 /******************************************************************************/

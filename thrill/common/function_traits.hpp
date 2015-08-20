@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_FUNCTION_TRAITS_HEADER
-#define C7A_COMMON_FUNCTION_TRAITS_HEADER
+#ifndef THRILL_COMMON_FUNCTION_TRAITS_HEADER
+#define THRILL_COMMON_FUNCTION_TRAITS_HEADER
 
 #include <cstddef>
 #include <tuple>
@@ -61,6 +61,6 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...)>
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_FUNCTION_TRAITS_HEADER
+#endif // !THRILL_COMMON_FUNCTION_TRAITS_HEADER
 
 /******************************************************************************/

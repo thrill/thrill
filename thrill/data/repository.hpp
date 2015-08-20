@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_REPOSITORY_HEADER
-#define C7A_DATA_REPOSITORY_HEADER
+#ifndef THRILL_DATA_REPOSITORY_HEADER
+#define THRILL_DATA_REPOSITORY_HEADER
 
 #include <cassert>
 #include <map>
@@ -119,6 +119,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_REPOSITORY_HEADER
+#endif // !THRILL_DATA_REPOSITORY_HEADER
 
 /******************************************************************************/

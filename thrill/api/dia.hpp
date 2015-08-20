@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_DIA_HEADER
-#define C7A_API_DIA_HEADER
+#ifndef THRILL_API_DIA_HEADER
+#define THRILL_API_DIA_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia_node.hpp>
@@ -613,6 +613,6 @@ using c7a::api::DIARef;
 
 } // namespace c7a
 
-#endif // !C7A_API_DIA_HEADER
+#endif // !THRILL_API_DIA_HEADER
 
 /******************************************************************************/

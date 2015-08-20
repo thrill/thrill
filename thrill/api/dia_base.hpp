@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_DIA_BASE_HEADER
-#define C7A_API_DIA_BASE_HEADER
+#ifndef THRILL_API_DIA_BASE_HEADER
+#define THRILL_API_DIA_BASE_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/stats.hpp>
@@ -224,6 +224,6 @@ protected:
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_DIA_BASE_HEADER
+#endif // !THRILL_API_DIA_BASE_HEADER
 
 /******************************************************************************/

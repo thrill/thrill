@@ -7,9 +7,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/common/future_queue.hpp>
 #include <thrill/common/thread_pool.hpp>
-#include <gtest/gtest.h>
 
 using namespace c7a::common;
 using namespace std::literals;

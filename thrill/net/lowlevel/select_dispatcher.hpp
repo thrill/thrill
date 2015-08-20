@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
-#define C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#ifndef THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#define THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
@@ -140,6 +140,6 @@ private:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#endif // !THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
 /******************************************************************************/

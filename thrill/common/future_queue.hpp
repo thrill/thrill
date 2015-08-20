@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_FUTURE_QUEUE_HEADER
-#define C7A_COMMON_FUTURE_QUEUE_HEADER
+#ifndef THRILL_COMMON_FUTURE_QUEUE_HEADER
+#define THRILL_COMMON_FUTURE_QUEUE_HEADER
 
 #include <cassert>
 #include <condition_variable>
@@ -112,6 +112,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_FUTURE_QUEUE_HEADER
+#endif // !THRILL_COMMON_FUTURE_QUEUE_HEADER
 
 /******************************************************************************/

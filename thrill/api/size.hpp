@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_SIZE_HEADER
-#define C7A_API_SIZE_HEADER
+#ifndef THRILL_API_SIZE_HEADER
+#define THRILL_API_SIZE_HEADER
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
@@ -110,6 +110,6 @@ size_t DIARef<ValueType, Stack>::Size() const {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_SIZE_HEADER
+#endif // !THRILL_API_SIZE_HEADER
 
 /******************************************************************************/

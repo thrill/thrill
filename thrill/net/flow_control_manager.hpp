@@ -9,13 +9,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_FLOW_CONTROL_MANAGER_HEADER
-#define C7A_NET_FLOW_CONTROL_MANAGER_HEADER
+#ifndef THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
+#define THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 
+#include <string>
 #include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/group.hpp>
-#include <string>
 #include <vector>
 
 namespace c7a {
@@ -80,6 +80,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_FLOW_CONTROL_MANAGER_HEADER
+#endif // !THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 
 /******************************************************************************/

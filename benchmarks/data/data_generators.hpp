@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
-#define C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#ifndef THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#define THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
 #include <thrill/common/functional.hpp>
 
@@ -203,6 +203,6 @@ std::vector<size_t> generate(size_t bytes, size_t /*min_size*/, size_t /*max_siz
     return result;
 }
 
-#endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#endif // !THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
 /******************************************************************************/

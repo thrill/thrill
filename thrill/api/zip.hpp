@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_ZIP_HEADER
-#define C7A_API_ZIP_HEADER
+#ifndef THRILL_API_ZIP_HEADER
+#define THRILL_API_ZIP_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -351,6 +351,6 @@ auto DIARef<ValueType, Stack>::Zip(
 } // namespace c7a
 
 //! \}
-#endif // !C7A_API_ZIP_HEADER
+#endif // !THRILL_API_ZIP_HEADER
 
 /******************************************************************************/

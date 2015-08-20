@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_SORT_HEADER
-#define C7A_API_SORT_HEADER
+#ifndef THRILL_API_SORT_HEADER
+#define THRILL_API_SORT_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -436,6 +436,6 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_SORT_HEADER
+#endif // !THRILL_API_SORT_HEADER
 
 /******************************************************************************/

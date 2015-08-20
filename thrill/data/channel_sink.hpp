@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_CHANNEL_SINK_HEADER
-#define C7A_DATA_CHANNEL_SINK_HEADER
+#ifndef THRILL_DATA_CHANNEL_SINK_HEADER
+#define THRILL_DATA_CHANNEL_SINK_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_counter.hpp>
@@ -154,6 +154,6 @@ protected:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_CHANNEL_SINK_HEADER
+#endif // !THRILL_DATA_CHANNEL_SINK_HEADER
 
 /******************************************************************************/

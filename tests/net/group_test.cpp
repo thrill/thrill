@@ -8,12 +8,12 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/group.hpp>
 #include <thrill/net/manager.hpp>
-#include <gtest/gtest.h>
 
 #include <random>
 #include <string>

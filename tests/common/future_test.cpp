@@ -7,9 +7,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/common/future.hpp>
 #include <thrill/common/thread_pool.hpp>
-#include <gtest/gtest.h>
 
 #include <string>
 

@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_STATS_TIMER_HEADER
-#define C7A_COMMON_STATS_TIMER_HEADER
+#ifndef THRILL_COMMON_STATS_TIMER_HEADER
+#define THRILL_COMMON_STATS_TIMER_HEADER
 
 #include <cassert>
 #include <chrono>
@@ -224,6 +224,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_STATS_TIMER_HEADER
+#endif // !THRILL_COMMON_STATS_TIMER_HEADER
 
 /******************************************************************************/

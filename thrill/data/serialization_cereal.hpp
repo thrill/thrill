@@ -9,12 +9,12 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_SERIALIZATION_CEREAL_HEADER
-#define C7A_DATA_SERIALIZATION_CEREAL_HEADER
+#ifndef THRILL_DATA_SERIALIZATION_CEREAL_HEADER
+#define THRILL_DATA_SERIALIZATION_CEREAL_HEADER
 
-#include <thrill/data/serialization.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/details/traits.hpp>
+#include <thrill/data/serialization.hpp>
 
 #include <sstream>
 
@@ -221,6 +221,6 @@ struct Serialization<Archive, T, typename std::enable_if<
 // CEREAL_SETUP_ARCHIVE_TRAITS(c7a::data::c7aInputArchive,
 //                             c7a::data::c7aOutputArchive)
 
-#endif // !C7A_DATA_SERIALIZATION_CEREAL_HEADER
+#endif // !THRILL_DATA_SERIALIZATION_CEREAL_HEADER
 
 /******************************************************************************/

@@ -8,9 +8,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/common/concurrent_queue.hpp>
 #include <thrill/common/thread_pool.hpp>
-#include <gtest/gtest.h>
 
 #include <atomic>
 

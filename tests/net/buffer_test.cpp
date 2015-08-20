@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/buffer.hpp>
 #include <gtest/gtest.h>
+#include <thrill/net/buffer.hpp>
 
 #include <algorithm>
 

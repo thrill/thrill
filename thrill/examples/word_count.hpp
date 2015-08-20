@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_EXAMPLES_WORD_COUNT_HEADER
-#define C7A_EXAMPLES_WORD_COUNT_HEADER
+#ifndef THRILL_EXAMPLES_WORD_COUNT_HEADER
+#define THRILL_EXAMPLES_WORD_COUNT_HEADER
 
 #include <thrill/api/generate_from_file.hpp>
 #include <thrill/api/read_lines.hpp>
@@ -94,6 +94,6 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
 } // namespace examples
 } // namespace c7a
 
-#endif // !C7A_EXAMPLES_WORD_COUNT_HEADER
+#endif // !THRILL_EXAMPLES_WORD_COUNT_HEADER
 
 /******************************************************************************/

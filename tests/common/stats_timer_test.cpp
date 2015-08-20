@@ -8,9 +8,9 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/common/stats.hpp> //for forced instantiation below
 #include <thrill/common/stats_timer.hpp>
-#include <gtest/gtest.h>
 
 #include <thread>
 

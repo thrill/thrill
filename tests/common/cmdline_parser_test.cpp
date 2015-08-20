@@ -8,8 +8,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/cmdline_parser.hpp>
 
 #include <sstream>
 #include <string>

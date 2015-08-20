@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
-#define C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
+#ifndef THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
+#define THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/thread_barrier.hpp>
@@ -371,6 +371,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_FLOW_CONTROL_CHANNEL_HEADER
+#endif // !THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 
 /******************************************************************************/

@@ -8,10 +8,10 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/common/future.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
-#include <gtest/gtest.h>
 
 #include <future>
 #include <tuple>

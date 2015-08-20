@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_DISTRIBUTE_HEADER
-#define C7A_API_DISTRIBUTE_HEADER
+#ifndef THRILL_API_DISTRIBUTE_HEADER
+#define THRILL_API_DISTRIBUTE_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -141,6 +141,6 @@ auto Distribute(Context & ctx,
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_DISTRIBUTE_HEADER
+#endif // !THRILL_API_DISTRIBUTE_HEADER
 
 /******************************************************************************/
