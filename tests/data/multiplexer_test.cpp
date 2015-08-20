@@ -69,9 +69,9 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
     static const size_t iterations = 1000;
     size_t my_local_worker_id = 0;
-    size_t num_workers_per_node = 1;
+    size_t num_workers_per_host = 1;
 
-    data::Multiplexer datamp(num_workers_per_node, *net);
+    data::Multiplexer datamp(num_workers_per_host, *net);
     {
         data::ChannelId id = datamp.AllocateChannelId(my_local_worker_id);
 
