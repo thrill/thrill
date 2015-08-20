@@ -22,7 +22,7 @@
 #include <cstdlib>
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -151,7 +151,7 @@ struct PartitionBlockHeader : public BlockHeader {
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_MULTIPLEXER_HEADER_HEADER
 

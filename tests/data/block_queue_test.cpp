@@ -16,7 +16,7 @@
 
 #include <string>
 
-using namespace c7a;
+using namespace thrill;
 
 using MyQueue = data::BlockQueue;
 using MyBlockSource = MyQueue::BlockSource;

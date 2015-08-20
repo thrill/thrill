@@ -26,7 +26,7 @@
 #include <functional>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 namespace lowlevel {
 
@@ -138,7 +138,7 @@ private:
 
 } // namespace lowlevel
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 

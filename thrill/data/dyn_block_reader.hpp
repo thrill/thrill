@@ -17,7 +17,7 @@
 
 #include <thrill/data/block_reader.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -96,7 +96,7 @@ DynBlockReader ConstructDynBlockReader(Params&& ... params) {
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_DYN_BLOCK_READER_HEADER
 

@@ -11,7 +11,7 @@
 #ifndef THRILL_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 #define THRILL_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -121,7 +121,7 @@ public:
 //! \}
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 

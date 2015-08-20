@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <tuple>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /******************************************************************************/
@@ -81,7 +81,7 @@ std::tuple<size_t, size_t> CalculateLocalRange(
 /******************************************************************************/
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_MATH_HEADER
 

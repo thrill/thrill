@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -369,7 +369,7 @@ public:
 //! \}
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_FLOW_CONTROL_CHANNEL_HEADER
 

@@ -18,14 +18,14 @@
 #include <utility>
 
 using namespace std::literals;
-using namespace c7a::net;
-using c7a::common::ThreadPool;
-using c7a::common::Future;
-using c7a::common::FutureX;
+using namespace thrill::net;
+using thrill::common::ThreadPool;
+using thrill::common::Future;
+using thrill::common::FutureX;
 
 struct DispatcherThreadTest : public::testing::Test {
     DispatcherThreadTest() {
-        c7a::common::NameThisThread("test-driver");
+        thrill::common::NameThisThread("test-driver");
     }
 };
 

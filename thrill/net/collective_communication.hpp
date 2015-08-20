@@ -2,7 +2,7 @@
  * thrill/net/collective_communication.hpp
  *
  * This file provides collective communication primitives, which are to be used
- * with c7a::net::Groups.
+ * with net::Groups.
  *
  * Part of Project Thrill.
  *
@@ -24,7 +24,7 @@
 #include <functional>
 #include <mutex>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -216,7 +216,7 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
 //! \}
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // DISABLE_MAYBE_REMOVE
 

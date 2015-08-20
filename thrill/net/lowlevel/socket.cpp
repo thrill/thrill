@@ -16,7 +16,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 namespace lowlevel {
 
@@ -80,6 +80,6 @@ void Socket::SetNoDelay(bool activate) {
 
 } // namespace lowlevel
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

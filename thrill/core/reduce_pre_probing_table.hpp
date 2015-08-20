@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace core {
 
 /**
@@ -629,7 +629,7 @@ private:
 };
 
 } // namespace core
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_CORE_REDUCE_PRE_PROBING_TABLE_HEADER
 

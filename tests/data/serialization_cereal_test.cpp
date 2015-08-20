@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
+using namespace thrill; // NOLINT
 
 static const bool debug = false;
 
@@ -74,7 +74,7 @@ struct CerealObject
 
 TEST(SerializationCereal, cereal_w_FileWriter)
 {
-    c7a::data::File f;
+    data::File f;
 
     auto w = f.GetWriter();
 
@@ -88,7 +88,7 @@ TEST(SerializationCereal, cereal_w_FileWriter)
     w(co2);
     w.Close();
 
-    File::Reader r = f.GetReader();
+    data::File::Reader r = f.GetReader();
 
     ASSERT_TRUE(r.HasNext());
     CerealObject coserial = r.Next<CerealObject>();
@@ -106,7 +106,7 @@ TEST(SerializationCereal, cereal_w_FileWriter)
 
 TEST(SerializationCereal, cereal_w_BlockQueue)
 {
-    BlockQueue q;
+    data::BlockQueue q;
     {
         auto qw = q.GetWriter(16);
         CerealObject myData;

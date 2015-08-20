@@ -23,7 +23,7 @@
 #include <tuple>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! Construct a number of mock hosts running in this process.
@@ -265,6 +265,6 @@ int Run(
 }
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

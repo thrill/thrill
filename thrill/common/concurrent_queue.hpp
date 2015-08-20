@@ -22,7 +22,7 @@
 #include <mutex>
 #include <queue>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -113,7 +113,7 @@ using ConcurrentQueue = OurConcurrentQueue<T>;
 #endif // !HAVE_INTELTBB
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 

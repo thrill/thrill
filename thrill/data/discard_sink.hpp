@@ -16,7 +16,7 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -58,7 +58,7 @@ protected:
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_DISCARD_SINK_HEADER
 

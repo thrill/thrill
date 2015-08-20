@@ -24,7 +24,7 @@
 #include <string>
 #include <type_traits>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -149,7 +149,7 @@ auto Generate(Context & ctx,
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_GENERATE_HEADER
 

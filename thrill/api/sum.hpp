@@ -22,7 +22,7 @@
 #include <string>
 #include <type_traits>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -141,7 +141,7 @@ auto DIARef<ValueType, Stack>::Sum(
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_SUM_HEADER
 

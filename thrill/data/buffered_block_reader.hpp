@@ -14,7 +14,7 @@
 
 #include <thrill/data/block_reader.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -61,7 +61,7 @@ public:
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_BUFFERED_BLOCK_READER_HEADER
 

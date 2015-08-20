@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \defgroup api_internal API Internals
@@ -148,7 +148,7 @@ static inline auto MakeFunctionStack(Lambda lambda) {
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_FUNCTION_STACK_HEADER
 

@@ -22,7 +22,7 @@
 #include <fstream>
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -130,7 +130,7 @@ void DIARef<ValueType, Stack>::WriteLines(
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_WRITE_LINES_HEADER
 

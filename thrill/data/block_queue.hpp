@@ -22,7 +22,7 @@
 #include <atomic>
 #include <memory>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -189,7 +189,7 @@ protected:
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_BLOCK_QUEUE_HEADER
 

@@ -21,10 +21,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 struct MyStruct {
     int a, b;
@@ -61,7 +58,7 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
             }
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedIntegerArrays) {
@@ -111,7 +108,7 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
             ASSERT_EQ(100u, zip_result.Size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
@@ -140,7 +137,7 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
             ASSERT_EQ(0u, res.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ZipNode, TwoDisbalancedStringArrays) {
@@ -214,7 +211,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
             ASSERT_EQ(check, res);
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

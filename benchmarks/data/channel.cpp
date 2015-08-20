@@ -21,8 +21,8 @@
 
 #include "data_generators.hpp"
 
-using namespace c7a; // NOLINT
-using c7a::common::StatsTimer;
+using namespace thrill; // NOLINT
+using common::StatsTimer;
 
 unsigned g_iterations = 1;
 uint64_t g_bytes;
@@ -179,7 +179,7 @@ int main(int argc, const char** argv) {
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
-    clp.SetDescription("c7a::data benchmark for Channel I/O");
+    clp.SetDescription("thrill::data benchmark for Channel I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
 
     clp.AddBytes('b', "bytes", g_bytes, "number of bytes to process");

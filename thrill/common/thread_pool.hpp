@@ -24,7 +24,7 @@
 #include <thread>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -163,7 +163,7 @@ protected:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_THREAD_POOL_HEADER
 

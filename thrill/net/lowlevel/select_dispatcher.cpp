@@ -14,7 +14,7 @@
 
 #include <sstream>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 namespace lowlevel {
 
@@ -156,6 +156,6 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
 } // namespace lowlevel
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

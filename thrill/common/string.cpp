@@ -12,7 +12,7 @@
 
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 std::string hexdump(const void* const data, size_t size) {
@@ -42,6 +42,6 @@ std::string hexdump(const std::string& str) {
 }
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

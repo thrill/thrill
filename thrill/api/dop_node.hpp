@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -52,7 +52,7 @@ public:
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_DOP_NODE_HEADER
 

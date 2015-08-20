@@ -20,8 +20,7 @@
 #include <utility>
 #include <vector>
 
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
@@ -58,7 +57,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
@@ -97,7 +96,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
             ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReducePairToIndexCorrectResults) {
@@ -159,7 +158,7 @@ TEST(ReduceNode, ReducePairToIndexCorrectResults) {
             }
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(ReduceNode, ReduceToIndexCorrectResults) {
@@ -225,7 +224,7 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
             }
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

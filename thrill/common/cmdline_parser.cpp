@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /******************************************************************************/
@@ -1103,6 +1103,6 @@ std::string FormatIecUnits(uint64_t number) {
 }
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

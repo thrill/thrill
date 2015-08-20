@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -227,7 +227,7 @@ auto DIARef<ValueType, Stack>::Merge(
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 //! \}
 #endif // !THRILL_API_MERGE_HEADER

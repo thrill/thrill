@@ -30,9 +30,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
     api::RunSameThread([](api::Context& ctx) {

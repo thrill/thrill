@@ -13,8 +13,10 @@
 
 #include <string>
 
+using namespace thrill; // NOLINT
+
 TEST(FunctionTraits, LambdaParametersTest) {
-    using c7a::common::FunctionTraits;
+    using common::FunctionTraits;
 
     auto lambda1 =
         [=](int x, char c) -> std::string {
@@ -40,7 +42,7 @@ TEST(FunctionTraits, LambdaParametersTest) {
 }
 
 TEST(FunctionTraits, MutableLambdaParametersTest) {
-    using c7a::common::FunctionTraits;
+    using common::FunctionTraits;
 
     auto lambda1 =
         [=](int x, char c) mutable -> std::string {

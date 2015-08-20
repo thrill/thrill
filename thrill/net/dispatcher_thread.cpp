@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 DispatcherThread::DispatcherThread(const std::string& thread_name)
@@ -208,6 +208,6 @@ void DispatcherThread::WakeUpThread() {
 }
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

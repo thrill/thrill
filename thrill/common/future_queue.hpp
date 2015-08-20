@@ -17,7 +17,7 @@
 #include <deque>
 #include <mutex>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -110,7 +110,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_FUTURE_QUEUE_HEADER
 

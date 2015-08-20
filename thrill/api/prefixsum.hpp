@@ -22,7 +22,7 @@
 
 #include <string>
 
-namespace c7a {
+namespace thrill {
 namespace api {
 
 //! \addtogroup api Interface
@@ -179,7 +179,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
 //! \}
 
 } // namespace api
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_API_PREFIXSUM_HEADER
 

@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 //! \addtogroup net Network Communication
@@ -128,7 +128,7 @@ private:
 //! \}
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_NET_MANAGER_HEADER
 

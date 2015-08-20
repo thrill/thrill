@@ -29,11 +29,9 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::api::StatsGraph;
-using c7a::api::StatsNode;
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill;
+using api::StatsGraph;
+using api::StatsNode;
 
 TEST(Graph, SimpleGraph) {
 

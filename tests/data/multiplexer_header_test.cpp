@@ -10,8 +10,8 @@
 #include <gtest/gtest.h>
 #include <thrill/data/multiplexer_header.hpp>
 
-using namespace c7a;
-using namespace c7a::data;
+using namespace thrill;
+using namespace thrill::data;
 
 struct StreamTest : public::testing::Test {
     StreamTest() {

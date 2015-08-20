@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 Multiplexer::~Multiplexer() {
@@ -97,6 +97,6 @@ void Multiplexer::OnChannelBlock(
 }
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

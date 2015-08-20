@@ -28,7 +28,7 @@
 #define C7A_UNLIKELY(c) c
 #endif
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -237,7 +237,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
 

@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 static const bool debug = false;
 static const size_t test_block_size = 1024;

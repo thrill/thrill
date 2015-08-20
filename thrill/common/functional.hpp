@@ -17,7 +17,7 @@
 #include <functional>
 #include <utility>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 //! Identity functor, very useful for default parameters.
@@ -96,7 +96,7 @@ struct make_index_sequence : public make_index_sequence_helper<Length>::type
 { };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_FUNCTIONAL_HEADER
 

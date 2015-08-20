@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 using IntPair = std::pair<int, int>;
 using StringPairPair = std::pair<std::string, std::pair<std::string, int> >;

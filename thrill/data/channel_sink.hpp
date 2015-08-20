@@ -21,7 +21,7 @@
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 //! \addtogroup data Data Subsystem
@@ -152,7 +152,7 @@ protected:
 //! \}
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_DATA_CHANNEL_SINK_HEADER
 

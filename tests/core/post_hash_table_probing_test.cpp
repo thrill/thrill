@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 struct PostTable : public::testing::Test { };
 

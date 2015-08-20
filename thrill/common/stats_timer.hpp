@@ -22,7 +22,7 @@
 #include <memory>
 #include <ostream>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /*!
@@ -222,7 +222,7 @@ public:
 };
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_STATS_TIMER_HEADER
 

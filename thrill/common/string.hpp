@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 /**
@@ -206,7 +206,7 @@ RandomString(std::string::size_type size, RandomEngine rng,
 }
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_COMMON_STRING_HEADER
 

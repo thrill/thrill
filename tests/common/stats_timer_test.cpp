@@ -14,7 +14,7 @@
 
 #include <thread>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(StatsTimer, Test1) {
     StatsTimer<true> timer1;
@@ -42,7 +42,7 @@ TEST(StatsTimer, Test1) {
     ASSERT_EQ(timer2.Seconds(), 0);
 }
 
-namespace c7a {
+namespace thrill {
 namespace common {
 
 // forced instantiations
@@ -52,6 +52,6 @@ template class Stats<true>;
 template class Stats<false>;
 
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <thrill/common/delegate.hpp>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(Delegate, Test1) {
     auto d1 = [](int x) { return x + 1; };

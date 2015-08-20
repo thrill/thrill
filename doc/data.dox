@@ -9,7 +9,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 /******************************************************************************/
@@ -69,6 +69,6 @@ Iterators offer Iterator::HasNext() and Iterator::Next() as most ocmmon interfac
 */
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

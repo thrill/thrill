@@ -15,7 +15,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/examples/word_count.hpp>
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 

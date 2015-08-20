@@ -22,10 +22,10 @@
 #include <utility>
 #include <vector>
 
-namespace c7a {
+namespace thrill {
 namespace core {
 
-using c7a::api::DIABase;
+using api::DIABase;
 
 class Stage
 {
@@ -113,7 +113,7 @@ public:
 };
 
 } // namespace core
-} // namespace c7a
+} // namespace thrill
 
 #endif // !THRILL_CORE_STAGE_BUILDER_HEADER
 
