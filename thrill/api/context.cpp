@@ -175,7 +175,7 @@ int RunDistributedTCP(
  * Runs the given job startpoint with a context instance.  Startpoints may
  * be called multiple times with concurrent threads and different context
  * instances across different workers.  The c7a configuration is taken from
- * environment variables starting the C7A_.
+ * environment variables starting the THRILL_.
  *
  * \returns 0 if execution was fine on all threads. Otherwise, the first
  * non-zero return value of any thread is returned.
@@ -187,26 +187,26 @@ int Run(
     char* endptr;
 
     // parse environment
-    const char* c7a_rank = getenv("C7A_RANK");
-    const char* c7a_hostlist = getenv("C7A_HOSTLIST");
+    const char* env_rank = getenv("THRILL_RANK");
+    const char* env_hostlist = getenv("THRILL_HOSTLIST");
 
-    if (!c7a_rank || !c7a_hostlist) {
+    if (!env_rank || !env_hostlist) {
         size_t test_hosts = std::thread::hardware_concurrency();
 
-        const char* c7a_local = getenv("C7A_LOCAL");
-        if (c7a_local) {
+        const char* env_local = getenv("THRILL_LOCAL");
+        if (env_local) {
             // parse envvar only if it exists.
-            test_hosts = std::strtoul(c7a_local, &endptr, 10);
+            test_hosts = std::strtoul(env_local, &endptr, 10);
 
             if (!endptr || *endptr != 0 || test_hosts == 0) {
-                std::cerr << "environment variable C7A_LOCAL=" << c7a_local
+                std::cerr << "environment variable THRILL_LOCAL=" << env_local
                           << " is not a valid number of local test hosts."
                           << std::endl;
                 return -1;
             }
         }
 
-        std::cerr << "c7a: executing locally with " << test_hosts
+        std::cerr << "Thrill: executing locally with " << test_hosts
                   << " test hosts in a local socket network." << std::endl;
 
         const size_t workers_per_host = 1;
@@ -215,10 +215,10 @@ int Run(
         return 0;
     }
 
-    size_t my_host_rank = std::strtoul(c7a_rank, &endptr, 10);
+    size_t my_host_rank = std::strtoul(env_rank, &endptr, 10);
 
     if (!endptr || *endptr != 0) {
-        std::cerr << "environment variable C7A_RANK=" << c7a_rank
+        std::cerr << "environment variable THRILL_RANK=" << env_rank
                   << " is not a valid number."
                   << std::endl;
         return -1;
@@ -228,10 +228,10 @@ int Run(
 
     {
         // first try to split by spaces, then by commas
-        std::vector<std::string> hostlist = common::split(c7a_hostlist, ' ');
+        std::vector<std::string> hostlist = common::split(env_hostlist, ' ');
 
         if (hostlist.size() == 1) {
-            hostlist = common::split(c7a_hostlist, ',');
+            hostlist = common::split(env_hostlist, ',');
         }
 
         for (const std::string& host : hostlist) {
@@ -240,7 +240,7 @@ int Run(
 
             if (host.find(':') == std::string::npos) {
                 std::cerr << "Invalid address \"" << host << "\""
-                          << "in C7A_HOSTLIST. It must contain a port number."
+                          << "in THRILL_HOSTLIST. It must contain a port number."
                           << std::endl;
                 return -1;
             }
@@ -256,7 +256,7 @@ int Run(
         }
     }
 
-    std::cerr << "c7a: executing with host_rank " << my_host_rank << " and endpoints";
+    std::cerr << "Thrill: executing with host_rank " << my_host_rank << " and endpoints";
     for (const std::string& ep : endpoints)
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
