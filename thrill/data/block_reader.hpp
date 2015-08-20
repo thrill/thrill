@@ -212,7 +212,7 @@ public:
 
         Byte* cdata = reinterpret_cast<Byte*>(outdata);
 
-        while (C7A_UNLIKELY(current_ + size > end_)) {
+        while (THRILL_UNLIKELY(current_ + size > end_)) {
             // partial copy of remainder of block
             size_t partial_size = end_ - current_;
             std::copy(current_, current_ + partial_size, cdata);
@@ -241,7 +241,7 @@ public:
 
     //! Advance the cursor given number of bytes without reading them.
     BlockReader & Skip(size_t items, size_t bytes) {
-        while (C7A_UNLIKELY(current_ + bytes > end_)) {
+        while (THRILL_UNLIKELY(current_ + bytes > end_)) {
             bytes -= end_ - current_;
             // deduct number of remaining items in skipped block from item skip
             // counter.
@@ -258,7 +258,7 @@ public:
     //! Fetch a single byte from the current block, advancing the cursor.
     Byte GetByte() {
         // loop, since blocks can actually be empty.
-        while (C7A_UNLIKELY(current_ == end_)) {
+        while (THRILL_UNLIKELY(current_ == end_)) {
             if (!NextBlock())
                 throw std::runtime_error("Data underflow in BlockReader.");
         }
@@ -275,7 +275,7 @@ public:
         Type ret;
 
         // fast path for reading item from block if it fits.
-        if (C7A_LIKELY(current_ + sizeof(Type) <= end_)) {
+        if (THRILL_LIKELY(current_ + sizeof(Type) <= end_)) {
             ret = *reinterpret_cast<const Type*>(current_);
             current_ += sizeof(Type);
         }
