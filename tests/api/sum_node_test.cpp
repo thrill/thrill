@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/sum_node_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -9,22 +9,17 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/sum.hpp>
 #include <gtest/gtest.h>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
 
 #include <algorithm>
 #include <random>
 #include <string>
 
-using namespace c7a::core;
-using namespace c7a::net;
-
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
@@ -55,7 +50,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
             ASSERT_EQ((int)generate_size, ones.Sum(add_function));
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
@@ -83,7 +78,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
             ASSERT_EQ(16u, coll.Size());
         };
 
-    c7a::api::RunLocalTests(start_func);
+    api::RunLocalTests(start_func);
 }
 
 /******************************************************************************/

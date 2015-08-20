@@ -1,20 +1,20 @@
 /*******************************************************************************
  * tests/data/serialization_cereal_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/serialization.hpp>
-#include <c7a/data/serialization_cereal.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_cereal.hpp>
 
 #include <string>
 #include <tuple>
@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
+using namespace thrill; // NOLINT
 
 static const bool debug = false;
 
@@ -74,7 +74,7 @@ struct CerealObject
 
 TEST(SerializationCereal, cereal_w_FileWriter)
 {
-    c7a::data::File f;
+    data::File f;
 
     auto w = f.GetWriter();
 
@@ -88,7 +88,7 @@ TEST(SerializationCereal, cereal_w_FileWriter)
     w(co2);
     w.Close();
 
-    File::Reader r = f.GetReader();
+    data::File::Reader r = f.GetReader();
 
     ASSERT_TRUE(r.HasNext());
     CerealObject coserial = r.Next<CerealObject>();
@@ -106,7 +106,7 @@ TEST(SerializationCereal, cereal_w_FileWriter)
 
 TEST(SerializationCereal, cereal_w_BlockQueue)
 {
-    BlockQueue q;
+    data::BlockQueue q;
     {
         auto qw = q.GetWriter(16);
         CerealObject myData;

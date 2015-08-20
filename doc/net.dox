@@ -2,24 +2,24 @@
 /*******************************************************************************
  * doc/net.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 namespace net {
 
 /******************************************************************************/
 /** \page net Network Layer
 
-The c7a Network Layer consists of sublayers:
+The Thrill Network Layer consists of sublayers:
 
 ## Group & Connection layer
 
-The Group object is similar to an MPI communicator: it has socket connections to k partners/clients/workers in the group. The net clients have immediate  relation to the master/worker concept of higher c7a layers, though they will probably be implementing using a Group. This master/worker abstraction is done on higher levels.
+The Group object is similar to an MPI communicator: it has socket connections to k partners/clients/workers in the group. The net clients have immediate  relation to the master/worker concept of higher Thrill layers, though they will probably be implementing using a Group. This master/worker abstraction is done on higher levels.
 
 Group provides
 - a \ref Group::Size "Size()" and \ref Group::MyRank "MyRank()" function to describe the group.
@@ -41,10 +41,10 @@ The BSD socket API is difficult to work with correctly, which is why the followi
 
 ## High-level Data Channel API
 
-The channel API provides a mechanism to receive data from multiple sockets into a single data object which can be identified like a DIA. Low-level sockets are used to build connections between each worker pair. This connection can be shared by multiple communication procedures at the same time by multiplexing. Abstraction can be found in \ref c7a::data::Manager.
+The channel API provides a mechanism to receive data from multiple sockets into a single data object which can be identified like a DIA. Low-level sockets are used to build connections between each worker pair. This connection can be shared by multiple communication procedures at the same time by multiplexing. Abstraction can be found in \ref data::Manager.
 */
 
 } // namespace net
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

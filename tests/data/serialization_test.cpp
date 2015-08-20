@@ -1,17 +1,17 @@
 /*******************************************************************************
  * tests/data/serialization_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/serialization.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/logger.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/serialization.hpp>
 
 #include <string>
 #include <tuple>
@@ -19,12 +19,14 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
+using namespace thrill; // NOLINT
+using data::Serialization;
+using data::BlockWriter;
 
 static const bool debug = false;
 
 TEST(Serialization, string) {
-    c7a::data::File f;
+    data::File f;
     std::string foo = "foo";
     {
         auto w = f.GetWriter();
@@ -38,7 +40,7 @@ TEST(Serialization, string) {
 
 TEST(Serialization, int) {
     int foo = -123;
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(foo); //gets serialized
@@ -51,7 +53,7 @@ TEST(Serialization, int) {
 
 TEST(Serialization, pair_string_int) {
     auto foo = std::make_pair(std::string("foo"), 123);
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(foo); //gets serialized
@@ -66,7 +68,7 @@ TEST(Serialization, pair_int_int) {
     int t1 = 3;
     int t2 = 4;
     std::pair<int, int> foo = std::make_pair(t1, t2);
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(foo); //gets serialized
@@ -85,7 +87,7 @@ struct MyPodStruct
 
 TEST(Serialization, pod_struct) {
     MyPodStruct foo = { 6 * 9, 42 };
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(foo); //gets serialized
@@ -103,7 +105,7 @@ TEST(Serialization, pod_struct) {
 
 TEST(Serialization, tuple) {
     auto foo = std::make_tuple(3, std::string("foo"), 5.5);
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(foo); //gets serialized
@@ -120,7 +122,7 @@ TEST(Serialization, tuple) {
 TEST(Serialization, tuple_w_pair) {
     auto p = std::make_pair(-4.673, std::string("string"));
     auto foo = std::make_tuple(3, std::string("foo"), 5.5, p);
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(foo); //gets serialized
@@ -136,7 +138,7 @@ TEST(Serialization, tuple_w_pair) {
 }
 
 TEST(Serialization, tuple_check_fixed_size) {
-    c7a::data::File f;
+    data::File f;
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, 42.0);
     auto no = Serialization<BlockWriter, decltype(n)>::is_fixed_size;
@@ -150,7 +152,7 @@ TEST(Serialization, StringVector) {
     std::vector<std::string> vec1 = {
         "what", "a", "wonderful", "world", "this", "could", "be"
     };
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(vec1);
@@ -170,7 +172,7 @@ TEST(Serialization, StringArray) {
     std::array<std::string, 7> vec1 = {
         { "what", "a", "wonderful", "world", "this", "could", "be" }
     };
-    c7a::data::File f;
+    data::File f;
     {
         auto w = f.GetWriter();
         w(vec1);

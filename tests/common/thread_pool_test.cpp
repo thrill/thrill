@@ -1,23 +1,23 @@
 /*******************************************************************************
  * tests/common/thread_pool_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <numeric>
 #include <string>
 #include <vector>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(ThreadPool1, LoopUntilEmpty) {
     size_t job_num = 256;

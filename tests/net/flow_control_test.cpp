@@ -1,26 +1,26 @@
 /*******************************************************************************
  * tests/net/flow_control_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/flow_control_manager.hpp>
-#include <c7a/net/group.hpp>
-#include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
+#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/flow_control_manager.hpp>
+#include <thrill/net/group.hpp>
+#include <thrill/net/manager.hpp>
 
 #include <functional>
 #include <string>
 #include <thread>
 #include <vector>
 
-using namespace c7a::net;
+using namespace thrill::net;
 
 /**
  * Calculates a prefix sum over all worker ids.
