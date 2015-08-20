@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_CONFIG_HEADER
-#define C7A_COMMON_CONFIG_HEADER
+#ifndef THRILL_COMMON_CONFIG_HEADER
+#define THRILL_COMMON_CONFIG_HEADER
 
 namespace c7a {
 namespace common {
@@ -41,6 +41,6 @@ static const bool g_enable_stats = false;
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_CONFIG_HEADER
+#endif // !THRILL_COMMON_CONFIG_HEADER
 
 /******************************************************************************/

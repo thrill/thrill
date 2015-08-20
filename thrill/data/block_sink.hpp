@@ -9,11 +9,11 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BLOCK_SINK_HEADER
-#define C7A_DATA_BLOCK_SINK_HEADER
+#ifndef THRILL_DATA_BLOCK_SINK_HEADER
+#define THRILL_DATA_BLOCK_SINK_HEADER
 
-#include <thrill/data/block.hpp>
 #include <memory>
+#include <thrill/data/block.hpp>
 
 namespace c7a {
 namespace data {
@@ -49,6 +49,6 @@ public:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_SINK_HEADER
+#endif // !THRILL_DATA_BLOCK_SINK_HEADER
 
 /******************************************************************************/

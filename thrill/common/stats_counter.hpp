@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_STATS_COUNTER_HEADER
-#define C7A_COMMON_STATS_COUNTER_HEADER
+#ifndef THRILL_COMMON_STATS_COUNTER_HEADER
+#define THRILL_COMMON_STATS_COUNTER_HEADER
 
 #include <algorithm>
 
@@ -131,6 +131,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_STATS_COUNTER_HEADER
+#endif // !THRILL_COMMON_STATS_COUNTER_HEADER
 
 /******************************************************************************/

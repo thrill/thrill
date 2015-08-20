@@ -8,8 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/common/delegate.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/delegate.hpp>
 
 using namespace c7a::common;
 

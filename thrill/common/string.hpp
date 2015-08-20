@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_STRING_HEADER
-#define C7A_COMMON_STRING_HEADER
+#ifndef THRILL_COMMON_STRING_HEADER
+#define THRILL_COMMON_STRING_HEADER
 
 #include <random>
 #include <string>
@@ -208,6 +208,6 @@ RandomString(std::string::size_type size, RandomEngine rng,
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_STRING_HEADER
+#endif // !THRILL_COMMON_STRING_HEADER
 
 /******************************************************************************/

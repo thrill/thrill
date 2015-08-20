@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_DOP_NODE_HEADER
-#define C7A_API_DOP_NODE_HEADER
+#ifndef THRILL_API_DOP_NODE_HEADER
+#define THRILL_API_DOP_NODE_HEADER
 
 #include <thrill/api/dia_node.hpp>
 
@@ -54,6 +54,6 @@ public:
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_DOP_NODE_HEADER
+#endif // !THRILL_API_DOP_NODE_HEADER
 
 /******************************************************************************/

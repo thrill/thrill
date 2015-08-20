@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_DELEGATE_HEADER
-#define C7A_COMMON_DELEGATE_HEADER
+#ifndef THRILL_COMMON_DELEGATE_HEADER
+#define THRILL_COMMON_DELEGATE_HEADER
 
 #include <algorithm>
 #include <cassert>
@@ -324,6 +324,6 @@ private:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_DELEGATE_HEADER
+#endif // !THRILL_COMMON_DELEGATE_HEADER
 
 /******************************************************************************/

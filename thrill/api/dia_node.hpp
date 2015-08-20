@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_DIA_NODE_HEADER
-#define C7A_API_DIA_NODE_HEADER
+#ifndef THRILL_API_DIA_NODE_HEADER
+#define THRILL_API_DIA_NODE_HEADER
 
 #include <thrill/api/dia_base.hpp>
 #include <thrill/common/stats.hpp>
@@ -122,6 +122,6 @@ protected:
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_DIA_NODE_HEADER
+#endif // !THRILL_API_DIA_NODE_HEADER
 
 /******************************************************************************/

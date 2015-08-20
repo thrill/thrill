@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_GROUP_HEADER
-#define C7A_NET_GROUP_HEADER
+#ifndef THRILL_NET_GROUP_HEADER
+#define THRILL_NET_GROUP_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/net/connection.hpp>
@@ -378,6 +378,6 @@ private:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_GROUP_HEADER
+#endif // !THRILL_NET_GROUP_HEADER
 
 /******************************************************************************/

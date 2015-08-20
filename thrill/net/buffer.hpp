@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_BUFFER_HEADER
-#define C7A_NET_BUFFER_HEADER
+#ifndef THRILL_NET_BUFFER_HEADER
+#define THRILL_NET_BUFFER_HEADER
 
 #include <thrill/common/logger.hpp>
 
@@ -233,6 +233,6 @@ protected:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_BUFFER_HEADER
+#endif // !THRILL_NET_BUFFER_HEADER
 
 /******************************************************************************/

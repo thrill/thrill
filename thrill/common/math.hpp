@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_MATH_HEADER
-#define C7A_COMMON_MATH_HEADER
+#ifndef THRILL_COMMON_MATH_HEADER
+#define THRILL_COMMON_MATH_HEADER
 
 #include <thrill/api/context.hpp>
 
@@ -83,6 +83,6 @@ std::tuple<size_t, size_t> CalculateLocalRange(
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_MATH_HEADER
+#endif // !THRILL_COMMON_MATH_HEADER
 
 /******************************************************************************/

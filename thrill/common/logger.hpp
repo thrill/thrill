@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_LOGGER_HEADER
-#define C7A_COMMON_LOGGER_HEADER
+#ifndef THRILL_COMMON_LOGGER_HEADER
+#define THRILL_COMMON_LOGGER_HEADER
 
 #include <sstream>
 #include <stdexcept>
@@ -238,6 +238,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_LOGGER_HEADER
+#endif // !THRILL_COMMON_LOGGER_HEADER
 
 /******************************************************************************/

@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
-#define C7A_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
+#ifndef THRILL_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
+#define THRILL_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
 
 #include <cstdint>
 #include <stdexcept>
@@ -239,6 +239,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
+#endif // !THRILL_COMMON_ITEM_SERIALIZATION_TOOLS_HEADER
 
 /******************************************************************************/

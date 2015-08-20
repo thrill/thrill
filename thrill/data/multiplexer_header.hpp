@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_MULTIPLEXER_HEADER_HEADER
-#define C7A_DATA_MULTIPLEXER_HEADER_HEADER
+#ifndef THRILL_DATA_MULTIPLEXER_HEADER_HEADER
+#define THRILL_DATA_MULTIPLEXER_HEADER_HEADER
 
 #include <thrill/data/block.hpp>
 #include <thrill/net/buffer_builder.hpp>
@@ -153,6 +153,6 @@ struct PartitionBlockHeader : public BlockHeader {
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_MULTIPLEXER_HEADER_HEADER
+#endif // !THRILL_DATA_MULTIPLEXER_HEADER_HEADER
 
 /******************************************************************************/

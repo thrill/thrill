@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/c7a.hpp
+ * thrill/thrill.hpp
  *
  * Part of Project c7a.
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_C7A_HEADER
-#define C7A_C7A_HEADER
+#ifndef THRILL_THRILL_HEADER
+#define THRILL_THRILL_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
@@ -40,6 +40,6 @@ namespace c7a {
 
 } // namespace c7a
 
-#endif // !C7A_C7A_HEADER
+#endif // !THRILL_THRILL_HEADER
 
 /******************************************************************************/

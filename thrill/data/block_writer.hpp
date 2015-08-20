@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BLOCK_WRITER_HEADER
-#define C7A_DATA_BLOCK_WRITER_HEADER
+#ifndef THRILL_DATA_BLOCK_WRITER_HEADER
+#define THRILL_DATA_BLOCK_WRITER_HEADER
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
@@ -252,6 +252,6 @@ protected:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_WRITER_HEADER
+#endif // !THRILL_DATA_BLOCK_WRITER_HEADER
 
 /******************************************************************************/

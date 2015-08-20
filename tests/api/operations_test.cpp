@@ -9,6 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
@@ -22,7 +23,6 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
-#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <functional>

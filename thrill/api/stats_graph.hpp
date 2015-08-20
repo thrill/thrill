@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_STATS_GRAPH_HEADER
-#define C7A_API_STATS_GRAPH_HEADER
+#ifndef THRILL_API_STATS_GRAPH_HEADER
+#define THRILL_API_STATS_GRAPH_HEADER
 
 #include <thrill/common/logger.hpp>
 
@@ -242,6 +242,6 @@ private:
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_STATS_GRAPH_HEADER
+#endif // !THRILL_API_STATS_GRAPH_HEADER
 
 /******************************************************************************/

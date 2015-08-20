@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_EXCEPTION_HEADER
-#define C7A_NET_EXCEPTION_HEADER
+#ifndef THRILL_NET_EXCEPTION_HEADER
+#define THRILL_NET_EXCEPTION_HEADER
 
 #include <cstring>
 #include <stdexcept>
@@ -45,6 +45,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_EXCEPTION_HEADER
+#endif // !THRILL_NET_EXCEPTION_HEADER
 
 /******************************************************************************/

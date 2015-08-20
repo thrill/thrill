@@ -8,8 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/common/function_traits.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/function_traits.hpp>
 
 #include <string>
 

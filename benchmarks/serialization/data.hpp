@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_BENCHMARKS_SERIALIZATION_DATA_HEADER
-#define C7A_BENCHMARKS_SERIALIZATION_DATA_HEADER
+#ifndef THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
+#define THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
 
 #include <cereal/types/vector.hpp>
 
@@ -157,6 +157,6 @@ t_ttpi t_ttpi1 = std::make_tuple(t_pp0, t_pp0, p_pi0, 870999);
 using t_tt = std::tuple<t_ttpi, t_ttpi, t_ttpi, t_ttpi>;
 t_tt bench_tuple = std::make_tuple(t_ttpi0, t_ttpi0, t_ttpi1, t_ttpi1);
 
-#endif // !C7A_BENCHMARKS_SERIALIZATION_DATA_HEADER
+#endif // !THRILL_BENCHMARKS_SERIALIZATION_DATA_HEADER
 
 /******************************************************************************/

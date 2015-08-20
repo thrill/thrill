@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_FUNCTIONAL_HEADER
-#define C7A_COMMON_FUNCTIONAL_HEADER
+#ifndef THRILL_COMMON_FUNCTIONAL_HEADER
+#define THRILL_COMMON_FUNCTIONAL_HEADER
 
 #include <algorithm>
 #include <functional>
@@ -98,6 +98,6 @@ struct make_index_sequence : public make_index_sequence_helper<Length>::type
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_FUNCTIONAL_HEADER
+#endif // !THRILL_COMMON_FUNCTIONAL_HEADER
 
 /******************************************************************************/

@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_MULTIPLEXER_HEADER
-#define C7A_DATA_MULTIPLEXER_HEADER
+#ifndef THRILL_DATA_MULTIPLEXER_HEADER
+#define THRILL_DATA_MULTIPLEXER_HEADER
 
 #include <thrill/data/repository.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
@@ -149,6 +149,6 @@ private:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_MULTIPLEXER_HEADER
+#endif // !THRILL_DATA_MULTIPLEXER_HEADER
 
 /******************************************************************************/

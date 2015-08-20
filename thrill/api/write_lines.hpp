@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_WRITE_LINES_HEADER
-#define C7A_API_WRITE_LINES_HEADER
+#ifndef THRILL_API_WRITE_LINES_HEADER
+#define THRILL_API_WRITE_LINES_HEADER
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
@@ -132,6 +132,6 @@ void DIARef<ValueType, Stack>::WriteLines(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_WRITE_LINES_HEADER
+#endif // !THRILL_API_WRITE_LINES_HEADER
 
 /******************************************************************************/

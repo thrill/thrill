@@ -9,9 +9,9 @@
  ******************************************************************************/
 
 // [example]
-#include <thrill/common/cmdline_parser.hpp>
 #include <iostream>
 #include <string>
+#include <thrill/common/cmdline_parser.hpp>
 
 int main(int argc, char* argv[]) {
     c7a::common::CmdlineParser cp;

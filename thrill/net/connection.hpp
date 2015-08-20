@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_CONNECTION_HEADER
-#define C7A_NET_CONNECTION_HEADER
+#ifndef THRILL_NET_CONNECTION_HEADER
+#define THRILL_NET_CONNECTION_HEADER
 
 #include <thrill/common/config.hpp>
 #include <thrill/net/buffer.hpp>
@@ -299,6 +299,6 @@ protected:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_CONNECTION_HEADER
+#endif // !THRILL_NET_CONNECTION_HEADER
 
 /******************************************************************************/

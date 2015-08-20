@@ -9,10 +9,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/concat_block_source.hpp>
-#include <gtest/gtest.h>
 
 #include <string>
 

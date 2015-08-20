@@ -8,13 +8,13 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/common/string.hpp>
-#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <random>

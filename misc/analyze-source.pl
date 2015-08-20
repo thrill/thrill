@@ -214,7 +214,7 @@ sub process_cpp {
         $guard =~ s!thrill/!!;
         $guard =~ tr!/-!__!;
         $guard =~ s!\.h(pp)?(\.in)?$!!;
-        $guard = "C7A_".uc($guard)."_HEADER";
+        $guard = "THRILL_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
         expect($path, $i, @data, "#pragma once\n"); ++$i;

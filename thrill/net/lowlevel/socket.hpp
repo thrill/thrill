@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_LOWLEVEL_SOCKET_HEADER
-#define C7A_NET_LOWLEVEL_SOCKET_HEADER
+#ifndef THRILL_NET_LOWLEVEL_SOCKET_HEADER
+#define THRILL_NET_LOWLEVEL_SOCKET_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
@@ -655,6 +655,6 @@ protected:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_LOWLEVEL_SOCKET_HEADER
+#endif // !THRILL_NET_LOWLEVEL_SOCKET_HEADER
 
 /******************************************************************************/

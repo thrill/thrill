@@ -9,11 +9,11 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/api/generate_from_file.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
-#include <gtest/gtest.h>
 
 #include <algorithm>
 #include <random>

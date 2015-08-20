@@ -7,8 +7,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/common/timed_counter.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/timed_counter.hpp>
 
 #include <thread>
 

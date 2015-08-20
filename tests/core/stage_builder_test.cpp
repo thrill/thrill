@@ -7,8 +7,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/thrill.hpp>
 #include <gtest/gtest.h>
+#include <thrill/thrill.hpp>
 
 #include <algorithm>
 #include <random>

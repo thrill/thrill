@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_BLOCK_HEADER
-#define C7A_DATA_BLOCK_HEADER
+#ifndef THRILL_DATA_BLOCK_HEADER
+#define THRILL_DATA_BLOCK_HEADER
 
 #include <cassert>
 #include <memory>
@@ -204,6 +204,6 @@ protected:
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_BLOCK_HEADER
+#endif // !THRILL_DATA_BLOCK_HEADER
 
 /******************************************************************************/

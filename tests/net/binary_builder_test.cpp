@@ -8,9 +8,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
-#include <gtest/gtest.h>
 
 using c7a::net::BufferBuilder;
 using c7a::net::BufferRef;

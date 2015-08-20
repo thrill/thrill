@@ -10,8 +10,8 @@
 
 #include <thrill/core/reduce_pre_probing_table.hpp>
 
-#include <thrill/data/file.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/file.hpp>
 
 #include <string>
 #include <utility>

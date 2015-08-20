@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_CMDLINE_PARSER_HEADER
-#define C7A_COMMON_CMDLINE_PARSER_HEADER
+#ifndef THRILL_COMMON_CMDLINE_PARSER_HEADER
+#define THRILL_COMMON_CMDLINE_PARSER_HEADER
 
 #include <iostream>
 #include <string>
@@ -359,6 +359,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_CMDLINE_PARSER_HEADER
+#endif // !THRILL_COMMON_CMDLINE_PARSER_HEADER
 
 /******************************************************************************/

@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
-#define C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
+#ifndef THRILL_NET_SYSTEM_CONTROL_CHANNEL_HEADER
+#define THRILL_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 
 namespace c7a {
 namespace net {
@@ -123,6 +123,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_SYSTEM_CONTROL_CHANNEL_HEADER
+#endif // !THRILL_NET_SYSTEM_CONTROL_CHANNEL_HEADER
 
 /******************************************************************************/

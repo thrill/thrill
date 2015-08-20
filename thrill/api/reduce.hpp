@@ -12,8 +12,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_REDUCE_HEADER
-#define C7A_API_REDUCE_HEADER
+#ifndef THRILL_API_REDUCE_HEADER
+#define THRILL_API_REDUCE_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -376,6 +376,6 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_REDUCE_HEADER
+#endif // !THRILL_API_REDUCE_HEADER
 
 /******************************************************************************/

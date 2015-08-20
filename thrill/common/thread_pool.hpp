@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_THREAD_POOL_HEADER
-#define C7A_COMMON_THREAD_POOL_HEADER
+#ifndef THRILL_COMMON_THREAD_POOL_HEADER
+#define THRILL_COMMON_THREAD_POOL_HEADER
 
 #include <thrill/common/delegate.hpp>
 
@@ -165,6 +165,6 @@ protected:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_THREAD_POOL_HEADER
+#endif // !THRILL_COMMON_THREAD_POOL_HEADER
 
 /******************************************************************************/

@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_GATHER_HEADER
-#define C7A_API_GATHER_HEADER
+#ifndef THRILL_API_GATHER_HEADER
+#define THRILL_API_GATHER_HEADER
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
@@ -133,6 +133,6 @@ void DIARef<ValueType, Stack>::Gather(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_GATHER_HEADER
+#endif // !THRILL_API_GATHER_HEADER
 
 /******************************************************************************/

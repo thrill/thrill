@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_FUTURE_HEADER
-#define C7A_COMMON_FUTURE_HEADER
+#ifndef THRILL_COMMON_FUTURE_HEADER
+#define THRILL_COMMON_FUTURE_HEADER
 
 #include <atomic>
 #include <cassert>
@@ -157,6 +157,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_FUTURE_HEADER
+#endif // !THRILL_COMMON_FUTURE_HEADER
 
 /******************************************************************************/

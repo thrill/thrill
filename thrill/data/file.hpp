@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_DATA_FILE_HEADER
-#define C7A_DATA_FILE_HEADER
+#ifndef THRILL_DATA_FILE_HEADER
+#define THRILL_DATA_FILE_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
@@ -356,6 +356,6 @@ File::GetItemRange(size_t begin, size_t end) const {
 } // namespace data
 } // namespace c7a
 
-#endif // !C7A_DATA_FILE_HEADER
+#endif // !THRILL_DATA_FILE_HEADER
 
 /******************************************************************************/

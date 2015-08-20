@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_FUNCTION_STACK_HEADER
-#define C7A_API_FUNCTION_STACK_HEADER
+#ifndef THRILL_API_FUNCTION_STACK_HEADER
+#define THRILL_API_FUNCTION_STACK_HEADER
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -150,6 +150,6 @@ static inline auto MakeFunctionStack(Lambda lambda) {
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_FUNCTION_STACK_HEADER
+#endif // !THRILL_API_FUNCTION_STACK_HEADER
 
 /******************************************************************************/

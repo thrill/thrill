@@ -9,11 +9,11 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/data/channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
-#include <gtest/gtest.h>
 
 #include <string>
 #include <vector>

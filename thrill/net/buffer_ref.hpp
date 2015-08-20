@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_NET_BUFFER_REF_HEADER
-#define C7A_NET_BUFFER_REF_HEADER
+#ifndef THRILL_NET_BUFFER_REF_HEADER
+#define THRILL_NET_BUFFER_REF_HEADER
 
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/buffer_builder.hpp>
@@ -108,6 +108,6 @@ public:
 } // namespace net
 } // namespace c7a
 
-#endif // !C7A_NET_BUFFER_REF_HEADER
+#endif // !THRILL_NET_BUFFER_REF_HEADER
 
 /******************************************************************************/

@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_STATS_HEADER
-#define C7A_COMMON_STATS_HEADER
+#ifndef THRILL_COMMON_STATS_HEADER
+#define THRILL_COMMON_STATS_HEADER
 
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/timed_counter.hpp>
@@ -192,6 +192,6 @@ public:
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_STATS_HEADER
+#endif // !THRILL_COMMON_STATS_HEADER
 
 /******************************************************************************/

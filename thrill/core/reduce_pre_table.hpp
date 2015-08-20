@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_CORE_REDUCE_PRE_TABLE_HEADER
-#define C7A_CORE_REDUCE_PRE_TABLE_HEADER
+#ifndef THRILL_CORE_REDUCE_PRE_TABLE_HEADER
+#define THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
@@ -765,6 +765,6 @@ protected:
 } // namespace core
 } // namespace c7a
 
-#endif // !C7A_CORE_REDUCE_PRE_TABLE_HEADER
+#endif // !THRILL_CORE_REDUCE_PRE_TABLE_HEADER
 
 /******************************************************************************/

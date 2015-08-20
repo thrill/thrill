@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_API_SUM_HEADER
-#define C7A_API_SUM_HEADER
+#ifndef THRILL_API_SUM_HEADER
+#define THRILL_API_SUM_HEADER
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
@@ -143,6 +143,6 @@ auto DIARef<ValueType, Stack>::Sum(
 } // namespace api
 } // namespace c7a
 
-#endif // !C7A_API_SUM_HEADER
+#endif // !THRILL_API_SUM_HEADER
 
 /******************************************************************************/

@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_TIMED_COUNTER_HEADER
-#define C7A_COMMON_TIMED_COUNTER_HEADER
+#ifndef THRILL_COMMON_TIMED_COUNTER_HEADER
+#define THRILL_COMMON_TIMED_COUNTER_HEADER
 
 #include <algorithm>
 #include <chrono>
@@ -85,6 +85,6 @@ using TimedCounterPtr = std::shared_ptr<TimedCounter>;
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_TIMED_COUNTER_HEADER
+#endif // !THRILL_COMMON_TIMED_COUNTER_HEADER
 
 /******************************************************************************/

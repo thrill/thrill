@@ -8,9 +8,9 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <gtest/gtest.h>
 #include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/file.hpp>
-#include <gtest/gtest.h>
 
 #include <string>
 #include <utility>

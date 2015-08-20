@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_COMMON_CONCURRENT_QUEUE_HEADER
-#define C7A_COMMON_CONCURRENT_QUEUE_HEADER
+#ifndef THRILL_COMMON_CONCURRENT_QUEUE_HEADER
+#define THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 
 #if HAVE_INTELTBB
 
@@ -115,6 +115,6 @@ using ConcurrentQueue = OurConcurrentQueue<T>;
 } // namespace common
 } // namespace c7a
 
-#endif // !C7A_COMMON_CONCURRENT_QUEUE_HEADER
+#endif // !THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 
 /******************************************************************************/
