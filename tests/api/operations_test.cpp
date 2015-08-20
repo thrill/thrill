@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/operations_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -9,20 +9,20 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/cache.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/distribute.hpp>
-#include <c7a/api/distribute_from.hpp>
-#include <c7a/api/gather.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/prefixsum.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/write_lines.hpp>
-#include <c7a/api/write_lines_many.hpp>
 #include <gtest/gtest.h>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/distribute.hpp>
+#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/gather.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -30,9 +30,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill; // NOLINT
 
 TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
     api::RunSameThread([](api::Context& ctx) {

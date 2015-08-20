@@ -1,22 +1,22 @@
 /*******************************************************************************
  * benchmarks/page_rank/page_rank.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/cache.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/reduce_to_index.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/sum.hpp>
-#include <c7a/api/write_lines.hpp>
-#include <c7a/api/zip.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/string.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/reduce_to_index.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/zip.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/string.hpp>
 
 #include <random>
 #include <string>
@@ -25,8 +25,8 @@
 #include <utility>
 #include <vector>
 
-using c7a::DIARef;
-using c7a::Context;
+using thrill::DIARef;
+using thrill::Context;
 
 //! The PageRank user program
 void page_rank(Context& ctx) {
@@ -40,7 +40,7 @@ void page_rank(Context& ctx) {
     DIARef<PageWithRank> ranks =
         ReadLines(ctx, "pagerank.in")
         .Map([](const std::string& input) {
-                 auto splitted = c7a::common::split(input, " ");
+                 auto splitted = thrill::common::split(input, " ");
                  return std::make_pair((size_t)std::stoi(splitted[0]), 1.0);
              }).Cache();
 
@@ -48,7 +48,7 @@ void page_rank(Context& ctx) {
 
     auto links = ReadLines(ctx, "pagerank.in")
                  .Map([](const std::string& line) {
-                          auto splitted = c7a::common::split(line, " ");
+                          auto splitted = thrill::common::split(line, " ");
                           std::vector<int> links;
                           links.reserve(splitted.size() - 1);
                           for (size_t i = 1; i < splitted.size(); i++) {
@@ -99,7 +99,7 @@ void page_rank(Context& ctx) {
 }
 
 int main(int, char**) {
-    return c7a::api::Run(page_rank);
+    return thrill::api::Run(page_rank);
 }
 
 /******************************************************************************/

@@ -1,20 +1,20 @@
 /*******************************************************************************
  * tests/mem/allocator_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/mem/allocator.hpp>
 #include <gtest/gtest.h>
+#include <thrill/mem/allocator.hpp>
 
 #include <deque>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 TEST(Allocator, Test1) {
     mem::Manager mem_manager(nullptr);
@@ -41,7 +41,7 @@ TEST(Allocator, Test1) {
     }
 }
 
-namespace c7a {
+namespace thrill {
 namespace mem {
 
 // forced instantiations
@@ -49,6 +49,6 @@ template class BypassAllocator<int>;
 template class Allocator<int>;
 
 } // namespace mem
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

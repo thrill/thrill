@@ -1,14 +1,14 @@
 /*******************************************************************************
  * tests/common/thread_barrier_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/thread_barrier.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/thread_barrier.hpp>
 
 #include <unistd.h>
 
@@ -19,7 +19,7 @@
 #include <thread>
 #include <vector>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 static void TestWaitFor(int count, int slowThread = -1) {
 
