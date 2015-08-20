@@ -1,27 +1,27 @@
 ################################################################################
 # tests/CMakeLists.txt
 #
-# CMake file for c7a testsuite
+# CMake file for Thrill testsuite
 ################################################################################
 
 # macro for building test programs with correct libraries
-macro(c7a_build_test TARGETNAME)
+macro(thrill_build_test TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME} c7a gtest gtest_main ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} thrill gtest gtest_main ${ALL_LIBRARIES})
 
-endmacro(c7a_build_test)
+endmacro(thrill_build_test)
 
-# macro for building test programs, without main() in c7a_tests.cpp
+# macro for building test programs, without main() in gtest_main
 macro(build_plain PROGNAME)
 
   string(REPLACE "/" "_" TESTNAME "${PROGNAME}") # replace slashes
 
-  c7a_build_test(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
+  thrill_build_test(${TESTNAME} ${PROGNAME}.cpp ${ARGN})
 
 endmacro(build_plain)
 
-# macro for building test programs, adding gtest runner in c7a_tests.cpp
+# macro for building test programs, adding gtest runner in gtest_main
 macro(build_only PROGNAME)
 
   # append gtest runner program.
@@ -36,7 +36,7 @@ macro(test_only TESTNAME)
     # prepend valgrind call
     add_test(
       NAME ${TESTNAME}
-      COMMAND /usr/bin/valgrind ${C7A_VALGRIND_OPTS}
+      COMMAND /usr/bin/valgrind ${THRILL_VALGRIND_OPTS}
       --xml=yes --xml-file=${TESTNAME}.xml
       ./${TESTNAME} ${ARGN})
   else()
@@ -62,7 +62,7 @@ macro(build_test_group TESTNAME)
 
   string(REPLACE "/" "_" TARGETNAME "${TESTNAME}") # replace slashes
 
-  c7a_build_test(${TARGETNAME} ${ARGN})
+  thrill_build_test(${TARGETNAME} ${ARGN})
   test_only(${TARGETNAME})
 
 endmacro(build_test_group)

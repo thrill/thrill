@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/data/data_generators.hpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
@@ -9,10 +9,10 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
-#define C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#ifndef THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#define THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
-#include <c7a/common/functional.hpp>
+#include <thrill/common/functional.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 
 template <typename Type>
 class Generator;
@@ -203,6 +203,6 @@ std::vector<size_t> generate(size_t bytes, size_t /*min_size*/, size_t /*max_siz
     return result;
 }
 
-#endif // !C7A_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
+#endif // !THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
 /******************************************************************************/

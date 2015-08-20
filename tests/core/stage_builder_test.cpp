@@ -1,23 +1,21 @@
 /*******************************************************************************
  * tests/core/stage_builder_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
 #include <gtest/gtest.h>
+#include <thrill/thrill.hpp>
 
 #include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::DIARef;
-using c7a::Context;
+using namespace thrill; // NOLINT
 
 TEST(Stage, CountReferencesSimple) {
 

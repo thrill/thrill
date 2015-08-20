@@ -1,17 +1,17 @@
 /*******************************************************************************
  * tests/mem/malloc_tracker_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/mem/malloc_tracker.hpp>
 #include <gtest/gtest.h>
+#include <thrill/mem/malloc_tracker.hpp>
 
-using namespace c7a;
+using namespace thrill;
 
 TEST(MallocTracker, Test1) {
 

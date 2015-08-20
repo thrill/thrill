@@ -1,28 +1,28 @@
 /*******************************************************************************
  * tests/net/group_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/mem/manager.hpp>
-#include <c7a/net/collective_communication.hpp>
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/group.hpp>
-#include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
+#include <thrill/mem/manager.hpp>
+#include <thrill/net/collective_communication.hpp>
+#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/group.hpp>
+#include <thrill/net/manager.hpp>
 
 #include <random>
 #include <string>
 #include <thread>
 #include <vector>
 
-using namespace c7a;
-using namespace c7a::net;
+using namespace thrill; // NOLINT
+using namespace thrill::net; // NOLINT
 
 static void ThreadInitializeAsyncRead(Group* net) {
     // send a message to all other clients except ourselves.

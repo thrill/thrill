@@ -1,18 +1,16 @@
 /*******************************************************************************
  * benchmarks/serialization/bench_serialization.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
-#ifndef C7A_BENCH_SERIALIZATION_HEADER
-#define C7A_BENCH_SERIALIZATION_HEADER
 
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/data/file.hpp>
-#include <c7a/data/serialization.hpp>
-#include <c7a/data/serialization_cereal.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/data/file.hpp>
+#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_cereal.hpp>
 
 #include <cstdlib>
 #include <iomanip>
@@ -22,7 +20,7 @@
 
 #include "data.hpp"
 
-using namespace c7a;
+using namespace thrill; // NOLINT
 
 //! serializes a given object and measures its time
 /*! \param t The object that shall be serialized
@@ -154,5 +152,4 @@ int main() {
     return 1;
 }
 
-#endif
 /******************************************************************************/

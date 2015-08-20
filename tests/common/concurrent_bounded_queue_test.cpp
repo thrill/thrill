@@ -1,21 +1,21 @@
 /*******************************************************************************
  * tests/common/concurrent_bounded_queue_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/concurrent_bounded_queue.hpp>
-#include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/concurrent_bounded_queue.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <atomic>
 #include <string>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     ThreadPool pool(8);

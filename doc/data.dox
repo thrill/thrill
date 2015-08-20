@@ -2,14 +2,14 @@
 /*******************************************************************************
  * doc/data.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 /******************************************************************************/
@@ -69,6 +69,6 @@ Iterators offer Iterator::HasNext() and Iterator::Next() as most ocmmon interfac
 */
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

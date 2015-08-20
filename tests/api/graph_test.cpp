@@ -1,25 +1,25 @@
 /*******************************************************************************
  * tests/api/graph_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/cache.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/dia.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/prefixsum.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/stats_graph.hpp>
-#include <c7a/api/write_lines_many.hpp>
-#include <c7a/api/zip.hpp>
-#include <c7a/common/logger.hpp>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/dia.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/stats_graph.hpp>
+#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/zip.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <gtest/gtest.h>
 
@@ -29,11 +29,9 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::api::StatsGraph;
-using c7a::api::StatsNode;
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill;
+using api::StatsGraph;
+using api::StatsNode;
 
 TEST(Graph, SimpleGraph) {
 
