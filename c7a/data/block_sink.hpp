@@ -46,41 +46,6 @@ public:
     }
 };
 
-/*!
- * ForwardingBlockSink is used when multiple block producers need to write to
- * the same BlockSink (workers push blocks to the same queue).
- * Close can be called multiple times and the actial destination BlockSink is
- * only closed when the expected number of close operations is reached.
- */
-class ForwardingBlockSink : public BlockSink
-{
-public:
-
-    ForwardingBlockSink(BlockSink& destination, size_t num_sources = 1)
-        : destination_(destination), expected_closed_(num_sources) {
-            assert(num_sources > 0);
-        }
-
-    //! Closes the sink. Can not be called multiple times
-    void Close() final {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (++closed_ == expected_closed_)
-            destination_.Close();
-    }
-
-    //! Appends the Block, moving it out.
-    void AppendBlock(const Block& b) final {
-        std::lock_guard<std::mutex> lock(mutex_);
-        destination_.AppendBlock(b);
-    }
-
-private:
-    BlockSink& destination_;
-    size_t expected_closed_;
-    size_t closed_ = 0;
-    std::mutex mutex_;
-};
-
 //! \}
 
 } // namespace data
