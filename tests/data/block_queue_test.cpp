@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/data/block_queue_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -9,14 +9,14 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/thread_pool.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/concat_block_source.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/thread_pool.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/concat_block_source.hpp>
 
 #include <string>
 
-using namespace c7a;
+using namespace thrill;
 
 using MyQueue = data::BlockQueue;
 using MyBlockSource = MyQueue::BlockSource;

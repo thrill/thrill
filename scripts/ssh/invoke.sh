@@ -15,7 +15,7 @@ while getopts "u:h:cvC:" opt; do
     case "$opt" in
     h)
         # this overrides the user environment variable
-        C7A_HOSTLIST=$OPTARG
+        THRILL_HOSTLIST=$OPTARG
         ;;
     \?)  echo "TODO: Help"
         ;;
@@ -43,7 +43,7 @@ cmd=$1
 shift || true
 
 if [ -z "$cmd" ]; then
-    echo "Usage: $0 [-h hostlist] c7a_executable [args...]"
+    echo "Usage: $0 [-h hostlist] thrill_executable [args...]"
     echo "More Options:"
     echo "  -c         copy program to hosts and execute"
     echo "  -C <path>  remove directory to change into"
@@ -54,15 +54,15 @@ if [ -z "$cmd" ]; then
 fi
 
 if [ ! -e "$cmd" ]; then
-  echo "c7a executable \"$cmd\" does not exist?" >&2
+  echo "Thrill executable \"$cmd\" does not exist?" >&2
   exit 1
 fi
 
 # get absolute path
 cmd=`readlink -f "$cmd"`
 
-if [ -z "$C7A_HOSTLIST" ]; then
-    echo "No host list specified and C7A_HOSTLIST variable is empty." >&2
+if [ -z "$THRILL_HOSTLIST" ]; then
+    echo "No host list specified and THRILL_HOSTLIST variable is empty." >&2
     exit 1
 fi
 
@@ -71,16 +71,16 @@ if [ -z "$dir" ]; then
 fi
 
 if [ $verbose -ne 0 ]; then
-    echo "Hosts: $C7A_HOSTLIST"
+    echo "Hosts: $THRILL_HOSTLIST"
     echo "Command: $cmd"
 fi
 
 rank=0
 uuid=$(cat /proc/sys/kernel/random/uuid)
 
-# check C7A_HOSTLIST for hosts without port numbers: add 10000+rank
+# check THRILL_HOSTLIST for hosts without port numbers: add 10000+rank
 hostlist=()
-for hostport in $C7A_HOSTLIST; do
+for hostport in $THRILL_HOSTLIST; do
   port=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $2 }')
   if [ -z "$port" ]; then
       hostport="$hostport:$((10000+rank))"
@@ -90,9 +90,9 @@ for hostport in $C7A_HOSTLIST; do
 done
 
 rank=0
-C7A_HOSTLIST="${hostlist[@]}"
+THRILL_HOSTLIST="${hostlist[@]}"
 
-for hostport in $C7A_HOSTLIST; do
+for hostport in $THRILL_HOSTLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
     echo "Connecting to $host to invoke $cmd"
@@ -104,19 +104,19 @@ for hostport in $C7A_HOSTLIST; do
       ( cat $cmd | \
               ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
                   $host \
-                  "export C7A_HOSTLIST=\"$C7A_HOSTLIST\" C7A_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
+                  "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cat - > \"$REMOTENAME\" && chmod +x \"$REMOTENAME\" && cd $dir && \"$REMOTENAME\" $* && rm \"$REMOTENAME\""
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $host \
-          "export C7A_HOSTLIST=\"$C7A_HOSTLIST\" C7A_RANK=\"$rank\" && cd $dir && $cmd $*" &
+          "export THRILL_HOSTLIST=\"$THRILL_HOSTLIST\" THRILL_RANK=\"$rank\" && cd $dir && $cmd $*" &
   fi
   rank=$((rank+1))
 done
 
 echo "Waiting for execution to finish."
-for hostport in $C7A_HOSTLIST; do
+for hostport in $THRILL_HOSTLIST; do
     wait
 done
 echo "Done."

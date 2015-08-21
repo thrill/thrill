@@ -1,17 +1,17 @@
 /*******************************************************************************
  * tests/data/multiplexer_header_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/multiplexer_header.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/multiplexer_header.hpp>
 
-using namespace c7a;
-using namespace c7a::data;
+using namespace thrill;
+using namespace thrill::data;
 
 struct StreamTest : public::testing::Test {
     StreamTest() {
