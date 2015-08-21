@@ -13,6 +13,7 @@
 #define THRILL_DATA_BLOCK_READER_HEADER
 
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
