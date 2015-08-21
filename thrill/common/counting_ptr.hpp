@@ -4,7 +4,7 @@
  * An intrusive reference counting pointer which is much more light-weight than
  * std::shared_ptr.
  *
- * Borrowed of STXXL. See http://stxxl.sourceforge.net
+ * Borrowed of STXXL under the Boost license. See http://stxxl.sourceforge.net
  *
  * Part of Project Thrill.
  *
@@ -26,6 +26,16 @@
 namespace thrill {
 namespace common {
 
+//! function pointer type of deleter used with CountingPtr.
+template <typename Type>
+using CountingPtrDeleter = void (*)(Type*);
+
+//! default deleter for CountingPtr
+template <typename Type>
+void default_deleter(Type* ptr) noexcept {
+    delete ptr;
+}
+
 /*!
  * High-performance smart pointer used as a wrapping reference counting pointer.
  *
@@ -42,14 +52,17 @@ namespace common {
  * methods required for reference counting.
  *
  * The whole method is more similar to boost's instrusive_ptr, but also yields
- * something resembling std::shared_ptr.
+ * something resembling std::shared_ptr. However, compared to std::shared_ptr,
+ * this class only contains a single pointer, while shared_ptr contains two
+ * which are only related if constructed with std::make_shared.
  */
-template <class Type>
+template <typename Type,
+          CountingPtrDeleter<Type> deleter = default_deleter<Type> >
 class CountingPtr
 {
 public:
     //! contained type.
-    typedef Type element_type;
+    using element_type = Type;
 
 private:
     //! the pointer to the currently referenced object.
@@ -57,41 +70,72 @@ private:
 
 protected:
     //! increment reference count for current object.
-    void IncReference()
+    void IncReference() noexcept
     { IncReference(ptr_); }
 
     //! increment reference count of other object.
-    void IncReference(Type* o)
+    void IncReference(Type* o) noexcept
     { if (o) o->IncReference(); }
 
     //! decrement reference count of current object and maybe delete it.
-    void DecReference()
-    { if (ptr_ && ptr_->DecReference()) delete ptr_; }
+    void DecReference() noexcept
+    { if (ptr_ && ptr_->DecReference()) deleter(ptr_); }
 
 public:
+    //! all CountingPtr are friends such that they may steal pointers.
+    template <typename Other, CountingPtrDeleter<Other> >
+    friend class CountingPtr;
+
     //! default constructor: contains a nullptr pointer.
     CountingPtr() : ptr_(nullptr)
     { }
 
     //! constructor with pointer: initializes new reference to ptr.
-    CountingPtr(Type* ptr) : ptr_(ptr)
+    explicit CountingPtr(Type* ptr) : ptr_(ptr)
     { IncReference(); }
 
     //! copy-constructor: also initializes new reference to ptr.
-    CountingPtr(const CountingPtr& other_ptr) : ptr_(other_ptr)
+    CountingPtr(const CountingPtr& other_ptr) : ptr_(other_ptr.ptr_)
     { IncReference(); }
 
-    //! assignment operator: dereference current object and acquire reference on
-    //! new one.
-    CountingPtr& operator = (const CountingPtr& other_ptr)
+    //! move-constructor: just moves pointer, does not change reference counts.
+    CountingPtr(CountingPtr&& other_ptr) : ptr_(other_ptr.ptr_) {
+        other_ptr.ptr_ = nullptr;
+    }
+
+    //! copy-constructor from other counting pointer (pointer types must be
+    //! convertible): also initializes new reference to ptr.
+    template <typename Other, CountingPtrDeleter<Other> other_deleter>
+    CountingPtr(const CountingPtr<Other, other_deleter>& other_ptr)
+        : ptr_(other_ptr.ptr_)
+    { IncReference(); }
+
+    //! move-constructor from other counting pointer (pointer types must be
+    //! convertible): also initializes new reference to ptr.
+    template <typename Other>
+    CountingPtr(CountingPtr<Other>&& other_ptr) : ptr_(other_ptr.ptr_)
+    { other_ptr.ptr_ = nullptr; }
+
+    //! copy-assignment operator: dereference current object and acquire
+    //! reference on new one.
+    CountingPtr& operator = (const CountingPtr& other_ptr) noexcept
     { return operator = (other_ptr.ptr_); }
 
-    //! assignment to pointer: dereference current and acquire reference to new
-    //! ptr.
-    CountingPtr& operator = (Type* ptr) {
+    //! copy-assignment to pointer: dereference current and acquire reference to
+    //! new ptr.
+    CountingPtr& operator = (Type* ptr) noexcept {
         IncReference(ptr);
         DecReference();
         ptr_ = ptr;
+        return *this;
+    }
+
+    //! move-assignment operator: dereference current object and acquire other
+    //! one.
+    CountingPtr& operator = (CountingPtr&& other_ptr) noexcept {
+        DecReference();
+        ptr_ = other_ptr.ptr_;
+        other_ptr.ptr_ = nullptr;
         return *this;
     }
 
@@ -100,47 +144,47 @@ public:
     { DecReference(); }
 
     //! return the enclosed object as reference.
-    Type& operator * () const {
+    Type& operator * () const noexcept {
         assert(ptr_);
         return *ptr_;
     }
 
     //! return the enclosed pointer.
-    Type* operator -> () const {
+    Type* operator -> () const noexcept {
         assert(ptr_);
         return ptr_;
     }
 
     //! implicit cast to the enclosed pointer.
-    operator Type* () const
+    operator Type* () const noexcept
     { return ptr_; }
 
     //! return the enclosed pointer.
-    Type * get() const
+    Type * get() const noexcept
     { return ptr_; }
 
     //! test equality of only the pointer values.
-    bool operator == (const CountingPtr& other_ptr) const
+    bool operator == (const CountingPtr& other_ptr) const noexcept
     { return ptr_ == other_ptr.ptr_; }
 
     //! test inequality of only the pointer values.
-    bool operator != (const CountingPtr& other_ptr) const
+    bool operator != (const CountingPtr& other_ptr) const noexcept
     { return ptr_ != other_ptr.ptr_; }
 
     //! cast to bool check for a nullptr pointer
-    operator bool () const
+    operator bool () const noexcept
     { return valid(); }
 
     //! test for a non-nullptr pointer
-    bool valid() const
+    bool valid() const noexcept
     { return (ptr_ != nullptr); }
 
     //! test for a nullptr pointer
-    bool empty() const
+    bool empty() const noexcept
     { return (ptr_ == nullptr); }
 
     //! if the object is referred by this CountingPtr only
-    bool unique() const
+    bool unique() const noexcept
     { return ptr_ && ptr_->unique(); }
 
     //! make and refer a copy if the original object was shared.
@@ -149,9 +193,15 @@ public:
             operator = (new Type(*ptr_));
     }
 
+    //! release contained pointer
+    void reset() {
+        DecReference();
+        ptr_ = nullptr;
+    }
+
     //! swap enclosed object with another counting pointer (no reference counts
     //! need change)
-    void swap(CountingPtr& b) {
+    void swap(CountingPtr& b) noexcept {
         std::swap(ptr_, b.ptr_);
     }
 };
@@ -195,7 +245,7 @@ public:
 
 public:
     //! Call whenever setting a pointer to the object
-    void IncReference() const
+    void IncReference() const noexcept
     { ++reference_count_; }
 
     /*!
@@ -205,15 +255,15 @@ public:
      * \return if the object has to be deleted (i.e. if it's reference count
      * dropped to zero)
      */
-    bool DecReference() const
+    bool DecReference() const noexcept
     { return (--reference_count_ == 0); }
 
     //! Test if the ReferenceCount is referenced by only one CountingPtr.
-    bool unique() const
+    bool unique() const noexcept
     { return (reference_count_ == 1); }
 
     //! Return the number of references to this object (for debugging)
-    size_t reference_count() const
+    size_t reference_count() const noexcept
     { return reference_count_; }
 };
 
