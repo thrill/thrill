@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/data/multiplexer_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
@@ -9,17 +9,16 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cyclic_barrier.hpp>
-#include <c7a/data/channel.hpp>
-#include <c7a/data/multiplexer.hpp>
-#include <c7a/net/dispatcher_thread.hpp>
-#include <c7a/net/group.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/channel.hpp>
+#include <thrill/data/multiplexer.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
+#include <thrill/net/group.hpp>
 
 #include <string>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 static const bool debug = false;
 static const size_t test_block_size = 1024;

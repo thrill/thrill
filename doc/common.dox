@@ -2,70 +2,30 @@
 /*******************************************************************************
  * doc/common.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
+
+//! Contains many common tools and helpers shared by higher layers. See \ref common.
 namespace common {
 
 /******************************************************************************/
-/** \page common Common Utilities and Helpers
+/** \page common Common Tools and Helpers
 
-- \subpage common_logger
+The namespace common contains many common tools and helpers shared by higher layers. Each file or component in common must be usable independently of all others.
+
+- \ref Logger "LOG and sLOG for development and debugging"
 - \subpage common_stats
-- \subpage common_cmdline
-- \subpage common_thread_pool
+- \ref CmdlineParser "Command Line Parser"
+- \ref ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
+- \ref delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
 
-*/
-
-/******************************************************************************/
-/** \page common_logger LOG and sLOG for development and debugging
-
-This is a short description of how to use LOG and sLOG for rapid development of modules with debug output, and how to keep it afterwards.
-
-There are two classes Logger and SpacingLogger, but one does not use these directly.
-
-Instead there are the macros: LOG and sLOG that can be used as such:
-\code
-LOG << "This will be printed with a newline";
-sLOG << "Print variables a" << a << "b" << b << "c" << c;
-\endcode
-
-There macros only print the lines if the boolean variable **debug** is true. This variable is searched for in the scope of the LOG, which means it can be set or overridden in the function scope, the class scope, from **inherited classes**, or even the global scope.
-
-\code
-class MyClass
-{
-    static const bool debug = true;
-
-    void func1()
-    {
-        LOG << "Hello World";
-
-        LOG0 << "This is temporarily disabled.";
-    }
-
-    void func2()
-    {
-        static const bool debug = false;
-        LOG << "This is not printed any more.";
-
-        LOG1 << "But this is forced.";
-    }
-};
-\endcode
-
-There are two variation of LOG and sLOG: append 0 or 1 for temporarily disabled or enabled debug lines. This suffix overrides the debug variable's setting.
-
-After a module works as intended, one can just set debug = false, and all debug output will disappear.
-
-## Critique of LOG and sLOG
-
-The macros are only for rapid module-based development. It cannot be used as an extended logging system for our network framework, where logs of network execution and communication are collected for later analysis. Something else is needed here.
+See the \ref thrill::common "namespace common" for a full list of utilities.
 
 */
 
@@ -85,90 +45,7 @@ and \ref tests/common/stats_counter_test.cpp
 
  */
 
-/******************************************************************************/
-/** \page common_cmdline Command Line Parser
-
-c7a now contains a rather sophisticated command line parser for C++, \ref CmdlineParser, which enables rapid creation of complex command line constructions. Maybe most importantly for application with data: the parser will recognize byte sizes with SI/IEC suffixes like '2 GiB' and transform it appropriately.
-
-\snippet tests/common/cmdline_parser_example.cpp example
-
-When running the program above without arguments, it will print:
-\verbatim
-$ ./common_cmdline_parser_example
-Missing required argument for parameter 'filename'
-
-Usage: ./common_cmdline_parser_example [options] <filename>
-
-This may some day be a useful program, which solves many serious problems of
-the real world and achives global peace.
-
-Author: Timo Bingmann <tb@panthema.net>
-
-Parameters:
-  filename  A filename to process
-Options:
-  -r, --rounds N  Run N rounds of the experiment.
-  -s, --size      Number of bytes to process.
-\endverbatim
-
-Nice output, notice the line wrapping of the description and formatting of parameters and arguments. These too are wrapped if the description is too long.
-
-We now try to give the program some arguments:
-\verbatim
-$ ./common_cmdline_parser_example -s 2GiB -r 42 /dev/null
-Option -s, --size set to 2147483648.
-Option -r, --rounds N set to 42.
-Parameter filename set to "/dev/null".
-Command line parsed okay.
-Parameters:
-  filename        (string)            "/dev/null"
-Options:
-  -r, --rounds N  (unsigned integer)  42
-  -s, --size      (bytes)             2147483648
-\endverbatim
-The output shows pretty much what happens. The command line parser is by default in a verbose mode outputting all arguments and values parsed. The debug summary shows to have values the corresponding variables were set.
-
-One feature worth naming is that the parser also supports lists of strings, i.e. \c std::vector<std::string> via \ref CmdlineParser::AddParamStringlist() and similar.
-
-\example tests/common/cmdline_parser_example.cpp
-This example is documented in \ref common_cmdline tutorial.
-
-*/
-
-/******************************************************************************/
-/** \page common_thread_pool Thread Pool
-
-The ThreadPool starts p worker threads which process Jobs that are \ref ThreadPool::Enqueue "enqueued" to the pool. The Jobs themselves can enqueue more jobs that will be processed when a thread is ready.
-
-The ThreadPool terminates when the queue is empty and all threads are idle when called with \ref ThreadPool::LoopUntilEmpty "LoopUntilEmpty", or runs until \ref ThreadPool::Terminate "Terminate" is called when run with \ref ThreadPool::LoopUntilTerminate "LoopUntilTerminate". Note that the threads in the pool start **before** the two loop functions are called. In case of LoopUntilEmpty the threads continue to be idle afterwards, and can be reused, until the ThreadPool is destroyed.
-
-Jobs have `std::function<void()>` signature. The best method to pass parameters to Jobs is to use lambda captures. Alternatively, old-school objects implementing operator(), or std::binds can be used.
-
-\code
-ThreadPool pool(4); // pool with 4 threads
-
-int value = 0;
-pool.Enqueue([&value]() {
-  // increment value in another thread.
-  ++value;
-});
-
-pool.LoopUntilEmpty();
-\endcode
-
-## Synchronization Primitives
-
-Beyond threads from the ThreadPool, the framework contains two fast synchronized queue containers:
-- concurrent_queue
-- concurrent_bounded_queue.
-
-If the Intel Thread Building Blocks are available, then these use their lock-free implementations, which are very fast, but do busy-waiting for items. Otherwise, compatible replacements are used.
-
-The concurrent_queue has no busy-waiting pop(), only a try_pop() method. This should be preferred! The concurrent_bounded_queue<T> has a blocking pop(), but it probably does busy-waiting.
-
-*/
-
 } // namespace common
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

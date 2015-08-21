@@ -9,8 +9,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/c7a.hpp>
-#include <c7a/common/logger.hpp>
+#include <thrill/thrill.hpp>
+#include <thrill/common/logger.hpp>
 
 #include <gtest/gtest.h>
 
@@ -20,9 +20,9 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::api::Context;
-using c7a::api::DIARef;
+using namespace thrill;
+using thrill::api::Context;
+using thrill::api::DIARef;
 
 TEST(IO, GenerateFromFileCorrectAmountOfCorrectIntegers) {
     api::RunSameThread(

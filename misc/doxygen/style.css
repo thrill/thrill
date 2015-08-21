@@ -159,3 +159,48 @@ div.groupHeader {
 div.line {
    line-height: 1.2;
 }
+
+/* My own table style class with plain lines */
+
+table.mystyle1 {
+   margin: 0 auto;
+   max-width: 80ex;
+   border-collapse: collapse;
+   border-spacing: 0;
+}
+
+table.mystyle1 tr {
+   border-collapse: collapse;
+}
+
+table.mystyle1 td {
+   border: 1px solid #333366;
+   padding: 4px;
+   border-collapse: collapse;
+}
+
+/* table style for template parameter tables */
+
+table.params {
+   margin: 0 auto;
+   width: 100%;
+   border-collapse: collapse;
+   border-spacing: 0;
+   border: 1px solid #A8B8D9;
+   -moz-border-radius: 12px;
+   -webkit-border-radius: 12px;
+   border-radius: 12px;
+}
+
+table.params tr {
+   border-collapse: collapse;
+}
+
+table.params td {
+   /* border: 1px solid black; */
+   /* border-radius: 0.5em; */
+   /* -webkit-border-radius: .5em; */
+   /* -moz-border-radius: .5em; */
+   padding: 4px;
+   border-collapse: collapse;
+}
