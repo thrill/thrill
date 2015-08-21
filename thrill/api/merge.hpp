@@ -20,6 +20,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
+#include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/net/collective_communication.hpp>
 
 #include <algorithm>
@@ -85,49 +86,38 @@ public:
 
         size_t result_count = 0;
 
-        // get inbound readers from all Channels
-        std::vector<data::Channel::CachingConcatReader> readers {
-            channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
-        };
+        typedef data::BufferedBlockReader<ValueType, data::ConcatBlockSource<data::CachingBlockQueueSource>> Reader; 
 
-        // Inefficient merge implementation, since readers
-        // do not have something like peek() (Read without advancing) yet.
-        std::deque<ValueType> q1;
-        std::deque<ValueType> q2;
+        // get buffered inbound readers from all Channels
+        std::vector<Reader> readers;
+        for(size_t i = 0; i < channels_.size(); i++) {
+            readers.emplace_back(std::move(channels_[i]->OpenCachingReaderSource()));
+        }
 
         while(true) {
-            if(q1.size() == 0 && readers[0].HasNext()) {
-                q1.push_back(readers[0].Next<ValueType>());
-            }
-            if(q2.size() == 0 && readers[1].HasNext()) {
-                q2.push_back(readers[1].Next<ValueType>());
-            }
 
-            ValueType r;
+            int biggest = -1;
 
-            if(q1.size() == 0) {
-                if(q2.size() == 0) {
-                    break; //No more elems.
-                } else {
-                    r = q2.front();
-                    q2.pop_front();
-                }
-            } else if(q2.size() == 0) {
-                r = q1.front();
-                q1.pop_front();
-            } else {
-                if(comperator_(q1.front(), q2.front())) {
-                    r = q1.front();
-                    q1.pop_front();
-                } else {
-                    r = q2.front();
-                    q2.pop_front();
+            for (size_t i = 0; i < readers.size(); i++) {
+                if(readers[i].HasValue()) {
+                    if(biggest == -1 || comperator_(readers[i].Value(), readers[biggest].Value())) {
+                       biggest = (int)i; 
+                    }
                 }
             }
-            
+
+            if(biggest == -1) {
+                //We finished.
+                break;
+            }
+
+            auto &reader = readers[biggest];
+
             for (auto func : DIANode<ValueType>::callbacks_) {
-                func(r);
+                func(reader.Value());
             }
+
+            reader.Next();
 
             result_count++;
         }
