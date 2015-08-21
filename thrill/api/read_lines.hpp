@@ -13,15 +13,13 @@
 #ifndef THRILL_API_READ_LINES_HEADER
 #define THRILL_API_READ_LINES_HEADER
 
-#include <thrill/net/buffer_builder.hpp>
-// THRILL_{/UN}LIKELY
-#include <thrill/common/item_serialization_tools.hpp>
-#include <thrill/common/math.hpp>
-#include <thrill/common/string.hpp>
-
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
+#include <thrill/common/string.hpp>
+#include <thrill/net/buffer_builder.hpp>
 
 #include <fcntl.h>
 #include <fstream>
