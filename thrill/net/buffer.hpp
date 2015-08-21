@@ -213,7 +213,7 @@ public:
         return std::string(reinterpret_cast<const char*>(data_), size_);
     }
 
-	//! copy part of contents into std::string
+    //! copy part of contents into std::string
     std::string PartialToString(size_t begin, size_t length) const {
         assert(size_ >= begin + length);
         return std::string(reinterpret_cast<const char*>(data_ + begin), length);

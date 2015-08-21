@@ -43,7 +43,7 @@ class BufferBuilder
 protected:
     //! type used to store the bytes
     using Byte = unsigned char;
-	
+
     //! simple pointer iterators
     using iterator = Byte *;
     //! simple pointer iterators
@@ -230,7 +230,7 @@ public:
         return std::string(reinterpret_cast<const char*>(data_), size_);
     }
 
-	//! copy part of contents into std::string
+    //! copy part of contents into std::string
     std::string PartialToString(size_t begin, size_t length) const {
         assert(size_ >= begin + length);
         return std::string(reinterpret_cast<const char*>(data_ + begin), length);
@@ -334,8 +334,8 @@ public:
 
     //! \}
 
-	//! \name Access
-	//! \{
+    //! \name Access
+    //! \{
 
     //! return mutable iterator to first element
     iterator begin()
@@ -357,7 +357,7 @@ public:
     const_iterator cend() const
     { return end(); }
 
-	//! return the i-th position of the vector
+    //! return the i-th position of the vector
     reference operator [] (size_t i) {
         assert(i < size_);
         return *(begin() + i);
