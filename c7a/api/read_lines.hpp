@@ -82,10 +82,10 @@ public:
 				contains_compressed_file_ = true;
 			}
 
-            directory_size += filestat.st_size;
-
             filesize_prefix.emplace_back(std::move(filepath), directory_size);
+            directory_size += filestat.st_size;
         }
+		filesize_prefix.emplace_back("", directory_size);
         globfree(&glob_result);
     }
 
@@ -157,7 +157,7 @@ private:
               num_workers_(num_workers),
 			  contains_compressed_file_(contains_compressed_file) {
 
-            input_size_ = files[files.size() - 1].second;
+            input_size_ = files[NumFiles()].second;
 
             // Go to start of 'local part'.
 			auto my_start_and_end = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
@@ -166,22 +166,18 @@ private:
 			my_end_ = std::get<1>(my_start_and_end);
 
 
-            while (files_[current_file_].second <= my_start) {
+            while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
             }
 
 			if (contains_compressed_file_) {
-				for (size_t file_nr = current_file_; file_nr < files_.size(); file_nr++) {
+				for (size_t file_nr = current_file_; file_nr < NumFiles(); file_nr++) {
 					LOG << "file: " << file_nr << " my_end_: " << my_end_ << "second: " << files_[file_nr].second;
-					if (files[file_nr].second == my_end_) {
+					if (files[file_nr + 1].second == my_end_) {
 						break; 
 					}
-					if (files[file_nr].second > my_end_) {
-						if (file_nr) {
-							my_end_ = files_[file_nr - 1].second;
-						} else {
-							my_end_ = 0;
-						}
+					if (files[file_nr + 1].second > my_end_) {
+						my_end_ = files_[file_nr].second;
 						break;
 					}
 				}
@@ -199,14 +195,7 @@ private:
             // offset = start - sum of previous file sizes
 			// cannot seek in compressed file
 			if (!contains_compressed_file_) {
-				if (current_file_) {
-					offset_ = lseek(c_file_, my_start - files_[current_file_ - 1].second, SEEK_CUR);
-					current_size_ = files_[current_file_].second - files_[current_file_ - 1].second;
-				}
-				else {
-					offset_ = lseek(c_file_, my_start, SEEK_CUR);
-					current_size_ = files_[0].second;
-				}
+				offset_ = lseek(c_file_, my_start - files_[current_file_].second, SEEK_CUR);
 			}
 
             if (offset_ != 0) {
@@ -291,12 +280,7 @@ private:
         //! returns true, if an element is available in local part
         bool HasNext() {
 			if (!contains_compressed_file_) {
-				if (current_file_) {
-					return (offset_ + current_ + files_[current_file_ - 1].second < my_end_);
-				}
-				else {
-					return offset_ + current_ < my_end_;
-				}
+				return (offset_ + current_ + files_[current_file_].second < my_end_);
 			} else {
 				//if block is fully read, read next block. needs to be done here
 				// as HasNext() has to know if file is finished
@@ -310,12 +294,13 @@ private:
 					}
 					else {						
 						//already at last file
-						if (current_file_ >= files_.size() - 1) {
+						if (current_file_ >= NumFiles() - 1) {
+							assert(current_file_ == NumFiles() - 1);
 							return false;
 						}
 						close(c_file_);
 						//if (this worker reads at least one more file)
-						if (my_end_ > files_[current_file_].second) {
+						if (my_end_ > files_[current_file_ + 1].second) {
 							current_file_++;
 							offset_ = 0;
 
@@ -327,14 +312,14 @@ private:
 						}
 					}
                 } else {
-					if (current_file_) {
-						return files_[current_file_ - 1].second < my_end_;
-					} else {
-						return my_end_;
-					}
+					return files_[current_file_].second < my_end_;
 				}
 			}
         }
+
+		size_t NumFiles() {
+			return files_.size() - 1;
+		}
 
 		//! Open file and return file handle
 		//! \param path Path to open
@@ -383,30 +368,28 @@ private:
 		}
 
     private:
-        //! Input files with inclusive size prefixsum.
+        //! Input files with size prefixsum.
         std::vector<FileSizePair> files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
-        //! Size of current file in bytes
-        size_t current_size_;
 		//! File handle to files_[current_file_]
         int c_file_;
 		//! Offset of current block in c_file_.
         size_t offset_ = 0;
-        //! Size of all files combined (in bytes)
-        size_t input_size_;
-        //! Worker ID
-        size_t my_id_;
-        //! total number of workers
-        size_t num_workers_;
+		//! Start of next element in current buffer.
+        size_t current_ = 0;
         //! (exclusive) end of local block
         size_t my_end_;
 		//! Byte buffer to create line-std::strings
-        net::BufferBuilder bb_;
-		//! Start of next element in current buffer.
-        size_t current_ = 0;
+        net::BufferBuilder bb_;		
+        //! Worker ID
+        size_t my_id_;
+        //! total number of workers
+        size_t num_workers_;	
 		//! True, if at least one input file is compressed
-		bool contains_compressed_file_;
+		bool contains_compressed_file_;	
+        //! Size of all files combined (in bytes)
+        size_t input_size_;		
     };
 
     //! Returns an InputLineIterator with a given input file stream.
