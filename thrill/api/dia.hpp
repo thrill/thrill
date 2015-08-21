@@ -460,6 +460,9 @@ public:
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
 
+    template <typename Comperator, typename SecondDIA> 
+    auto Merge(SecondDIA second_dia, const Comperator &comperator) const;
+
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
      * function defines how two elements are combined to a single element.
