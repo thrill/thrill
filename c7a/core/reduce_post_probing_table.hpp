@@ -134,6 +134,8 @@ public:
 
         auto& frame_writers = ht->FrameWriters();
 
+        auto& num_items_per_frame = ht->NumItemsPerFrame();
+
         //! Data structure for second reduce table
         std::vector<KeyValuePair> second_reduce;
 
@@ -152,7 +154,7 @@ public:
             if (file.NumItems() > 0)  {
 
                 size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-                                                         / ht->MaxItemsFillRate());
+                                                         / ht->MaxFrameFillRate());
 
                 // adjust size of second reduce table
                 second_reduce.resize(frame_length, ht->Sentinel());
@@ -179,7 +181,7 @@ public:
                     {
                         if (equal_to_function_(current->first, kv.first))
                         {
-                            current->second = std::move(ht->reduce_function_(current->second, kv.second));
+                            current->second = ht->reduce_function_(current->second, kv.second);
 
                             return;
                         }
@@ -195,9 +197,11 @@ public:
                     }
 
                     // insert new pair
-                    current->first = std::move(kv.first);
-                    current->second = std::move(kv.second);
+                    current->first = kv.first;
+                    current->second = kv.second;
                 }
+
+                num_items_per_frame[frame_id] = 0;
 
                 /////
                 // reduce data from primary table
@@ -217,7 +221,7 @@ public:
                         {
                             if (equal_to_function_(current->first, kv.first))
                             {
-                                current->second = std::move(ht->reduce_function_(current->second, kv.second));
+                                current->second = ht->reduce_function_(current->second, kv.second);
 
                                 return;
                             }
@@ -233,11 +237,10 @@ public:
                         }
 
                         // insert new pair
-                        current->first = std::move(kv.first);
-                        current->second = std::move(kv.second);
+                        current->first = kv.first;
+                        current->second = kv.second;
 
-                        items[i].first = std::move(ht->Sentinel().first);
-                        items[i].second = std::move(ht->Sentinel().second);
+                        items[i] = ht->Sentinel();
                     }
                 }
 
@@ -251,8 +254,7 @@ public:
                     {
                         ht->EmitAll(std::make_pair(current.first, current.second));
 
-                        second_reduce[i].first = std::move(ht->Sentinel().first);
-                        second_reduce[i].second = std::move(ht->Sentinel().second);
+                        second_reduce[i] = ht->Sentinel();
                     }
                 }
 
@@ -270,8 +272,7 @@ public:
                     {
                         ht->EmitAll(std::make_pair(current.first, current.second));
 
-                        items[i].first = std::move(ht->Sentinel().first);
-                        items[i].second = std::move(ht->Sentinel().second);
+                        items[i] = ht->Sentinel();
                     }
                 }
             }
@@ -308,8 +309,7 @@ public:
                 elements_to_emit[current.first - ht->BeginLocalIndex()] =
                     current.second;
 
-                vector_[i].first = std::move(ht->Sentinel().first);
-                vector_[i].second = std::move(ht->Sentinel().second);
+                vector_[i] = ht->Sentinel();
             }
         }
 
@@ -320,58 +320,6 @@ public:
         assert(index == ht->EndLocalIndex());
 
         ht->SetNumItems(0);
-    }
-};
-
-class PostRandomSpill
-{
-public:
-    template <typename ReducePostProbingTable>
-    void
-    operator () (ReducePostProbingTable* ht) const {
-
-        using KeyValuePair = typename ReducePostProbingTable::KeyValuePair;
-
-        auto& items = ht->Items();
-
-        auto& frame_writers = ht->FrameWriters();
-
-        size_t num_blocks = 4;
-        size_t block_size = 1024;
-
-        size_t valid_blocks = 0;
-        size_t num_items = 0;
-
-        while (valid_blocks < num_blocks) {
-
-            // randomly select slot, get slot idx
-            size_t block_idx = (rand() % ht->Size()) / block_size;
-
-            num_items = 0;
-
-            size_t offset = block_size*block_idx;
-
-            for (size_t global_index = offset; // TODO(ms): use pointer arithmetic for loop
-                 global_index < offset + block_size; global_index++)
-            {
-                KeyValuePair& current = items[global_index];
-                if (current.first != ht->Sentinel().first)
-                {
-                    data::File::Writer& writer = frame_writers[global_index / ht->FrameSize()];
-                    writer(current);
-
-                    items[global_index].first = std::move(ht->Sentinel().first);
-                    items[global_index].second = std::move(ht->Sentinel().second);
-
-                    num_items++;
-                }
-            }
-
-            if (num_items != 0) {
-                valid_blocks++;
-                ht->SetNumItems(ht->NumItems()-num_items);
-            }
-        }
     }
 };
 
@@ -401,8 +349,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool SendPair = false,
           typename FlushFunction = PostProbingReduceFlushToDefault<Key, ReduceFunction>,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>,
-          typename SpillFunction = PostRandomSpill>
+          typename EqualToFunction = std::equal_to<Key>>
 class ReducePostProbingTable
 {
     static const bool debug = false;
@@ -445,12 +392,11 @@ public:
                            size_t end_local_index = 0,
                            Value neutral_element = Value(),
                            size_t size = 1024 * 16,
-                           double max_items_fill_rate = 0.5,
+                           double max_frame_fill_rate = 0.5,
                            size_t frame_size = 32,
-                           const EqualToFunction& equal_to_function = EqualToFunction(),
-                           const SpillFunction& spill_function = PostRandomSpill())
+                           const EqualToFunction& equal_to_function = EqualToFunction())
         : size_(size),
-          max_items_fill_rate_(max_items_fill_rate),
+          max_frame_fill_rate_(max_frame_fill_rate),
           key_extractor_(key_extractor),
           emit_(std::move(emit)),
           frame_size_(frame_size),
@@ -460,7 +406,6 @@ public:
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
           neutral_element_(neutral_element),
-          spill_function_(spill_function),
           reduce_function_(reduce_function)
     {
         sLOG << "creating ReducePostProbingTable with" << emit_.size() << "output emiters";
@@ -468,7 +413,7 @@ public:
         assert(size > 0 &&
                (size & (size - 1)) == 0
                && "size must be a power of two");
-        assert(max_items_fill_rate >= 0.0 && max_items_fill_rate <= 1.0);
+        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
                && "frame_size must be a power of two");
         assert(frame_size <= size &&
@@ -486,6 +431,7 @@ public:
         sentinel_ = KeyValuePair(sentinel, Value());
         items_.resize(size_, sentinel_); // TODO(ms): we are allocating the whole vector here! is this optimal?
 
+        num_items_per_frame_ = (size_t) (static_cast<double>(size_) / static_cast<double>(num_frames_));
         srand(time(NULL));
     }
 
@@ -528,6 +474,8 @@ public:
         KeyValuePair* current = initial;
         KeyValuePair* last_item = &items_[size_ - 1];
 
+        size_t frame_id = global_index / frame_size_;
+
         while (!equal_to_function_(current->first, sentinel_.first))
         {
             if (equal_to_function_(current->first, kv.first))
@@ -535,7 +483,7 @@ public:
                 LOG << "match of key: " << kv.first
                     << " and " << current->first << " ... reducing...";
 
-                current->second = std::move(reduce_function_(current->second, kv.second));
+                current->second = reduce_function_(current->second, kv.second);
 
                 LOG << "...finished reduce!";
                 return;
@@ -554,25 +502,30 @@ public:
             // are occupied
             if (current == initial)
             {
-                data::File::Writer& writer = frame_writers_[global_index / frame_size_];
-                writer(*initial);
-                current->first = std::move(kv.first);
-                current->second = std::move(kv.second);
+                SpillFrame(frame_id);
+                current->first = kv.first;
+                current->second = kv.second;
+                // increase counter for partition
+                items_per_frame_[frame_id]++;
+                // increase total counter
+                num_items_++;
                 return;
             }
         }
 
-        if (static_cast<double>(num_items_+1) / static_cast<double>(size_)
-            > max_items_fill_rate_)
+        if (static_cast<double>(items_per_frame_[frame_id]+1)
+            / static_cast<double>(num_items_per_frame_)
+            > max_frame_fill_rate_)
         {
-            spill_function_(this);
+            SpillFrame(global_index / frame_size_);
         }
 
         // insert data
-        // TODO(ms): need to check maximal num items somehow
-        current->first = std::move(kv.first);
-        current->second = std::move(kv.second);
+        current->first = kv.first;
+        current->second = kv.second;
 
+        // increase counter for frame
+        items_per_frame_[global_index]++;
         // increase total counter
         num_items_++;
     }
@@ -585,10 +538,56 @@ public:
 
         flush_function_(this);
 
-        // reset total counter
-        num_items_ = 0;
-
         LOG << "Flushed items";
+    }
+
+    /*!
+     * Retrieve all items belonging to the frame
+     * having the most items. Retrieved items are then spilled
+     * to the provided file.
+     */
+    void SpillLargestFrame()
+    {
+        // get frame with max size
+        size_t p_size_max = 0;
+        size_t p_idx = 0;
+        for (size_t i = 0; i < num_frames_; i++)
+        {
+            if (items_per_frame_[i] > p_size_max)
+            {
+                p_size_max = items_per_frame_[i];
+                p_idx = i;
+            }
+        }
+
+        SpillFrame(p_idx);
+    }
+
+    /*!
+     * Spills all items of a frame.
+     *
+     * \param frame_id The id of the frame to be spilled.
+     */
+    void SpillFrame(size_t frame_id)
+    {
+        data::File::Writer& writer = frame_writers_[frame_id];
+
+        for (size_t global_index = frame_id * frame_size_;
+             global_index < frame_id * frame_size_ + frame_size_; global_index++)
+        {
+            KeyValuePair& current = items_[global_index];
+            if (current.first != sentinel_.first)
+            {
+                writer(current);
+            }
+        }
+
+        // reset total counter
+        num_items_ -= items_per_frame_[frame_id];
+        // reset partition specific counter
+        items_per_frame_[frame_id] = 0;
+        // increase spill counter
+        num_spills_++;
     }
 
     /*!
@@ -671,6 +670,15 @@ public:
     }
 
     /*!
+     * Returns the vector of number of items per frame.
+     *
+     * @return Vector of number of items per frame.
+     */
+    std::vector<size_t>& NumItemsPerFrame() {
+        return items_per_frame_;
+    }
+
+    /*!
      * Returns the vector of key/value pairs.
      *
      * @return Vector of key/value pairs.
@@ -680,12 +688,12 @@ public:
     }
 
     /*!
-     * Returns the max items fill rate.
+     * Returns the maximal fill rate.
      *
-     * @return Max Items Fill Rate.
+     * @return Maximal fill rate.
      */
-    double MaxItemsFillRate() const {
-        return max_items_fill_rate_;
+    double MaxFrameFillRate() const {
+        return max_frame_fill_rate_;
     }
 
     /*!
@@ -764,7 +772,7 @@ protected:
 
     //! Maximal allowed fill rate per partition
     //! before items get spilled.
-    double max_items_fill_rate_;
+    double max_frame_fill_rate_;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
@@ -793,9 +801,6 @@ protected:
     //! Neutral element (reduce to index).
     Value neutral_element_;
 
-    //! Spill function.
-    SpillFunction spill_function_;
-
     //! Keeps the total number of items in the table.
     size_t num_items_ = 0;
 
@@ -813,6 +818,16 @@ protected:
 
     //! Sentinel element used to flag free slots.
     KeyValuePair sentinel_;
+
+    //! Total num of items.
+    size_t num_items_per_frame_;
+
+    //! Number of items per frame.
+    std::vector<size_t> items_per_frame_;
+
+    //! Total num of spills.
+    size_t num_spills_;
+
 public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;

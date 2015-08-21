@@ -300,10 +300,10 @@ TEST_F(PostTable, OneBucketOneBlock) {
 
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomBlockSpill, TargetBlockSize>
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
     table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
-          c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1, 2, 1,
-          std::equal_to<int>(), c7a::core::PostRandomBlockSpill());
+          c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 1, 1,
+          std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
@@ -339,10 +339,10 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
 
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomBlockSpill, TargetBlockSize>
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
-                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1, 2, 1,
-                  std::equal_to<int>(), c7a::core::PostRandomBlockSpill());
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 2, 1,
+                  std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
@@ -385,10 +385,10 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
 
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomBlockSpill, TargetBlockSize>
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
-                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 2, 3, 1,
-                  std::equal_to<int>(), c7a::core::PostRandomBlockSpill());
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 3, 1,
+                  std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
@@ -437,10 +437,10 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
 
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomBlockSpill, TargetBlockSize>
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
-                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 2, 3, 1,
-                  std::equal_to<int>(), c7a::core::PostRandomBlockSpill());
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 3, 1,
+                  std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
@@ -497,11 +497,11 @@ TEST_F(PostTable, DISABLED_MaxTableBlocks) {
 
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomBlockSpill, TargetBlockSize>
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
                   c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(),
-                  0, 0, 0, num_buckets, 32, max_blocks, 16,
-                  std::equal_to<int>(), c7a::core::PostRandomBlockSpill());
+                  0, 0, 0, num_buckets, 0.5, max_blocks, 16,
+                  std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
