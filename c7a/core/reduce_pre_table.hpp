@@ -140,7 +140,7 @@ template <typename Key, typename Value,
           const bool RobustKey = false,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          size_t TargetBlockSize = 16*1024
+          size_t TargetBlockSize = 16*4
           >
 class ReducePreTable
 {
@@ -166,7 +166,6 @@ public:
         }
     };
 
-protected:
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
@@ -191,7 +190,6 @@ protected:
         }
     };
 
-public:
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
@@ -215,13 +213,13 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
                    size_t num_buckets_per_partition = 1024,
-                   size_t max_num_blocks_per_bucket = 16,
+                   double max_partition_fill_rate = 0.5,
                    size_t max_num_blocks_table = 1024*16,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
           num_buckets_per_partition_(num_buckets_per_partition),
-          max_num_blocks_per_bucket_(max_num_blocks_per_bucket),
+          max_partition_fill_rate_(max_partition_fill_rate),
           max_num_blocks_table_(max_num_blocks_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
@@ -233,10 +231,8 @@ public:
 
         assert(num_partitions >= 0);
         assert(num_partitions == emit.size());
-        assert(num_buckets_per_partition > 0 &&
-               (num_buckets_per_partition & (num_buckets_per_partition - 1)) == 0
-               && "num_buckets must be a power of two");
-        assert(max_num_blocks_per_bucket > 0);
+        assert(num_buckets_per_partition > 0);
+        assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
         assert(max_num_blocks_table > 0);
 
         for (size_t i = 0; i < emit_.size(); i++)
@@ -251,6 +247,9 @@ public:
 
         buckets_.resize(num_buckets_, NULL);
         items_per_partition_.resize(num_partitions_, 0);
+
+        num_items_per_partition_ = (size_t) ((static_cast<double>(max_num_blocks_table * block_size_)
+                                             / static_cast<double>(num_partitions)) / max_partition_fill_rate);
     }
 
     //! non-copyable: delete copy-constructor
@@ -306,13 +305,10 @@ public:
 
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
-        size_t num_blocks_bucket = 0;
         BucketBlock* current = buckets_[h.global_index];
 
         while (current != NULL)
         {
-            num_blocks_bucket++;
-
             // iterate over valid items in a block
             for (KeyValuePair* bi = current->items;
                  bi != current->items + current->size; ++bi)
@@ -323,7 +319,7 @@ public:
                     LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
-                    bi->second = std::move(reduce_function_(bi->second, kv.second));
+                    bi->second = reduce_function_(bi->second, kv.second);
 
                     LOG << "...finished reduce!";
                     return;
@@ -337,15 +333,17 @@ public:
         }
 
         // have an item that needs to be added.
+        if (static_cast<double>(items_per_partition_[h.partition_id]+1)
+            / static_cast<double>(num_items_per_partition_)
+            > max_partition_fill_rate_)
+        {
+            FlushPartition(h.partition_id);
+            current = NULL;
+        }
 
         if (current == NULL ||
             current->size == block_size_)
         {
-            if (num_blocks_bucket == max_num_blocks_per_bucket_)
-            {
-                FlushPartition(h.partition_id);
-            }
-
             if (num_blocks_ == max_num_blocks_table_)
             {
                 FlushLargestPartition();
@@ -358,17 +356,14 @@ public:
             current->size = 0;
             current->next = buckets_[h.global_index];
             buckets_[h.global_index] = current;
+            num_blocks_++;
         }
 
         // in-place construct/insert new item in current bucket block
-        // TODO(ms): need to check maximal num items somehow
         new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
-        // increase counter for partition
-        // we do not check if num items per partition is above
-        // a certain threshold on insert. we only use this the determine
-        // the largest partition for partial flushing
+        // Number of items per partition.
         items_per_partition_[h.partition_id]++;
-        // increase total counter
+        // Increase total item count
         num_items_++;
     }
 
@@ -393,8 +388,6 @@ public:
      * to the provided emitter.
      */
     void FlushLargestPartition() {
-        static const bool debug = false;
-
         LOG << "Flushing items of largest partition";
 
         // get partition with max size
@@ -442,6 +435,8 @@ public:
 
             while (current != NULL)
             {
+                num_blocks_--;
+
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
@@ -473,6 +468,8 @@ public:
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
+        // increase flush counter
+        num_flushes_++;
 
         LOG << "Flushed items of partition with id: "
             << partition_id;
@@ -512,6 +509,15 @@ public:
      */
     size_t NumItems() const {
         return num_items_;
+    }
+
+    /*!
+     * Returns the number of flushes.
+     *
+     * @return Number of flushes.
+     */
+    size_t NumFlushes() const {
+        return num_flushes_;
     }
 
     /*!
@@ -592,8 +598,8 @@ protected:
     //! Number of buckets per partition.
     size_t num_buckets_per_partition_;
 
-    // Maximal number of blocks per bucket before spilling.
-    size_t max_num_blocks_per_bucket_;
+    // Fill rate for partition.
+    double max_partition_fill_rate_;
 
     //! Maximal number of blocks before some items
     //! are spilled.
@@ -623,14 +629,20 @@ protected:
     //! Number of items per partition.
     std::vector<size_t> items_per_partition_;
 
-    //! Keeps the total number of items in the table.
-    size_t num_items_ = 0;
-
     //! Emitter stats.
     std::vector<int> emit_stats_;
 
     //! Data structure for actually storing the items.
     std::vector<BucketBlock*> buckets_;
+
+    //! Keeps the expected number of items per partition.
+    size_t num_items_per_partition_ = 0;
+
+    //! Keeps the total number of items in the table.
+    size_t num_items_ = 0;
+
+    //! Number of flushes.
+    size_t num_flushes_ = 0;
 };
 
 } // namespace core
