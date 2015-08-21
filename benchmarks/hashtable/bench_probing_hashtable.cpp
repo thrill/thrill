@@ -18,6 +18,11 @@
 #include <math.h>
 #include <cmath>
 #include <numeric>
+#include <iostream>
+#include <iterator>
+#include <vector>
+#include <random>
+#include <algorithm>
 
 using IntPair = std::pair<int, int>;
 
@@ -28,96 +33,103 @@ int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-
-    auto red_fn = [](int in1, int /* in2 */) {
-                      return in1;
-                  };
-
     srand(time(NULL));
 
     clp.SetVerboseProcess(false);
 
-    unsigned int size = pow(2, 24);
+    unsigned int size = 10000000;
     clp.AddUInt('s', "size", "S", size,
-                "Fill hashtable with S random integers");
+                "Load in byte to be inserted");
 
     unsigned int workers = 100;
     clp.AddUInt('w', "workers", "W", workers,
                 "Open hashtable with W workers, default = 1.");
 
-    unsigned int num_buckets_init_scale = 1000;
-    clp.AddUInt('i', "num_buckets_init_scale", "I", num_buckets_init_scale,
-                "Open hashtable with num_buckets_init_scale, default = 10.");
+    unsigned int l = 5;
+    clp.AddUInt('l', "num_buckets_init_scale", "L", l,
+                "Lower string length, default = 5.");
 
-    unsigned int num_buckets_resize_scale = 2;
-    clp.AddUInt('r', "num_buckets_resize_scale", "R", num_buckets_resize_scale,
-                "Open hashtable with num_buckets_resize_scale, default = 2.");
+    unsigned int u = 15;
+    clp.AddUInt('u', "num_buckets_resize_scale", "U", u,
+                "Upper string length, default = 15.");
 
-    double max_partition_fill_ratio = 1.0;
-    clp.AddDouble('f', "max_partition_fill_ratio", "F", max_partition_fill_ratio,
-                  "Open hashtable with max_partition_fill_ratio, default = 0.9.");
+    double max_partition_fill_rate = 1.0;
+    clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
+                  "Open hashtable with max_partition_fill_rate, default = 0.5.");
 
-    unsigned int max_num_items_table = 1048576;
-    clp.AddUInt('t', "max_num_items_table", "T", max_num_items_table,
-                "Open hashtable with max_num_items_table, default = 1048576.");
+    unsigned int num_items_per_partition = 1024 * 16;
+    clp.AddUInt('i', "num_items_per_partition", "I", num_items_per_partition,
+                "Num items per partition, default = 1024 * 16.");
 
-    unsigned int modulo = 10000;
-    clp.AddUInt('m', "modulo", modulo,
-                "Open hashtable with keyspace size of M.");
+    unsigned int table_size = 5000000;
+    clp.AddUInt('t', "max_num_items_table", "T", table_size,
+                "Table size, default = 500000000.");
 
     if (!clp.Process(argc, argv)) {
         return -1;
     }
 
-    std::vector<int> elements(size);
+    ///////
+    // strings mode
+    ///////
 
-    for (size_t i = 0; i < elements.size(); i++) {
-        elements[i] = rand() % modulo;
+    auto key_ex = [](std::string in) { return in; };
+
+    auto red_fn = [](std::string in1, std::string in2) {
+        return in1;
+    };
+
+    static const char alphanum[] =
+                    "abcdefghijklmnopqrstuvwxyz"
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                    "0123456789";
+
+    std::default_random_engine generator;
+    std::uniform_int_distribution<> dist(l, u);
+
+
+    std::vector<std::string> strings;
+    size_t current_size = 0; // size of data in byte
+
+    while (current_size < size)
+    {
+        size_t length = dist(generator);
+        std::string str;
+        for(size_t i = 0; i < length; ++i)
+        {
+            str += alphanum[rand() % sizeof(alphanum)];
+        }
+        strings.push_back(str);
+        current_size += sizeof(str) + str.capacity();
     }
+
+    //std::cout << strings.size() << std::endl;
 
     std::vector<data::DiscardSink> sinks(workers);
     std::vector<data::BlockWriter> writers;
-    for (size_t i = 0; i != workers; ++i) {
+    for (size_t i = 0; i != workers; ++i)
+    {
         writers.emplace_back(sinks[i].GetWriter());
     }
 
-    core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(workers, key_ex, red_fn, writers, -1, num_buckets_init_scale, max_partition_fill_ratio);
+    size_t num_slots = table_size / (2*sizeof(std::string));
+
+    //std::cout << num_slots << std::endl;
+    //std::cout << num_slots / workers << std::endl;
+
+    core::ReducePreProbingTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true>
+    table(workers, key_ex, red_fn, writers, "", num_slots / workers, max_partition_fill_rate);
 
     common::StatsTimer<true> timer(true);
 
-    for (size_t i = 0; i < size; i++) {
-        table.Insert(std::move(elements[i]));
+    for (size_t i = 0; i < strings.size(); i++)
+    {
+        table.Insert(std::move(strings[i]));
     }
 
     timer.Stop();
 
-    std::vector<size_t> values;
-    size_t sum = 0;
-    for (size_t i = 0; i < table.NumPartitions(); i++) {
-        size_t num = table.PartitionNumItems(i);
-        values.push_back(num);
-        sum += num;
-    }
-    double mean = static_cast<double>(sum) / static_cast<double>(table.NumPartitions());
-    double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
-    double stdev = std::sqrt(sq_sum / static_cast<double>(values.size()) - mean * mean);
-    double median;
-    std::sort(values.begin(), values.end());
-    if (values.size() % 2 == 0)
-    {
-        median = (values[values.size() / 2 - 1] + values[values.size() / 2]) / 2;
-    } else
-    {
-        median = values[values.size() / 2];
-    }
-
-    //table.Flush();
-
-    std::cout << timer.Microseconds() << " " << mean << " " << median << " " << stdev << std::endl;
+    std::cout << timer.Microseconds() << " " << table.NumFlushes() << " " << strings.size() << std::endl;
 
     return 0;
 }
