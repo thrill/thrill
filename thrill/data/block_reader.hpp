@@ -129,8 +129,7 @@ public:
                 // item might just terminate the current block.
                 if (!NextBlock()) {
                     assert(n == 0);
-                    sLOG << "exit1 after batch:"
-                         << "current_=" << current_ - bytes_->begin();
+                    sLOG << "exit1 after batch.";
                     return out;
                 }
             }
@@ -150,8 +149,7 @@ public:
 
                 if (!NextBlock()) {
                     assert(n == 0);
-                    sLOG << "exit2 after batch:"
-                         << "current_=" << current_ - bytes_->begin();
+                    sLOG << "exit2 after batch.";
                     return out;
                 }
             }
