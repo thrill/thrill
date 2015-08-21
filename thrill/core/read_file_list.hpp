@@ -32,7 +32,7 @@ bool IsCompressed(const std::string& path) {
 	
 std::pair<std::vector<FileSizePair>,bool> ReadFileList(const std::string& path) {
 
-	bool contains_compressed_file = true;
+	bool contains_compressed_file = false;
 
 	std::vector<FileSizePair> filesize_prefix;
 	glob_t glob_result;
