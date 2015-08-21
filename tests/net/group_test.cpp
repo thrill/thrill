@@ -21,7 +21,7 @@
 #include <thread>
 #include <vector>
 
-using namespace thrill; // NOLINT
+using namespace thrill;      // NOLINT
 using namespace thrill::net; // NOLINT
 
 static void ThreadInitializeAsyncRead(Group* net) {
