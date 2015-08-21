@@ -45,7 +45,7 @@ public:
 
     //! Start build (appending blocks) to a File
     explicit BlockWriterBase(BlockSink* sink,
-                         size_t block_size = default_block_size)
+                             size_t block_size = default_block_size)
         : sink_(sink),
           block_size_(block_size) {
         AllocateBlock();

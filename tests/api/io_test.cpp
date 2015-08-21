@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/io_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -9,8 +9,8 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/thrill.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/thrill.hpp>
 
 #include <gtest/gtest.h>
 
@@ -51,7 +51,7 @@ TEST(IO, GenerateFromFileCorrectAmountOfCorrectIntegers) {
                     writer_size++;
                     return std::to_string(item) + "\n";
                 })
-                .WriteBinary("test1.out");
+            .WriteBinary("test1.out");
 
             ASSERT_EQ(generate_size, writer_size);
         });
@@ -156,3 +156,5 @@ TEST(IO, ReadPartOfFolderAndAllGatherElementsCorrect) {
 
     api::RunLocalTests(start_func);
 }
+
+/******************************************************************************/

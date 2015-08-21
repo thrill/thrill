@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/api/write_binary.hpp
  *
- * Part of Project thrill.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -16,8 +16,8 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/core/stage_builder.hpp>
-#include <thrill/data/block_writer.hpp>
 #include <thrill/data/block_sink.hpp>
+#include <thrill/data/block_writer.hpp>
 
 #include <fstream>
 #include <string>
