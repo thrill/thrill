@@ -107,6 +107,7 @@ build_test(core/stage_builder_test)
 
 build_test(api/function_stack_test)
 build_test(api/graph_test)
+build_test(api/io_test)
 build_test(api/operations_test)
 build_test(api/reduce_node_test)
 build_test(api/sort_node_test)
