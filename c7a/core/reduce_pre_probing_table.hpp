@@ -196,9 +196,7 @@ public:
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(num_items_per_partition > 0 &&
-               (num_items_per_partition & (num_items_per_partition - 1)) == 0
-               && "size must be a power of two");
+        assert(num_items_per_partition > 0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
         for (size_t i = 0; i < emit.size(); i++) {
@@ -262,7 +260,7 @@ public:
                 LOG << "match of key: " << kv.first
                     << " and " << current->first << " ... reducing...";
 
-                current->second = std::move(reduce_function_(current->second, kv.second));
+                current->second = reduce_function_(current->second, kv.second);
 
                 LOG << "...finished reduce!";
                 return;
@@ -282,12 +280,12 @@ public:
             if (current == initial)
             {
                 FlushPartition(h.partition_id);
-                current->first = std::move(kv.first);
-                current->second = std::move(kv.second);
-                // increase total counter
-                num_items_++;
+                current->first = kv.first;
+                current->second = kv.second;
                 // increase counter for partition
                 items_per_partition_[h.partition_id]++;
+                // increase total counter
+                num_items_++;
                 return;
             }
         }
@@ -300,13 +298,13 @@ public:
         }
 
         // insert new pair
-        // TODO(ms): need to check maximal num items somehow
-        current->first = std::move(kv.first);
-        current->second = std::move(kv.second);
-        // increase total counter
-        num_items_++;
+        current->first = kv.first;
+        current->second = kv.second;
+
         // increase counter for partition
         items_per_partition_[h.partition_id]++;
+        // increase total counter
+        num_items_++;
     }
 
     /*!
@@ -383,8 +381,7 @@ public:
                     emit_[partition_id](current);
                 }
 
-                items_[i].first = std::move(sentinel_.first);
-                items_[i].second = std::move(sentinel_.second);
+                items_[i] = sentinel_;
             }
         }
 
@@ -394,6 +391,8 @@ public:
         items_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
+        // increase flush counter
+        num_flushes_++;
 
         LOG << "Flushed items of partition with id: "
             << partition_id;
@@ -416,6 +415,15 @@ public:
      */
     size_t NumItems() const {
         return num_items_;
+    }
+
+    /*!
+     * Returns the number of flushes.
+     *
+     * @return Number of flushes.
+     */
+    size_t NumFlushes() const {
+        return num_flushes_;
     }
 
     /*!
@@ -518,9 +526,6 @@ private:
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;
 
-    //! Keeps the total number of items in the table.
-    size_t num_items_ = 0;
-
     //! Number of items per partition.
     std::vector<size_t> items_per_partition_;
 
@@ -536,6 +541,12 @@ private:
 
     //! Sentinel element used to flag free slots.
     KeyValuePair sentinel_;
+
+    //! Keeps the total number of items in the table.
+    size_t num_items_ = 0;
+
+    //! Number of flushes.
+    size_t num_flushes_ = 0;
 };
 
 } // namespace core
