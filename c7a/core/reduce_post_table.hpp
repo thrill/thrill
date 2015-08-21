@@ -152,6 +152,8 @@ public:
 
         auto& frame_writers = ht->FrameWriters();
 
+        auto& num_items_per_frame = ht->NumItemsPerFrame();
+
         //! Data structure for second reduce table
         std::vector<BucketBlock*> second_reduce;
 
@@ -199,7 +201,7 @@ public:
                             // if item and key equals, then reduce.
                             if (equal_to_function_(kv.first, bi->first))
                             {
-                                bi->second = std::move(ht->reduce_function_(bi->second, kv.second));
+                                bi->second = ht->reduce_function_(bi->second, kv.second);
                                 return;
                             }
                         }
@@ -226,6 +228,8 @@ public:
                     new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
                 }
 
+                num_items_per_frame[frame_id] = 0;
+
                 /////
                 // reduce data from primary table
                 /////
@@ -250,7 +254,7 @@ public:
                                     // if item and key equals, then reduce.
                                     if (equal_to_function_(from->first, bi->first))
                                     {
-                                        bi->second = std::move(ht->reduce_function_(bi->second, from->second));
+                                        bi->second = ht->reduce_function_(bi->second, from->second);
                                         return;
                                     }
                                 }
@@ -343,6 +347,7 @@ public:
             }
         }
         ht->SetNumBlocks(0);
+        ht->SetNumItems(0);
     }
 private:
     //ReduceFunction reduce_function_;
@@ -397,75 +402,7 @@ public:
         assert(index == ht->EndLocalIndex());
 
         ht->SetNumBlocks(0);
-    }
-};
-
-class PostRandomBlockSpill
-{
-public:
-    template <typename ReducePostTable>
-    void
-    operator () (ReducePostTable* ht) const {
-
-        using BucketBlock = typename ReducePostTable::BucketBlock;
-
-        using KeyValuePair = typename ReducePostTable::KeyValuePair;
-
-        auto& buckets = ht->Items();
-
-        auto& frame_writers = ht->FrameWriters();
-
-        // randomly select bucket, get bucket idx
-        size_t bucket_idx = (size_t) (rand() % ht->NumBuckets());
-        size_t bucket_idx_init = bucket_idx;
-        bucket_idx_init--;
-
-        bool to_spill = true;
-
-        while (to_spill &&
-               bucket_idx != bucket_idx_init) {
-
-            BucketBlock* current = buckets[bucket_idx];
-
-            if (current == NULL) {
-                if (bucket_idx >= ht->NumBuckets()-1) {
-                    bucket_idx = 0;
-                    bucket_idx_init++;
-                } else {
-                    bucket_idx++;
-                }
-                continue;
-            }
-
-            if (current->next != NULL) {
-                current = current->next;
-            }
-
-            for (KeyValuePair* bi = current->items;
-                 bi != current->items + current->size; ++bi)
-            {
-                data::File::Writer& writer = frame_writers[bucket_idx / ht->FrameSize()];
-                writer(*bi);
-            }
-
-            BucketBlock* next = current->next;
-
-            // destroy block
-            current->destroy_items();
-            operator delete (current);
-
-            if (buckets[bucket_idx]->next == NULL) {
-                buckets[bucket_idx] = NULL;
-            } else {
-                buckets[bucket_idx]->next = next;
-            }
-
-            to_spill = false;
-        }
-
-        if (!to_spill) {
-            ht->SetNumBlocks(ht->NumBlocks()-1);
-        }
+        ht->SetNumItems(0);
     }
 };
 
@@ -496,8 +433,7 @@ template <typename ValueType, typename Key, typename Value,
           typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          typename SpillFunction = PostRandomBlockSpill,
-          size_t TargetBlockSize = 16*1024
+          size_t TargetBlockSize = 16*4
           >
 class ReducePostTable
 {
@@ -547,14 +483,13 @@ public:
      * \param end_local_index End index for reduce to index.
      * \param neutral element Neutral element for reduce to index.
      * \param num_buckets Number of buckets in the table.
-     * \param max_num_blocks_per_bucket Maximal number of blocks allowed in a bucket. It the number is exceeded,
-     *        no more blocks are added to a bucket, instead, items get spilled to disk.
+     * \param max_frame_fill_rate Maximal number of items relative to maximal number of items in a frame.
+     *        It the number is exceeded, no more blocks are added to a bucket, instead, items get spilled to disk.
      * \param max_num_blocks_table Maximal number of blocks allowed in the table. It the number is exceeded,
      *        no more blocks are added to a bucket, instead, items get spilled to disk using some spilling strategy
      *        defined in spill_function.
      * \param frame_size Number of buckets (=frame) exactly one file writer to be used for.
      * \param equal_to_function Function for checking equality of two keys.
-     * \param spill_function Function implementing a strategy to spill items to disk.
      */
     ReducePostTable(KeyExtractor key_extractor,
                     ReduceFunction reduce_function,
@@ -565,14 +500,12 @@ public:
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
                     size_t num_buckets = 1024,
-                    size_t max_num_blocks_per_bucket = 16,
+                    double max_frame_fill_rate = 0.5,
                     size_t max_num_blocks_table = 1024*16,
                     size_t frame_size = 32,
-                    const EqualToFunction& equal_to_function = EqualToFunction(),
-                    const SpillFunction& spill_function = PostRandomBlockSpill()
-    )
+                    const EqualToFunction& equal_to_function = EqualToFunction())
         :   num_buckets_(num_buckets),
-            max_num_blocks_per_bucket_(max_num_blocks_per_bucket),
+            max_frame_fill_rate_(max_frame_fill_rate),
             max_num_blocks_table_(max_num_blocks_table),
             emit_(std::move(emit)),
             begin_local_index_(begin_local_index),
@@ -583,7 +516,6 @@ public:
             index_function_(index_function),
             equal_to_function_(equal_to_function),
             flush_function_(flush_function),
-            spill_function_(spill_function),
             reduce_function_(reduce_function)
     {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
@@ -591,7 +523,7 @@ public:
         assert(num_buckets > 0 &&
                        (num_buckets & (num_buckets - 1)) == 0
                && "num_buckets must be a power of two");
-        assert(max_num_blocks_per_bucket > 0);
+        assert(max_fill_rate >= 0.0 && max_fill_rate <= 1.0);
         assert(max_num_blocks_table > 0);
         assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
                && "frame_size must be a power of two");
@@ -601,11 +533,16 @@ public:
         assert(end_local_index >= 0);
 
         buckets_.resize(num_buckets_, NULL);
+
         num_frames_ = num_buckets_ / frame_size_;
+        items_per_frame_.resize(num_frames_, 0);
         frame_files_.resize(num_frames_);
         for (size_t i = 0; i < num_frames_; i++) {
             frame_writers_.push_back(frame_files_[i].GetWriter(1024));
         }
+
+        num_items_per_frame_ = (size_t) ((static_cast<double>(max_num_blocks_table * block_size_)
+                                              / static_cast<double>(num_frames_)) / max_frame_fill_rate);
 
         srand(time(NULL));
     }
@@ -659,15 +596,14 @@ public:
 
         assert(global_index >= 0 && global_index < num_buckets_);
 
+        size_t frame_id = global_index / frame_size_;
+
         LOG << "key: " << kv.first << " to bucket id: " << global_index;
 
-        size_t num_blocks_bucket = 0;
         BucketBlock* current = buckets_[global_index];
 
         while (current != NULL)
         {
-            num_blocks_bucket++;
-
             // iterate over valid items in a block
             for (KeyValuePair* bi = current->items;
                  bi != current->items + current->size; ++bi)
@@ -678,7 +614,7 @@ public:
                     LOG << "match of key: " << kv.first
                         << " and " << bi->first << " ... reducing...";
 
-                    bi->second = std::move(reduce_function_(bi->second, kv.second));
+                    bi->second = reduce_function_(bi->second, kv.second);
 
                     LOG << "...finished reduce!";
                     return;
@@ -692,22 +628,21 @@ public:
         }
 
         // have an item that needs to be added.
+        if (static_cast<double>(items_per_frame_[frame_id]+1)
+            / static_cast<double>(num_items_per_frame_)
+            > max_frame_fill_rate_)
+        {
+            SpillFrame(frame_id);
+            current = NULL;
+        }
+
+        // have an item that needs to be added.
         if (current == NULL ||
             current->size == block_size_)
         {
-            if (num_blocks_bucket == max_num_blocks_per_bucket_)
-            {
-                data::File::Writer& writer = frame_writers_[global_index / frame_size_];
-                KeyValuePair* bi = buckets_[global_index]->items;
-                writer(*bi);
-                bi->first = std::move(kv.first);
-                bi->second = std::move(kv.second);
-                return;
-            }
-
             if (num_blocks_ == max_num_blocks_table_)
             {
-                spill_function_(this);
+                SpillLargestFrame();
             }
 
             // allocate a new block of uninitialized items, postpend to bucket
@@ -721,8 +656,11 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        // TODO(ms): need to check maximal num items somehow
         new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
+        // Number of items per frame.
+        items_per_frame_[global_index / frame_size_]++;
+        // Increase total item count
+        num_items_++;
     }
 
     /*!
@@ -733,10 +671,71 @@ public:
 
         flush_function_(this);
 
-        // reset total block counter
-        num_blocks_ = 0;
-
         LOG << "Flushed items";
+    }
+
+    /*!
+     * Retrieve all items belonging to the frame
+     * having the most items. Retrieved items are then spilled
+     * to the provided file.
+     */
+    void SpillLargestFrame()
+    {
+        // get frame with max size
+        size_t p_size_max = 0;
+        size_t p_idx = 0;
+        for (size_t i = 0; i < num_frames_; i++)
+        {
+            if (items_per_frame_[i] > p_size_max)
+            {
+                p_size_max = items_per_frame_[i];
+                p_idx = i;
+            }
+        }
+
+        SpillFrame(p_idx);
+    }
+
+    /*!
+     * Spills all items of a frame.
+     *
+     * \param frame_id The id of the frame to be spilled.
+     */
+    void SpillFrame(size_t frame_id)
+    {
+        data::File::Writer& writer = frame_writers_[frame_id];
+
+        for (size_t i = frame_id * frame_size_;
+             i < frame_id * frame_size_ + frame_size_; i++)
+        {
+            BucketBlock* current = buckets_[i];
+
+            while (current != NULL)
+            {
+                num_blocks_--;
+
+                for (KeyValuePair* bi = current->items;
+                     bi != current->items + current->size; ++bi)
+                {
+                    writer(*bi);
+                }
+
+                // destroy block and advance to next
+                BucketBlock* next = current->next;
+                current->destroy_items();
+                operator delete (current);
+                current = next;
+            }
+
+            buckets_[i] = NULL;
+        }
+
+        // reset total counter
+        num_items_ -= items_per_frame_[frame_id];
+        // reset partition specific counter
+        items_per_frame_[frame_id] = 0;
+        // increase spill counter
+        num_spills_++;
     }
 
     /*!
@@ -773,6 +772,13 @@ public:
     }
 
     /*!
+     * Sets the total num of items in the table.
+     */
+    void SetNumItems(size_t num_items) {
+        num_items_ = num_items;
+    }
+
+    /*!
      * Returns the vector of bucket blocks.
      *
      * @return Vector of bucket blocks.
@@ -782,12 +788,12 @@ public:
     }
 
     /*!
-     * Returns the maximal number of blocks per bucket.
+     * Returns the maximal fill rate.
      *
-     * @return Maximal number of items per bucket.
+     * @return Maximal fill rate.
      */
-    size_t MaxNumBlocksPerBucket() const {
-        return max_num_blocks_per_bucket_;
+    double MaxFrameFillRate() const {
+        return max_frame_fill_rate_;
     }
 
     /*!
@@ -846,6 +852,15 @@ public:
     }
 
     /*!
+     * Returns the vector of number of items per frame.
+     *
+     * @return Vector of number of items per frame.
+     */
+    std::vector<size_t>& NumItemsPerFrame() {
+        return items_per_frame_;
+    }
+
+    /*!
      * Returns the frame size.
      *
      * @return Frame size.
@@ -861,6 +876,15 @@ public:
      */
     size_t NumFrames() const {
         return num_frames_;
+    }
+
+    /*!
+     * Returns the number of spills.
+     *
+     * @return Number of spills.
+     */
+    size_t NumSpills() const {
+        return num_spills_;
     }
 
     /*!
@@ -915,8 +939,8 @@ protected:
     //! Number of buckets.
     size_t num_buckets_;
 
-    // Maximal number of blocks per bucket before spilling.
-    size_t max_num_blocks_per_bucket_;
+    // Maximal frame fill rate.
+    double max_frame_fill_rate_;
 
     //! Maximal number of blocks before some items
     //! are spilled.
@@ -964,8 +988,17 @@ protected:
     //! Flush function.
     FlushFunction flush_function_;
 
-    //! Spill function.
-    SpillFunction spill_function_;
+    //! Keeps the total number of items in the table.
+    size_t num_items_ = 0;
+
+    //! Total num of items.
+    size_t num_items_per_frame_;
+
+    //! Number of items per frame.
+    std::vector<size_t> items_per_frame_;
+
+    //! Total num of spills.
+    size_t num_spills_;
 
 public:
     //! Reduce function for reducing two values.

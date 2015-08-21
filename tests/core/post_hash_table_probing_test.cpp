@@ -39,7 +39,7 @@ public:
     operator () (const Key& v, ReducePostProbingTable* ht, const size_t& size) const {
 
         (*ht).NumItems();
-        size_t i = size+1;
+        size+1;
 
         return v / 2;
     }
@@ -291,10 +291,10 @@ TEST_F(PostTable, WithinTableItemsLimit) {
 
     c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomSpill>
+            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
     table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
           c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 16,
-                                     std::equal_to<int>(), c7a::core::PostRandomSpill());
+                                     std::equal_to<int>());
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -334,10 +334,10 @@ TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
 
     c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
             c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>, c7a::core::PostRandomSpill>
+            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
             table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
                   c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 16,
-                  std::equal_to<int>(), c7a::core::PostRandomSpill());
+                  std::equal_to<int>());
 
     size_t num_items = size * fill_rate;
 
