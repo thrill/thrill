@@ -47,6 +47,8 @@ public:
     using Super::result_file_;
 	using FileSizePair = std::pair<std::string, size_t>;
 
+	static const bool debug = false;
+
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
@@ -96,7 +98,7 @@ public:
         // Hook Read
         while (it.HasNext()) {
             auto item = it.Next();
-			LOG1 << item;
+			LOG << item;
             for (auto func : Super::callbacks_) {
                 func(item);
             }
@@ -140,6 +142,8 @@ private:
     class InputLineIterator
     {
     public:
+		static const bool debug = false;
+
         const size_t read_size = 2 * 1024 * 1024;
 
         //! Creates an instance of iterator that reads file line based
@@ -168,12 +172,13 @@ private:
 
 			if (contains_compressed_file_) {
 				for (size_t file_nr = current_file_; file_nr < files_.size(); file_nr++) {
-					if (files[current_file_].second == my_end_) {
+					LOG << "file: " << file_nr << " my_end_: " << my_end_ << "second: " << files_[file_nr].second;
+					if (files[file_nr].second == my_end_) {
 						break; 
 					}
-					if (files[current_file_].second > my_end_) {
-						if (current_file_) {
-							my_end_ = files_[current_file_ - 1].second;
+					if (files[file_nr].second > my_end_) {
+						if (file_nr) {
+							my_end_ = files_[file_nr - 1].second;
 						} else {
 							my_end_ = 0;
 						}
@@ -182,7 +187,13 @@ private:
 				}
 			}
 
-            c_file_ = OpenFile(files_[current_file_].first);
+			if (my_start < my_end_) {
+				LOG << "Opening file " << current_file_;
+				c_file_ = OpenFile(files_[current_file_].first);
+			} else {
+				LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+				return;
+			}
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
@@ -361,7 +372,7 @@ private:
 
 				execlp(decompressor, decompressor, "-dc", path.c_str(), NULL);
 
-				std::cout << "Pipe execution failed: " << strerror(errno) << std::endl;
+				LOG1 << "Pipe execution failed: " << strerror(errno);
 				close(pipefd[1]); // close write end
 				exit(-1);
 			}
