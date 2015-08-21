@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_BLOCK_HEADER
 #define THRILL_DATA_BLOCK_HEADER
 
+#include <thrill/common/counting_ptr.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/mem/manager.hpp>
 
@@ -39,8 +40,21 @@ static const size_t default_block_size = 2 * 1024 * 1024;
  * shared read-only between containers using shared_ptr<const ByteBlock>
  * reference counting inside a Block, which adds meta information.
  */
-class ByteBlock
+class ByteBlock : public common::ReferenceCount
 {
+public:
+    //! deleter for CountingPtr<ByteBlock>
+    static void deleter(ByteBlock* bb) {
+        bb->head.block_pool_->FreeBlock(bb->size());
+        operator delete (bb);
+    }
+    static void deleter(const ByteBlock* bb) {
+        return deleter(const_cast<ByteBlock*>(bb));
+    }
+
+    using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
+    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
+
 protected:
     struct {
         //! the allocated size of the buffer in bytes, excluding the size_ field
@@ -58,29 +72,25 @@ protected:
     explicit ByteBlock(size_t size, BlockPool* block_pool)
         : head({ size, block_pool }) { }
 
-    //! deleted for shared_ptr<ByteBlock>
-    static void deleter(ByteBlock* bb) {
-        bb->head.block_pool_->FreeBlock(bb->size());
-        operator delete (bb);
-    }
-
 public:
     //! Construct a block of given size.
-    static std::shared_ptr<ByteBlock> Allocate(
+    static ByteBlockPtr Allocate(
         size_t block_size, BlockPool& block_pool) {
         // this counts only the bytes and excludes the header. why? -tb
         block_pool.AllocateBlock(block_size);
 
         // allocate a new block of uninitialized memory
         ByteBlock* block =
-            static_cast<ByteBlock*>(operator new (sizeof(head) + block_size));
+            static_cast<ByteBlock*>(
+                operator new (
+                    sizeof(common::ReferenceCount) + sizeof(head) + block_size));
 
         // initialize block using constructor
         new (block)ByteBlock(block_size, &block_pool);
 
         // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
         // this whole procedure with std::make_shared.
-        return std::shared_ptr<ByteBlock>(block, deleter);
+        return ByteBlockPtr(block);
     }
 
     //! mutable data accessor to memory block
@@ -102,8 +112,8 @@ public:
     size_t size() const { return head.size_; }
 };
 
-using ByteBlockPtr = std::shared_ptr<ByteBlock>;
-using ByteBlockCPtr = std::shared_ptr<const ByteBlock>;
+using ByteBlockPtr = ByteBlock::ByteBlockPtr;
+using ByteBlockCPtr = ByteBlock::ByteBlockCPtr;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -133,7 +143,7 @@ public:
     { }
 
     //! Return whether the enclosed ByteBlock is valid.
-    bool IsValid() const { return byte_block_ != nullptr; }
+    bool IsValid() const { return byte_block_; }
 
     //! Releases the reference to the ByteBlock and resets book-keeping info
     void Release() {
