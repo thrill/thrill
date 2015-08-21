@@ -85,6 +85,8 @@ build_test_group(common/tests
   common/timed_counter_test.cpp
   )
 
+build_test(common/counting_ptr_test)
+
 build_test(mem/allocator_test)
 build_test(mem/malloc_tracker_test)
 
