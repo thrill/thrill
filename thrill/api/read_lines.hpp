@@ -170,46 +170,35 @@ private:
             // find offset in current file:
             // offset = start - sum of previous file sizes
 			offset_ = lseek(c_file_, my_start - files_[current_file_].second, SEEK_CUR);
+			bb_.Reserve(read_size);
+			ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+			bb_.set_size(buffer_size);
 
             if (offset_ != 0) {
-                offset_ = lseek(c_file_, -1, SEEK_CUR);
-                bb_.Reserve(read_size);
-                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                bb_.set_size(buffer_size);
-                current_ = 1;
+				bool found_n = false;
 
-                // Move to next newline, if local part does not start at the beginning of a line.
-                if (bb_[0] != '\n') {
-                    bool found_n = false;
-
-                    // find next newline, discard all previous data as previous worker already covers it
-                    while (!found_n) {
-                        for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
-                            if (THRILL_UNLIKELY(*it == '\n')) {
-                                current_ = it - bb_.begin() + 1;
-                                found_n = true;
-                                break;
-                            }
-                        }
-                        // no newline found: read new data into buffer_builder
-                        if (!found_n) {
-                            current_ = 0;
-                            offset_ += bb_.size();
-                            buffer_size = read(c_file_, bb_.data(), read_size);
-                            // EOF = newline per definition
-                            if (!buffer_size) {
-                                found_n = true;
-                            }
-                            bb_.set_size(buffer_size);
-                        }
-                    }
-                    assert(bb_[current_ - 1] == '\n' || !buffer_size);
-                }
-            }
-            else {
-                bb_.Reserve(read_size);
-                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                bb_.set_size(buffer_size);
+				// find next newline, discard all previous data as previous worker already covers it
+				while (!found_n) {
+					for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
+						if (THRILL_UNLIKELY(*it == '\n')) {
+							current_ = it - bb_.begin() + 1;
+							found_n = true;
+							break;
+						}
+					}
+					// no newline found: read new data into buffer_builder
+					if (!found_n) {
+						current_ = 0;
+						offset_ += bb_.size();
+						buffer_size = read(c_file_, bb_.data(), read_size);
+						// EOF = newline per definition
+						if (!buffer_size) {
+							found_n = true;
+						}
+						bb_.set_size(buffer_size);
+					}
+				}
+				assert(bb_[current_ - 1] == '\n' || !buffer_size);
             }
         }
 
@@ -258,8 +247,10 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-			return (offset_ + current_ + files_[current_file_].second < my_end_);			
-        }
+			size_t global_index = offset_ + current_ + files_[current_file_].second;
+			return global_index < my_end_ ||
+				(global_index == my_end_ && files_[current_file_ + 1].second - files_[current_file_].second  > offset_ + current_);
+		}
 
 		size_t NumFiles() {
 			return files_.size() - 1;
