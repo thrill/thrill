@@ -3,7 +3,7 @@
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
- * Part of Project Thrill.
+ * Part of Project thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -33,41 +33,32 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
+//! Todo(ej) Merge has to identical types. 
 //! todo(ej) todo(tb) Can probably subclass a lot here.
 
 template <typename ValueType,
           typename ParentDIARef0, typename ParentDIARef1,
-          typename MergeFunction>
+          typename Comperator>
 class TwoMergeNode : public DOpNode<ValueType>
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
 
-    template <typename Type>
-    using FunctionTraits = common::FunctionTraits<Type>;
-
-    using MergeArg0 =
-              typename FunctionTraits<MergeFunction>::template arg_plain<0>;
-    using MergeArg1 =
-              typename FunctionTraits<MergeFunction>::template arg_plain<1>;
-    using MergeResult =
-              typename FunctionTraits<MergeFunction>::result_type;
-
 public:
     TwoMergeNode(const ParentDIARef0& parent0,
-                 const ParentDIARef1& parent1,
-                 MergeFunction merge_function,
-                 StatsNode* stats_node)
+               const ParentDIARef1& parent1,
+               Comperator comperator,
+               StatsNode* stats_node)
         : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "MergeNode", stats_node),
-          merge_function_(merge_function)
+          comperator_(comperator)
     {
         // Hook PreOp(s)
-        auto pre_op0_fn = [=](const MergeArg0& input) {
+        auto pre_op0_fn = [=](const ValueType& input) {
                               writers_[0](input);
                           };
-        auto pre_op1_fn = [=](const MergeArg1& input) {
+        auto pre_op1_fn = [=](const ValueType& input) {
                               writers_[1](input);
                           };
 
@@ -90,35 +81,55 @@ public:
         MainOp();
     }
 
-    void PushData() final {
-        size_t result_count = 0;
-        // TODO(ej) - call WriteChannelStats() for each channel when these
-        // when they are closed ( = you read all data + called Close() on the
-        // channels).
-        if (result_size_ != 0) {
-            // get inbound readers from all Channels
-            std::vector<data::Channel::CachingConcatReader> readers {
-                channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
-            };
+    void PushData() override {
 
-            while (readers[0].HasNext() && readers[1].HasNext()) {
-                MergeArg0 i0 = readers[0].Next<MergeArg0>();
-                MergeArg1 i1 = readers[1].Next<MergeArg1>();
-                ValueType v = zip_function_(i0, i1);
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(v);
-                }
-                ++result_count;
+        size_t result_count = 0;
+
+        // get inbound readers from all Channels
+        std::vector<data::Channel::CachingConcatReader> readers {
+            channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
+        };
+
+        // Inefficient merge implementation, since readers
+        // do not have something like peek() (Read without advancing) yet.
+        std::deque<ValueType> q1;
+        std::deque<ValueType> q2;
+
+        while(true) {
+            if(q1.size() == 0 && readers[0].HasNext()) {
+                q1.push_back(readers[0].Next<ValueType>());
+            }
+            if(q2.size() == 0 && readers[1].HasNext()) {
+                q2.push_back(readers[1].Next<ValueType>());
             }
 
-            // Empty out readers. If they have additional items, this is
-            // necessary for the CachingBlockQueueSource, as it has to cache the
-            // additional blocks -tb. TODO(tb): this is weird behaviour.
-            while (readers[0].HasNext())
-                readers[0].Next<MergeArg0>();
+            ValueType r;
 
-            while (readers[1].HasNext())
-                readers[1].Next<MergeArg1>();
+            if(q1.size() == 0) {
+                if(q2.size() == 0) {
+                    break; //No more elems.
+                } else {
+                    r = q2.front();
+                    q2.pop_front();
+                }
+            } else if(q2.size() == 0) {
+                r = q1.front();
+                q1.pop_front();
+            } else {
+                if(comperator_(q1.front(), q2.front())) {
+                    r = q1.front();
+                    q1.pop_front();
+                } else {
+                    r = q2.front();
+                    q2.pop_front();
+                }
+            }
+            
+            for (auto func : DIANode<ValueType>::callbacks_) {
+                func(r);
+            }
+
+            result_count++;
         }
 
         sLOG << "Merge: result_count" << result_count;
@@ -131,7 +142,7 @@ public:
      */
     auto ProduceStack() {
         // Hook PostOp
-        return FunctionStack<MergeResult>();
+        return FunctionStack<ValueType>();
     }
 
     /*!
@@ -143,8 +154,8 @@ public:
     }
 
 private:
-    //! Merge function
-    MergeFunction merge_function_;
+    //! Merge comperator
+    Comperator comperator_;
 
     //! Number of storage DIAs backing
     static const size_t num_inputs_ = 2;
@@ -160,15 +171,6 @@ private:
     //! Array of inbound Channels
     std::array<data::ChannelPtr, num_inputs_> channels_;
 
-    //! \name Variables for Calculating Exchange
-    //! \{
-
-    //! todo(ej)
-
-    //! \}
-
-    //! Scatter items from DIA "in" to other workers if necessary.
-
     //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
@@ -177,49 +179,79 @@ private:
 
         // first: calculate total size of the DIAs to Zip
 
-        net::FlowControlChannel& channel = context_.flow_control_channel();
+        //net::FlowControlChannel& channel = context_.flow_control_channel();
 
-        // Do funny stuff here. todo(ej)
-    }
+        //Do funny stuff here. todo(ej)
+        
+        //For now, do "trivial" scattering. 
+        channels_[0] = context_.GetNewChannel();
+        channels_[1] = context_.GetNewChannel();
+
+        std::vector<size_t> offset1(context_.num_workers(), 0);  
+        std::vector<size_t> offset2(context_.num_workers(), 0);  
+        size_t me = context_.my_rank();
+        size_t sizes[] = { files_[0].NumItems(), files_[1].NumItems() };
+        for (size_t i = me; i != offset1.size(); ++i) {
+            offset1[i] = sizes[0];
+            offset2[i] = sizes[1];
+        }
+    
+        channels_[0]->template Scatter<ValueType>(files_[0], offset1);
+        channels_[1]->template Scatter<ValueType>(files_[1], offset2);
+   }
 };
 
 template <typename ValueType, typename Stack>
-template <typename MergeFunction, typename SecondDIA>
+template <typename Comperator, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Merge(
-    SecondDIA second_dia, const MergeFunction &zip_function) const {
+    SecondDIA second_dia, const Comperator &comperator) const {
 
-    using MergeResult
-              = typename FunctionTraits<MergeFunction>::result_type;
+    using CompareResult
+              = typename FunctionTraits<Comperator>::result_type;
 
     using MergeResultNode
-              = TwoMergeNode<MergeResult, DIARef, SecondDIA, MergeFunction>;
+              = TwoMergeNode<ValueType, DIARef, SecondDIA, Comperator>;
+    
+    static_assert(
+        std::is_convertible<
+            typename SecondDIA::ValueType,
+            ValueType
+            >::value,
+        "DIA 1 and DIA 0 have different types");
 
     static_assert(
         std::is_convertible<
             ValueType,
-            typename FunctionTraits<MergeFunction>::template arg<0>
+            typename FunctionTraits<Comperator>::template arg<0>
             >::value,
-        "MergeFunction has the wrong input type in DIA 0");
+        "Comperator has the wrong input type in DIA 0");
 
     static_assert(
         std::is_convertible<
             typename SecondDIA::ValueType,
-            typename FunctionTraits<MergeFunction>::template arg<1>
+            typename FunctionTraits<Comperator>::template arg<1>
             >::value,
-        "MergeFunction has the wrong input type in DIA 1");
+        "Comperator has the wrong input type in DIA 1");
+
+    static_assert(
+        std::is_convertible<
+            bool,
+            CompareResult
+            >::value,
+        "Comperator has the wrong return type");
 
     StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
         = std::make_shared<MergeResultNode>(*this,
                                             second_dia,
-                                            merge_function,
+                                            comperator,
                                             stats_node);
 
     auto merge_stack = merge_node->ProduceStack();
 
-    return DIARef<MergeResult, decltype(Merge_stack)>(
-        Merge_node,
+    return DIARef<ValueType, decltype(merge_stack)>(
+        merge_node,
         merge_stack,
         { stats_node });
 }
