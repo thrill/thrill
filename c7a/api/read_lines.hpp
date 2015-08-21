@@ -250,10 +250,10 @@ private:
                     if (C7A_UNLIKELY(*it == '\n')) {
                         size_t strlen = it - bb_.begin() - current_;
                         current_ = it - bb_.begin() + 1;
+						LOG << "returning string";
 						return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
                     }
                 }
-
                 ret.append(bb_.PartialToString(current_, bb_.size() - current_));
                 current_ = 0;
                 ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
@@ -266,11 +266,16 @@ private:
                     current_file_++;
                     offset_ = 0;
 
-                    c_file_ = OpenFile(files_[current_file_].first);
-                    ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                    bb_.set_size(buffer_size);
-
+					if (current_file_ < NumFiles()) {
+						c_file_ = OpenFile(files_[current_file_].first);
+						ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
+						bb_.set_size(buffer_size);
+					} else {
+						current_ = files_[current_file_].second - files_[current_file_ - 1].second;
+					}
+					
                     if (ret.length()) {
+						LOG << "end - returning string of length" << ret.length();
                         return ret;
                     }
                 }
@@ -284,7 +289,8 @@ private:
 			} else {
 				//if block is fully read, read next block. needs to be done here
 				// as HasNext() has to know if file is finished
-				if (current_ >= bb_.size() - 2) {
+				//  v-- no new line at end ||   v-- newline at end of file
+				if (current_ >= bb_.size() || (current_ >= bb_.size() - 1 && bb_[current_] == '\n')) {
 					current_ = 0;
 					ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
 					offset_ += bb_.size();
@@ -295,7 +301,6 @@ private:
 					else {						
 						//already at last file
 						if (current_file_ >= NumFiles() - 1) {
-							assert(current_file_ == NumFiles() - 1);
 							return false;
 						}
 						close(c_file_);
