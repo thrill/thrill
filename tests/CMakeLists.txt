@@ -92,7 +92,6 @@ build_test(net/flow_control_test)
 build_test(net/group_test)
 
 build_test(data/block_queue_test)
-build_test(data/block_sink_test)
 build_test(data/file_test)
 build_test(data/multiplexer_header_test)
 build_test(data/multiplexer_test)
