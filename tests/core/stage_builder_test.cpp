@@ -161,6 +161,8 @@ TEST(Stage, OverwriteReferenceLOpNode) {
     api::RunLocalTests(start_func);
 }
 
+// TODO(tb): this is disabled because the double ReduceBy creates some deadlock
+// in destruction of Channels. We have to fix that later.
 TEST(Stage, DISABLED_AdditionalChildReferences) {
 
     std::function<void(Context&)> start_func =
