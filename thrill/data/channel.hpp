@@ -178,11 +178,11 @@ public:
         return ConcatBlockReader(ConcatBlockSource(result));
     }
 
-    //! Creates a BlockReader for all workers. The BlockReader is attached to
-    //! one \ref ConcatBlockSource which includes all incoming queues of this
+    //! Creates a BlockReaderSource for all workers, which includes all 
+    //! incoming queues of this
     //! channel. The received Blocks are also cached in the Channel, hence this
     //! function can be called multiple times to read the items again.
-    CachingConcatBlockReader OpenCachingReader() {
+    CachingConcatBlockSource OpenCachingReaderSource() {
         rx_timespan_.StartEventually();
 
         // construct vector of CachingBlockQueueSources to read from queues_.
@@ -192,9 +192,16 @@ public:
         }
         // move CachingBlockQueueSources into concatenation BlockSource, and to
         // Reader.
-        return CachingConcatBlockReader(CachingConcatBlockSource(result));
+        return CachingConcatBlockSource(result);
     }
 
+    //! Creates a BlockReader for all workers. The BlockReader is attached to
+    //! one \ref ConcatBlockSource which includes all incoming queues of this
+    //! channel. The received Blocks are also cached in the Channel, hence this
+    //! function can be called multiple times to read the items again.
+    CachingConcatBlockReader OpenCachingReader() {
+        return CachingConcatBlockReader(OpenCachingReaderSource());
+    }
     /*!
      * Scatters a File to many worker
      *
