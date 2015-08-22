@@ -59,6 +59,27 @@ TEST_F(BlockQueue, BlockWriterToQueue) {
     ASSERT_EQ(2u + (data::BlockQueue::Writer::self_verify ? 1 : 0), q.size());
 }
 
+TEST_F(BlockQueue, WriteZeroItems) {
+
+    // construct File with very small blocks for testing
+    data::BlockQueue q(block_pool_);
+
+    {
+        // construct File with very small blocks for testing
+        data::BlockQueue::Writer bw = q.GetWriter(1024);
+
+        // but dont write anything
+        bw.Close();
+    }
+
+    // get zero items back from file.
+    {
+        data::BlockQueue::Reader br = q.GetReader();
+
+        ASSERT_FALSE(br.HasNext());
+    }
+}
+
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
     common::ThreadPool pool(2);
     data::BlockQueue q(block_pool_);
