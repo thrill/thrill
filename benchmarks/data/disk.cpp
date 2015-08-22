@@ -1,30 +1,30 @@
 /*******************************************************************************
  * benchmarks/data/disk.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/context.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/write_lines_many.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/stats_timer.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <iostream>
 #include <string>
 
-using namespace c7a;         // NOLINT
-using namespace c7a::common; // NOLINT
+using namespace thrill;         // NOLINT
+using common::StatsTimer;
 
 //! Reads and Writes random data from disk and measures time for whole process
 int main(int argc, const char** argv) {
 
-    CmdlineParser clp;
-    clp.SetDescription("c7a::data benchmark for disk I/O");
+    common::CmdlineParser clp;
+    clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     std::string input_file, output_file;
     int iterations;

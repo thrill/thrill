@@ -1,23 +1,22 @@
 /*******************************************************************************
  * tests/core/post_hash_table_probing_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_post_probing_table.hpp>
 #include <gtest/gtest.h>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
-#include <c7a/net/manager.hpp>
 #include <string>
+#include <thrill/net/manager.hpp>
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
-using namespace c7a::net;
+using namespace thrill;
 
 struct PostTable : public::testing::Test { };
 
@@ -27,10 +26,10 @@ std::pair<int, int> pair(int ele) {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-    : public c7a::core::PostProbingReduceByHashKey<int>
+    : public core::PostProbingReduceByHashKey<int>
 {
 public:
-    CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
+    explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
         : hash_function_(hash_function)
     { }
 
@@ -57,16 +56,15 @@ TEST_F(PostTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
     CustomKeyHashFunction<int> cust_hash;
-    c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)> flush_func;
-
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-            c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int>>
+    core::PostProbingReduceFlushToDefault<int, decltype(red_fn)> flush_func;
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int>>
     table(key_ex, red_fn, emitters, -1, cust_hash, flush_func);
 
     ASSERT_EQ(0u, writer1.size());
@@ -94,12 +92,12 @@ TEST_F(PostTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters, -1);
 
     table.Insert(pair(1));
@@ -126,12 +124,12 @@ TEST_F(PostTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters, -1);
 
     ASSERT_EQ(0u, table.NumItems());
@@ -145,12 +143,12 @@ TEST_F(PostTable, FlushIntegers) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters, -1);
 
     table.Insert(pair(1));
@@ -177,12 +175,12 @@ TEST_F(PostTable, FlushIntegersInSequence) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters, -1);
 
     table.Insert(pair(1));
@@ -212,14 +210,14 @@ TEST_F(PostTable, MultipleEmitters) {
                       return in1 + in2;
                   };
 
-    typedef std::function<void (const int&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const int&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<int> writer1;
     std::vector<int> writer2;
     emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
     emitters.push_back([&writer2](const int value) { writer2.push_back(value); });
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters, -1);
 
     table.Insert(pair(1));
@@ -250,12 +248,12 @@ TEST_F(PostTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    typedef std::function<void (const StringPair&)> EmitterFunction;
+    using EmitterFunction = std::function<void(const StringPair&)>;
     std::vector<EmitterFunction> emitters;
     std::vector<StringPair> writer1;
     emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value); });
 
-    c7a::core::ReducePostProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
+    core::ReducePostProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters, "");
 
     table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
@@ -289,11 +287,11 @@ TEST_F(PostTable, WithinTableItemsLimit) {
     size_t size = 32 * 1024;
     double fill_rate = 0.5;
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-            c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
-    table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
-          c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 1,
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+            core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
+    table(key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
+          core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 1,
                                      std::equal_to<int>());
 
     ASSERT_EQ(0u, table.NumItems());
@@ -329,11 +327,11 @@ TEST_F(PostTable, AboveTableItemsLimit) {
     size_t size = 32 * 1024;
     double fill_rate = 0.5;
 
-    c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-            c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
-            c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
-            table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
-                  c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 1,
+    core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+            core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
+            table(key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 1,
                   std::equal_to<int>());
 
     size_t num_items = (size_t) (static_cast<double>(size) * fill_rate);

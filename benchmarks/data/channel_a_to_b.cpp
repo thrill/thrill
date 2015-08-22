@@ -1,25 +1,29 @@
 /*******************************************************************************
  * benchmarks/data/channel_a_to_b.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/context.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/common/thread_pool.hpp>
-
-#include "data_generators.hpp"
+#include <thrill/api/context.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <iostream>
 #include <random>
 #include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
-using namespace c7a; // NOLINT
+#include "data_generators.hpp"
+
+using namespace thrill; // NOLINT
+using common::StatsTimer;
 
 //! Creates two threads that work with two context instances
 //! one worker sends elements to the other worker.
@@ -29,10 +33,9 @@ using namespace c7a; // NOLINT
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
 void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::Context& ctx2, const std::string& type_as_string) {
-    using namespace c7a::common;
 
     auto data = generate<Type>(bytes, 1, 100);
-    ThreadPool pool;
+    common::ThreadPool pool;
     for (int i = 0; i < iterations; i++) {
         StatsTimer<true> write_timer;
         pool.Enqueue([&data, &ctx1, &write_timer]() {
@@ -72,7 +75,7 @@ void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx1, api::
 }
 
 int main(int argc, const char** argv) {
-    c7a::common::ThreadPool connect_pool;
+    common::ThreadPool connect_pool;
     std::vector<std::string> endpoints;
     endpoints.push_back("127.0.0.1:8000");
     endpoints.push_back("127.0.0.1:8001");
@@ -88,19 +91,22 @@ int main(int argc, const char** argv) {
         });
     connect_pool.LoopUntilEmpty();
 
-    data::Multiplexer datamp1(1, net_manager1->GetDataGroup());
-    data::Multiplexer datamp2(1, net_manager2->GetDataGroup());
+    data::BlockPool blockpool1(nullptr);
+    data::BlockPool blockpool2(nullptr);
+
+    data::Multiplexer datamp1(blockpool1, 1, net_manager1->GetDataGroup());
+    data::Multiplexer datamp2(blockpool2, 1, net_manager2->GetDataGroup());
 
     net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
 
-    api::Context ctx1(*net_manager1, flow_manager1, datamp1, 1, 0);
-    api::Context ctx2(*net_manager2, flow_manager2, datamp2, 1, 0);
+    api::Context ctx1(*net_manager1, flow_manager1, blockpool1, datamp1, 1, 0);
+    api::Context ctx2(*net_manager2, flow_manager2, blockpool2, datamp2, 1, 0);
 
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
-    clp.SetDescription("c7a::data benchmark for disk I/O");
+    clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     int iterations;
     uint64_t bytes;

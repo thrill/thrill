@@ -2,26 +2,56 @@
 /*******************************************************************************
  * doc/main.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 
 /******************************************************************************/
-/** \mainpage The Project c7a Documentation
+/** \mainpage Thrill Documentation Overview
 
+<table class="mystyle1">
+  <tr>
+    <td colspan="2"><div style="text-align: center">\ref examples "examples: Some Example Programs"</div>
+    WordCount, PageRank, and more...</td>
+  </tr>
+  <tr>
+    <td colspan="2"><div style="text-align: center">\ref api "api: Thrill User Interface"</div>
+    Convenient user interface for writing Big Data algorithms as dataflow graphs with imperative actions. Contains the Context and DIARef classes.</td>
+  </tr>
+  <tr>
+    <td colspan="2"><div style="text-align: center">\ref core "core: Internal Algorithms"</div>
+    Distributed data structures and algorithms used to build API: Shuffle/Reduce Table, StageBuilder.</td>
+  </tr>
+  <tr>
+    <td colspan="2"><div style="text-align: center">\ref data "data: Data Layer"</div>
+    Manages transfer of large amounts of data between workers. Contains Serialization, File, BlockWriter, Channel, and Multiplexer.</td>
+  </tr>
+  <tr>
+    <td colspan="2"><div style="text-align: center">\ref net "net: Network Layer"</div>
+    Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
+  </tr>
+  <tr>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref common "common: Common Tools"</div>
+      Independent common tools such as Logger, ThreadPool, Delegates, ConcurrentQueue, CmdlineParser, etc.</td>
+    <td style="width: 50%">
+      <div style="text-align: center">\ref mem "mem: Memory Management Layer"</div>
+      Keeps track of memory consumption of all stakeholders in system.</td>
+  </tr>
+</table>
+
+- \subpage api
 - \subpage net
 - \subpage data "Data Subsystem"
 - \subpage common
-- \subpage api
-
 
 */
 
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

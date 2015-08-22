@@ -1,24 +1,24 @@
 /*******************************************************************************
  * tests/common/future_queue_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/future_queue.hpp>
-#include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/future_queue.hpp>
+#include <thrill/common/thread_pool.hpp>
 
-using namespace c7a::common;
+using namespace thrill::common;
 using namespace std::literals;
 
 struct FutureQueueTest : public::testing::Test {
     FutureQueueTest() : pool(2) { }
     ThreadPool pool;
 
-    //can not put f or result in the struct because it cannot be captured then.
+    // can not put f or result in the struct because it cannot be captured then.
 };
 
 TEST_F(FutureQueueTest, WaitIsTrueWhenDataWasPushed) {

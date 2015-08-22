@@ -10,5 +10,5 @@ if [ ! -d "build" ]; then
 fi
 cd build
 cmake .. $@
-make $MAKEOPTS
+make $MAKEOPTS -j 8
 ctest -V

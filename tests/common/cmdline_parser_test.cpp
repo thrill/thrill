@@ -1,20 +1,20 @@
 /*******************************************************************************
  * tests/common/cmdline_parser_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/cmdline_parser.hpp>
 
 #include <sstream>
 #include <string>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(CmdlineParser, Test1) {
     int a_int = 0;
@@ -29,7 +29,7 @@ TEST(CmdlineParser, Test1) {
 
     // good command line
     const char* cmdline1[] =
-    { "test", "-i", "42", "-f", "somefile", NULL };
+    { "test", "-i", "42", "-f", "somefile", nullptr };
 
     std::ostringstream os1;
     ASSERT_TRUE(cp.Process(5, cmdline1, os1));
@@ -39,7 +39,7 @@ TEST(CmdlineParser, Test1) {
 
     // bad command line
     const char* cmdline2[] =
-    { "test", "-i", "dd", "-f", "somefile", NULL };
+    { "test", "-i", "dd", "-f", "somefile", nullptr };
 
     std::ostringstream os2;
     ASSERT_FALSE(cp.Process(5, cmdline2, os2));

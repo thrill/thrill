@@ -1,0 +1,206 @@
+/* Modifications to CSS for doxygen 1.8.5 */
+
+/* change font to smaller serif font */
+body, table, div, p, dl {
+   font: 14px/20px serif;
+}
+
+/* remove useless background image */
+div.header {
+   background-image: none;
+}
+
+/* limit text line length for better readability */
+div.textblock {
+   max-width: 60em;
+}
+
+/* title is the page title over the right text area */
+.title {
+   font: 400 14px/28px Roboto,sans-serif;
+   font-size: 150%;
+   font-weight: bold;
+   margin: 3px 1px 0px 1px;
+}
+
+/* make h1,h2,h3 smaller, more padding on top than bottom */
+h1 {
+   margin-top: 2ex;
+   margin-bottom: 1.5ex;
+}
+h2 {
+   margin-top: 1.5ex;
+   margin-bottom: 1ex;
+}
+
+/* make top navigation items smaller, no images */
+.tablist li {
+   line-height: 25px;
+}
+.tabs2 {
+   font-size: 12px;
+}
+#MSearchBox {
+   margin-top: 2px;
+}
+
+/* remove shadows in top navigation */
+.tablist a, .tablist a:hover, .tablist li.current a {
+   text-shadow: none;
+}
+
+/* make headers in class description MUCH smaller */
+h2.groupheader {
+   font-size: 100%;
+   margin-top: 0em;
+   padding-top: 4px;
+   padding-bottom: 1px;
+}
+
+/* make many many places monospace/teletype font, because they are code */
+.memTemplParams {
+   font-family: monospace;
+}
+.memItemLeft, .memTemplItemLeft {
+   font-family: monospace;
+}
+.memItemRight, .memTemplItemRight {
+   font-family: monospace;
+}
+.paramname, .paramname a {
+   font-family: monospace;
+}
+.memname {
+   font-family: monospace;
+}
+.memtemplate {
+   font-family: monospace;
+}
+
+/* in class member list: make OUR documentation larger */
+.mdescRight {
+   color: #800000;
+   font-size: 110%;
+}
+
+/* make expandable diagram links gray (uninteresting background) */
+div.dynheader {
+   color: #808080;
+}
+
+/* Better Foregrounding of Important Information */
+
+/* first: make all default doxygen text gray (uninteresting) */
+div.contents {
+   color: #000000;
+}
+
+/* make text blocks red-black */
+div.textblock p, div.textblock li {
+   color: #400000;
+   margin-top: 1ex;   
+   margin-bottom: 1ex;   
+   font-size: 16/24px;
+}
+div.memdoc p {
+   color: #400000;
+   margin-top: 1ex;   
+   margin-bottom: 1ex;   
+   font-size: 16/18px;
+}
+
+/* group headers as given by \name */
+div.groupHeader {
+   color: #004000;
+   margin-left: 0px;
+}
+
+/* class member details documentation  */
+
+/* remove stupid shadows */
+.memdoc {
+   box-shadow: none;
+   -moz-box-shadow: none;
+   -webkit-box-shadow: none;
+}
+
+/* remove stupid background images and shadows */
+.memproto {
+   text-shadow: none;
+   box-shadow: none;
+   -moz-box-shadow: none;
+   -webkit-box-shadow: none;
+   background-image: none;
+   background-color: #F4F8FC;
+}
+
+/* make "inline", "explicit", etc larger */
+.mlabels {
+   font-family: monospace;
+   font-weight: bold;
+}
+
+/* left navigation tree */
+
+/* left nav tree: make text black (higher contrast) */
+#nav-tree a {
+   color: #000000;
+}
+
+/* left nav tree: remove image in selection */
+#nav-tree .selected {
+   background-image: none;
+   background-color: #45639f;
+}
+
+/* source code browser */
+
+/* more space between lines */
+div.line {
+   line-height: 1.2;
+}
+
+/* My own table style class with plain lines */
+
+table.mystyle1 {
+   margin: 0 auto;
+   max-width: 80ex;
+   border-collapse: collapse;
+   border-spacing: 0;
+}
+
+table.mystyle1 tr {
+   border-collapse: collapse;
+}
+
+table.mystyle1 td {
+   border: 1px solid #333366;
+   padding: 4px;
+   border-collapse: collapse;
+}
+
+/* table style for template parameter tables */
+
+table.params {
+   margin: 0 auto;
+   width: 100%;
+   border-collapse: collapse;
+   border-spacing: 0;
+   border: 1px solid #A8B8D9;
+   -moz-border-radius: 12px;
+   -webkit-border-radius: 12px;
+   border-radius: 12px;
+}
+
+table.params tr {
+   border-collapse: collapse;
+}
+
+table.params td {
+   /* border: 1px solid black; */
+   /* border-radius: 0.5em; */
+   /* -webkit-border-radius: .5em; */
+   /* -moz-border-radius: .5em; */
+   padding: 4px;
+   border-collapse: collapse;
+}

@@ -179,7 +179,7 @@ sub process_cpp {
 
     # skip over custom file comments
     my $j = $i;
-    while ($data[$i] !~ /^ \* Part of Project c7a/) {
+    while ($data[$i] !~ /^ \* Part of Project Thrill/) {
         expect_re($path, $i, @data, '^ \*( .*)?\n$');
         if (++$i >= @data) {
             $i = $j; # restore read position
@@ -187,9 +187,9 @@ sub process_cpp {
         }
     }
 
-    # check "Part of Project c7a"
+    # check "Part of Project Thrill"
     expect($path, $i-1, @data, " *\n");
-    expect($path, $i, @data, " * Part of Project c7a.\n"); ++$i;
+    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
 
     # read authors
@@ -211,10 +211,10 @@ sub process_cpp {
 
         # construct include guard macro name: PROGRAM_FILE_NAME_HEADER
         my $guard = $path;
-        $guard =~ s!c7a/!!;
+        $guard =~ s!thrill/!!;
         $guard =~ tr!/-!__!;
         $guard =~ s!\.h(pp)?(\.in)?$!!;
-        $guard = "C7A_".uc($guard)."_HEADER";
+        $guard = "THRILL_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
         expect($path, $i, @data, "#pragma once\n"); ++$i;
@@ -226,12 +226,43 @@ sub process_cpp {
         expectr($path, $n-2, @data, "#endif // !$guard\n", qr/^#endif /);
     }
 
+    # check for comments that have no space after // or //!
+    for(my $i = 0; $i < @data-1; ++$i) {
+        next if $data[$i] =~ m@^(\s*//)( |! |/|-|\*)@;
+        $data[$i] =~ s@^(\s*//!?)([^ ].+)$@$1 $2@;
+    }
+
     # check terminating /****/ comment
     {
         my $n = scalar(@data)-1;
         if ($data[$n] !~ m!^/\*{78}/$!) {
             push(@data, "\n");
             push(@data, "/".('*'x78)."/\n");
+        }
+    }
+
+    for(my $i = 0; $i < @data-1; ++$i) {
+        # check for @-style doxygen commands
+        if ($data[$i] =~ m!\@(param|tparam|return|result|brief|details|c|i)\s!) {
+            print("found \@-style doxygen command in $path:$i\n");
+        }
+
+        # check for assert() in test cases
+        if ($path =~ /^tests/) {
+            if ($data[$i] =~ m/(?<!static_)assert\(/) {
+                print("found assert() in test $path:$i\n");
+            }
+        }
+
+        # check for NULL -> replace with nullptr.
+        if ($data[$i] =~ s/\bNULL\b/nullptr/g) {
+            print("replacing NULL in test $path:$i\n");
+        }
+
+        # check for typedef, issue warnings.
+        if ($data[$i] =~ m/\btypedef\b/) {
+        #if ($data[$i] =~ s/\btypedef\b(.+)\b(\w+);$/using $2 = $1;/) {
+            print("found typedef in $path:$i\n");
         }
     }
 
@@ -383,14 +414,14 @@ foreach my $arg (@ARGV) {
     }
 }
 
-(-e "c7a/CMakeLists.txt")
-    or die("Please run this script in the C7A source base directory.");
+(-e "thrill/CMakeLists.txt")
+    or die("Please run this script in the Thrill source base directory.");
 
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");
 ($uncrustver eq "uncrustify 0.61\n")
     or die("Requires uncrustify 0.61 to run correctly. ".
-           "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
+           "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
 
 use File::Find;
 my @filelist;
