@@ -154,7 +154,7 @@ private:
     std::thread thread_;
 
     //! enclosed dispatcher.
-    class Dispatcher* dispatcher_;
+    mem::mm_unique_ptr<class Dispatcher> dispatcher_;
 
     //! termination flag
     std::atomic<bool> terminate_ { false };

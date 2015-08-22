@@ -22,8 +22,7 @@ namespace thrill {
 namespace net {
 
 DispatcherThread::DispatcherThread(const mem::string& thread_name)
-    : dispatcher_(
-          mem::mm_new<Dispatcher>(mem_manager_, mem_manager_)),
+    : dispatcher_(mem::mm_make_unique<Dispatcher>(mem_manager_, mem_manager_)),
       name_(thread_name) {
     // allocate self-pipe
     int r = ::pipe(self_pipe_);
@@ -40,8 +39,6 @@ DispatcherThread::~DispatcherThread() {
 
     close(self_pipe_[0]);
     close(self_pipe_[1]);
-
-    mem::mm_delete(mem_manager_, dispatcher_);
 }
 
 //! Terminate the dispatcher thread (if now already done).
