@@ -94,12 +94,13 @@ public:
                       Value neutral_element,
                       StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
+          ctx_(parent.ctx()),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 10, 2, 256, 1048576,
+                            reduce_function_, emitters_, 1024, 0.5, 1024 * 16,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -143,7 +144,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_, cbs,
+        ReduceTable table(ctx_, key_extractor_, reduce_function_, cbs,
                           core::PostReduceByIndex(),
                           core::PostReduceFlushToIndex<Value>(),
                           local_begin,
@@ -196,6 +197,9 @@ public:
     }
 
 private:
+    //! Context
+    Context& ctx_;
+
     //! Key extractor function
     KeyExtractor key_extractor_;
     //! Reduce function

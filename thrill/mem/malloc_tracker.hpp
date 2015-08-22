@@ -12,7 +12,7 @@
 #ifndef THRILL_MEM_MALLOC_TRACKER_HEADER
 #define THRILL_MEM_MALLOC_TRACKER_HEADER
 
-#include <stdlib.h>
+#include <cstdlib>
 
 namespace thrill {
 namespace mem {

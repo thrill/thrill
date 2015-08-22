@@ -256,7 +256,7 @@ sub process_cpp {
 
         # check for NULL -> replace with nullptr.
         if ($data[$i] =~ s/\bNULL\b/nullptr/g) {
-            print("replacing NULL in test $path:$i\n");
+            print("replacing NULL in $path:$i\n");
         }
 
         # check for typedef, issue warnings.

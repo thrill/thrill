@@ -1,0 +1,78 @@
+// -*- mode: c++; mode: visual-line; mode: flyspell; fill-column: 100000 -*-
+/*******************************************************************************
+ * doc/mem.dox
+ *
+ * Part of Project Thrill.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+namespace thrill {
+namespace mem {
+
+/******************************************************************************/
+/** \page mem Memory Management Layer
+
+The Thrill framework needs to actively count the amount of memory used by different subsystems.  During execution, the memory allocation then determines how much data can be cached in memory, how large the data structures in the set of DIANodes contained in one execution stage are, and tracks the memory used by user functions.
+
+There are at least the following memory stakeholders in the system:
+
+- the user's data structures which contain pointers to more information (prior to serialization)
+
+- the data and net subsystem manage all data blocks: data::ByteBlock are allocated in RAM, but can be swapped out to disk if RAM overflows.
+
+- the data structures inside the DIANodes have to be correctly sized such that a stage of multiple nodes fits into RAM.
+
+## Tracking User Memory Allocation
+
+The framework itself cannot truly limit user memory allocation, as user defined functions in DIANodes can basically do *anything*. But it can track the most common use cases: when DIA's contain structs which have external additional memory.
+
+For example, if the items in a DIA are a `struct KV { size_t key; std::string value };` then `sizeof(KV) = 16` on 64-bit systems. But that is not the true memory usage, since the std::string contains an arbitrarily long memory chunk.
+
+To track the additional allocation, the framework installs a hook for `malloc()`, `free()`, and a few other low-level functions.  These hooks then track the total memory allocation of the running program.  Inside the hook, the framework currently calls the underlying libc `malloc()` implementation. This has the negative effect that we can only determine the total allocation, and ignore any fragmentation and alignment overhead. To solve this, one could include a complete allocation library, like jemalloc, which provide more detailed information.
+
+But to distinguish allocations done by user defined functions, and Thrill's data structures (again, separated by workers or test host contexts), we need to use custom allocators and/or custom new/delete/malloc/free functions.
+
+## bypass_malloc() and BypassAllocator
+
+For debugging or ignoring memory allocation, the simplest allocator in Thrill is the \ref BypassAllocator. This C++ allocator uses the two functions \ref bypass_malloc() and \ref bypass_free(), which bypasses user memory counting. The allocator contains no reference and is thus default constructible.
+
+The bypass allocator can be used with any STL data structure as follows:
+\code
+std::vector<T, mem::BypassAllocator<T> > vec;
+\endcode
+No additional objects need by given to the constructor, as the allocator is default constructible. Any items allocated by the vector are not counted by the framework.
+
+The namespace mem contains \ref mem::vector, \ref mem::string, \ref mem::stringbuf etc which are appropriate `template using` declarations with the BypassAllocator. There are drop-in replacements for the `std::` versions.
+
+Hence, to bypass the user allocation tracker (and have the allocation be counted in the global bypass pool), it is sufficient to use
+
+\code
+mem::vector<T> vec;
+\endcode
+
+## Manager and Allocator
+
+For real counting, there is \ref mem::Manager which contains statistics about the allocation of any component or subcomponent of the framework. The Manager objects form a hierarchy by following parent pointers to superior managers. The root Manager is contained in the \ref api::HostContext and counts all allocation of workers in one host. This hierarchy probably needs to be adapted.
+
+For counted allocations, the direct method is to use the \ref mem::mm_new() function, which is a replacement for `operator new`. These allocation have to be released using \ref mem::mm_free(). These counted allocations require a reference to a \ref mem::Manager.
+
+To attach a container to a Manager, the framework provides the \ref mem::Allocator. Constructing these containers is more difficult because the Allocator is not default constructible: it need to contain a reference to the Manager. Hence, a vector is create as follows:
+
+\code
+mem::Manager manager;
+std::vector<T, mem::Allocator<T> > vec1 (mem::Allocator<T>(manager));
+// which is aliased as
+mem::mm_vector<T> vec2 { mem::Allocator<T>(manager) };
+\endcode
+
+This is obviously much more of a hassle, but in a class context these constructor arguments can be passed using the uniform initialization schema as shown above. See the initialization of \ref net::Dispatcher::async_read_ for an example.
+
+*/
+
+} // namespace mem
+} // namespace thrill
+
+/******************************************************************************/
