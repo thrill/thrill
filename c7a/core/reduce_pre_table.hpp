@@ -326,9 +326,6 @@ public:
                 }
             }
 
-            if (current->next == NULL)
-                break;
-
             current = current->next;
         }
 
@@ -338,8 +335,9 @@ public:
             > max_partition_fill_rate_)
         {
             FlushPartition(h.partition_id);
-            current = NULL;
         }
+
+        current = buckets_[h.global_index];
 
         if (current == NULL ||
             current->size == block_size_)

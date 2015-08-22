@@ -38,8 +38,8 @@ public:
     size_t
     operator () (const Key& v, ReducePostTable* ht, const size_t& size) const {
 
-        (*ht).NumBlocks();
-        size_t i = size+1;
+        (void)ht;
+        (void)size;
 
         return v / 2;
     }
@@ -132,6 +132,7 @@ TEST_F(PostTable, CreateEmptyTable) {
     table(key_ex, red_fn, emitters);
 
     ASSERT_EQ(0u, table.NumBlocks());
+    ASSERT_EQ(0u, table.NumItems());
 }
 
 TEST_F(PostTable, FlushIntegers) {
@@ -150,24 +151,19 @@ TEST_F(PostTable, FlushIntegers) {
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
-    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(0u, writer1.size());
 
     table.Insert(pair(1));
     table.Insert(pair(2));
     table.Insert(pair(3));
 
-    ASSERT_EQ(3u, table.NumBlocks());
     ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(3u, writer1.size());
 
     table.Insert(pair(1));
-
-    ASSERT_EQ(1u, table.NumBlocks());
 }
 
 TEST_F(PostTable, FlushIntegersInSequence) {
@@ -186,31 +182,26 @@ TEST_F(PostTable, FlushIntegersInSequence) {
     c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
     table(key_ex, red_fn, emitters);
 
-    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(0u, writer1.size());
 
     table.Insert(pair(1));
     table.Insert(pair(2));
     table.Insert(pair(3));
 
-    ASSERT_EQ(3u, table.NumBlocks());
     ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(3u, writer1.size());
 
     table.Insert(pair(4));
     table.Insert(pair(5));
     table.Insert(pair(6));
 
-    ASSERT_EQ(3u, table.NumBlocks());
     ASSERT_EQ(3u, writer1.size());
 
     table.Flush();
 
-    ASSERT_EQ(0u, table.NumBlocks());
     ASSERT_EQ(6u, writer1.size());
 }
 
@@ -321,7 +312,142 @@ TEST_F(PostTable, OneBucketOneBlock) {
     ASSERT_EQ(block_size, writer1.size());
 }
 
+TEST_F(PostTable, OneBucketOneBlock2) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    typedef std::function<void (const int&)> EmitterFunction;
+    std::vector<EmitterFunction> emitters;
+    std::vector<int> writer1;
+    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+
+    const size_t TargetBlockSize = 16*16;
+    typedef std::pair<int, int> KeyValuePair;
+
+    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 1, 1,
+                  std::equal_to<int>());
+
+    size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+
+    ASSERT_EQ(0u, table.NumBlocks());
+
+    for (size_t i = 0; i < block_size; ++i) {
+        table.Insert(pair(i));
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+
+    ASSERT_EQ(0u, writer1.size());
+
+    table.Flush();
+
+    ASSERT_EQ(block_size, writer1.size());
+}
+
 TEST_F(PostTable, OneBucketOneBlockOverflow) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    typedef std::function<void (const int&)> EmitterFunction;
+    std::vector<EmitterFunction> emitters;
+    std::vector<int> writer1;
+    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+
+    const size_t TargetBlockSize = 16*1024;
+    typedef std::pair<int, int> KeyValuePair;
+
+    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 1, 1,
+                  std::equal_to<int>());
+
+    size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+
+    ASSERT_EQ(0u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
+
+    for (size_t i = 0; i < block_size; ++i) {
+        table.Insert(i);
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+    ASSERT_EQ(block_size*0.5, table.NumItems());
+
+    for (size_t i = block_size; i < block_size*2; ++i) {
+        table.Insert(i);
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+    ASSERT_EQ(block_size*0.5, table.NumItems());
+
+    ASSERT_EQ(0u, writer1.size());
+    table.Flush();
+    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(2*block_size, writer1.size());
+}
+
+TEST_F(PostTable, OneBucketOneBlockOverflow2) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    typedef std::function<void (const int&)> EmitterFunction;
+    std::vector<EmitterFunction> emitters;
+    std::vector<int> writer1;
+    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+
+    const size_t TargetBlockSize = 16*1024;
+    typedef std::pair<int, int> KeyValuePair;
+
+    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 1, 1,
+                  std::equal_to<int>());
+
+    size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+
+    ASSERT_EQ(0u, table.NumBlocks());
+    ASSERT_EQ(0u, writer1.size());
+
+    for (size_t i = 0; i < block_size; ++i) {
+        table.Insert(i);
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+    ASSERT_EQ(block_size, table.NumItems());
+
+    for (size_t i = block_size; i < block_size*2; ++i) {
+        table.Insert(i);
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+    ASSERT_EQ(block_size, table.NumItems());
+
+    ASSERT_EQ(0u, writer1.size());
+    table.Flush();
+    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(2*block_size, writer1.size());
+}
+
+TEST_F(PostTable, OneBucketTwoBlocks) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -347,7 +473,12 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
     ASSERT_EQ(0u, table.NumBlocks());
-    ASSERT_EQ(0u, writer1.size());
+
+    for (size_t i = 0; i < block_size; ++i) {
+        table.Insert(pair(i));
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
 
     for (size_t i = 0; i < block_size; ++i) {
         table.Insert(pair(i));
@@ -367,7 +498,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
     ASSERT_EQ(block_size*2, writer1.size());
 }
 
-TEST_F(PostTable, OneBucketTwoBlocks) {
+TEST_F(PostTable, OneBucketTwoBlocks2) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -387,7 +518,7 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
             c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
-                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 3, 1,
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 2, 1,
                   std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -405,7 +536,6 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
         ASSERT_EQ(1u, table.NumBlocks());
     }
     ASSERT_EQ(1u, table.NumBlocks());
-
     for (size_t i = block_size; i < block_size*2; ++i) {
         table.Insert(pair(i));
         ASSERT_EQ(2u, table.NumBlocks());
@@ -439,7 +569,65 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
             c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
             c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
-                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 3, 1,
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 2, 1,
+                  std::equal_to<int>());
+
+    size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+
+    ASSERT_EQ(0u, table.NumBlocks());
+
+    for (size_t i = 0; i < block_size; ++i) {
+        table.Insert(pair(i));
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+
+    for (size_t i = 0; i < block_size; ++i) {
+        table.Insert(pair(i));
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+
+    for (size_t i = block_size; i < block_size*2; ++i) {
+        table.Insert(pair(i));
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+
+    for (size_t i = block_size*2; i < block_size*3; ++i) {
+        table.Insert(pair(i));
+        ASSERT_EQ(1u, table.NumBlocks());
+    }
+    ASSERT_EQ(1u, table.NumBlocks());
+
+    ASSERT_EQ(0u, writer1.size());
+
+    table.Flush();
+
+    ASSERT_EQ(block_size*3, writer1.size());
+}
+
+TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
+    auto key_ex = [](int in) {
+        return in;
+    };
+    auto red_fn = [](int in1, int in2) {
+        return in1 + in2;
+    };
+
+    typedef std::function<void (const int&)> EmitterFunction;
+    std::vector<EmitterFunction> emitters;
+    std::vector<int> writer1;
+    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+
+    const size_t TargetBlockSize = 16*1024;
+    typedef std::pair<int, int> KeyValuePair;
+
+    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+            c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+            c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
+                  c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 2, 1,
                   std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -466,9 +654,9 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
 
     for (size_t i = block_size*2; i < block_size*3; ++i) {
         table.Insert(pair(i));
-        ASSERT_EQ(2u, table.NumBlocks());
+        ASSERT_EQ(1u, table.NumBlocks());
     }
-    ASSERT_EQ(2u, table.NumBlocks());
+    ASSERT_EQ(1u, table.NumBlocks());
 
     ASSERT_EQ(0u, writer1.size());
 
@@ -477,7 +665,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
     ASSERT_EQ(block_size*3, writer1.size());
 }
 
-TEST_F(PostTable, DISABLED_MaxTableBlocks) {
+TEST_F(PostTable, MaxTableBlocks) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -500,25 +688,25 @@ TEST_F(PostTable, DISABLED_MaxTableBlocks) {
             c7a::core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(key_ex, red_fn, emitters, c7a::core::PostReduceByHashKey<int>(),
                   c7a::core::PostReduceFlushToDefault<int, decltype(red_fn)>(),
-                  0, 0, 0, num_buckets, 0.5, max_blocks, 16,
+                  0, 0, 0, num_buckets, 1.0, max_blocks, 1,
                   std::equal_to<int>());
 
     size_t block_size = c7a::common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
-    size_t num_items = block_size * max_blocks + 1;
+    size_t num_items = block_size * max_blocks;
 
     ASSERT_EQ(0u, table.NumBlocks());
 
-    for (size_t i = 0; i < num_items*2; ++i) {
+    for (size_t i = 0; i < num_items; ++i) {
         table.Insert(pair(i));
+        ASSERT_TRUE(table.NumBlocks() <= max_blocks);
     }
-    ASSERT_EQ(max_blocks, table.NumBlocks());
 
     ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
-    ASSERT_EQ(num_items*2, writer1.size());
+    ASSERT_EQ(num_items, writer1.size());
 }
 
 /******************************************************************************/

@@ -51,7 +51,7 @@ public:
         size_t partition_id = 0;
         size_t local_index = k / 2;
 
-        (*ht).NumItems();
+        (void)ht;
 
         return index_result(partition_id, local_index, global_index);
     }
