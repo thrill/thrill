@@ -68,7 +68,7 @@ public:
     }
 
     //! Destroys in-place the object pointed by p.
-    void destroy(pointer p) {
+    void destroy(pointer p) const noexcept {
         p->~Type();
     }
 
@@ -80,7 +80,7 @@ public:
 
     //! Destroys in-place the object pointed by p.
     template <class SubType>
-    void destroy(SubType* p) {
+    void destroy(SubType* p) const noexcept {
         p->~SubType();
     }
 };
@@ -125,7 +125,7 @@ public:
 
     //! Releases a block of storage previously allocated with member allocate
     //! and not yet released.
-    void deallocate(pointer p, size_type /* n */) noexcept {
+    void deallocate(pointer p, size_type /* n */) const noexcept {
         bypass_free(p);
     }
 

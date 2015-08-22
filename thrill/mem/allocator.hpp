@@ -79,7 +79,7 @@ public:
 
     //! Releases a block of storage previously allocated with member allocate
     //! and not yet released.
-    void deallocate(pointer p, size_type n) noexcept {
+    void deallocate(pointer p, size_type n) const noexcept {
 
         manager_->subtract(n * sizeof(Type));
 
@@ -123,6 +123,38 @@ void mm_delete(Manager& manager, T* value) {
     Allocator<T> allocator(manager);
     allocator.destroy(value);
     allocator.deallocate(value, 1);
+}
+
+//! std::default_deleter with Manager tracking
+template <typename T>
+class Deleter
+{
+public:
+    //! constructor: need reference to Manager
+    Deleter(Manager& manager) noexcept
+        : allocator_(manager) { }
+
+    //! free the pointer
+    void operator () (T* ptr) const noexcept {
+        allocator_.destroy(ptr);
+        allocator_.deallocate(ptr, 1);
+    }
+
+protected:
+    //! reference to Manager for freeing.
+    Allocator<T> allocator_;
+};
+
+//! unique_ptr with Manager tracking
+template <typename T>
+using mm_unique_ptr = std::unique_ptr<T, Deleter<T> >;
+
+//! make_unique with Manager tracking
+template <typename T, class ... Args>
+mm_unique_ptr<T> mm_make_unique(Manager& manager, Args&& ... args) {
+    return mm_unique_ptr<T>(
+        mm_new<T>(manager, std::forward<Args>(args) ...),
+        Deleter<T>(manager));
 }
 
 //! string with Manager tracking
