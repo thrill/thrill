@@ -12,10 +12,11 @@
 #ifndef THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 #define THRILL_NET_FLOW_CONTROL_MANAGER_HEADER
 
-#include <string>
 #include <thrill/common/thread_barrier.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/group.hpp>
+
+#include <string>
 #include <vector>
 
 namespace thrill {

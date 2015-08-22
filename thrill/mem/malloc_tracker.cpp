@@ -14,17 +14,17 @@
 
 #include <thrill/mem/malloc_tracker.hpp>
 
-#include <dlfcn.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include <dlfcn.h>
 
 #if defined(__clang__) || defined (__GNUC__)
-#define ATTRIBUTE_NO_SANITIZE             \
-    __attribute__ ((no_sanitize_address)) \
-    __attribute__ ((no_sanitize_thread))
+#define ATTRIBUTE_NO_SANITIZE                          \
+    __attribute__ ((no_sanitize_address)) /* NOLINT */ \
+    __attribute__ ((no_sanitize_thread))  /* NOLINT */
 #else
 #define ATTRIBUTE_NO_SANITIZE
 #endif
@@ -128,7 +128,7 @@ void malloc_tracker_print_status() {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static __attribute__ ((constructor)) void init() {
+static __attribute__ ((constructor)) void init() { // NOLINT
     char* error;
 
     // try to use AddressSanitizer's malloc first.
@@ -171,7 +171,7 @@ static __attribute__ ((constructor)) void init() {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static __attribute__ ((destructor)) void finish() {
+static __attribute__ ((destructor)) void finish() { // NOLINT
     fprintf(stderr, PPREFIX
             "exiting, total: %lu, peak: %lu, current: %lu, "
             "allocs: %lu, unfreed: %lu\n",

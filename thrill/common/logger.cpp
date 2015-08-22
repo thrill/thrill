@@ -12,6 +12,7 @@
 
 #include <thrill/common/logger.hpp>
 
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
