@@ -25,7 +25,7 @@ struct MyInteger : public common::ReferenceCount
 {
     int i;
 
-    MyInteger(int _i) : i(_i) { }
+    explicit MyInteger(int _i) : i(_i) { }
 
     // count number of destructor calls
     ~MyInteger()

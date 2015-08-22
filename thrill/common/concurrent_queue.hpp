@@ -55,7 +55,7 @@ protected:
 
 public:
     //! Constructor
-    OurConcurrentQueue(const Allocator& alloc = Allocator())
+    explicit OurConcurrentQueue(const Allocator& alloc = Allocator())
         : queue_(alloc) { }
 
     //! Pushes a copy of source onto back of the queue.

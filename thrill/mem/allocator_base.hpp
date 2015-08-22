@@ -64,23 +64,23 @@ public:
 
     //! Constructs an element object on the location pointed by p.
     void construct(pointer p, const_reference value) {
-        ::new ((void*)p)Type(value);
+        ::new ((void*)p)Type(value); // NOLINT
     }
 
     //! Destroys in-place the object pointed by p.
-    void destroy(pointer p) {
+    void destroy(pointer p) const noexcept {
         p->~Type();
     }
 
     //! Constructs an element object on the location pointed by p.
     template <class SubType, typename ... Args>
     void construct(SubType* p, Args&& ... args) {
-        ::new ((void*)p)SubType(std::forward<Args>(args) ...);
+        ::new ((void*)p)SubType(std::forward<Args>(args) ...); // NOLINT
     }
 
     //! Destroys in-place the object pointed by p.
     template <class SubType>
-    void destroy(SubType* p) {
+    void destroy(SubType* p) const noexcept {
         p->~SubType();
     }
 };
@@ -125,7 +125,7 @@ public:
 
     //! Releases a block of storage previously allocated with member allocate
     //! and not yet released.
-    void deallocate(pointer p, size_type /* n */) noexcept {
+    void deallocate(pointer p, size_type /* n */) const noexcept {
         bypass_free(p);
     }
 

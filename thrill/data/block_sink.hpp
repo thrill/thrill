@@ -12,9 +12,10 @@
 #ifndef THRILL_DATA_BLOCK_SINK_HEADER
 #define THRILL_DATA_BLOCK_SINK_HEADER
 
-#include <memory>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
+
+#include <memory>
 
 namespace thrill {
 namespace data {
@@ -30,7 +31,7 @@ class BlockSink
 {
 public:
     //! constructor with reference to BlockPool
-    BlockSink(BlockPool& block_pool)
+    explicit BlockSink(BlockPool& block_pool)
         : block_pool_(block_pool)
     { }
 
