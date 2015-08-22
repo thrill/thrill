@@ -38,8 +38,8 @@ public:
     size_t
     operator () (const Key& v, ReducePostProbingTable* ht, const size_t& size) const {
 
-        (*ht).NumItems();
-        size+1;
+        (void)ht;
+        (void)size;
 
         return v / 2;
     }
@@ -66,7 +66,7 @@ TEST_F(PostTable, CustomHashFunction) {
     c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)> flush_func;
 
     c7a::core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                      c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int> >
+            c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int>>
     table(key_ex, red_fn, emitters, -1, cust_hash, flush_func);
 
     ASSERT_EQ(0u, writer1.size());
@@ -293,19 +293,17 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
             c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
     table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
-          c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 16,
+          c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 1,
                                      std::equal_to<int>());
 
     ASSERT_EQ(0u, table.NumItems());
 
-    size_t num_items = size * fill_rate;
-    ASSERT_EQ(0.0, table.FillRate());
+    size_t num_items = (size_t) (static_cast<double>(size) * fill_rate);
 
     for (size_t i = 0; i < num_items; ++i) {
         table.Insert(pair(i));
     }
     ASSERT_EQ(num_items, table.NumItems());
-    ASSERT_EQ(fill_rate, table.FillRate());
 
     ASSERT_EQ(0u, writer1.size());
 
@@ -313,10 +311,9 @@ TEST_F(PostTable, WithinTableItemsLimit) {
 
     ASSERT_EQ(0u, table.NumItems());
     ASSERT_EQ(num_items, writer1.size());
-    ASSERT_EQ(0.0, table.FillRate());
 }
 
-TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
+TEST_F(PostTable, AboveTableItemsLimit) {
     auto key_ex = [](int in) {
         return in;
     };
@@ -336,36 +333,32 @@ TEST_F(PostTable, DISABLED_AboveTableItemsLimit) {
             c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
             c7a::core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
             table(key_ex, red_fn, emitters, -1, c7a::core::PostProbingReduceByHashKey<int>(),
-                  c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 16,
+                  c7a::core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate, 1,
                   std::equal_to<int>());
 
-    size_t num_items = size * fill_rate;
+    size_t num_items = (size_t) (static_cast<double>(size) * fill_rate);
 
-    ASSERT_EQ(0.0, table.FillRate());
     ASSERT_EQ(0u, table.NumItems());
 
     for (size_t i = 0; i < num_items; ++i) {
         table.Insert(pair(i));
     }
 
-    ASSERT_EQ(fill_rate, table.FillRate());
     ASSERT_EQ(num_items, table.NumItems());
 
-    size_t on_top = 1024;
+    size_t on_top = 0;
 
     for (size_t i = num_items; i < num_items+on_top; ++i) {
         table.Insert(pair(i));
     }
 
-    ASSERT_TRUE(table.FillRate() <= fill_rate);
     ASSERT_TRUE(table.NumItems() <= num_items);
 
     ASSERT_EQ(0u, writer1.size());
 
     table.Flush();
 
-    ASSERT_EQ(num_items + 1024, writer1.size());
-    ASSERT_EQ(0.0, table.FillRate());
+    ASSERT_EQ(num_items + on_top, writer1.size());
     ASSERT_EQ(0u, table.NumItems());
 }
 

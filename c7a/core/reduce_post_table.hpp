@@ -172,7 +172,7 @@ public:
             if (file.NumItems() > 0)  {
 
                 size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-                                                         / static_cast<double>(ht->block_size_));
+                                                         / static_cast<double>(ht->block_size_)); // TODO
 
                 // adjust size of second reduce table
                 second_reduce.resize(frame_length, NULL);
@@ -206,11 +206,10 @@ public:
                             }
                         }
 
-                        if (current->next == NULL)
-                            break;
-
                         current = current->next;
                     }
+
+                    current = second_reduce[global_index];
 
                     // have an item that needs to be added.
                     if (current == NULL ||
@@ -227,8 +226,6 @@ public:
                     // in-place construct/insert new item in current bucket block
                     new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
                 }
-
-                num_items_per_frame[frame_id] = 0;
 
                 /////
                 // reduce data from primary table
@@ -259,11 +256,10 @@ public:
                                     }
                                 }
 
-                                if (current->next == NULL)
-                                    break;
-
                                 current = current->next;
                             }
+
+                            current = second_reduce[global_index];
 
                             // have an item that needs to be added.
                             if (current == NULL ||
@@ -290,6 +286,8 @@ public:
 
                     buckets_[i] = NULL;
                 }
+
+                num_items_per_frame[frame_id] = 0;
 
                 /////
                 // emit data
@@ -523,7 +521,7 @@ public:
         assert(num_buckets > 0 &&
                        (num_buckets & (num_buckets - 1)) == 0
                && "num_buckets must be a power of two");
-        assert(max_fill_rate >= 0.0 && max_fill_rate <= 1.0);
+        assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(max_num_blocks_table > 0);
         assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
                && "frame_size must be a power of two");
@@ -542,7 +540,7 @@ public:
         }
 
         num_items_per_frame_ = (size_t) ((static_cast<double>(max_num_blocks_table * block_size_)
-                                              / static_cast<double>(num_frames_)) / max_frame_fill_rate);
+                                              / static_cast<double>(num_frames_)));
 
         srand(time(NULL));
     }
@@ -621,9 +619,6 @@ public:
                 }
             }
 
-            if (current->next == NULL)
-                break;
-
             current = current->next;
         }
 
@@ -633,8 +628,9 @@ public:
             > max_frame_fill_rate_)
         {
             SpillFrame(frame_id);
-            current = NULL;
         }
+
+        current = buckets_[global_index];
 
         // have an item that needs to be added.
         if (current == NULL ||
@@ -658,9 +654,19 @@ public:
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
         // Number of items per frame.
-        items_per_frame_[global_index / frame_size_]++;
+        items_per_frame_[frame_id]++;
         // Increase total item count
         num_items_++;
+    }
+
+    BucketBlock* first()
+    {
+        return buckets_[0];
+    }
+
+    BucketBlock* second()
+    {
+        return buckets_[0]->next;
     }
 
     /*!
@@ -885,6 +891,15 @@ public:
      */
     size_t NumSpills() const {
         return num_spills_;
+    }
+
+    /*!
+     * Returns the number of items.
+     *
+     * @return Number of items.
+     */
+    size_t NumItems() const {
+        return num_items_;
     }
 
     /*!

@@ -201,8 +201,6 @@ public:
                     current->second = kv.second;
                 }
 
-                num_items_per_frame[frame_id] = 0;
-
                 /////
                 // reduce data from primary table
                 /////
@@ -243,6 +241,8 @@ public:
                         items[i] = ht->Sentinel();
                     }
                 }
+
+                num_items_per_frame[frame_id] = 0;
 
                 /////
                 // emit data
@@ -422,6 +422,7 @@ public:
         assert(end_local_index >= 0);
 
         num_frames_ = size_ / frame_size_;
+        items_per_frame_.resize(num_frames_, 0);
 
         frame_files_.resize(num_frames_);
         for (size_t i = 0; i < num_frames_; i++) {
@@ -429,7 +430,7 @@ public:
         }
 
         sentinel_ = KeyValuePair(sentinel, Value());
-        items_.resize(size_, sentinel_); // TODO(ms): we are allocating the whole vector here! is this optimal?
+        items_.resize(size_, sentinel_);
 
         num_items_per_frame_ = (size_t) (static_cast<double>(size_) / static_cast<double>(num_frames_));
         srand(time(NULL));
@@ -517,7 +518,8 @@ public:
             / static_cast<double>(num_items_per_frame_)
             > max_frame_fill_rate_)
         {
-            SpillFrame(global_index / frame_size_);
+            //std::cout << "spill" << std::endl;
+            SpillFrame(frame_id);
         }
 
         // insert data
@@ -525,7 +527,7 @@ public:
         current->second = kv.second;
 
         // increase counter for frame
-        items_per_frame_[global_index]++;
+        items_per_frame_[frame_id]++;
         // increase total counter
         num_items_++;
     }
@@ -615,15 +617,6 @@ public:
      */
     size_t NumItems() const {
         return num_items_;
-    }
-
-    /*!
-     * Returns the fill rate of the table.
-     *
-     * @return Fill rate of the table.
-     */
-    double FillRate() {
-        return static_cast<double>(num_items_) / static_cast<double>(size_);
     }
 
     /*!
