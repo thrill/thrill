@@ -106,7 +106,7 @@ public:
     size_t size_;
 
     PreProbingReduceByIndex(size_t size)
-            : size_(size)
+        : size_(size)
     { }
 
     template <typename ReducePreProbingTable>
@@ -190,8 +190,7 @@ public:
           num_items_per_partition_(num_items_per_partition),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
 
         assert(num_partitions > 0);
@@ -290,7 +289,7 @@ public:
             }
         }
 
-        if (static_cast<double>(items_per_partition_[h.partition_id]+1)
+        if (static_cast<double>(items_per_partition_[h.partition_id] + 1)
             / static_cast<double>(num_items_per_partition_)
             > max_partition_fill_rate_)
         {
@@ -548,7 +547,6 @@ private:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
-
 } // namespace core
 } // namespace thrill
 

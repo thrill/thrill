@@ -25,10 +25,10 @@
 #include <cassert>
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 namespace thrill {
 namespace core {
@@ -131,7 +131,7 @@ public:
         size_t global_index = k * ht->NumBuckets() / size_;
         size_t partition_id = k * ht->NumPartitions() / size_;
         size_t local_index = global_index -
-                                  partition_id * ht->NumBucketsPerPartition();
+                             partition_id * ht->NumBucketsPerPartition();
         return index_result(partition_id, local_index, global_index);
     }
 };
@@ -215,7 +215,7 @@ public:
                    std::vector<data::BlockWriter>& emit,
                    size_t num_buckets_per_partition = 1024,
                    double max_partition_fill_rate = 0.5,
-                   size_t max_num_blocks_table = 1024*16,
+                   size_t max_num_blocks_table = 1024 * 16,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -226,8 +226,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions >= 0);
@@ -243,13 +242,13 @@ public:
         if (num_partitions_ > num_buckets_ &&
             num_buckets_ % num_partitions_ != 0) {
             throw std::invalid_argument("partition_size must be less than or equal to num_buckets "
-                                                "AND partition_size a divider of num_buckets");
+                                        "AND partition_size a divider of num_buckets");
         }
 
         buckets_.resize(num_buckets_, NULL);
         items_per_partition_.resize(num_partitions_, 0);
 
-        num_items_per_partition_ = (size_t) ((static_cast<double>(max_num_blocks_table * block_size_)
+        num_items_per_partition_ = (size_t)((static_cast<double>(max_num_blocks_table * block_size_)
                                              / static_cast<double>(num_partitions)) / max_partition_fill_rate);
     }
 
@@ -331,7 +330,7 @@ public:
         }
 
         // have an item that needs to be added.
-        if (static_cast<double>(items_per_partition_[h.partition_id]+1)
+        if (static_cast<double>(items_per_partition_[h.partition_id] + 1)
             / static_cast<double>(num_items_per_partition_)
             > max_partition_fill_rate_)
         {
@@ -350,7 +349,7 @@ public:
 
             // allocate a new block of uninitialized items, prepend to bucket
             current =
-                    static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+                static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
             current->size = 0;
             current->next = buckets_[h.global_index];
@@ -542,7 +541,6 @@ public:
         }
     }
 
-
     /*!
      * Prints content of hash table.
      */
@@ -644,7 +642,6 @@ protected:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
-
 } // namespace core
 } // namespace thrill
 

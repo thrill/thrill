@@ -12,16 +12,17 @@
 #ifndef THRILL_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 #define THRILL_CORE_REDUCE_POST_PROBING_TABLE_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/data/block_pool.hpp>
+#include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/data/block_sink.hpp>
-#include <thrill/data/block_pool.hpp>
-#include <thrill/api/context.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -29,7 +30,6 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <cmath>
 
 namespace thrill {
 namespace core {
@@ -111,16 +111,16 @@ public:
 };
 
 template <typename Key,
-        typename ReduceFunction,
-        typename IndexFunction = PostProbingReduceByHashKey<Key>,
-        typename EqualToFunction = std::equal_to<Key>>
+          typename ReduceFunction,
+          typename IndexFunction = PostProbingReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key> >
 class PostProbingReduceFlushToDefault
 {
 public:
     PostProbingReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
-                             const EqualToFunction& equal_to_function = EqualToFunction()) :
-            index_function_(index_function),
-            equal_to_function_(equal_to_function)
+                                    const EqualToFunction& equal_to_function = EqualToFunction())
+        : index_function_(index_function),
+          equal_to_function_(equal_to_function)
     { }
 
     template <typename ReducePostProbingTable>
@@ -152,10 +152,10 @@ public:
 
             // only if items have been spilled,
             // process a second reduce
-            if (file.NumItems() > 0)  {
+            if (file.NumItems() > 0) {
 
-                size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-                                                         / ht->MaxFrameFillRate());
+                size_t frame_length = (size_t)std::ceil(static_cast<double>(file.NumItems())
+                                                        / ht->MaxFrameFillRate());
 
                 // adjust size of second reduce table
                 second_reduce.resize(frame_length, ht->Sentinel());
@@ -168,7 +168,7 @@ public:
 
                 // get the items and insert them in secondary
                 // table
-                while(reader.HasNext()) {
+                while (reader.HasNext()) {
 
                     KeyValuePair kv = reader.Next<KeyValuePair>();
 
@@ -259,9 +259,10 @@ public:
                     }
                 }
 
-            // no spilled items, just flush already reduced
-            // data in primary table in current frame
-            } else
+                // no spilled items, just flush already reduced
+                // data in primary table in current frame
+            }
+            else
             {
                 /////
                 // emit data
@@ -281,6 +282,7 @@ public:
 
         ht->SetNumItems(0);
     }
+
 private:
     //ReduceFunction reduce_function_;
     IndexFunction index_function_;
@@ -350,7 +352,7 @@ template <typename ValueType, typename Key, typename Value,
           const bool SendPair = false,
           typename FlushFunction = PostProbingReduceFlushToDefault<Key, ReduceFunction>,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
-          typename EqualToFunction = std::equal_to<Key>>
+          typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
 {
     static const bool debug = false;
@@ -366,6 +368,7 @@ public:
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
      *
+     * \param context Context.
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
@@ -408,8 +411,7 @@ public:
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
           neutral_element_(neutral_element),
-          reduce_function_(reduce_function)
-    {
+          reduce_function_(reduce_function) {
         sLOG << "creating ReducePostProbingTable with" << emit_.size() << "output emiters";
 
         assert(size > 0 &&
@@ -436,7 +438,7 @@ public:
         sentinel_ = KeyValuePair(sentinel, Value());
         items_.resize(size_, sentinel_);
 
-        num_items_per_frame_ = (size_t) (static_cast<double>(size_) / static_cast<double>(num_frames_));
+        num_items_per_frame_ = (size_t)(static_cast<double>(size_) / static_cast<double>(num_frames_));
     }
 
     //! non-copyable: delete copy-constructor
@@ -517,7 +519,7 @@ public:
             }
         }
 
-        if (static_cast<double>(items_per_frame_[frame_id]+1)
+        if (static_cast<double>(items_per_frame_[frame_id] + 1)
             / static_cast<double>(num_items_per_frame_)
             > max_frame_fill_rate_)
         {
@@ -550,8 +552,7 @@ public:
      * having the most items. Retrieved items are then spilled
      * to the provided file.
      */
-    void SpillLargestFrame()
-    {
+    void SpillLargestFrame() {
         // get frame with max size
         size_t p_size_max = 0;
         size_t p_idx = 0;
@@ -572,8 +573,7 @@ public:
      *
      * \param frame_id The id of the frame to be spilled.
      */
-    void SpillFrame(size_t frame_id)
-    {
+    void SpillFrame(size_t frame_id) {
         data::File::Writer& writer = frame_writers_[frame_id];
 
         for (size_t global_index = frame_id * frame_size_;
@@ -654,7 +654,7 @@ public:
      *
      * \return Begin local index.
      */
-    std::vector<data::File>& FrameFiles() {
+    std::vector<data::File> & FrameFiles() {
         return frame_files_;
     }
 
@@ -663,7 +663,7 @@ public:
      *
      * @return Vector of frame writers.
      */
-    std::vector<data::File::Writer>& FrameWriters() {
+    std::vector<data::File::Writer> & FrameWriters() {
         return frame_writers_;
     }
 
@@ -672,7 +672,7 @@ public:
      *
      * @return Vector of number of items per frame.
      */
-    std::vector<size_t>& NumItemsPerFrame() {
+    std::vector<size_t> & NumItemsPerFrame() {
         return items_per_frame_;
     }
 
@@ -681,7 +681,7 @@ public:
      *
      * @return Vector of key/value pairs.
      */
-    std::vector<KeyValuePair>& Items() {
+    std::vector<KeyValuePair> & Items() {
         return items_;
     }
 
@@ -830,7 +830,6 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
-
 } // namespace core
 } // namespace thrill
 
