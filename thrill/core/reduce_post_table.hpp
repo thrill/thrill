@@ -23,6 +23,7 @@
 #include <thrill/data/file.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_pool.hpp>
+#include <thrill/api/context.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -167,9 +168,7 @@ public:
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
             data::File::Writer& writer = frame_writers[frame_id];
-            std::cout << "close" << std::endl;
             writer.Close();
-            std::cout << "close 2" << std::endl;
 
             // only if items have been spilled,
             // process a second reduce
@@ -493,7 +492,8 @@ public:
      * \param frame_size Number of buckets (=frame) exactly one file writer to be used for.
      * \param equal_to_function Function for checking equality of two keys.
      */
-    ReducePostTable(KeyExtractor key_extractor,
+    ReducePostTable(Context& ctx,
+                    KeyExtractor key_extractor,
                     ReduceFunction reduce_function,
                     std::vector<EmitterFunction>& emit,
                     const IndexFunction& index_function = IndexFunction(),
@@ -522,6 +522,7 @@ public:
     {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
+        // TODO(ms): asserts doesnt work at all!
         assert(num_buckets > 0 &&
                        (num_buckets & (num_buckets - 1)) == 0
                && "num_buckets must be a power of two");
@@ -539,11 +540,11 @@ public:
         num_frames_ = num_buckets_ / frame_size_;
         items_per_frame_.resize(num_frames_, 0);
 
-        //frame_files_ = std::vector<data::File>(num_frames_, data::File(block_pool_));
         for (size_t i = 0; i < num_frames_; i++) {
-            data::BlockPool block_pool_ { nullptr };
-            frame_files_.push_back(data::File(block_pool_));
-            frame_writers_.push_back(frame_files_[i].GetWriter(1024));
+            frame_files_.push_back(ctx.GetFile());
+        }
+        for (size_t i = 0; i < num_frames_; i++) {
+            frame_writers_.push_back(frame_files_[i].GetWriter());
         }
 
         num_items_per_frame_ = (size_t) ((static_cast<double>(max_num_blocks_table * block_size_)
@@ -718,7 +719,6 @@ public:
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
-                    std::cout << "write" << std::endl;
                     writer(*bi);
                 }
 

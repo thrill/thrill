@@ -18,6 +18,7 @@
 #include <thrill/data/file.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_pool.hpp>
+#include <thrill/api/context.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -147,9 +148,7 @@ public:
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
             data::File::Writer& writer = frame_writers[frame_id];
-            std::cout << "close" << std::endl;
             writer.Close(); // also closes the file
-            std::cout << "close 2" << std::endl;
 
             // only if items have been spilled,
             // process a second reduce
@@ -384,7 +383,8 @@ public:
      * \param equal_to_function Function for checking equality of two keys.
      * \param spill_function Function implementing a strategy to spill items to disk.
      */
-    ReducePostProbingTable(KeyExtractor key_extractor,
+    ReducePostProbingTable(Context& ctx,
+                           KeyExtractor key_extractor,
                            ReduceFunction reduce_function,
                            std::vector<EmitterFunction>& emit,
                            Key sentinel,
@@ -426,16 +426,11 @@ public:
         num_frames_ = size_ / frame_size_;
         items_per_frame_.resize(num_frames_, 0);
 
-//        data::BlockPool block_pool_ { nullptr };
-//        frame_files_ = std::vector<data::File>(num_frames_, data::File(block_pool_));
-//        for (size_t i = 0; i < num_frames_; i++) {
-//            frame_writers_.push_back(frame_files_[i].GetWriter(1024));
-//        }
-
         for (size_t i = 0; i < num_frames_; i++) {
-            data::BlockPool block_pool_ { nullptr };
-            frame_files_.push_back(data::File(block_pool_));
-            frame_writers_.push_back(frame_files_[i].GetWriter(1024));
+            frame_files_.push_back(ctx.GetFile());
+        }
+        for (size_t i = 0; i < num_frames_; i++) {
+            frame_writers_.push_back(frame_files_[i].GetWriter());
         }
 
         sentinel_ = KeyValuePair(sentinel, Value());
@@ -526,7 +521,6 @@ public:
             / static_cast<double>(num_items_per_frame_)
             > max_frame_fill_rate_)
         {
-            //std::cout << "spill" << std::endl;
             SpillFrame(frame_id);
         }
 
@@ -588,7 +582,6 @@ public:
             KeyValuePair& current = items_[global_index];
             if (current.first != sentinel_.first)
             {
-                std::cout << "write" << std::endl;
                 writer(current);
             }
         }
