@@ -1,26 +1,28 @@
 /*******************************************************************************
  * tests/net/group_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/collective_communication.hpp>
-#include <c7a/net/dispatcher.hpp>
-#include <c7a/net/flow_control_channel.hpp>
-#include <c7a/net/group.hpp>
-#include <c7a/net/manager.hpp>
 #include <gtest/gtest.h>
+#include <thrill/mem/manager.hpp>
+#include <thrill/net/collective_communication.hpp>
+#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/flow_control_channel.hpp>
+#include <thrill/net/group.hpp>
+#include <thrill/net/manager.hpp>
 
 #include <random>
 #include <string>
 #include <thread>
 #include <vector>
 
-using namespace c7a::net;
+using namespace thrill;      // NOLINT
+using namespace thrill::net; // NOLINT
 
 static void ThreadInitializeAsyncRead(Group* net) {
     // send a message to all other clients except ourselves.
@@ -31,9 +33,10 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 
     size_t received = 0;
-    Dispatcher dispatcher;
+    mem::Manager mem_manager(nullptr);
+    Dispatcher dispatcher(mem_manager);
 
-    Dispatcher::AsyncReadCallback callback =
+    AsyncReadCallback callback =
         [net, &received](Connection& /* s */, const Buffer& buffer) {
             ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
                       net->my_host_rank());
@@ -71,14 +74,14 @@ static void ThreadInitializeBroadcastIntegral(Group* net) {
 
     static const bool debug = false;
 
-    //Broadcast our ID to everyone
+    // Broadcast our ID to everyone
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;
         net->SendTo(i, net->my_host_rank());
     }
 
-    //Receive the id from everyone. Make sure that the id is correct.
+    // Receive the id from everyone. Make sure that the id is correct.
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;

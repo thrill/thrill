@@ -1,31 +1,35 @@
 /*******************************************************************************
  * tests/data/file_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/string.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/buffered_block_reader.hpp>
-#include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/string.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/buffered_block_reader.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
-#include <functional>
 
-using namespace c7a;
+using namespace thrill;
 
-TEST(File, PutSomeItemsGetItems) {
+struct File : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
+
+TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -52,7 +56,7 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(4).size(), 16u);
     ASSERT_EQ(file.block(5).size(), 14u);
 
-    //Total size is equal to sum of block sizes
+    // Total size is equal to sum of block sizes
     ASSERT_EQ(file.TotalSize(), 94u);
 
     const unsigned char block_data_bytes[] = {
@@ -110,10 +114,10 @@ TEST(File, PutSomeItemsGetItems) {
     }
 }
 
-TEST(File, SerializeSomeItems) {
+TEST_F(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -127,7 +131,7 @@ TEST(File, SerializeSomeItems) {
         fw(std::string("test"));
     }
 
-    //std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
+    // std::cout << common::hexdump(file.BlockAsString(0)) << std::endl;
 
     // get items back from file.
     {
@@ -143,10 +147,10 @@ TEST(File, SerializeSomeItems) {
     }
 }
 
-TEST(File, SerializeSomeItemsDynReader) {
+TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -174,19 +178,17 @@ TEST(File, SerializeSomeItemsDynReader) {
     }
 }
 
-TEST(File, RandomGetIndexOf) {
-    static const bool debug = false;
+TEST_F(File, RandomGetIndexOf) {
     const size_t size = 500;
-    
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::minstd_rand0 rand(seed);
-    
-    //Create test file.
-    data::File file;
+
+    std::minstd_rand0 rng;
+
+    // Create test file.
+    data::File file(block_pool_);
 
     data::File::Writer fw = file.GetWriter(53);
 
-    for(size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         fw(size - i - 1);
     }
 
@@ -194,28 +196,28 @@ TEST(File, RandomGetIndexOf) {
 
     ASSERT_EQ(size, file.NumItems());
 
-    for(size_t i = 0; i < 10; i++) {
-        size_t val = rand() % size;
+    for (size_t i = 0; i < 10; i++) {
+        size_t val = rng() % size;
         size_t idx = file.GetIndexOf(val, std::less<size_t>());
 
         ASSERT_EQ(500 - val - 1, idx);
     }
 }
 
-TEST(File, ReadFileWIthBufferedReader) {
-    data::File file;
+TEST_F(File, ReadFileWIthBufferedReader) {
+    data::File file(block_pool_);
     data::File::Writer fw = file.GetWriter(53);
 
     size_t size = 100;
 
-    for(size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         fw(i);
-    }    
+    }
     fw.Close();
 
     auto br = file.GetBufferedReader<size_t>();
 
-    for(size_t i = 0 ; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         ASSERT_TRUE(br.HasValue());
         ASSERT_EQ(br.Value(), i);
         br.Next();
@@ -224,11 +226,11 @@ TEST(File, ReadFileWIthBufferedReader) {
     ASSERT_FALSE(br.HasValue());
 }
 
-TEST(File, SeekReadSlicesOfFiles) {
+TEST_F(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file;
+    data::File file(block_pool_);
 
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(53);
@@ -269,7 +271,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);
@@ -294,7 +296,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);

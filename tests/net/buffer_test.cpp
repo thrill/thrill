@@ -1,19 +1,19 @@
 /*******************************************************************************
  * tests/net/buffer_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/buffer.hpp>
 #include <gtest/gtest.h>
+#include <thrill/net/buffer.hpp>
 
 #include <algorithm>
 
-using c7a::net::Buffer;
+using thrill::net::Buffer;
 
 TEST(Buffer, Test1) {
     Buffer b1;

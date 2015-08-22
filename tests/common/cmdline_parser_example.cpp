@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/common/cmdline_parser_example.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *
@@ -9,12 +9,13 @@
  ******************************************************************************/
 
 // [example]
-#include <c7a/common/cmdline_parser.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+
 #include <iostream>
 #include <string>
 
 int main(int argc, char* argv[]) {
-    c7a::common::CmdlineParser cp;
+    thrill::common::CmdlineParser cp;
 
     // add description and author
     cp.SetDescription("This may some day be a useful program, which solves "

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * benchmarks/hashtable/bench_probing_hashtable.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
@@ -9,13 +9,14 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/core/reduce_pre_probing_table.hpp>
-#include <c7a/data/block_writer.hpp>
-#include <c7a/data/discard_sink.hpp>
-#include <c7a/data/file.hpp>
-#include <math.h>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/core/reduce_pre_probing_table.hpp>
+#include <thrill/data/block_writer.hpp>
+#include <thrill/data/discard_sink.hpp>
+#include <thrill/data/file.hpp>
+
+#include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <iostream>
@@ -23,17 +24,15 @@
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <utility>
 
 using IntPair = std::pair<int, int>;
 
-using namespace c7a;
-using namespace c7a::data;
+using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
-
-    srand(time(NULL));
 
     clp.SetVerboseProcess(false);
 
@@ -76,6 +75,7 @@ int main(int argc, char* argv[]) {
     auto key_ex = [](std::string in) { return in; };
 
     auto red_fn = [](std::string in1, std::string in2) {
+        (void)in2;
         return in1;
     };
 
@@ -84,16 +84,15 @@ int main(int argc, char* argv[]) {
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     "0123456789";
 
-    std::default_random_engine generator;
+    std::default_random_engine rng({ std::random_device()() });
     std::uniform_int_distribution<> dist(l, u);
-
 
     std::vector<std::string> strings;
     size_t current_size = 0; // size of data in byte
 
     while (current_size < size)
     {
-        size_t length = dist(generator);
+        size_t length = dist(rng);
         std::string str;
         for(size_t i = 0; i < length; ++i)
         {
@@ -103,19 +102,15 @@ int main(int argc, char* argv[]) {
         current_size += sizeof(str) + str.capacity();
     }
 
-    //std::cout << strings.size() << std::endl;
-
-    std::vector<data::DiscardSink> sinks(workers);
+    data::BlockPool block_pool(nullptr);
+    std::vector<data::DiscardSink> sinks;
     std::vector<data::BlockWriter> writers;
-    for (size_t i = 0; i != workers; ++i)
-    {
+    for (size_t i = 0; i != workers; ++i) {
+        sinks.emplace_back(block_pool);
         writers.emplace_back(sinks[i].GetWriter());
     }
 
     size_t num_slots = table_size / (2*sizeof(std::string));
-
-    //std::cout << num_slots << std::endl;
-    //std::cout << num_slots / workers << std::endl;
 
     core::ReducePreProbingTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true>
     table(workers, key_ex, red_fn, writers, "", num_slots / workers, max_partition_fill_rate);
