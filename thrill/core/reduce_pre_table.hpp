@@ -226,7 +226,8 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function) {
+          equal_to_function_(equal_to_function)
+    {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions >= 0);

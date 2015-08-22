@@ -523,7 +523,6 @@ public:
           reduce_function_(reduce_function) {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
-        // TODO(ms): asserts doesnt work at all!
         assert(num_buckets > 0 &&
                (num_buckets & (num_buckets - 1)) == 0
                && "num_buckets must be a power of two");
