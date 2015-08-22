@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/core/reduce_post_probing_table.hpp>
 #include <thrill/api/context.hpp>
+#include <thrill/core/reduce_post_probing_table.hpp>
 
 #include <string>
 #include <thrill/net/manager.hpp>
@@ -51,26 +51,27 @@ private:
 TEST_F(PostTable, CustomHashFunction) {
 
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
             auto key_ex = [](int in) {
-                return in;
-            };
+                              return in;
+                          };
 
             auto red_fn = [](int in1, int in2) {
-                return in1 + in2;
-            };
+                              return in1 + in2;
+                          };
 
-            using EmitterFunction = std::function<void(const int &)>;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
 
             CustomKeyHashFunction<int> cust_hash;
             core::PostProbingReduceFlushToDefault<int, decltype(red_fn)> flush_func;
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                    core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int>>
-                    table(ctx, key_ex, red_fn, emitters, -1, cust_hash, flush_func);
+                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int> >
+            table(ctx, key_ex, red_fn, emitters, -1, cust_hash, flush_func);
 
             ASSERT_EQ(0u, writer1.size());
             ASSERT_EQ(0u, table.NumItems());
@@ -94,38 +95,39 @@ TEST_F(PostTable, CustomHashFunction) {
 TEST_F(PostTable, AddIntegers) {
 
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
-        auto key_ex = [](int in) {
-            return in;
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
+
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters, -1);
+
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Insert(pair(2));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Flush();
+
+            ASSERT_EQ(3u, writer1.size());
         };
-
-        auto red_fn = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        using EmitterFunction = std::function<void(const int &)>;
-        std::vector<EmitterFunction> emitters;
-        std::vector<int> writer1;
-        emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-
-        core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-                table(ctx, key_ex, red_fn, emitters, -1);
-
-        table.Insert(pair(1));
-        table.Insert(pair(2));
-        table.Insert(pair(3));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Insert(pair(2));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Flush();
-
-        ASSERT_EQ(3u, writer1.size());
-    };
 
     api::RunLocalTests(start_func);
 }
@@ -133,285 +135,297 @@ TEST_F(PostTable, AddIntegers) {
 TEST_F(PostTable, CreateEmptyTable) {
 
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
-        auto key_ex = [](int in) {
-            return in;
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
+
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters, -1);
+
+            ASSERT_EQ(0u, table.NumItems());
         };
-
-        auto red_fn = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        using EmitterFunction = std::function<void(const int &)>;
-        std::vector<EmitterFunction> emitters;
-        std::vector<int> writer1;
-        emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-
-        core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-                table(ctx, key_ex, red_fn, emitters, -1);
-
-        ASSERT_EQ(0u, table.NumItems());
-    };
     api::RunLocalTests(start_func);
 }
 
 TEST_F(PostTable, FlushIntegers) {
+
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
-        auto key_ex = [](int in) {
-            return in;
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
+
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters, -1);
+
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Flush();
+
+            ASSERT_EQ(3u, writer1.size());
+            ASSERT_EQ(0u, table.NumItems());
+
+            table.Insert(pair(1));
+
+            ASSERT_EQ(1u, table.NumItems());
         };
-        auto red_fn = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        using EmitterFunction = std::function<void(const int &)>;
-        std::vector<EmitterFunction> emitters;
-        std::vector<int> writer1;
-        emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-
-        core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-                table(ctx, key_ex, red_fn, emitters, -1);
-
-        table.Insert(pair(1));
-        table.Insert(pair(2));
-        table.Insert(pair(3));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Flush();
-
-        ASSERT_EQ(3u, writer1.size());
-        ASSERT_EQ(0u, table.NumItems());
-
-        table.Insert(pair(1));
-
-        ASSERT_EQ(1u, table.NumItems());
-    };
     api::RunLocalTests(start_func);
 }
 
 TEST_F(PostTable, FlushIntegersInSequence) {
+
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
-        auto key_ex = [](int in) {
-            return in;
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
+
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters, -1);
+
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Flush();
+
+            ASSERT_EQ(3u, writer1.size());
+            ASSERT_EQ(0u, table.NumItems());
+
+            table.Insert(pair(1));
+
+            ASSERT_EQ(1u, table.NumItems());
         };
-        auto red_fn = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        using EmitterFunction = std::function<void(const int &)>;
-        std::vector<EmitterFunction> emitters;
-        std::vector<int> writer1;
-        emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-
-        core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-                table(ctx, key_ex, red_fn, emitters, -1);
-
-        table.Insert(pair(1));
-        table.Insert(pair(2));
-        table.Insert(pair(3));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Flush();
-
-        ASSERT_EQ(3u, writer1.size());
-        ASSERT_EQ(0u, table.NumItems());
-
-        table.Insert(pair(1));
-
-        ASSERT_EQ(1u, table.NumItems());
-    };
     api::RunLocalTests(start_func);
 }
 
 TEST_F(PostTable, MultipleEmitters) {
 
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
-        std::vector<int> vec1;
+            std::vector<int> vec1;
 
-        auto key_ex = [](int in) {
-            return in;
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            std::vector<int> writer2;
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
+            emitters.push_back([&writer2](const int value) { writer2.push_back(value);
+                               });
+
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters, -1);
+
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Flush();
+
+            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(3u, writer1.size());
+            ASSERT_EQ(3u, writer2.size());
+
+            table.Insert(pair(1));
+
+            ASSERT_EQ(1u, table.NumItems());
         };
-
-        auto red_fn = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        using EmitterFunction = std::function<void(const int &)>;
-        std::vector<EmitterFunction> emitters;
-        std::vector<int> writer1;
-        std::vector<int> writer2;
-        emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-        emitters.push_back([&writer2](const int value) { writer2.push_back(value); });
-
-        core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-                table(ctx, key_ex, red_fn, emitters, -1);
-
-        table.Insert(pair(1));
-        table.Insert(pair(2));
-        table.Insert(pair(3));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Flush();
-
-        ASSERT_EQ(0u, table.NumItems());
-        ASSERT_EQ(3u, writer1.size());
-        ASSERT_EQ(3u, writer2.size());
-
-        table.Insert(pair(1));
-
-        ASSERT_EQ(1u, table.NumItems());
-    };
     api::RunLocalTests(start_func);
 }
 
 TEST_F(PostTable, ComplexType) {
 
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
-        using StringPair = std::pair<std::string, int>;
+        [](Context& ctx) {
+            using StringPair = std::pair<std::string, int>;
 
-        auto key_ex = [](StringPair in) {
-            return in.first;
+            auto key_ex = [](StringPair in) {
+                              return in.first;
+                          };
+
+            auto red_fn = [](StringPair in1, StringPair in2) {
+                              return std::make_pair(in1.first, in1.second + in2.second);
+                          };
+
+            using EmitterFunction = std::function<void(const StringPair&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<StringPair> writer1;
+            emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value);
+                               });
+
+            core::ReducePostProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters, "");
+
+            table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
+            table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
+            table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
+
+            ASSERT_EQ(3u, table.NumItems());
+
+            table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
+
+            ASSERT_EQ(4u, table.NumItems());
         };
-
-        auto red_fn = [](StringPair in1, StringPair in2) {
-            return std::make_pair(in1.first, in1.second + in2.second);
-        };
-
-        using EmitterFunction = std::function<void(const StringPair &)>;
-        std::vector<EmitterFunction> emitters;
-        std::vector<StringPair> writer1;
-        emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value); });
-
-        core::ReducePostProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
-                table(ctx, key_ex, red_fn, emitters, "");
-
-        table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
-        table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
-        table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
-
-        ASSERT_EQ(3u, table.NumItems());
-
-        table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
-
-        ASSERT_EQ(4u, table.NumItems());
-    };
     api::RunLocalTests(start_func);
 }
 
 TEST_F(PostTable, WithinTableItemsLimit) {
+
     std::function<void(Context&)> start_func =
-            [](Context& ctx) {
+        [](Context& ctx) {
 
-        auto key_ex = [](int in) {
-            return in;
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            typedef std::function<void (const int&)> EmitterFunction;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+                               });
+
+            size_t size = 32 * 1024;
+            double fill_rate = 0.5;
+
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+                                         core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate,
+                  1,
+                  std::equal_to<int>());
+
+            ASSERT_EQ(0u, table.NumItems());
+
+            size_t num_items = (size_t)(static_cast<double>(size) * fill_rate);
+
+            for (size_t i = 0; i < num_items; ++i) {
+                table.Insert(pair(i));
+            }
+            ASSERT_EQ(num_items, table.NumItems());
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(num_items, writer1.size());
         };
-        auto red_fn = [](int in1, int in2) {
-            return in1 + in2;
-        };
-
-        typedef std::function<void(const int &)> EmitterFunction;
-        std::vector<EmitterFunction> emitters;
-        std::vector<int> writer1;
-        emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-
-        size_t size = 32 * 1024;
-        double fill_rate = 0.5;
-
-        core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
-                core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
-                table(ctx, key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
-                      core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate,
-                      1,
-                      std::equal_to<int>());
-
-        ASSERT_EQ(0u, table.NumItems());
-
-        size_t num_items = (size_t) (static_cast<double>(size) * fill_rate);
-
-        for (size_t i = 0; i < num_items; ++i) {
-            table.Insert(pair(i));
-        }
-        ASSERT_EQ(num_items, table.NumItems());
-
-        ASSERT_EQ(0u, writer1.size());
-
-        table.Flush();
-
-        ASSERT_EQ(0u, table.NumItems());
-        ASSERT_EQ(num_items, writer1.size());
-    };
     api::RunLocalTests(start_func);
 }
 
 TEST_F(PostTable, AboveTableItemsLimit) {
+
     std::function<void(Context&)> start_func =
-  [](Context& ctx) {
-      auto key_ex = [](int in) {
-          return in;
-      };
-      auto red_fn = [](int in1, int in2) {
-          return in1 + in2;
-      };
+        [](Context& ctx) {
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-      typedef std::function<void(const int &)> EmitterFunction;
-      std::vector<EmitterFunction> emitters;
-      std::vector<int> writer1;
-      emitters.push_back(
-              [&writer1](const int value) { writer1.push_back(value); });
+            typedef std::function<void (const int&)> EmitterFunction;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back(
+                [&writer1](const int value) { writer1.push_back(value);
+                });
 
-      size_t size = 32 * 1024;
-      double fill_rate = 0.5;
+            size_t size = 32 * 1024;
+            double fill_rate = 0.5;
 
-      core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-              core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
-              core::PostProbingReduceByHashKey<int>, std::equal_to<int>>
-              table(ctx, key_ex, red_fn, emitters, -1,
-                    core::PostProbingReduceByHashKey<int>(),
-                    core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(),
-                    0, 0, 0, size, fill_rate, 1,
-                    std::equal_to<int>());
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
+                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+                                         core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
+            table(ctx, key_ex, red_fn, emitters, -1,
+                  core::PostProbingReduceByHashKey<int>(),
+                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(),
+                  0, 0, 0, size, fill_rate, 1,
+                  std::equal_to<int>());
 
-      size_t num_items = (size_t) (static_cast<double>(size) * fill_rate);
+            size_t num_items = (size_t)(static_cast<double>(size) * fill_rate);
 
-      ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(0u, table.NumItems());
 
-      for (size_t i = 0; i < num_items; ++i) {
-          table.Insert(pair(i));
-      }
+            for (size_t i = 0; i < num_items; ++i) {
+                table.Insert(pair(i));
+            }
 
-      ASSERT_EQ(num_items, table.NumItems());
+            ASSERT_EQ(num_items, table.NumItems());
 
-      size_t on_top = 0;
+            size_t on_top = 0;
 
-      for (size_t i = num_items; i < num_items + on_top; ++i) {
-          table.Insert(pair(i));
-      }
+            for (size_t i = num_items; i < num_items + on_top; ++i) {
+                table.Insert(pair(i));
+            }
 
-      ASSERT_TRUE(table.NumItems() <= num_items);
+            ASSERT_TRUE(table.NumItems() <= num_items);
 
-      ASSERT_EQ(0u, writer1.size());
+            ASSERT_EQ(0u, writer1.size());
 
-      table.Flush();
+            table.Flush();
 
-      ASSERT_EQ(num_items + on_top, writer1.size());
-      ASSERT_EQ(0u, table.NumItems());
-  };
+            ASSERT_EQ(num_items + on_top, writer1.size());
+            ASSERT_EQ(0u, table.NumItems());
+        };
     api::RunLocalTests(start_func);
 }
 

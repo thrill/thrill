@@ -16,24 +16,24 @@
 #ifndef THRILL_CORE_REDUCE_POST_TABLE_HEADER
 #define THRILL_CORE_REDUCE_POST_TABLE_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/data/block_pool.hpp>
+#include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
-#include <thrill/data/block_sink.hpp>
-#include <thrill/data/block_pool.hpp>
-#include <thrill/api/context.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <iostream>
-#include <cmath>
 
 namespace thrill {
 namespace core {
@@ -128,18 +128,17 @@ public:
 };
 
 template <typename Key,
-            typename ReduceFunction,
-            typename IndexFunction = PostReduceByHashKey<Key>,
-            typename EqualToFunction = std::equal_to<Key>>
+          typename ReduceFunction,
+          typename IndexFunction = PostReduceByHashKey<Key>,
+          typename EqualToFunction = std::equal_to<Key> >
 class PostReduceFlushToDefault
 {
 public:
     PostReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
-                             const EqualToFunction& equal_to_function = EqualToFunction()) :
-            index_function_(index_function),
-            equal_to_function_(equal_to_function)
-    {
-    }
+                             const EqualToFunction& equal_to_function = EqualToFunction())
+        : index_function_(index_function),
+          equal_to_function_(equal_to_function)
+    { }
 
     template <typename ReducePostTable>
     void
@@ -172,10 +171,10 @@ public:
 
             // only if items have been spilled,
             // process a second reduce
-            if (file.NumItems() > 0)  {
+            if (file.NumItems() > 0) {
 
-                size_t frame_length = (size_t) std::ceil(static_cast<double>(file.NumItems())
-                                                         / static_cast<double>(ht->block_size_)); // TODO
+                size_t frame_length = (size_t)std::ceil(static_cast<double>(file.NumItems())
+                                                        / static_cast<double>(ht->block_size_));  // TODO
 
                 // adjust size of second reduce table
                 second_reduce.resize(frame_length, NULL);
@@ -188,7 +187,7 @@ public:
 
                 // get the items and insert them in secondary
                 // table
-                while(reader.HasNext()) {
+                while (reader.HasNext()) {
 
                     KeyValuePair kv = reader.Next<KeyValuePair>();
 
@@ -317,9 +316,10 @@ public:
                     second_reduce[i] = NULL;
                 }
 
-            // no spilled items, just flush already reduced
-            // data in primary table in current frame
-            } else
+                // no spilled items, just flush already reduced
+                // data in primary table in current frame
+            }
+            else
             {
                 /////
                 // emit data
@@ -350,6 +350,7 @@ public:
         ht->SetNumBlocks(0);
         ht->SetNumItems(0);
     }
+
 private:
     //ReduceFunction reduce_function_;
     IndexFunction index_function_;
@@ -475,6 +476,7 @@ public:
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
      *
+     * \param context Context.
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
@@ -503,28 +505,27 @@ public:
                     Value neutral_element = Value(),
                     size_t num_buckets = 1024,
                     double max_frame_fill_rate = 0.5,
-                    size_t max_num_blocks_table = 1024*16,
+                    size_t max_num_blocks_table = 1024 * 16,
                     size_t frame_size = 32,
                     const EqualToFunction& equal_to_function = EqualToFunction())
-        :   num_buckets_(num_buckets),
-            max_frame_fill_rate_(max_frame_fill_rate),
-            max_num_blocks_table_(max_num_blocks_table),
-            emit_(std::move(emit)),
-            begin_local_index_(begin_local_index),
-            end_local_index_(end_local_index),
-            neutral_element_(neutral_element),
-            frame_size_(frame_size),
-            key_extractor_(key_extractor),
-            index_function_(index_function),
-            equal_to_function_(equal_to_function),
-            flush_function_(flush_function),
-            reduce_function_(reduce_function)
-    {
+        : num_buckets_(num_buckets),
+          max_frame_fill_rate_(max_frame_fill_rate),
+          max_num_blocks_table_(max_num_blocks_table),
+          emit_(std::move(emit)),
+          begin_local_index_(begin_local_index),
+          end_local_index_(end_local_index),
+          neutral_element_(neutral_element),
+          frame_size_(frame_size),
+          key_extractor_(key_extractor),
+          index_function_(index_function),
+          equal_to_function_(equal_to_function),
+          flush_function_(flush_function),
+          reduce_function_(reduce_function) {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         // TODO(ms): asserts doesnt work at all!
         assert(num_buckets > 0 &&
-                       (num_buckets & (num_buckets - 1)) == 0
+               (num_buckets & (num_buckets - 1)) == 0
                && "num_buckets must be a power of two");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(max_num_blocks_table > 0);
@@ -547,8 +548,8 @@ public:
             frame_writers_.push_back(frame_files_[i].GetWriter());
         }
 
-        num_items_per_frame_ = (size_t) ((static_cast<double>(max_num_blocks_table * block_size_)
-                                              / static_cast<double>(num_frames_)));
+        num_items_per_frame_ = (size_t)((static_cast<double>(max_num_blocks_table * block_size_)
+                                         / static_cast<double>(num_frames_)));
     }
 
     //! non-copyable: delete copy-constructor
@@ -629,7 +630,7 @@ public:
         }
 
         // have an item that needs to be added.
-        if (static_cast<double>(items_per_frame_[frame_id]+1)
+        if (static_cast<double>(items_per_frame_[frame_id] + 1)
             / static_cast<double>(num_items_per_frame_)
             > max_frame_fill_rate_)
         {
@@ -681,8 +682,7 @@ public:
      * having the most items. Retrieved items are then spilled
      * to the provided file.
      */
-    void SpillLargestFrame()
-    {
+    void SpillLargestFrame() {
         // get frame with max size
         size_t p_size_max = 0;
         size_t p_idx = 0;
@@ -703,8 +703,7 @@ public:
      *
      * \param frame_id The id of the frame to be spilled.
      */
-    void SpillFrame(size_t frame_id)
-    {
+    void SpillFrame(size_t frame_id) {
         data::File::Writer& writer = frame_writers_[frame_id];
 
         for (size_t i = frame_id * frame_size_;
@@ -769,7 +768,7 @@ public:
     /*!
      * Sets the total num of blocks in the table.
      */
-    void SetNumBlocks(const size_t &num_blocks) {
+    void SetNumBlocks(const size_t& num_blocks) {
         num_blocks_ = num_blocks;
     }
 
@@ -788,7 +787,7 @@ public:
      *
      * \return Vector of bucket blocks.
      */
-    std::vector<BucketBlock*>& Items() {
+    std::vector<BucketBlock*> & Items() {
         return buckets_;
     }
 
@@ -807,7 +806,7 @@ public:
      *
      * \param size The maximal number of blocks the table may hold.
      */
-    void SetMaxNumBlocksTable(const size_t &size) {
+    void SetMaxNumBlocksTable(const size_t& size) {
         max_num_blocks_table_ = size;
     }
 
@@ -843,7 +842,7 @@ public:
      *
      * @return Vector of frame files.
      */
-    std::vector<data::File>& FrameFiles() {
+    std::vector<data::File> & FrameFiles() {
         return frame_files_;
     }
 
@@ -852,7 +851,7 @@ public:
      *
      * @return Vector of frame writers.
      */
-    std::vector<data::File::Writer>& FrameWriters() {
+    std::vector<data::File::Writer> & FrameWriters() {
         return frame_writers_;
     }
 
@@ -861,7 +860,7 @@ public:
      *
      * @return Vector of number of items per frame.
      */
-    std::vector<size_t>& NumItemsPerFrame() {
+    std::vector<size_t> & NumItemsPerFrame() {
         return items_per_frame_;
     }
 
@@ -1018,7 +1017,6 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
-
 } // namespace core
 } // namespace thrill
 

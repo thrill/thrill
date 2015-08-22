@@ -77,8 +77,8 @@ TEST_F(PreTable, CustomHashFunction) {
 
     CustomKeyHashFunction<int> cust_hash;
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
-                              CustomKeyHashFunction<int> >
-    table(1, key_ex, red_fn, writers, 8, 1.0, 8*2, cust_hash);
+                         CustomKeyHashFunction<int> >
+    table(1, key_ex, red_fn, writers, 8, 1.0, 8 * 2, cust_hash);
 
     for (int i = 0; i < 16; i++) {
         table.Insert(i);
@@ -97,6 +97,7 @@ TEST_F(PreTable, CustomHashFunction) {
 }
 
 TEST_F(PreTable, AddIntegers) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -125,7 +126,10 @@ TEST_F(PreTable, AddIntegers) {
 }
 
 TEST_F(PreTable, CreateEmptyTable) {
-    auto key_ex = [](int in) { return in; };
+
+    auto key_ex = [](int in) {
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
@@ -151,11 +155,14 @@ TEST_F(PreTable, CreateEmptyTable) {
 }
 
 TEST_F(PreTable, DISABLED_PopIntegers) {
+
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
                   };
 
-    auto key_ex = [](int in) { return in; };
+    auto key_ex = [](int in) {
+                      return in;
+                  };
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
@@ -182,6 +189,7 @@ TEST_F(PreTable, DISABLED_PopIntegers) {
 // Manually flush all items in table,
 // no size constraint, one partition
 TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -222,6 +230,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
 // Manually flush all items in table,
 // no size constraint, two partitions
 TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -272,6 +281,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 // Partial flush of items in table due to
 // max table size constraint, one partition
 TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -310,6 +320,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 //// Partial flush of items in table due to
 //// max table size constraint, two partitions
 TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -395,6 +406,7 @@ TEST_F(PreTable, ComplexType) {
 }
 
 TEST_F(PreTable, DISABLED_MultipleWorkers) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -425,6 +437,7 @@ TEST_F(PreTable, DISABLED_MultipleWorkers) {
 
 // Insert several items with same key and test application of local reduce
 TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
+
     auto key_ex = [](const MyStruct& in) {
                       return in.key % 500;
                   };
@@ -468,6 +481,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 }
 
 TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
+
     auto key_ex = [](const MyStruct& in) {
                       return in.key;
                   };
@@ -523,7 +537,10 @@ void randomStr(std::string& s, const int len) {
 }
 
 TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
-    auto key_ex = [](StringPair in) { return in.first; };
+
+    auto key_ex = [](StringPair in) {
+                      return in.first;
+                  };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
                       return std::make_pair(in1.first, in1.second + in2.second);

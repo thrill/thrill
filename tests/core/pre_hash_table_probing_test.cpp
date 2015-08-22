@@ -53,6 +53,7 @@ private:
 };
 
 TEST_F(ReducePreProbingTable, CustomHashFunction) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -68,7 +69,7 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 
     CustomKeyHashFunction<int> cust_hash;
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true,
-                                     CustomKeyHashFunction<int> >
+                                CustomKeyHashFunction<int> >
     table(1, key_ex, red_fn, writers, -1, 8, 0.5, cust_hash);
 
     for (int i = 0; i < 16; i++) {
@@ -88,6 +89,7 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 }
 
 TEST_F(ReducePreProbingTable, AddIntegers) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -116,7 +118,10 @@ TEST_F(ReducePreProbingTable, AddIntegers) {
 }
 
 TEST_F(ReducePreProbingTable, CreateEmptyTable) {
-    auto key_ex = [](int in) { return in; };
+
+    auto key_ex = [](int in) {
+                      return in;
+                  };
 
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
@@ -142,11 +147,14 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
 }
 
 TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
+
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
                   };
 
-    auto key_ex = [](int in) { return in; };
+    auto key_ex = [](int in) {
+                      return in;
+                  };
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
@@ -171,6 +179,7 @@ TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
 // Manually flush all items in table,
 // no size constraint, one partition
 TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -211,6 +220,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
 // Manually flush all items in table,
 // no size constraint, two partitions
 TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -261,6 +271,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
 // Partial flush of items in table due to
 // max table size constraint, one partition
 TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -300,6 +311,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
 //// Partial flush of items in table due to
 //// max table size constraint, two partitions
 TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -349,6 +361,7 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
 }
 
 TEST_F(ReducePreProbingTable, ComplexType) {
+
     auto key_ex = [](StringPair in) {
                       return in.first;
                   };
@@ -381,6 +394,7 @@ TEST_F(ReducePreProbingTable, ComplexType) {
 }
 
 TEST_F(ReducePreProbingTable, MultipleWorkers) {
+
     auto key_ex = [](int in) {
                       return in;
                   };
@@ -410,6 +424,7 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
 
 // Insert several items with same key and test application of local reduce
 TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
+
     auto key_ex = [](const IntPair in) {
                       return in.first % 500;
                   };
@@ -451,6 +466,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 }
 
 TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
+
     auto key_ex = [](const IntPair in) {
                       return in.first;
                   };
@@ -506,7 +522,10 @@ void randomStr(std::string& s, const int len) {
 }
 
 TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
-    auto key_ex = [](StringPair in) { return in.first; };
+
+    auto key_ex = [](StringPair in) {
+                      return in.first;
+                  };
 
     auto red_fn = [](StringPair in1, StringPair in2) {
                       return std::make_pair(in1.first, in1.second + in2.second);
