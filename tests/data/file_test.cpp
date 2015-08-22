@@ -114,6 +114,27 @@ TEST_F(File, PutSomeItemsGetItems) {
     }
 }
 
+TEST_F(File, WriteZeroItems) {
+
+    // construct File with very small blocks for testing
+    data::File file(block_pool_);
+
+    {
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(1024);
+
+        // but dont write anything
+        fw.Close();
+    }
+
+    // get zero items back from file.
+    {
+        data::File::Reader fr = file.GetReader();
+
+        ASSERT_FALSE(fr.HasNext());
+    }
+}
+
 TEST_F(File, SerializeSomeItems) {
 
     // construct File with very small blocks for testing
