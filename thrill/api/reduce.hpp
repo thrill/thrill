@@ -87,6 +87,7 @@ public:
                ReduceFunction reduce_function,
                StatsNode* stats_node)
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce", stats_node),
+          ctx_(parent.ctx()),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
@@ -94,7 +95,6 @@ public:
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_)
     {
-
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
@@ -130,7 +130,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_, cbs);
+        ReduceTable table(ctx_, key_extractor_, reduce_function_, cbs);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
@@ -175,6 +175,9 @@ public:
     }
 
 private:
+    //! Context
+    Context& ctx_;
+
     //! Key extractor function
     KeyExtractor key_extractor_;
 
