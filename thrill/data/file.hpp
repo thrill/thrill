@@ -59,7 +59,7 @@ public:
     using DynReader = DynBlockReader;
 
     //! Constructor from BlockPool
-    File(BlockPool& block_pool)
+    explicit File(BlockPool& block_pool)
         : BlockSink(block_pool)
     { }
 

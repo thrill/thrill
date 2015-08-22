@@ -32,7 +32,7 @@ public:
     using Writer = BlockWriter;
 
     //! Create discarding BlockSink.
-    DiscardSink(BlockPool& block_pool)
+    explicit DiscardSink(BlockPool& block_pool)
         : BlockSink(block_pool)
     { }
 

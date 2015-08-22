@@ -26,14 +26,11 @@
 // TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
 // #include <thrill/net/lowlevel/epoll-dispatcher.hpp>
 
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
-#include <thrill/common/delegate.hpp>
-#endif
-
 #include <atomic>
 #include <chrono>
 #include <ctime>
 #include <deque>
+#include <functional>
 #include <queue>
 #include <string>
 
@@ -87,7 +84,7 @@ protected:
 
 public:
     //! default constructor
-    Dispatcher(mem::Manager& mem_manager)
+    explicit Dispatcher(mem::Manager& mem_manager)
         : mem_manager_(mem_manager) { }
 
     //! non-copyable: delete copy-constructor

@@ -13,6 +13,7 @@
 #include <thrill/common/thread_pool.hpp>
 
 #include <atomic>
+#include <memory>
 
 using namespace thrill::common;
 

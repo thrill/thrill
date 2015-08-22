@@ -64,7 +64,7 @@ public:
 
     //! Constructs an element object on the location pointed by p.
     void construct(pointer p, const_reference value) {
-        ::new ((void*)p)Type(value);
+        ::new (static_cast<void*>(p))Type(value);
     }
 
     //! Destroys in-place the object pointed by p.
@@ -75,7 +75,7 @@ public:
     //! Constructs an element object on the location pointed by p.
     template <class SubType, typename ... Args>
     void construct(SubType* p, Args&& ... args) {
-        ::new ((void*)p)SubType(std::forward<Args>(args) ...);
+        ::new (static_cast<void*>(p))SubType(std::forward<Args>(args) ...);
     }
 
     //! Destroys in-place the object pointed by p.

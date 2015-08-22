@@ -51,7 +51,7 @@ public:
     using DynReader = DynBlockReader;
 
     //! Constructor from BlockPool
-    BlockQueue(BlockPool& block_pool)
+    explicit BlockQueue(BlockPool& block_pool)
         : BlockSink(block_pool)
     { }
 

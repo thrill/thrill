@@ -41,7 +41,7 @@ public:
 
     //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    ChannelSink(BlockPool& block_pool)
+    explicit ChannelSink(BlockPool& block_pool)
         : BlockSink(block_pool), closed_(true) { }
 
     /*! ChannelSink sending out to network.

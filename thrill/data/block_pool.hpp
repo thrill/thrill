@@ -26,7 +26,7 @@ class BlockPool
     static const bool debug = false;
 
 public:
-    BlockPool(mem::Manager* mem_manager)
+    explicit BlockPool(mem::Manager* mem_manager)
         : mem_manager_(mem_manager)
     { }
 

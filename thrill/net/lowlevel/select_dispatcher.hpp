@@ -48,7 +48,7 @@ class SelectDispatcher : protected Select
 
 public:
     //! constructor
-    SelectDispatcher(mem::Manager& mem_manager)
+    explicit SelectDispatcher(mem::Manager& mem_manager)
         : mem_manager_(mem_manager) { }
 
     //! type for file descriptor readiness callbacks
@@ -131,7 +131,7 @@ private:
         //! only one exception callback for the fd.
         Callback                except_cb;
 
-        Watch(mem::Manager& mem_manager)
+        explicit Watch(mem::Manager& mem_manager)
             : read_cb(mem::Allocator<Callback>(mem_manager)),
               write_cb(mem::Allocator<Callback>(mem_manager)) { }
     };
