@@ -758,7 +758,7 @@ public:
     /*!
      * Returns the total num of blocks in the table.
      *
-     * @return Number of blocks in the table.
+     * \return Number of blocks in the table.
      */
     size_t NumBlocks() const {
         return num_blocks_;
@@ -793,7 +793,7 @@ public:
     /*!
      * Returns the maximal fill rate.
      *
-     * @return Maximal fill rate.
+     * \return Maximal fill rate.
      */
     double MaxFrameFillRate() const {
         return max_frame_fill_rate_;
@@ -839,7 +839,7 @@ public:
     /*!
      * Returns the vector of frame files.
      *
-     * @return Vector of frame files.
+     * \return Vector of frame files.
      */
     std::vector<data::File> & FrameFiles() {
         return frame_files_;
@@ -848,7 +848,7 @@ public:
     /*!
      * Returns the vector of frame writers.
      *
-     * @return Vector of frame writers.
+     * \return Vector of frame writers.
      */
     std::vector<data::File::Writer> & FrameWriters() {
         return frame_writers_;
@@ -857,7 +857,7 @@ public:
     /*!
      * Returns the vector of number of items per frame.
      *
-     * @return Vector of number of items per frame.
+     * \return Vector of number of items per frame.
      */
     std::vector<size_t> & NumItemsPerFrame() {
         return items_per_frame_;
@@ -866,7 +866,7 @@ public:
     /*!
      * Returns the frame size.
      *
-     * @return Frame size.
+     * \return Frame size.
      */
     size_t FrameSize() const {
         return frame_size_;
@@ -875,7 +875,7 @@ public:
     /*!
      * Returns the number of frames.
      *
-     * @return Number of frames.
+     * \return Number of frames.
      */
     size_t NumFrames() const {
         return num_frames_;
@@ -884,7 +884,7 @@ public:
     /*!
      * Returns the number of spills.
      *
-     * @return Number of spills.
+     * \return Number of spills.
      */
     size_t NumSpills() const {
         return num_spills_;
@@ -893,7 +893,7 @@ public:
     /*!
      * Returns the number of items.
      *
-     * @return Number of items.
+     * \return Number of items.
      */
     size_t NumItems() const {
         return num_items_;

@@ -25,8 +25,6 @@
 #include <thrill/net/manager.hpp>
 
 #include <cassert>
-#include <cstdio>
-#include <fstream>
 #include <functional>
 #include <string>
 #include <vector>

@@ -343,7 +343,7 @@ TEST_F(PostTable, OneBucketOneBlock) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -352,7 +352,7 @@ TEST_F(PostTable, OneBucketOneBlock) {
 
             // const size_t TargetBlockSize = 16*1024;
             const size_t TargetBlockSize = 8 * 128;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -361,7 +361,7 @@ TEST_F(PostTable, OneBucketOneBlock) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 1, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
 
@@ -392,7 +392,7 @@ TEST_F(PostTable, OneBucketOneBlock2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -400,7 +400,7 @@ TEST_F(PostTable, OneBucketOneBlock2) {
                                });
 
             const size_t TargetBlockSize = 16 * 16;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -409,7 +409,7 @@ TEST_F(PostTable, OneBucketOneBlock2) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 1, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
 
@@ -440,7 +440,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -448,7 +448,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -457,7 +457,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 1, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
             ASSERT_EQ(0u, writer1.size());
@@ -497,7 +497,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -505,7 +505,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow2) {
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -514,7 +514,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow2) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 1, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
             ASSERT_EQ(0u, writer1.size());
@@ -554,7 +554,7 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -562,7 +562,7 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -571,7 +571,7 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 2, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
 
@@ -613,7 +613,7 @@ TEST_F(PostTable, OneBucketTwoBlocks2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -621,7 +621,7 @@ TEST_F(PostTable, OneBucketTwoBlocks2) {
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -630,7 +630,7 @@ TEST_F(PostTable, OneBucketTwoBlocks2) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 2, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
 
@@ -672,7 +672,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -680,7 +680,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -689,7 +689,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 0.5, 2, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
 
@@ -738,7 +738,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -746,7 +746,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -755,7 +755,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, 1, 1.0, 2, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
 
             ASSERT_EQ(0u, table.NumBlocks());
 
@@ -804,7 +804,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back(
@@ -813,7 +813,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                 });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
             size_t num_buckets = 64;
             size_t max_blocks = 128;
 
@@ -825,8 +825,8 @@ TEST_F(PostTable, MaxTableBlocks) {
                   0, 0, 0, num_buckets, 1.0, max_blocks, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize /
-                                                    sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize /
+                                                 sizeof(KeyValuePair));
 
             size_t num_items = block_size * max_blocks;
 
