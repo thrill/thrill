@@ -133,6 +133,39 @@ public:
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
+
+            // REVIEW(ms): the comment above is important: currently there are
+            // three round trips of data to memory/disk, but only two are
+            // necessary. a) PreOp gets items -> pushes them into the pretable
+            // (which is fully in RAM). then the pre table flushes items into
+            // the Channel. The Channel is transmitted to the workers and stored
+            // by the data::Multiplexer in Files because a lot of data will be
+            // receives (there is NO immediate processing). b) the Channel's
+            // storage is read by this function and pushed into the table. It
+            // lands in the first stage of the post reduce table, which usually
+            // spills the items out to disk. c) the spilled items are read back
+            // from disk in the .Flush().
+            //
+            // We have to figure out a way to reduce the number of round trips
+            // from three to two. This means designing a method to get the data
+            // blocks from the Channel immediately, without extra storage.
+            // Combined with the REVIEW comment on what happens in PushData(),
+            // this means that the ReducePostTable is the ACTUAL STORAGE element
+            // of the ReduceNode, and not ReducePreTable (as below).
+            //
+            // One way this could be done is to change the StageBuilder executor
+            // to give a signal "Start PreOp Execute", this signal also contains
+            // the amount of RAM that may be used. On this signal two threads
+            // are started (actually just one, plus the existing one): one with
+            // the PreTable which processes PreOp items, and one with the
+            // PostTable which does nothing but wait for items from the network
+            // Channel. (actually this is more difficult: it must wait for items
+            // from ANY worker simultaneously, currently not implemented in the
+            // data layer). When all items were delivered by PreOp ("Finish
+            // PreOp Execute"), the PreTable and PostTable must be flushed to
+            // Files. Then the 2nd-PostTable stage can be repeatedly executed
+            // from these Files when the StageBuilder calls "PushData()".
+
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" <<

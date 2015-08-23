@@ -127,6 +127,11 @@ public:
     }
 };
 
+// REVIEW(ms): these two external classes make things complex, are they really
+// needed? or can one move them into the main class and just do a if() switch?
+// Or is there some type access reason that this cannot work?  On second
+// thought: there probably is a reason. If so, please write a comment explaining
+// why.
 template <typename Key,
           typename ReduceFunction,
           typename IndexFunction = PostReduceByHashKey<Key>,
@@ -148,6 +153,8 @@ public:
 
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
+        // REVIEW(ms): please resolve these autos, I cannot understand the
+        // function like this.
         auto& buckets_ = ht->Items();
 
         auto& frame_files = ht->FrameFiles();
@@ -347,6 +354,17 @@ public:
                 }
             }
         }
+
+        // REVIEW(ms): this resets the reduce table. I think we disagree about
+        // what FlushData() does: in my view it should read and emit all data
+        // from the external files, but LEAVE EVERYTHING in place, such that
+        // this procedure can be REPEATED. Why? because that is what
+        // DIANode::PushData() requires us to do: repeatable data emitting. Is
+        // that too costly? Maybe, but then the user can append a .Cache() node
+        // to the ReduceTable which will create an actual storage File.  But
+        // then we cannot keep the Buckets in "memory", since they would always
+        // take precious RAM while other stages are executed.
+
         ht->SetNumBlocks(0);
         ht->SetNumItems(0);
     }
@@ -413,6 +431,8 @@ struct EmitImpl;
 
 template <typename EmitterType, typename ValueType, typename SendType>
 struct EmitImpl<true, EmitterType, ValueType, SendType>{
+    // REVIEW(ms): these both should be const& ! check everywhere that ValueType
+    // is not copied!
     void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
         for (auto& emitter : emitters) {
             emitter(ele);
