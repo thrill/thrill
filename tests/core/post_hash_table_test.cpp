@@ -86,7 +86,7 @@ TEST_F(PostTable, CustomHashFunction) {
             ASSERT_EQ(16u, writer1.size());
         };
 
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, AddIntegers) {
@@ -125,7 +125,7 @@ TEST_F(PostTable, AddIntegers) {
             ASSERT_EQ(0u, table.NumBlocks());
             ASSERT_EQ(3u, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
@@ -152,7 +152,7 @@ TEST_F(PostTable, CreateEmptyTable) {
             ASSERT_EQ(0u, table.NumBlocks());
             ASSERT_EQ(0u, table.NumItems());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegers) {
@@ -190,7 +190,7 @@ TEST_F(PostTable, FlushIntegers) {
 
             table.Insert(pair(1));
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegersInSequence) {
@@ -236,7 +236,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
 
             ASSERT_EQ(6u, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, MultipleEmitters) {
@@ -278,7 +278,7 @@ TEST_F(PostTable, MultipleEmitters) {
             ASSERT_EQ(3u, writer1.size());
             ASSERT_EQ(3u, writer2.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, ComplexType) {
@@ -320,7 +320,7 @@ TEST_F(PostTable, ComplexType) {
             ASSERT_EQ(4u, table.NumBlocks());
         };
 
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketOneBlock) {
@@ -368,7 +368,7 @@ TEST_F(PostTable, OneBucketOneBlock) {
             ASSERT_EQ(block_size, writer1.size());
         };
 
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketOneBlock2) {
@@ -415,7 +415,7 @@ TEST_F(PostTable, OneBucketOneBlock2) {
             ASSERT_EQ(block_size, writer1.size());
         };
 
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketOneBlockOverflow) {
@@ -471,7 +471,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
             ASSERT_EQ(2 * block_size, writer1.size());
         };
 
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketOneBlockOverflow2) {
@@ -527,7 +527,7 @@ TEST_F(PostTable, OneBucketOneBlockOverflow2) {
             ASSERT_EQ(2 * block_size, writer1.size());
         };
 
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketTwoBlocks) {
@@ -585,7 +585,7 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
 
             ASSERT_EQ(block_size * 2, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketTwoBlocks2) {
@@ -643,7 +643,7 @@ TEST_F(PostTable, OneBucketTwoBlocks2) {
 
             ASSERT_EQ(block_size * 2, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
@@ -708,7 +708,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
 
             ASSERT_EQ(block_size * 3, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
@@ -773,7 +773,7 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
 
             ASSERT_EQ(block_size * 3, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, MaxTableBlocks) {
@@ -826,7 +826,7 @@ TEST_F(PostTable, MaxTableBlocks) {
 
             ASSERT_EQ(num_items, writer1.size());
         };
-    api::RunLocalTests(start_func);
+    api::RunSameThread(start_func);
 }
 
 /******************************************************************************/
