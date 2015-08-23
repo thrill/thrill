@@ -29,9 +29,13 @@ namespace mem {
 class Manager
 {
 public:
-    explicit Manager(Manager* super)
-        : super_(super)
+    explicit Manager(Manager* super, const char* name)
+        : super_(super), name_(name)
     { }
+
+    ~Manager() {
+        LOG1 << "mem::Manager() name=" << name_ << " peak_=" << peak_;
+    }
 
     //! return the superior Manager
     Manager * super() { return super_; }
@@ -41,7 +45,8 @@ public:
 
     //! add memory consumption.
     Manager & add(size_t amount) {
-        total_ += amount;
+        size_t current = (total_ += amount);
+        peak_ = std::max(peak_.load(), current);
         if (super_) super_->add(amount);
         return *this;
     }
@@ -58,8 +63,14 @@ protected:
     //! reference to superior memory counter
     Manager* super_;
 
+    //! description for output
+    const char* name_;
+
     //! total allocation
     std::atomic<size_t> total_ { 0 };
+
+    //! peak allocation
+    std::atomic<size_t> peak_ { 0 };
 };
 
 } // namespace mem

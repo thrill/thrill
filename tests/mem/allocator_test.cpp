@@ -17,7 +17,7 @@
 using namespace thrill;
 
 TEST(Allocator, Test1) {
-    mem::Manager mem_manager(nullptr);
+    mem::Manager mem_manager(nullptr, "TestAllocator");
 
     LOG1 << "vector";
     {
