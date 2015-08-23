@@ -88,7 +88,7 @@ protected:
     size_t workers_per_host_;
 
     //! host-global memory manager
-    mem::Manager mem_manager_ { nullptr };
+    mem::Manager mem_manager_ { nullptr, "HostContext" };
 
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;

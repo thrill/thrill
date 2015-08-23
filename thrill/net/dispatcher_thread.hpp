@@ -63,7 +63,7 @@ public:
     //! \}
 
     //! common global memory stats, should become a HostContext member.
-    mem::Manager mem_manager_ { nullptr };
+    mem::Manager mem_manager_ { nullptr, "DispatcherThread" };
 
 public:
     explicit DispatcherThread(const mem::string& thread_name);
