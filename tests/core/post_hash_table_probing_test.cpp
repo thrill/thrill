@@ -64,7 +64,8 @@ TEST_F(PostTable, CustomHashFunction) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             CustomKeyHashFunction<int> cust_hash;
@@ -108,7 +109,8 @@ TEST_F(PostTable, AddIntegers) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -148,7 +150,8 @@ TEST_F(PostTable, CreateEmptyTable) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -175,7 +178,8 @@ TEST_F(PostTable, FlushIntegers) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -215,7 +219,8 @@ TEST_F(PostTable, FlushIntegersInSequence) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -259,9 +264,11 @@ TEST_F(PostTable, MultipleEmitters) {
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             std::vector<int> writer2;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
-            emitters.push_back([&writer2](const int value) { writer2.push_back(value);
+            emitters.push_back([&writer2](const int value) {
+                                   writer2.push_back(value);
                                });
 
             core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -304,7 +311,8 @@ TEST_F(PostTable, ComplexType) {
             using EmitterFunction = std::function<void(const StringPair&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<StringPair> writer1;
-            emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const StringPair value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostProbingTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
@@ -343,7 +351,8 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             size_t size = 32 * 1024;
@@ -392,7 +401,8 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back(
-                [&writer1](const int value) { writer1.push_back(value);
+                [&writer1](const int value) {
+                    writer1.push_back(value);
                 });
 
             size_t size = 32 * 1024;

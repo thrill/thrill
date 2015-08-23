@@ -215,7 +215,7 @@ public:
                    std::vector<data::BlockWriter>& emit,
                    size_t num_buckets_per_partition = 1024,
                    double max_partition_fill_rate = 0.5,
-                   size_t max_num_blocks_table = 1024 * 16,
+                   size_t max_num_blocks_table = 1024* 16,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -226,8 +226,7 @@ public:
           reduce_function_(reduce_function),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions >= 0);
@@ -246,7 +245,7 @@ public:
                                         "AND partition_size a divider of num_buckets");
         }
 
-        buckets_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);
 
         num_items_per_partition_ = (size_t)((static_cast<double>(max_num_blocks_table * block_size_)
@@ -458,7 +457,7 @@ public:
                 current = next;
             }
 
-            buckets_[i] = NULL;
+            buckets_[i] = nullptr;
         }
 
         // reset total counter
@@ -550,7 +549,7 @@ public:
 
         for (int i = 0; i < num_buckets_; i++)
         {
-            if (buckets_[i] == NULL)
+            if (buckets_[i] == nullptr)
             {
                 LOG << "bucket id: "
                     << i
@@ -561,7 +560,7 @@ public:
             std::string log = "";
 
             BucketBlock* current = buckets_[i];
-            while (current != NULL)
+            while (current != nullptr)
             {
                 log += "block: ";
 
@@ -643,6 +642,7 @@ protected:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
+
 } // namespace core
 } // namespace thrill
 

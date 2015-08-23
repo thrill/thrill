@@ -64,7 +64,8 @@ TEST_F(PostTable, CustomHashFunction) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             CustomKeyHashFunction<int> cust_hash;
@@ -105,7 +106,8 @@ TEST_F(PostTable, AddIntegers) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -143,7 +145,8 @@ TEST_F(PostTable, CreateEmptyTable) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -170,7 +173,8 @@ TEST_F(PostTable, FlushIntegers) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -208,7 +212,8 @@ TEST_F(PostTable, FlushIntegersInSequence) {
             using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -258,9 +263,11 @@ TEST_F(PostTable, MultipleEmitters) {
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             std::vector<int> writer2;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
-            emitters.push_back([&writer2](const int value) { writer2.push_back(value);
+            emitters.push_back([&writer2](const int value) {
+                                   writer2.push_back(value);
                                });
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
@@ -299,7 +306,8 @@ TEST_F(PostTable, ComplexType) {
             using EmitterFunction = std::function<void(const StringPair&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<StringPair> writer1;
-            emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const StringPair value) {
+                                   writer1.push_back(value);
                                });
 
             core::ReducePostTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
@@ -338,10 +346,11 @@ TEST_F(PostTable, OneBucketOneBlock) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
-            //const size_t TargetBlockSize = 16*1024;
+            // const size_t TargetBlockSize = 16*1024;
             const size_t TargetBlockSize = 8 * 128;
             typedef std::pair<int, int> KeyValuePair;
 
@@ -386,7 +395,8 @@ TEST_F(PostTable, OneBucketOneBlock2) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 16;
@@ -433,7 +443,8 @@ TEST_F(PostTable, OneBucketOneBlockOverflow) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
@@ -489,7 +500,8 @@ TEST_F(PostTable, OneBucketOneBlockOverflow2) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
@@ -545,7 +557,8 @@ TEST_F(PostTable, OneBucketTwoBlocks) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
@@ -603,7 +616,8 @@ TEST_F(PostTable, OneBucketTwoBlocks2) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
@@ -661,7 +675,8 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
@@ -726,7 +741,8 @@ TEST_F(PostTable, OneBucketTwoBlocksOverflow2) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             const size_t TargetBlockSize = 16 * 1024;
@@ -792,7 +808,8 @@ TEST_F(PostTable, MaxTableBlocks) {
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back(
-                [&writer1](const int value) { writer1.push_back(value);
+                [&writer1](const int value) {
+                    writer1.push_back(value);
                 });
 
             const size_t TargetBlockSize = 16 * 1024;

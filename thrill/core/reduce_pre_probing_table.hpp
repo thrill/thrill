@@ -179,7 +179,7 @@ public:
                           ReduceFunction reduce_function,
                           std::vector<data::BlockWriter>& emit,
                           Key sentinel,
-                          size_t num_items_per_partition = 1024 * 16,
+                          size_t num_items_per_partition = 1024* 16,
                           double max_partition_fill_rate = 0.5,
                           const IndexFunction& index_function = IndexFunction(),
                           const EqualToFunction& equal_to_function = EqualToFunction())
@@ -547,6 +547,7 @@ private:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
+
 } // namespace core
 } // namespace thrill
 

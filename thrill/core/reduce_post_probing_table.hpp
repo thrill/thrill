@@ -284,7 +284,7 @@ public:
     }
 
 private:
-    //ReduceFunction reduce_function_;
+    // ReduceFunction reduce_function_;
     IndexFunction index_function_;
     EqualToFunction equal_to_function_;
 };
@@ -396,7 +396,7 @@ public:
                            size_t begin_local_index = 0,
                            size_t end_local_index = 0,
                            Value neutral_element = Value(),
-                           size_t size = 1024 * 16,
+                           size_t size = 1024* 16,
                            double max_frame_fill_rate = 0.5,
                            size_t frame_size = 32,
                            const EqualToFunction& equal_to_function = EqualToFunction())
@@ -830,6 +830,7 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
+
 } // namespace core
 } // namespace thrill
 

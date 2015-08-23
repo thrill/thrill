@@ -172,7 +172,7 @@ TEST_F(PreTable, DISABLED_PopIntegers) {
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
 
-    //table.SetMaxNumItems(3);
+    // table.SetMaxNumItems(3);
 
     table.Insert(1);
     table.Insert(2);
