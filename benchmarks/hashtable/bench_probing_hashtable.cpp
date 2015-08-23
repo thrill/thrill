@@ -17,14 +17,14 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
+#include <algorithm>
 #include <cmath>
-#include <numeric>
 #include <iostream>
 #include <iterator>
-#include <vector>
+#include <numeric>
 #include <random>
-#include <algorithm>
 #include <utility>
+#include <vector>
 
 using IntPair = std::pair<int, int>;
 
@@ -75,14 +75,14 @@ int main(int argc, char* argv[]) {
     auto key_ex = [](std::string in) { return in; };
 
     auto red_fn = [](std::string in1, std::string in2) {
-        (void)in2;
-        return in1;
-    };
+                      (void)in2;
+                      return in1;
+                  };
 
     static const char alphanum[] =
-                    "abcdefghijklmnopqrstuvwxyz"
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                    "0123456789";
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789";
 
     std::default_random_engine rng({ std::random_device()() });
     std::uniform_int_distribution<> dist(l, u);
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
     {
         size_t length = dist(rng);
         std::string str;
-        for(size_t i = 0; i < length; ++i)
+        for (size_t i = 0; i < length; ++i)
         {
             str += alphanum[rand() % sizeof(alphanum)];
         }
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(sinks[i].GetWriter());
     }
 
-    size_t num_slots = table_size / (2*sizeof(std::string));
+    size_t num_slots = table_size / (2 * sizeof(std::string));
 
     core::ReducePreProbingTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true>
     table(workers, key_ex, red_fn, writers, "", num_slots / workers, max_partition_fill_rate);

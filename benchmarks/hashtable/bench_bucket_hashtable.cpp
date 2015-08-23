@@ -15,13 +15,12 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numeric>
 #include <iostream>
 #include <iterator>
-#include <vector>
+#include <numeric>
 #include <random>
 #include <utility>
-
+#include <vector>
 
 using IntPair = std::pair<int, int>;
 
@@ -80,14 +79,14 @@ int main(int argc, char* argv[]) {
     auto key_ex = [](std::string in) { return in; };
 
     auto red_fn = [](std::string in1, std::string in2) {
-        (void)in2;
-        return in1;
-    };
+                      (void)in2;
+                      return in1;
+                  };
 
     static const char alphanum[] =
-                    "abcdefghijklmnopqrstuvwxyz"
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                    "0123456789";
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789";
 
     std::default_random_engine rng({ std::random_device()() });
     std::uniform_int_distribution<> dist(l, u);
@@ -99,7 +98,7 @@ int main(int argc, char* argv[]) {
     {
         size_t length = dist(rng);
         std::string str;
-        for(size_t i = 0; i < length; ++i)
+        for (size_t i = 0; i < length; ++i)
         {
             str += alphanum[rand() % sizeof(alphanum)];
         }
@@ -117,18 +116,18 @@ int main(int argc, char* argv[]) {
     }
 
     size_t block_size_ = core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>::block_size_;
+                                              core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>::block_size_;
     size_t size_bb = sizeof(core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>::BucketBlock);
+                                                 core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>::BucketBlock);
 
-    size_t max_num_blocks_table_ = (size_t) (static_cast<double>(table_size) / static_cast<double>(size_bb));
+    size_t max_num_blocks_table_ = (size_t)(static_cast<double>(table_size) / static_cast<double>(size_bb));
     max_num_blocks_table_ = (max_num_blocks_table_ <= 0) ? 1 : max_num_blocks_table_;
 
-    size_t num_buckets_per_partition_ = (size_t) ((static_cast<double>(strings.size()) / static_cast<double>(workers))
-                                 / (static_cast<double>(block_size_) * max_partition_fill_rate));
+    size_t num_buckets_per_partition_ = (size_t)((static_cast<double>(strings.size()) / static_cast<double>(workers))
+                                                 / (static_cast<double>(block_size_) * max_partition_fill_rate));
 
     core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>
+                         core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>
     table(workers, key_ex, red_fn, writers, num_buckets_per_partition_, max_partition_fill_rate, max_num_blocks_table_);
 
     common::StatsTimer<true> timer(true);
