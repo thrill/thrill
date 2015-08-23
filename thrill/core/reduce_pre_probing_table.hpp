@@ -419,7 +419,7 @@ public:
     /*!
      * Returns the number of flushes.
      *
-     * @return Number of flushes.
+     * \return Number of flushes.
      */
     size_t NumFlushes() const {
         return num_flushes_;
@@ -437,7 +437,7 @@ public:
     /*!
      * Returns the number of items per partitions.
      *
-     * @return The number of items per partitions.
+     * \return The number of items per partitions.
      */
     size_t NumItemsPerPartition() const {
         return num_items_per_partition_;

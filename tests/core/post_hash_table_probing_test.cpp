@@ -348,7 +348,7 @@ TEST_F(PostTable, WithinTableItemsLimit) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -397,7 +397,7 @@ TEST_F(PostTable, AboveTableItemsLimit) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back(
