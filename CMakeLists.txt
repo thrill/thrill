@@ -198,6 +198,12 @@ set(THRILL_VALGRIND_OPTS
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
+
+###############################################################################
+# add stxxl
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/stxxl/include)
+
 ################################################################################
 ### Find Required Libraries
 
