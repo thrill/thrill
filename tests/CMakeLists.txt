@@ -112,7 +112,7 @@ build_test(core/pre_hash_table_test)
 build_test(core/pre_hash_table_probing_test)
 build_test(core/post_hash_table_test)
 build_test(core/post_hash_table_probing_test)
-
+build_test(core/stxxl_multiway_merge_test)
 build_test(core/stage_builder_test)
 
 build_test(api/function_stack_test)
