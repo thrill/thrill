@@ -55,6 +55,15 @@ public:
         : BlockSink(block_pool)
     { }
 
+    //! non-copyable: delete copy-constructor
+    BlockQueue(const BlockQueue&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockQueue& operator = (const BlockQueue&) = delete;
+    //! move-constructor: default
+    BlockQueue(BlockQueue&&) = default;
+    //! move-assignment operator: default
+    BlockQueue& operator = (BlockQueue&&) = default;
+
     void AppendBlock(const Block& b) final {
         queue_.emplace(b);
     }
