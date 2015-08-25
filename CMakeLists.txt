@@ -243,6 +243,9 @@ find_package(SWIG)
 if(SWIG_FOUND)
   include(${SWIG_USE_FILE})
 endif()
+if(NOT SWIG_FOUND AND JENKINS_BUILD)
+  message(FATAL "Invalid swig on the continuous integration server.")
+endif()
 
 ################################################################################
 ### Build Macros
