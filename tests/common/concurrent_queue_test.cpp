@@ -13,13 +13,14 @@
 #include <thrill/common/thread_pool.hpp>
 
 #include <atomic>
+#include <memory>
 
 using namespace thrill::common;
 
 TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     ThreadPool pool(8);
 
-    ConcurrentQueue<int> queue;
+    ConcurrentQueue<int, std::allocator<int> > queue;
     std::atomic<size_t> count(0);
     std::atomic<size_t> total_sum(0);
 

@@ -7,38 +7,34 @@ import random
 import numpy
 
 result_dir = "./bench_probing_hashtable"
-
-num_runs = 5
-
-workers = [1000]
-num_buckets_init_scales = [100]
-num_buckets_resize_scales = [2]
-max_partition_fill_ratios = [1.0]
-max_num_items_tables = [1048576]
-
-modulae = [100000]
-amounts= [10,12,14,16,18,20,22,24,26,28]
-
 if not os.path.exists(result_dir): os.makedirs(result_dir)
 
-# Insert pow(2,n) random integer elements into hashtable with specific number of workers and keyspace. Perform 5 times and print median to file.
-for worker in workers:
-    for modulo in modulae:
-        for a in num_buckets_init_scales:
-            for b in num_buckets_resize_scales:
-                for c in max_partition_fill_ratios:
-                    for d in max_num_items_tables:
-                        print "Testing with " + str(worker) + " workers and integers modulo " + str(modulo)
-                        with open(result_dir + "/" + str(worker) + "_" + str(modulo) + "_" + str(a) + "_" + str(b) + "_" + str(c) + "_" + str(d), "w+") as file1:
-                            for amount in amounts:
-                                results = []
+def bench(workers, sizes, intervals, max_partition_fill_rates, num_items_per_partitions, table_sizes, num_runs):
+    for worker in workers:
+        for size in sizes:
+            for interval in intervals:
+                for max_partition_fill_rate in max_partition_fill_rates:
+                    for num_items_per_partition in num_items_per_partitions:
+                        for table_size in table_sizes:
+                            with open(result_dir + "/" + "4" + "_" + str(worker) + "_" + str(size) + "_" + str(interval[0]) + "-" + str(interval[1]) + "_" + str(max_partition_fill_rate) + "_" + str(num_items_per_partition) + "_" + str(table_size), "w+") as file1:
+                                times = []
+                                flushes = []
+                                items = []
                                 for _ in range(num_runs):
-                                    process = subprocess.Popen(['../../build/benchmarks/hashtable_bench_probing_hashtable', '-s', str(pow(2,amount)), '-w', str(worker), '-m', str(modulo), '-i', str(a), '-r', str(b), '-f', str(c), '-t', str(d)], stdout=subprocess.PIPE)
+                                    process = subprocess.Popen(['../../build/benchmarks/hashtable_bench_probing_hashtable', '-s', str(size), '-w', str(worker), '-l', str(interval[0]), '-u', str(interval[1]), '-f', str(max_partition_fill_rate), '-i', str(num_items_per_partition), '-t', str(table_size)], stdout=subprocess.PIPE)
                                     process.wait()
-                                    time = process.communicate()[0]
-                                    results.append(float(time))
-                                    print time
-                                median = numpy.median(results)
-                                print str(amount) + " " + str(median * 1000 / pow(2,amount))
-                                file1.write(str(amount) + " " + str(median * 1000 / pow(2,amount)) + "\n")
+                                    out = process.communicate()[0]
+                                    out_s = out.split();
+                                    times.append(float(out_s[0]))
+                                    flushes.append(float(out_s[1]))
+                                    items.append(float(out_s[2]))
+                                time = numpy.median(times)
+                                flush = numpy.median(flushes)
+                                item = numpy.median(items)
+                                print str(worker) + "_" + str(interval[0]) + "-" + str(interval[1]) + "_" + str(max_partition_fill_rate) + "_" + str(num_items_per_partition) + "_" + str(table_size) + ": " + str(time) + " " + str(flush) + " " + str(item) + " " + str(item * (pow(10,6)/time)) + " " + str(flush * (pow(10,6)/time))
+                                file1.write(str(interval[0]) + "-" + str(interval[1]) + " " + str(time) + " " + str(flush) + " " + str(item) + " " + str(item * (pow(10,6)/time)) + " " + str(flush * (pow(10,6)/time)) + "\n")
                             file1.close()
+
+num_runs = 5
+bench([100], [2000000000], [[5, 15]], [0.5], [1], [500000000], num_runs);
+#5 not applied

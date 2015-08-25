@@ -190,7 +190,9 @@ private:
     static const size_t num_inputs_ = 2;
 
     //! Files for intermediate storage
-    std::array<data::File, num_inputs_> files_;
+    std::array<data::File, num_inputs_> files_ {
+        { context_.GetFile(), context_.GetFile() }
+    };
 
     //! Writers to intermediate files
     std::array<data::File::Writer, num_inputs_> writers_  {

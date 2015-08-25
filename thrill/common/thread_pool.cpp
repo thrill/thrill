@@ -43,6 +43,7 @@ void ThreadPool::LoopUntilEmpty() {
     std::unique_lock<std::mutex> lock(mutex_);
     cv_finished_.wait(
         lock, [this]() { return jobs_.empty() && (busy_ == 0); });
+    std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 //! Loop until terminate flag was set.
@@ -50,6 +51,7 @@ void ThreadPool::LoopUntilTerminate() {
     std::unique_lock<std::mutex> lock(mutex_);
     cv_finished_.wait(
         lock, [this]() { return terminate_ && (busy_ == 0); });
+    std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 //! Terminate thread pool gracefully, wait until currently running jobs

@@ -21,8 +21,8 @@
 namespace thrill {
 namespace net {
 
-DispatcherThread::DispatcherThread(const std::string& thread_name)
-    : dispatcher_(new Dispatcher),
+DispatcherThread::DispatcherThread(const mem::string& thread_name)
+    : dispatcher_(mem::mm_make_unique<Dispatcher>(mem_manager_, mem_manager_)),
       name_(thread_name) {
     // allocate self-pipe
     int r = ::pipe(self_pipe_);
@@ -39,8 +39,6 @@ DispatcherThread::~DispatcherThread() {
 
     close(self_pipe_[0]);
     close(self_pipe_[1]);
-
-    delete dispatcher_;
 }
 
 //! Terminate the dispatcher thread (if now already done).
@@ -66,7 +64,7 @@ void DispatcherThread::AddTimer(
 
 //! Register a buffered read callback and a default exception callback.
 void DispatcherThread::AddRead(
-    Connection& c, const ConnectionCallback& read_cb) {
+    Connection& c, const AsyncCallback& read_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddRead(c, read_cb);
             });
@@ -75,7 +73,7 @@ void DispatcherThread::AddRead(
 
 //! Register a buffered write callback and a default exception callback.
 void DispatcherThread::AddWrite(
-    Connection& c, const ConnectionCallback& write_cb) {
+    Connection& c, const AsyncCallback& write_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddWrite(c, write_cb);
             });

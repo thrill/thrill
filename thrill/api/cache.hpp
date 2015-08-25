@@ -88,7 +88,7 @@ public:
 
 private:
     //! Local data file
-    data::File file_;
+    data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
 };

@@ -16,6 +16,7 @@
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/data/block_pool.hpp>
 #include <thrill/data/channel.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
@@ -24,8 +25,6 @@
 #include <thrill/net/manager.hpp>
 
 #include <cassert>
-#include <cstdio>
-#include <fstream>
 #include <functional>
 #include <string>
 #include <vector>
@@ -50,7 +49,8 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(my_host_rank, endpoints),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
+          data_multiplexer_(block_pool_, workers_per_host,
+                            net_manager_.GetDataGroup())
     { }
 
 #ifndef SWIG
@@ -61,7 +61,8 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(my_host_rank, std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          data_multiplexer_(workers_per_host, net_manager_.GetDataGroup())
+          data_multiplexer_(block_pool_, workers_per_host,
+                            net_manager_.GetDataGroup())
     { }
 
     //! Construct a number of mock hosts running in this process.
@@ -78,6 +79,9 @@ public:
     //! the flow control group is used for collective communication.
     net::FlowControlChannelManager & flow_manager() { return flow_manager_; }
 
+    //! the block manager keeps all data blocks moving through the system.
+    data::BlockPool & block_pool() { return block_pool_; }
+
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer & data_multiplexer() { return data_multiplexer_; }
 
@@ -85,11 +89,17 @@ protected:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
+    //! host-global memory manager
+    mem::Manager mem_manager_ { nullptr };
+
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
 
     //! the flow control group is used for collective communication.
     net::FlowControlChannelManager flow_manager_;
+
+    //! data block pool
+    data::BlockPool block_pool_ { &mem_manager_ };
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_;
@@ -108,10 +118,12 @@ class Context
 public:
     Context(net::Manager& net_manager,
             net::FlowControlChannelManager& flow_manager,
+            data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
             size_t workers_per_host, size_t local_worker_id)
         : net_manager_(net_manager),
           flow_manager_(flow_manager),
+          block_pool_(block_pool),
           multiplexer_(multiplexer),
           local_worker_id_(local_worker_id),
           workers_per_host_(workers_per_host) {
@@ -121,6 +133,7 @@ public:
     Context(HostContext& host_context, size_t local_worker_id)
         : net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
+          block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
           local_worker_id_(local_worker_id),
           workers_per_host_(host_context.workers_per_host()) {
@@ -202,7 +215,7 @@ public:
 
     //! Returns a new File object containing a sequence of local Blocks.
     data::File GetFile() {
-        return data::File();
+        return data::File(block_pool_);
     }
 
     //! Returns a reference to a new Channel.  This method alters the state of
@@ -230,6 +243,9 @@ private:
 
     //! net::FlowControlChannelManager instance that is shared among workers
     net::FlowControlChannelManager& flow_manager_;
+
+    //! data block pool
+    data::BlockPool& block_pool_;
 
     //! data::Multiplexer instance that is shared among workers
     data::Multiplexer& multiplexer_;

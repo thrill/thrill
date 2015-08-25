@@ -99,7 +99,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 10, 2, 256, 1048576,
+                            reduce_function_, emitters_, 1024, 0.5, 1024 * 16,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -143,7 +143,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_, cbs,
+        ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
                           core::PostReduceByIndex(),
                           core::PostReduceFlushToIndex<Value>(),
                           local_begin,

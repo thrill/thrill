@@ -26,6 +26,10 @@ using namespace thrill; // NOLINT
 
 static const bool debug = false;
 
+struct SerializationCereal : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
+
 // struct ProtobufObject {
 //     TestSerializeObject(int bla, int blu) : bla_(bla), blu_(blu) { }
 //     int bla_;
@@ -72,9 +76,9 @@ struct CerealObject
     }
 };
 
-TEST(SerializationCereal, cereal_w_FileWriter)
+TEST_F(SerializationCereal, cereal_w_FileWriter)
 {
-    data::File f;
+    data::File f(block_pool_);
 
     auto w = f.GetWriter();
 
@@ -104,9 +108,9 @@ TEST(SerializationCereal, cereal_w_FileWriter)
     LOG << coserial.a;
 }
 
-TEST(SerializationCereal, cereal_w_BlockQueue)
+TEST_F(SerializationCereal, cereal_w_BlockQueue)
 {
-    data::BlockQueue q;
+    data::BlockQueue q(block_pool_);
     {
         auto qw = q.GetWriter(16);
         CerealObject myData;
