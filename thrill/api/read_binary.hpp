@@ -17,6 +17,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/read_file_list.hpp>
 
 #include <fstream>
 #include <string>
@@ -38,6 +39,10 @@ public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
     using Super::result_file_;
+    
+    using FileSizePair = std::pair<std::string, size_t>;
+
+    static const bool debug = false;
 
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
@@ -50,13 +55,13 @@ public:
                    const std::string& filepath,
                    StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
-          filepath_(filepath + std::to_string(context_.my_rank())),
-          bfr_(filepath_)
+          filepath_(filepath),
+          bfr_()
     {
-        std::ifstream file_(filepath_);
-        file_.seekg(0, std::ios::end);
-        filesize_ = file_.tellg();
-        file_.close();
+        filelist_ = core::ReadFileList(filepath_).first;
+        bfr_.SetFile(filelist_[context_.my_rank()].first);
+        filesize_ = filelist_[context_.my_rank() + 1].second -
+            filelist_[context_.my_rank()].second;
     }
 
     virtual ~ReadBinaryNode() { }
@@ -69,7 +74,7 @@ public:
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
-        std::ifstream file(filepath_);
+        std::ifstream file(filelist_[context_.my_rank()].first);
         assert(file.good());
 
         // Hook Read
@@ -108,17 +113,23 @@ private:
 
     std::streampos filesize_;
 
+    std::vector<FileSizePair> filelist_;
+
     class BinaryFileReader
         : public common::ItemReaderToolsBase<BinaryFileReader>
     {
     public:
-        explicit BinaryFileReader(const std::string& file)
-            : instream_(file) { }
+
+        explicit BinaryFileReader() { }
 
         virtual ~BinaryFileReader() { }
 
         void CloseStream() {
             instream_.close();
+        }
+
+        void SetFile(const std::string& path) {
+            instream_.open(path);
         }
 
         std::streampos Position() {

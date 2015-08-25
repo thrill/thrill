@@ -77,13 +77,14 @@ TEST(IO, WriteToSingleFile) {
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
-            std::string binary_path = "output";
 
-            integers.WriteBinary(binary_path);
+            integers.WriteBinary("binary/output_");
+
+            ctx.Barrier();
 
             int bla = 5;
 
-            auto integers2 = ReadBinary(ctx, binary_path, bla);
+            auto integers2 = ReadBinary(ctx, "binary/*", bla);
 
             integers2.Map(
                 [](const int& item) {
