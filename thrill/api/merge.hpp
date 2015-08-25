@@ -189,6 +189,8 @@ template <typename ValueType, typename Stack>
 template <typename MergeFunction, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Merge(
     SecondDIA second_dia, const MergeFunction &zip_function) const {
+    assert(IsValid());
+    assert(second_dia.IsValid());
 
     using MergeResult
               = typename FunctionTraits<MergeFunction>::result_type;
