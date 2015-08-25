@@ -80,10 +80,12 @@ public:
     //! input type.
     using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
+    //! default-constructor: invalid DIARef
     DIARef()
         : node_(nullptr)
     { }
 
+    //! Return whether the DIARef is valid.
     bool IsValid() const { return node_.get(); }
 
     /*!
@@ -139,16 +141,19 @@ public:
 
     //! Returns a pointer to the according DIANode.
     const DIANodePtr & node() const {
+        assert(IsValid());
         return node_;
     }
 
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
+        assert(IsValid());
         return node_.use_count();
     }
 
     //! Returns the stored function chain.
     const Stack & stack() const {
+        assert(IsValid());
         return stack_;
     }
 
@@ -163,6 +168,7 @@ public:
     }
 
     Context & ctx() const {
+        assert(IsValid());
         return node_->context();
     }
 
@@ -179,6 +185,8 @@ public:
      */
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) const {
+        assert(IsValid());
+
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
@@ -209,6 +217,8 @@ public:
      */
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
+        assert(IsValid());
+
         using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
@@ -241,6 +251,8 @@ public:
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
+        assert(IsValid());
+
         auto new_stack = stack_.push(flatmap_function);
         return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", NodeType::LAMBDA) });
     }

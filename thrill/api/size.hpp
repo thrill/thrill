@@ -94,6 +94,7 @@ private:
 
 template <typename ValueType, typename Stack>
 size_t DIARef<ValueType, Stack>::Size() const {
+    assert(IsValid());
 
     using SizeResultNode = SizeNode<ValueType, DIARef>;
 
