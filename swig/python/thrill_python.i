@@ -81,6 +81,10 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 
 %ignore thrill::api::HostContext::ConstructLocalMock;
 
+// ignore all Context methods: forward them via PyContext if they should be
+// available.
+%ignore thrill::api::Context;
+
 %feature("pythonappend") thrill::PyContext::PyContext(HostContext&, size_t) %{
     # acquire a reference to the HostContext
     self._host_context = host_context

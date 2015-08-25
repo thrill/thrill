@@ -369,7 +369,7 @@ public:
     { }
 
     ~PyContext() {
-        LOG << "Destroy PyContext";
+        LOG0 << "Destroy PyContext";
     }
 
     static std::vector<std::shared_ptr<PyContext> >
