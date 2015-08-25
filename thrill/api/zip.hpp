@@ -310,6 +310,8 @@ template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Zip(
     SecondDIA second_dia, const ZipFunction &zip_function) const {
+    assert(IsValid());
+    assert(second_dia.IsValid());
 
     using ZipResult
               = typename FunctionTraits<ZipFunction>::result_type;

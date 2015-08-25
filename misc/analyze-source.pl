@@ -27,6 +27,9 @@ my $launch_emacs = 0;
 # write changes to files (dangerous!)
 my $write_changes = 0;
 
+# have autopep8 python formatter?
+my $have_autopep8;
+
 # function testing whether to uncrustify a path
 sub filter_uncrustify($) {
     my ($path) = @_;
@@ -369,7 +372,7 @@ sub process_pl_cmake {
     my $i = 0;
     if ($data[$i] =~ m/#!/) { ++$i; } # bash line
     expect($path, $i, @data, ('#'x80)."\n"); ++$i;
-    expect($path, $i, @data, "# $path\n"); ++$i;
+    expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
     # skip over comment
@@ -387,6 +390,61 @@ sub process_pl_cmake {
             push(@data, "\n");
             push(@data, ("#"x80)."\n");
         }
+    }
+
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
+
+    if ($write_changes)
+    {
+        open(F, "> $path") or die("Cannot write $path: $!");
+        print(F join("", @data));
+        close(F);
+    }
+}
+
+sub process_py {
+    my ($path) = @_;
+
+    # read file
+    open(F, $path) or die("Cannot read file $path: $!");
+    my @data = <F>;
+    close(F);
+
+    my @origdata = @data;
+
+    # check source header
+    my $i = 0;
+    expect($path, $i, @data, "#!/usr/bin/env python\n"); ++$i;
+    expect($path, $i, @data, ('#'x74)."\n"); ++$i;
+    expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # skip over comment
+    while ($data[$i] ne ('#'x74)."\n") {
+        expect_re($path, $i, @data, '^#( .*)?\n$');
+        return unless ++$i < @data;
+    }
+
+    expect($path, $i, @data, ('#'x74)."\n"); ++$i;
+
+    # check terminating ####### comment
+    {
+        my $n = scalar(@data)-1;
+        if ($data[$n] !~ m!^#{74}$!) {
+            push(@data, "\n");
+            push(@data, ("#"x74)."\n");
+        }
+    }
+
+    # run python source through autopep8
+    if ($have_autopep8)
+    {
+        my $data = join("", @data);
+        @data = filter_program($data, "autopep8", "-");
     }
 
     return if array_equal(\@data, \@origdata);
@@ -423,6 +481,13 @@ my ($uncrustver) = filter_program("", "uncrustify", "--version");
     or die("Requires uncrustify 0.61 to run correctly. ".
            "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
 
+$have_autopep8 = 1;
+my ($check_autopep8) = filter_program("", "autopep8", "--version");
+if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
+    $have_autopep8 = 0;
+    warn("Could not find autopep8 - automatic python formatter.");
+}
+
 use File::Find;
 my @filelist;
 find(sub { !-d && push(@filelist, $File::Find::name) }, ".");
@@ -440,8 +505,11 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.(h|cpp|hpp|h\.in|dox)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.(pl|pro)$/) {
+    elsif ($file =~ /\.pl$/) {
         process_pl_cmake($file);
+    }
+    elsif ($file =~ /^swig.*\.py$/) {
+        process_py($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
         process_pl_cmake($file);

@@ -44,7 +44,7 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
 # enable more warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
@@ -237,6 +237,11 @@ endif()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
+# SWIG (optional)
+
+find_package(SWIG)
+include(${SWIG_USE_FILE})
+
 ################################################################################
 ### Build Macros
 
@@ -270,6 +275,11 @@ add_subdirectory(tests)
 
 # descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
+
+if(SWIG_FOUND)
+  # build swig frontends
+  add_subdirectory(swig)
+endif()
 
 ###############################################################################
 ### cmake script TRY_COMPILE all stxxl header files
