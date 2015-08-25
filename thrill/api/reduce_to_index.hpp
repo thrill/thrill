@@ -242,6 +242,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
     const ReduceFunction &reduce_function,
     size_t size,
     ValueType neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -308,6 +309,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     size_t size,
     typename common::FunctionTraits<ReduceFunction>::result_type
     neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -380,6 +382,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     const ReduceFunction &reduce_function,
     size_t size,
     ValueType neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

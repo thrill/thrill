@@ -394,6 +394,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
 auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
+    assert(IsValid());
 
     using SortResultNode
               = SortNode<ValueType, DIARef, CompareFunction>;

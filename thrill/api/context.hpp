@@ -53,6 +53,7 @@ public:
                             net_manager_.GetDataGroup())
     { }
 
+#ifndef SWIG
     //! constructor from existing net Groups for use from ConstructLocalMock().
     HostContext(size_t my_host_rank,
                 std::array<net::Group, net::Manager::kGroupCount>&& groups,
@@ -67,6 +68,7 @@ public:
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
     ConstructLocalMock(size_t host_count, size_t workers_per_host);
+#endif
 
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
@@ -124,8 +126,9 @@ public:
           block_pool_(block_pool),
           multiplexer_(multiplexer),
           local_worker_id_(local_worker_id),
-          workers_per_host_(workers_per_host)
-    { }
+          workers_per_host_(workers_per_host) {
+        assert(local_worker_id < workers_per_host);
+    }
 
     Context(HostContext& host_context, size_t local_worker_id)
         : net_manager_(host_context.net_manager()),
@@ -133,8 +136,9 @@ public:
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
           local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host())
-    { }
+          workers_per_host_(host_context.workers_per_host()) {
+        assert(local_worker_id < workers_per_host());
+    }
 
     //! \name System Information
     //! \{
