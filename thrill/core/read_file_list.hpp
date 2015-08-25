@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 
 #include <thrill/common/string.hpp>
+#include <thrill/common/logger.hpp>
 
 namespace thrill {
 namespace core {
@@ -31,6 +32,8 @@ bool IsCompressed(const std::string& path) {
 }
 
 std::pair<std::vector<FileSizePair>, bool> ReadFileList(const std::string& path) {
+
+    static const bool debug = false;
 
     bool contains_compressed_file = false;
 
@@ -52,6 +55,9 @@ std::pair<std::vector<FileSizePair>, bool> ReadFileList(const std::string& path)
         if (IsCompressed(filepath)) {
             contains_compressed_file = true;
         }
+
+        LOG << "Added file " << filepath << ", new total size "
+            << directory_size;
 
         filesize_prefix.emplace_back(std::move(filepath), directory_size);
         directory_size += filestat.st_size;

@@ -44,6 +44,7 @@ public:
     using Super = DOpNode<std::string>;
     using Super::context_;
     using Super::result_file_;
+    
     using FileSizePair = std::pair<std::string, size_t>;
 
     static const bool debug = false;
@@ -63,7 +64,7 @@ public:
         : Super(ctx, { }, "Read", stats_node),
           path_(path)
     {
-        auto filelist = core::ReadFileList(path);
+        auto filelist = core::ReadFileList(path_);
         filesize_prefix = filelist.first;
         contains_compressed_file_ = filelist.second;
     }
