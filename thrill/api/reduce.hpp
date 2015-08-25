@@ -94,7 +94,6 @@ public:
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_)
     {
-
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
@@ -130,7 +129,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_, cbs);
+        ReduceTable table(context_, key_extractor_, reduce_function_, cbs);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method

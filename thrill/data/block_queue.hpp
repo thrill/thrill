@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_BLOCK_QUEUE_HEADER
 #define THRILL_DATA_BLOCK_QUEUE_HEADER
 
+#include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/concurrent_bounded_queue.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -48,6 +49,11 @@ public:
     using Writer = BlockWriter;
     using Reader = BlockReader<BlockQueueSource>;
     using DynReader = DynBlockReader;
+
+    //! Constructor from BlockPool
+    explicit BlockQueue(BlockPool& block_pool)
+        : BlockSink(block_pool)
+    { }
 
     void AppendBlock(const Block& b) final {
         queue_.emplace(b);
@@ -95,7 +101,7 @@ public:
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
-    std::atomic<bool> write_closed_ = { false };
+    common::AtomicMovable<bool> write_closed_ = { false };
 
     //! whether Pop() has returned a closing Block.
     bool read_closed_ = false;

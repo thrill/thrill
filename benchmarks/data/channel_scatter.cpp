@@ -34,19 +34,26 @@ using common::StatsTimer;
 //! All iterations use the same generated data.
 //! Variable-length elements range between 1 and 100 bytes
 template <typename Type>
-void ConductExperiment(uint64_t bytes, int iterations, api::Context& ctx0, api::Context& ctx1, api::Context& ctx2, const std::string& type_as_string) {
+void ConductExperiment(uint64_t bytes, int iterations,
+                       api::Context& ctx0, api::Context& ctx1, api::Context& ctx2,
+                       const std::string& type_as_string) {
 
     // prepare file with random data
     auto data0 = generate<Type>(bytes / 2, 1, 100);
     auto data1 = generate<Type>(bytes / 2, 1, 100);
-    std::vector<data::File> files(3);
+    std::vector<data::File> files;
     {
+        files.emplace_back(ctx0.GetFile());
         auto writer0 = files[0].GetWriter();
         for (auto& d : data0)
             writer0(d);
+
+        files.emplace_back(ctx1.GetFile());
         auto writer1 = files[1].GetWriter();
         for (auto& d : data1)
             writer1(d);
+
+        files.emplace_back(ctx2.GetFile());
         auto writer2 = files[2].GetWriter();
     }
 
@@ -119,17 +126,21 @@ int main(int argc, const char** argv) {
         });
     connect_pool.LoopUntilEmpty();
 
-    data::Multiplexer datamp1(1, net_manager1->GetDataGroup());
-    data::Multiplexer datamp2(1, net_manager2->GetDataGroup());
-    data::Multiplexer datamp3(1, net_manager3->GetDataGroup());
+    data::BlockPool blockpool1(nullptr);
+    data::BlockPool blockpool2(nullptr);
+    data::BlockPool blockpool3(nullptr);
+
+    data::Multiplexer multiplexer1(blockpool1, 1, net_manager1->GetDataGroup());
+    data::Multiplexer multiplexer2(blockpool2, 1, net_manager2->GetDataGroup());
+    data::Multiplexer multiplexer3(blockpool3, 1, net_manager3->GetDataGroup());
 
     net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager3(net_manager3->GetFlowGroup(), 1);
 
-    api::Context ctx1(*net_manager1, flow_manager1, datamp1, 1, 0);
-    api::Context ctx2(*net_manager2, flow_manager2, datamp2, 1, 0);
-    api::Context ctx3(*net_manager3, flow_manager3, datamp3, 1, 0);
+    api::Context ctx1(*net_manager1, flow_manager1, blockpool1, multiplexer1, 1, 0);
+    api::Context ctx2(*net_manager2, flow_manager2, blockpool2, multiplexer2, 1, 0);
+    api::Context ctx3(*net_manager3, flow_manager3, blockpool3, multiplexer3, 1, 0);
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;

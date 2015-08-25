@@ -22,10 +22,14 @@
 
 using namespace thrill;
 
-TEST(File, PutSomeItemsGetItems) {
+struct File : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
+
+TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -110,10 +114,31 @@ TEST(File, PutSomeItemsGetItems) {
     }
 }
 
-TEST(File, SerializeSomeItems) {
+TEST_F(File, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
+
+    {
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(1024);
+
+        // but dont write anything
+        fw.Close();
+    }
+
+    // get zero items back from file.
+    {
+        data::File::Reader fr = file.GetReader();
+
+        ASSERT_FALSE(fr.HasNext());
+    }
+}
+
+TEST_F(File, SerializeSomeItems) {
+
+    // construct File with very small blocks for testing
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -143,10 +168,10 @@ TEST(File, SerializeSomeItems) {
     }
 }
 
-TEST(File, SerializeSomeItemsDynReader) {
+TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -174,13 +199,13 @@ TEST(File, SerializeSomeItemsDynReader) {
     }
 }
 
-TEST(File, RandomGetIndexOf) {
+TEST_F(File, RandomGetIndexOf) {
     const size_t size = 500;
 
     std::minstd_rand0 rng;
 
     // Create test file.
-    data::File file;
+    data::File file(block_pool_);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -200,8 +225,8 @@ TEST(File, RandomGetIndexOf) {
     }
 }
 
-TEST(File, ReadFileWIthBufferedReader) {
-    data::File file;
+TEST_F(File, ReadFileWIthBufferedReader) {
+    data::File file(block_pool_);
     data::File::Writer fw = file.GetWriter(53);
 
     size_t size = 100;
@@ -222,11 +247,11 @@ TEST(File, ReadFileWIthBufferedReader) {
     ASSERT_FALSE(br.HasValue());
 }
 
-TEST(File, SeekReadSlicesOfFiles) {
+TEST_F(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file;
+    data::File file(block_pool_);
 
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(53);
@@ -267,7 +292,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);
@@ -292,7 +317,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);

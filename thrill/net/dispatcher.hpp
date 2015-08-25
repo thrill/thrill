@@ -15,7 +15,9 @@
 #ifndef THRILL_NET_DISPATCHER_HEADER
 #define THRILL_NET_DISPATCHER_HEADER
 
+#include <thrill/common/delegate.hpp>
 #include <thrill/data/block.hpp>
+#include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
 #include <thrill/net/lowlevel/select_dispatcher.hpp>
@@ -24,14 +26,11 @@
 // TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
 // #include <thrill/net/lowlevel/epoll-dispatcher.hpp>
 
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
-#include <thrill/common/delegate.hpp>
-#endif
-
 #include <atomic>
 #include <chrono>
 #include <ctime>
 #include <deque>
+#include <functional>
 #include <queue>
 #include <string>
 
@@ -40,6 +39,21 @@ namespace net {
 
 //! \addtogroup net Network Communication
 //! \{
+
+//! Signature of timer callbacks.
+using TimerCallback = common::delegate<bool()>;
+
+//! Signature of async connection readability/writability callbacks.
+using AsyncCallback = common::delegate<bool()>;
+
+//! Signature of async read callbacks.
+using AsyncReadCallback = common::delegate<void(Connection& c, Buffer&& buffer)>;
+
+//! Signature of async read ByteBlock callbacks.
+using AsyncReadByteBlockCallback = common::delegate<void(Connection& c)>;
+
+//! Signature of async write callbacks.
+using AsyncWriteCallback = common::delegate<void(Connection&)>;
 
 /**
  * Dispatcher is a high level wrapper for asynchronous callback
@@ -65,20 +79,13 @@ protected:
     //! import into class namespace
     using milliseconds = std::chrono::milliseconds;
 
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
-    template <typename Signature>
-    using function = common::delegate<Signature>;
-#else
-    template <typename Signature>
-    using function = std::function<Signature>;
-#endif
-
     //! for access to terminate_
     friend class DispatcherThread;
 
 public:
     //! default constructor
-    Dispatcher() { }
+    explicit Dispatcher(mem::Manager& mem_manager)
+        : mem_manager_(mem_manager) { }
 
     //! non-copyable: delete copy-constructor
     Dispatcher(const Dispatcher&) = delete;
@@ -87,9 +94,6 @@ public:
 
     //! \name Timeout Callbacks
     //! \{
-
-    //! callback signature for timer events
-    using TimerCallback = function<bool()>;
 
     //! Register a relative timeout callback
     void AddTimer(const std::chrono::milliseconds& timeout,
@@ -104,16 +108,13 @@ public:
     //! \name Connection Callbacks
     //! \{
 
-    //! callback signature for socket readable/writable events
-    using ConnectionCallback = function<bool()>;
-
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const ConnectionCallback& read_cb) {
+    void AddRead(Connection& c, const AsyncCallback& read_cb) {
         return dispatcher_.AddRead(c.GetSocket().fd(), read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const ConnectionCallback& write_cb) {
+    void AddWrite(Connection& c, const AsyncCallback& write_cb) {
         return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
     }
 
@@ -127,9 +128,6 @@ public:
     //! \name Asynchronous Data Reader/Writer Callbacks
     //! \{
 
-    //! callback signature for async read callbacks, they may acquire the buffer
-    using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
-
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
         assert(c.GetSocket().IsValid());
@@ -141,15 +139,13 @@ public:
         }
 
         // add new async reader object
-        async_read_.emplace_back(n, done_cb);
+        async_read_.emplace_back(c, n, done_cb);
 
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
-        AddRead(c, [&arb, &c]() { return arb(c); });
+        AddRead(c, AsyncCallback::from<
+                    AsyncReadBuffer, & AsyncReadBuffer::operator ()>(&arb));
     }
-
-    //! callback signature for async read callbacks, they may acquire the buffer
-    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
     void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
@@ -163,15 +159,13 @@ public:
         }
 
         // add new async reader object
-        async_read_block_.emplace_back(block, done_cb);
+        async_read_block_.emplace_back(c, block, done_cb);
 
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
-        AddRead(c, [&arbb, &c]() { return arbb(c); });
+        AddRead(c, AsyncCallback::from<
+                    AsyncReadByteBlock, & AsyncReadByteBlock::operator ()>(&arbb));
     }
-
-    //! callback signature for async write callbacks
-    using AsyncWriteCallback = function<void(Connection&)>;
 
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
@@ -185,11 +179,12 @@ public:
         }
 
         // add new async writer object
-        async_write_.emplace_back(std::move(buffer), done_cb);
+        async_write_.emplace_back(c, std::move(buffer), done_cb);
 
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
-        AddWrite(c, [&awb, &c]() { return awb(c); });
+        AddWrite(c, AsyncCallback::from<
+                     AsyncWriteBuffer, & AsyncWriteBuffer::operator ()>(&awb));
     }
 
     //! asynchronously write buffer and callback when delivered. The buffer is
@@ -204,11 +199,12 @@ public:
         }
 
         // add new async writer object
-        async_write_block_.emplace_back(block, done_cb);
+        async_write_block_.emplace_back(c, block, done_cb);
 
         // register write callback
         AsyncWriteBlock& awb = async_write_block_.back();
-        AddWrite(c, [&awb, &c]() { return awb(c); });
+        AddWrite(c, AsyncCallback::from<
+                     AsyncWriteBlock, & AsyncWriteBlock::operator ()>(&awb));
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
@@ -303,11 +299,14 @@ public:
     //! \}
 
 protected:
-    //! low-level file descriptor async processing
-    SubDispatcher dispatcher_;
-
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
+
+    //! superior memory manager
+    mem::Manager& mem_manager_;
+
+    //! low-level file descriptor async processing
+    SubDispatcher dispatcher_ { mem_manager_ };
 
     //! struct for timer callbacks
     struct Timer
@@ -332,11 +331,14 @@ protected:
     };
 
     //! priority queue of timer callbacks
-    using TimerPQ = std::priority_queue<Timer>;
+    using TimerPQ = std::priority_queue<Timer, mem::mm_vector<Timer> >;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.
-    TimerPQ timer_pq_;
+    TimerPQ timer_pq_ {
+        std::less<Timer>(),
+        mem::mm_vector<Timer>(mem::Allocator<Timer>(mem_manager_))
+    };
 
     /**************************************************************************/
 
@@ -344,14 +346,16 @@ protected:
     {
     public:
         //! Construct buffered reader with callback
-        AsyncReadBuffer(size_t buffer_size, const AsyncReadCallback& callback)
-            : buffer_(buffer_size),
+        AsyncReadBuffer(Connection& conn,
+                        size_t buffer_size, const AsyncReadCallback& callback)
+            : conn_(conn),
+              buffer_(buffer_size),
               callback_(callback)
         { }
 
         //! Should be called when the socket is readable
-        bool operator () (Connection& c) {
-            int r = c.GetSocket().recv_one(
+        bool operator () () {
+            int r = conn_.GetSocket().recv_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -363,7 +367,7 @@ protected:
 
                 // these errors are end-of-file indications (both good and bad)
                 if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
-                    if (callback_) callback_(c, Buffer());
+                    if (callback_) callback_(conn_, Buffer());
                     return false;
                 }
                 throw Exception("AsyncReadBuffer() error in recv", errno);
@@ -372,7 +376,7 @@ protected:
             size_ += r;
 
             if (size_ == buffer_.size()) {
-                if (callback_) callback_(c, std::move(buffer_));
+                if (callback_) callback_(conn_, std::move(buffer_));
                 return false;
             }
             else {
@@ -383,6 +387,9 @@ protected:
         bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
+        //! Connection reference
+        Connection& conn_;
+
         //! Receive buffer
         Buffer buffer_;
 
@@ -394,7 +401,9 @@ protected:
     };
 
     //! deque of asynchronous readers
-    std::deque<AsyncReadBuffer> async_read_;
+    mem::mm_deque<AsyncReadBuffer> async_read_ {
+        mem::Allocator<AsyncReadBuffer>(mem_manager_)
+    };
 
     /**************************************************************************/
 
@@ -402,15 +411,17 @@ protected:
     {
     public:
         //! Construct buffered writer with callback
-        AsyncWriteBuffer(Buffer&& buffer,
+        AsyncWriteBuffer(Connection& conn,
+                         Buffer&& buffer,
                          const AsyncWriteCallback& callback)
-            : buffer_(std::move(buffer)),
+            : conn_(conn),
+              buffer_(std::move(buffer)),
               callback_(callback)
         { }
 
         //! Should be called when the socket is writable
-        bool operator () (Connection& c) {
-            int r = c.GetSocket().send_one(
+        bool operator () () {
+            int r = conn_.GetSocket().send_one(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -421,7 +432,7 @@ protected:
 
                 if (errno == EPIPE) {
                     LOG1 << "AsyncWriteBuffer() got SIGPIPE";
-                    if (callback_) callback_(c);
+                    if (callback_) callback_(conn_);
                     return false;
                 }
                 throw Exception("AsyncWriteBuffer() error in send", errno);
@@ -430,7 +441,7 @@ protected:
             size_ += r;
 
             if (size_ == buffer_.size()) {
-                if (callback_) callback_(c);
+                if (callback_) callback_(conn_);
                 return false;
             }
             else {
@@ -441,6 +452,9 @@ protected:
         bool IsDone() const { return size_ == buffer_.size(); }
 
     private:
+        //! Connection reference
+        Connection& conn_;
+
         //! Send buffer (owned by this writer)
         Buffer buffer_;
 
@@ -452,7 +466,9 @@ protected:
     };
 
     //! deque of asynchronous writers
-    std::deque<AsyncWriteBuffer> async_write_;
+    mem::mm_deque<AsyncWriteBuffer> async_write_ {
+        mem::Allocator<AsyncWriteBuffer>(mem_manager_)
+    };
 
     /**************************************************************************/
 
@@ -460,15 +476,17 @@ protected:
     {
     public:
         //! Construct block reader with callback
-        AsyncReadByteBlock(const data::ByteBlockPtr& block,
+        AsyncReadByteBlock(Connection& conn,
+                           const data::ByteBlockPtr& block,
                            const AsyncReadByteBlockCallback& callback)
-            : block_(block),
+            : conn_(conn),
+              block_(block),
               callback_(callback)
         { }
 
         //! Should be called when the socket is readable
-        bool operator () (Connection& c) {
-            int r = c.GetSocket().recv_one(
+        bool operator () () {
+            int r = conn_.GetSocket().recv_one(
                 block_->data() + size_, block_->size() - size_);
 
             if (r <= 0) {
@@ -480,7 +498,7 @@ protected:
 
                 // these errors are end-of-file indications (both good and bad)
                 if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
-                    if (callback_) callback_(c);
+                    if (callback_) callback_(conn_);
                     return false;
                 }
                 throw Exception("AsyncReadBlock() error in recv", errno);
@@ -489,7 +507,7 @@ protected:
             size_ += r;
 
             if (size_ == block_->size()) {
-                if (callback_) callback_(c);
+                if (callback_) callback_(conn_);
                 return false;
             }
             else {
@@ -500,6 +518,9 @@ protected:
         bool IsDone() const { return size_ == block_->size(); }
 
     private:
+        //! Connection reference
+        Connection& conn_;
+
         //! Receive block
         data::ByteBlockPtr block_;
 
@@ -511,7 +532,9 @@ protected:
     };
 
     //! deque of asynchronous readers
-    std::deque<AsyncReadByteBlock> async_read_block_;
+    mem::mm_deque<AsyncReadByteBlock> async_read_block_ {
+        mem::Allocator<AsyncReadByteBlock>(mem_manager_)
+    };
 
     /**************************************************************************/
 
@@ -519,16 +542,18 @@ protected:
     {
     public:
         //! Construct block writer with callback
-        AsyncWriteBlock(const data::Block& block,
+        AsyncWriteBlock(Connection& conn,
+                        const data::Block& block,
                         const AsyncWriteCallback& callback)
 
-            : block_(block),
+            : conn_(conn),
+              block_(block),
               callback_(callback)
         { }
 
         //! Should be called when the socket is writable
-        bool operator () (Connection& c) {
-            int r = c.GetSocket().send_one(
+        bool operator () () {
+            int r = conn_.GetSocket().send_one(
                 block_.data_begin() + size_,
                 block_.size() - size_);
 
@@ -540,7 +565,7 @@ protected:
 
                 if (errno == EPIPE) {
                     LOG1 << "AsyncWriteBlock() got SIGPIPE";
-                    if (callback_) callback_(c);
+                    if (callback_) callback_(conn_);
                     return false;
                 }
                 throw Exception("AsyncWriteBlock() error in send", errno);
@@ -549,7 +574,7 @@ protected:
             size_ += r;
 
             if (size_ == block_.size()) {
-                if (callback_) callback_(c);
+                if (callback_) callback_(conn_);
                 return false;
             }
             else {
@@ -560,6 +585,9 @@ protected:
         bool IsDone() const { return size_ == block_.size(); }
 
     private:
+        //! Connection reference
+        Connection& conn_;
+
         //! Send block (holds a reference count to the underlying ByteBlock)
         data::Block block_;
 
@@ -571,7 +599,9 @@ protected:
     };
 
     //! deque of asynchronous writers
-    std::deque<AsyncWriteBlock> async_write_block_;
+    mem::mm_deque<AsyncWriteBlock> async_write_block_ {
+        mem::Allocator<AsyncWriteBlock>(mem_manager_)
+    };
 
     /**************************************************************************/
 

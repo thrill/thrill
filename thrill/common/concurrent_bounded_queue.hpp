@@ -59,6 +59,15 @@ protected:
     std::condition_variable cv_;
 
 public:
+    //! default constructor
+    OurConcurrentBoundedQueue() = default;
+
+    //! move-constructor
+    OurConcurrentBoundedQueue(OurConcurrentBoundedQueue&& other) {
+        std::unique_lock<std::mutex> lock(other.mutex_);
+        queue_ = std::move(other.queue_);
+    }
+
     //! Pushes a copy of source onto back of the queue.
     void push(const T& source) {
         std::unique_lock<std::mutex> lock(mutex_);

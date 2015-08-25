@@ -12,8 +12,10 @@
 #ifndef THRILL_DATA_BLOCK_SINK_HEADER
 #define THRILL_DATA_BLOCK_SINK_HEADER
 
-#include <memory>
 #include <thrill/data/block.hpp>
+#include <thrill/data/block_pool.hpp>
+
+#include <memory>
 
 namespace thrill {
 namespace data {
@@ -28,8 +30,24 @@ namespace data {
 class BlockSink
 {
 public:
+    //! constructor with reference to BlockPool
+    explicit BlockSink(BlockPool& block_pool)
+        : block_pool_(block_pool)
+    { }
+
     //! required virtual destructor
     virtual ~BlockSink() { }
+
+    //! Allocate a ByteBlock with n bytes backing memory. If returned
+    //! ByteBlockPtr is a nullptr, then memory of this BlockSink is exhausted.
+    virtual ByteBlockPtr AllocateByteBlock(size_t block_size) {
+        return ByteBlock::Allocate(block_size, block_pool_);
+    }
+
+    //! Release an unused ByteBlock with n bytes backing memory.
+    virtual void ReleaseByteBlock(ByteBlockPtr& block) {
+        block = nullptr;
+    }
 
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
@@ -42,6 +60,10 @@ public:
                      size_t first_item, size_t nitems) {
         return AppendBlock(Block(byte_block, begin, end, first_item, nitems));
     }
+
+protected:
+    //! reference to BlockPool for allocation and deallocation.
+    BlockPool& block_pool_;
 };
 
 //! \}
