@@ -106,8 +106,9 @@ TEST(IO, WriteToSingleFile) {
                 std::string line;
                 std::getline(file, line);
                 ASSERT_EQ(std::stoi(line), i);
-            }
-        };
+            }            
+            system("exec rm -r /binary/*");
+    };
 
     api::RunLocalTests(start_func);
 }

@@ -17,6 +17,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/core/read_file_list.hpp>
 
 #include <fstream>
@@ -55,13 +56,36 @@ public:
                    const std::string& filepath,
                    StatsNode* stats_node)
         : Super(ctx, { }, "Read", stats_node),
-          filepath_(filepath),
-          bfr_()
+          filepath_(filepath)
     {
         filelist_ = core::ReadFileList(filepath_).first;
-        bfr_.SetFile(filelist_[context_.my_rank()].first);
         filesize_ = filelist_[context_.my_rank() + 1].second -
             filelist_[context_.my_rank()].second;
+
+        auto my_start_and_end =
+            common::CalculateLocalRange(filelist_[filelist_.size() - 1].second,
+                                        context_.num_workers(),
+                                        context_.my_rank());
+
+        size_t my_start = std::get<0>(my_start_and_end);
+        size_t my_end = std::get<1>(my_start_and_end);
+        size_t first_file = 0;
+        size_t last_file = 0;
+
+        while(filelist_[first_file + 1].second <= my_start) {
+            first_file++;
+            last_file++;
+        }
+
+        while(filelist_[last_file + 1].second < my_end) {
+            last_file++;
+        }
+
+        auto start_iter = filelist_.begin() + first_file;
+        auto end_iter = filelist_.begin() + last_file + 1;
+
+        my_files_ = std::vector<FileSizePair>(start_iter, end_iter);
+        
     }
 
     virtual ~ReadBinaryNode() { }
@@ -74,8 +98,11 @@ public:
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
+        bfr_.SetFileList(my_files_);
+
         std::ifstream file(filelist_[context_.my_rank()].first);
         assert(file.good());
+
 
         // Hook Read
         while (bfr_.Position() < filesize_) {
@@ -114,13 +141,14 @@ private:
     std::streampos filesize_;
 
     std::vector<FileSizePair> filelist_;
+    std::vector<FileSizePair> my_files_;
 
     class BinaryFileReader
         : public common::ItemReaderToolsBase<BinaryFileReader>
     {
     public:
 
-        explicit BinaryFileReader() { }
+        BinaryFileReader() { }
 
         virtual ~BinaryFileReader() { }
 
@@ -128,8 +156,9 @@ private:
             instream_.close();
         }
 
-        void SetFile(const std::string& path) {
-            instream_.open(path);
+        void SetFileList(std::vector<FileSizePair> path) {
+            filelist_ = path;
+            instream_.open(filelist_[0].first);
         }
 
         std::streampos Position() {
@@ -151,9 +180,12 @@ private:
 
     private:
         std::ifstream instream_;
+        std::vector<FileSizePair> filelist_;
     };
 
     BinaryFileReader bfr_;
+
+    
 };
 
 template <typename ValueType>
