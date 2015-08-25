@@ -349,6 +349,55 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     check_range(1000, 1000, false);
 }
 
+//! A derivative of File which only contains a limited amount of Blocks
+class BoundedFile : public data::File
+{
+public:
+    //! constructor with reference to BlockPool
+    BoundedFile(data::BlockPool& block_pool, size_t max_size)
+        : File(block_pool), available_(max_size), max_size_(max_size)
+    { }
+
+    data::ByteBlockPtr AllocateByteBlock(size_t block_size) final {
+        if (available_ < block_size) return data::ByteBlockPtr();
+        available_ -= block_size;
+        return BlockSink::AllocateByteBlock(block_size);
+    }
+
+    void ReleaseByteBlock(data::ByteBlockPtr& block) final {
+        if (block)
+            available_ += block->size();
+        block = nullptr;
+    }
+
+    size_t max_size() const { return max_size_; }
+
+protected:
+    size_t available_, max_size_;
+};
+
+TEST_F(File, BoundedFilePutIntegerUntilFull) {
+
+    // construct Partition with very small blocks for testing
+    BoundedFile file(block_pool_, 32 * 64);
+
+    try {
+        data::BlockWriter bw = data::BlockWriter(&file, 64);
+        for (size_t i = 0; i != 1024; ++i) {
+            bw(123456u + i);
+        }
+        FAIL();
+    }
+    catch (data::FullException& e) {
+        // good: we got the exception
+    }
+
+    ASSERT_EQ(file.max_size()
+              / (sizeof(size_t)
+                 + (data::BlockWriter::self_verify ? sizeof(size_t) : 0)),
+              file.NumItems());
+}
+
 // forced instantiation
 template class data::BlockReader<data::FileBlockSource>;
 
