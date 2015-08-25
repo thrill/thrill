@@ -98,7 +98,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     // check size of Block.
     {
-        data::ByteBlockCPtr bytes = file.block(0).byte_block();
+        data::ByteBlockPtr bytes = file.block(0).byte_block();
         ASSERT_EQ(16u, bytes->size());
     }
 
