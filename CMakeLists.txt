@@ -240,7 +240,9 @@ endif()
 # SWIG (optional)
 
 find_package(SWIG)
-include(${SWIG_USE_FILE})
+if(SWIG_FOUND)
+  include(${SWIG_USE_FILE})
+endif()
 
 ################################################################################
 ### Build Macros
