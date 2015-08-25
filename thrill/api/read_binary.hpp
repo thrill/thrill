@@ -40,7 +40,7 @@ public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
     using Super::result_file_;
-    
+
     using FileSizePair = std::pair<std::string, size_t>;
 
     static const bool debug = false;
@@ -60,7 +60,7 @@ public:
     {
         filelist_ = core::ReadFileList(filepath_).first;
         filesize_ = filelist_[context_.my_rank() + 1].second -
-            filelist_[context_.my_rank()].second;
+                    filelist_[context_.my_rank()].second;
 
         auto my_start_and_end =
             common::CalculateLocalRange(filelist_[filelist_.size() - 1].second,
@@ -72,12 +72,12 @@ public:
         size_t first_file = 0;
         size_t last_file = 0;
 
-        while(filelist_[first_file + 1].second <= my_start) {
+        while (filelist_[first_file + 1].second <= my_start) {
             first_file++;
             last_file++;
         }
 
-        while(filelist_[last_file + 1].second < my_end) {
+        while (filelist_[last_file + 1].second < my_end) {
             last_file++;
         }
 
@@ -85,7 +85,6 @@ public:
         auto end_iter = filelist_.begin() + last_file + 1;
 
         my_files_ = std::vector<FileSizePair>(start_iter, end_iter);
-        
     }
 
     virtual ~ReadBinaryNode() { }
@@ -102,7 +101,6 @@ public:
 
         std::ifstream file(filelist_[context_.my_rank()].first);
         assert(file.good());
-
 
         // Hook Read
         while (bfr_.Position() < filesize_) {
@@ -147,7 +145,6 @@ private:
         : public common::ItemReaderToolsBase<BinaryFileReader>
     {
     public:
-
         BinaryFileReader() { }
 
         virtual ~BinaryFileReader() { }
@@ -184,8 +181,6 @@ private:
     };
 
     BinaryFileReader bfr_;
-
-    
 };
 
 template <typename ValueType>

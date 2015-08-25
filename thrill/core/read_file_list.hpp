@@ -15,8 +15,8 @@
 #include <glob.h>
 #include <sys/stat.h>
 
-#include <thrill/common/string.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/string.hpp>
 
 namespace thrill {
 namespace core {
