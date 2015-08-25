@@ -44,7 +44,7 @@ public:
     using Super = DOpNode<std::string>;
     using Super::context_;
     using Super::result_file_;
-    
+
     using FileSizePair = std::pair<std::string, size_t>;
 
     static const bool debug = false;
