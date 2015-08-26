@@ -15,6 +15,8 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/data/file.hpp>
 
+ #include <thrill/common/logger.hpp>
+
 #include <algorithm>
 #include <random>
 #include <string>
@@ -22,6 +24,8 @@
 #include <cstdlib>
 
 using namespace thrill; // NOLINT
+
+static const bool debug = true;
 
 TEST(MultiwayMerge, Basic) {
     std::size_t a = 2;
@@ -113,15 +117,16 @@ TEST(MultiwayMerge, Vector_Wrapper) {
 
 TEST(MultiwayMerge, File_Wrapper) {
     std::size_t a = 2;
-    std::size_t b = 5;
-    std::size_t total = 2*5;
+    std::size_t b = 2;
+    std::size_t total = a*b;
 
-    using iterator = thrill::core::StxxlFileWrapper<int>;
-    std::vector<data::File> in;
-    std::vector<data::File::Reader> in_reader;
+    using Iterator = thrill::core::StxxlFileWrapper<int>;
+    using File = data::File;
+    using Reader = File::Reader;
+    std::vector<File> in;
     std::vector<int> ref;
     std::vector<int> output;
-    std::vector<std::pair<iterator, iterator>> seq;
+    std::vector<std::pair<Iterator, Iterator>> seq;
 
     in.reserve(a);
     ref.reserve(total);
@@ -133,6 +138,7 @@ TEST(MultiwayMerge, File_Wrapper) {
         tmp.reserve(b);
         for (std::size_t j = 0; j < b; ++j) {
             auto elem = rand() % 10;
+            sLOG << "FILE" << i << "with elem" << elem;
             tmp.push_back(elem);
             ref.push_back(elem);
         }
@@ -140,18 +146,20 @@ TEST(MultiwayMerge, File_Wrapper) {
 
         // REVIEW(cn): this File only lives for one iteration of the loop.
         data::File f;
-        auto w = f.GetWriter();
-        for (auto & t : tmp) {
-            w(t);
+        {
+            auto w = f.GetWriter();
+            for (auto & t : tmp) {
+                w(t);
+            }
         }
-        w.Close();
         in.push_back(f);
-        in_reader.push_back(f.GetReader());
     }
 
     for (std::size_t t = 0; t < in.size(); ++t) {
-        seq.push_back(std::make_pair(thrill::core::StxxlFileWrapper<int>(&in[t], &in_reader[t], 0),
-                                     thrill::core::StxxlFileWrapper<int>(&in[t], &in_reader[t], in[t].NumItems())));
+        auto reader = std::make_shared<Reader>(in[t].GetReader());
+        Iterator s = Iterator(&in[t], reader, 0, true);
+        Iterator e = Iterator(&in[t], reader, in[t].NumItems(), false);
+        seq.push_back(std::make_pair(s, e));
     }
 
     std::sort(std::begin(ref), std::end(ref));
@@ -160,9 +168,18 @@ TEST(MultiwayMerge, File_Wrapper) {
                                                             std::begin(output),
                                                             total,
                                                             std::less<int>());
+
+    std::string o = "";
+    for (auto e : output) {
+        o += std::to_string(e) + " ";
+    }
+    LOG << o;
+
     for (std::size_t i = 0; i < total; ++i) {
+        sLOG << std::setw(3) << ref[i] << std::setw(3) << output[i];
         ASSERT_EQ(ref[i], output[i]);
     }
+
 
 
 }
