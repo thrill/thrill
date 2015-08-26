@@ -49,7 +49,7 @@ public:
         sLOG << "Creating write node.";
 
         auto pre_op_fn = [=](const ValueType& input) {
-                             writer_(input);
+                             writer_.PutItemNoSelfVerify(input);
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
@@ -73,8 +73,9 @@ protected:
     class OStreamSink : public data::BlockSink
     {
     public:
-        explicit OStreamSink(const std::string& file)
-            : outstream_(file) { }
+        explicit OStreamSink(data::BlockPool& block_pool,
+                             const std::string& file)
+            : BlockSink(block_pool), outstream_(file) { }
 
         void AppendBlock(const data::Block& b) final {
             outstream_.write(
@@ -93,10 +94,10 @@ protected:
     std::string path_out_;
 
     //! BlockSink which writes to an actual file
-    OStreamSink sink_ { path_out_ };
+    OStreamSink sink_ { context_.block_pool(), path_out_ };
 
     //! BlockWriter to sink.
-    data::BlockWriterNoVerify writer_ { &sink_ };
+    data::BlockWriter<OStreamSink> writer_ { &sink_ };
 };
 
 template <typename ValueType, typename Stack>
