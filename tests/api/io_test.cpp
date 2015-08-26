@@ -51,7 +51,7 @@ public:
     }
 
     //! wipe temporary directory NON RECURSIVELY!
-    static void wipe_directory(const std::string& tmp_dir) {
+    static void wipe_directory(const std::string& tmp_dir, bool do_rmdir) {
         DIR* d = opendir(tmp_dir.c_str());
         if (d == nullptr) {
             throw common::SystemException(
@@ -72,6 +72,8 @@ public:
 
         closedir(d);
 
+        if (!do_rmdir) return;
+
         if (rmdir(tmp_dir.c_str()) != 0) {
             sLOG1 << "Could not unlink temporary directory " << tmp_dir
                   << ": " << strerror(errno);
@@ -83,7 +85,7 @@ public:
     { }
 
     ~TemporaryDirectory() {
-        wipe_directory(dir_);
+        wipe_directory(dir_, true);
     }
 
     //! non-copyable: delete copy-constructor
@@ -93,6 +95,11 @@ public:
 
     //! return the temporary directory name
     const std::string & get() const { return dir_; }
+
+    //! wipe contents of directory
+    void wipe() const {
+        wipe_directory(dir_, false);
+    }
 
 protected:
     std::string dir_;
@@ -186,46 +193,103 @@ TEST(IO, GenerateFromFileRandomIntegers) {
         });
 }
 
-TEST(IO, GenerateIntegerWriteBinary) {
+TEST(IO, GenerateIntegerWriteReadBinary) {
+    TemporaryDirectory tmpdir;
+
     api::RunLocalTests(
-        [](api::Context& ctx) {
+        [&tmpdir](api::Context& ctx) {
 
+            // wipe directory from last test
+            if (ctx.my_rank() == 0) {
+                tmpdir.wipe();
+            }
+            ctx.Barrier();
+
+            // generate a dia of integers and write them to disk
             size_t generate_size = 320000;
+            {
+                auto dia = Generate(
+                    ctx,
+                    [](const size_t index) { return index + 42; },
+                    generate_size);
 
-            // generate a dia of integers
-            auto dia = Generate(
-                ctx,
-                [](const size_t index) {
-                    return index * 42;
-                },
-                generate_size);
+                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary",
+                                16 * 1024);
+            }
+            ctx.Barrier();
 
-            // write to temporary directory
-            TemporaryDirectory tmpdir;
+            // read the integers from disk (collectively) and compare
+            {
+                auto dia = api::ReadBinary<size_t>(
+                    ctx,
+                    tmpdir.get() + "/IO.IntegerBinary-*");
 
-            dia.WriteBinary(tmpdir.get() + "/IO.GenerateIntegerWriteBinary",
-                            16 * 1024);
+                std::vector<size_t> vec = dia.AllGather();
+
+                ASSERT_EQ(generate_size, vec.size());
+                // this is another action
+                ASSERT_EQ(generate_size, dia.Size());
+
+                for (size_t i = 0; i < vec.size(); ++i) {
+                    ASSERT_EQ(42 + i, vec[i]);
+                }
+            }
         });
 }
 
+// make weird test strings of different lengths
+std::string test_string(size_t index) {
+    return std::string('0' + index % 100, (index * index) % 20);
+}
+
 TEST(IO, GenerateStringWriteBinary) {
+    TemporaryDirectory tmpdir;
+
+    // use pairs for easier checking and stranger string sizes.
+    using Item = std::pair<size_t, std::string>;
+
     api::RunLocalTests(
-        [](api::Context& ctx) {
+        [&tmpdir](api::Context& ctx) {
 
+            // wipe directory from last test
+            if (ctx.my_rank() == 0) {
+                tmpdir.wipe();
+            }
+            ctx.Barrier();
+
+            // generate a dia of string Items and write them to disk
             size_t generate_size = 320000;
+            {
+                auto dia = Generate(
+                    ctx,
+                    [](const size_t index) {
+                        return Item(index, test_string(index));
+                    },
+                    generate_size);
 
-            auto dia = Generate(
-                ctx,
-                [](const size_t index) {
-                    return std::to_string(index * 42);
-                },
-                generate_size);
+                dia.WriteBinary(tmpdir.get() + "/IO.StringBinary",
+                                16 * 1024);
+            }
+            ctx.Barrier();
 
-            // write to temporary directory
-            TemporaryDirectory tmpdir;
+#if 0
+            // read the Items from disk (collectively) and compare
+            {
+                auto dia = api::ReadBinary<Item>(
+                    ctx,
+                    tmpdir.get() + "/IO.StringBinary-*");
 
-            dia.WriteBinary(tmpdir.get() + "/IO.GenerateStringWriteBinary",
-                            16 * 1024);
+                std::vector<Item> vec = dia.AllGather();
+
+                ASSERT_EQ(generate_size, vec.size());
+                // this is another action
+                ASSERT_EQ(generate_size, dia.Size());
+
+                for (size_t i = 0; i < vec.size(); ++i) {
+                    ASSERT_EQ(Item(i, test_string(i)), vec[i]);
+                }
+            }
+#endif
         });
 }
 
