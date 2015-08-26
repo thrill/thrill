@@ -377,7 +377,7 @@ template <template <typename RAI, typename C> class Iterator,
           typename DiffType, typename Comparator>
 RandomAccessIterator3
 multiway_merge_3_variant(RandomAccessIteratorIterator seqs_begin,
-                         RandomAccessIteratorIterator seqs_end,
+                         RandomAccessIteratorIterator /*seqs_end*/,
                          RandomAccessIterator3 target, DiffType length,
                          Comparator comp)
 {
@@ -555,7 +555,7 @@ template <template <typename RAI, typename C> class iterator,
           typename DiffType, typename Comparator>
 RandomAccessIterator3
 multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
-                         RandomAccessIteratorIterator seqs_end,
+                         RandomAccessIteratorIterator /*seqs_end*/,
                          RandomAccessIterator3 target, DiffType length,
                          Comparator comp)
 {
