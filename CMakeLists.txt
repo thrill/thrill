@@ -44,13 +44,22 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
 # enable more warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
+# enable AddressSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+# enable ThreadSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+
+# enable UndefinedBehaviorSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wcast-qual")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
@@ -62,15 +71,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
-
-# enable AddressSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-
-# enable ThreadSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
-
-# enable UndefinedBehaviorSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 
 # add sanitizer flags for debug builds
 if(JENKINS_BUILD)
@@ -203,8 +203,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
 # find pthreads
 
-find_package(Threads)
-set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
+find_package(Threads REQUIRED)
+set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} dl ${ALL_LIBRARIES})
+
+# find dl (dynamic linker library)
+
+find_package(DL REQUIRED)
 
 # try to find Intel TBB (optional)
 
@@ -232,6 +236,16 @@ endif()
 #include_directories(${Boost_INCLUDE_DIRS})
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
+
+# SWIG (optional)
+
+find_package(SWIG)
+if(SWIG_FOUND)
+  include(${SWIG_USE_FILE})
+endif()
+if(NOT SWIG_FOUND AND JENKINS_BUILD)
+  message(FATAL "Invalid swig on the continuous integration server.")
+endif()
 
 ################################################################################
 ### Build Macros
@@ -266,6 +280,11 @@ add_subdirectory(tests)
 
 # descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
+
+if(SWIG_FOUND)
+  # build swig frontends
+  add_subdirectory(swig)
+endif()
 
 ###############################################################################
 ### cmake script TRY_COMPILE all stxxl header files

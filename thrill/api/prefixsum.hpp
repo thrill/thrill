@@ -105,7 +105,7 @@ private:
     ValueType neutral_element_;
 
     //! Local data file
-    data::File file_;
+    data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
 
@@ -138,6 +138,7 @@ template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, ValueType neutral_element) const {
+    assert(IsValid());
 
     using SumResultNode
               = PrefixSumNode<ValueType, DIARef, SumFunction>;

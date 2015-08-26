@@ -30,8 +30,10 @@ using namespace thrill; // NOLINT
 template <typename T>
 int BenchmarkSerialization(T t, int iterations) {
     common::StatsTimer<true> timer(false);
+    data::BlockPool block_pool(nullptr);
+
     for (int i = 0; i < iterations; ++i) {
-        data::File f;
+        data::File f(block_pool);
         timer.Start();
         {
             auto w = f.GetWriter();

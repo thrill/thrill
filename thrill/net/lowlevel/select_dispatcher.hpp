@@ -15,7 +15,9 @@
 #define THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
 
 #include <thrill/common/config.hpp>
+#include <thrill/common/delegate.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/mem/allocator.hpp>
 #include <thrill/net/exception.hpp>
 #include <thrill/net/lowlevel/select.hpp>
 #include <thrill/net/lowlevel/socket.hpp>
@@ -45,15 +47,19 @@ class SelectDispatcher : protected Select
     static const bool self_verify_ = common::g_self_verify;
 
 public:
+    //! constructor
+    explicit SelectDispatcher(mem::Manager& mem_manager)
+        : mem_manager_(mem_manager) { }
+
     //! type for file descriptor readiness callbacks
-    using Callback = std::function<bool()>;
+    using Callback = common::delegate<bool()>;
 
     //! Grow table if needed
     void CheckSize(int fd) {
         assert(fd >= 0);
         assert(fd <= 32000); // this is an arbitrary limit to catch errors.
         if (static_cast<size_t>(fd) >= watch_.size())
-            watch_.resize(fd + 1);
+            watch_.resize(fd + 1, Watch(mem_manager_));
     }
 
     //! Register a buffered read callback and a default exception callback.
@@ -112,21 +118,28 @@ public:
     void Dispatch(const std::chrono::milliseconds& timeout);
 
 private:
+    //! reference to memory manager
+    mem::Manager& mem_manager_;
+
     //! callback vectors per watched file descriptor
     struct Watch
     {
         //! boolean check whether any callbacks are registered
-        bool                 active;
+        bool                    active = false;
         //! queue of callbacks for fd.
-        std::deque<Callback> read_cb, write_cb;
+        mem::mm_deque<Callback> read_cb, write_cb;
         //! only one exception callback for the fd.
-        Callback             except_cb = nullptr;
+        Callback                except_cb;
+
+        explicit Watch(mem::Manager& mem_manager)
+            : read_cb(mem::Allocator<Callback>(mem_manager)),
+              write_cb(mem::Allocator<Callback>(mem_manager)) { }
     };
 
     //! handlers for all registered file descriptors. the fd integer range
     //! should be small enough, otherwise a more complicated data structure is
     //! needed.
-    std::vector<Watch> watch_;
+    mem::mm_vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {

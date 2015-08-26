@@ -16,13 +16,11 @@
 #define THRILL_NET_DISPATCHER_THREAD_HEADER
 
 #include <thrill/common/concurrent_queue.hpp>
+#include <thrill/common/delegate.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
+#include <thrill/mem/allocator.hpp>
 #include <thrill/net/connection.hpp>
-
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
-#include <thrill/common/delegate.hpp>
-#endif
 
 #include <string>
 
@@ -31,6 +29,21 @@ namespace net {
 
 //! \addtogroup net Network Communication
 //! \{
+
+//! Signature of timer callbacks.
+using TimerCallback = common::delegate<bool()>;
+
+//! Signature of async connection readability/writability callbacks.
+using AsyncCallback = common::delegate<bool()>;
+
+//! Signature of async read callbacks.
+using AsyncReadCallback = common::delegate<void(Connection& c, Buffer&& buffer)>;
+
+//! Signature of async read ByteBlock callbacks.
+using AsyncReadByteBlockCallback = common::delegate<void(Connection& c)>;
+
+//! Signature of async write callbacks.
+using AsyncWriteCallback = common::delegate<void(Connection&)>;
 
 /**
  * DispatcherThread contains a net::Dispatcher object and an associated thread
@@ -44,36 +57,16 @@ public:
     //! \name Imported Typedefs
     //! \{
 
-#if defined(_LIBCPP_VERSION) || defined(__clang__)
-    template <typename Signature>
-    using function = common::delegate<Signature>;
-#else
-    template <typename Signature>
-    using function = std::function<Signature>;
-#endif
-
-    //! Signature of timer callbacks.
-    using TimerCallback = function<bool()>;
-
-    //! Signature of async connection readability/writability callbacks.
-    using ConnectionCallback = function<bool()>;
-
-    //! Signature of async read callbacks.
-    using AsyncReadCallback = function<void(Connection& c, Buffer&& buffer)>;
-
-    //! Signature of async read ByteBlock callbacks.
-    using AsyncReadByteBlockCallback = function<void(Connection& c)>;
-
-    //! Signature of async write callbacks.
-    using AsyncWriteCallback = function<void(Connection&)>;
-
     //! Signature of async jobs to be run by the dispatcher thread.
     using Job = common::ThreadPool::Job;
 
     //! \}
 
+    //! common global memory stats, should become a HostContext member.
+    mem::Manager mem_manager_ { nullptr };
+
 public:
-    explicit DispatcherThread(const std::string& thread_name);
+    explicit DispatcherThread(const mem::string& thread_name);
     ~DispatcherThread();
 
     //! non-copyable: delete copy-constructor
@@ -97,10 +90,10 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const ConnectionCallback& read_cb);
+    void AddRead(Connection& c, const AsyncCallback& read_cb);
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const ConnectionCallback& write_cb);
+    void AddWrite(Connection& c, const AsyncCallback& write_cb);
 
     //! Cancel all callbacks on a given connection.
     void Cancel(Connection& c);
@@ -153,19 +146,21 @@ protected:
 
 private:
     //! Queue of jobs to be run by dispatching thread at its discretion.
-    common::ConcurrentQueue<Job> jobqueue_;
+    common::ConcurrentQueue<Job, mem::Allocator<Job> > jobqueue_ {
+        mem::Allocator<Job>(mem_manager_)
+    };
 
     //! thread of dispatcher
     std::thread thread_;
 
     //! enclosed dispatcher.
-    class Dispatcher* dispatcher_;
+    mem::mm_unique_ptr<class Dispatcher> dispatcher_;
 
     //! termination flag
     std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
-    std::string name_;
+    mem::string name_;
 
     //! self-pipe to wake up thread.
     int self_pipe_[2];

@@ -54,9 +54,15 @@ class File : public BlockSink
 {
 public:
     using BlockSource = FileBlockSource;
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<File>;
     using Reader = BlockReader<FileBlockSource>;
+    using DynWriter = DynBlockWriter;
     using DynReader = DynBlockReader;
+
+    //! Constructor from BlockPool
+    explicit File(BlockPool& block_pool)
+        : BlockSink(block_pool)
+    { }
 
     //! Append a block to this file, the block must contain given number of
     //! items after the offset first.
@@ -72,6 +78,11 @@ public:
         assert(!closed_);
         closed_ = true;
     }
+
+    //! boolean flag whether to check if AllocateByteBlock can fail in any
+    //! subclass (if false: accelerate BlockWriter to not be able to cope with
+    //! nullptr).
+    enum { allocate_can_fail_ = false };
 
     // returns a string that identifies this string instance
     std::string ToString() {
@@ -108,6 +119,11 @@ public:
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size) {
         return Writer(this, block_size);
+    }
+
+    //! Get BlockWriter.
+    DynWriter GetDynWriter(size_t block_size = default_block_size) {
+        return DynWriter(this, block_size);
     }
 
     //! Get BlockReader for beginning of File

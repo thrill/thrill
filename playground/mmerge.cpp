@@ -14,7 +14,7 @@ typedef int T;
 
 const int dim = 2;
 const int max_data = 20;
-const int data_count = 10000000;
+const int data_count = 100000;
 
 int me;
 stringstream logger;

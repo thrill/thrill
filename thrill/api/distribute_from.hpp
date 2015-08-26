@@ -105,7 +105,7 @@ private:
     size_t source_id_;
 
     data::ChannelPtr channel_;
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 };
 
 /*!
