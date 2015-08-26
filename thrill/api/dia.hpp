@@ -98,7 +98,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(const DIANodePtr& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(node),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -113,7 +114,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(DIANodePtr&& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(std::move(node)),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -538,12 +540,17 @@ public:
     void WriteLinesMany(const std::string& filepath) const;
 
     /*!
-     * WriteBinary is a function, which writes a DIA to one file per worker. The
-     * input DIA can be recreated with ReadBinary and equal filepath.
+     * WriteBinary is a function, which writes a DIA to many files per
+     * worker. The input DIA can be recreated with ReadBinary and equal
+     * filepath.
      *
-     * \param filepath Destination of the output file.
+     * \param filepath Destination of the output file. Used as prefix for
+     * creating files.
+     *
+     * \param max_file_size size limit of individual file.
      */
-    void WriteBinary(const std::string& filepath) const;
+    void WriteBinary(const std::string& filepath,
+                     size_t max_file_size = 128 * 1024 * 1024) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
