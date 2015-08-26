@@ -60,8 +60,7 @@ public:
         : Super(ctx, { }, "Read", stats_node),
           path_(path)
     {
-        core::FileIO fio;
-        auto filelist = fio.ReadFileList(path_);
+        auto filelist = core::GlobFilePattern(path_);
         filesize_prefix = filelist.first;
         contains_compressed_file_ = filelist.second;
     }
@@ -290,8 +289,6 @@ private:
         bool contains_compressed_file_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-        //! File IO used to read file list and open files
-        core::FileIO fio;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -455,8 +452,6 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-        //! File IO used to read file list and open files
-        core::FileIO fio;
     };
 
     // REVIEW(an): these are completely useless, just use the constructor
