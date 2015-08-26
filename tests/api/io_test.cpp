@@ -48,7 +48,7 @@ class TemporaryDirectory
 public:
     //! Create a temporary directory, returns its name without trailing /.
     static std::string make_directory(
-        const char* sample = "/tmp/thrill-testsuite-") {
+        const char* sample = "thrill-testsuite-") {
 
         std::string tmp_dir = std::string(sample) + "XXXXXX";
         // evil const_cast, but mkdtemp replaces the XXXXXX with something
