@@ -12,8 +12,8 @@
 #ifndef THRILL_MEM_ALLOCATOR_BASE_HEADER
 #define THRILL_MEM_ALLOCATOR_BASE_HEADER
 
-#include <thrill/mem/malloc_tracker.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/mem/malloc_tracker.hpp>
 
 #include <atomic>
 #include <cassert>

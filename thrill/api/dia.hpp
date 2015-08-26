@@ -544,8 +544,11 @@ public:
      * worker. The input DIA can be recreated with ReadBinary and equal
      * filepath.
      *
-     * \param filepath Destination of the output file. Used as prefix for
-     * creating files.
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
      *
      * \param max_file_size size limit of individual file.
      */
