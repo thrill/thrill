@@ -64,7 +64,7 @@ public:
         : Super(ctx, { }, "Read", stats_node),
           path_(path)
     {
-		core::FileIO fio;
+        core::FileIO fio;
         auto filelist = fio.ReadFileList(path_);
         filesize_prefix = filelist.first;
         contains_compressed_file_ = filelist.second;
@@ -210,7 +210,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         std::string Next() {
-			std::string ret;
+            std::string ret;
             while (true) {
                 for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
@@ -289,8 +289,8 @@ private:
         bool contains_compressed_file_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-		//! File IO used to read file list and open files
-		core::FileIO fio;
+        //! File IO used to read file list and open files
+        core::FileIO fio;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -349,8 +349,8 @@ private:
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        std::string Next() {			
-			std::string ret;
+        std::string Next() {
+            std::string ret;
             while (true) {
                 for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
@@ -367,7 +367,7 @@ private:
                     buffer_.set_size(buffer_size);
                 }
                 else {
-					LOG << "Opening new file!";
+                    LOG << "Opening new file!";
                     close(c_file_);
                     current_file_++;
                     offset_ = 0;
@@ -376,7 +376,8 @@ private:
                         c_file_ = fio.OpenFile(files_[current_file_].first);
                         ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
                         buffer_.set_size(buffer_size);
-                    } else {
+                    }
+                    else {
                         current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
@@ -398,15 +399,16 @@ private:
             // as HasNext() has to know if file is finished
             //  v-- no new line at end ||   v-- newline at end of file
             if (current_ >= buffer_.size() || (current_ >= buffer_.size() - 1 && buffer_[current_] == '\n')) {
-				LOG << "New buffer in HasNext()";
-				current_ = 0;
+                LOG << "New buffer in HasNext()";
+                current_ = 0;
                 ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
                 offset_ += buffer_.size();
                 if (buffer_size > 1 || (buffer_size == 1 && buffer_[0] != '\n')) {
                     buffer_.set_size(buffer_size);
                     return true;
-                } else {
-					LOG << "Opening new file in HasNext()";
+                }
+                else {
+                    LOG << "Opening new file in HasNext()";
                     // already at last file
                     if (current_file_ >= NumFiles() - 1) {
                         return false;
@@ -429,7 +431,7 @@ private:
             else {
                 return files_[current_file_].second < my_end_;
             }
-        }        
+        }
 
     private:
         //! Input files with size prefixsum.
@@ -452,8 +454,8 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-		//! File IO used to read file list and open files
-		core::FileIO fio;
+        //! File IO used to read file list and open files
+        core::FileIO fio;
     };
 
     //! Returns an InputLineIterator with a given input file stream.

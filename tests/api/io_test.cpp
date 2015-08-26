@@ -22,9 +22,9 @@
 #include <string>
 #include <vector>
 
+#include <dirent.h>
 #include <glob.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
 using namespace thrill;
 using thrill::api::Context;
@@ -35,7 +35,8 @@ using thrill::api::DIARef;
  * get(). When the object is destroyed the temporary directory is wiped
  * non-recursively.
  */
-class TemporaryDirectory {
+class TemporaryDirectory
+{
 public:
     //! Create a temporary directory, returns its name without trailing /.
     static std::string make_directory(
@@ -54,7 +55,7 @@ public:
         DIR* d = opendir(tmp_dir.c_str());
         if (d == nullptr) {
             throw common::SystemException(
-                "Could open temporary directory " + tmp_dir, errno);
+                      "Could open temporary directory " + tmp_dir, errno);
         }
 
         struct dirent* de, entry;
@@ -86,12 +87,12 @@ public:
     }
 
     //! non-copyable: delete copy-constructor
-    TemporaryDirectory(const TemporaryDirectory &) = delete;
+    TemporaryDirectory(const TemporaryDirectory&) = delete;
     //! non-copyable: delete assignment operator
-    TemporaryDirectory & operator = (const TemporaryDirectory &) = delete;
+    TemporaryDirectory& operator = (const TemporaryDirectory&) = delete;
 
     //! return the temporary directory name
-    const std::string& get() const { return dir_; }
+    const std::string & get() const { return dir_; }
 
 protected:
     std::string dir_;
@@ -130,9 +131,9 @@ TEST(IO, ReadFolder) {
 TEST(IO, ReadPartOfFolderCompressed) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-		//folder read_ints contains compressed and non-compressed files with integers
-		//from 25 to 1 and a file 'donotread', which contains non int-castable
-		//strings
+            // folder read_ints contains compressed and non-compressed files with integers
+            // from 25 to 1 and a file 'donotread', which contains non int-castable
+            // strings
             auto integers = ReadLines(ctx, "read_ints/read*")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
@@ -169,7 +170,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
             size_t writer_size = 0;
 
-			input.Map(
+            input.Map(
                 [&writer_size](const int& item) {
                     // file contains ints between 1  and 16
                     // fails if wrong integer is generated
@@ -180,7 +181,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
                 })
             .WriteLinesMany("out1_");
 
-			//DIA contains as many elements as we wanted to generate
+            // DIA contains as many elements as we wanted to generate
             ASSERT_EQ(generate_size, writer_size);
         });
 }
@@ -233,39 +234,39 @@ TEST(IO, WriteBinaryCorrectSize) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-		auto integers = ReadLines(ctx, "test1")
-		.Map([](const std::string& line) {
-				return std::stoi(line);
-			});
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
 
-		integers.WriteBinary("binary/output_");		
+            integers.WriteBinary("binary/output_");
 
-		ctx.Barrier();
+            ctx.Barrier();
 
-		if (ctx.my_rank() == 0) {
-			glob_t glob_result;
-			struct stat filestat;
-			glob("binary/*", GLOB_TILDE, nullptr, &glob_result);
-			size_t directory_size = 0;
+            if (ctx.my_rank() == 0) {
+                glob_t glob_result;
+                struct stat filestat;
+                glob("binary/*", GLOB_TILDE, nullptr, &glob_result);
+                size_t directory_size = 0;
 
-			for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
-				const char* filepath = glob_result.gl_pathv[i];
+                for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
+                    const char* filepath = glob_result.gl_pathv[i];
 
-				if (stat(filepath, &filestat)) {
-					throw std::runtime_error(
-						"ERROR: Invalid file " + std::string(filepath));
-				}
-				if (!S_ISREG(filestat.st_mode)) continue;
+                    if (stat(filepath, &filestat)) {
+                        throw std::runtime_error(
+                                  "ERROR: Invalid file " + std::string(filepath));
+                    }
+                    if (!S_ISREG(filestat.st_mode)) continue;
 
-				directory_size += filestat.st_size;
+                    directory_size += filestat.st_size;
 
-				remove(filepath);
-			}
-			globfree(&glob_result);
+                    remove(filepath);
+                }
+                globfree(&glob_result);
 
-			ASSERT_EQ(16 * sizeof(int), directory_size);
-		}
-	};
+                ASSERT_EQ(16 * sizeof(int), directory_size);
+            }
+        };
 
     api::RunLocalTests(start_func);
 }
@@ -275,33 +276,33 @@ TEST(IO, ReadBinary) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-		std::string path = "testsf.out";
+            std::string path = "testsf.out";
 
-		int bla = 5;
-		auto integers2 = ReadBinary(ctx, "./binary" + std::to_string(ctx.num_workers()) + "/*", bla);
+            int bla = 5;
+            auto integers2 = ReadBinary(ctx, "./binary" + std::to_string(ctx.num_workers()) + "/*", bla);
 
-		integers2.Map(
-			[](const int& item) {
-				return std::to_string(item);
-			})
-		.WriteLines(path);
+            integers2.Map(
+                [](const int& item) {
+                    return std::to_string(item);
+                })
+            .WriteLines(path);
 
-		// Race condition as one worker might be finished while others are
-		// still writing to output file.	
-		ctx.Barrier();
+            // Race condition as one worker might be finished while others are
+            // still writing to output file.
+            ctx.Barrier();
 
-		std::ifstream file(path);
-		size_t begin = file.tellg();
-		file.seekg(0, std::ios::end);
-		size_t end = file.tellg();
-		ASSERT_EQ(end - begin, 39);
-		file.seekg(0);
-		for (int i = 1; i <= 16; i++) {
-			std::string line;
-			std::getline(file, line);
-			ASSERT_EQ(std::stoi(line), i);
-		}
-	};
+            std::ifstream file(path);
+            size_t begin = file.tellg();
+            file.seekg(0, std::ios::end);
+            size_t end = file.tellg();
+            ASSERT_EQ(end - begin, 39);
+            file.seekg(0);
+            for (int i = 1; i <= 16; i++) {
+                std::string line;
+                std::getline(file, line);
+                ASSERT_EQ(std::stoi(line), i);
+            }
+        };
 
     api::RunLocalTests(start_func);
 }
