@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -77,56 +78,65 @@ public:
 
         return std::make_pair(filesize_prefix, contains_compressed_file);
     }
-
-    //! Open file and return file handle
-    //! \param path Path to open
-    int OpenFile(const std::string& path) {
-
-        // path too short, can't end with .[gz/bz2,xz,lzo]
-        if (path.size() < 4) return open(path.c_str(), O_RDONLY);
-
-        const char* decompressor = nullptr;
-
-        if (common::ends_with(path, ".gz")) {
-            decompressor = "gzip";
-        }
-        else if (common::ends_with(path, ".bz2")) {
-            decompressor = "bzip2";
-        }
-        else if (common::ends_with(path, ".xz")) {
-            decompressor = "xz";
-        }
-        else if (common::ends_with(path, ".lzo")) {
-            decompressor = "lzop";
-        }
-
-        // not a compressed file
-        if (!decompressor) return open(path.c_str(), O_RDONLY);
-
-        // create pipe, fork and call decompressor as child
-        int pipefd[2];                     // pipe[0] = read, pipe[1] = write
-        if (pipe(pipefd) != 0) {
-            LOG1 << "Error creating pipe: " << strerror(errno);
-            exit(-1);
-        }
-
-        pid_t pid = fork();
-        if (pid == 0) {
-            close(pipefd[0]);                                           // close read end
-            dup2(pipefd[1], STDOUT_FILENO);                             // replace stdout with pipe
-
-            execlp(decompressor, decompressor, "-dc", path.c_str(), nullptr);
-
-            LOG1 << "Pipe execution failed: " << strerror(errno);
-            close(pipefd[1]);                     // close write end
-            exit(-1);
-        }
-
-        close(pipefd[1]);                         // close write end
-
-        return pipefd[0];
-    }
 };
+
+/*!
+ * Open file for reading and return file descriptor. Handles compressed files by
+ * calling a decompressor in a pipe, like "gzip -d $f |" in bash.
+ *
+ * \param path Path to open
+ */
+int OpenFileForRead(const std::string& path) {
+
+    // path too short, can't end with .[gz/bz2,xz,lzo]
+    if (path.size() < 4) return open(path.c_str(), O_RDONLY);
+
+    const char* decompressor = nullptr;
+
+    if (common::ends_with(path, ".gz")) {
+        decompressor = "gzip";
+    }
+    else if (common::ends_with(path, ".bz2")) {
+        decompressor = "bzip2";
+    }
+    else if (common::ends_with(path, ".xz")) {
+        decompressor = "xz";
+    }
+    else if (common::ends_with(path, ".lzo")) {
+        decompressor = "lzop";
+    }
+
+    // not a compressed file
+    if (!decompressor) return open(path.c_str(), O_RDONLY);
+
+    // create pipe, fork and call decompressor as child
+    int pipefd[2];                     // pipe[0] = read, pipe[1] = write
+    if (pipe(pipefd) != 0) {
+        LOG1 << "Error creating pipe: " << strerror(errno);
+        exit(-1);
+    }
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        // close read end
+        close(pipefd[0]);
+
+        // replace stdout with pipe
+        dup2(pipefd[1], STDOUT_FILENO);
+
+        execlp(decompressor, decompressor, "-dc", path.c_str(), nullptr);
+
+        LOG1 << "Pipe execution failed: " << strerror(errno);
+        // close write end
+        close(pipefd[1]);
+        exit(-1);
+    }
+
+    // close write end
+    close(pipefd[1]);
+
+    return pipefd[0];
+}
 
 } // namespace core
 } // namespace thrill
