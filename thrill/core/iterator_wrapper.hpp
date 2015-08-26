@@ -38,7 +38,7 @@
 namespace thrill {
 namespace core {
 
-static const bool debug = true;
+static const bool debug = false;
 
 template <typename ArrayItem>
 struct IterStats {
@@ -91,11 +91,16 @@ public:
     void GetItem() const {
         assert(reader_->HasNext());
         stats_->item_ = reader_->Next<ArrayItem>();
-        LOG << "NEXT GOT " << stats_->item_;
+        LOG << "-----------------------------------------";
+        LOG << "NEXT GOT " << stats_->item_ << " FROM " << file_->ToString();
+        LOG << "-----------------------------------------";
         stats_->has_elem_ = true;
     }
 
     void Invalidate() const {
+        LOG << "-----------------------------------------";
+        LOG << "INVALIDATING " << pos_ << " " << file_->ToString();
+        LOG << "-----------------------------------------";
         stats_->is_valid_ = false;
         stats_->has_elem_ = false;
     }
@@ -119,14 +124,14 @@ public:
 
         stats_->is_valid_ = valid;
 
+        LOG << "    Created iterator";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+
         if (stats_->is_valid_) {
             GetItemOrInvalidate();
         }
-
-        LOG << "  Created iterator";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
     }
 
     // StxxlFileWrapper(const StxxlFileWrapper& r) {}
@@ -136,10 +141,10 @@ public:
         GetItemOrInvalidate();
         ++pos_;
 
-        LOG << "  Operator++";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+        LOG << "    Operator++";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
         return *this;
     }
 
@@ -147,21 +152,19 @@ public:
         Invalidate();
         --pos_;
 
-        LOG << "  Operator--";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+        LOG << "    Operator--";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
         return *this;
     }
 
     StxxlFileWrapper operator++(int) {
-        GetItemOrInvalidate();
-
         auto r = StxxlFileWrapper(file_, reader_, ++pos_, stats_.is_valid_);
-        LOG << "  Operator++ (postfix)";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << r.pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << r.file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << r.stats_->is_valid_;
+        LOG << "    Operator++ (postfix)";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << r.pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << r.file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << r.stats_->is_valid_;
         return r;
     }
 
@@ -169,14 +172,14 @@ public:
 
     StxxlFileWrapper operator+(const difference_type& n) const {
         auto w = StxxlFileWrapper(file_, reader_, pos_+n, stats_->is_valid_);
-        for (difference_type t = 0; t < n; ++t){
+        for (difference_type t = 0; t < n-1; ++t){
             w.GetItemOrInvalidate();
         }
 
-        LOG << "  Operator+ " << n;
-        LOG << "    " << std::left << std::setw(7) << "pos: " << w.pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << w.file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << w.stats_->is_valid_;
+        LOG << "    Operator+ " << n;
+        LOG << "        " << std::left << std::setw(7) << "pos: " << w.pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << w.file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << w.stats_->is_valid_;
         return w;
     }
 
@@ -186,56 +189,57 @@ public:
             GetItemOrInvalidate();
         }
 
-        LOG << "  Operator+= " << n;
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+        LOG << "    Operator+= " << n;
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
         return *this;
     }
 
     StxxlFileWrapper operator-(const difference_type& n) const {
         auto w = StxxlFileWrapper(file_, reader_, pos_-n, false);
-        LOG << "  Operator- " << n;
-        LOG << "    " << std::left << std::setw(7) << "pos: " << w.pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << w.file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << w.stats_->is_valid_;
+        LOG << "    Operator- " << n;
+        LOG << "        " << std::left << std::setw(7) << "pos: " << w.pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << w.file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << w.stats_->is_valid_;
         return w;
     }
 
     // StxxlFileWrapper& operator-=(const difference_type& n) {}
 
     reference operator*() const {
-        // assert(stats_->is_valid_);
+        assert(stats_->is_valid_);
 
-        LOG << "  Operator* ";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
-        LOG << "    " << std::left << std::setw(7) << "item: " << stats_->item_;
-
-        LOG << "RETURN " << stats_->item_;
+        LOG << "-----------------------------------------";
+        LOG << "RETURN " << stats_->item_ << " FROM " << pos_ << " " << file_->ToString();
+        LOG << "-----------------------------------------";
+        LOG << "    Operator* ";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+        LOG << "        " << std::left << std::setw(7) << "item: " << stats_->item_;
         return stats_->item_;
     }
     // pointer operator->() const {
     // reference operator[](const difference_type& n) const {}
 
     bool operator==(const StxxlFileWrapper& r) {
-        LOG << "  Operator== ";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "pos2: " << r.pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "file2: " << r.file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "result: " << std::boolalpha << ((file_ == r.file_) && (pos_ == r.pos_));
+        LOG << "    Operator== ";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "file2: " << r.file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "result: " << std::boolalpha << ((file_ == r.file_) && (pos_ == r.pos_));
         return (file_ == r.file_) && (pos_ == r.pos_);
     }
 
     bool operator!=(const StxxlFileWrapper& r) {
-        LOG << "  Operator!= ";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "pos2: " << r.pos_;
-        LOG << "    " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "file2: " << r.file_->ToString();
-        LOG << "    " << std::left << std::setw(7) << "result: " << std::boolalpha << ((file_ != r.file_) || (pos_ != r.pos_));
+        LOG << "    Operator!= ";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "file2: " << r.file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "result: " << std::boolalpha << ((file_ != r.file_) || (pos_ != r.pos_));
         return (file_ != r.file_) || (pos_ != r.pos_);
     }
 
@@ -255,10 +259,10 @@ public:
     // { return (pos_ + r2.pos_); }
 
     difference_type operator-(const StxxlFileWrapper& r2) const {
-        LOG << "  Operator-  StxxlFileWrapper";
-        LOG << "    " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "    " << std::left << std::setw(7) << "pos2: " << r2.pos_;
-        LOG << "    " << std::left << std::setw(7) << "result: " << pos_ - r2.pos_;
+        LOG << "    Operator-  StxxlFileWrapper";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "pos2: " << r2.pos_;
+        LOG << "        " << std::left << std::setw(7) << "result: " << pos_ - r2.pos_;
         return (pos_ - r2.pos_);
     }
 };
