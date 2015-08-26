@@ -165,7 +165,6 @@ int OpenFileForRead(const std::string& path) {
 class SysFile
 {
 public:
-
     //! default constructor
     SysFile() : fd_(-1) { }
 
@@ -176,11 +175,11 @@ public:
     static SysFile OpenForWrite(const std::string& path);
 
     //! non-copyable: delete copy-constructor
-    SysFile(const SysFile &) = delete;
+    SysFile(const SysFile&) = delete;
     //! non-copyable: delete assignment operator
-    SysFile & operator = (const SysFile &) = delete;
+    SysFile& operator = (const SysFile&) = delete;
     //! move-constructor
-    SysFile(SysFile && f)
+    SysFile(SysFile&& f)
         : fd_(f.fd_), pid_(f.pid_) {
         f.fd_ = -1;
         f.pid_ = 0;
@@ -202,14 +201,14 @@ public:
             pid_t p = waitpid(pid_, &status, 0);
             if (p != pid_) {
                 throw common::SystemException(
-                    "SysFile: waitpid() failed to return child", errno);
+                          "SysFile: waitpid() failed to return child", errno);
             }
             if (WIFEXITED(status)) {
                 // child program exited normally
                 if (WEXITSTATUS(status) != 0) {
                     throw common::SystemException(
-                        "SysFile: child failed to return code "
-                        + std::to_string(WEXITSTATUS(status)));
+                              "SysFile: child failed to return code "
+                              + std::to_string(WEXITSTATUS(status)));
                 }
                 else {
                     // zero return code. good.
@@ -217,12 +216,12 @@ public:
             }
             else if (WIFSIGNALED(status)) {
                 throw common::SystemException(
-                        "SysFile: child killed by signal "
-                        + std::to_string(WTERMSIG(status)));
+                          "SysFile: child killed by signal "
+                          + std::to_string(WTERMSIG(status)));
             }
             else {
                 throw common::SystemException(
-                    "SysFile: child failed with an unknown error", errno);
+                          "SysFile: child failed with an unknown error", errno);
             }
             pid_ = 0;
         }
