@@ -150,7 +150,9 @@ private:
     static const size_t num_inputs_ = 2;
 
     //! Files for intermediate storage
-    std::array<data::File, num_inputs_> files_;
+    std::array<data::File, num_inputs_> files_ {
+        { context_.GetFile(), context_.GetFile() }
+    };
 
     //! Writers to intermediate files
     std::array<data::File::Writer, num_inputs_> writers_  {
@@ -187,6 +189,8 @@ template <typename ValueType, typename Stack>
 template <typename MergeFunction, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Merge(
     SecondDIA second_dia, const MergeFunction &zip_function) const {
+    assert(IsValid());
+    assert(second_dia.IsValid());
 
     using MergeResult
               = typename FunctionTraits<MergeFunction>::result_type;

@@ -71,7 +71,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super::result_file_;
 
 public:
-    using Emitter = data::BlockWriter;
+    using Emitter = data::DynBlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
               KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
@@ -99,7 +99,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 10, 2, 256, 1048576,
+                            reduce_function_, emitters_, 1024, 0.5, 1024 * 16,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -143,7 +143,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_, cbs,
+        ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
                           core::PostReduceByIndex(),
                           core::PostReduceFlushToIndex<Value>(),
                           local_begin,
@@ -203,7 +203,7 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     PreHashTable reduce_pre_table_;
 
@@ -242,6 +242,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
     const ReduceFunction &reduce_function,
     size_t size,
     ValueType neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -308,6 +309,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     size_t size,
     typename common::FunctionTraits<ReduceFunction>::result_type
     neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -380,6 +382,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     const ReduceFunction &reduce_function,
     size_t size,
     ValueType neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

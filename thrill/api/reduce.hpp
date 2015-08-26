@@ -94,7 +94,6 @@ public:
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
                             reduce_function_, emitters_)
     {
-
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
@@ -130,7 +129,7 @@ public:
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(key_extractor_, reduce_function_, cbs);
+        ReduceTable table(context_, key_extractor_, reduce_function_, cbs);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
@@ -183,7 +182,7 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey> reduce_pre_table_;
 
@@ -209,6 +208,7 @@ template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceBy(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -262,6 +262,7 @@ template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReducePair(
     const ReduceFunction &reduce_function) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -322,6 +323,7 @@ template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

@@ -130,8 +130,7 @@ public:
                 // item might just terminate the current block.
                 if (!NextBlock()) {
                     assert(n == 0);
-                    sLOG << "exit1 after batch:"
-                         << "current_=" << current_ - bytes_->begin();
+                    sLOG << "exit1 after batch.";
                     return out;
                 }
             }
@@ -151,8 +150,7 @@ public:
 
                 if (!NextBlock()) {
                     assert(n == 0);
-                    sLOG << "exit2 after batch:"
-                         << "current_=" << current_ - bytes_->begin();
+                    sLOG << "exit2 after batch.";
                     return out;
                 }
             }
@@ -295,7 +293,7 @@ protected:
     BlockSource source_;
 
     //! The current block being read, this holds a shared pointer reference.
-    ByteBlockCPtr bytes_;
+    ByteBlockPtr bytes_;
 
     //! current read pointer into current block of file.
     const Byte* current_ = nullptr;

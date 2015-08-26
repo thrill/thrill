@@ -31,7 +31,7 @@ namespace data {
  * ChannelSink is an BlockSink that sends data via a network socket to the
  * Channel object on a different worker.
  */
-class ChannelSink : public BlockSink
+class ChannelSink final : public BlockSink
 {
 public:
     using ChannelId = size_t;
@@ -41,7 +41,8 @@ public:
 
     //! Construct invalid ChannelSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    ChannelSink() : closed_(true) { }
+    explicit ChannelSink(BlockPool& block_pool)
+        : BlockSink(block_pool), closed_(true) { }
 
     /*! ChannelSink sending out to network.
      * \param dispatcher used for sending data via a socket
@@ -51,10 +52,12 @@ public:
      * \param my_local_worker_id the id that identifies the worker locally
      * \param partners_local_worker_id the id that identifies the partner worker locally
      */
-    ChannelSink(net::DispatcherThread* dispatcher,
+    ChannelSink(BlockPool& block_pool,
+                net::DispatcherThread* dispatcher,
                 net::Connection* connection,
                 ChannelId channel_id, size_t my_rank, size_t my_local_worker_id, size_t partners_local_worker_id, StatsCounterPtr byte_counter, StatsCounterPtr block_counter, StatsTimerPtr tx_timespan)
-        : dispatcher_(dispatcher),
+        : BlockSink(block_pool),
+          dispatcher_(dispatcher),
           connection_(connection),
           id_(channel_id),
           my_rank_(my_rank),
@@ -131,6 +134,11 @@ public:
 
     //! return close flag
     bool closed() const { return closed_; }
+
+    //! boolean flag whether to check if AllocateByteBlock can fail in any
+    //! subclass (if false: accelerate BlockWriter to not be able to cope with
+    //! nullptr).
+    enum { allocate_can_fail_ = false };
 
 protected:
     static const bool debug = false;

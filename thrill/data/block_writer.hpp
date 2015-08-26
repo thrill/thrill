@@ -20,6 +20,7 @@
 #include <thrill/data/serialization.hpp>
 
 #include <algorithm>
+#include <deque>
 #include <string>
 #include <vector>
 
@@ -30,6 +31,16 @@ namespace data {
 //! \{
 
 /*!
+ * An Exception is thrown by BlockWriter when the underlying sink does not allow
+ * allocation of a new block, which is needed to serialize the item.
+ */
+class FullException : public std::exception
+{
+public:
+    FullException() : std::exception() { }
+};
+
+/*!
  * BlockWriter contains a temporary Block object into which a) any serializable
  * item can be stored or b) any arbitrary integral data can be appended. It
  * counts how many serializable items are stored and the offset of the first new
@@ -37,42 +48,43 @@ namespace data {
  * File, a ChannelSink, etc. for further delivery. The BlockWriter takes care of
  * segmenting items when a Block is full.
  */
-template <bool DisableSelfVerify>
-class BlockWriterBase
-    : public common::ItemWriterToolsBase<BlockWriterBase<DisableSelfVerify> >
+template <typename BlockSink>
+class BlockWriter
+    : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >
 {
 public:
-    static const bool self_verify = common::g_self_verify && !DisableSelfVerify;
+    static const bool debug = false;
+
+    static const bool self_verify = common::g_self_verify;
 
     //! Start build (appending blocks) to a File
-    explicit BlockWriterBase(BlockSink* sink,
-                             size_t block_size = default_block_size)
+    explicit BlockWriter(BlockSink* sink,
+                         size_t block_size = default_block_size)
         : sink_(sink),
-          block_size_(block_size) {
-        AllocateBlock();
-    }
+          block_size_(block_size)
+    { }
 
     //! non-copyable: delete copy-constructor
-    BlockWriterBase(const BlockWriterBase&) = delete;
+    BlockWriter(const BlockWriter&) = delete;
     //! non-copyable: delete assignment operator
-    BlockWriterBase& operator = (const BlockWriterBase&) = delete;
+    BlockWriter& operator = (const BlockWriter&) = delete;
 
     //! move-constructor
-    BlockWriterBase(BlockWriterBase&&) = default;
+    BlockWriter(BlockWriter&&) = default;
     //! move-assignment
-    BlockWriterBase& operator = (BlockWriterBase&&) = default;
+    BlockWriter& operator = (BlockWriter&&) = default;
 
     //! On destruction, the last partial block is flushed.
-    ~BlockWriterBase() {
+    ~BlockWriter() {
         if (bytes_)
             Close();
     }
 
     //! Explicitly close the writer
     void Close() {
-        if (!closed_) { //potential race condition
+        if (!closed_) {
             closed_ = true;
-            MaybeFlushBlock();
+            Flush();
             if (sink_)
                 sink_->Close();
         }
@@ -83,14 +95,31 @@ public:
 
     //! Flush the current block (only really meaningful for a network sink).
     void Flush() {
-        FlushBlock();
-        AllocateBlock();
+        if (!bytes_) return;
+        // don't flush if the block is truly empty.
+        if (current_ == bytes_->begin() && nitems_ == 0) return;
+
+        if (do_queue_) {
+            sLOG << "Flush(): queue" << bytes_.get();
+            sink_queue_.emplace_back(bytes_, 0, current_ - bytes_->begin(),
+                                     first_offset_, nitems_);
+        }
+        else {
+            sLOG << "Flush(): flush" << bytes_.get();
+            sink_->AppendBlock(Block(bytes_, 0, current_ - bytes_->begin(),
+                                     first_offset_, nitems_));
+        }
+
+        // reset
+        nitems_ = 0;
+        bytes_ = ByteBlockPtr();
+        current_ = end_ = nullptr;
     }
 
     //! Directly write Blocks to the underlying BlockSink (after flushing the
     //! current one if need be).
     void AppendBlocks(const std::vector<Block>& blocks) {
-        MaybeFlushBlock();
+        Flush();
 
         for (const Block& b : blocks)
             sink_->AppendBlock(b);
@@ -102,9 +131,9 @@ public:
     //! \{
 
     //! Mark beginning of an item.
-    BlockWriterBase & MarkItem() {
+    BlockWriter & MarkItem() {
         if (current_ == end_)
-            Flush();
+            Flush(), AllocateBlock();
 
         if (nitems_ == 0)
             first_offset_ = current_ - bytes_->begin();
@@ -114,16 +143,127 @@ public:
         return *this;
     }
 
-    //! operator() appends a complete item
+    //! PutItem appends a complete item, or fails with a FullException.
     template <typename T>
-    BlockWriterBase& operator () (const T& x) {
+    BlockWriter & PutItem(const T& x) {
         assert(!closed_);
-        MarkItem();
-        if (self_verify) {
-            // for self-verification, prefix T with its hash code
-            Put(typeid(T).hash_code());
+
+        if (!BlockSink::allocate_can_fail_)
+            return PutItemUnsafe<T>(x);
+        else
+            return PutItemSafe<T>(x);
+    }
+
+    //! operator() appends a complete item, or fails with a FullException.
+    template <typename T>
+    BlockWriter& operator () (const T& x) {
+        return PutItem(x);
+    }
+
+    //! PutItemNoSelfVerify appends a complete item without any self
+    //! verification information, or fails with a FullException.
+    template <typename T>
+    BlockWriter & PutItemNoSelfVerify(const T& x) {
+        assert(!closed_);
+
+        if (!BlockSink::allocate_can_fail_)
+            return PutItemUnsafe<T, true>(x);
+        else
+            return PutItemSafe<T, true>(x);
+    }
+
+    //! appends a complete item, or fails safely with a FullException.
+    template <typename T, bool NoSelfVerify = false>
+    BlockWriter & PutItemSafe(const T& x) {
+        assert(!closed_);
+
+        if (current_ == end_) {
+            // if current block full: flush it, BEFORE enabling queuing, because
+            // the previous item is complete.
+            try {
+                Flush(), AllocateBlock();
+            }
+            catch (FullException& e) {
+                // non-fatal allocation error: will be handled below.
+            }
         }
-        Serialization<BlockWriterBase, T>::Serialize(x, *this);
+
+        if (!bytes_) {
+            sLOG << "!bytes";
+            throw FullException();
+        }
+
+        // store beginning item of this item and other information for unwind.
+        Byte* initial_current = current_;
+        size_t initial_nitems = nitems_;
+        size_t initial_first_offset = first_offset_;
+        do_queue_ = true;
+
+        try {
+            MarkItem();
+            if (self_verify && !NoSelfVerify) {
+                // for self-verification, prefix T with its hash code
+                Put(typeid(T).hash_code());
+            }
+            Serialization<BlockWriter, T>::Serialize(x, *this);
+
+            // item fully serialized, push out finished blocks.
+            while (!sink_queue_.empty()) {
+                sink_->AppendBlock(sink_queue_.front());
+                sink_queue_.pop_front();
+            }
+
+            do_queue_ = false;
+
+            return *this;
+        }
+        catch (FullException& e) {
+            // if BlockSink signaled full, then unwind adding of the item.
+
+            while (!sink_queue_.empty()) {
+                sLOG << "releasing" << bytes_.get();
+                sink_->ReleaseByteBlock(bytes_);
+
+                Block b = sink_queue_.back();
+                sink_queue_.pop_back();
+
+                bytes_ = std::move(b.byte_block());
+            }
+
+            sLOG << "reset" << bytes_.get();
+
+            current_ = initial_current;
+            end_ = bytes_->end();
+            nitems_ = initial_nitems;
+            first_offset_ = initial_first_offset;
+            do_queue_ = false;
+
+            throw;
+        }
+    }
+
+    //! appends a complete item, or aborts with a FullException.
+    template <typename T, bool NoSelfVerify = false>
+    BlockWriter & PutItemUnsafe(const T& x) {
+        assert(!closed_);
+
+        try {
+            if (current_ == end_) {
+                Flush(), AllocateBlock();
+            }
+
+            MarkItem();
+            if (self_verify && !NoSelfVerify) {
+                // for self-verification, prefix T with its hash code
+                Put(typeid(T).hash_code());
+            }
+            Serialization<BlockWriter, T>::Serialize(x, *this);
+        }
+        catch (FullException& e) {
+            throw std::runtime_error(
+                      "BlockSink was full even though declared infinite");
+        }
+
         return *this;
     }
 
@@ -133,7 +273,7 @@ public:
     //! \{
 
     //! Append a memory range to the block
-    BlockWriterBase & Append(const void* data, size_t size) {
+    BlockWriter & Append(const void* data, size_t size) {
         assert(!closed_);
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
@@ -147,7 +287,7 @@ public:
             size -= partial_size;
             current_ += partial_size;
 
-            Flush();
+            Flush(), AllocateBlock();
         }
 
         // copy remaining bytes.
@@ -158,11 +298,11 @@ public:
     }
 
     //! Append a single byte to the block
-    BlockWriterBase & PutByte(Byte data) {
+    BlockWriter & PutByte(Byte data) {
         assert(!closed_);
 
         if (THRILL_UNLIKELY(current_ == end_))
-            Flush();
+            Flush(), AllocateBlock();
 
         *current_++ = data;
         return *this;
@@ -170,14 +310,14 @@ public:
 
     //! Append to contents of a std::string, excluding the null (which isn't
     //! contained in the string size anyway).
-    BlockWriterBase & Append(const std::string& str) {
+    BlockWriter & Append(const std::string& str) {
         return Append(str.data(), str.size());
     }
 
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
-    BlockWriterBase & Put(const Type& item) {
+    BlockWriter & Put(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to Put() POD types as raw values.");
 
@@ -199,27 +339,17 @@ public:
 protected:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        bytes_ = ByteBlock::Allocate(block_size_);
+        bytes_ = sink_->AllocateByteBlock(block_size_);
+        if (!bytes_) {
+            sLOG << "AllocateBlock(): throw due to invalid block";
+            throw FullException();
+        }
+        sLOG << "AllocateBlock(): good, got" << bytes_.get();
+
         current_ = bytes_->begin();
         end_ = bytes_->end();
         nitems_ = 0;
         first_offset_ = 0;
-    }
-
-    //! Flush the currently created block into the underlying File.
-    void FlushBlock() {
-        sink_->AppendBlock(bytes_, 0, current_ - bytes_->begin(),
-                           first_offset_, nitems_);
-    }
-
-    //! Flush the currently created block if it contains at least one byte
-    void MaybeFlushBlock() {
-        if (current_ != bytes_->begin() || nitems_) {
-            FlushBlock();
-            nitems_ = 0;
-            bytes_ = ByteBlockPtr();
-            current_ = nullptr;
-        }
     }
 
     //! current block, already allocated as shared ptr, since we want to use
@@ -227,11 +357,11 @@ protected:
     ByteBlockPtr bytes_;
 
     //! current write pointer into block.
-    Byte* current_;
+    Byte* current_ = nullptr;
 
     //! current end of block pointer. this is == bytes_.end(), just one
     //! indirection less.
-    Byte* end_;
+    Byte* end_ = nullptr;
 
     //! number of items in current block
     size_t nitems_;
@@ -242,6 +372,12 @@ protected:
     //! file or stream sink to output blocks to.
     BlockSink* sink_;
 
+    //! boolean whether to queue blocks
+    bool do_queue_ = false;
+
+    //! queue of blocks to flush when the current item has fully been serialized
+    std::deque<Block> sink_queue_;
+
     //! size of data blocks to construct
     size_t block_size_;
 
@@ -249,8 +385,8 @@ protected:
     bool closed_ = false;
 };
 
-using BlockWriter = BlockWriterBase<false>;
-using BlockWriterNoVerify = BlockWriterBase<true>;
+//! alias for BlockWriter which outputs to a generic BlockSink.
+using DynBlockWriter = BlockWriter<data::BlockSink>;
 
 //! \}
 
