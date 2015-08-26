@@ -183,16 +183,27 @@ private:
 
     ValueType GetAt(size_t rank) {
         //Select am element based on its rank from 
-        //all collections. 
+        //all collections.
+        //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608 
         return (ValueType)rank;
     }
     size_t IndexOf(Pivot element) { 
         //Get the index of a given element, or the first
         //Greater one. 
-        return (size_t)element.first;  
+        size_t idx = 0;
+        size_t tie = element.second - prefixSize; //Tie has to be local.
+
+        for(size_t i = 0; i < files_.size(); i++) {
+            idx += files_[i].GetIndexOf(element.first, tie);
+            tie -= files_[i].NumItems(); //Shift tie. 
+        }
+
+        return idx;
     }
 
-    
+    size_t dataSize; //Count of items on this worker.
+    size_t prefixSize; //Count of items on all prev workers. 
+
     //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
@@ -211,7 +222,7 @@ private:
         std::mt19937 rand(0); //Give const seed. May choose this one over the net.
 
         //Overall count of local items.
-        size_t dataSize = 0;
+        dataSize = 0;
 
         for(size_t i = 0; i < files_.size(); i++) {
             dataSize += files_[i].NumItems();
@@ -224,7 +235,6 @@ private:
         //Partition borders. Let there by binary search. 
         std::vector<size_t> left(p - 1);
         std::vector<size_t> width(p - 1);
-        size_t prefixSize; //Count of all items before this worker.
 
         std::fill(left.begin(), left.end(), 0);
         std::fill(width.begin(), width.end(), dataSize);
@@ -256,7 +266,7 @@ private:
             size_t done = 0;
 
             for(size_t r = 0; r < p - 1; r++) {
-                if(widthsum[r] <= p) { //Not sure about this condition. It's been modified. 
+                if(widthsum[r] <= 1) { //Not sure about this condition. It's been modified. 
                     partitions[r] = left[r];
                     done++;
                 }
@@ -313,7 +323,11 @@ private:
             } 
         }
 
-        //Cool, parts contains the global splittage now. 
+        //Cool, parts contains the global splittage now
+
+       for(size_t i = 0; i < partitions.size(); i++) {
+            LOG << "Part " << i << " " << partitions[i];
+       } 
         
         //For now, do "trivial" scattering. 
         channels_[0] = context_.GetNewChannel();
@@ -369,10 +383,10 @@ auto DIARef<ValueType, Stack>::Merge(
 
     static_assert(
         std::is_convertible<
-            bool,
+            int,
             CompareResult
             >::value,
-        "Comperator has the wrong return type");
+        "Comperator must return int");
 
     StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
