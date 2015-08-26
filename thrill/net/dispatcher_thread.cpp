@@ -30,6 +30,13 @@ DispatcherThread::DispatcherThread(const mem::string& thread_name)
         LOG1 << "Error opening self-pipe: " << strerror(errno);
     }
     die_unless(r == 0);
+    // set non-inheritance flag on self-pipe
+    if (fcntl(self_pipe_[0], F_SETFD, FD_CLOEXEC) != 0) {
+        LOG1 << "Error setting FD_CLOEXEC on self-pipe: " << strerror(errno);
+    }
+    if (fcntl(self_pipe_[1], F_SETFD, FD_CLOEXEC) != 0) {
+        LOG1 << "Error setting FD_CLOEXEC on self-pipe: " << strerror(errno);
+    }
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
 }

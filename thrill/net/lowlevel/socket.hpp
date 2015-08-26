@@ -69,7 +69,7 @@ public:
 
     //! Create a new stream socket.
     static Socket Create() {
-        int fd = ::socket(PF_INET, SOCK_STREAM, 0);
+        int fd = ::socket(PF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
         if (fd < 0) {
             LOG << "Socket::Create()"
@@ -84,7 +84,7 @@ public:
     //! test connection pairs.
     static std::pair<Socket, Socket> CreatePair() {
         int fds[2];
-        int r = ::socketpair(PF_UNIX, SOCK_STREAM, 0, fds);
+        int r = ::socketpair(PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, fds);
 
         if (r != 0) {
             LOG << "Socket::CreatePair()"
