@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 #include <random>
 #include <string>
@@ -93,8 +94,11 @@ TEST(IO, WriteToSingleFile) {
             .WriteLines(path);
 
             // Race condition as one worker might be finished while others are
-            // still writing to output file.
-            ctx.Barrier();
+            // still writing to output file.	
+            ctx.Barrier();			
+			if (ctx.my_rank() == 0) {
+				std::system("rm -r ./binary/*");
+			}
 
             std::ifstream file(path);
             size_t begin = file.tellg();
@@ -107,7 +111,6 @@ TEST(IO, WriteToSingleFile) {
                 std::getline(file, line);
                 ASSERT_EQ(std::stoi(line), i);
             }
-            system("exec rm -r /binary/*");
         };
 
     api::RunLocalTests(start_func);

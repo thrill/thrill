@@ -77,7 +77,7 @@ public:
             last_file++;
         }
 
-        while (filelist_[last_file + 1].second < my_end) {
+        while (filelist_[last_file + 1].second <= my_end && last_file < filelist_.size() - 1) {
             last_file++;
         }
 
@@ -99,17 +99,16 @@ public:
 
         bfr_.SetFileList(my_files_);
 
-        std::ifstream file(filelist_[context_.my_rank()].first);
-        assert(file.good());
-
         // Hook Read
-        while (bfr_.Position() < filesize_) {
+        while (bfr_.HasNext()) {
             auto item = data::Serialization<BinaryFileReader, ValueType>
                         ::Deserialize(bfr_);
+			LOG << item;
             for (auto func : Super::callbacks_) {
                 func(item);
             }
         }
+		LOG << "DONE!";
     }
 
     void Dispose() final { }
@@ -155,11 +154,28 @@ private:
 
         void SetFileList(std::vector<FileSizePair> path) {
             filelist_ = path;
-            instream_.open(filelist_[0].first);
+			if (filelist_.size() > 1) {
+				instream_.open(filelist_[0].first);
+				current_size_ = filelist_[1].second - filelist_[0].second;
+			}
         }
 
-        std::streampos Position() {
-            return instream_.tellg();
+        bool HasNext() {
+			if (filelist_.size() <= 1) {
+				return false;
+			} else if (instream_.tellg() == current_size_) {
+				if (current_file_ < filelist_.size() - 2) {
+					instream_.close();
+					current_file_++;
+					current_size_ = filelist_[current_file_ + 1].second - filelist_[current_file_].second;
+					instream_.open(filelist_[current_file_].first);
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				return true;
+			}
         }
 
         char GetByte() {
@@ -178,6 +194,8 @@ private:
     private:
         std::ifstream instream_;
         std::vector<FileSizePair> filelist_;
+		std::streampos current_size_;
+		size_t current_file_ = 0;
     };
 
     BinaryFileReader bfr_;
