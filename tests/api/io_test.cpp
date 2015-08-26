@@ -62,7 +62,7 @@ TEST(IO, GenerateIntegerWriteBinary) {
     api::RunLocalTests(
         [](api::Context& ctx) {
 
-            size_t generate_size = 16000000;
+            size_t generate_size = 320000;
 
             auto dia = Generate(
                 ctx,
@@ -71,8 +71,24 @@ TEST(IO, GenerateIntegerWriteBinary) {
                 },
                 generate_size);
 
-            dia.WriteBinary("test-GenerateIntegerWriteBinary");
+            dia.WriteBinary("test-IO.GenerateIntegerWriteBinary", 16 * 1024);
+        });
+}
 
+TEST(IO, GenerateStringWriteBinary) {
+    api::RunLocalTests(
+        [](api::Context& ctx) {
+
+            size_t generate_size = 320000;
+
+            auto dia = Generate(
+                ctx,
+                [](const size_t index) {
+                    return std::to_string(index * 42);
+                },
+                generate_size);
+
+            dia.WriteBinary("test-IO.GenerateStringWriteBinary", 16 * 1024);
         });
 }
 

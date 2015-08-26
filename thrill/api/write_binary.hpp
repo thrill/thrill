@@ -42,12 +42,17 @@ public:
 
     WriteBinaryNode(const ParentDIARef& parent,
                     const std::string& path_out,
+                    size_t max_file_size,
                     StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
                      "WriteBinary", stats_node),
-          out_pathbase_(path_out)
+          out_pathbase_(path_out),
+          max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
+
+        block_size_ = std::min(data::default_block_size,
+                               common::RoundUpToPowerOfTwo(max_file_size));
 
         auto pre_op_fn = [=](const ValueType& input) {
             return PreOp(input);
@@ -77,9 +82,9 @@ protected:
     {
     public:
         OStreamSink(data::BlockPool& block_pool,
-                    const std::string& path, size_t max_size)
+                    const std::string& path, size_t max_file_size)
             : BlockSink(block_pool),
-              BoundedBlockSink(block_pool, max_size),
+              BoundedBlockSink(block_pool, max_file_size),
               outstream_(path) { }
 
         void AppendBlock(const data::Block& b) final {
@@ -103,6 +108,9 @@ protected:
     //! File serial number for this worker
     size_t out_serial_ = 0;
 
+    //! Maximum file size
+    size_t max_file_size_;
+
     //! Block size used by BlockWriter
     size_t block_size_ = data::default_block_size;
 
@@ -124,7 +132,7 @@ protected:
                  << std::setw(10) << std::setfill('0') << out_serial_++;
 
         sink_ = std::make_unique<OStreamSink>(
-            context_.block_pool(), out_path.str(), 16 * 1024 * 1024);
+            context_.block_pool(), out_path.str(), max_file_size_);
 
         writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
     }
@@ -154,14 +162,15 @@ protected:
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteBinary(
-    const std::string& filepath) const {
+    const std::string& filepath, size_t max_file_size) const {
 
     using WriteResultNode = WriteBinaryNode<ValueType, DIARef>;
 
     StatsNode* stats_node = AddChildStatsNode("WriteBinary", NodeType::ACTION);
 
     auto shared_node =
-        std::make_shared<WriteResultNode>(*this, filepath, stats_node);
+        std::make_shared<WriteResultNode>(
+            *this, filepath, max_file_size, stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
 }
