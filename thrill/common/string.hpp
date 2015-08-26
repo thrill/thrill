@@ -65,15 +65,14 @@ bool ends_with(const std::string& str, const std::string& match) {
  * \param max_size maximum length of output string, longer ones are truncated.
  * \param fmt printf format and additional parameters
  */
-template <typename String = std::string,
-          typename CharT = typename String::value_type>
-String str_snprintf(size_t max_size, const CharT* fmt, ...)
+template <typename String = std::string>
+String str_snprintf(size_t max_size, const char* fmt, ...)
 __attribute__ ((format(printf, 2, 3)));
 
-template <typename String = std::string,
-          typename CharT = typename String::value_type>
-String str_snprintf(size_t max_size, const CharT* fmt, ...) {
-    CharT* s = static_cast<CharT*>(alloca(sizeof(CharT) * max_size));
+template <typename String>
+String str_snprintf(size_t max_size, const char* fmt, ...) {
+    // allocate buffer on stack
+    char* s = static_cast<char*>(alloca(max_size));
 
     va_list args;
     va_start(args, fmt);
