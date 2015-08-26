@@ -65,6 +65,43 @@ protected:
     BlockPool& block_pool_;
 };
 
+/*!
+ * Derivative BlockSink which counts and limits how many bytes it has delivered
+ * as ByteBlocks for writing.
+ */
+class BoundedBlockSink : public virtual BlockSink
+{
+public:
+    //! constructor with reference to BlockPool
+    BoundedBlockSink(data::BlockPool& block_pool, size_t max_size)
+        : BlockSink(block_pool),
+          max_size_(max_size), available_(max_size)
+    { }
+
+    ByteBlockPtr AllocateByteBlock(size_t block_size) final {
+        if (available_ < block_size) return ByteBlockPtr();
+        available_ -= block_size;
+        return BlockSink::AllocateByteBlock(block_size);
+    }
+
+    void ReleaseByteBlock(ByteBlockPtr& block) final {
+        if (block)
+            available_ += block->size();
+        block = nullptr;
+    }
+
+    size_t max_size() const { return max_size_; }
+
+    enum { allocate_can_fail_ = true };
+
+protected:
+    //! maximum allocation of ByteBlock for this BlockSink
+    size_t max_size_;
+
+    //! currently allocated ByteBlock for this BlockSink.
+    size_t available_;
+};
+
 //! \}
 
 } // namespace data
