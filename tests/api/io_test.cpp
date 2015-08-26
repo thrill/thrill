@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/system_exception.hpp>
 #include <thrill/thrill.hpp>
 
 #include <gtest/gtest.h>
@@ -23,10 +24,78 @@
 
 #include <glob.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 using namespace thrill;
 using thrill::api::Context;
 using thrill::api::DIARef;
+
+/*!
+ * A class which creates a temporary directory in /tmp/ and returns it via
+ * get(). When the object is destroyed the temporary directory is wiped
+ * non-recursively.
+ */
+class TemporaryDirectory {
+public:
+    //! Create a temporary directory, returns its name without trailing /.
+    static std::string make_directory(
+        const char* sample = "/tmp/thrill-testsuite-") {
+
+        std::string tmp_dir = std::string(sample) + "XXXXXX";
+        // evil const_cast, but mkdtemp replaces the XXXXXX with something
+        // unique. it also mkdirs.
+        mkdtemp(const_cast<char*>(tmp_dir.c_str()));
+
+        return tmp_dir;
+    }
+
+    //! wipe temporary directory NON RECURSIVELY!
+    static void wipe_directory(const std::string& tmp_dir) {
+        DIR* d = opendir(tmp_dir.c_str());
+        if (d == nullptr) {
+            throw common::SystemException(
+                "Could open temporary directory " + tmp_dir, errno);
+        }
+
+        struct dirent* de, entry;
+        while (readdir_r(d, &entry, &de) == 0 && de != nullptr) {
+            // skip ".", "..", and also hidden files (don't create them).
+            if (de->d_name[0] == '.') continue;
+
+            std::string path = tmp_dir + "/" + de->d_name;
+            int r = unlink(path.c_str());
+            if (r != 0)
+                sLOG1 << "Could not unlink temporary file " << path
+                      << ": " << strerror(errno);
+        }
+
+        closedir(d);
+
+        if (rmdir(tmp_dir.c_str()) != 0) {
+            sLOG1 << "Could not unlink temporary directory " << tmp_dir
+                  << ": " << strerror(errno);
+        }
+    }
+
+    TemporaryDirectory()
+        : dir_(make_directory())
+    { }
+
+    ~TemporaryDirectory() {
+        wipe_directory(dir_);
+    }
+
+    //! non-copyable: delete copy-constructor
+    TemporaryDirectory(const TemporaryDirectory &) = delete;
+    //! non-copyable: delete assignment operator
+    TemporaryDirectory & operator = (const TemporaryDirectory &) = delete;
+
+    //! return the temporary directory name
+    const std::string& get() const { return dir_; }
+
+protected:
+    std::string dir_;
+};
 
 TEST(IO, ReadSingleFile) {
     std::function<void(Context&)> start_func =
@@ -122,6 +191,7 @@ TEST(IO, GenerateIntegerWriteBinary) {
 
             size_t generate_size = 320000;
 
+            // generate a dia of integers
             auto dia = Generate(
                 ctx,
                 [](const size_t index) {
@@ -129,7 +199,11 @@ TEST(IO, GenerateIntegerWriteBinary) {
                 },
                 generate_size);
 
-            dia.WriteBinary("test-IO.GenerateIntegerWriteBinary", 16 * 1024);
+            // write to temporary directory
+            TemporaryDirectory tmpdir;
+
+            dia.WriteBinary(tmpdir.get() + "/IO.GenerateIntegerWriteBinary",
+                            16 * 1024);
         });
 }
 
@@ -146,7 +220,11 @@ TEST(IO, GenerateStringWriteBinary) {
                 },
                 generate_size);
 
-            dia.WriteBinary("test-IO.GenerateStringWriteBinary", 16 * 1024);
+            // write to temporary directory
+            TemporaryDirectory tmpdir;
+
+            dia.WriteBinary(tmpdir.get() + "/IO.GenerateStringWriteBinary",
+                            16 * 1024);
         });
 }
 
