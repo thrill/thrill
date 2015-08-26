@@ -14,10 +14,10 @@
 #ifndef THRILL_COMMON_STRING_HEADER
 #define THRILL_COMMON_STRING_HEADER
 
+#include <cstdarg>
 #include <random>
 #include <string>
 #include <vector>
-#include <cstdarg>
 
 namespace thrill {
 namespace common {
@@ -68,12 +68,11 @@ bool ends_with(const std::string& str, const std::string& match) {
 template <typename String = std::string,
           typename CharT = typename String::value_type>
 String str_snprintf(size_t max_size, const CharT* fmt, ...)
-    __attribute__ ((format (printf, 2, 3)));
+__attribute__ ((format(printf, 2, 3)));
 
 template <typename String = std::string,
           typename CharT = typename String::value_type>
-String str_snprintf(size_t max_size, const CharT* fmt, ...)
-{
+String str_snprintf(size_t max_size, const CharT* fmt, ...) {
     CharT* s = static_cast<CharT*>(alloca(sizeof(CharT) * max_size));
 
     va_list args;
@@ -219,8 +218,7 @@ std::string join(const std::string& glue, const Container& parts) {
  */
 static inline
 std::string & replace_all(std::string& str, const std::string& needle,
-                          const std::string& instead)
-{
+                          const std::string& instead) {
     std::string::size_type lastpos = 0, thispos;
 
     while ((thispos = str.find(needle, lastpos)) != std::string::npos)
