@@ -164,7 +164,7 @@ int OpenFileForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
 
-    int fd = open(path.c_str(), O_WRONLY);
+    int fd = open(path.c_str(), O_CREAT | O_WRONLY, 0666);
     if (fd < 0) {
         throw common::SystemException("Cannot create file " + path, errno);
     }

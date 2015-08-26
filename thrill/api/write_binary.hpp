@@ -19,7 +19,6 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 
-#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -116,30 +115,34 @@ public:
     }
 
 protected:
-    //! Implements BlockSink class writing to std::ofstream with size limit.
-    class OStreamSink : public data::BoundedBlockSink
+    //! Implements BlockSink class writing to files with size limit.
+    class SysFileSink : public data::BoundedBlockSink
     {
     public:
-        OStreamSink(data::BlockPool& block_pool,
+        SysFileSink(data::BlockPool& block_pool,
                     const std::string& path, size_t max_file_size)
             : BlockSink(block_pool),
-              BoundedBlockSink(block_pool, max_file_size),
-              outstream_(path) { }
+              BoundedBlockSink(block_pool, max_file_size) {
+            fd_ = core::OpenFileForWrite(path);
+        }
 
         void AppendBlock(const data::Block& b) final {
-            outstream_.write(
-                reinterpret_cast<const char*>(b.data_begin()), b.size());
+            write(fd_, b.data_begin(), b.size());
         }
 
         void Close() final {
-            outstream_.close();
+            close(fd_);
+        }
+
+        ~SysFileSink() {
+            Close();
         }
 
     protected:
-        std::ofstream outstream_;
+        int fd_;
     };
 
-    using Writer = data::BlockWriter<OStreamSink>;
+    using Writer = data::BlockWriter<SysFileSink>;
 
     //! Base path of the output file.
     std::string out_pathbase_;
@@ -154,7 +157,7 @@ protected:
     size_t block_size_ = data::default_block_size;
 
     //! BlockSink which writes to an actual file
-    std::unique_ptr<OStreamSink> sink_;
+    std::unique_ptr<SysFileSink> sink_;
 
     //! BlockWriter to sink.
     std::unique_ptr<Writer> writer_;
@@ -167,7 +170,7 @@ protected:
         std::string out_path = make_path(
             out_pathbase_, context_.my_rank(), out_serial_++);
 
-        sink_ = std::make_unique<OStreamSink>(
+        sink_ = std::make_unique<SysFileSink>(
             context_.block_pool(), out_path, max_file_size_);
 
         writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
