@@ -372,6 +372,8 @@ public:
 
     size_t max_size() const { return max_size_; }
 
+    enum { allocate_can_fail_ = true };
+
 protected:
     size_t available_, max_size_;
 };
@@ -382,8 +384,8 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
     BoundedFile file(block_pool_, 32 * 64);
 
     try {
-        data::DynBlockWriter bw = data::DynBlockWriter(&file, 64);
-        for (size_t i = 0; i != 1024; ++i) {
+        data::BlockWriter<BoundedFile> bw(&file, 64);
+        for (size_t i = 0; i != 1024000; ++i) {
             bw(123456u + i);
         }
         FAIL();

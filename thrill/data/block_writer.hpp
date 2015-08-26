@@ -144,11 +144,28 @@ public:
 
     //! operator() appends a complete item, or fails with a FullException.
     template <typename T>
+    BlockWriter & PutItem(const T& x) {
+        assert(!closed_);
+
+        if (!BlockSink::allocate_can_fail_)
+            return PutItemUnsafe<T>(x);
+        else
+            return PutItemSafe<T>(x);
+    }
+
+    //! operator() appends a complete item, or fails with a FullException.
+    template <typename T>
     BlockWriter& operator () (const T& x) {
+        return PutItem(x);
+    }
+
+    //! appends a complete item, or fails safely with a FullException.
+    template <typename T>
+    BlockWriter & PutItemSafe(const T& x) {
         assert(!closed_);
 
         if (current_ == end_) {
-            // if current block full: flush it, FROM enabling queuing, because
+            // if current block full: flush it, BEFORE enabling queuing, because
             // the previous item is complete.
             try {
                 Flush(), AllocateBlock();
@@ -210,6 +227,31 @@ public:
 
             throw;
         }
+    }
+
+    //! appends a complete item, or aborts with a FullException.
+    template <typename T>
+    BlockWriter & PutItemUnsafe(const T& x) {
+        assert(!closed_);
+
+        try {
+            if (current_ == end_) {
+                Flush(), AllocateBlock();
+            }
+
+            MarkItem();
+            if (self_verify) {
+                // for self-verification, prefix T with its hash code
+                Put(typeid(T).hash_code());
+            }
+            Serialization<BlockWriter, T>::Serialize(x, *this);
+        }
+        catch (FullException& e) {
+            throw std::runtime_error(
+                      "BlockSink was full even though declared infinite");
+        }
+
+        return *this;
     }
 
     //! \}
