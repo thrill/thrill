@@ -225,6 +225,9 @@ public:
         return std::move(multiplexer_.GetNewChannel(local_worker_id_));
     }
 
+    //! the block manager keeps all data blocks moving through the system.
+    data::BlockPool & block_pool() { return block_pool_; }
+
     //! \}
 
     //! Returns the stas object for this worker
