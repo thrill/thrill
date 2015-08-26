@@ -18,6 +18,7 @@
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/common/system_exception.hpp>
 
 namespace thrill {
 namespace core {
@@ -82,16 +83,22 @@ public:
 
 /*!
  * Open file for reading and return file descriptor. Handles compressed files by
- * calling a decompressor in a pipe, like "gzip -d $f |" in bash.
+ * calling a decompressor in a pipe, like "cat $f | gzip -dc |" in bash.
  *
  * \param path Path to open
  */
 int OpenFileForRead(const std::string& path) {
 
-    // path too short, can't end with .[gz/bz2,xz,lzo]
-    if (path.size() < 4) return open(path.c_str(), O_RDONLY);
+    // first open the file and see if it exists at all.
 
-    const char* decompressor = nullptr;
+    int fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) {
+        throw common::SystemException("Cannot open file " + path, errno);
+    }
+
+    // then figure out whether we need to pipe it through a decompressor.
+
+    const char* decompressor;
 
     if (common::ends_with(path, ".gz")) {
         decompressor = "gzip";
@@ -105,26 +112,30 @@ int OpenFileForRead(const std::string& path) {
     else if (common::ends_with(path, ".lzo")) {
         decompressor = "lzop";
     }
-
-    // not a compressed file
-    if (!decompressor) return open(path.c_str(), O_RDONLY);
-
-    // create pipe, fork and call decompressor as child
-    int pipefd[2];                     // pipe[0] = read, pipe[1] = write
-    if (pipe(pipefd) != 0) {
-        LOG1 << "Error creating pipe: " << strerror(errno);
-        exit(-1);
+    else {
+        // not a compressed file
+        return fd;
     }
+
+    // if decompressor: fork a child program which calls the decompressor and
+    // connect file descriptors via a pipe.
+
+    // pipe[0] = read, pipe[1] = write
+    int pipefd[2];
+    if (pipe(pipefd) != 0)
+        throw common::SystemException("Error creating pipe", errno);
 
     pid_t pid = fork();
     if (pid == 0) {
         // close read end
         close(pipefd[0]);
 
-        // replace stdout with pipe
+        // replace stdin with file descriptor to file opened above.
+        dup2(fd, STDIN_FILENO);
+        // replace stdout with pipe going back to Thrill process
         dup2(pipefd[1], STDOUT_FILENO);
 
-        execlp(decompressor, decompressor, "-dc", path.c_str(), nullptr);
+        execlp(decompressor, decompressor, "-dc", nullptr);
 
         LOG1 << "Pipe execution failed: " << strerror(errno);
         // close write end
@@ -132,10 +143,83 @@ int OpenFileForRead(const std::string& path) {
         exit(-1);
     }
 
-    // close write end
+    // TODO(tb): we have to reap the child process! currently it is a zombie.
+
+    // close pipe write end
     close(pipefd[1]);
 
+    // close the file descriptor
+    close(fd);
+
     return pipefd[0];
+}
+
+/*!
+ * Open file for writing and return file descriptor. Handles compressed files by
+ * calling a compressor in a pipe, like "| gzip -d > $f" in bash.
+ *
+ * \param path Path to open
+ */
+int OpenFileForWrite(const std::string& path) {
+
+    // first create the file and see if we can write it at all.
+
+    int fd = open(path.c_str(), O_WRONLY);
+    if (fd < 0) {
+        throw common::SystemException("Cannot create file " + path, errno);
+    }
+
+    // then figure out whether we need to pipe it through a compressor.
+
+    const char* compressor;
+
+    if (common::ends_with(path, ".gz")) {
+        compressor = "gzip";
+    }
+    else if (common::ends_with(path, ".bz2")) {
+        compressor = "bzip2";
+    }
+    else if (common::ends_with(path, ".xz")) {
+        compressor = "xz";
+    }
+    else if (common::ends_with(path, ".lzo")) {
+        compressor = "lzop";
+    }
+    else {
+        // not a compressed file
+        return fd;
+    }
+
+    // if compressor: fork a child program which calls the compressor and
+    // connect file descriptors via a pipe.
+
+    // pipe[0] = read, pipe[1] = write
+    int pipefd[2];
+    if (pipe(pipefd) != 0)
+        throw common::SystemException("Error creating pipe", errno);
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        // close write end
+        close(pipefd[1]);
+
+        // replace stdin with pipe
+        dup2(pipefd[0], STDIN_FILENO);
+        // replace stdout with file descriptor to file created above.
+        dup2(fd, STDOUT_FILENO);
+
+        execlp(compressor, compressor, "-c", nullptr);
+
+        LOG1 << "Pipe execution failed: " << strerror(errno);
+        // close write end
+        close(pipefd[1]);
+        exit(-1);
+    }
+
+    // close read end
+    close(pipefd[0]);
+
+    return pipefd[1];
 }
 
 } // namespace core
