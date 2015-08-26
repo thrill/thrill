@@ -31,7 +31,7 @@ namespace data {
  * ChannelSink is an BlockSink that sends data via a network socket to the
  * Channel object on a different worker.
  */
-class ChannelSink : public BlockSink
+class ChannelSink final : public BlockSink
 {
 public:
     using ChannelId = size_t;

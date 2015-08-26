@@ -108,11 +108,10 @@ int main(int argc, char* argv[]) {
 
     data::BlockPool block_pool(nullptr);
     std::vector<data::DiscardSink> sinks;
-    std::vector<data::BlockWriter> writers;
-    for (size_t i = 0; i != workers; ++i)
-    {
+    std::vector<data::DynBlockWriter> writers;
+    for (size_t i = 0; i != workers; ++i) {
         sinks.emplace_back(block_pool);
-        writers.emplace_back(sinks[i].GetWriter());
+        writers.emplace_back(sinks[i].GetDynWriter());
     }
 
     size_t block_size_ = core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,

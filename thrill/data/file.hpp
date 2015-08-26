@@ -54,8 +54,9 @@ class File : public BlockSink
 {
 public:
     using BlockSource = FileBlockSource;
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<File>;
     using Reader = BlockReader<FileBlockSource>;
+    using DynWriter = DynBlockWriter;
     using DynReader = DynBlockReader;
 
     //! Constructor from BlockPool
@@ -113,6 +114,11 @@ public:
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size) {
         return Writer(this, block_size);
+    }
+
+    //! Get BlockWriter.
+    DynWriter GetDynWriter(size_t block_size = default_block_size) {
+        return DynWriter(this, block_size);
     }
 
     //! Get BlockReader for beginning of File

@@ -88,7 +88,7 @@ private:
     std::vector<ValueType>* out_vector_;
 
     data::ChannelPtr channel_;
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     static const bool debug = false;
 };

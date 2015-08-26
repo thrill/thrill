@@ -177,7 +177,7 @@ public:
     ReducePreProbingTable(size_t num_partitions,
                           KeyExtractor key_extractor,
                           ReduceFunction reduce_function,
-                          std::vector<data::BlockWriter>& emit,
+                          std::vector<data::DynBlockWriter>& emit,
                           Key sentinel,
                           size_t num_items_per_partition = 1024* 16,
                           double max_partition_fill_rate = 0.5,
@@ -517,7 +517,7 @@ private:
     size_t num_items_per_partition_;
 
     //! Set of emitters, one per partition.
-    std::vector<data::BlockWriter>& emit_;
+    std::vector<data::DynBlockWriter>& emit_;
 
     //! Hash functions.
     IndexFunction index_function_;

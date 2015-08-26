@@ -71,7 +71,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super::result_file_;
 
 public:
-    using Emitter = data::BlockWriter;
+    using Emitter = data::DynBlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
               KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
@@ -203,7 +203,7 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     PreHashTable reduce_pre_table_;
 

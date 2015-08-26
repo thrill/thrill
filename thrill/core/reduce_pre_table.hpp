@@ -212,7 +212,7 @@ public:
     ReducePreTable(size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
-                   std::vector<data::BlockWriter>& emit,
+                   std::vector<data::DynBlockWriter>& emit,
                    size_t num_buckets_per_partition = 1024,
                    double max_partition_fill_rate = 0.5,
                    size_t max_num_blocks_table = 1024* 16,
@@ -610,7 +610,7 @@ protected:
     ReduceFunction reduce_function_;
 
     //! Set of emitters, one per partition.
-    std::vector<data::BlockWriter>& emit_;
+    std::vector<data::DynBlockWriter>& emit_;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;

@@ -182,7 +182,7 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey> reduce_pre_table_;
 

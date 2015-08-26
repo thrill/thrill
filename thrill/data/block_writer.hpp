@@ -47,8 +47,9 @@ public:
  * File, a ChannelSink, etc. for further delivery. The BlockWriter takes care of
  * segmenting items when a Block is full.
  */
+template <typename BlockSink>
 class BlockWriter
-    : public common::ItemWriterToolsBase<BlockWriter>
+    : public common::ItemWriterToolsBase<BlockWriter<BlockSink> >
 {
 public:
     static const bool debug = false;
@@ -104,8 +105,8 @@ public:
         }
         else {
             sLOG << "Flush(): flush" << bytes_.get();
-            sink_->AppendBlock(bytes_, 0, current_ - bytes_->begin(),
-                               first_offset_, nitems_);
+            sink_->AppendBlock(Block(bytes_, 0, current_ - bytes_->begin(),
+                                     first_offset_, nitems_));
         }
 
         // reset
@@ -328,6 +329,9 @@ protected:
     //! Flag if Close was called explicitly
     bool closed_ = false;
 };
+
+//! alias for BlockWriter which outputs to a generic BlockSink.
+using DynBlockWriter = BlockWriter<data::BlockSink>;
 
 //! \}
 

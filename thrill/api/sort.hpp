@@ -121,11 +121,11 @@ private:
 
     //! Emitter to send samples to process 0
     data::ChannelPtr channel_id_samples_;
-    std::vector<data::BlockWriter> emitters_samples_;
+    std::vector<data::Channel::Writer> emitters_samples_;
 
     //! Emitters to send data to other workers specified by splitters.
     data::ChannelPtr channel_id_data_;
-    std::vector<data::BlockWriter> emitters_data_;
+    std::vector<data::Channel::Writer> emitters_data_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;

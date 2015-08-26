@@ -42,11 +42,11 @@ class BlockQueueSource;
  * GetWriter() and GetReader().  Each block is available only *once* via the
  * BlockQueueSource.
  */
-class BlockQueue : public BlockSink
+class BlockQueue final : public BlockSink
 {
 public:
     using BlockSource = BlockQueueSource;
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<BlockQueue>;
     using Reader = BlockReader<BlockQueueSource>;
     using DynReader = DynBlockReader;
 
