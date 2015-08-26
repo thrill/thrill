@@ -158,13 +158,13 @@ private:
         virtual ~BinaryFileReader() { }
 
         void CloseStream() {
-            close(c_file_);
+            c_file_.close();
         }
 
         void SetFileList(std::vector<FileSizePair> path) {
             filelist_ = path;
             if (filelist_.size() > 1) {
-                c_file_ = core::OpenFileForRead(filelist_[0].first);
+                c_file_ = core::SysFile::OpenForRead(filelist_[0].first);
                 buffer_.Reserve(read_size);
                 current_size_ = filelist_[1].second - filelist_[0].second;
             }
@@ -177,7 +177,7 @@ private:
             }
 
             if (buffer_.size() == current_) {
-                buffer_.set_size(read(c_file_, buffer_.data(), read_size));
+                buffer_.set_size(c_file_.read(buffer_.data(), read_size));
                 current_ = 0;
                 // buffer is empty when file is already finished
                 //->go to next file if there is another one in filelist_
@@ -185,10 +185,10 @@ private:
                     return true;
                 }
                 else if (current_file_ < filelist_.size() - 2) {
-                    close(c_file_);
+                    c_file_.close();
                     current_file_++;
                     current_size_ = filelist_[current_file_ + 1].second - filelist_[current_file_].second;
-                    c_file_ = core::OpenFileForRead(filelist_[current_file_].first);
+                    c_file_ = core::SysFile::OpenForRead(filelist_[current_file_].first);
                     return true;
                 }
                 else {
@@ -202,7 +202,7 @@ private:
 
         char GetByte() {
             if (current_ == buffer_.size()) {
-                buffer_.set_size(read(c_file_, buffer_.data(), read_size));
+                buffer_.set_size(c_file_.read(buffer_.data(), read_size));
                 current_ = 0;
             }
             current_++;
@@ -219,8 +219,7 @@ private:
                 size_t copied_bytes = buffer_.end() - buffer_.begin() - current_;
 
                 buffer_.set_size(
-                    read(c_file_,
-                         buffer_.data() + copied_bytes,
+                    c_file_.read(                         buffer_.data() + copied_bytes,
                          read_size - copied_bytes) + copied_bytes);
                 current_ = 0;
             }
@@ -234,7 +233,7 @@ private:
         }
 
     private:
-        int c_file_;
+        core::SysFile c_file_;
         size_t current_ = 0;
         net::BufferBuilder buffer_;
         std::vector<FileSizePair> filelist_;

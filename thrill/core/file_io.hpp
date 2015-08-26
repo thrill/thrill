@@ -84,82 +84,6 @@ public:
 };
 
 /*!
- * Open file for reading and return file descriptor. Handles compressed files by
- * calling a decompressor in a pipe, like "cat $f | gzip -dc |" in bash.
- *
- * \param path Path to open
- */
-int OpenFileForRead(const std::string& path) {
-
-    // first open the file and see if it exists at all.
-
-    int fd = open(path.c_str(), O_RDONLY);
-    if (fd < 0) {
-        throw common::SystemException("Cannot open file " + path, errno);
-    }
-
-    // then figure out whether we need to pipe it through a decompressor.
-
-    const char* decompressor;
-
-    if (common::ends_with(path, ".gz")) {
-        decompressor = "gzip";
-    }
-    else if (common::ends_with(path, ".bz2")) {
-        decompressor = "bzip2";
-    }
-    else if (common::ends_with(path, ".xz")) {
-        decompressor = "xz";
-    }
-    else if (common::ends_with(path, ".lzo")) {
-        decompressor = "lzop";
-    }
-    else if (common::ends_with(path, ".lz4")) {
-        decompressor = "lz4";
-    }
-    else {
-        // not a compressed file
-        return fd;
-    }
-
-    // if decompressor: fork a child program which calls the decompressor and
-    // connect file descriptors via a pipe.
-
-    // pipe[0] = read, pipe[1] = write
-    int pipefd[2];
-    if (pipe(pipefd) != 0)
-        throw common::SystemException("Error creating pipe", errno);
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        // close read end
-        close(pipefd[0]);
-
-        // replace stdin with file descriptor to file opened above.
-        dup2(fd, STDIN_FILENO);
-        // replace stdout with pipe going back to Thrill process
-        dup2(pipefd[1], STDOUT_FILENO);
-
-        execlp(decompressor, decompressor, "-df", nullptr);
-
-        LOG1 << "Pipe execution failed: " << strerror(errno);
-        // close write end
-        close(pipefd[1]);
-        exit(-1);
-    }
-
-    // TODO(tb): we have to reap the child process! currently it is a zombie.
-
-    // close pipe write end
-    close(pipefd[1]);
-
-    // close the file descriptor
-    close(fd);
-
-    return pipefd[0];
-}
-
-/*!
  * Represents a POSIX system file via its file descriptor.
  */
 class SysFile
@@ -168,10 +92,21 @@ public:
     //! default constructor
     SysFile() : fd_(-1) { }
 
-    static SysFile OpenForRead(const std::string& path) {
-        return SysFile(OpenFileForRead(path));
-    }
+    /*!
+     * Open file for reading and return file descriptor. Handles compressed
+     * files by calling a decompressor in a pipe, like "cat $f | gzip -dc |" in
+     * bash.
+     *
+     * \param path Path to open
+     */
+    static SysFile OpenForRead(const std::string& path);
 
+    /*!
+     * Open file for writing and return file descriptor. Handles compressed
+     * files by calling a compressor in a pipe, like "| gzip -d > $f" in bash.
+     *
+     * \param path Path to open
+     */
     static SysFile OpenForWrite(const std::string& path);
 
     //! non-copyable: delete copy-constructor
@@ -184,13 +119,25 @@ public:
         f.fd_ = -1;
         f.pid_ = 0;
     }
+    //! move-assignment
+    SysFile& operator = (SysFile&& f) {
+        close();
+        fd_ = f.fd_;
+        pid_ = f.pid_;
+        return *this;
+    }
 
     //! POSIX write function.
     ssize_t write(const void* data, size_t count) {
         return ::write(fd_, data, count);
     }
 
-    //! close the file descriptor
+    //! POSIX read function.
+    ssize_t read(void* data, size_t count) {
+        return ::read(fd_, data, count);
+    }
+
+     //! close the file descriptor
     void close() {
         if (fd_ >= 0) {
             ::close(fd_);
@@ -207,7 +154,7 @@ public:
                 // child program exited normally
                 if (WEXITSTATUS(status) != 0) {
                     throw common::SystemException(
-                              "SysFile: child failed to return code "
+                              "SysFile: child failed with return code "
                               + std::to_string(WEXITSTATUS(status)));
                 }
                 else {
@@ -243,12 +190,88 @@ protected:
     pid_t pid_ = 0;
 };
 
-/*!
- * Open file for writing and return file descriptor. Handles compressed files by
- * calling a compressor in a pipe, like "| gzip -d > $f" in bash.
- *
- * \param path Path to open
- */
+SysFile SysFile::OpenForRead(const std::string& path) {
+
+    // first open the file and see if it exists at all.
+
+    int fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) {
+        throw common::SystemException("Cannot open file " + path, errno);
+    }
+
+    // then figure out whether we need to pipe it through a decompressor.
+
+    const char* decompressor;
+
+    if (common::ends_with(path, ".gz")) {
+        decompressor = "gzip";
+    }
+    else if (common::ends_with(path, ".bz2")) {
+        decompressor = "bzip2";
+    }
+    else if (common::ends_with(path, ".xz")) {
+        decompressor = "xz";
+    }
+    else if (common::ends_with(path, ".lzo")) {
+        decompressor = "lzop";
+    }
+    else if (common::ends_with(path, ".lz4")) {
+        decompressor = "lz4";
+    }
+    else {
+        // not a compressed file
+        return SysFile(fd);
+    }
+
+    // if decompressor: fork a child program which calls the decompressor and
+    // connect file descriptors via a pipe.
+
+    // pipe[0] = read, pipe[1] = write
+    int pipefd[2];
+    if (pipe(pipefd) != 0)
+        throw common::SystemException("Error creating pipe", errno);
+
+    if (fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) != 0) {
+        throw common::SystemException(
+            "Error setting FD_CLOEXEC on child pipe", errno);
+    }
+    if (fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) != 0) {
+        throw common::SystemException(
+            "Error setting FD_CLOEXEC on child pipe", errno);
+    }
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        // close read end
+        ::close(pipefd[0]);
+
+        // replace stdin with file descriptor to file opened above.
+        dup2(fd, STDIN_FILENO);
+        ::close(fd);
+        // replace stdout with pipe going back to Thrill process
+        dup2(pipefd[1], STDOUT_FILENO);
+        ::close(pipefd[1]);
+
+        execlp(decompressor, decompressor, "-d", nullptr);
+
+        LOG1 << "Pipe execution failed: " << strerror(errno);
+        // close write end
+        ::close(pipefd[1]);
+        exit(-1);
+    }
+    else if (pid < 0) {
+        throw common::SystemException("Error creating child process", errno);
+    }
+
+    // close pipe write end
+    ::close(pipefd[1]);
+
+    // close the file descriptor
+    ::close(fd);
+
+    return SysFile(pipefd[0], pid);
+}
+
 SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
@@ -291,10 +314,12 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
         throw common::SystemException("Error creating pipe", errno);
 
     if (fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) != 0) {
-        LOG1 << "Error setting FD_CLOEXEC on child pipe: " << strerror(errno);
+        throw common::SystemException(
+            "Error setting FD_CLOEXEC on child pipe", errno);
     }
     if (fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) != 0) {
-        LOG1 << "Error setting FD_CLOEXEC on child pipe: " << strerror(errno);
+        throw common::SystemException(
+            "Error setting FD_CLOEXEC on child pipe", errno);
     }
 
     pid_t pid = fork();
@@ -312,8 +337,8 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
         execlp(compressor, compressor, nullptr);
 
         LOG1 << "Pipe execution failed: " << strerror(errno);
-        // close write end
-        ::close(pipefd[1]);
+        // close read end
+        ::close(pipefd[0]);
         exit(-1);
     }
     else if (pid < 0) {
@@ -322,6 +347,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // close read end
     ::close(pipefd[0]);
+    
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
