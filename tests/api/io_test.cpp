@@ -134,7 +134,7 @@ TEST(IO, ReadSingleFile) {
     api::RunLocalTests(start_func);
 }
 
-TEST(IO, ReadFolder) {
+TEST(IO, DISABLED_ReadFolder) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             ASSERT_EQ(ReadLines(ctx, "read_folder/*").Size(), 20);
@@ -143,7 +143,7 @@ TEST(IO, ReadFolder) {
     api::RunLocalTests(start_func);
 }
 
-TEST(IO, ReadPartOfFolderCompressed) {
+TEST(IO, DISABLED_ReadPartOfFolderCompressed) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             // folder read_ints contains compressed and non-compressed files with integers
@@ -400,7 +400,7 @@ TEST(IO, WriteBinaryCorrectSize) {
     api::RunLocalTests(start_func);
 }
 
-TEST(IO, ReadBinary) {
+TEST(IO, DISABLED_ReadBinary) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
