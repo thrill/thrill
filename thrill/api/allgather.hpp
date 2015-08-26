@@ -88,13 +88,14 @@ private:
     std::vector<ValueType>* out_vector_;
 
     data::ChannelPtr channel_;
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     static const bool debug = false;
 };
 
 template <typename ValueType, typename Stack>
 std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+    assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
 
@@ -112,6 +113,7 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
+    assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
 

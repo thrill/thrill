@@ -49,6 +49,7 @@ namespace thrill {
 - \subpage net
 - \subpage data "Data Subsystem"
 - \subpage common
+- \subpage mem
 
 */
 
