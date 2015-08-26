@@ -20,10 +20,10 @@
 #include <thrill/data/block_writer.hpp>
 
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <utility>
 #include <vector>
-#include <iomanip>
 
 namespace thrill {
 namespace api {
@@ -55,7 +55,7 @@ public:
                                common::RoundUpToPowerOfTwo(max_file_size));
 
         auto pre_op_fn = [=](const ValueType& input) {
-            return PreOp(input);
+                             return PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
@@ -153,8 +153,8 @@ protected:
             }
             catch (data::FullException& e) {
                 throw std::runtime_error(
-                    "Error in WriteBinary: "
-                    "an item is larger than the file size limit");
+                          "Error in WriteBinary: "
+                          "an item is larger than the file size limit");
             }
         }
     }
