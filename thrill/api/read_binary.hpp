@@ -60,7 +60,7 @@ public:
     ReadBinaryNode(Context& ctx,
                    const std::string& filepath,
                    StatsNode* stats_node)
-        : Super(ctx, { }, "Read", stats_node),
+        : Super(ctx, { }, "ReadBinary", stats_node),
           filepath_(filepath)
     {
         core::FileIO fio;
@@ -103,6 +103,7 @@ public:
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
+        BinaryFileReader bfr_;
         bfr_.SetFileList(my_files_);
 
         // Hook Read
@@ -134,7 +135,7 @@ public:
      * \return "[ReadLinesNode]"
      */
     std::string ToString() final {
-        return "[ReadLinesNode] Id: " + result_file_.ToString();
+        return "[ReadBinaryNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -241,8 +242,6 @@ private:
         size_t current_file_ = 0;
         core::FileIO fio;
     };
-
-    BinaryFileReader bfr_;
 };
 
 /*!
