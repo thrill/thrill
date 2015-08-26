@@ -19,6 +19,7 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
+#include <thrill/common/function_traits.hpp>
 
 #include <cassert>
 #include <functional>
@@ -147,12 +148,14 @@ public:
 
     //! Get index of the given item, or the next greater item,
     // in this file. The file has to be ordered according to the
-    // given compare function.
+    // given compare function. The tie value can be used to 
+    // make a decision in case of many successive equal elements. 
+    // The tie is compared with the local rank of the element. 
     //
     // WARNING: This method uses GetItemAt combined with a binary search and
     // is therefore not efficient. The method will be reimplemented in near future.
     template <typename ItemType, typename CompareFunction = std::greater<ItemType> >
-    size_t GetIndexOf(ItemType item, const CompareFunction func = CompareFunction()) const;
+    size_t GetIndexOf(ItemType item, size_t tie, const CompareFunction func = CompareFunction()) const;
 
     //! Seek in File: return a Block range containing items begin, end of
     //! given type.
@@ -332,9 +335,16 @@ ItemType File::GetItemAt(size_t index) const {
 }
 
 template <typename ItemType, typename CompareFunction>
-size_t File::GetIndexOf(ItemType item, const CompareFunction comperator) const {
+size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction comperator) const {
 
     static const bool debug = false;
+
+    static_assert(
+            std::is_convertible<
+                int, 
+                typename common::FunctionTraits<CompareFunction>::result_type
+            >::value, 
+       "Comperator must return int.");
 
     LOG << "Looking for item " << item;
 
@@ -345,7 +355,8 @@ size_t File::GetIndexOf(ItemType item, const CompareFunction comperator) const {
     while (left < right - 1) {
         size_t mid = (right + left) / 2;
         ItemType cur = this->GetItemAt<ItemType>(mid);
-        if (comperator(cur, item)) {
+        int res = comperator(cur, item);
+        if (res < 0 || (res == 0 && tie >= mid)) {
             right = mid;
         }
         else {

@@ -219,7 +219,7 @@ TEST_F(File, RandomGetIndexOf) {
 
     for (size_t i = 0; i < 10; i++) {
         size_t val = rng() % size;
-        size_t idx = file.GetIndexOf(val, std::less<size_t>());
+        size_t idx = file.GetIndexOf(val, 0, [] (const size_t &a, const size_t &b) { return a - b; });
 
         ASSERT_EQ(500 - val - 1, idx);
     }
