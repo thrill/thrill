@@ -135,6 +135,11 @@ public:
     //! return close flag
     bool closed() const { return closed_; }
 
+    //! boolean flag whether to check if AllocateByteBlock can fail in any
+    //! subclass (if false: accelerate BlockWriter to not be able to cope with
+    //! nullptr).
+    enum { allocate_can_fail_ = false };
+
 protected:
     static const bool debug = false;
 

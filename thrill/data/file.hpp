@@ -79,6 +79,11 @@ public:
         closed_ = true;
     }
 
+    //! boolean flag whether to check if AllocateByteBlock can fail in any
+    //! subclass (if false: accelerate BlockWriter to not be able to cope with
+    //! nullptr).
+    enum { allocate_can_fail_ = false };
+
     // returns a string that identifies this string instance
     std::string ToString() {
         return "File@" + std::to_string(reinterpret_cast<uintptr_t>(this));

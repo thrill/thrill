@@ -77,6 +77,8 @@ public:
         queue_.emplace();
     }
 
+    enum { allocate_can_fail_ = false };
+
     Block Pop() {
         assert(!read_closed_);
         Block b;
