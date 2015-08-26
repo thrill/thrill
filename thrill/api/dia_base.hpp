@@ -68,7 +68,6 @@ public:
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag, StatsNode* stats_node)
         : context_(ctx), parents_(parents),
-          result_file_(ctx.GetFile()),
           execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
           lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
           stats_node_(stats_node) {
@@ -207,7 +206,7 @@ protected:
     std::vector<std::shared_ptr<DIABase> > parents_;
 
     //! Unique ID of this DIABase. Used by the data::Manager.
-    data::File result_file_;
+    data::File result_file_ { context_.GetFile() };
 
     //! Timer that tracks execution of this node
     common::TimerPtr execution_timer_;

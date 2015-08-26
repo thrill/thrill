@@ -27,6 +27,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <random>
 
 namespace thrill {
 namespace api {
@@ -151,7 +152,9 @@ private:
     static const size_t num_inputs_ = 2;
 
     //! Files for intermediate storage
-    std::array<data::File, num_inputs_> files_;
+    std::array<data::File, num_inputs_> files_ {
+        { context_.GetFile(), context_.GetFile() }
+    };
 
     //! Writers to intermediate files
     std::array<data::File::Writer, num_inputs_> writers_  {
@@ -161,17 +164,156 @@ private:
     //! Array of inbound Channels
     std::array<data::ChannelPtr, num_inputs_> channels_;
 
+    struct Pivot {
+        ValueType first;
+        size_t second;
+
+        bool operator <(const Pivot& y) const {
+            return std::tie(first, second) < std::tie(y.first, y.second);
+        }
+    };
+
+    Pivot CreatePivot(ValueType v, size_t i) {
+        Pivot p;
+        p.first = v;
+        p.second = i;
+        return p;
+    }
+    
+
+    ValueType GetAt(size_t rank) {
+        //Select am element based on its rank from 
+        //all collections. 
+        return (ValueType)rank;
+    }
+    size_t IndexOf(Pivot element) { 
+        //Get the index of a given element, or the first
+        //Greater one. 
+        return (size_t)element.first;  
+    }
+
+    
     //! Receive elements from other workers.
     void MainOp() {
         for (size_t i = 0; i != writers_.size(); ++i) {
             writers_[i].Close();
         }
+        net::FlowControlChannel& flowControl = context_.flow_control_channel();
 
-        // first: calculate total size of the DIAs to Zip
+        //Partitioning happens here.
+        
+        //Environment
+        size_t me = context_.my_rank(); //Local rank. 
+        size_t p = context_.num_workers(); //Count of all workers (and count of target partitions)
 
-        //net::FlowControlChannel& channel = context_.flow_control_channel();
+        //Partitions in rank over all local collections.
+        std::vector<size_t> partitions(p - 1);
+        std::mt19937 rand(0); //Give const seed. May choose this one over the net.
 
-        //Do funny stuff here. todo(ej)
+        //Overall count of local items.
+        size_t dataSize = 0;
+
+        for(size_t i = 0; i < files_.size(); i++) {
+            dataSize += files_[i].NumItems();
+        };
+
+        //Care! This does only work if dataSize is the same
+        //on each worker. 
+        size_t targetSize = dataSize;
+
+        //Partition borders. Let there by binary search. 
+        std::vector<size_t> left(p - 1);
+        std::vector<size_t> width(p - 1);
+        size_t prefixSize; //Count of all items before this worker.
+
+        std::fill(left.begin(), left.end(), 0);
+        std::fill(width.begin(), width.end(), dataSize);
+       
+        prefixSize = flowControl.PrefixSum(dataSize, std::plus<ValueType>(), false); 
+
+        //Rank we search for
+        std::vector<size_t> srank(p - 1);
+
+        for(size_t r = 0; r  < p - 1; r++) {
+            srank[r] = (r + 1) * targetSize;
+        }
+
+        //Auxillary Arrays
+        std::vector<size_t> widthscan(p - 1);
+        std::vector<size_t> widthsum(p - 1);
+        std::vector<size_t> pivotrank(p - 1);
+        std::vector<size_t> split(p - 1);
+        std::vector<Pivot> pivots;
+        pivots.reserve(p - 1);
+        std::vector<size_t> splitsum(p - 1);
+
+        //Partition loop 
+        
+        while(1) {
+            flowControl.ArrayPrefixSum(width, widthscan, std::plus<ValueType>(), false);
+            flowControl.ArrayAllReduce(width, widthsum, std::plus<ValueType>());
+             
+            size_t done = 0;
+
+            for(size_t r = 0; r < p - 1; r++) {
+                if(widthsum[r] <= p) { //Not sure about this condition. It's been modified. 
+                    partitions[r] = left[r];
+                    done++;
+                }
+            }
+
+            if(done == p - 1) break;
+            
+            for(size_t r = 0; r < p - 1; r++) {
+                if(widthsum[r] > 1) {
+                    pivotrank[r] = rand() % widthsum[r];
+                } else {
+                    pivotrank[r] = 0;
+                }
+            }
+
+            for(size_t r = 0; r < p - 1; r++) {
+                if(widthsum[r] > 1 &&
+                   widthscan[r] <= pivotrank[r] &&
+                   pivotrank[r] < widthscan[r] + width[r]) {
+                   
+                   size_t localRank = left[r] + pivotrank[r] - widthscan[r]; 
+                   ValueType pivotElement = GetAt(localRank);
+                    
+                   Pivot pivot = CreatePivot(pivotElement, localRank + prefixSize);
+
+                   pivots[r] = pivot;
+                } else {
+                   pivots[r] = CreatePivot(GetAt(0), 0);
+                }
+            }
+
+            flowControl.ArrayAllReduce(pivots, pivots, [] (const Pivot a, const Pivot b) { return b < a ? a : b; }); //Return maximal pivot (Is this  OK?);
+
+            for(size_t r = 0; r < p - 1; r++) {
+                if(widthsum[r] <= 1) {
+                    split[r] = 0;
+                } else {
+                    split[r] = IndexOf(pivots[r]) - left[r];
+                }
+            }
+
+            flowControl.ArrayAllReduce(split, splitsum, std::plus<ValueType>());
+
+            for(size_t r = 0; r < p - 1; r++) {
+                if(widthsum[r] < 1) continue;
+                
+                if(widthsum[r] < srank[r])  {
+                    left[r] += split[r];
+                    width[r] -= split[r];
+                    srank[r] -= splitsum[r];
+                } else {
+                    width[r] = split[r];
+                }
+            } 
+        }
+
+        //Cool, parts contains the global splittage now. 
         
         //For now, do "trivial" scattering. 
         channels_[0] = context_.GetNewChannel();
@@ -179,7 +321,7 @@ private:
 
         std::vector<size_t> offset1(context_.num_workers(), 0);  
         std::vector<size_t> offset2(context_.num_workers(), 0);  
-        size_t me = context_.my_rank();
+        
         size_t sizes[] = { files_[0].NumItems(), files_[1].NumItems() };
         for (size_t i = me; i != offset1.size(); ++i) {
             offset1[i] = sizes[0];
@@ -195,6 +337,8 @@ template <typename ValueType, typename Stack>
 template <typename Comperator, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Merge(
     SecondDIA second_dia, const Comperator &comperator) const {
+    assert(IsValid());
+    assert(second_dia.IsValid());
 
     using CompareResult
               = typename FunctionTraits<Comperator>::result_type;

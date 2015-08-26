@@ -139,6 +139,14 @@ public:
           threadId(threadId), threadCount(threadCount),
           barrier(barrier), shmem(shmem) { }
 
+    //Yes, I know its ugly, but it will work for now. 
+    template <typename T, typename BinarySumOp = std::plus<T>> 
+    void ArrayPrefixSum(const std::vector<T> &in, std::vector<T> &out, BinarySumOp sumOp = BinarySumOp(), bool inclusive = true) {
+        for(size_t i = 0; i < in.size(); i++) {
+            out[i] = PrefixSum(in[i], sumOp, inclusive);
+        }
+    }
+
     /**
      * \brief Calculates the prefix sum over all workers, given a certain sum
      * operation.
@@ -238,10 +246,17 @@ public:
     T ExPrefixSum(const T& value, BinarySumOp sumOp = BinarySumOp()) {
         return PrefixSum(value, sumOp, false);
     }
+    
+    template <typename T>
+    void ArrayBroadcast(const std::vector<T> &in, std::vector<T> &out) {
+        for(size_t i = 0; i < in.size(); i++) {
+            out[i] = Broadcast(in[i]);
+        }
+    }
 
     /**
      * \brief Broadcasts a value of an integral type T from the master
-     * (the worker with id 0) to all other workers.
+     * (the worker with the id 0) to all other workers.
      * \details This method is blocking on all workers except the master.
      *
      * \param value The value to broadcast. This value is ignored for each
@@ -254,8 +269,8 @@ public:
 
         T res;
 
-        // The primary thread of each node has to handle IO
-        if (threadId == 0) {
+        // The primary thread of each node has to handle IO.
+        if(threadId == 0) {    
             SetLocalShared(&res);
 
             if (id == 0) {
@@ -277,11 +292,18 @@ public:
 
         barrier.Await();
 
-        if (threadId == 0) {
+        if(threadId == 0) {
             ClearLocalShared();
         }
 
         return res;
+    }
+
+    template <typename T, typename BinarySumOp = std::plus<T> > 
+    void ArrayAllReduce(const std::vector<T> &in, std::vector<T> &out, BinarySumOp sumOp = BinarySumOp()) {
+        for(size_t i = 0; i < in.size(); i++) {
+            out[i] = AllReduce(in[i], sumOp);
+        }
     }
 
     /**

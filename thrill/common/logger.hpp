@@ -14,6 +14,8 @@
 #ifndef THRILL_COMMON_LOGGER_HEADER
 #define THRILL_COMMON_LOGGER_HEADER
 
+#include <thrill/mem/allocator_base.hpp>
+
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -22,7 +24,7 @@ namespace thrill {
 namespace common {
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const std::string& name);
+void NameThisThread(const mem::string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();
@@ -95,20 +97,17 @@ template <>
 class Logger<true>
 {
 protected:
-    //! collector stream
-    std::ostringstream oss_;
+    //! stringbuf without malloc tracking
+    mem::stringbuf buf_;
 
-    //! for access to mutex_
-    template <bool Active>
-    friend class SpacingLogger;
+    //! collector stream
+    std::ostream oss_;
 
 public:
     //! Real active flag
     static const bool active = true;
 
-    Logger() {
-        oss_ << "[" << GetNameForThisThread() << "] ";
-    }
+    Logger();
 
     //! output any type, including io manipulators
     template <typename AnyType>
@@ -150,17 +149,17 @@ protected:
     //! true until the first element it outputted.
     bool first_ = true;
 
+    //! stringbuf without malloc tracking
+    mem::stringbuf buf_;
+
     //! collector stream
-    std::ostringstream oss_;
+    std::ostream oss_;
 
 public:
     //! Real active flag
     static const bool active = true;
 
-    //! constructor: if real = false the output is suppressed.
-    SpacingLogger() {
-        oss_ << "[" << GetNameForThisThread() << "] ";
-    }
+    SpacingLogger();
 
     //! output any type, including io manipulators
     template <typename AnyType>

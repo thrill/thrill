@@ -12,6 +12,7 @@
 #ifndef THRILL_DATA_BLOCK_QUEUE_HEADER
 #define THRILL_DATA_BLOCK_QUEUE_HEADER
 
+#include <thrill/common/atomic_movable.hpp>
 #include <thrill/common/concurrent_bounded_queue.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
@@ -41,13 +42,27 @@ class BlockQueueSource;
  * GetWriter() and GetReader().  Each block is available only *once* via the
  * BlockQueueSource.
  */
-class BlockQueue : public BlockSink
+class BlockQueue final : public BlockSink
 {
 public:
     using BlockSource = BlockQueueSource;
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<BlockQueue>;
     using Reader = BlockReader<BlockQueueSource>;
     using DynReader = DynBlockReader;
+
+    //! Constructor from BlockPool
+    explicit BlockQueue(BlockPool& block_pool)
+        : BlockSink(block_pool)
+    { }
+
+    //! non-copyable: delete copy-constructor
+    BlockQueue(const BlockQueue&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockQueue& operator = (const BlockQueue&) = delete;
+    //! move-constructor: default
+    BlockQueue(BlockQueue&&) = default;
+    //! move-assignment operator: default
+    BlockQueue& operator = (BlockQueue&&) = default;
 
     void AppendBlock(const Block& b) final {
         queue_.emplace(b);
@@ -61,6 +76,8 @@ public:
         // enqueue a closing Block.
         queue_.emplace();
     }
+
+    enum { allocate_can_fail_ = false };
 
     Block Pop() {
         assert(!read_closed_);
@@ -95,7 +112,7 @@ public:
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
-    std::atomic<bool> write_closed_ = { false };
+    common::AtomicMovable<bool> write_closed_ = { false };
 
     //! whether Pop() has returned a closing Block.
     bool read_closed_ = false;

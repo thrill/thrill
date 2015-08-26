@@ -80,6 +80,14 @@ public:
     //! input type.
     using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
+    //! default-constructor: invalid DIARef
+    DIARef()
+        : node_(nullptr)
+    { }
+
+    //! Return whether the DIARef is valid.
+    bool IsValid() const { return node_.get(); }
+
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
      * function chain from the DIANode to this DIARef.
@@ -112,11 +120,10 @@ public:
     { }
 
     /*!
-     * Copy-Constructor of a DIARef with empty function chain
-     * from a DIARef with a non-empty chain.
-     * The functionality of the chain is stored in a newly created LOpNode.
-     * The current DIARef than points to this LOpNode.
-     * This is needed to support assignment operations between DIARef's.
+     * Copy-Constructor of a DIARef with empty function chain from a DIARef with
+     * a non-empty chain.  The functionality of the chain is stored in a newly
+     * created LOpNode.  The current DIARef than points to this LOpNode.  This
+     * is needed to support assignment operations between DIARef's.
      *
      * \param rhs DIA containing a non-empty function chain.
      */
@@ -134,16 +141,19 @@ public:
 
     //! Returns a pointer to the according DIANode.
     const DIANodePtr & node() const {
+        assert(IsValid());
         return node_;
     }
 
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
+        assert(IsValid());
         return node_.use_count();
     }
 
     //! Returns the stored function chain.
     const Stack & stack() const {
+        assert(IsValid());
         return stack_;
     }
 
@@ -158,6 +168,7 @@ public:
     }
 
     Context & ctx() const {
+        assert(IsValid());
         return node_->context();
     }
 
@@ -174,6 +185,8 @@ public:
      */
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) const {
+        assert(IsValid());
+
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
@@ -191,10 +204,9 @@ public:
     }
 
     /*!
-     * Filter is a LOp, which filters elements from  this DIARef
-     * according to the filter_function given by the
-     * user. The filter_function maps each element to a boolean.
-     * The function chain of the returned DIARef is this DIARef's
+     * Filter is a LOp, which filters elements from this DIARef according to the
+     * filter_function given by the user. The filter_function maps each element
+     * to a boolean.  The function chain of the returned DIARef is this DIARef's
      * stack_ chained with filter_function.
      *
      * \tparam FilterFunction Type of the map function.
@@ -205,6 +217,8 @@ public:
      */
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
+        assert(IsValid());
+
         using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
@@ -237,6 +251,8 @@ public:
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
+        assert(IsValid());
+
         auto new_stack = stack_.push(flatmap_function);
         return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", NodeType::LAMBDA) });
     }
@@ -252,8 +268,8 @@ public:
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function.
+     * \tparam KeyExtractor Type of the key_extractor function.  The
+     * key_extractor function is equal to a map function.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.

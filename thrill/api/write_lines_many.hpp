@@ -86,6 +86,7 @@ private:
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath) const {
+    assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLinesMany needs an std::string as input parameter");
