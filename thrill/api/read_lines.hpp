@@ -19,7 +19,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/core/read_file_list.hpp>
+#include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
 #include <fcntl.h>
@@ -64,7 +64,8 @@ public:
         : Super(ctx, { }, "Read", stats_node),
           path_(path)
     {
-        auto filelist = core::ReadFileList(path_);
+		core::FileIO fio;
+        auto filelist = fio.ReadFileList(path_);
         filesize_prefix = filelist.first;
         contains_compressed_file_ = filelist.second;
     }
@@ -288,6 +289,8 @@ private:
         bool contains_compressed_file_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
+		//! File IO used to read file list and open files
+		core::FileIO fio;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -332,7 +335,7 @@ private:
 
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
-                c_file_ = OpenFile(files_[current_file_].first);
+                c_file_ = fio.OpenFile(files_[current_file_].first);
             }
             else {
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
@@ -370,7 +373,7 @@ private:
                     offset_ = 0;
 
                     if (current_file_ < NumFiles()) {
-                        c_file_ = OpenFile(files_[current_file_].first);
+                        c_file_ = fio.OpenFile(files_[current_file_].first);
                         ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
                         buffer_.set_size(buffer_size);
                     } else {
@@ -414,7 +417,7 @@ private:
                         current_file_++;
                         offset_ = 0;
 
-                        c_file_ = OpenFile(files_[current_file_].first);
+                        c_file_ = fio.OpenFile(files_[current_file_].first);
                         buffer_.set_size(read(c_file_, buffer_.data(), read_size));
                         return true;
                     }
@@ -426,56 +429,7 @@ private:
             else {
                 return files_[current_file_].second < my_end_;
             }
-        }
-
-        //! Open file and return file handle
-        //! \param path Path to open
-        int OpenFile(const std::string& path) {
-
-            // path too short, can't end with .[gz/bz2,xz,lzo]
-            if (path.size() < 4) return open(path.c_str(), O_RDONLY);
-
-            const char* decompressor = nullptr;
-
-            if (common::ends_with(path, ".gz")) {
-                decompressor = "gzip";
-            }
-            else if (common::ends_with(path, ".bz2")) {
-                decompressor = "bzip2";
-            }
-            else if (common::ends_with(path, ".xz")) {
-                decompressor = "xz";
-            }
-            else if (common::ends_with(path, ".lzo")) {
-                decompressor = "lzop";
-            }
-
-            // not a compressed file
-            if (!decompressor) return open(path.c_str(), O_RDONLY);
-
-            // create pipe, fork and call decompressor as child
-            int pipefd[2];             // pipe[0] = read, pipe[1] = write
-            if (pipe(pipefd) != 0) {
-                LOG1 << "Error creating pipe: " << strerror(errno);
-                exit(-1);
-            }
-
-            pid_t pid = fork();
-            if (pid == 0) {
-                close(pipefd[0]);                               // close read end
-                dup2(pipefd[1], STDOUT_FILENO);                 // replace stdout with pipe
-
-                execlp(decompressor, decompressor, "-dc", path.c_str(), nullptr);
-
-                LOG1 << "Pipe execution failed: " << strerror(errno);
-                close(pipefd[1]);             // close write end
-                exit(-1);
-            }
-
-            close(pipefd[1]);                 // close write end
-
-            return pipefd[0];
-        }
+        }        
 
     private:
         //! Input files with size prefixsum.
@@ -498,6 +452,8 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
+		//! File IO used to read file list and open files
+		core::FileIO fio;
     };
 
     //! Returns an InputLineIterator with a given input file stream.

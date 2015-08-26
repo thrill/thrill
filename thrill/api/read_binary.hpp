@@ -18,7 +18,7 @@
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/core/read_file_list.hpp>
+#include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
 #include <algorithm>
@@ -63,7 +63,8 @@ public:
         : Super(ctx, { }, "Read", stats_node),
           filepath_(filepath)
     {
-        filelist_ = core::ReadFileList(filepath_).first;
+		core::FileIO fio;
+        filelist_ = fio.ReadFileList(filepath_).first;
         filesize_ = filelist_[context_.my_rank() + 1].second -
                     filelist_[context_.my_rank()].second;
 
@@ -163,7 +164,7 @@ private:
         void SetFileList(std::vector<FileSizePair> path) {
             filelist_ = path;
 			if (filelist_.size() > 1) {
-				c_file_ = open(filelist_[0].first.c_str(), O_RDONLY);
+				c_file_ = fio.OpenFile(filelist_[0].first);
 				buffer_.Reserve(read_size);
 				current_size_ = filelist_[1].second - filelist_[0].second;
 			}
@@ -186,7 +187,7 @@ private:
 					close(c_file_);
 					current_file_++;
 					current_size_ = filelist_[current_file_ + 1].second - filelist_[current_file_].second;
-					c_file_ = open(filelist_[current_file_].first.c_str(), O_RDONLY);
+					c_file_ = fio.OpenFile(filelist_[current_file_].first);
 					return true;
 				} else {
 					return false;
@@ -236,6 +237,7 @@ private:
         std::vector<FileSizePair> filelist_;
 		std::streampos current_size_;
 		size_t current_file_ = 0;
+		core::FileIO fio;
     };
 
     BinaryFileReader bfr_;
