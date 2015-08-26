@@ -173,18 +173,18 @@ private:
             // find offset in current file:
             // offset = start - sum of previous file sizes
             offset_ = lseek(c_file_, my_start - files_[current_file_].second, SEEK_CUR);
-            bb_.Reserve(read_size);
-            ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-            bb_.set_size(buffer_size);
+            buffer_.Reserve(read_size);
+            ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+            buffer_.set_size(buffer_size);
 
             if (offset_ != 0) {
                 bool found_n = false;
 
                 // find next newline, discard all previous data as previous worker already covers it
                 while (!found_n) {
-                    for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
+                    for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
                         if (THRILL_UNLIKELY(*it == '\n')) {
-                            current_ = it - bb_.begin() + 1;
+                            current_ = it - buffer_.begin() + 1;
                             found_n = true;
                             break;
                         }
@@ -192,16 +192,16 @@ private:
                     // no newline found: read new data into buffer_builder
                     if (!found_n) {
                         current_ = 0;
-                        offset_ += bb_.size();
-                        buffer_size = read(c_file_, bb_.data(), read_size);
+                        offset_ += buffer_.size();
+                        buffer_size = read(c_file_, buffer_.data(), read_size);
                         // EOF = newline per definition
                         if (!buffer_size) {
                             found_n = true;
                         }
-                        bb_.set_size(buffer_size);
+                        buffer_.set_size(buffer_size);
                     }
                 }
-                assert(bb_[current_ - 1] == '\n' || !buffer_size);
+                assert(buffer_[current_ - 1] == '\n' || !buffer_size);
             }
         }
 
@@ -211,20 +211,20 @@ private:
         std::string Next() {
 			std::string ret;
             while (true) {
-                for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
+                for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - bb_.begin() - current_;
-                        current_ = it - bb_.begin() + 1;
+                        size_t strlen = it - buffer_.begin() - current_;
+                        current_ = it - buffer_.begin() + 1;
                         LOG << "returning string";
-                        return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
+                        return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
                     }
                 }
-                ret.append(bb_.PartialToString(current_, bb_.size() - current_));
+                ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
                 current_ = 0;
-                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                offset_ += bb_.size();
+                ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                offset_ += buffer_.size();
                 if (buffer_size) {
-                    bb_.set_size(buffer_size);
+                    buffer_.set_size(buffer_size);
                 }
                 else {
                     close(c_file_);
@@ -233,8 +233,8 @@ private:
 
                     if (current_file_ < NumFiles()) {
                         c_file_ = OpenFile(files_[current_file_].first);
-                        ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                        bb_.set_size(buffer_size);
+                        ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                        buffer_.set_size(buffer_size);
                     }
                     else {
                         current_ = files_[current_file_].second - files_[current_file_ - 1].second;
@@ -279,7 +279,7 @@ private:
         //! (exclusive) end of local block
         size_t my_end_;
         //! Byte buffer to create line-std::strings
-        net::BufferBuilder bb_;
+        net::BufferBuilder buffer_;
         //! Worker ID
         size_t my_id_;
         //! total number of workers
@@ -338,9 +338,9 @@ private:
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
                 return;
             }
-            bb_.Reserve(read_size);
-            ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-            bb_.set_size(buffer_size);
+            buffer_.Reserve(read_size);
+            ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+            buffer_.set_size(buffer_size);
         }
 
         //! returns the next element if one exists
@@ -349,19 +349,19 @@ private:
         std::string Next() {			
 			std::string ret;
             while (true) {
-                for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
+                for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - bb_.begin() - current_;
-                        current_ = it - bb_.begin() + 1;
-                        return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
+                        size_t strlen = it - buffer_.begin() - current_;
+                        current_ = it - buffer_.begin() + 1;
+                        return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
                     }
                 }
-                ret.append(bb_.PartialToString(current_, bb_.size() - current_));
+                ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
                 current_ = 0;
-                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                offset_ += bb_.size();
+                ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                offset_ += buffer_.size();
                 if (buffer_size) {
-                    bb_.set_size(buffer_size);
+                    buffer_.set_size(buffer_size);
                 }
                 else {
 					LOG << "Opening new file!";
@@ -371,8 +371,8 @@ private:
 
                     if (current_file_ < NumFiles()) {
                         c_file_ = OpenFile(files_[current_file_].first);
-                        ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                        bb_.set_size(buffer_size);
+                        ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                        buffer_.set_size(buffer_size);
                     } else {
                         current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
@@ -394,13 +394,13 @@ private:
             // if block is fully read, read next block. needs to be done here
             // as HasNext() has to know if file is finished
             //  v-- no new line at end ||   v-- newline at end of file
-            if (current_ >= bb_.size() || (current_ >= bb_.size() - 1 && bb_[current_] == '\n')) {
+            if (current_ >= buffer_.size() || (current_ >= buffer_.size() - 1 && buffer_[current_] == '\n')) {
 				LOG << "New buffer in HasNext()";
 				current_ = 0;
-                ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
-                offset_ += bb_.size();
-                if (buffer_size > 1 || (buffer_size == 1 && bb_[0] != '\n')) {
-                    bb_.set_size(buffer_size);
+                ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                offset_ += buffer_.size();
+                if (buffer_size > 1 || (buffer_size == 1 && buffer_[0] != '\n')) {
+                    buffer_.set_size(buffer_size);
                     return true;
                 } else {
 					LOG << "Opening new file in HasNext()";
@@ -415,7 +415,7 @@ private:
                         offset_ = 0;
 
                         c_file_ = OpenFile(files_[current_file_].first);
-                        bb_.set_size(read(c_file_, bb_.data(), read_size));
+                        buffer_.set_size(read(c_file_, buffer_.data(), read_size));
                         return true;
                     }
                     else {
@@ -491,7 +491,7 @@ private:
         //! (exclusive) end of local block
         size_t my_end_;
         //! Byte buffer to create line-std::strings
-        net::BufferBuilder bb_;
+        net::BufferBuilder buffer_;
         //! Worker ID
         size_t my_id_;
         //! total number of workers
