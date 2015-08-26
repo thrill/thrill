@@ -210,10 +210,10 @@ std::string join(const std::string& glue, const Container& parts) {
  * instead, if found. The replacement is done in the given string and a
  * reference to the same is returned.
  *
- * @param str           the string to process
- * @param needle        string to search for in str
- * @param instead       replace needle with instead
- * @return              reference to str
+ * \param str           the string to process
+ * \param needle        string to search for in str
+ * \param instead       replace needle with instead
+ * \return              reference to str
  */
 static inline
 std::string & replace_all(std::string& str, const std::string& needle,

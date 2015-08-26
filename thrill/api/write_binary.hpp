@@ -125,8 +125,8 @@ protected:
         SysFileSink(data::BlockPool& block_pool,
                     const std::string& path, size_t max_file_size)
             : BlockSink(block_pool),
-            BoundedBlockSink(block_pool, max_file_size),
-            file_( core::SysFile::OpenForWrite(path) ) {        }
+              BoundedBlockSink(block_pool, max_file_size),
+              file_(core::SysFile::OpenForWrite(path)) { }
 
         void AppendBlock(const data::Block& b) final {
             file_.write(b.data_begin(), b.size());
