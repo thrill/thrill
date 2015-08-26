@@ -9,9 +9,17 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/read_binary.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/write_binary.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/thrill.hpp>
 
 #include <gtest/gtest.h>
 
