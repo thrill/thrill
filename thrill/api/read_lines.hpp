@@ -22,11 +22,7 @@
 #include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
-#include <fcntl.h>
-#include <fstream>
 #include <string>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 namespace thrill {
 namespace api {

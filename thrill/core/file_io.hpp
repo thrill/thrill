@@ -228,17 +228,8 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    if (pipe(pipefd) != 0)
+    if (pipe2(pipefd, O_CLOEXEC) != 0)
         throw common::SystemException("Error creating pipe", errno);
-
-    if (fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) != 0) {
-        throw common::SystemException(
-            "Error setting FD_CLOEXEC on child pipe", errno);
-    }
-    if (fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) != 0) {
-        throw common::SystemException(
-            "Error setting FD_CLOEXEC on child pipe", errno);
-    }
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -310,17 +301,8 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    if (pipe(pipefd) != 0)
+    if (pipe2(pipefd, O_CLOEXEC) != 0)
         throw common::SystemException("Error creating pipe", errno);
-
-    if (fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) != 0) {
-        throw common::SystemException(
-            "Error setting FD_CLOEXEC on child pipe", errno);
-    }
-    if (fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) != 0) {
-        throw common::SystemException(
-            "Error setting FD_CLOEXEC on child pipe", errno);
-    }
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -347,7 +329,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // close read end
     ::close(pipefd[0]);
-    
+
     // close file descriptor (it is used by the fork)
     ::close(fd);
 

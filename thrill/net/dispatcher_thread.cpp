@@ -25,18 +25,11 @@ DispatcherThread::DispatcherThread(const mem::string& thread_name)
     : dispatcher_(mem::mm_make_unique<Dispatcher>(mem_manager_, mem_manager_)),
       name_(thread_name) {
     // allocate self-pipe
-    int r = ::pipe(self_pipe_);
+    int r = ::pipe2(self_pipe_, O_CLOEXEC);
     if (r != 0) {
         LOG1 << "Error opening self-pipe: " << strerror(errno);
     }
     die_unless(r == 0);
-    // set non-inheritance flag on self-pipe
-    if (fcntl(self_pipe_[0], F_SETFD, FD_CLOEXEC) != 0) {
-        LOG1 << "Error setting FD_CLOEXEC on self-pipe: " << strerror(errno);
-    }
-    if (fcntl(self_pipe_[1], F_SETFD, FD_CLOEXEC) != 0) {
-        LOG1 << "Error setting FD_CLOEXEC on self-pipe: " << strerror(errno);
-    }
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
 }
