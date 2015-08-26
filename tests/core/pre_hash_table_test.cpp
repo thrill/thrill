@@ -72,8 +72,8 @@ TEST_F(PreTable, CustomHashFunction) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     CustomKeyHashFunction<int> cust_hash;
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
@@ -108,8 +108,8 @@ TEST_F(PreTable, AddIntegers) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
@@ -137,8 +137,8 @@ TEST_F(PreTable, CreateEmptyTable) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
@@ -166,8 +166,8 @@ TEST_F(PreTable, DISABLED_PopIntegers) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers);
@@ -200,8 +200,8 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, 8, 1.0, 10);
@@ -241,9 +241,9 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
     data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output1.GetWriter());
-    writers.emplace_back(output2.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output1.GetDynWriter());
+    writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, key_ex, red_fn, writers, 8, 1.0, 10);
@@ -292,8 +292,8 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, 8, 1.0, 10);
@@ -332,9 +332,9 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
 
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output1.GetWriter());
-    writers.emplace_back(output2.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output1.GetDynWriter());
+    writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, key_ex, red_fn, writers, 8, 1.0, 10);
@@ -382,8 +382,8 @@ TEST_F(PreTable, ComplexType) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, 2, 0.5, 10);
@@ -418,9 +418,9 @@ TEST_F(PreTable, DISABLED_MultipleWorkers) {
     data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
 
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output1.GetWriter());
-    writers.emplace_back(output2.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output1.GetDynWriter());
+    writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
     table(2, key_ex, red_fn, writers, 1, 0.5, 2);
@@ -452,8 +452,8 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     size_t nitems = 1 * 1024 * 1024;
 
@@ -494,8 +494,8 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
@@ -548,8 +548,8 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 4 * 1024;

@@ -104,10 +104,10 @@ int main(int argc, char* argv[]) {
 
     data::BlockPool block_pool(nullptr);
     std::vector<data::DiscardSink> sinks;
-    std::vector<data::BlockWriter> writers;
+    std::vector<data::DynBlockWriter> writers;
     for (size_t i = 0; i != workers; ++i) {
         sinks.emplace_back(block_pool);
-        writers.emplace_back(sinks[i].GetWriter());
+        writers.emplace_back(sinks[i].GetDynWriter());
     }
 
     size_t num_slots = table_size / (2 * sizeof(std::string));

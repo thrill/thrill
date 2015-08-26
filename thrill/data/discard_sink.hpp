@@ -26,10 +26,11 @@ namespace data {
  * DiscardSink is an BlockSink that discards all Blocks delivered to it. Use it
  * for benchmarking!
  */
-class DiscardSink : public BlockSink
+class DiscardSink final : public BlockSink
 {
 public:
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<DiscardSink>;
+    using DynWriter = DynBlockWriter;
 
     //! Create discarding BlockSink.
     explicit DiscardSink(BlockPool& block_pool)
@@ -51,6 +52,11 @@ public:
     //! Return a BlockWriter delivering to this BlockSink.
     Writer GetWriter(size_t block_size = default_block_size) {
         return Writer(this, block_size);
+    }
+
+    //! Return a BlockWriter delivering to this BlockSink.
+    DynWriter GetDynWriter(size_t block_size = default_block_size) {
+        return DynWriter(this, block_size);
     }
 
 protected:

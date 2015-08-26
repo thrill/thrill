@@ -382,7 +382,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
     BoundedFile file(block_pool_, 32 * 64);
 
     try {
-        data::BlockWriter bw = data::BlockWriter(&file, 64);
+        data::DynBlockWriter bw = data::DynBlockWriter(&file, 64);
         for (size_t i = 0; i != 1024; ++i) {
             bw(123456u + i);
         }
@@ -394,7 +394,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     ASSERT_EQ(file.max_size()
               / (sizeof(size_t)
-                 + (data::BlockWriter::self_verify ? sizeof(size_t) : 0)),
+                 + (data::DynBlockWriter::self_verify ? sizeof(size_t) : 0)),
               file.NumItems());
 }
 
@@ -402,20 +402,20 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
 template class data::BlockReader<data::FileBlockSource>;
 
 // fixed size serialization test
-static_assert(data::Serialization<data::BlockWriter, int>
+static_assert(data::Serialization<data::DynBlockWriter, int>
               ::is_fixed_size == true, "");
-static_assert(data::Serialization<data::BlockWriter, int>
+static_assert(data::Serialization<data::DynBlockWriter, int>
               ::fixed_size == sizeof(int), "");
 
-static_assert(data::Serialization<data::BlockWriter, std::string>
+static_assert(data::Serialization<data::DynBlockWriter, std::string>
               ::is_fixed_size == false, "");
 
-static_assert(data::Serialization<data::BlockWriter, std::pair<int, short> >
+static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, short> >
               ::is_fixed_size == true, "");
-static_assert(data::Serialization<data::BlockWriter, std::pair<int, short> >
+static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, short> >
               ::fixed_size == sizeof(int) + sizeof(short), "");
 
-static_assert(data::Serialization<data::BlockWriter, std::pair<int, std::string> >
+static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, std::string> >
               ::is_fixed_size == false, "");
 
 /******************************************************************************/
