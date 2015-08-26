@@ -125,6 +125,11 @@ private:
 
     std::vector<std::pair<std::string, size_t> > filesize_prefix;
 
+    // REVIEW(an): this is useless, you never use the inheritance.  But, you
+    // actually SHOULD use it! for all member fields and methods that are in
+    // common. But NOT for virtual functions. Remove the virtuals. Find out what
+    // functions the methods below have in common and make them functions of the
+    // superclass.
     class InputLineIterator
     {
     public:
@@ -268,7 +273,7 @@ private:
 
     private:
         //! Input files with size prefixsum.
-        std::vector<FileSizePair> files_;
+        std::vector<FileSizePair> files_; // REVIEW(an): use a const & to the vector
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! File handle to files_[current_file_]
@@ -458,13 +463,8 @@ private:
         core::FileIO fio;
     };
 
-    //! Returns an InputLineIterator with a given input file stream.
-    //!
-    //! \param file Input file stream
-    //! \param my_id Id of this worker
-    //! \param num_work Number of workers
-    //!
-    //! \return An InputLineIterator for a given file stream
+    // REVIEW(an): these are completely useless, just use the constructor
+    // instead.
     InputLineIteratorCompressed GetCompressedInputLineIterator(std::vector<FileSizePair> files,
                                                                size_t my_id, size_t num_work) {
         return InputLineIteratorCompressed(files, my_id, num_work);
