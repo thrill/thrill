@@ -15,6 +15,7 @@
 
 #include <glob.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
@@ -135,7 +136,7 @@ int OpenFileForRead(const std::string& path) {
         // replace stdout with pipe going back to Thrill process
         dup2(pipefd[1], STDOUT_FILENO);
 
-        execlp(decompressor, decompressor, "-dc", nullptr);
+        execlp(decompressor, decompressor, "-df", nullptr);
 
         LOG1 << "Pipe execution failed: " << strerror(errno);
         // close write end
@@ -155,12 +156,97 @@ int OpenFileForRead(const std::string& path) {
 }
 
 /*!
+ * Represents a POSIX system file via its file descriptor.
+ */
+class SysFile
+{
+public:
+
+    //! default constructor
+    SysFile() : fd_(-1) { }
+
+    static SysFile OpenForRead(const std::string& path) {
+        return SysFile(OpenFileForRead(path));
+    }
+
+    static SysFile OpenForWrite(const std::string& path);
+
+    //! non-copyable: delete copy-constructor
+    SysFile(const SysFile &) = delete;
+    //! non-copyable: delete assignment operator
+    SysFile & operator = (const SysFile &) = delete;
+    //! move-constructor
+    SysFile(SysFile && f)
+        : fd_(f.fd_), pid_(f.pid_) {
+        f.fd_ = -1;
+        f.pid_ = 0;
+    }
+
+    //! POSIX write function.
+    ssize_t write(const void* data, size_t count) {
+        return ::write(fd_, data, count);
+    }
+
+    //! close the file descriptor
+    void close() {
+        if (fd_ >= 0) {
+            ::close(fd_);
+            fd_ = -1;
+        }
+        if (pid_ != 0) {
+            int status;
+            pid_t p = waitpid(pid_, &status, 0);
+            if (p != pid_) {
+                throw common::SystemException(
+                    "SysFile: waitpid() failed to return child", errno);
+            }
+            if (WIFEXITED(status)) {
+                // child program exited normally
+                if (WEXITSTATUS(status) != 0) {
+                    throw common::SystemException(
+                        "SysFile: child failed to return code "
+                        + std::to_string(WEXITSTATUS(status)));
+                }
+                else {
+                    // zero return code. good.
+                }
+            }
+            else if (WIFSIGNALED(status)) {
+                throw common::SystemException(
+                        "SysFile: child killed by signal "
+                        + std::to_string(WTERMSIG(status)));
+            }
+            else {
+                throw common::SystemException(
+                    "SysFile: child failed with an unknown error", errno);
+            }
+            pid_ = 0;
+        }
+    }
+
+    ~SysFile() {
+        close();
+    }
+
+protected:
+    //! protected constructor: use OpenForRead or OpenForWrite.
+    explicit SysFile(int fd, int pid = 0)
+        : fd_(fd), pid_(pid) { }
+
+    //! file descriptor
+    int fd_ = -1;
+
+    //! pid of child process to wait for
+    pid_t pid_ = 0;
+};
+
+/*!
  * Open file for writing and return file descriptor. Handles compressed files by
  * calling a compressor in a pipe, like "| gzip -d > $f" in bash.
  *
  * \param path Path to open
  */
-int OpenFileForWrite(const std::string& path) {
+SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
 
@@ -187,7 +273,7 @@ int OpenFileForWrite(const std::string& path) {
     }
     else {
         // not a compressed file
-        return fd;
+        return SysFile(fd);
     }
 
     // if compressor: fork a child program which calls the compressor and
@@ -198,28 +284,42 @@ int OpenFileForWrite(const std::string& path) {
     if (pipe(pipefd) != 0)
         throw common::SystemException("Error creating pipe", errno);
 
+    if (fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) != 0) {
+        LOG1 << "Error setting FD_CLOEXEC on child pipe: " << strerror(errno);
+    }
+    if (fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) != 0) {
+        LOG1 << "Error setting FD_CLOEXEC on child pipe: " << strerror(errno);
+    }
+
     pid_t pid = fork();
     if (pid == 0) {
         // close write end
-        close(pipefd[1]);
+        ::close(pipefd[1]);
 
         // replace stdin with pipe
         dup2(pipefd[0], STDIN_FILENO);
+        ::close(pipefd[0]);
         // replace stdout with file descriptor to file created above.
         dup2(fd, STDOUT_FILENO);
+        ::close(fd);
 
-        execlp(compressor, compressor, "-c", nullptr);
+        execlp(compressor, compressor, nullptr);
 
         LOG1 << "Pipe execution failed: " << strerror(errno);
         // close write end
-        close(pipefd[1]);
+        ::close(pipefd[1]);
         exit(-1);
+    }
+    else if (pid < 0) {
+        throw common::SystemException("Error creating child process", errno);
     }
 
     // close read end
-    close(pipefd[0]);
+    ::close(pipefd[0]);
+    // close file descriptor (it is used by the fork)
+    ::close(fd);
 
-    return pipefd[1];
+    return SysFile(pipefd[1], pid);
 }
 
 } // namespace core
