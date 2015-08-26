@@ -19,9 +19,14 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/core/read_file_list.hpp>
+#include <thrill/net/buffer_builder.hpp>
 
+#include <algorithm>
+#include <fcntl.h>
 #include <fstream>
 #include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 namespace thrill {
 namespace api {
@@ -144,31 +149,44 @@ private:
         : public common::ItemReaderToolsBase<BinaryFileReader>
     {
     public:
+
+        const size_t read_size = 2 * 1024;
+
         BinaryFileReader() { }
 
         virtual ~BinaryFileReader() { }
 
         void CloseStream() {
-            instream_.close();
+			close(c_file_);
         }
 
         void SetFileList(std::vector<FileSizePair> path) {
             filelist_ = path;
 			if (filelist_.size() > 1) {
-				instream_.open(filelist_[0].first);
+				c_file_ = open(filelist_[0].first.c_str(), O_RDONLY);
+				buffer_.Reserve(read_size);
 				current_size_ = filelist_[1].second - filelist_[0].second;
 			}
         }
 
         bool HasNext() {
+			//no input files for this worker
 			if (filelist_.size() <= 1) {
 				return false;
-			} else if (instream_.tellg() == current_size_) {
-				if (current_file_ < filelist_.size() - 2) {
-					instream_.close();
+			}
+			
+			if (buffer_.size() == current_) {
+				buffer_.set_size(read(c_file_, buffer_.data(), read_size));
+				current_ = 0;
+				//buffer is empty when file is already finished
+				//->go to next file if there is another one in filelist_
+				if (buffer_.size()) {
+					return true;
+				} else if (current_file_ < filelist_.size() - 2) {
+					close(c_file_);
 					current_file_++;
 					current_size_ = filelist_[current_file_ + 1].second - filelist_[current_file_].second;
-					instream_.open(filelist_[current_file_].first);
+					c_file_ = open(filelist_[current_file_].first.c_str(), O_RDONLY);
 					return true;
 				} else {
 					return false;
@@ -179,20 +197,42 @@ private:
         }
 
         char GetByte() {
-            char ret;
-            instream_.read(&ret, 1);
-            return ret;
+			if (current_ == buffer_.size()) {
+				buffer_.set_size(read(c_file_, buffer_.data(), read_size));
+				current_ = 0;				
+			}
+			current_++;
+            return buffer_[current_ - 1];
         }
 
         template <typename Type>
         Type Get() {
-            Type elem;
-            instream_.read(reinterpret_cast<char*>(&elem), sizeof(Type));
-            return elem;
+			if (buffer_.size() < current_ + sizeof(Type)) {
+				//copy rest of buffer into start of next buffer
+				std::copy(buffer_.begin() + current_,
+						  buffer_.end(),
+						  buffer_.data());
+				size_t copied_bytes = buffer_.end() - buffer_.begin() - current_; 
+
+				buffer_.set_size(
+					read(c_file_,
+						 buffer_.data() + copied_bytes,
+						 read_size - copied_bytes) + copied_bytes);
+				current_ = 0;
+			} 
+
+			Type elemc;
+			std::copy(buffer_.begin() + current_,
+					  buffer_.begin() + current_ + sizeof(Type),
+					  reinterpret_cast<char*>(&elemc));
+			current_ += sizeof(Type);
+			return elemc;
         }
 
     private:
-        std::ifstream instream_;
+		int c_file_;
+		size_t current_ = 0;
+		net::BufferBuilder buffer_;
         std::vector<FileSizePair> filelist_;
 		std::streampos current_size_;
 		size_t current_file_ = 0;
