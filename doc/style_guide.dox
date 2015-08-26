@@ -25,24 +25,21 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - You may and should forward declare classes in order to avoid unnecessary `#includes`
 
 ### Inline Functions
-- No Restrictions on number of lines
+- No Restrictions on number of lines.
 - Either inside or outside classes
 
 ### Function Parameter Ordering
-- First inputs, then outputs
-
-### Names and Order of Includes
-- First include should be corresponding header file
+- First inputs, then outputs.
+- Prefix all output parameters with `out_`, no exceptions! -tb
 
 ## Scoping
+
 ### Namespaces
 - Don't use `namespace std`
 - Declare a project namespace
 - Unnamed Namespaces are a possibility
 - You can use the project namespace in applications
-
-### Nested Classes
-- Don't use public nested classes
+- You should use only `namespace thrill` in test programs and use subnamespaces explicitly. This is because we may have duplicate class names in subnamespaces (e.g., Manager). -tb
 
 ### Local Variables
 - Place a function's variables in the narrowest scope possible
@@ -92,6 +89,7 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - Everything over 40 lines has to do something useful!
 
 ## C++ Features
+
 ### Ownership and Smart Pointers
 - Avoid using raw-pointers and references
 - Use smart pointers!
@@ -110,10 +108,6 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - Use C++ style casts (dynamic, static) when needed
 - Don't use C style casts
 
-### Streams
-- Use streams for logging
-- Streams can be used for parsing input arguments
-
 ### Use of `const`
 - `const` all the things!
 - Put it in front of declarations
@@ -121,9 +115,6 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 ### Integer Types
 - Use types from `<stdint.h>` or `size_t`
 - Don't use `int, long, ...`!
-
-### `NULL/nullptr`
-- Use `nullptr` for pointers
 
 ### `auto`
 - Use `auto` against clutter
@@ -133,6 +124,7 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - Template programming is allowed
 
 ## Naming
+
 ### Files Names
 - All lowercase
 - Underscores for separation
@@ -159,6 +151,7 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - Treat like constants
 
 ## Comments
+
 ### General
 - Use Doxygen!
 
@@ -189,6 +182,12 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 ### Class Format
 - `private, public, protected` on same line as class
 
+## Tests
+
+### No Randomization
+- do not use randomization in tests if at all avoidable.
+- if you use random integers, use a fixed random seed.
+- no randomization makes "this test if failing on my computer" more deterministic!
 
 */
 
