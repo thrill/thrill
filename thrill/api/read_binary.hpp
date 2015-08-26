@@ -59,8 +59,7 @@ public:
         : Super(ctx, { }, "ReadBinary", stats_node),
           filepath_(filepath)
     {
-        core::FileIO fio;
-        filelist_ = fio.ReadFileList(filepath_).first;
+        filelist_ = core::GlobFilePattern(filepath_).first;
         filesize_ = filelist_[context_.my_rank() + 1].second -
                     filelist_[context_.my_rank()].second;
 
@@ -215,8 +214,8 @@ private:
                 size_t copied_bytes = buffer_.end() - buffer_.begin() - current_;
 
                 buffer_.set_size(
-                    c_file_.read(                         buffer_.data() + copied_bytes,
-                         read_size - copied_bytes) + copied_bytes);
+                    c_file_.read(buffer_.data() + copied_bytes,
+                                 read_size - copied_bytes) + copied_bytes);
                 current_ = 0;
             }
 
@@ -235,7 +234,6 @@ private:
         std::vector<FileSizePair> filelist_;
         std::streampos current_size_;
         size_t current_file_ = 0;
-        core::FileIO fio;
     };
 };
 
