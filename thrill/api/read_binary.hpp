@@ -151,7 +151,7 @@ private:
     {
     public:
 
-        const size_t read_size = 2 * 1024;
+        const size_t read_size = 2 * 1024 * 1024;
 
         BinaryFileReader() { }
 
