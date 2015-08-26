@@ -25,7 +25,7 @@
 
 using namespace thrill; // NOLINT
 
-static const bool debug = true;
+static const bool debug = false;
 
 TEST(MultiwayMerge, Basic) {
     std::size_t a = 2;
@@ -72,8 +72,8 @@ TEST(MultiwayMerge, Basic) {
 
 
 TEST(MultiwayMerge, Vector_Wrapper) {
-    std::size_t a = 2;
-    std::size_t b = 5;
+    std::size_t a = 200;
+    std::size_t b = 50;
     std::size_t total = 2*5;
 
     using iterator = thrill::core::StxxlVectorWrapper<int>;
@@ -91,7 +91,7 @@ TEST(MultiwayMerge, Vector_Wrapper) {
         std::vector<int> tmp;
         tmp.reserve(b);
         for (std::size_t j = 0; j < b; ++j) {
-            auto elem = rand() % 10;
+            auto elem = rand();
             tmp.push_back(elem);
             ref.push_back(elem);
         }
@@ -116,8 +116,8 @@ TEST(MultiwayMerge, Vector_Wrapper) {
 }
 
 TEST(MultiwayMerge, File_Wrapper) {
-    std::size_t a = 2;
-    std::size_t b = 2;
+    std::size_t a = 150;
+    std::size_t b = 4000;
     std::size_t total = a*b;
 
     using Iterator = thrill::core::StxxlFileWrapper<int>;
@@ -137,7 +137,7 @@ TEST(MultiwayMerge, File_Wrapper) {
         std::vector<int> tmp;
         tmp.reserve(b);
         for (std::size_t j = 0; j < b; ++j) {
-            auto elem = rand() % 10;
+            auto elem = rand();
             sLOG << "FILE" << i << "with elem" << elem;
             tmp.push_back(elem);
             ref.push_back(elem);
@@ -168,12 +168,6 @@ TEST(MultiwayMerge, File_Wrapper) {
                                                             std::begin(output),
                                                             total,
                                                             std::less<int>());
-
-    std::string o = "";
-    for (auto e : output) {
-        o += std::to_string(e) + " ";
-    }
-    LOG << o;
 
     for (std::size_t i = 0; i < total; ++i) {
         sLOG << std::setw(3) << ref[i] << std::setw(3) << output[i];
