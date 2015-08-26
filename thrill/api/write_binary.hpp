@@ -119,30 +119,25 @@ public:
 
 protected:
     //! Implements BlockSink class writing to files with size limit.
-    class SysFileSink : public data::BoundedBlockSink
+    class SysFileSink final : public data::BoundedBlockSink
     {
     public:
         SysFileSink(data::BlockPool& block_pool,
                     const std::string& path, size_t max_file_size)
             : BlockSink(block_pool),
-              BoundedBlockSink(block_pool, max_file_size) {
-            fd_ = core::OpenFileForWrite(path);
-        }
+            BoundedBlockSink(block_pool, max_file_size),
+            file_( core::SysFile::OpenForWrite(path) ) {        }
 
         void AppendBlock(const data::Block& b) final {
-            write(fd_, b.data_begin(), b.size());
+            file_.write(b.data_begin(), b.size());
         }
 
         void Close() final {
-            close(fd_);
-        }
-
-        ~SysFileSink() {
-            Close();
+            file_.close();
         }
 
     protected:
-        int fd_;
+        core::SysFile file_;
     };
 
     using Writer = data::BlockWriter<SysFileSink>;
@@ -167,7 +162,8 @@ protected:
 
     //! Function to create sink_ and writer_ for next file
     void OpenNextFile() {
-        if (writer_) writer_.reset();
+        writer_.reset();
+        sink_.reset();
 
         // construct path from pattern containing ### and $$$
         std::string out_path = make_path(
