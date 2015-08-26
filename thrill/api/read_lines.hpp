@@ -209,8 +209,8 @@ private:
         //!
         //! does no checks whether a next element exists!
         std::string Next() {
+			std::string ret;
             while (true) {
-                std::string ret;
                 for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         size_t strlen = it - bb_.begin() - current_;
@@ -346,14 +346,13 @@ private:
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        std::string Next() {
+        std::string Next() {			
+			std::string ret;
             while (true) {
-                std::string ret;
                 for (auto it = bb_.begin() + current_; it != bb_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         size_t strlen = it - bb_.begin() - current_;
                         current_ = it - bb_.begin() + 1;
-                        LOG << "returning string";
                         return ret.append(bb_.PartialToString(current_ - strlen - 1, strlen));
                     }
                 }
@@ -365,6 +364,7 @@ private:
                     bb_.set_size(buffer_size);
                 }
                 else {
+					LOG << "Opening new file!";
                     close(c_file_);
                     current_file_++;
                     offset_ = 0;
@@ -373,8 +373,7 @@ private:
                         c_file_ = OpenFile(files_[current_file_].first);
                         ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
                         bb_.set_size(buffer_size);
-                    }
-                    else {
+                    } else {
                         current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
@@ -396,14 +395,15 @@ private:
             // as HasNext() has to know if file is finished
             //  v-- no new line at end ||   v-- newline at end of file
             if (current_ >= bb_.size() || (current_ >= bb_.size() - 1 && bb_[current_] == '\n')) {
-                current_ = 0;
+				LOG << "New buffer in HasNext()";
+				current_ = 0;
                 ssize_t buffer_size = read(c_file_, bb_.data(), read_size);
                 offset_ += bb_.size();
-                if (buffer_size > 1) {
+                if (buffer_size > 1 || (buffer_size == 1 && bb_[0] != '\n')) {
                     bb_.set_size(buffer_size);
                     return true;
-                }
-                else {
+                } else {
+					LOG << "Opening new file in HasNext()";
                     // already at last file
                     if (current_file_ >= NumFiles() - 1) {
                         return false;
