@@ -164,7 +164,7 @@ private:
         void SetFileList(std::vector<FileSizePair> path) {
             filelist_ = path;
             if (filelist_.size() > 1) {
-                c_file_ = fio.OpenFile(filelist_[0].first);
+                c_file_ = core::OpenFileForRead(filelist_[0].first);
                 buffer_.Reserve(read_size);
                 current_size_ = filelist_[1].second - filelist_[0].second;
             }
@@ -188,7 +188,7 @@ private:
                     close(c_file_);
                     current_file_++;
                     current_size_ = filelist_[current_file_ + 1].second - filelist_[current_file_].second;
-                    c_file_ = fio.OpenFile(filelist_[current_file_].first);
+                    c_file_ = core::OpenFileForRead(filelist_[current_file_].first);
                     return true;
                 }
                 else {

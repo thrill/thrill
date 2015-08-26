@@ -340,7 +340,7 @@ private:
 
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
-                c_file_ = fio.OpenFile(files_[current_file_].first);
+                c_file_ = core::OpenFileForRead(files_[current_file_].first);
             }
             else {
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
@@ -378,7 +378,7 @@ private:
                     offset_ = 0;
 
                     if (current_file_ < NumFiles()) {
-                        c_file_ = fio.OpenFile(files_[current_file_].first);
+                        c_file_ = core::OpenFileForRead(files_[current_file_].first);
                         ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
                         buffer_.set_size(buffer_size);
                     }
@@ -424,7 +424,7 @@ private:
                         current_file_++;
                         offset_ = 0;
 
-                        c_file_ = fio.OpenFile(files_[current_file_].first);
+                        c_file_ = core::OpenFileForRead(files_[current_file_].first);
                         buffer_.set_size(read(c_file_, buffer_.data(), read_size));
                         return true;
                     }
