@@ -550,7 +550,7 @@ public:
      * \param max_file_size size limit of individual file.
      */
     void WriteBinary(const std::string& filepath,
-                     size_t max_file_size = 128 * 1024 * 1024) const;
+                     size_t max_file_size = 128* 1024* 1024) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
