@@ -23,6 +23,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iomanip>
 
 namespace thrill {
 namespace api {
@@ -44,12 +45,12 @@ public:
                     StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() },
                      "WriteBinary", stats_node),
-          path_out_(path_out + std::to_string(context_.my_rank()))
+          out_pathbase_(path_out)
     {
         sLOG << "Creating write node.";
 
         auto pre_op_fn = [=](const ValueType& input) {
-                             writer_.PutItemNoSelfVerify(input);
+            return PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
         // node for output
@@ -59,23 +60,27 @@ public:
 
     //! Closes the output file
     void Execute() final {
-        sLOG << "closing file" << path_out_;
-        writer_.Close();
+        sLOG << "closing file" << out_pathbase_;
+        writer_.reset();
+        sink_.reset();
     }
 
     void Dispose() final { }
 
     std::string ToString() final {
-        return "[WriteNode] Id:" + result_file_.ToString();
+        return "[WriteBinaryNode] Id:" + result_file_.ToString();
     }
 
 protected:
-    class OStreamSink : public data::BlockSink
+    //! Implements BlockSink class writing to std::ofstream with size limit.
+    class OStreamSink : public data::BoundedBlockSink
     {
     public:
-        explicit OStreamSink(data::BlockPool& block_pool,
-                             const std::string& file)
-            : BlockSink(block_pool), outstream_(file) { }
+        OStreamSink(data::BlockPool& block_pool,
+                    const std::string& path, size_t max_size)
+            : BlockSink(block_pool),
+              BoundedBlockSink(block_pool, max_size),
+              outstream_(path) { }
 
         void AppendBlock(const data::Block& b) final {
             outstream_.write(
@@ -90,14 +95,61 @@ protected:
         std::ofstream outstream_;
     };
 
-    //! Path of the output file.
-    std::string path_out_;
+    using Writer = data::BlockWriter<OStreamSink>;
+
+    //! Base path of the output file.
+    std::string out_pathbase_;
+
+    //! File serial number for this worker
+    size_t out_serial_ = 0;
+
+    //! Block size used by BlockWriter
+    size_t block_size_ = data::default_block_size;
 
     //! BlockSink which writes to an actual file
-    OStreamSink sink_ { context_.block_pool(), path_out_ };
+    std::unique_ptr<OStreamSink> sink_;
 
     //! BlockWriter to sink.
-    data::BlockWriter<OStreamSink> writer_ { &sink_ };
+    std::unique_ptr<Writer> writer_;
+
+    //! Function to create sink_ and writer_ for next file
+    void OpenNextFile() {
+        if (writer_) writer_.reset();
+
+        std::ostringstream out_path;
+        out_path << out_pathbase_
+                 << '-'
+                 << std::setw(5) << std::setfill('0') << context_.my_rank()
+                 << '-'
+                 << std::setw(10) << std::setfill('0') << out_serial_++;
+
+        sink_ = std::make_unique<OStreamSink>(
+            context_.block_pool(), out_path.str(), 16 * 1024 * 1024);
+
+        writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
+    }
+
+    //! writer preop: put item into file, create files as needed.
+    void PreOp(const ValueType& input) {
+        if (!sink_) OpenNextFile();
+
+        try {
+            writer_->PutItemNoSelfVerify(input);
+        }
+        catch (data::FullException& e) {
+            // sink is full. flush it. and repeat, which opens new file.
+            OpenNextFile();
+
+            try {
+                writer_->PutItemNoSelfVerify(input);
+            }
+            catch (data::FullException& e) {
+                throw std::runtime_error(
+                    "Error in WriteBinary: "
+                    "an item is larger than the file size limit");
+            }
+        }
+    }
 };
 
 template <typename ValueType, typename Stack>

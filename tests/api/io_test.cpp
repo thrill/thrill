@@ -58,6 +58,24 @@ TEST(IO, GenerateFromFileCorrectAmountOfCorrectIntegers) {
         });
 }
 
+TEST(IO, GenerateIntegerWriteBinary) {
+    api::RunLocalTests(
+        [](api::Context& ctx) {
+
+            size_t generate_size = 16000000;
+
+            auto dia = Generate(
+                ctx,
+                [](const size_t index) {
+                    return index * 42;
+                },
+                generate_size);
+
+            dia.WriteBinary("test-GenerateIntegerWriteBinary");
+
+        });
+}
+
 TEST(IO, ReadFolder) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
