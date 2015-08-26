@@ -248,6 +248,50 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
         });
 }
 
+TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
+    TemporaryDirectory tmpdir;
+
+    api::RunLocalTests(
+        [&tmpdir](api::Context& ctx) {
+
+            // wipe directory from last test
+            if (ctx.my_rank() == 0) {
+                tmpdir.wipe();
+            }
+            ctx.Barrier();
+
+            // generate a dia of integers and write them to disk
+            size_t generate_size = 320000;
+            {
+                auto dia = Generate(
+                    ctx,
+                    [](const size_t index) { return index + 42; },
+                    generate_size);
+
+                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-$$$$-####.gz",
+                                16 * 1024);
+            }
+            ctx.Barrier();
+
+            // read the integers from disk (collectively) and compare
+            {
+                auto dia = api::ReadBinary<size_t>(
+                    ctx,
+                    tmpdir.get() + "/IO.IntegerBinary-*");
+
+                std::vector<size_t> vec = dia.AllGather();
+
+                ASSERT_EQ(generate_size, vec.size());
+                // this is another action
+                ASSERT_EQ(generate_size, dia.Size());
+
+                for (size_t i = 0; i < vec.size(); ++i) {
+                    ASSERT_EQ(42 + i, vec[i]);
+                }
+            }
+        });
+}
+
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
     return std::string('0' + index % 100, (index * index) % 20);
