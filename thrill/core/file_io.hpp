@@ -35,7 +35,8 @@ public:
         return common::ends_with(path, ".gz") ||
                common::ends_with(path, ".bz2") ||
                common::ends_with(path, ".xz") ||
-               common::ends_with(path, ".lzo");
+               common::ends_with(path, ".lzo") ||
+               common::ends_with(path, ".lz4");
     }
 
     /*!
@@ -112,6 +113,9 @@ int OpenFileForRead(const std::string& path) {
     }
     else if (common::ends_with(path, ".lzo")) {
         decompressor = "lzop";
+    }
+    else if (common::ends_with(path, ".lz4")) {
+        decompressor = "lz4";
     }
     else {
         // not a compressed file
@@ -270,6 +274,9 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     }
     else if (common::ends_with(path, ".lzo")) {
         compressor = "lzop";
+    }
+    else if (common::ends_with(path, ".lz4")) {
+        compressor = "lz4";
     }
     else {
         // not a compressed file
