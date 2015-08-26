@@ -245,10 +245,18 @@ private:
     BinaryFileReader bfr_;
 };
 
+/*!
+ * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
+ * system and  creates an ordered DIA according to a given read function.
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ */
 template <typename ValueType>
-DIARef<ValueType> ReadBinary(Context& ctx, std::string filepath, ValueType) {
+DIARef<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadBinary", NodeType::DOP);
+    StatsNode* stats_node =
+        ctx.stats_graph().AddNode("ReadBinary", NodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadBinaryNode<ValueType> >(

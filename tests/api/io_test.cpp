@@ -278,8 +278,8 @@ TEST(IO, ReadBinary) {
 
             std::string path = "testsf.out";
 
-            int bla = 5;
-            auto integers2 = ReadBinary(ctx, "./binary" + std::to_string(ctx.num_workers()) + "/*", bla);
+            auto integers2 = api::ReadBinary<int>(
+                ctx, "./binary" + std::to_string(ctx.num_workers()) + "/*");
 
             integers2.Map(
                 [](const int& item) {
