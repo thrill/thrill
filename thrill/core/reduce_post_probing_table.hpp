@@ -143,8 +143,9 @@ public:
 
         for (size_t frame_id = 0; frame_id < ht->NumFrames(); frame_id++) {
 
-            // compute frame offset of current frame
+            // compute frame offset and length of current frame
             size_t offset = frame_id * ht->FrameSize();
+            size_t length = (frame_id != ht->NumFrames()-1) ? offset + ht->FrameSize() : ht->Size();
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
@@ -215,7 +216,7 @@ public:
                 /////
                 // reduce data from primary table
                 /////
-                for (size_t i = offset; i < offset + ht->FrameSize(); i++)
+                for (size_t i = offset; i < length; i++)
                 {
                     KeyValuePair& kv = items[i];
                     if (kv.first != ht->Sentinel().first)
@@ -289,7 +290,7 @@ public:
                 /////
                 // emit data
                 /////
-                for (size_t i = offset; i < offset + ht->FrameSize(); i++)
+                for (size_t i = offset; i < length; i++)
                 {
                     KeyValuePair& current = items[i];
                     if (current.first != ht->Sentinel().first)
@@ -318,7 +319,7 @@ private:
 };
 
 template <typename Value>
-class PostProbingReduceFlushToIndex
+class PostProbingReduceFlushToIndex //TODO(ms): apply spilled files reading
 {
 public:
     template <typename ReducePostProbingTable>
@@ -407,10 +408,10 @@ public:
      * \param flush_function Function to be used for flushing all items in the table.
      * \param end_local_index End index for reduce to index.
      * \param neutral element Neutral element for reduce to index.
-     * \param size The number of slots available for items in the table.
+     * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
+     *                  are spilled to disk.
      * \param max_frame_fill_rate Maximal number of items per frame relative to number of slots allowed to be filled.
-     *          It the rate is exceeded, items get spilled to disk.
-     * \param max_num_items_table Maximal number of items allowed before some items are flushed.
+     *                            It the rate is exceeded, items get spilled to disk.
      * \param frame_size Number of slots exactly one file writer to be used for.
      * \param equal_to_function Function for checking equality of two keys.
      * \param spill_function Function implementing a strategy to spill items to disk.
@@ -425,11 +426,11 @@ public:
                            size_t begin_local_index = 0,
                            size_t end_local_index = 0,
                            Value neutral_element = Value(),
-                           size_t size = 1024 * 16,
+                           size_t byte_size = 1024 * 16,
                            double max_frame_fill_rate = 0.5,
-                           size_t frame_size = 32,
+                           size_t frame_size = 32, // TODO(ms): use percentage instead
                            const EqualToFunction& equal_to_function = EqualToFunction())
-        : size_(size),
+        : byte_size_(byte_size),
           max_frame_fill_rate_(max_frame_fill_rate),
           key_extractor_(key_extractor),
           emit_(std::move(emit)),
@@ -440,21 +441,20 @@ public:
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
           neutral_element_(neutral_element),
-          reduce_function_(reduce_function) {
+          reduce_function_(reduce_function)
+    {
         sLOG << "creating ReducePostProbingTable with" << emit_.size() << "output emiters";
 
-        assert(size > 0 &&
-               (size & (size - 1)) == 0
-               && "size must be a power of two");
+        assert(byte_size > 0 && "byte_size must be greater than 0");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
         assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
                && "frame_size must be a power of two");
-        assert(frame_size <= size &&
-               "frame_size must be less than or equal to size");
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
-        num_frames_ = size_ / frame_size_;
+        // TODO(ms): second reduce table is currently not considered for byte_size
+        size_ = (size_t)(static_cast<double>(byte_size_) / static_cast<double>(sizeof(KeyValuePair)));
+        num_frames_ = (size_t)std::ceil(static_cast<double>(size_) / static_cast<double>(frame_size_));
         items_per_frame_.resize(num_frames_, 0);
 
         for (size_t i = 0; i < num_frames_; i++) {
@@ -605,8 +605,11 @@ public:
     void SpillFrame(size_t frame_id) {
         data::File::Writer& writer = frame_writers_[frame_id];
 
-        for (size_t global_index = frame_id * frame_size_;
-             global_index < frame_id * frame_size_ + frame_size_; global_index++)
+        size_t offset = frame_id * frame_size_;
+        size_t length = (frame_id != num_frames_-1) ? offset + frame_size_ : size_;
+
+        for (size_t global_index = offset;
+             global_index < length; global_index++)
         {
             KeyValuePair& current = items_[global_index];
             if (current.first != sentinel_.first)
@@ -793,6 +796,9 @@ public:
     }
 
 protected:
+    //! Size of the table in bytes
+    size_t byte_size_ = 0;
+
     //! Size of the table, which is the number of slots
     //! available for items.
     size_t size_ = 0;
