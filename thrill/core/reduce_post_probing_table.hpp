@@ -112,6 +112,7 @@ public:
 
 template <typename Key,
           typename ReduceFunction,
+          const bool ClearAfterFlush = false,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class PostProbingReduceFlushToDefault
@@ -166,6 +167,9 @@ public:
 
                 data::File::Reader reader = file.GetReader();
 
+                // flag used when item is reduced to advance to next item
+                bool reduced = false;
+
                 // get the items and insert them in secondary
                 // table
                 while (reader.HasNext()) {
@@ -183,8 +187,8 @@ public:
                         if (equal_to_function_(current->first, kv.first))
                         {
                             current->second = ht->reduce_function_(current->second, kv.second);
-
-                            return;
+                            reduced = true;
+                            break;
                         }
 
                         if (current == last_item)
@@ -195,6 +199,12 @@ public:
                         {
                             ++current;
                         }
+                    }
+
+                    if (reduced)
+                    {
+                        reduced = false;
+                        continue;
                     }
 
                     // insert new pair
@@ -221,8 +231,8 @@ public:
                             if (equal_to_function_(current->first, kv.first))
                             {
                                 current->second = ht->reduce_function_(current->second, kv.second);
-
-                                return;
+                                reduced = true;
+                                break;
                             }
 
                             if (current == last_item)
@@ -235,15 +245,27 @@ public:
                             }
                         }
 
+                        if (reduced)
+                        {
+                            reduced = false;
+                            continue;
+                        }
+
                         // insert new pair
                         current->first = kv.first;
                         current->second = kv.second;
 
-                        items[i] = ht->Sentinel();
+                        if (ClearAfterFlush)
+                        {
+                            items[i] = ht->Sentinel();
+                        }
                     }
                 }
 
-                num_items_per_frame[frame_id] = 0;
+                if (ClearAfterFlush)
+                {
+                    num_items_per_frame[frame_id] = 0;
+                }
 
                 /////
                 // emit data
@@ -259,8 +281,8 @@ public:
                     }
                 }
 
-                // no spilled items, just flush already reduced
-                // data in primary table in current frame
+            // no spilled items, just flush already reduced
+            // data in primary table in current frame
             }
             else
             {
@@ -274,13 +296,19 @@ public:
                     {
                         ht->EmitAll(std::make_pair(current.first, current.second));
 
-                        items[i] = ht->Sentinel();
+                        if (ClearAfterFlush)
+                        {
+                            items[i] = ht->Sentinel();
+                        }
                     }
                 }
             }
         }
 
-        ht->SetNumItems(0);
+        if (ClearAfterFlush)
+        {
+            ht->SetNumItems(0);
+        }
     }
 
 private:
@@ -350,7 +378,8 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostProbingReduceFlushToDefault<Key, ReduceFunction>,
+          const bool ClearAfterFlush = false,
+          typename FlushFunction = PostProbingReduceFlushToDefault<Key, ReduceFunction, ClearAfterFlush>,
           typename IndexFunction = PostProbingReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePostProbingTable
