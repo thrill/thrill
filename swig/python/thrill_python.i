@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * swig/python/thrill_python.i
+ *
+ * Part of Project Thrill.
+ *
+ * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
 %module(directors="1") thrill
 %{
 
@@ -6,6 +16,9 @@
 using namespace thrill;
 
 %}
+
+// this makes python functions use *args instead of explicit arguments in swig3.
+%feature("compactdefaultargs");
 
 %feature("director") GeneratorFunction;
 
@@ -22,6 +35,85 @@ using namespace thrill;
         throw Swig::DirectorMethodException();
     }
 }
+
+/*[[[cog
+import cog
+
+def callback_wrapper(func, arglist):
+  cog.outl('%%feature("pythonprepend") %s %%{' % func)
+  cog.outl('  wa = []')
+  for i, arg in enumerate(arglist):
+    if arg != '':
+      cog.outl('  if not isinstance(args[%d], %s) and callable(args[0]):' % (i, arg))
+      cog.outl('    class CallableWrapper(%s):' % arg)
+      cog.outl('      def __init__(self, f):')
+      cog.outl('        super(CallableWrapper, self).__init__()')
+      cog.outl('        self.f_ = f')
+      cog.outl('      def __call__(self, *args):')
+      cog.outl('        return self.f_(*args)')
+      cog.outl('    wa.append(CallableWrapper(args[%d]))' % i)
+      cog.outl('  else:')
+      cog.outl('    wa.append(args[%d])' % i)
+    else:
+      cog.outl('  wa.append(args[%d])' % i)
+  cog.outl('  args = tuple(wa)')
+  cog.outl('%}')
+
+callback_wrapper('thrill::PyContext::Generate(GeneratorFunction&, size_t)',
+                 ['GeneratorFunction', ''])
+
+callback_wrapper('thrill::PyDIA::Map(MapFunction&) const',
+                 ['MapFunction'])
+
+callback_wrapper('thrill::PyDIA::Filter(FilterFunction&) const',
+                 ['FilterFunction'])
+
+  ]]]*/
+%feature("pythonprepend") thrill::PyContext::Generate(GeneratorFunction&, size_t) %{
+  wa = []
+  if not isinstance(args[0], GeneratorFunction) and callable(args[0]):
+    class CallableWrapper(GeneratorFunction):
+      def __init__(self, f):
+        super(CallableWrapper, self).__init__()
+        self.f_ = f
+      def __call__(self, *args):
+        return self.f_(*args)
+    wa.append(CallableWrapper(args[0]))
+  else:
+    wa.append(args[0])
+  wa.append(args[1])
+  args = tuple(wa)
+%}
+%feature("pythonprepend") thrill::PyDIA::Map(MapFunction&) const %{
+  wa = []
+  if not isinstance(args[0], MapFunction) and callable(args[0]):
+    class CallableWrapper(MapFunction):
+      def __init__(self, f):
+        super(CallableWrapper, self).__init__()
+        self.f_ = f
+      def __call__(self, *args):
+        return self.f_(*args)
+    wa.append(CallableWrapper(args[0]))
+  else:
+    wa.append(args[0])
+  args = tuple(wa)
+%}
+%feature("pythonprepend") thrill::PyDIA::Filter(FilterFunction&) const %{
+  wa = []
+  if not isinstance(args[0], FilterFunction) and callable(args[0]):
+    class CallableWrapper(FilterFunction):
+      def __init__(self, f):
+        super(CallableWrapper, self).__init__()
+        self.f_ = f
+      def __call__(self, *args):
+        return self.f_(*args)
+    wa.append(CallableWrapper(args[0]))
+  else:
+    wa.append(args[0])
+  args = tuple(wa)
+%}
+// [[[end]]]
+
 
 %define CallbackHelper(FunctionType,function_var) %{
    if not isinstance(function_var, FunctionType) and callable(function_var):
@@ -55,15 +147,6 @@ using namespace thrill;
 %}
 %enddef
 
-%feature("pythonprepend") thrill::PyContext::Generate(GeneratorFunction&, size_t)
-   CallbackHelper(GeneratorFunction, generator_function)
-
-%feature("pythonprepend") thrill::PyDIA::Map(MapFunction&) const
-   CallbackHelper(MapFunction, map_function)
-
-%feature("pythonprepend") thrill::PyDIA::Filter(FilterFunction&) const
-   CallbackHelper(FilterFunction, filter_function)
-
 %feature("pythonprepend") thrill::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const
 CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_function)
 
@@ -77,7 +160,7 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 %template(VectorPyObject) std::vector<PyObject*>;
 %template(VectorString) std::vector<std::string>;
 
-%template(VectorPyContext) std::vector<std::shared_ptr<thrill::PyContext>>;
+%template(VectorPyContext) std::vector<std::shared_ptr<thrill::PyContext> >;
 
 %ignore thrill::api::HostContext::ConstructLocalMock;
 
@@ -92,3 +175,5 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 
 %include <thrill/api/context.hpp>
 %include "thrill_python.hpp"
+
+/******************************************************************************/
