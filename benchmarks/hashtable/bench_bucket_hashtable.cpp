@@ -116,20 +116,9 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(sinks[i].GetWriter());
     }
 
-    size_t block_size_ = core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>::block_size_;
-    size_t size_bb = sizeof(core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>::BucketBlock);
-
-    size_t max_num_blocks_table_ = (size_t) (static_cast<double>(table_size) / static_cast<double>(size_bb));
-    max_num_blocks_table_ = (max_num_blocks_table_ <= 0) ? 1 : max_num_blocks_table_;
-
-    size_t num_buckets_per_partition_ = (size_t) ((static_cast<double>(strings.size()) / static_cast<double>(workers))
-                                 / (static_cast<double>(block_size_) * max_partition_fill_rate));
-
     core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
             core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>
-    table(workers, key_ex, red_fn, writers, num_buckets_per_partition_, max_partition_fill_rate, max_num_blocks_table_);
+    table(workers, key_ex, red_fn, writers, table_size, max_partition_fill_rate);
 
     common::StatsTimer<true> timer(true);
 
