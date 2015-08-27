@@ -13,6 +13,7 @@
 #ifndef C7A_DATA_REPOSITORY_HEADER
 #define C7A_DATA_REPOSITORY_HEADER
 
+#include <c7a/common/logger.hpp>
 #include <cassert>
 #include <map>
 #include <memory>
@@ -43,44 +44,6 @@ public:
         assert(local_worker_id < next_id_.size());
         return next_id_[local_worker_id]++;
     }
-
-    // //! Allocates a data target with the given ID
-    // //! Use this only for internal purpose.
-    // //! \param id of the target to retrieve
-    // //! \exception std::runtime_exception if id is already contained
-    // size_t Allocate(const size_t& id) {
-    //     sLOG << "allocate" << id;
-    //     if (Contains(id)) {
-    //         throw new std::runtime_error("duplocate data target allocation w/ explicit id");
-    //     }
-    //     data_[id] = std::make_shared<Object>();
-    //     return id;
-    // }
-
-    // //! Indicates if a data target exists with the given id
-    // bool Contains(const size_t& id) {
-    //     return data_.find(id) != data_.end();
-    // }
-
-    // //! Returns the data target with the given ID
-    // //! \ param id of the data to retrieve
-    // //! \exception std::runtime_error if id is not contained
-    // std::shared_ptr<Object> operator () (const size_t& id) {
-    //     sLOG << "data" << id;
-    //     if (!Contains(id)) {
-    //         throw new std::runtime_error("data id is unknwon");
-    //     }
-    //     return data_[id];
-    // }
-
-    // //! Gets or allocates the data target with the given id in an atomic
-    // //! fashion.
-    // //! \returns a shared ptr to the created/retrieved data target
-    // std::shared_ptr<Object> GetOrAllocate(const size_t& id) {
-    //     if (!Contains(id))
-    //         data_[id] = std::make_shared<Object>();
-    //     return data_[id];
-    // }
 
     //! Get object with given id, if it does not exist, create it.
     //! \param object_id of the object
