@@ -524,6 +524,131 @@ multiway_merge_3_combined(RandomAccessIteratorIterator seqs_begin,
 }
 
 /*!
+ * Highly efficient 4-way merging procedure if output is a file writer.
+ *
+ * Merging is done with the algorithm implementation described by Peter
+ * Sanders. Basically, the idea is to minimize the number of necessary
+ * comparison after merging an element.  The implementation trick that makes
+ * this fast is that the order of the sequences is stored in the instruction
+ * pointer (translated into goto labels in C++).
+ *
+ * This works well for merging up to 4 sequences.
+ *
+ * Note that making the merging stable does \a not come at a performance hit.
+ *
+ * Whether the merging is done guarded or unguarded is selected by the used
+ * iterator class.
+ *
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param target Begin iterator out output sequence.
+ * \param length Maximum length to merge.
+ * \param comp Comparator.
+ * \return End iterator of output sequence.
+ */
+template <template <typename RAI, typename C> class iterator,
+          typename RandomAccessIteratorIterator,
+          typename RandomAccessIterator3,
+          typename DiffType, typename Comparator>
+RandomAccessIterator3
+file_multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
+                              RandomAccessIteratorIterator,
+                              RandomAccessIterator3 target, DiffType length,
+                              Comparator comp)
+{
+
+    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type RandomAccessIterator;
+
+    if (length == 0)
+        return target;
+
+    iterator<RandomAccessIterator, Comparator>
+    seq0(seqs_begin[0].first, seqs_begin[0].second, comp),
+    seq1(seqs_begin[1].first, seqs_begin[1].second, comp),
+    seq2(seqs_begin[2].first, seqs_begin[2].second, comp),
+    seq3(seqs_begin[3].first, seqs_begin[3].second, comp);
+
+#define STXXL_DECISION(a, b, c, d) do {                       \
+        if (seq ## d < seq ## a) goto s ## d ## a ## b ## c;  \
+        if (seq ## d < seq ## b) goto s ## a ## d ## b ## c;  \
+        if (seq ## d < seq ## c) goto s ## a ## b ## d ## c;  \
+        goto s ## a ## b ## c ## d;                           \
+}                                                             \
+    while (0)
+
+    if (seq0 <= seq1)
+    {
+        if (seq1 <= seq2)
+            STXXL_DECISION(0, 1, 2, 3);
+        else if (seq2 < seq0)
+            STXXL_DECISION(2, 0, 1, 3);
+        else
+            STXXL_DECISION(0, 2, 1, 3);
+    }
+    else
+    {
+        if (seq1 <= seq2)
+        {
+            if (seq0 <= seq2)
+                STXXL_DECISION(1, 0, 2, 3);
+            else
+                STXXL_DECISION(1, 2, 0, 3);
+        }
+        else
+            STXXL_DECISION(2, 1, 0, 3);
+    }
+
+#define STXXL_MERGE4CASE(a, b, c, d, c0, c1, c2)           \
+    s ## a ## b ## c ## d :                                \
+    if (length == 0) goto finish;                          \
+    target(*seq ## a);                                     \
+    --length;                                              \
+    ++seq ## a;                                            \
+    if (seq ## a c0 seq ## b) goto s ## a ## b ## c ## d;  \
+    if (seq ## a c1 seq ## c) goto s ## b ## a ## c ## d;  \
+    if (seq ## a c2 seq ## d) goto s ## b ## c ## a ## d;  \
+    goto s ## b ## c ## d ## a;
+
+    STXXL_MERGE4CASE(0, 1, 2, 3, <=, <=, <=);
+    STXXL_MERGE4CASE(0, 1, 3, 2, <=, <=, <=);
+    STXXL_MERGE4CASE(0, 2, 1, 3, <=, <=, <=);
+    STXXL_MERGE4CASE(0, 2, 3, 1, <=, <=, <=);
+    STXXL_MERGE4CASE(0, 3, 1, 2, <=, <=, <=);
+    STXXL_MERGE4CASE(0, 3, 2, 1, <=, <=, <=);
+    STXXL_MERGE4CASE(1, 0, 2, 3, <, <=, <=);
+    STXXL_MERGE4CASE(1, 0, 3, 2, <, <=, <=);
+    STXXL_MERGE4CASE(1, 2, 0, 3, <=, <, <=);
+    STXXL_MERGE4CASE(1, 2, 3, 0, <=, <=, <);
+    STXXL_MERGE4CASE(1, 3, 0, 2, <=, <, <=);
+    STXXL_MERGE4CASE(1, 3, 2, 0, <=, <=, <);
+    STXXL_MERGE4CASE(2, 0, 1, 3, <, <, <=);
+    STXXL_MERGE4CASE(2, 0, 3, 1, <, <=, <);
+    STXXL_MERGE4CASE(2, 1, 0, 3, <, <, <=);
+    STXXL_MERGE4CASE(2, 1, 3, 0, <, <=, <);
+    STXXL_MERGE4CASE(2, 3, 0, 1, <=, <, <);
+    STXXL_MERGE4CASE(2, 3, 1, 0, <=, <, <);
+    STXXL_MERGE4CASE(3, 0, 1, 2, <, <, <);
+    STXXL_MERGE4CASE(3, 0, 2, 1, <, <, <);
+    STXXL_MERGE4CASE(3, 1, 0, 2, <, <, <);
+    STXXL_MERGE4CASE(3, 1, 2, 0, <, <, <);
+    STXXL_MERGE4CASE(3, 2, 0, 1, <, <, <);
+    STXXL_MERGE4CASE(3, 2, 1, 0, <, <, <);
+
+#undef STXXL_MERGE4CASE
+#undef STXXL_DECISION
+
+finish:
+    ;
+    seqs_begin[0].first = seq0.iterator();
+    seqs_begin[1].first = seq1.iterator();
+    seqs_begin[2].first = seq2.iterator();
+    seqs_begin[3].first = seq3.iterator();
+
+    return target;
+}
+
+/*!
  * Highly efficient 4-way merging procedure.
  *
  * Merging is done with the algorithm implementation described by Peter
@@ -903,6 +1028,83 @@ multiway_merge_bubble(RandomAccessIteratorIterator seqs_begin,
 }
 
 /*!
+ * Multi-way merging procedure for a high branching factor, guarded case with
+ * a file writer as output.
+ *
+ * The head elements are kept in a loser tree.
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param target Begin iterator out output sequence.
+ * \param length Maximum length to merge.
+ * \param comp Comparator.
+ * \tparam Stable Stable merging incurs a performance penalty.
+ * \return End iterator of output sequence.
+ */
+template <typename LoserTreeType,
+          typename RandomAccessIteratorIterator,
+          typename RandomAccessIterator3,
+          typename DiffType, typename Comparator>
+RandomAccessIterator3
+file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
+                               RandomAccessIteratorIterator seqs_end,
+                               RandomAccessIterator3 target, DiffType length,
+                               Comparator comp)
+{
+    typedef typename LoserTreeType::source_type source_type;
+    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type RandomAccessIterator;
+    typedef typename std::iterator_traits<RandomAccessIterator>
+        ::value_type value_type;
+
+    source_type k = static_cast<source_type>(seqs_end - seqs_begin);
+
+    LoserTreeType lt(k, comp);
+
+    DiffType total_length = 0;
+
+    const value_type* arbitrary_element = NULL;
+
+    // find an arbitrary element to avoid default construction
+    for (source_type t = 0; t < k; ++t)
+    {
+        if (!arbitrary_element && iterpair_size(seqs_begin[t]) > 0)
+            arbitrary_element = &(*seqs_begin[t].first);
+
+        total_length += iterpair_size(seqs_begin[t]);
+    }
+
+    for (source_type t = 0; t < k; ++t)
+    {
+        if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
+            lt.insert_start(*arbitrary_element, t, true);
+        else
+            lt.insert_start(*seqs_begin[t].first, t, false);
+    }
+
+    lt.init();
+
+    total_length = std::min(total_length, length);
+
+    for (DiffType i = 0; i < total_length; ++i)
+    {
+        // take out
+        source_type source = lt.get_min_source();
+
+        target(*seqs_begin[source].first);
+        ++seqs_begin[source].first;
+
+        // feed
+        if (seqs_begin[source].first == seqs_begin[source].second)
+            lt.delete_min_insert(*arbitrary_element, true);
+        else
+            // replace from same source
+            lt.delete_min_insert(*seqs_begin[source].first, false);
+    }
+
+    return target;
+}
+
+/*!
  * Multi-way merging procedure for a high branching factor, guarded case.
  *
  * The head elements are kept in a loser tree.
@@ -1206,6 +1408,66 @@ multiway_merge_loser_tree_sentinel(
     return target_end;
 }
 
+
+/*!
+ * Sequential multi-way merging switch for a file writer as output
+ *
+ * The decision if based on the branching factor and runtime settings.
+ *
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param target Begin iterator out output sequence.
+ * \param length Maximum length to merge.
+ * \param comp Comparator.
+ * \tparam Stable Stable merging incurs a performance penalty.
+ * \tparam Sentinels The sequences have a sentinel element.
+ * \return End iterator of output sequence.
+ */
+template <bool Stable, bool Sentinels,
+          typename RandomAccessIteratorIterator,
+          typename RandomAccessIterator3,
+          typename DiffType, typename Comparator>
+RandomAccessIterator3
+sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
+                               RandomAccessIteratorIterator seqs_end,
+                               RandomAccessIterator3 target, DiffType length,
+                               Comparator comp)
+{
+    typedef typename std::iterator_traits<RandomAccessIteratorIterator>
+        ::value_type::first_type RandomAccessIterator;
+    typedef typename std::iterator_traits<RandomAccessIterator>
+        ::value_type value_type;
+
+    RandomAccessIterator3 return_target = target;
+    int k = static_cast<int>(seqs_end - seqs_begin);
+
+    switch (k)
+    {
+    case 0:
+        break;
+    case 1:
+    {
+        for (auto it = seqs_begin[0].first; it != seqs_begin[0].second; ++it) {
+            return_target(*it);
+        }
+        break;
+    }
+    case 4:
+        return_target = file_multiway_merge_4_variant<guarded_iterator>(
+            seqs_begin, seqs_end, target, length, comp);
+        break;
+    default:
+    {
+        return_target = file_multiway_merge_loser_tree<
+            typename loser_tree_traits<Stable, value_type, Comparator>::LT>(
+            seqs_begin, seqs_end, target, length, comp);
+        break;
+    }
+    }
+    return return_target;
+}
+
+
 /*!
  * Sequential multi-way merging switch.
  *
@@ -1254,7 +1516,10 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         break;
     case 1:
     {
+        // std::size_t t = 0;
         for (auto it = seqs_begin[0].first; it != seqs_begin[0].second; ++it) {
+            // return_target = *it;
+            // ++t;
             *return_target = *it;
             ++return_target;
         }

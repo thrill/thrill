@@ -478,6 +478,12 @@ public:
         const typename FunctionTraits<ReduceFunction>::result_type&
         neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
 
+    //TODO(cn) Doku
+    template <typename KeyExtractor, typename GroupByFunction, typename HashFunction = std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+    auto GroupBy(const KeyExtractor &key_extractor,
+                 const GroupByFunction &reduce_function) const;
+
+
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
      * zip_function is used to zip the i-th elements of both input DIAs together
