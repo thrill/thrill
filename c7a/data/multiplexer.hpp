@@ -29,6 +29,8 @@ namespace data {
 
 class Channel;
 using ChannelPtr = std::shared_ptr<Channel>;
+class ChannelSet;
+class BlockQueue;
 
 struct ChannelBlockHeader;
 
@@ -53,7 +55,7 @@ public:
         : dispatcher_("multiplexer"),
           group_(group),
           num_workers_per_host_(num_workers_per_host),
-          channels_(num_workers_per_host) {
+          channel_sets_(num_workers_per_host) {
         for (size_t id = 0; id < group_.num_hosts(); id++) {
             if (id == group_.my_host_rank()) continue;
             AsyncReadChannelBlockHeader(group_.connection(id));
@@ -86,7 +88,7 @@ public:
     //! Allocate the next channel
     size_t AllocateChannelId(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
-        return channels_.AllocateId(local_worker_id);
+        return channel_sets_.AllocateId(local_worker_id);
     }
 
     //! Get channel with given id, if it does not exist, create it.
@@ -100,7 +102,7 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         return std::move(
             _GetOrCreateChannel(
-                channels_.AllocateId(local_worker_id), local_worker_id));
+                channel_sets_.AllocateId(local_worker_id), local_worker_id));
     }
 
 private:
@@ -122,10 +124,16 @@ private:
     //! friends for access to network components
     friend class Channel;
 
+    //! Pointer to queue that is used for communication between two workers on
+    //! the same host.
+    //! \param from_worker_id is the id of the sending worker
+    //! \param to_worker_id is the id of the receiving worker, that owns the queue
+    BlockQueue* loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id);
+
     /**************************************************************************/
 
     //! Channels have an ID in block headers. (worker id, channel id)
-    Repository<Channel> channels_;
+    Repository<ChannelSet> channel_sets_;
 
     ChannelPtr _GetOrCreateChannel(size_t id, size_t local_worker_id);
 
