@@ -130,13 +130,23 @@ public:
         LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
 
-        if (stats_->is_valid_) {
+        if (stats_->is_valid_ && !stats_->has_elem_) {
             GetItemOrInvalidate();
         }
     }
 
     // StxxlFileWrapper(const StxxlFileWrapper& r) {}
-    // StxxlFileWrapper& operator=(const StxxlFileWrapper& r) {}
+    StxxlFileWrapper& operator=(const StxxlFileWrapper& r) {
+        file_ = r.file_;
+        reader_ = r.reader_;
+        stats_ = r.stats_;
+        LOG << "    Operator=";
+        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+        return *this;
+    }
+
 
     StxxlFileWrapper& operator++() {
         GetItemOrInvalidate();
@@ -209,6 +219,9 @@ public:
     // StxxlFileWrapper& operator-=(const difference_type& n) {}
 
     reference operator*() const {
+        LOG << "-----------------------------------------";
+        LOG << "Trying to return " << stats_->item_ << " from " << pos_ << " " << file_->ToString();
+        LOG << "-----------------------------------------";
         assert(stats_->is_valid_);
 
         LOG << "-----------------------------------------";
@@ -241,7 +254,7 @@ public:
         LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "file2: " << r.file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "result: " << std::boolalpha << ((file_ != r.file_) || (pos_ != r.pos_));
-        return (file_ != r.file_) || (pos_ != r.pos_);
+        return (file_ != r.file_) || (pos_ != r.pos_) ;
     }
 
     // bool operator<(const StxxlFileWrapper& r)

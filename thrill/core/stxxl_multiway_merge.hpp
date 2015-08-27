@@ -21,6 +21,7 @@
 #include <iterator>
 #include <algorithm>
 
+#include <thrill/common/logger.hpp>
 #include <thrill/core/stxxl_merge.hpp>
 #include <thrill/core/stxxl_losertree.hpp>
 
@@ -28,6 +29,7 @@ namespace stxxl {
 
 namespace parallel {
 
+static const bool debug = true;
 typedef int thread_index_t;
 static volatile unsigned int merge_oversampling = 10;
 
@@ -1251,34 +1253,39 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
     case 0:
         break;
     case 1:
-        return_target = std::copy(seqs_begin[0].first,
-                                  seqs_begin[0].first + length,
-                                  target);
-        seqs_begin[0].first += length;
+    {
+        for (auto it = seqs_begin[0].first; it != seqs_begin[0].second; ++it) {
+            *return_target = *it;
+            ++return_target;
+        }
         break;
-    case 2:
-        return_target = merge_advance(
-            seqs_begin[0].first, seqs_begin[0].second,
-            seqs_begin[1].first, seqs_begin[1].second,
-            target, length, comp);
-        break;
-    case 3:
-        // switch (mwma)
-        // {
-        // case SETTINGS::LOSER_TREE_COMBINED:
-        //     return_target = multiway_merge_3_combined(
-        //         seqs_begin, seqs_end, target, length, comp);
-        //     break;
-        // case SETTINGS::LOSER_TREE_SENTINEL:
-        //     return_target = multiway_merge_3_variant<unguarded_iterator>(
-        //         seqs_begin, seqs_end, target, length, comp);
-        //     break;
-        // default:
-            return_target = multiway_merge_3_variant<guarded_iterator>(
-                seqs_begin, seqs_end, target, length, comp);
-        //     break;
-        // }
-        break;
+    }
+
+    //TODO(cn): Check whether case 2 and 3 can be fixed
+
+    // case 2:
+    //     return_target = merge_advance(
+    //         seqs_begin[0].first, seqs_begin[0].second,
+    //         seqs_begin[1].first, seqs_begin[1].second,
+    //         target, length, comp);
+    //     break;
+    // case 3:
+    //     // switch (mwma)
+    //     // {
+    //     // case SETTINGS::LOSER_TREE_COMBINED:
+    //     //     return_target = multiway_merge_3_combined(
+    //     //         seqs_begin, seqs_end, target, length, comp);
+    //     //     break;
+    //     // case SETTINGS::LOSER_TREE_SENTINEL:
+    //     //     return_target = multiway_merge_3_variant<unguarded_iterator>(
+    //     //         seqs_begin, seqs_end, target, length, comp);
+    //     //     break;
+    //     // default:
+    //     return_target = multiway_merge_3_variant<guarded_iterator>(
+    //         seqs_begin, seqs_end, target, length, comp);
+    //     //     break;
+    //     // }
+    //     break;
     case 4:
         // switch (mwma)
         // {
@@ -1291,11 +1298,11 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         //         seqs_begin, seqs_end, target, length, comp);
         //     break;
         // default:
-            return_target = multiway_merge_4_variant<guarded_iterator>(
-                seqs_begin, seqs_end, target, length, comp);
-        //     break;
-        // }
+        return_target = multiway_merge_4_variant<guarded_iterator>(
+            seqs_begin, seqs_end, target, length, comp);
         break;
+        // }
+        // break;
     default:
     {
         // switch (mwma)
@@ -1305,10 +1312,10 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         //         seqs_begin, seqs_end, target, length, comp);
         //     break;
         // case SETTINGS::LOSER_TREE:
-            return_target = multiway_merge_loser_tree<
-                typename loser_tree_traits<Stable, value_type, Comparator>::LT>(
-                seqs_begin, seqs_end, target, length, comp);
-            break;
+        return_target = multiway_merge_loser_tree<
+            typename loser_tree_traits<Stable, value_type, Comparator>::LT>(
+            seqs_begin, seqs_end, target, length, comp);
+        break;
         // case SETTINGS::LOSER_TREE_COMBINED:
         //     return_target = multiway_merge_loser_tree_combined<Stable>(
         //         seqs_begin, seqs_end, target, length, comp);
