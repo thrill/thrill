@@ -186,7 +186,7 @@ public:
                                                         / static_cast<double>(ht->block_size_));  // TODO
 
                 // adjust size of second reduce table
-                second_reduce.resize(frame_length, NULL);
+                second_reduce.resize(frame_length, nullptr);
 
                 /////
                 // reduce data from spilled files
@@ -206,7 +206,7 @@ public:
                     size_t global_index = index_function_(kv.first, ht, frame_length);
 
                     BucketBlock* current = second_reduce[global_index];
-                    while (current != NULL)
+                    while (current != nullptr)
                     {
                         // iterate over valid items in a block
                         for (KeyValuePair* bi = current->items;
@@ -233,7 +233,7 @@ public:
                     current = second_reduce[global_index];
 
                     // have an item that needs to be added.
-                    if (current == NULL ||
+                    if (current == nullptr ||
                         current->size == ht->block_size_)
                     {
                         // allocate a new block of uninitialized items, postpend to bucket
@@ -255,7 +255,7 @@ public:
                 {
                     BucketBlock* current = buckets_[i];
 
-                    while (current != NULL)
+                    while (current != nullptr)
                     {
                         for (KeyValuePair* from = current->items;
                              from != current->items + current->size; ++from)
@@ -263,7 +263,7 @@ public:
                             // insert in second reduce table
                             size_t global_index = index_function_(from->first, ht, frame_length);
                             BucketBlock* current_second = second_reduce[global_index];
-                            while (current_second != NULL)
+                            while (current_second != nullptr)
                             {
                                 // iterate over valid items in a block
                                 for (KeyValuePair* bi = current_second->items;
@@ -295,7 +295,7 @@ public:
                             current_second = second_reduce[global_index];
 
                             // have an item that needs to be added.
-                            if (current_second == NULL ||
+                            if (current_second == nullptr ||
                                 current_second->size == ht->block_size_)
                             {
                                 // allocate a new block of uninitialized items, postpend to bucket
@@ -325,7 +325,7 @@ public:
 
                     if (ClearAfterFlush)
                     {
-                        buckets_[i] = NULL;
+                        buckets_[i] = nullptr;
                     }
                 }
 
@@ -341,7 +341,7 @@ public:
                 {
                     BucketBlock* current = second_reduce[i];
 
-                    while (current != NULL)
+                    while (current != nullptr)
                     {
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
@@ -356,7 +356,7 @@ public:
                         current = next;
                     }
 
-                    second_reduce[i] = NULL;
+                    second_reduce[i] = nullptr;
                 }
 
             // no spilled items, just flush already reduced
@@ -371,7 +371,7 @@ public:
                 {
                     BucketBlock* current = buckets_[i];
 
-                    while (current != NULL)
+                    while (current != nullptr)
                     {
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
@@ -394,7 +394,7 @@ public:
 
                     if (ClearAfterFlush)
                     {
-                        buckets_[i] = NULL;
+                        buckets_[i] = nullptr;
                     }
                 }
             }
@@ -625,7 +625,7 @@ public:
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
-        buckets_.resize(num_buckets_, NULL);
+        buckets_.resize(num_buckets_, nullptr);
 
         num_frames_ = num_buckets_ / frame_size_;
         items_per_frame_.resize(num_frames_, 0);
@@ -729,7 +729,7 @@ public:
         current = buckets_[global_index];
 
         // have an item that needs to be added.
-        if (current == NULL ||
+        if (current == nullptr ||
             current->size == block_size_)
         {
             if (num_blocks_ == max_num_blocks_table_)
@@ -800,7 +800,7 @@ public:
         {
             BucketBlock* current = buckets_[i];
 
-            while (current != NULL)
+            while (current != nullptr)
             {
                 num_blocks_--;
 
@@ -817,7 +817,7 @@ public:
                 current = next;
             }
 
-            buckets_[i] = NULL;
+            buckets_[i] = nullptr;
         }
 
         // reset total counter
