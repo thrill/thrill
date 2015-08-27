@@ -68,9 +68,9 @@ TEST_F(PostTable, CustomHashFunction) {
                                });
 
             CustomKeyHashFunction<int> cust_hash;
-            core::PostProbingReduceFlushToDefault<int, decltype(red_fn)> flush_func;
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int> >
+            core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true> flush_func;
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
+                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>, CustomKeyHashFunction<int> >
             table(ctx, key_ex, red_fn, emitters, -1, cust_hash, flush_func);
 
             ASSERT_EQ(0u, writer1.size());
@@ -178,7 +178,7 @@ TEST_F(PostTable, FlushIntegers) {
             emitters.push_back([&writer1](const int value) { writer1.push_back(value);
                                });
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
             table(ctx, key_ex, red_fn, emitters, -1);
 
             table.Insert(pair(1));
@@ -218,7 +218,7 @@ TEST_F(PostTable, FlushIntegersInSequence) {
             emitters.push_back([&writer1](const int value) { writer1.push_back(value);
                                });
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
             table(ctx, key_ex, red_fn, emitters, -1);
 
             table.Insert(pair(1));
@@ -264,7 +264,7 @@ TEST_F(PostTable, MultipleEmitters) {
             emitters.push_back([&writer2](const int value) { writer2.push_back(value);
                                });
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
             table(ctx, key_ex, red_fn, emitters, -1);
 
             table.Insert(pair(1));
@@ -349,11 +349,11 @@ TEST_F(PostTable, WithinTableItemsLimit) {
             size_t size = 32 * 1024;
             double fill_rate = 0.5;
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
+                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emitters, -1, core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, size, fill_rate,
+                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, size, fill_rate,
                   1,
                   std::equal_to<int>());
 
@@ -398,12 +398,12 @@ TEST_F(PostTable, AboveTableItemsLimit) {
             size_t size = 32 * 1024;
             double fill_rate = 0.5;
 
-            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>,
+            core::ReducePostProbingTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
+                                         core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>,
                                          core::PostProbingReduceByHashKey<int>, std::equal_to<int> >
             table(ctx, key_ex, red_fn, emitters, -1,
                   core::PostProbingReduceByHashKey<int>(),
-                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn)>(),
+                  core::PostProbingReduceFlushToDefault<int, decltype(red_fn), true>(),
                   0, 0, 0, size, fill_rate, 1,
                   std::equal_to<int>());
 

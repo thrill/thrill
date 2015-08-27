@@ -132,8 +132,12 @@ public:
 // Or is there some type access reason that this cannot work?  On second
 // thought: there probably is a reason. If so, please write a comment explaining
 // why.
+// COMMENT(tb): Type of Flushing needs be externally configurable as we have different flushes:
+// currently for default reduce and for reduce to index. We use them same approach in the
+// corresponding pre tables. Since the approach is templated, there are no explicit function calls.
 template <typename Key,
           typename ReduceFunction,
+          const bool ClearAfterFlush = false,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class PostReduceFlushToDefault
@@ -192,6 +196,9 @@ public:
 
                 data::File::Reader reader = file.GetReader();
 
+                // flag used when item is reduced to advance to next item
+                bool reduced = false;
+
                 // get the items and insert them in secondary
                 // table
                 while (reader.HasNext()) {
@@ -211,11 +218,18 @@ public:
                             if (equal_to_function_(kv.first, bi->first))
                             {
                                 bi->second = ht->reduce_function_(bi->second, kv.second);
-                                return;
+                                reduced = true;
+                                break;
                             }
                         }
 
                         current = current->next;
+                    }
+
+                    if (reduced)
+                    {
+                        reduced = false;
+                        continue;
                     }
 
                     current = second_reduce[global_index];
@@ -250,53 +264,77 @@ public:
                         {
                             // insert in second reduce table
                             size_t global_index = index_function_(from->first, ht, frame_length);
-                            BucketBlock* current = second_reduce[global_index];
-                            while (current != NULL)
+                            BucketBlock* current_second = second_reduce[global_index];
+                            while (current_second != NULL)
                             {
                                 // iterate over valid items in a block
-                                for (KeyValuePair* bi = current->items;
-                                     bi != current->items + current->size; ++bi)
+                                for (KeyValuePair* bi = current_second->items;
+                                     bi != current_second->items + current_second->size; ++bi)
                                 {
                                     // if item and key equals, then reduce.
                                     if (equal_to_function_(from->first, bi->first))
                                     {
                                         bi->second = ht->reduce_function_(bi->second, from->second);
-                                        return;
+                                        reduced = true;
+                                        break;
                                     }
                                 }
 
-                                current = current->next;
+                                if (reduced)
+                                {
+                                    break;
+                                }
+
+                                current_second = current_second->next;
                             }
 
-                            current = second_reduce[global_index];
+                            if (reduced)
+                            {
+                                reduced = false;
+                                continue;
+                            }
+
+                            current_second = second_reduce[global_index];
 
                             // have an item that needs to be added.
-                            if (current == NULL ||
-                                current->size == ht->block_size_)
+                            if (current_second == NULL ||
+                                current_second->size == ht->block_size_)
                             {
                                 // allocate a new block of uninitialized items, postpend to bucket
-                                current = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
+                                current_second = static_cast<BucketBlock*>(operator new (sizeof(BucketBlock)));
 
-                                current->size = 0;
-                                current->next = second_reduce[global_index];
-                                second_reduce[global_index] = current;
+                                current_second->size = 0;
+                                current_second->next = second_reduce[global_index];
+                                second_reduce[global_index] = current_second;
                             }
 
                             // in-place construct/insert new item in current bucket block
-                            new (current->items + current->size++)KeyValuePair(from->first, std::move(from->second));
+                            new (current_second->items + current_second->size++)KeyValuePair(from->first, std::move(from->second));
                         }
 
-                        // destroy block and advance to next
-                        BucketBlock* next = current->next;
-                        current->destroy_items();
-                        operator delete (current);
-                        current = next;
+                        // advance to next
+                        if (ClearAfterFlush)
+                        {
+                            BucketBlock* next = current->next;
+                            // destroy block
+                            current->destroy_items();
+                            operator delete (current);
+                            current = next;
+                        } else {
+                            current = current->next;
+                        }
                     }
 
-                    buckets_[i] = NULL;
+                    if (ClearAfterFlush)
+                    {
+                        buckets_[i] = NULL;
+                    }
                 }
 
-                num_items_per_frame[frame_id] = 0;
+                if (ClearAfterFlush)
+                {
+                    num_items_per_frame[frame_id] = 0;
+                }
 
                 /////
                 // emit data
@@ -323,8 +361,8 @@ public:
                     second_reduce[i] = NULL;
                 }
 
-                // no spilled items, just flush already reduced
-                // data in primary table in current frame
+            // no spilled items, just flush already reduced
+            // data in primary table in current frame
             }
             else
             {
@@ -343,14 +381,23 @@ public:
                             ht->EmitAll(std::make_pair(bi->first, bi->second));
                         }
 
-                        // destroy block and advance to next
-                        BucketBlock* next = current->next;
-                        current->destroy_items();
-                        operator delete (current);
-                        current = next;
+                        // advance to next
+                        if (ClearAfterFlush)
+                        {
+                            BucketBlock* next = current->next;
+                            // destroy block
+                            current->destroy_items();
+                            operator delete (current);
+                            current = next;
+                        } else {
+                            current = current->next;
+                        }
                     }
 
-                    buckets_[i] = NULL;
+                    if (ClearAfterFlush)
+                    {
+                        buckets_[i] = NULL;
+                    }
                 }
             }
         }
@@ -365,8 +412,32 @@ public:
         // then we cannot keep the Buckets in "memory", since they would always
         // take precious RAM while other stages are executed.
 
-        ht->SetNumBlocks(0);
-        ht->SetNumItems(0);
+        // COMMENT(tb): In Spark, computed data is NOT kept in memory by default.
+        // In Spark, Cache() keeps computed data IN memory (in memory by default, but
+        // there are flags to store to disk and other targets as well).
+        // What you suggest is actually the opposite way of how Spark handles it, keeping
+        // stuff in memory by default, no matter what...
+        // I am not saying its wrong, I just don't know. I suggest we just benchmark this using
+        // some big data.
+        //
+        // As I implemented it, I assumed that we do not have a caching mechanism by now,
+        // so I required data to be recomputed if necessary and free memory after
+        // each flush.
+        //
+        // Just a thought: If you want to keep data in memory by default, and provide
+        // a method for memory -> disk transfer, calling that method Spill() would probably more
+        // suitable.
+        //
+        // We may have some intelligent, implicit memory -> disk transfer, using LRU or whatever.
+        //
+        // To come to and end, I added a template parameter so that the table can be configured
+        // whether or not to free memory after each flush. It defaults to "keep all in memory".
+
+        if (ClearAfterFlush)
+        {
+            ht->SetNumBlocks(0);
+            ht->SetNumItems(0);
+        }
     }
 
 private:
@@ -452,7 +523,8 @@ struct EmitImpl<false, EmitterType, ValueType, SendType>{
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction>,
+          const bool ClearAfterFlush = false,
+          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction, ClearAfterFlush>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*4

@@ -133,6 +133,7 @@ public:
                                           KeyExtractor,
                                           ReduceFunction,
                                           SendPair,
+                                          false,
                                           core::PostReduceFlushToIndex<Value>,
                                           core::PostReduceByIndex>;
 
