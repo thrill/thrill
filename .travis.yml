@@ -8,15 +8,22 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.9
+      - libc++
 
 env:
   matrix:
-    - CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Debug"
+    - CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" CMAKE_ARGS="" COMPILER_FLAGS=""
+    - CMAKE_CC="clang"   CMAKE_CXX="clang++" CMAKE_ARGS="" COMPILER_FLAGS="-stdlib=libc++"
+  build_mode:
+    - CMAKE_MODE="Debug"
+    - CMAKE_MODE="Release"
 
 before_script:
   - mkdir build; cd build
   - cmake
+      -DCMAKE_BUILD_TYPE=$CMAKE_MODE
       -DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX
+      -DCMAKE_C_FLAGS="$COMPILER_FLAGS" -DCMAKE_CXX_FLAGS="$COMPILER_FLAGS"
       $CMAKE_ARGS ..
 
 script:
