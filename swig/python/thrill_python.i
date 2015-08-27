@@ -176,4 +176,9 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
 %include <thrill/api/context.hpp>
 %include "thrill_python.hpp"
 
+// Local Variables:
+// mode: c++
+// mode: mmm
+// End:
+
 /******************************************************************************/
