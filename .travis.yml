@@ -1,0 +1,24 @@
+# Travis-CI build script for Thrill
+
+language: cpp
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.9
+
+env:
+  matrix:
+    - CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Debug"
+
+before_script:
+  - mkdir build; cd build
+  - cmake
+      -DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX
+      $CMAKE_ARGS ..
+
+script:
+  - make -j4
+  - ctest -V
