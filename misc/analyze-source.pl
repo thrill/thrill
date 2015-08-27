@@ -30,6 +30,9 @@ my $write_changes = 0;
 # have autopep8 python formatter?
 my $have_autopep8;
 
+# have cogapp code generator?
+my $have_cogapp;
+
 # function testing whether to uncrustify a path
 sub filter_uncrustify($) {
     my ($path) = @_;
@@ -163,6 +166,23 @@ sub process_cpp {
     }
 
     my @origdata = @data;
+
+    # first check whether there are cog lines and execute them
+    if ($have_cogapp) {
+        my $have_coglines = 0;
+        foreach my $ln (@data) {
+            if ($ln =~ /\[\[\[cog/) {
+                $have_coglines = 1;
+                last;
+            }
+        }
+
+        if ($have_coglines) {
+            # pipe file through cog.py
+            my $data = join("", @data);
+            @data = filter_program($data, "cog.py", "-");
+        }
+    }
 
     # put all #include lines into the includemap
     foreach my $ln (@data)
@@ -486,6 +506,13 @@ my ($check_autopep8) = filter_program("", "autopep8", "--version");
 if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
     $have_autopep8 = 0;
     warn("Could not find autopep8 - automatic python formatter.");
+}
+
+$have_cogapp = 1;
+my ($check_cogapp) = filter_program("", "cog.py", "-version");
+if (!$check_cogapp || $check_cogapp !~ /^Cog/) {
+    $have_cogapp = 0;
+    warn("Could not find cogapp - python code generator formatter.");
 }
 
 use File::Find;
