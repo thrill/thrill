@@ -51,7 +51,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          bool PreservesKey, bool SendPair>
+          bool RobustKey, bool SendPair>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -74,7 +74,7 @@ public:
     using Emitter = data::BlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, RobustKey, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -151,7 +151,7 @@ public:
                           local_end,
                           neutral_element_);
 
-        if (PreservesKey) {
+        if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
