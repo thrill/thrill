@@ -35,7 +35,103 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-//! Todo(ej) Merge has to identical types. 
+    //TODO(ej) Move somewhere else.
+class MergeNodeHelper {
+public:
+    template <typename ItemType, typename CompareFunction>
+    static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator) {
+
+        static const bool debug = true;
+
+        //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608
+        
+        //Non-parallel n-way binary search. log^3(n). Yay.
+        //Find element with rank k in n sorted arrays. 
+        
+        size_t n = files.size();
+        std::vector<size_t> left(n);
+        std::vector<size_t> width(n);
+        std::vector<size_t> remap(n);
+        std::vector<size_t> mid(n);
+
+        std::fill(left.begin(), left.end(), 0);
+        std::iota(remap.begin(), remap.end(), 0);
+
+        for(size_t i = 0; i < n; i++) {
+            width[i] = std::min(files[i].NumItems(), k);
+        }
+
+        while(true) {
+
+            //Re-map arrays so that largest one is always first.  
+            std::sort(remap.begin(), remap.end(), [&] (size_t a, size_t b) {
+                return width[b] < width[a];
+            });
+
+            bool done = true;
+
+            for(size_t i = 0; i < n; i++) {
+                if(width[i] > 1) {
+                    done = false; 
+                    break;
+                }
+            }
+
+            if(done)
+                break;
+           
+
+            size_t j0 = remap[0];
+            size_t j = j0;
+            mid[j] = left[j] + width[j] / 2;
+            LOG << "Master selecting pivot from " << mid[j];
+            ItemType pivot = files[j].GetItemAt<ItemType>(mid[j]);
+            size_t leftSum = mid[j] - left[j];
+
+            for(size_t i = 1; i < n; i++) {
+                j = remap[i];
+                mid[j] = files[j].GetIndexOf(pivot, mid[j0], comperator);
+                LOG << i << " selecting pivot at " << mid[j];
+                leftSum += mid[j] - left[j];
+            }
+            LOG << "leftSum: " << leftSum;
+            LOG << "K: " << k;
+            //Recurse.
+            if(k < leftSum) {
+                for(size_t i = 0; i < n; i++) {
+                    j = remap[i];
+                    width[j] = mid[j] - left[j];   
+                } 
+            } else {
+                for(size_t i = 0; i < n; i++) {
+                    j = remap[i];
+                    width[j] -= mid[j] - left[j];   
+                    left[j] = mid[j];   
+                }
+                k -= leftSum;
+            }
+        }
+        size_t j = remap[k];
+        return files[j].GetItemAt<ItemType>(mid[j]);
+    }
+
+    template <typename ItemType, typename Comperator>
+    static size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files, Comperator comperator) {
+        static const bool debug = false;
+
+        //Get the index of a given element, or the first
+        //Greater one. 
+        size_t idx = 0;
+
+        for(size_t i = 0; i < files.size(); i++) {
+            LOG << "Found " << element << " at " << idx; 
+            idx += files[i].GetIndexOf(element, tie, comperator);
+            tie -= files[i].NumItems(); //Shift tie. 
+        }
+
+        return idx;
+    }
+};
 //! todo(ej) todo(tb) Can probably subclass a lot here.
 
 template <typename ValueType,
@@ -144,92 +240,6 @@ public:
         return "[MergeNode]";
     }
 
-    template <typename ItemType, typename CompareFunction>
-    static ItemType GetAt(size_t k, const std::vector<data::File> &files, const CompareFunction comperator) {
-        //Select am element based on its rank from 
-        //all collections.
-        //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608
-        
-        //Non-parallel n-way binary search. log^3(n). Yay.
-        //Find element with rank k in n sorted arrays. 
-        
-        size_t n = files.size();
-        std::vector<size_t> left(n);
-        std::vector<size_t> width(n);
-        std::vector<size_t> remap(n);
-        std::vector<size_t> mid(n);
-
-        std::fill(left.begin(), left.end(), 0);
-        std::iota(remap.begin(), remap.end(), 0);
-
-        for(size_t i = 0; i < n; i++) {
-            width[i] = std::max(files[n].NumItems(), k);
-        }
-
-        while(true) {
-
-            //Re-map arrays so that largest one is always first.  
-            std::sort(remap.begin(), remap.end(), [&] (size_t a, size_t b) {
-                return width[b] < width[a];
-            });
-
-            bool done = true;
-
-            for(size_t i = 0; i < n; i++) {
-                if(width[i] > 1) {
-                    done = false; 
-                    break;
-                }
-            }
-
-            if(done)
-                break;
-           
-
-            size_t j0 = remap[0];
-            size_t j = j0;
-            mid[j] = left[j] + width[j] / 2;
-            ItemType pivot = files[j].GetItemAt<ItemType>(mid[j]);
-            size_t leftSum = mid[j] - left[j];
-
-            for(size_t i = 1; i < n; i++) {
-                j = remap[i];
-                mid[j] = files[j].GetIndexOf(pivot, mid[j0], comperator);
-                leftSum += mid[j] - left[j];
-            }
-
-            //Recurse.
-            if(k < leftSum) {
-                for(size_t i = 0; i < n; i++) {
-                    j = remap[i];
-                    width[j] = mid[j] - left[j];   
-                } 
-            } else {
-                for(size_t i = 0; i < n; i++) {
-                    left[j] = mid[j] + left[j];   
-                    width[j] -= mid[j] - left[j];   
-                    k -= leftSum;
-                }
-            }
-        }
-
-        return files[remap[k]].GetItemAt<ItemType>(mid[remap[k]]);
-    }
-
-    template <typename ItemType>
-    size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files) { 
-        //Get the index of a given element, or the first
-        //Greater one. 
-        size_t idx = 0;
-
-        for(size_t i = 0; i < files.size(); i++) {
-            idx += files[i].GetIndexOf(element, tie);
-            tie -= files[i].NumItems(); //Shift tie. 
-        }
-
-        return idx;
-    }
-
 private:
     //! Merge comperator
     Comperator comperator_;
@@ -323,7 +333,7 @@ private:
         pivots.reserve(p - 1);
         std::vector<size_t> splitsum(p - 1);
 
-        Pivot zero = CreatePivot(GetAt<ValueType>(0, files_, comperator_), 0);
+        Pivot zero = CreatePivot(MergeNodeHelper::GetAt<ValueType>(0, files_, comperator_), 0);
 
         //Partition loop 
         
@@ -356,7 +366,7 @@ private:
                    pivotrank[r] < widthscan[r] + width[r]) {
                    
                    size_t localRank = left[r] + pivotrank[r] - widthscan[r]; 
-                   ValueType pivotElement = GetAt<ValueType>(localRank, files_, comperator_);
+                   ValueType pivotElement = MergeNodeHelper::GetAt<ValueType>(localRank, files_, comperator_);
                     
                    Pivot pivot = CreatePivot(pivotElement, localRank + prefixSize);
 
@@ -372,7 +382,7 @@ private:
                 if(widthsum[r] <= 1) {
                     split[r] = 0;
                 } else {
-                    split[r] = IndexOf(pivots[r].first, pivots[r].second - prefixSize, files_) - left[r];
+                    split[r] = MergeNodeHelper::IndexOf(pivots[r].first, pivots[r].second - prefixSize, files_, comperator_) - left[r];
                 }
             }
 

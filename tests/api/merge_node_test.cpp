@@ -15,6 +15,7 @@
 #include <thrill/api/merge.hpp>
 #include <thrill/common/string.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/block_queue.hpp>
 
 #include <algorithm>
 #include <random>
@@ -25,13 +26,65 @@ using namespace thrill;
 
 using thrill::api::Context;
 using thrill::api::DIARef;
+using thrill::api::MergeNodeHelper;
 
 struct MyStruct {
     int a, b;
 };
 
-static const size_t test_size = 500;
+struct File : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
 
+void CreateTrivialFiles(std::vector<data::File> &files, size_t size, size_t count, data::BlockPool &block_pool_) {
+    files.reserve(count);
+
+    for(size_t i = 0; i < count; i++) {
+        files.emplace_back(block_pool_);
+        data::File::Writer fw = files[i].GetWriter(53);
+
+        for (size_t j = 0; j < size; j++) {
+            fw(j);
+        }
+
+        fw.Close();
+    }
+}
+
+TEST_F(File, MultiIndexOf) {
+    const size_t size = 500;
+    const size_t count = 10;
+
+    std::minstd_rand0 rng(0);
+    std::vector<data::File> files;
+    CreateTrivialFiles(files, size, count, block_pool_);
+
+    for (size_t i = 0; i < 10; i++) {
+        size_t val = rng() % size;
+
+        size_t idx = MergeNodeHelper::IndexOf(val, 0, files, [](size_t a, size_t b) -> int { return b - a; });
+
+        ASSERT_EQ(val, idx / count);
+    }
+}
+
+TEST_F(File, MultiGetAtIndex) {
+    const size_t size = 500;
+    const size_t count = 10;
+
+    std::minstd_rand0 rng(0);
+    std::vector<data::File> files;
+    CreateTrivialFiles(files, size, count, block_pool_);
+
+    for (size_t i = 0; i < 10; i++) {
+        size_t idx = rng() % size * count;
+
+        size_t val = MergeNodeHelper::GetAt<size_t, std::function<size_t(size_t, size_t)>>(idx, files, [](size_t a, size_t b) -> size_t { return b - a; });
+
+        ASSERT_EQ(idx / count, val);
+    }
+}
+/*
 TEST(MergeNode, TwoBalancedIntegerArrays) {
 
     std::function<void(Context&)> start_func =
@@ -63,3 +116,4 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
     thrill::api::RunLocalTests(start_func);
 }
+*/

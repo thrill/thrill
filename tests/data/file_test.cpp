@@ -199,10 +199,38 @@ TEST_F(File, SerializeSomeItemsDynReader) {
     }
 }
 
+TEST_F(File, TieGetIndexOf) {
+    const size_t size = 500;
+
+    std::minstd_rand0 rng(0);
+
+    // Create test file.
+    data::File file(block_pool_);
+
+    data::File::Writer fw = file.GetWriter(53);
+
+    for (size_t i = 0; i < size; i++) {
+        fw(i / 4);
+    }
+
+    fw.Close();
+
+    ASSERT_EQ(size, file.NumItems());
+
+    for (size_t i = 0; i < 10; i++) {
+        size_t val = rng() % (size / 4);
+        size_t idxL = file.GetIndexOf(val, 0, [] (const size_t &a, const size_t &b) { return b - a; });
+        size_t idxH = file.GetIndexOf(val, size * 2, [] (const size_t &a, const size_t &b) { return b - a; });
+
+        ASSERT_EQ(val * 4, idxL);
+        ASSERT_EQ(val * 4 + 4, idxH);
+    }
+}
+
 TEST_F(File, RandomGetIndexOf) {
     const size_t size = 500;
 
-    std::minstd_rand0 rng;
+    std::minstd_rand0 rng(0);
 
     // Create test file.
     data::File file(block_pool_);
@@ -225,7 +253,7 @@ TEST_F(File, RandomGetIndexOf) {
     }
 }
 
-TEST_F(File, ReadFileWIthBufferedReader) {
+TEST_F(File, ReadFileWithBufferedReader) {
     data::File file(block_pool_);
     data::File::Writer fw = file.GetWriter(53);
 
