@@ -17,12 +17,10 @@
 #ifndef STXXL_PARALLEL_MERGE_HEADER
 #define STXXL_PARALLEL_MERGE_HEADER
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/parallel/compiletime_settings.h>
 #include <iterator>
 #include <cassert>
 
-STXXL_BEGIN_NAMESPACE
+namespace stxxl {
 
 namespace parallel {
 
@@ -163,7 +161,7 @@ merge_advance(RandomAccessIterator1& begin1, RandomAccessIterator1 end1,
               OutputIterator target,
               DiffType max_length, Comparator comp)
 {
-    STXXL_PARALLEL_PCALL(max_length);
+    // STXXL_PARALLEL_PCALL(max_length);
 
     return merge_advance_movc(begin1, end1, begin2, end2, target, max_length, comp);
 }
@@ -234,6 +232,6 @@ parallel_merge_advance(
 
 } // namespace parallel
 
-STXXL_END_NAMESPACE
+} // end namespace stxxl
 
 #endif // !STXXL_PARALLEL_MERGE_HEADER

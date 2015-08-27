@@ -33,6 +33,7 @@
 #include <thrill/data/file.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <iomanip>
 #include <vector>
 
 namespace thrill {
