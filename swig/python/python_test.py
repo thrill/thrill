@@ -20,8 +20,23 @@
 
 import unittest
 import threading
+import sys
 
 import thrill
+
+
+class TryThread(threading.Thread):
+
+    def __init__(self, **kwargs):
+        threading.Thread.__init__(self, **kwargs)
+        self.exception = None
+
+    def run(self):
+        try:
+            threading.Thread.run(self)
+        except Exception:
+            self.exception = sys.exc_info()
+            raise
 
 
 def run_thrill_threads(num_threads, thread_func):
@@ -31,13 +46,18 @@ def run_thrill_threads(num_threads, thread_func):
     # but then start python threads for each context
     threads = []
     for thrid in range(0, num_threads):
-        t = threading.Thread(target=thread_func, args=(ctxs[thrid],))
+        t = TryThread(target=thread_func, args=(ctxs[thrid],))
         t.start()
         threads.append(t)
 
     # wait for computation to finish
     for thr in threads:
         thr.join()
+
+    # check for exceptions
+    for thr in threads:
+        if thr.exception:
+            raise Exception(thr.exception)
 
 
 def run_tests(thread_func):
