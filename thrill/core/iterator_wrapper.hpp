@@ -42,6 +42,24 @@ namespace core {
 static const bool debug = false;
 
 template <typename ArrayItem>
+class StxxlFileOutputWrapper
+{
+using File = typename data::File;
+using Writer = typename File::Writer;
+
+protected:
+    std::shared_ptr<Writer> writer_;
+
+public:
+    StxxlFileOutputWrapper(std::shared_ptr<Writer> writer) : writer_(writer) {}
+
+    void operator() (const ArrayItem& a) const {
+        (*writer_)(a);
+    }
+};
+
+
+template <typename ArrayItem>
 struct IterStats {
     bool has_elem_ = false;
     bool is_valid_ = true;
@@ -53,16 +71,6 @@ struct IterStats {
 
 // iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
 
-// REVIEW(cn): this is the main problem: we must remove ALL methods except
-// operator*, operator++, and all the pure calculation ones. operator[] is
-// IMPOSSIBLE in a real external memory File. In theory, multiway merge does not
-// need op[], so we have to find out why the multiway merge does need it and
-// remove that.
-
-// more REVIEW(cn): you included the WHOLE STXXL IN THE GIT REPOSITORY. NEVER DO
-// THAT, it is utterly useless and a waste of repo space. You were supposed to
-// take only the two files losertree.h and multiway_merge.h and make them
-// compile without all the rest. And I mean without ALL the rest.
 
 template <typename ArrayItem>
 class StxxlFileWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
@@ -92,18 +100,20 @@ public:
     void GetItem() const {
         assert(reader_->HasNext());
         stats_->item_ = reader_->Next<ArrayItem>();
+        stats_->has_elem_ = true;
+
         LOG << "-----------------------------------------";
         LOG << "NEXT GOT " << stats_->item_ << " FROM " << file_->ToString();
         LOG << "-----------------------------------------";
-        stats_->has_elem_ = true;
     }
 
     void Invalidate() const {
+        stats_->is_valid_ = false;
+        stats_->has_elem_ = false;
+
         LOG << "-----------------------------------------";
         LOG << "INVALIDATING " << pos_ << " " << file_->ToString();
         LOG << "-----------------------------------------";
-        stats_->is_valid_ = false;
-        stats_->has_elem_ = false;
     }
 
     void GetItemOrInvalidate() const {
@@ -159,16 +169,16 @@ public:
         return *this;
     }
 
-    StxxlFileWrapper& operator--() {
-        Invalidate();
-        --pos_;
+    // StxxlFileWrapper& operator--() {
+    //     Invalidate();
+    //     --pos_;
 
-        LOG << "    Operator--";
-        LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
-        LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
-        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
-        return *this;
-    }
+    //     LOG << "    Operator--";
+    //     LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
+    //     LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
+    //     LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << stats_->is_valid_;
+    //     return *this;
+    // }
 
     StxxlFileWrapper operator++(int) {
         auto r = StxxlFileWrapper(file_, reader_, ++pos_, stats_.is_valid_);
@@ -207,14 +217,14 @@ public:
         return *this;
     }
 
-    StxxlFileWrapper operator-(const difference_type& n) const {
-        auto w = StxxlFileWrapper(file_, reader_, pos_-n, false);
-        LOG << "    Operator- " << n;
-        LOG << "        " << std::left << std::setw(7) << "pos: " << w.pos_;
-        LOG << "        " << std::left << std::setw(7) << "file: " << w.file_->ToString();
-        LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << w.stats_->is_valid_;
-        return w;
-    }
+    // StxxlFileWrapper operator-(const difference_type& n) const {
+    //     auto w = StxxlFileWrapper(file_, reader_, pos_-n, false);
+    //     LOG << "    Operator- " << n;
+    //     LOG << "        " << std::left << std::setw(7) << "pos: " << w.pos_;
+    //     LOG << "        " << std::left << std::setw(7) << "file: " << w.file_->ToString();
+    //     LOG << "        " << std::left << std::setw(7) << "valid: " << std::boolalpha << w.stats_->is_valid_;
+    //     return w;
+    // }
 
     // StxxlFileWrapper& operator-=(const difference_type& n) {}
 
