@@ -103,7 +103,7 @@ public:
     size_t
     operator () (const Key& k, ReducePostTable* ht, const size_t& size) const {
 
-        (*ht).NumBlocks();
+        (void)ht;
 
         size_t hashed = hash_function_(k);
 
