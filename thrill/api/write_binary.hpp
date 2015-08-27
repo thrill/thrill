@@ -82,7 +82,6 @@ public:
     static std::string make_path(const std::string& pathbase,
                                  size_t worker, size_t file_part) {
 
-        static const bool debug = false;
         using size_type = std::string::size_type;
 
         std::string out_path = pathbase;
@@ -99,7 +98,6 @@ public:
                              common::str_snprintf<>(dollar_length + 2, "%0*lu",
                                                     dollar_length, worker));
         }
-        sLOG << "out_path" << out_path;
         {
             // replace hash signs
             size_type hash_end = out_path.rfind('#');
@@ -113,7 +111,6 @@ public:
                              common::str_snprintf<>(hash_length + 2, "%0*lu",
                                                     hash_length, file_part));
         }
-        sLOG << "out_path" << out_path;
         return out_path;
     }
 
@@ -129,6 +126,7 @@ protected:
               file_(core::SysFile::OpenForWrite(path)) { }
 
         void AppendBlock(const data::Block& b) final {
+            sLOG << "SysFileSink::AppendBlock()" << b;
             file_.write(b.data_begin(), b.size());
         }
 
@@ -168,6 +166,8 @@ protected:
         // construct path from pattern containing ### and $$$
         std::string out_path = make_path(
             out_pathbase_, context_.my_rank(), out_serial_++);
+
+        sLOG << "OpenNextFile() out_path" << out_path;
 
         sink_ = std::make_unique<SysFileSink>(
             context_.block_pool(), out_path, max_file_size_);

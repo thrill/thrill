@@ -48,6 +48,7 @@ GlobFilePattern(const std::string& path);
  */
 class SysFile
 {
+    static const bool debug = false;
 public:
     //! default constructor
     SysFile() : fd_(-1) { }
@@ -89,11 +90,13 @@ public:
 
     //! POSIX write function.
     ssize_t write(const void* data, size_t count) {
+        assert(fd_ >= 0);
         return ::write(fd_, data, count);
     }
 
     //! POSIX read function.
     ssize_t read(void* data, size_t count) {
+        assert(fd_ >= 0);
         return ::read(fd_, data, count);
     }
 
