@@ -10,8 +10,7 @@
 #include <gtest/gtest.h>
 #include <thrill/thrill.hpp>
 
-#include <stxxl/bits/parallel/losertree.h>
-#include <stxxl/bits/parallel/multiway_merge.h>
+#include <thrill/core/stxxl_multiway_merge.hpp>
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/data/file.hpp>
 
@@ -117,7 +116,7 @@ TEST(MultiwayMerge, Vector_Wrapper) {
 
 TEST(MultiwayMerge, File_Wrapper) {
     std::size_t a = 150;
-    std::size_t b = 4000;
+    std::size_t b = 200;
     std::size_t total = a*b;
 
     using Iterator = thrill::core::StxxlFileWrapper<int>;
@@ -144,7 +143,6 @@ TEST(MultiwayMerge, File_Wrapper) {
         }
         std::sort(std::begin(tmp), std::end(tmp));
 
-        // REVIEW(cn): this File only lives for one iteration of the loop.
         data::File f;
         {
             auto w = f.GetWriter();
