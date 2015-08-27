@@ -217,7 +217,7 @@ static void * preinit_malloc(size_t size) noexcept {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static void * preinit_realloc(void* ptr, size_t size) noexcept {
+static void * preinit_realloc(void* ptr, size_t size) {
 
     if (log_operations_init_heap) {
         fprintf(stderr, PPREFIX "realloc(%p) = on init heap\n", ptr);
@@ -249,7 +249,7 @@ static void * preinit_realloc(void* ptr, size_t size) noexcept {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static void preinit_free(void* ptr) noexcept {
+static void preinit_free(void* ptr) {
     // don't do any real deallocation.
 
     ptr = static_cast<char*>(ptr) - padding;
