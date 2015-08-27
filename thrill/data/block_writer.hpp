@@ -61,8 +61,7 @@ public:
     explicit BlockWriter(BlockSink* sink,
                          size_t block_size = default_block_size)
         : sink_(sink),
-          block_size_(block_size)
-    {
+          block_size_(block_size) {
         assert(block_size_ > 0);
     }
 

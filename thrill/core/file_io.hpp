@@ -49,6 +49,7 @@ GlobFilePattern(const std::string& path);
 class SysFile
 {
     static const bool debug = false;
+
 public:
     //! default constructor
     SysFile() : fd_(-1) { }
