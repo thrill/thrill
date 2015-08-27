@@ -189,6 +189,9 @@ Header files end with `.hpp`, source files end with `.cpp`. All are lowercase, a
 - if you use random integers, use a fixed random seed.
 - no randomization makes "this test if failing on my computer" more deterministic!
 
+### Include Files
+- *never* use `#include <thrill/thrill.hpp>` in a test! this file compiles everything (including future complex algorithms) and makes test compilation time needlessly long.
+
 */
 
 } // namespace thrill
