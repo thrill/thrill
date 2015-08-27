@@ -16,9 +16,12 @@
 namespace c7a {
 namespace data {
 
+class ChannelSet;
+using ChannelSetPtr = std::shared_ptr<ChannelSet>;
+
 Multiplexer::~Multiplexer() {
     // close all still open Channels
-    for (auto& ch : channels_.map())
+    for (auto& ch : channel_sets_.map())
         ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
@@ -28,11 +31,8 @@ Multiplexer::~Multiplexer() {
 }
 
 ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
-    return std::move(
-        channels_.GetOrCreate(
-            id, local_worker_id,
-            // initializers for Channels
-            *this, id, local_worker_id));
+    ChannelSetPtr set = channel_sets_.GetOrCreate(id, *this, id, num_workers_per_host_);
+    return set->peer(local_worker_id);
 }
 
 /******************************************************************************/
@@ -94,6 +94,11 @@ void Multiplexer::OnChannelBlock(
         Block(bytes, 0, header.size, header.first_item, header.nitems));
 
     AsyncReadChannelBlockHeader(s);
+}
+
+
+BlockQueue* Multiplexer::loopback(size_t channel_id, size_t from_worker_id, size_t to_worker_id) {
+    return channel_sets_.GetOrDie(channel_id)->peer(to_worker_id)->loopback_queue(from_worker_id);
 }
 
 } // namespace data
