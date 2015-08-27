@@ -54,6 +54,7 @@ public:
 
         block_size_ = std::min(data::default_block_size,
                                common::RoundUpToPowerOfTwo(max_file_size));
+        sLOG << "block_size_" << block_size_;
 
         auto pre_op_fn = [=](const ValueType& input) {
                              return PreOp(input);
