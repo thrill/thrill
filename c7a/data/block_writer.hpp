@@ -41,6 +41,7 @@ class BlockWriter
 {
 public:
     static const bool self_verify = common::g_self_verify;
+    static const bool debug = false;
 
     //! Start build (appending blocks) to a File
     explicit BlockWriter(BlockSink* sink,
@@ -206,6 +207,7 @@ protected:
 
     //! Flush the currently created block into the underlying File.
     void FlushBlock() {
+        sLOG << "flusing block to" << sink_;
         sink_->AppendBlock(bytes_, 0, current_ - bytes_->begin(),
                            first_offset_, nitems_);
     }
