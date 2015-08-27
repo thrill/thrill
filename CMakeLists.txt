@@ -23,8 +23,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-option(JENKINS_BUILD "Build all with more warnings" OFF)
-
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
@@ -32,6 +30,8 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+
+option(THRILL_REQUIRE_SWIG "Use (optional) swig wrapper generator." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
@@ -72,22 +72,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
-# add sanitizer flags for debug builds
-if(JENKINS_BUILD)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} --version
+    OUTPUT_VARIABLE clang_full_version_string)
 
-  if(NOT USE_VALGRIND)
-    # enable AddressSanitizer
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    # enable ThreadSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-    # enable UndefinedBehaviorSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
-  endif()
+  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
+    CLANG_VERSION_STRING ${clang_full_version_string})
 
-  # build using libc++ with clang in Jenkins
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-    message(STATUS "Building using libc++ on clang")
+  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
+    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 endif()
 
@@ -103,21 +99,6 @@ if(USE_IWYU)
       COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
       COMMENT "Running include-what-you-use tool"
       VERBATIM)
-  endif()
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} --version
-    OUTPUT_VARIABLE clang_full_version_string)
-
-  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
-    CLANG_VERSION_STRING ${clang_full_version_string})
-
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
-    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 endif()
 
@@ -243,8 +224,8 @@ find_package(SWIG)
 if(SWIG_FOUND)
   include(${SWIG_USE_FILE})
 endif()
-if(NOT SWIG_FOUND AND JENKINS_BUILD)
-  message(FATAL "Invalid swig on the continuous integration server.")
+if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
+  message(FATAL "Swig was not found but is required.")
 endif()
 
 ################################################################################
