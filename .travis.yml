@@ -20,8 +20,8 @@ matrix:
       os: linux
       addons: *gcc49
 
-    # gcc 5.x without AddressSanitizer, Debug & Release (ASan: problem with forced-inlining, should be gone in next gcc version)
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
+    # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux
       addons: &gcc5
         apt:
@@ -30,7 +30,7 @@ matrix:
           packages:
             - g++-5
 
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1"
       os: linux
       addons: *gcc5
 
@@ -56,6 +56,18 @@ env:
     - LSAN_OPTIONS=suppressions=$PWD/misc/leak_sanitizer.supp
 
 before_script:
+
+  # Install newer swig
+  - if [ -n "$USE_SWIG" ]; then
+      curl -sS -L http://prdownloads.sourceforge.net/swig/swig-2.0.12.tar.gz | tar xz;
+      cd swig-2.0.12;
+      ./configure --without-alllang --with-python --prefix=$PWD/../swig-install;
+      make -j4;
+      make install;
+      cd ..;
+      export PATH=$PATH:$PWD/swig-install/bin;
+    fi
+
   # print out some version numbers
   - $CMAKE_CXX --version
   - cmake --version
