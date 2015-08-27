@@ -157,15 +157,13 @@ public:
 
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
-        // REVIEW(ms): please resolve these autos, I cannot understand the
-        // function like this.
-        auto& buckets_ = ht->Items();
+        std::vector<BucketBlock*>& buckets_ = ht->Items();
 
-        auto& frame_files = ht->FrameFiles();
+        std::vector<data::File>& frame_files = ht->FrameFiles();
 
-        auto& frame_writers = ht->FrameWriters();
+        std::vector<data::File::Writer>& frame_writers = ht->FrameWriters();
 
-        auto& num_items_per_frame = ht->NumItemsPerFrame();
+        std::vector<size_t>& num_items_per_frame = ht->NumItemsPerFrame();
 
         //! Data structure for second reduce table
         std::vector<BucketBlock*> second_reduce;
