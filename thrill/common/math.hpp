@@ -42,8 +42,17 @@ unsigned int IntegerLog2Ceil(const IntegerType& i) {
 template <typename Integral>
 static inline Integral RoundUpToPowerOfTwo(Integral n) {
     --n;
+#if defined(__clang__)
+    // clang incorrectly optimizes the generic loop below
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+#else
     for (int k = 1; !(k & (2 << sizeof(n))); k <<= 1)
         n |= n >> k;
+#endif
     ++n;
     return n;
 }
