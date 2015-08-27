@@ -17,15 +17,34 @@
 #ifndef STXXL_PARALLEL_LOSERTREE_HEADER
 #define STXXL_PARALLEL_LOSERTREE_HEADER
 
-#include <stxxl/bits/namespace.h>
-#include <stxxl/bits/noncopyable.h>
-#include <stxxl/bits/common/utils.h>
-#include <stxxl/bits/parallel/base.h>
 #include <functional>
 
-STXXL_BEGIN_NAMESPACE
+namespace stxxl {
 
 namespace parallel {
+
+class noncopyable
+{
+protected:
+    noncopyable() { }
+
+private:
+    // copying and assignment is not allowed
+    noncopyable(const noncopyable&);
+    const noncopyable& operator = (const noncopyable&);
+};
+
+
+template <typename Integral>
+static inline Integral round_up_to_power_of_two(Integral n)
+{
+    --n;
+    for (int k = 1; !(k & (2 << sizeof(n))); k <<= 1)
+        n |= n >> k;
+    ++n;
+    return n;
+}
+
 
 /**
  * Guarded loser tree/tournament tree, either copying the whole element into
@@ -125,7 +144,7 @@ public:
         losers[pos].sup = sup;
         losers[pos].source = source;
 
-        if (UNLIKELY(first_insert))
+        if (THRILL_UNLIKELY(first_insert))
         {
             // copy construct all keys from this first key
             for (size_type i = 0; i < (2 * k); ++i)
@@ -1069,6 +1088,6 @@ public:
 
 } // namespace parallel
 
-STXXL_END_NAMESPACE
+} // end namespace stxxl
 
 #endif // !STXXL_PARALLEL_LOSERTREE_HEADER
