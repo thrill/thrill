@@ -95,6 +95,7 @@ build_test(data/block_queue_test)
 build_test(data/file_test)
 build_test(data/multiplexer_header_test)
 build_test(data/multiplexer_test)
+build_test(data/channel_set_test)
 build_test(data/serialization_cereal_test)
 build_test(data/serialization_test)
 
