@@ -15,7 +15,7 @@
 
 /*[[[cog
 import cog, glob
-for fn in glob.glob('thrill/api/*.hpp'):
+for fn in glob.glob('thrill/api/' + '*.hpp'):
     cog.outl("#include <%s>" % fn)
   ]]]*/
 #include <thrill/api/action_node.hpp>
