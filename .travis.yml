@@ -45,7 +45,8 @@ matrix:
           packages:
             - clang-3.6
 
-    - env: CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" BUILD_TYPE="Release" COMPILER_FLAGS="-fsanitize=address"
+    # clang 3.6 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
+    - env: CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" BUILD_TYPE="Release" COMPILER_FLAGS=""
       os: linux
       addons: *clang36
 
