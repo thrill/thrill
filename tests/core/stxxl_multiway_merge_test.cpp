@@ -114,9 +114,144 @@ TEST(MultiwayMerge, Vector_Wrapper) {
     }
 }
 
-TEST(MultiwayMerge, File_Wrapper) {
-    std::size_t a = 150;
-    std::size_t b = 200;
+TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
+    // get _a_ different runs with _b[i]_ number of elements
+    std::size_t a = 400;
+    std::vector<std::size_t> b;
+    b.reserve(a);
+
+    for (std::size_t t = 0; t < a; ++t) {
+        b.push_back(400 + rand() % 100);
+    }
+
+    std::size_t total = 0;
+    for (auto t : b) {
+        total += t;
+    }
+
+    using Iterator = thrill::core::StxxlFileWrapper<int>;
+    using File = data::File;
+    using Reader = File::Reader;
+    std::vector<File> in;
+    std::vector<int> ref;
+    std::vector<int> output;
+    std::vector<std::pair<Iterator, Iterator>> seq;
+
+    in.reserve(a);
+    ref.reserve(total);
+    seq.reserve(a);
+    output.resize(total);
+
+    for (std::size_t i = 0; i < a; ++i) {
+        std::vector<int> tmp;
+        tmp.reserve(b[i]);
+        for (std::size_t j = 0; j < b[i]; ++j) {
+            auto elem = rand() % 100;
+            sLOG << "FILE" << i << "with elem" << elem;
+            tmp.push_back(elem);
+            ref.push_back(elem);
+        }
+        std::sort(std::begin(tmp), std::end(tmp));
+
+        data::File f;
+        {
+            auto w = f.GetWriter();
+            for (auto & t : tmp) {
+                w(t);
+            }
+        }
+        in.push_back(f);
+    }
+
+    // std::vector<Reader> readers;
+    // readers.reserve(a);
+    // for (auto i : in){
+    //     readers.push_back(i.GetReader());
+    // }
+
+    for (std::size_t t = 0; t < in.size(); ++t) {
+        auto reader = std::make_shared<Reader>(in[t].GetReader());
+        // auto reader = &readers[t];
+        Iterator s = Iterator(&in[t], reader, 0, true);
+        Iterator e = Iterator(&in[t], reader, in[t].NumItems(), false);
+        seq.push_back(std::make_pair(s, e));
+    }
+
+    std::sort(std::begin(ref), std::end(ref));
+    stxxl::parallel::sequential_multiway_merge<true, false>(std::begin(seq),
+                                                            std::end(seq),
+                                                            std::begin(output),
+                                                            total,
+                                                            std::less<int>());
+
+    for (std::size_t i = 0; i < total; ++i) {
+        // sLOG << std::setw(3) << ref[i] << std::setw(3) << output[i];
+        ASSERT_EQ(ref[i], output[i]);
+    }
+}
+
+TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
+    std::size_t a = 1;
+    std::size_t b = 100;
+    std::size_t total = a*b;
+
+    using Iterator = thrill::core::StxxlFileWrapper<int>;
+    using File = data::File;
+    using Reader = File::Reader;
+    std::vector<File> in;
+    std::vector<int> ref;
+    std::vector<int> output;
+    std::vector<std::pair<Iterator, Iterator>> seq;
+
+    in.reserve(a);
+    ref.reserve(total);
+    seq.reserve(a);
+    output.resize(total);
+
+    for (std::size_t i = 0; i < a; ++i) {
+        std::vector<int> tmp;
+        tmp.reserve(b);
+        for (std::size_t j = 0; j < b; ++j) {
+            auto elem = rand() % 100;
+            sLOG << "FILE" << i << "with elem" << elem;
+            tmp.push_back(elem);
+            ref.push_back(elem);
+        }
+        std::sort(std::begin(tmp), std::end(tmp));
+
+        data::File f;
+        {
+            auto w = f.GetWriter();
+            for (auto & t : tmp) {
+                w(t);
+            }
+        }
+        in.push_back(f);
+    }
+
+    for (std::size_t t = 0; t < in.size(); ++t) {
+        auto reader = std::make_shared<Reader>(in[t].GetReader());
+        Iterator s = Iterator(&in[t], reader, 0, true);
+        Iterator e = Iterator(&in[t], reader, in[t].NumItems(), false);
+        seq.push_back(std::make_pair(s, e));
+    }
+
+    std::sort(std::begin(ref), std::end(ref));
+    stxxl::parallel::sequential_multiway_merge<true, false>(std::begin(seq),
+                                                            std::end(seq),
+                                                            std::begin(output),
+                                                            total,
+                                                            std::less<int>());
+
+    for (std::size_t i = 0; i < total; ++i) {
+        // sLOG << std::setw(3) << ref[i] << std::setw(3) << output[i];
+        ASSERT_EQ(ref[i], output[i]);
+    }
+}
+
+TEST(MultiwayMerge, File_Wrapper_with_2_Runs) {
+    std::size_t a = 2;
+    std::size_t b = 2;
     std::size_t total = a*b;
 
     using Iterator = thrill::core::StxxlFileWrapper<int>;
@@ -171,9 +306,68 @@ TEST(MultiwayMerge, File_Wrapper) {
         sLOG << std::setw(3) << ref[i] << std::setw(3) << output[i];
         ASSERT_EQ(ref[i], output[i]);
     }
-
-
-
 }
+
+TEST(MultiwayMerge, File_Wrapper_with_3_Runs) {
+    std::size_t a = 3;
+    std::size_t b = 2;
+    std::size_t total = a*b;
+
+    using Iterator = thrill::core::StxxlFileWrapper<int>;
+    using File = data::File;
+    using Reader = File::Reader;
+    std::vector<File> in;
+    std::vector<int> ref;
+    std::vector<int> output;
+    std::vector<std::pair<Iterator, Iterator>> seq;
+
+    in.reserve(a);
+    ref.reserve(total);
+    seq.reserve(a);
+    output.resize(total);
+
+    for (std::size_t i = 0; i < a; ++i) {
+        std::vector<int> tmp;
+        tmp.reserve(b);
+        for (std::size_t j = 0; j < b; ++j) {
+            auto elem = rand();
+            sLOG << "FILE" << i << "with elem" << elem;
+            tmp.push_back(elem);
+            ref.push_back(elem);
+        }
+        std::sort(std::begin(tmp), std::end(tmp));
+
+        data::File f;
+        {
+            auto w = f.GetWriter();
+            for (auto & t : tmp) {
+                w(t);
+            }
+        }
+        in.push_back(f);
+    }
+
+    for (std::size_t t = 0; t < in.size(); ++t) {
+        auto reader = std::make_shared<Reader>(in[t].GetReader());
+        Iterator s = Iterator(&in[t], reader, 0, true);
+        Iterator e = Iterator(&in[t], reader, in[t].NumItems(), false);
+        seq.push_back(std::make_pair(s, e));
+    }
+
+    std::sort(std::begin(ref), std::end(ref));
+    stxxl::parallel::sequential_multiway_merge<true, false>(std::begin(seq),
+                                                            std::end(seq),
+                                                            std::begin(output),
+                                                            total,
+                                                            std::less<int>());
+
+    for (std::size_t i = 0; i < total; ++i) {
+        sLOG << std::setw(3) << ref[i] << std::setw(3) << output[i];
+        ASSERT_EQ(ref[i], output[i]);
+    }
+}
+
+
+
 
 /******************************************************************************/
