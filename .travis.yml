@@ -6,26 +6,32 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - llvm-toolchain-precise-3.6
     packages:
       - g++-4.9
-      - libc++
+      - g++-5
+      - clang-3.6
+
+sudo: false
 
 env:
   matrix:
-    - CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" CMAKE_ARGS="" COMPILER_FLAGS=""
-    - CMAKE_CC="clang"   CMAKE_CXX="clang++" CMAKE_ARGS="" COMPILER_FLAGS="-stdlib=libc++"
-  build_mode:
-    - CMAKE_MODE="Debug"
-    - CMAKE_MODE="Release"
+    # Debug mode builds
+    - CMAKE_CC="gcc-4.9"   CMAKE_CXX="g++-4.9"     CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Debug"
+    - CMAKE_CC="gcc-5"     CMAKE_CXX="g++-5"       CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Debug"
+    - CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Debug"
+    # Release mode builds
+    - CMAKE_CC="gcc-4.9"   CMAKE_CXX="g++-4.9"     CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Release"
+    - CMAKE_CC="gcc-5"     CMAKE_CXX="g++-5"       CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Release"
+    - CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Release"
 
 before_script:
   - mkdir build; cd build
   - cmake
-      -DCMAKE_BUILD_TYPE=$CMAKE_MODE
-      -DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX
+      -DCMAKE_BUILD_TYPE="$CMAKE_MODE"
+      -DCMAKE_C_COMPILER="$CMAKE_CC" -DCMAKE_CXX_COMPILER="$CMAKE_CXX"
       -DCMAKE_C_FLAGS="$COMPILER_FLAGS" -DCMAKE_CXX_FLAGS="$COMPILER_FLAGS"
       $CMAKE_ARGS ..
 
 script:
-  - make -j4
-  - ctest -V
+  - make -j4 && ctest -V
