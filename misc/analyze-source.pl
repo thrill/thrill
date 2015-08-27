@@ -481,6 +481,102 @@ sub process_py {
     }
 }
 
+sub process_swig {
+    my ($path) = @_;
+
+    #print "$path\n";
+
+    # check permissions
+    my $st = stat($path) or die("Cannot stat() file $path: $!");
+    if ($st->mode & 0133) {
+        print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
+        if ($write_changes) {
+            chmod(0644, $path) or die("Cannot chmod() file $path: $!");
+        }
+    }
+
+    # read file
+    open(F, $path) or die("Cannot read file $path: $!");
+    my @data = <F>;
+    close(F);
+
+    my @origdata = @data;
+
+    # first check whether there are cog lines and execute them
+    if ($have_cogapp) {
+        my $have_coglines = 0;
+        foreach my $ln (@data) {
+            if ($ln =~ /\[\[\[cog/) {
+                $have_coglines = 1;
+                last;
+            }
+        }
+
+        if ($have_coglines) {
+            # pipe file through cog.py
+            my $data = join("", @data);
+            @data = filter_program($data, "cog.py", "-");
+        }
+    }
+
+    # check source header
+    my $i = 0;
+    if ($data[$i] =~ m!// -.*- mode:!) { ++$i; } # skip emacs mode line
+
+    expect($path, $i, @data, "/".('*'x79)."\n"); ++$i;
+    expectr($path, $i, @data, " * $path\n", qr/^ \* /); ++$i;
+    expect($path, $i, @data, " *\n"); ++$i;
+
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^ \* Part of Project Thrill/) {
+        expect_re($path, $i, @data, '^ \*( .*)?\n$');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
+    }
+
+    # check "Part of Project Thrill"
+    expect($path, $i-1, @data, " *\n");
+    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
+    expect($path, $i, @data, " *\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^ \* Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
+        die unless ++$i < @data;
+    }
+
+    # otherwise check license
+    expect($path, $i, @data, " *\n"); ++$i;
+    expectr($path, $i, @data, " * This file has no license. Only Chuck Norris can compile it.\n", qr/^ \*/); ++$i;
+    expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
+
+    # check terminating /****/ comment
+    {
+        my $n = scalar(@data)-1;
+        if ($data[$n] !~ m!^/\*{78}/$!) {
+            push(@data, "\n");
+            push(@data, "/".('*'x78)."/\n");
+        }
+    }
+
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
+
+    if ($write_changes)
+    {
+        open(F, "> $path") or die("Cannot write $path: $!");
+        print(F join("", @data));
+        close(F);
+    }
+}
+
 ### Main ###
 
 foreach my $arg (@ARGV) {
@@ -540,6 +636,9 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
         process_pl_cmake($file);
+    }
+    elsif ($file =~ /\.(i)$/) {
+        process_swig($file);
     }
     # recognize further files
     elsif ($file =~ m!^\.git/!) {
