@@ -39,20 +39,47 @@ unsigned int IntegerLog2Ceil(const IntegerType& i) {
 }
 
 //! does what it says.
-template <typename Integral>
-static inline Integral RoundUpToPowerOfTwo(Integral n) {
+static inline uint8_t RoundUpToPowerOfTwo(uint8_t n) {
     --n;
-#if defined(__clang__)
-    // clang incorrectly optimizes the generic loop below
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    ++n;
+    return n;
+}
+
+//! does what it says.
+static inline uint16_t RoundUpToPowerOfTwo(uint16_t n) {
+    --n;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    ++n;
+    return n;
+}
+
+//! does what it says.
+static inline uint32_t RoundUpToPowerOfTwo(uint32_t n) {
+    --n;
     n |= n >> 1;
     n |= n >> 2;
     n |= n >> 4;
     n |= n >> 8;
     n |= n >> 16;
-#else
-    for (int k = 1; !(k & (2 << sizeof(n))); k <<= 1)
-        n |= n >> k;
-#endif
+    ++n;
+    return n;
+}
+
+//! does what it says.
+static inline uint64_t RoundUpToPowerOfTwo(uint64_t n) {
+    --n;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n |= n >> 32;
     ++n;
     return n;
 }
