@@ -356,7 +356,7 @@ size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction compera
         size_t mid = (right + left) / 2;
         ItemType cur = this->GetItemAt<ItemType>(mid);
         int res = comperator(cur, item);
-        if (res < 0 || (res == 0 && tie >= mid)) {
+        if (res < 0 || (res == 0 && tie < mid)) {
             right = mid;
         }
         else {
@@ -364,7 +364,7 @@ size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction compera
         }
     }
 
-    return left;
+    return left + 1;
 }
 
 //! Seek in File: return a Block range containing items begin, end of
