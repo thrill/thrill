@@ -68,6 +68,7 @@ void SysFile::close() {
         fd_ = -1;
     }
     if (pid_ != 0) {
+        sLOG << "SysFile::close(): waitpid for" << pid_;
         int status;
         pid_t p = waitpid(pid_, &status, 0);
         if (p != pid_) {
@@ -161,6 +162,8 @@ SysFile SysFile::OpenForRead(const std::string& path) {
         throw common::SystemException("Error creating child process", errno);
     }
 
+    sLOG << "SysFile::OpenForRead(): pipefd" << pipefd[0] << "to pid" << pid;
+
     // close pipe write end
     ::close(pipefd[1]);
 
@@ -232,6 +235,8 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     else if (pid < 0) {
         throw common::SystemException("Error creating child process", errno);
     }
+
+    sLOG << "SysFile::OpenForWrite(): pipefd" << pipefd[0] << "to pid" << pid;
 
     // close read end
     ::close(pipefd[0]);
