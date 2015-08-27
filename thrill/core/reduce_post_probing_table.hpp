@@ -86,7 +86,7 @@ public:
     size_t
     operator () (const Key& k, ReducePostProbingTable* ht, const size_t& size) const {
 
-        (*ht).NumItems();
+        (void)ht;
 
         size_t hashed = hash_function_(k);
 
@@ -117,7 +117,7 @@ template <typename Key,
           typename EqualToFunction = std::equal_to<Key> >
 class PostProbingReduceFlushToDefault
 {
-public:
+public: // TODO(ms): find a way to inline the reduce function
     PostProbingReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
                                     const EqualToFunction& equal_to_function = EqualToFunction())
         : index_function_(index_function),
