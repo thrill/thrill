@@ -15,6 +15,9 @@ addons:
 sudo: false
 
 env:
+  global:
+    # LeakSanitizer suppressions
+    - LSAN_OPTIONS=suppressions=$PWD/misc/leak_sanitizer.supp
   matrix:
     # Debug mode builds
     - CMAKE_CC="gcc-4.9"   CMAKE_CXX="g++-4.9"     CMAKE_ARGS="" COMPILER_FLAGS="-fsanitize=address" CMAKE_MODE="Debug"
