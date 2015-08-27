@@ -194,6 +194,12 @@ set(THRILL_VALGRIND_OPTS
 #  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
 
 ###############################################################################
+# check some required system functions
+
+include(CheckFunctionExists)
+check_function_exists(pipe2 THRILL_HAVE_PIPE2)
+
+###############################################################################
 # add cereal
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)

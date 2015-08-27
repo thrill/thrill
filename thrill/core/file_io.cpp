@@ -9,6 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
@@ -135,8 +136,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    if (pipe2(pipefd, O_CLOEXEC) != 0)
-        throw common::SystemException("Error creating pipe", errno);
+    common::make_pipe(pipefd);
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -208,8 +208,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     // pipe[0] = read, pipe[1] = write
     int pipefd[2];
-    if (pipe2(pipefd, O_CLOEXEC) != 0)
-        throw common::SystemException("Error creating pipe", errno);
+    common::make_pipe(pipefd);
 
     pid_t pid = fork();
     if (pid == 0) {
