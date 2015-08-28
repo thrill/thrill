@@ -65,15 +65,14 @@ void ThreadPool::Terminate() {
     cv_jobs_.notify_all();
     // notify LoopUntilTerminate in case all threads are idle.
     cv_finished_.notify_one();
-    lock.unlock();
 }
 
 //! Worker function, one per thread is started.
 void ThreadPool::Worker() {
-    while (true) {
-        // wait for next job
-        std::unique_lock<std::mutex> lock(mutex_);
+    // lock mutex, it is released during condition waits
+    std::unique_lock<std::mutex> lock(mutex_);
 
+    while (true) {
         // wait on condition variable until job arrives, frees lock
         cv_jobs_.wait(
             lock, [this]() { return terminate_ || !jobs_.empty(); });
@@ -99,7 +98,11 @@ void ThreadPool::Worker() {
                 catch (std::exception& e) {
                     LOG1 << "EXCEPTION: " << e.what();
                 }
+                // destroy job by closing scope
             }
+
+            // release memory the Job changed
+            std::atomic_thread_fence(std::memory_order_seq_cst);
 
             ++done_;
             --busy_;

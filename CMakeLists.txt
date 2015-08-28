@@ -31,7 +31,9 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 
-option(THRILL_REQUIRE_SWIG "Use (optional) swig wrapper generator." OFF)
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+
+option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
@@ -72,19 +74,25 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} --version
-    OUTPUT_VARIABLE clang_full_version_string)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  # try compiling a program with auto return types
+  include(CheckCXXSourceCompiles)
+  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
-    CLANG_VERSION_STRING ${clang_full_version_string})
+  check_cxx_source_compiles(
+    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
 
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
-    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+    message(STATUS "compiler does not support -g debug info with auto returns")
     string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
     string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
+
+  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
 endif()
 
 if(USE_IWYU)
@@ -226,12 +234,14 @@ endif()
 
 # SWIG (optional)
 
-find_package(SWIG)
-if(SWIG_FOUND)
-  include(${SWIG_USE_FILE})
-endif()
-if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
-  message(FATAL "Swig was not found but is required.")
+if(THRILL_USE_SWIG)
+  find_package(SWIG)
+  if(SWIG_FOUND)
+    include(${SWIG_USE_FILE})
+  endif()
+  if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
+    message(FATAL "Swig was not found but is mandatory.")
+  endif()
 endif()
 
 ################################################################################

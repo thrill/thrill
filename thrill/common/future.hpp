@@ -53,6 +53,10 @@ protected:
     T value_;
 
 public:
+    ~Future() {
+        std::unique_lock<std::mutex> lock(mutex_);
+    }
+
     //! This is the callback to be called to fulfill the future.
     void Callback(T&& data) {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -121,6 +125,10 @@ protected:
     Values values_;
 
 public:
+    ~FutureX() {
+        std::unique_lock<std::mutex> lock(mutex_);
+    }
+
     //! This is the callback to be called to fulfill the future.
     void Callback(Ts&& ... data) {
         std::unique_lock<std::mutex> lock(mutex_);
