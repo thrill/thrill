@@ -227,7 +227,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             ctx.Barrier();
 
             // generate a dia of integers and write them to disk
-            size_t generate_size = 320000;
+            size_t generate_size = 32000;
             {
                 auto dia = Generate(
                     ctx,
@@ -271,7 +271,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             ctx.Barrier();
 
             // generate a dia of integers and write them to disk
-            size_t generate_size = 320000;
+            size_t generate_size = 32000;
             {
                 auto dia = Generate(
                     ctx,
@@ -323,7 +323,7 @@ TEST(IO, GenerateStringWriteBinary) {
             ctx.Barrier();
 
             // generate a dia of string Items and write them to disk
-            size_t generate_size = 320000;
+            size_t generate_size = 32000;
             {
                 auto dia = Generate(
                     ctx,
