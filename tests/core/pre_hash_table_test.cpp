@@ -444,7 +444,7 @@ TEST_F(PreTable, MultipleWorkers) {
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
+    table(2, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
 
     ASSERT_EQ(0u, table.NumItems());
 
