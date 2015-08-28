@@ -310,10 +310,8 @@ private:
             input_size_ = files[NumFiles()].second;
 
             // Go to start of 'local part'.
-            auto my_start_and_end = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
-
-            size_t my_start = std::get<0>(my_start_and_end);
-            my_end_ = std::get<1>(my_start_and_end);
+			size_t my_start;
+			std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
