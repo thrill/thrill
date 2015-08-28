@@ -52,13 +52,9 @@ int main(int argc, char* argv[]) {
     clp.AddUInt('u', "num_buckets_resize_scale", "U", u,
                 "Upper string length, default = 15.");
 
-    double max_partition_fill_rate = 1.0;
+    double max_partition_fill_rate = 0.5;
     clp.AddDouble('f', "max_partition_fill_rate", "F", max_partition_fill_rate,
                   "Open hashtable with max_partition_fill_rate, default = 0.5.");
-
-    unsigned int num_items_per_partition = 1024 * 16;
-    clp.AddUInt('i', "num_items_per_partition", "I", num_items_per_partition,
-                "Num items per partition, default = 1024 * 16.");
 
     unsigned int table_size = 5000000;
     clp.AddUInt('t', "max_num_items_table", "T", table_size,
@@ -110,10 +106,8 @@ int main(int argc, char* argv[]) {
         writers.emplace_back(sinks[i].GetDynWriter());
     }
 
-    size_t num_slots = table_size / (2 * sizeof(std::string));
-
     core::ReducePreProbingTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true>
-    table(workers, key_ex, red_fn, writers, "", num_slots / workers, max_partition_fill_rate);
+    table(workers, key_ex, red_fn, writers, "", table_size, max_partition_fill_rate);
 
     common::StatsTimer<true> timer(true);
 

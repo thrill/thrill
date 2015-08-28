@@ -60,17 +60,20 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
     api::RunLocalTests(start_func);
 }
 
+//! Test sums of integers 0..n-1 for n=100 in 1000 buckets in the reduce table
 TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
+            using IntPair = std::pair<size_t, size_t>;
+
             auto integers = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return std::make_pair((index + 1) % 2, index + 1);
+                    return IntPair(index % 1000, index / 1000);
                 },
-                16);
+                100000u);
 
             auto add_function = [](const size_t& in1, const size_t& in2) {
                                     return in1 + in2;
@@ -78,22 +81,18 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
 
             auto reduced = integers.ReducePair(add_function);
 
-            std::vector<std::pair<size_t, size_t> > out_vec = reduced.AllGather();
-
-            using IntPair = std::pair<size_t, size_t>;
+            std::vector<IntPair> out_vec = reduced.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(),
-                      [](IntPair p1, IntPair p2) {
-                          return p1.second < p2.second;
+                      [](const IntPair& p1, const IntPair& p2) {
+                          return p1.first < p2.first;
                       });
 
-            size_t i = 1;
-
             for (auto element : out_vec) {
-                ASSERT_EQ(element.second, 56u + (8u * i++));
+                ASSERT_EQ(element.second, (100u*99u)/2u);
             }
 
-            ASSERT_EQ((size_t)2, out_vec.size());
+            ASSERT_EQ(1000u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
