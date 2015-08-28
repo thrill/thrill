@@ -47,10 +47,11 @@ public:
 
         using index_result = typename ReducePreTable::index_result;
 
-        size_t global_index = k / 2;
+        size_t global_index = 0;
         size_t partition_id = 0;
-        size_t local_index = k / 2;
+        size_t local_index = 0;
 
+        (void)k;
         (void)ht;
 
         return index_result(partition_id, local_index, global_index);
@@ -78,7 +79,7 @@ TEST_F(PreTable, CustomHashFunction) {
     CustomKeyHashFunction<int> cust_hash;
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
                          CustomKeyHashFunction<int> >
-    table(1, key_ex, red_fn, writers, 1024 * 16, 1.0, cust_hash);
+    table(1, key_ex, red_fn, writers, 1024 * 16, 0.001, 1.0, cust_hash);
 
     for (int i = 0; i < 16; i++) {
         table.Insert(i);
@@ -204,7 +205,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     writers.emplace_back(output.GetWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, 8 * 1024, 1.0);
+    table(1, key_ex, red_fn, writers, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -246,7 +247,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, 8 * 1024, 1.0);
+    table(2, key_ex, red_fn, writers, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -296,7 +297,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
     writers.emplace_back(output.GetWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, 8 * 1024, 1.0);
+    table(1, key_ex, red_fn, writers, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -337,7 +338,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     writers.emplace_back(output2.GetWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, 8 * 1024, 1.0);
+    table(2, key_ex, red_fn, writers, 8 * 1024, 0.001, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -386,7 +387,7 @@ TEST_F(PreTable, ComplexType) {
     writers.emplace_back(output.GetWriter());
 
     core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, 16 * 1024, 0.5);
+    table(1, key_ex, red_fn, writers, 16 * 1024, 0.001, 0.5);
 
     table.Insert(std::make_pair("hallo", 1));
     table.Insert(std::make_pair("hello", 2));
@@ -423,7 +424,7 @@ TEST_F(PreTable, DISABLED_MultipleWorkers) {
     writers.emplace_back(output2.GetWriter());
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, 1024 * 8, 0.5);
+    table(2, key_ex, red_fn, writers, 1024 * 8, 0.001, 0.5);
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -459,7 +460,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     // Hashtable with smaller block size for testing.
     core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, nitems * 16, 0.5);
+    table(1, key_ex, red_fn, writers, nitems * 16, 0.001, 0.5);
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
@@ -502,7 +503,7 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
 
     // Hashtable with smaller block size for testing.
     core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, nitems * 16, 0.5);
+    table(1, key_ex, red_fn, writers, nitems * 16, 0.001, 0.5);
 
     // insert lots of items
     int sum = 0;
@@ -555,7 +556,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems = 1 * 4 * 1024;
 
     core::ReducePreTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, 16 * 1024, 0.5);
+    table(1, key_ex, red_fn, writers, 16 * 1024, 0.001, 0.5);
 
     // insert lots of items
     int sum = 0;
