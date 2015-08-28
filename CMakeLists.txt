@@ -31,7 +31,9 @@ option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 
-option(THRILL_REQUIRE_SWIG "Use (optional) swig wrapper generator." OFF)
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+
+option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
@@ -220,12 +222,14 @@ endif()
 
 # SWIG (optional)
 
-find_package(SWIG)
-if(SWIG_FOUND)
-  include(${SWIG_USE_FILE})
-endif()
-if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
-  message(FATAL "Swig was not found but is required.")
+if(THRILL_USE_SWIG)
+  find_package(SWIG)
+  if(SWIG_FOUND)
+    include(${SWIG_USE_FILE})
+  endif()
+  if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
+    message(FATAL "Swig was not found but is mandatory.")
+  endif()
 endif()
 
 ################################################################################
