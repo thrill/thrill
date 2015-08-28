@@ -40,8 +40,14 @@ using FileSizePair = std::pair<std::string, size_t>;
  *
  * \param path Input path
  */
-std::pair<std::vector<FileSizePair>, bool>
-GlobFilePattern(const std::string& path);
+std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path);
+
+/*!
+ * Returns a vector of all files found by glob in the input path.
+ *
+ * \param path Input path
+ */
+std::vector<std::string> GlobFilePattern(const std::string& path);
 
 /*!
  * Represents a POSIX system file via its file descriptor.

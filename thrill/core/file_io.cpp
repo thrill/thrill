@@ -22,42 +22,41 @@
 namespace thrill {
 namespace core {
 
-std::pair<std::vector<FileSizePair>, bool>
-GlobFilePattern(const std::string& path) {
-
-    static const bool debug = false;
-
-    bool contains_compressed_file = false;
-
-    std::vector<FileSizePair> filesize_prefix;
+std::vector<std::string> GlobFilePattern(const std::string& path) {
+	
+	std::vector<std::string> files;
     glob_t glob_result;
-    struct stat filestat;
     glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
-    size_t directory_size = 0;
-
+		
     for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
-        const char* filepath = glob_result.gl_pathv[i];
+		files.push_back(glob_result.gl_pathv[i]);
+	}
+	globfree(&glob_result);
 
-        if (stat(filepath, &filestat)) {
+	return files;	
+}
+
+std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
+
+    std::vector<FileSizePair> file_size_pairs;
+    struct stat filestat;
+    size_t directory_size = 0;
+	std::vector<std::string> files = GlobFilePattern(path);
+
+	for (const std::string& file : files) {
+
+        if (stat(file.c_str(), &filestat)) {
             throw std::runtime_error(
-                      "ERROR: Invalid file " + std::string(filepath));
+                      "ERROR: Invalid file " + std::string(file));
         }
         if (!S_ISREG(filestat.st_mode)) continue;
 
-        if (IsCompressed(filepath)) {
-            contains_compressed_file = true;
-        }
-
-        LOG << "Added file " << filepath << ", new total size "
-            << directory_size;
-
-        filesize_prefix.emplace_back(std::move(filepath), directory_size);
+        file_size_pairs.emplace_back(std::move(file), directory_size);
         directory_size += filestat.st_size;
     }
-    filesize_prefix.emplace_back("", directory_size);
-    globfree(&glob_result);
+    file_size_pairs.emplace_back("", directory_size);
 
-    return std::make_pair(filesize_prefix, contains_compressed_file);
+    return file_size_pairs;
 }
 
 /******************************************************************************/
