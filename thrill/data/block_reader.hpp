@@ -71,6 +71,14 @@ public:
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
+    //! Next() reads a complete item T, without item counter or self
+    //! verification
+    template <typename T>
+    T NextNoSelfVerify() {
+        assert(HasNext());
+        return Serialization<BlockReader, T>::Deserialize(*this);
+    }
+
     //! HasNext() returns true if at least one more byte is available.
     bool HasNext() {
         while (current_ == end_) {
