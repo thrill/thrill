@@ -53,6 +53,10 @@ protected:
     std::deque<T> elements_;
 
 public:
+    ~FutureQueue() {
+        std::unique_lock<std::mutex> lock(mutex_);
+    }
+
     //! Returns the callback that feeds back to this future.
     //! Is Used to signal arrival of data \code (x, false)\endcode or to signal
     //! the end of the queue \code(dummy, true)\endcode. In the latter case
