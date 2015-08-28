@@ -371,8 +371,7 @@ protected:
             die("FAULTY STATE DETECTED");
         }
 
-        if (err == Socket::Errors::ConnectionRefused ||
-            err == Socket::Errors::Timeout) {
+        if (err == ECONNREFUSED || err == ETIMEDOUT) {
 
             // Connection refused. The other workers might not be online yet.
 
