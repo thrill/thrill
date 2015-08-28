@@ -74,7 +74,7 @@ public:
 
     void PushData() final {
         if (contains_compressed_file_) {
-            InputLineIteratorCompressed it = GetCompressedInputLineIterator(
+            InputLineIteratorCompressed it = InputLineIteratorCompressed(
                 filesize_prefix_, context_.my_rank(), context_.num_workers());
 
             // Hook Read
@@ -87,7 +87,7 @@ public:
             }
         }
         else {
-            InputLineIteratorUncompressed it = GetNonCompressedInputLineIterator(
+            InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
                 filesize_prefix_, context_.my_rank(), context_.num_workers());
 
             // Hook Read
@@ -133,10 +133,10 @@ private:
     class InputLineIterator
     {
     public:
-        virtual ~InputLineIterator() { }
+		static const bool debug = false;
+		const size_t read_size = 2 * 1024 * 1024;
 
-        virtual std::string Next() = 0;
-        virtual bool HasNext() = 0;
+        virtual ~InputLineIterator() { }
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -145,11 +145,13 @@ private:
     public:
         static const bool debug = false;
 
-        const size_t read_size = 2 * 1024 * 1024;
+		typedef InputLineIterator Base;
+
+        //const size_t read_size = 2 * 1024 * 1024;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
-            const std::vector<FileSizePair>& files,
+            std::vector<FileSizePair> files,
             size_t my_id,
             size_t num_workers)
             : files_(files),
@@ -179,8 +181,8 @@ private:
             // find offset in current file:
             // offset = start - sum of previous file sizes
             offset_ = lseek(c_file_, my_start - files_[current_file_].second, SEEK_CUR);
-            buffer_.Reserve(read_size);
-            ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+            buffer_.Reserve(Base::read_size);
+            ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
             buffer_.set_size(buffer_size);
 
             if (offset_ != 0) {
@@ -199,7 +201,7 @@ private:
                     if (!found_n) {
                         current_ = 0;
                         offset_ += buffer_.size();
-                        buffer_size = read(c_file_, buffer_.data(), read_size);
+                        buffer_size = read(c_file_, buffer_.data(), Base::read_size);
                         // EOF = newline per definition
                         if (!buffer_size) {
                             found_n = true;
@@ -227,7 +229,7 @@ private:
                 }
                 ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
                 current_ = 0;
-                ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
                 offset_ += buffer_.size();
                 if (buffer_size) {
                     buffer_.set_size(buffer_size);
@@ -239,7 +241,7 @@ private:
 
                     if (current_file_ < NumFiles()) {
                         c_file_ = OpenFile(files_[current_file_].first);
-                        ssize_t buffer_size = read(c_file_, buffer_.data(), read_size);
+                        ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
                         buffer_.set_size(buffer_size);
                     }
                     else {
@@ -304,7 +306,7 @@ private:
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
-            const std::vector<FileSizePair>& files,
+            std::vector<FileSizePair> files,
             size_t my_id,
             size_t num_workers)
             : files_(files),
@@ -460,18 +462,6 @@ private:
         //! Size of all files combined (in bytes)
         size_t input_size_;
     };
-
-    // REVIEW(an): these are completely useless, just use the constructor
-    // instead.
-    InputLineIteratorCompressed GetCompressedInputLineIterator(std::vector<FileSizePair> files,
-                                                               size_t my_id, size_t num_work) {
-        return InputLineIteratorCompressed(files, my_id, num_work);
-    }
-
-    InputLineIteratorUncompressed GetNonCompressedInputLineIterator(std::vector<FileSizePair> files,
-                                                                    size_t my_id, size_t num_work) {
-        return InputLineIteratorUncompressed(files, my_id, num_work);
-    }
 };
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
