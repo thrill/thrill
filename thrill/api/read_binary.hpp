@@ -63,12 +63,12 @@ public:
     {
         filelist_ = core::GlobFileSizePrefixSum(filepath_);
 
-		size_t my_start, my_end;
-		std::tie(my_start,my_end) =
+        size_t my_start, my_end;
+        std::tie(my_start, my_end) =
             common::CalculateLocalRange(filelist_[filelist_.size() - 1].second,
                                         context_.num_workers(),
                                         context_.my_rank());
-		size_t first_file = 0;
+        size_t first_file = 0;
         size_t last_file = 0;
 
         while (filelist_[first_file + 1].second <= my_start) {
@@ -81,10 +81,10 @@ public:
         }
 
         my_files_ = std::vector<FileSizePair>(
-			filelist_.begin() + first_file,
-			filelist_.begin() + last_file);
+            filelist_.begin() + first_file,
+            filelist_.begin() + last_file);
 
-		LOG << my_files_.size() << " files from " << my_start << " to " << my_end;
+        LOG << my_files_.size() << " files from " << my_start << " to " << my_end;
     }
 
     virtual ~ReadBinaryNode() { }
@@ -98,16 +98,16 @@ public:
         LOG << "READING data " << result_file_.ToString();
 
         // Hook Read
-		for (const FileSizePair& file : my_files_) {
-			LOG << "OPENING FILE " << file.first;
-			data::BlockReader<SysFileBlockSource> br(SysFileBlockSource(file.first, context_));
-			while (br.HasNext()) {
-                                ValueType item = br.template NextNoSelfVerify<ValueType>();
-				for (auto func : Super::callbacks_) {
-					func(item);
-				}
-			}
-		}
+        for (const FileSizePair& file : my_files_) {
+            LOG << "OPENING FILE " << file.first;
+            data::BlockReader<SysFileBlockSource> br(SysFileBlockSource(file.first, context_));
+            while (br.HasNext()) {
+                ValueType item = br.template NextNoSelfVerify<ValueType>();
+                for (auto func : Super::callbacks_) {
+                    func(item);
+                }
+            }
+        }
         LOG << "DONE!";
     }
 
@@ -138,40 +138,42 @@ private:
     std::vector<FileSizePair> filelist_;
     std::vector<FileSizePair> my_files_;
 
-	class SysFileBlockSource 
-	{
-	public:
+    class SysFileBlockSource
+    {
+    public:
         const size_t read_size = 2 * 1024 * 1024;
 
-		SysFileBlockSource(std::string path, Context & ctx) : 
-			context_(ctx), c_file_(core::SysFile::OpenForRead(path)) { }
+        SysFileBlockSource(std::string path, Context& ctx) :
+            context_(ctx), c_file_(core::SysFile::OpenForRead(path)) { }
 
-		data::Block NextBlock() {	
-			if (done_) return data::Block();
+        data::Block NextBlock() {
+            if (done_) return data::Block();
 
-			data::ByteBlockPtr bytes_ = data::ByteBlock::Allocate(read_size, context_.block_pool());
-			
-			ssize_t size = c_file_.read(bytes_->data(), read_size);
-			if (size > 0) {				
-				return data::Block(bytes_, 0, size, 0, read_size);
-			} else if (size < 0) {
-				throw common::SystemException("File reading error", errno);
-			} else { //size == 0 -> read finished
-				c_file_.close();
-				done_ = true;
-				return data::Block();
-			}
-		}
+            data::ByteBlockPtr bytes_ = data::ByteBlock::Allocate(read_size, context_.block_pool());
 
-		bool closed() const {
-			return done_;
-		}
+            ssize_t size = c_file_.read(bytes_->data(), read_size);
+            if (size > 0) {
+                return data::Block(bytes_, 0, size, 0, read_size);
+            }
+            else if (size < 0) {
+                throw common::SystemException("File reading error", errno);
+            }
+            else {               //size == 0 -> read finished
+                c_file_.close();
+                done_ = true;
+                return data::Block();
+            }
+        }
 
-	protected:
-		Context & context_;
-		core::SysFile c_file_;
-		bool done_ = false;
-	};
+        bool closed() const {
+            return done_;
+        }
+
+    protected:
+        Context& context_;
+        core::SysFile c_file_;
+        bool done_ = false;
+    };
 };
 
 /*!

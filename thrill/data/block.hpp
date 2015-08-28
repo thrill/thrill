@@ -143,8 +143,8 @@ public:
 
     //! Return whether the enclosed ByteBlock is valid.
     bool IsValid() const {
-		return byte_block_;
-	}
+        return byte_block_;
+    }
 
     //! Releases the reference to the ByteBlock and resets book-keeping info
     void Release() {

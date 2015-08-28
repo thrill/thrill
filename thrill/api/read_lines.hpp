@@ -61,13 +61,13 @@ public:
           path_(path)
     {
         filesize_prefix_ = core::GlobFileSizePrefixSum(path_);
-		
-		for (auto file : filesize_prefix_) {
-			if (core::IsCompressed(file.first)) {
-				contains_compressed_file_ = true;
-				break;
-			}
-		}
+
+        for (auto file : filesize_prefix_) {
+            if (core::IsCompressed(file.first)) {
+                contains_compressed_file_ = true;
+                break;
+            }
+        }
     }
 
     void Execute() final { }
@@ -133,8 +133,8 @@ private:
     class InputLineIterator
     {
     public:
-		static const bool debug = false;
-		const size_t read_size = 2 * 1024 * 1024;
+        static const bool debug = false;
+        const size_t read_size = 2 * 1024 * 1024;
 
         virtual ~InputLineIterator() { }
     };
@@ -143,7 +143,7 @@ private:
     class InputLineIteratorUncompressed : public InputLineIterator
     {
     public:
-		typedef InputLineIterator Base;
+        typedef InputLineIterator Base;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
@@ -296,7 +296,7 @@ private:
     class InputLineIteratorCompressed : public InputLineIterator
     {
     public:
-		typedef InputLineIterator Base;
+        typedef InputLineIterator Base;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
@@ -310,8 +310,8 @@ private:
             input_size_ = files[NumFiles()].second;
 
             // Go to start of 'local part'.
-			size_t my_start;
-			std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
+            size_t my_start;
+            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -329,14 +329,14 @@ private:
 
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
-                LOG << "my_start : " << my_start << " my_end_: " << my_end_;				
+                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
                 c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
-				//No local files, set buffer size to 2, so HasNext() does not try to read
+                // No local files, set buffer size to 2, so HasNext() does not try to read
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
-				buffer_.Reserve(2);
-				buffer_.set_size(2);
+                buffer_.Reserve(2);
+                buffer_.set_size(2);
                 return;
             }
             buffer_.Reserve(read_size);
@@ -376,8 +376,8 @@ private:
                         buffer_.set_size(buffer_size);
                     }
                     else {
-						current_ = 0;
-						//current_ = files_[current_file_].second - files_[current_file_ - 1].second;
+                        current_ = 0;
+                        // current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
                     if (ret.length()) {

@@ -23,17 +23,17 @@ namespace thrill {
 namespace core {
 
 std::vector<std::string> GlobFilePattern(const std::string& path) {
-	
-	std::vector<std::string> files;
+
+    std::vector<std::string> files;
     glob_t glob_result;
     glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
-		
-    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
-		files.push_back(glob_result.gl_pathv[i]);
-	}
-	globfree(&glob_result);
 
-	return files;	
+    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
+        files.push_back(glob_result.gl_pathv[i]);
+    }
+    globfree(&glob_result);
+
+    return files;
 }
 
 std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
@@ -41,9 +41,9 @@ std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
     std::vector<FileSizePair> file_size_pairs;
     struct stat filestat;
     size_t directory_size = 0;
-	std::vector<std::string> files = GlobFilePattern(path);
+    std::vector<std::string> files = GlobFilePattern(path);
 
-	for (const std::string& file : files) {
+    for (const std::string& file : files) {
 
         if (stat(file.c_str(), &filestat)) {
             throw std::runtime_error(

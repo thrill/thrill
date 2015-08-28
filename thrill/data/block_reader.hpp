@@ -84,8 +84,8 @@ public:
         while (current_ == end_) {
             if (!NextBlock()) {
                 return false;
-			}
-		}
+            }
+        }
         return true;
     }
 

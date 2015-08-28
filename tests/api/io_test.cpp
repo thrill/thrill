@@ -113,8 +113,6 @@ protected:
     std::string dir_;
 };
 
-
-
 TEST(IO, ReadSingleFile) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -130,7 +128,7 @@ TEST(IO, ReadSingleFile) {
                 ASSERT_EQ(element, i++);
             }
 
-            ASSERT_EQ((size_t)16, out_vec.size());
+            ASSERT_EQ(16u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -163,7 +161,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
                 ASSERT_EQ(element, i--);
             }
 
-            ASSERT_EQ((size_t)25, out_vec.size());
+            ASSERT_EQ(25u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -360,47 +358,47 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-		if (ctx.my_rank() == 0) {
-			std::system("rm -r ./binary/*");
-		}
-		ctx.Barrier();
+            if (ctx.my_rank() == 0) {
+                std::system("rm -r ./binary/*");
+            }
+            ctx.Barrier();
 
-		auto integers = ReadLines(ctx, "test1")
-		.Map([](const std::string& line) {
-				return std::stoi(line);
-			});
+            auto integers = ReadLines(ctx, "test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
 
-		integers.WriteBinary("binary/output_");
+            integers.WriteBinary("binary/output_");
 
-		std::string path = "testsf.out";
+            std::string path = "testsf.out";
 
-		ctx.Barrier();
+            ctx.Barrier();
 
-		auto integers2 = api::ReadBinary<int>(
-			ctx, "./binary/*");
+            auto integers2 = api::ReadBinary<int>(
+                ctx, "./binary/*");
 
-		integers2.Map(
-			[](const int& item) {
-				return std::to_string(item);
-			})
-		.WriteLines(path);
+            integers2.Map(
+                [](const int& item) {
+                    return std::to_string(item);
+                })
+            .WriteLines(path);
 
-		// Race condition as one worker might be finished while others are
-		// still writing to output file.
-		ctx.Barrier();
+            // Race condition as one worker might be finished while others are
+            // still writing to output file.
+            ctx.Barrier();
 
-		std::ifstream file(path);
-		size_t begin = file.tellg();
-		file.seekg(0, std::ios::end);
-		size_t end = file.tellg();
-		ASSERT_EQ(end - begin, 39);
-		file.seekg(0);
-		for (int i = 1; i <= 16; i++) {
-			std::string line;
-			std::getline(file, line);
-			ASSERT_EQ(std::stoi(line), i);
-		}
-	};
+            std::ifstream file(path);
+            size_t begin = file.tellg();
+            file.seekg(0, std::ios::end);
+            size_t end = file.tellg();
+            ASSERT_EQ(end - begin, 39);
+            file.seekg(0);
+            for (int i = 1; i <= 16; i++) {
+                std::string line;
+                std::getline(file, line);
+                ASSERT_EQ(std::stoi(line), i);
+            }
+        };
 
     api::RunLocalTests(start_func);
 }
