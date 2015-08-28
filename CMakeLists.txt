@@ -74,19 +74,25 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} --version
-    OUTPUT_VARIABLE clang_full_version_string)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  # try compiling a program with auto return types
+  include(CheckCXXSourceCompiles)
+  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
-    CLANG_VERSION_STRING ${clang_full_version_string})
+  check_cxx_source_compiles(
+    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
 
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
-    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+    message(STATUS "compiler does not support -g debug info with auto returns")
     string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
     string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
+
+  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
 endif()
 
 if(USE_IWYU)
