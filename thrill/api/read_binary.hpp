@@ -39,14 +39,14 @@ namespace api {
 template <typename ValueType>
 class ReadBinaryNode : public DOpNode<ValueType>
 {
+    static const bool debug = false;
+
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
     using Super::result_file_;
 
     using FileSizePair = std::pair<std::string, size_t>;
-
-    static const bool debug = false;
 
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
@@ -100,7 +100,10 @@ public:
         // Hook Read
         for (const FileSizePair& file : my_files_) {
             LOG << "OPENING FILE " << file.first;
-            data::BlockReader<SysFileBlockSource> br(SysFileBlockSource(file.first, context_));
+
+            data::BlockReader<SysFileBlockSource> br(
+                SysFileBlockSource(file.first, context_));
+
             while (br.HasNext()) {
                 ValueType item = br.template NextNoSelfVerify<ValueType>();
                 for (auto func : Super::callbacks_) {
@@ -123,10 +126,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[ReadLinesNode]" as a string.
-     * \return "[ReadLinesNode]"
-     */
     std::string ToString() final {
         return "[ReadBinaryNode] Id: " + result_file_.ToString();
     }
@@ -141,37 +140,36 @@ private:
     class SysFileBlockSource
     {
     public:
-        const size_t read_size = 2 * 1024 * 1024;
+        const size_t block_size = data::default_block_size;
 
-        SysFileBlockSource(std::string path, Context& ctx) :
-            context_(ctx), c_file_(core::SysFile::OpenForRead(path)) { }
+        SysFileBlockSource(std::string path, Context& ctx)
+            : context_(ctx),
+              sysfile_(core::SysFile::OpenForRead(path)) { }
 
         data::Block NextBlock() {
             if (done_) return data::Block();
 
-            data::ByteBlockPtr bytes_ = data::ByteBlock::Allocate(read_size, context_.block_pool());
+            data::ByteBlockPtr bytes
+                = data::ByteBlock::Allocate(block_size, context_.block_pool());
 
-            ssize_t size = c_file_.read(bytes_->data(), read_size);
+            ssize_t size = sysfile_.read(bytes->data(), block_size);
             if (size > 0) {
-                return data::Block(bytes_, 0, size, 0, read_size);
+                return data::Block(bytes, 0, size, 0, 0);
             }
             else if (size < 0) {
                 throw common::SystemException("File reading error", errno);
             }
-            else {               //size == 0 -> read finished
-                c_file_.close();
+            else {
+                // size == 0 -> read finished
+                sysfile_.close();
                 done_ = true;
                 return data::Block();
             }
         }
 
-        bool closed() const {
-            return done_;
-        }
-
     protected:
         Context& context_;
-        core::SysFile c_file_;
+        core::SysFile sysfile_;
         bool done_ = false;
     };
 };
