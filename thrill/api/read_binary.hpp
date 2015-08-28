@@ -100,7 +100,7 @@ public:
         // Hook Read
 		for (const FileSizePair& file : my_files_) {
 			LOG << "OPENING FILE " << file.first;
-			data::BlockReader<InputBlockSource> br(InputBlockSource(file.first, context_));
+			data::BlockReader<SysFileBlockSource> br(SysFileBlockSource(file.first, context_));
 			while (br.HasNext()) {
 				ValueType item = br.template Next<ValueType>();
 				for (auto func : Super::callbacks_) {
@@ -138,12 +138,12 @@ private:
     std::vector<FileSizePair> filelist_;
     std::vector<FileSizePair> my_files_;
 
-	class InputBlockSource 
+	class SysFileBlockSource 
 	{
 	public:
         const size_t read_size = 2 * 1024 * 1024;
 
-		InputBlockSource(std::string path, Context & ctx) : 
+		SysFileBlockSource(std::string path, Context & ctx) : 
 			context_(ctx), c_file_(core::SysFile::OpenForRead(path)) { }
 
 		data::Block NextBlock() {	
