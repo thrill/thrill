@@ -617,18 +617,17 @@ public:
         assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
                && "frame_size must be a power of two");
         assert(byte_size > 0 && "byte_size must be greater than 0");
-        assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
+        assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
         // TODO(ms): second reduce table is currently not considered for byte_size
         max_num_blocks_table_ = std::max<size_t>((size_t) (static_cast<double>(byte_size_)
-                               / static_cast<double>(sizeof(BucketBlock) + sizeof(BucketBlock::next))), 1);
-        num_buckets_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
-                                                                      * block_size_) * bucket_rate), 1);
+                               / static_cast<double>(sizeof(BucketBlock))), 1);
+        num_buckets_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_) * bucket_rate), 1);
         frame_size_ = std::min<size_t>(frame_size_, num_buckets_);
-        num_frames_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
-                                                                     * block_size_) / frame_size_), 1);
+        num_frames_ = std::max<size_t>((size_t) (static_cast<double>(num_buckets_)
+                                                 / static_cast<double>(frame_size_)), 1);
         num_items_per_frame_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
                                                  * block_size_) / static_cast<double>(num_frames_)), 1);
 

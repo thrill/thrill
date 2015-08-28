@@ -230,15 +230,15 @@ public:
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
         assert(byte_size > 0 && "byte_size must be greater than 0");
-        assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
+        assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
         max_num_blocks_table_ = std::max<size_t>((size_t) (static_cast<double>(byte_size_)
-                                  / static_cast<double>(sizeof(BucketBlock) + sizeof(BucketBlock::next))), 1);
+                                  / static_cast<double>(sizeof(BucketBlock))), 1);
         num_items_per_partition_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_ * block_size_)
                                              / static_cast<double>(num_partitions_)), 1);
-        num_buckets_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(num_items_per_partition_)
-                                                               * bucket_rate), 1);
+        num_buckets_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_table_)
+                                            / static_cast<double>(num_partitions_)) * bucket_rate), 1);
         num_buckets_ = num_buckets_per_partition_ * num_partitions_;
 
         buckets_.resize(num_buckets_, nullptr);
