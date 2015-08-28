@@ -50,6 +50,13 @@ matrix:
       os: linux
       addons: *clang36
 
+    # clang 3.6 on MacOSX without AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
+      os: osx
+
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
+      os: osx
+
 env:
   global:
     # LeakSanitizer suppressions
