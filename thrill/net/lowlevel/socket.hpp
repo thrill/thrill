@@ -50,6 +50,7 @@ namespace lowlevel {
 class Socket
 {
     static const bool debug = false;
+    static const bool debug_data = false;
 
 public:
     //! \name Creation
@@ -351,7 +352,7 @@ public:
             LOG << "Socket::send_one()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << common::hexdump(data, size)
+                << " data=" << maybe_hexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -372,7 +373,7 @@ public:
             LOG << "Socket::send()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << common::hexdump(data, size)
+                << " data=" << maybe_hexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -414,7 +415,7 @@ public:
             LOG << "Socket::sendto()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << common::hexdump(data, size)
+                << " data=" << maybe_hexdump(data, size)
                 << " flags=" << flags
                 << " dest=" << dest;
         }
@@ -442,7 +443,7 @@ public:
                 << " fd_=" << fd_
                 << " msg_name=" << msg_name
                 << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
                 << " flags=" << flags;
         }
 
@@ -473,7 +474,8 @@ public:
             LOG << "done Socket::recv_one()"
                 << " fd_=" << fd_
                 << " return=" << r
-                << " data=" << (r >= 0 ? common::hexdump(outdata, r) : "<error>");
+                << " errno=" << errno
+                << " data=" << (r >= 0 ? maybe_hexdump(outdata, r) : "<error>");
         }
 
         return r;
@@ -515,7 +517,7 @@ public:
             LOG << "done Socket::recv()"
                 << " fd_=" << fd_
                 << " return=" << rb
-                << " data=" << common::hexdump(outdata, rb);
+                << " data=" << maybe_hexdump(outdata, rb);
         }
 
         return rb;
@@ -544,7 +546,7 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " data="
-                << (r >= 0 ? common::hexdump(outdata, r) : "<error>")
+                << (r >= 0 ? maybe_hexdump(outdata, r) : "<error>")
                 << " out_source="
                 << (out_source ? out_source->ToStringHostPort() : "<null>");
         }
@@ -565,7 +567,7 @@ public:
                 << " fd_=" << fd_
                 << " msg_name=" << msg_name
                 << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
                 << " flags=" << flags;
         }
 
@@ -586,7 +588,7 @@ public:
                 << " fd_=" << fd_
                 << " msg_name=" << msg_name
                 << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
                 << " flags=" << flags;
         }
 
@@ -655,13 +657,13 @@ public:
         if (iovlen == 0)
             return "[empty]";
         if (iovlen == 1)
-            return common::hexdump(iov[0].iov_base, iov[0].iov_len);
+            return maybe_hexdump(iov[0].iov_base, iov[0].iov_len);
 
         std::ostringstream oss;
         oss << '[';
         for (size_t i = 0; i < iovlen; ++i) {
             if (i != 0) oss << ',';
-            oss << common::hexdump(iov[i].iov_base, iov[i].iov_len);
+            oss << maybe_hexdump(iov[i].iov_base, iov[i].iov_len);
         }
         oss << ']';
         return oss.str();
@@ -670,6 +672,14 @@ public:
 protected:
     //! the file descriptor of the socket.
     int fd_;
+
+    //! return hexdump or just <data> if not debugging
+    static std::string maybe_hexdump(const void* data, size_t size) {
+        if (debug_data)
+            return common::hexdump(data, size);
+        else
+            return "<data>";
+    }
 };
 
 // \}

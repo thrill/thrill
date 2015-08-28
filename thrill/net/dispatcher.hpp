@@ -370,7 +370,9 @@ protected:
                     if (callback_) callback_(conn_, Buffer());
                     return false;
                 }
-                throw Exception("AsyncReadBuffer() error in recv", errno);
+                throw Exception("AsyncReadBuffer() error in recv () on fd "
+                                + std::to_string(conn_.GetSocket().fd()),
+                                errno);
             }
 
             size_ += r;
