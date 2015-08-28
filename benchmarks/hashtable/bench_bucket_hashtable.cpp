@@ -15,13 +15,12 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numeric>
 #include <iostream>
 #include <iterator>
-#include <vector>
+#include <numeric>
 #include <random>
 #include <utility>
-
+#include <vector>
 
 using IntPair = std::pair<int, int>;
 
@@ -80,14 +79,14 @@ int main(int argc, char* argv[]) {
     auto key_ex = [](std::string in) { return in; };
 
     auto red_fn = [](std::string in1, std::string in2) {
-        (void)in2;
-        return in1;
-    };
+                      (void)in2;
+                      return in1;
+                  };
 
     static const char alphanum[] =
-                    "abcdefghijklmnopqrstuvwxyz"
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                    "0123456789";
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789";
 
     std::default_random_engine rng({ std::random_device()() });
     std::uniform_int_distribution<> dist(l, u);
@@ -99,7 +98,7 @@ int main(int argc, char* argv[]) {
     {
         size_t length = dist(rng);
         std::string str;
-        for(size_t i = 0; i < length; ++i)
+        for (size_t i = 0; i < length; ++i)
         {
             str += alphanum[rand() % sizeof(alphanum)];
         }
@@ -109,11 +108,10 @@ int main(int argc, char* argv[]) {
 
     data::BlockPool block_pool(nullptr);
     std::vector<data::DiscardSink> sinks;
-    std::vector<data::BlockWriter> writers;
-    for (size_t i = 0; i != workers; ++i)
-    {
+    std::vector<data::DynBlockWriter> writers;
+    for (size_t i = 0; i != workers; ++i) {
         sinks.emplace_back(block_pool);
-        writers.emplace_back(sinks[i].GetWriter());
+        writers.emplace_back(sinks[i].GetDynWriter());
     }
 
     core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,

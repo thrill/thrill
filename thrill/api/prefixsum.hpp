@@ -138,6 +138,7 @@ template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, ValueType neutral_element) const {
+    assert(IsValid());
 
     using SumResultNode
               = PrefixSumNode<ValueType, DIARef, SumFunction>;

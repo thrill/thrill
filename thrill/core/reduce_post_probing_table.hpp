@@ -313,7 +313,7 @@ public: // TODO(ms): find a way to inline the reduce function
     }
 
 private:
-    //ReduceFunction reduce_function_;
+    // ReduceFunction reduce_function_;
     IndexFunction index_function_;
     EqualToFunction equal_to_function_;
 };
@@ -666,7 +666,7 @@ public:
     /*!
      * Returns the frame size.
      *
-     * @return Frame size.
+     * \return Frame size.
      */
     size_t FrameSize() const {
         return frame_size_;
@@ -675,7 +675,7 @@ public:
     /*!
      * Returns the number of frames.
      *
-     * @return Number of frames.
+     * \return Number of frames.
      */
     size_t NumFrames() const {
         return num_frames_;
@@ -693,7 +693,7 @@ public:
     /*!
      * Returns the vector of frame writers.
      *
-     * @return Vector of frame writers.
+     * \return Vector of frame writers.
      */
     std::vector<data::File::Writer> & FrameWriters() {
         return frame_writers_;
@@ -702,7 +702,7 @@ public:
     /*!
      * Returns the vector of number of items per frame.
      *
-     * @return Vector of number of items per frame.
+     * \return Vector of number of items per frame.
      */
     std::vector<size_t> & NumItemsPerFrame() {
         return items_per_frame_;
@@ -711,7 +711,7 @@ public:
     /*!
      * Returns the vector of key/value pairs.
      *
-     * @return Vector of key/value pairs.
+     * \return Vector of key/value pairs.
      */
     std::vector<KeyValuePair> & Items() {
         return items_;
@@ -720,7 +720,7 @@ public:
     /*!
      * Returns the maximal fill rate.
      *
-     * @return Maximal fill rate.
+     * \return Maximal fill rate.
      */
     double MaxFrameFillRate() const {
         return max_frame_fill_rate_;
@@ -729,7 +729,7 @@ public:
     /*!
      * Returns the begin local index.
      *
-     * @return Begin local index.
+     * \return Begin local index.
      */
     size_t BeginLocalIndex() const {
         return begin_local_index_;
@@ -738,7 +738,7 @@ public:
     /*!
      * Returns the end local index.
      *
-     * @return End local index.
+     * \return End local index.
      */
     size_t EndLocalIndex() const {
         return end_local_index_;
@@ -747,7 +747,7 @@ public:
     /*!
      * Returns the neutral element.
      *
-     * @return Neutral element.
+     * \return Neutral element.
      */
     Value NeutralElement() const {
         return neutral_element_;
@@ -756,15 +756,15 @@ public:
     /*!
      * Returns the sentinel element.
      *
-     * @return Sentinal element.
+     * \return Sentinal element.
      */
     KeyValuePair Sentinel() const {
         return sentinel_;
     }
 
     /*!
-    * Prints content of hash table.
-    */
+     * Prints content of hash table.
+     */
     void Print() {
 
         std::string log = "Printing\n";
@@ -865,6 +865,7 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
+
 } // namespace core
 } // namespace thrill
 

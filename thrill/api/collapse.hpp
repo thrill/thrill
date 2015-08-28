@@ -79,6 +79,8 @@ public:
 
 template <typename ValueType, typename Stack>
 auto DIARef<ValueType, Stack>::Collapse() const {
+    assert(IsValid());
+
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CollapseNode<ValueType, DIARef>;

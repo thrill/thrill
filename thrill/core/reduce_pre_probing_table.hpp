@@ -173,7 +173,7 @@ public:
     ReducePreProbingTable(size_t num_partitions,
                           KeyExtractor key_extractor,
                           ReduceFunction reduce_function,
-                          std::vector<data::BlockWriter>& emit,
+                          std::vector<data::DynBlockWriter>& emit,
                           Key sentinel,
                           size_t byte_size = 1024 * 16,
                           double max_partition_fill_rate = 0.5,
@@ -422,7 +422,7 @@ public:
     /*!
      * Returns the number of flushes.
      *
-     * @return Number of flushes.
+     * \return Number of flushes.
      */
     size_t NumFlushes() const {
         return num_flushes_;
@@ -440,7 +440,7 @@ public:
     /*!
      * Returns the number of items per partitions.
      *
-     * @return The number of items per partitions.
+     * \return The number of items per partitions.
      */
     size_t NumItemsPerPartition() const {
         return num_items_per_partition_;
@@ -520,7 +520,7 @@ private:
     size_t byte_size_ = 0;
 
     //! Set of emitters, one per partition.
-    std::vector<data::BlockWriter>& emit_;
+    std::vector<data::DynBlockWriter>& emit_;
 
     //! Hash functions.
     IndexFunction index_function_;
@@ -553,6 +553,7 @@ private:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
+
 } // namespace core
 } // namespace thrill
 

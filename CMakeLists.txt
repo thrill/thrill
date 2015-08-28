@@ -23,8 +23,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-option(JENKINS_BUILD "Build all with more warnings" OFF)
-
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
@@ -32,6 +30,10 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+
+option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
@@ -44,7 +46,7 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
 # enable more warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
@@ -72,23 +74,25 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
-# add sanitizer flags for debug builds
-if(JENKINS_BUILD)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  # try compiling a program with auto return types
+  include(CheckCXXSourceCompiles)
+  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-  if(NOT USE_VALGRIND)
-    # enable AddressSanitizer
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    # enable ThreadSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-    # enable UndefinedBehaviorSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  check_cxx_source_compiles(
+    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+
+  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+    message(STATUS "compiler does not support -g debug info with auto returns")
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 
-  # build using libc++ with clang in Jenkins
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-    message(STATUS "Building using libc++ on clang")
-  endif()
+  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
 endif()
 
 if(USE_IWYU)
@@ -103,21 +107,6 @@ if(USE_IWYU)
       COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
       COMMENT "Running include-what-you-use tool"
       VERBATIM)
-  endif()
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} --version
-    OUTPUT_VARIABLE clang_full_version_string)
-
-  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
-    CLANG_VERSION_STRING ${clang_full_version_string})
-
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
-    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 endif()
 
@@ -237,6 +226,18 @@ endif()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
+# SWIG (optional)
+
+if(THRILL_USE_SWIG)
+  find_package(SWIG)
+  if(SWIG_FOUND)
+    include(${SWIG_USE_FILE})
+  endif()
+  if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
+    message(FATAL "Swig was not found but is mandatory.")
+  endif()
+endif()
+
 ################################################################################
 ### Build Macros
 
@@ -270,6 +271,11 @@ add_subdirectory(tests)
 
 # descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
+
+if(SWIG_FOUND)
+  # build swig frontends
+  add_subdirectory(swig)
+endif()
 
 ###############################################################################
 ### cmake script TRY_COMPILE all stxxl header files

@@ -210,7 +210,7 @@ public:
     ReducePreTable(size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
-                   std::vector<data::BlockWriter>& emit,
+                   std::vector<data::DynBlockWriter>& emit,
                    size_t byte_size = 1024 * 16,
                    double bucket_rate = 0.01,
                    double max_partition_fill_rate = 0.5,
@@ -223,8 +223,7 @@ public:
           emit_(emit),
           byte_size_(byte_size),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
         assert(num_partitions > 0);
@@ -508,7 +507,7 @@ public:
     /*!
      * Returns the number of flushes.
      *
-     * @return Number of flushes.
+     * \return Number of flushes.
      */
     size_t NumFlushes() const {
         return num_flushes_;
@@ -606,7 +605,7 @@ protected:
     ReduceFunction reduce_function_;
 
     //! Set of emitters, one per partition.
-    std::vector<data::BlockWriter>& emit_;
+    std::vector<data::DynBlockWriter>& emit_;
 
     //! Size of the table in bytes
     size_t byte_size_ = 0;
@@ -641,6 +640,7 @@ protected:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
+
 } // namespace core
 } // namespace thrill
 
