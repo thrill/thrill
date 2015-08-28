@@ -199,11 +199,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 # find pthreads
 
 find_package(Threads REQUIRED)
-set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} dl ${ALL_LIBRARIES})
+set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
-# find dl (dynamic linker library)
+# use dl (dynamic linker library)
 
-find_package(DL REQUIRED)
+set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # try to find Intel TBB (optional)
 
