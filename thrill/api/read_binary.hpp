@@ -102,7 +102,7 @@ public:
 			LOG << "OPENING FILE " << file.first;
 			data::BlockReader<SysFileBlockSource> br(SysFileBlockSource(file.first, context_));
 			while (br.HasNext()) {
-				ValueType item = br.template Next<ValueType>();
+                                ValueType item = br.template NextNoSelfVerify<ValueType>();
 				for (auto func : Super::callbacks_) {
 					func(item);
 				}
