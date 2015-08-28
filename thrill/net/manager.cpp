@@ -273,6 +273,11 @@ protected:
                                      return OnConnected(nc, address);
                                  });
         }
+        else if (errno == ECONNREFUSED) {
+            LOG << "Early connect refused.";
+            // connect() already refused connection?
+            OnConnected(nc, address);
+        }
         else {
             // Failed to even try the connection - this might be a permanent
             // error.
