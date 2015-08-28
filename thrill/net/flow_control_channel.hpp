@@ -49,22 +49,22 @@ protected:
     /**
      * The local id.
      */
-    int id;
+    size_t id;
 
     /**
      * The count of all workers connected to this group.
      */
-    int count;
+    size_t count;
 
     /**
      * The id of the worker thread associated with this flow channel.
      */
-    int threadId;
+    size_t threadId;
 
     /**
      * The count of all workers connected to this group.
      */
-    int threadCount;
+    size_t threadCount;
 
     /**
      * The shared barrier used to synchronize between worker threads on this node.
@@ -103,7 +103,7 @@ protected:
     template <typename T>
     void ReceiveFrom(size_t source, T* value) {
 
-        assert(threadId == 0); //Only primary thread might send/receive.
+        assert(threadId == 0); // Only primary thread might send/receive.
 
         group.connection(source).Receive(value);
     }
@@ -131,7 +131,7 @@ public:
      * \brief Creates a new instance of this class, wrapping a group.
      */
     explicit FlowControlChannel(net::Group& group,
-                                int threadId, int threadCount,
+                                size_t threadId, size_t threadCount,
                                 common::ThreadBarrier& barrier,
                                 void** shmem)
         : group(group),
@@ -179,13 +179,13 @@ public:
                 exclusiveRes = res;
             }
 
-            for (int i = id == 0 ? 1 : 0; i < threadCount; i++) {
+            for (size_t i = id == 0 ? 1 : 0; i < threadCount; i++) {
                 localPrefixBuffer[i] = sumOp(res, localPrefixBuffer[i]);
                 res = localPrefixBuffer[i];
             }
 
             // Everyone except the last one needs to forward.
-            if (id != count - 1) {
+            if (id + 1 != count) {
                 SendTo(id + 1, res);
             }
 
@@ -252,6 +252,22 @@ public:
     template <typename T>
     T Broadcast(const T& value) {
 
+        // REVIEW(ej): ThreadSanitizer shows a data race in this function. The
+        // problem seems to be that you use two synchronizations: one to pass
+        // the *address* of res to the other threads and then to pass the value
+        // inside. These are not separated.
+        //
+        // More generally: I dont like the two barriers for one
+        // broadcast. Things should work like this: one thread has the item and
+        // puts it somewhere, all threads await the barrier, then all threads
+        // can take out the item.
+        //
+        // The passing of the memory address to others requires the two
+        // barriers.  You should make one common shared areas (say of 256
+        // bytes), into which threads put their data and get the data after a
+        // barrier. If you really want to support items >= 256 then keep the
+        // pointer passing (after fixing it) as a fallback mechanism.
+
         T res;
 
         // The primary thread of each node has to handle IO
@@ -260,7 +276,7 @@ public:
 
             if (id == 0) {
                 // Master has to send to all.
-                for (int i = 1; i < count; i++) {
+                for (size_t i = 1; i < count; i++) {
                     SendTo(i, value);
                     res = value;
                 }
@@ -310,7 +326,7 @@ public:
             barrier.Await();
 
             // Master reduce
-            for (int i = 1; i < threadCount; i++) {
+            for (size_t i = 1; i < threadCount; i++) {
                 res = sumOp(res, localReduceBuffer[i]);
             }
 
@@ -318,12 +334,12 @@ public:
             // The master receives from evereyone else.
             if (id == 0) {
                 T msg;
-                for (int i = 1; i < count; i++) {
+                for (size_t i = 1; i < count; i++) {
                     ReceiveFrom(i, &msg);
                     res = sumOp(msg, res);
                 }
                 // Finally, the result is broadcasted.
-                for (int i = 1; i < count; i++) {
+                for (size_t i = 1; i < count; i++) {
                     SendTo(i, res);
                 }
             }
@@ -361,7 +377,7 @@ public:
      * \brief A trivial global barrier.
      */
     void Barrier() {
-        int i = 0;
+        size_t i = 0;
         i = AllReduce(i);
     }
 };
