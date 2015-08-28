@@ -151,8 +151,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
             // non int-castable strings
             auto integers = ReadLines(ctx, "read_ints/read*")
                             .Map([](const std::string& line) {
-                                    sLOG1 << "line:" << line;
-                                    return std::stoi(line);
+                                     return std::stoi(line);
                                  });
 
             std::vector<int> out_vec = integers.AllGather();
