@@ -69,7 +69,7 @@ void Socket::SetNoDelay(bool activate) {
        sufficient amount to send out, thereby avoiding the frequent sending of
        small packets, which results in poor utilization of the network. This
        option cannot be used at the same time as the option TCP_CORK. */
-    if (::setsockopt(fd_, SOL_TCP, TCP_NODELAY,
+    if (::setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY,
                      &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set TCP_NODELAY on socket fd " << fd_
