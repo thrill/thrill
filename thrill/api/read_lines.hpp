@@ -143,11 +143,7 @@ private:
     class InputLineIteratorUncompressed : public InputLineIterator
     {
     public:
-        static const bool debug = false;
-
 		typedef InputLineIterator Base;
-
-        //const size_t read_size = 2 * 1024 * 1024;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
@@ -300,9 +296,7 @@ private:
     class InputLineIteratorCompressed : public InputLineIterator
     {
     public:
-        static const bool debug = false;
-
-        const size_t read_size = 2 * 1024 * 1024;
+		typedef InputLineIterator Base;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
