@@ -577,6 +577,35 @@ sub process_swig {
     }
 }
 
+sub process_doc_images_pdf {
+    my ($path) = @_;
+
+    #print "$path\n";
+
+    # check permissions
+    my $st = stat($path) or die("Cannot stat() file $path: $!");
+    if ($st->mode & 0133) {
+        print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
+        if ($write_changes) {
+            chmod(0644, $path) or die("Cannot chmod() file $path: $!");
+        }
+    }
+
+    my $svg_path = $path;
+    $svg_path =~ s/\.pdf$/\.svg/;
+
+    my $svg_st = stat($svg_path);
+
+    if (!$svg_st || $svg_st->mtime < $st->mtime) {
+        print("$path is newer than the SVG $svg_path.\n");
+
+        if ($write_changes) {
+            print("running pdf2svg $path $svg_path\n");
+            system("pdf2svg", $path, $svg_path) == 0 or die("pdf2svg failed: $!");
+        }
+    }
+}
+
 ### Main ###
 
 foreach my $arg (@ARGV) {
@@ -639,6 +668,12 @@ foreach my $file (@filelist)
     }
     elsif ($file =~ /\.(i)$/) {
         process_swig($file);
+    }
+    elsif ($file =~ /^doc\/images\/.*\.pdf$/) {
+        # use pdf2svg to convert pdfs to svgs for doxygen.
+        process_doc_images_pdf($file);
+    }
+    elsif ($file =~ /^doc\/images\/.*\.svg$/) {
     }
     # recognize further files
     elsif ($file =~ m!^\.git/!) {
