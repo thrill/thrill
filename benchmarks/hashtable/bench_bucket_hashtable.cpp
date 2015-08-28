@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    unsigned int size = 8000000000;
+    unsigned int size = 10000000;
     clp.AddUInt('s', "size", "S", size,
                 "Load in byte to be inserted");
 

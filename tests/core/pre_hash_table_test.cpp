@@ -172,11 +172,11 @@ TEST_F(PreTable, PopIntegers) {
 
     const size_t TargetBlockSize = 8 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int,
-            decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                 decltype(key_ex), decltype(red_fn), true,
+                                                                 core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+                         core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
     table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 1.0);
 
     table.Insert(0);
@@ -306,12 +306,12 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     const size_t TargetBlockSize = 8 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int,
-            decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                 decltype(key_ex), decltype(red_fn), true,
+                                                                 core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-            table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
+                         core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
 
     table.Insert(0);
     table.Insert(1);
@@ -439,12 +439,12 @@ TEST_F(PreTable, MultipleWorkers) {
 
     const size_t TargetBlockSize = 8 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int,
-            decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                 decltype(key_ex), decltype(red_fn), true,
+                                                                 core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-            table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
+                         core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -523,12 +523,12 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     const size_t TargetBlockSize = 1024 * 8;
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, MyStruct,
-            decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                 decltype(key_ex), decltype(red_fn), true,
+                                                                 core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, MyStruct, decltype(key_ex), decltype(red_fn), true,
-            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-            table(1, key_ex, red_fn, writers, bucket_block_size * 1024, 1.0, 1.0);
+                         core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(1, key_ex, red_fn, writers, bucket_block_size * 1024, 1.0, 1.0);
 
     // insert lots of items
     int sum = 0;

@@ -117,7 +117,8 @@ template <typename Key,
           typename EqualToFunction = std::equal_to<Key> >
 class PostProbingReduceFlushToDefault
 {
-public: // TODO(ms): find a way to inline the reduce function
+public:
+    // TODO(ms): find a way to inline the reduce function
     PostProbingReduceFlushToDefault(const IndexFunction& index_function = IndexFunction(),
                                     const EqualToFunction& equal_to_function = EqualToFunction())
         : index_function_(index_function),
@@ -145,7 +146,7 @@ public: // TODO(ms): find a way to inline the reduce function
 
             // compute frame offset and length of current frame
             size_t offset = frame_id * ht->FrameSize();
-            size_t length = (frame_id != ht->NumFrames()-1) ? offset + ht->FrameSize() : ht->Size();
+            size_t length = (frame_id != ht->NumFrames() - 1) ? offset + ht->FrameSize() : ht->Size();
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
@@ -282,8 +283,8 @@ public: // TODO(ms): find a way to inline the reduce function
                     }
                 }
 
-            // no spilled items, just flush already reduced
-            // data in primary table in current frame
+                // no spilled items, just flush already reduced
+                // data in primary table in current frame
             }
             else
             {
@@ -441,8 +442,7 @@ public:
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
           neutral_element_(neutral_element),
-          reduce_function_(reduce_function)
-    {
+          reduce_function_(reduce_function) {
         sLOG << "creating ReducePostProbingTable with" << emit_.size() << "output emiters";
 
         assert(byte_size > 0 && "byte_size must be greater than 0");
@@ -606,7 +606,7 @@ public:
         data::File::Writer& writer = frame_writers_[frame_id];
 
         size_t offset = frame_id * frame_size_;
-        size_t length = (frame_id != num_frames_-1) ? offset + frame_size_ : size_;
+        size_t length = (frame_id != num_frames_ - 1) ? offset + frame_size_ : size_;
 
         for (size_t global_index = offset;
              global_index < length; global_index++)
@@ -865,7 +865,6 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
-
 } // namespace core
 } // namespace thrill
 
