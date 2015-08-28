@@ -61,7 +61,7 @@ public:
         : Super(ctx, { }, "ReadBinary", stats_node),
           filepath_(filepath)
     {
-        filelist_ = core::GlobFilePattern(filepath_).first;
+        filelist_ = core::GlobFileSizePrefixSum(filepath_);
 
 		size_t my_start, my_end;
 		std::tie(my_start,my_end) =

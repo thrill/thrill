@@ -60,9 +60,14 @@ public:
         : Super(ctx, { }, "Read", stats_node),
           path_(path)
     {
-        auto filelist = core::GlobFilePattern(path_);
-        filesize_prefix = filelist.first;
-        contains_compressed_file_ = filelist.second;
+        filesize_prefix_ = core::GlobFileSizePrefixSum(path_);
+		
+		for (auto file : filesize_prefix_) {
+			if (core::IsCompressed(file.first)) {
+				contains_compressed_file_ = true;
+				break;
+			}
+		}
     }
 
     void Execute() final { }
@@ -70,7 +75,7 @@ public:
     void PushData() final {
         if (contains_compressed_file_) {
             InputLineIteratorCompressed it = GetCompressedInputLineIterator(
-                filesize_prefix, context_.my_rank(), context_.num_workers());
+                filesize_prefix_, context_.my_rank(), context_.num_workers());
 
             // Hook Read
             while (it.HasNext()) {
@@ -83,7 +88,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = GetNonCompressedInputLineIterator(
-                filesize_prefix, context_.my_rank(), context_.num_workers());
+                filesize_prefix_, context_.my_rank(), context_.num_workers());
 
             // Hook Read
             while (it.HasNext()) {
@@ -118,7 +123,7 @@ private:
     //! Path of the input file.
     std::string path_;
 
-    std::vector<std::pair<std::string, size_t> > filesize_prefix;
+    std::vector<std::pair<std::string, size_t> > filesize_prefix_;
 
     // REVIEW(an): this is useless, you never use the inheritance.  But, you
     // actually SHOULD use it! for all member fields and methods that are in
