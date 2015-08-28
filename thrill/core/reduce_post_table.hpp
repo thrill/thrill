@@ -172,6 +172,7 @@ public:
 
             // compute frame offset of current frame
             size_t offset = frame_id * ht->FrameSize();
+            size_t length = std::min<size_t>(offset + ht->FrameSize(), ht->NumBuckets());
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
@@ -251,7 +252,7 @@ public:
                 /////
                 // reduce data from primary table
                 /////
-                for (size_t i = offset; i < offset + ht->FrameSize(); i++)
+                for (size_t i = offset; i < length; i++)
                 {
                     BucketBlock* current = buckets_[i];
 
@@ -367,7 +368,7 @@ public:
                 /////
                 // emit data
                 /////
-                for (size_t i = offset; i < offset + ht->FrameSize(); i++)
+                for (size_t i = offset; i < length; i++)
                 {
                     BucketBlock* current = buckets_[i];
 
@@ -575,12 +576,11 @@ public:
      * \param begin_local_index Begin index for reduce to index.
      * \param end_local_index End index for reduce to index.
      * \param neutral element Neutral element for reduce to index.
-     * \param num_buckets Number of buckets in the table.
+     * \param num_frames Number of frames in the table.
      * \param max_frame_fill_rate Maximal number of items relative to maximal number of items in a frame.
      *        It the number is exceeded, no more blocks are added to a bucket, instead, items get spilled to disk.
-     * \param max_num_blocks_table Maximal number of blocks allowed in the table. It the number is exceeded,
-     *        no more blocks are added to a bucket, instead, items get spilled to disk using some spilling strategy
-     *        defined in spill_function.
+     * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
+     *                  are flushed.
      * \param frame_size Number of buckets (=frame) exactly one file writer to be used for.
      * \param equal_to_function Function for checking equality of two keys.
      */
@@ -593,15 +593,14 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
-                    size_t num_buckets = 1024,
+                    size_t byte_size = 1024 * 16,
+                    double bucket_rate = 0.01,
                     double max_frame_fill_rate = 0.5,
-                    size_t max_num_blocks_table = 1024 * 16,
                     size_t frame_size = 32,
                     const EqualToFunction& equal_to_function = EqualToFunction())
-        : num_buckets_(num_buckets),
-          max_frame_fill_rate_(max_frame_fill_rate),
-          max_num_blocks_table_(max_num_blocks_table),
+        : max_frame_fill_rate_(max_frame_fill_rate),
           emit_(std::move(emit)),
+          byte_size_(byte_size),
           begin_local_index_(begin_local_index),
           end_local_index_(end_local_index),
           neutral_element_(neutral_element),
@@ -610,24 +609,30 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           flush_function_(flush_function),
-          reduce_function_(reduce_function) {
+          reduce_function_(reduce_function)
+    {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
-        assert(num_buckets > 0 &&
-               (num_buckets & (num_buckets - 1)) == 0
-               && "num_buckets must be a power of two");
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
-        assert(max_num_blocks_table > 0);
         assert(frame_size > 0 && (frame_size & (frame_size - 1)) == 0
                && "frame_size must be a power of two");
-        assert(frame_size <= num_buckets &&
-               "frame_size must be less than or equal to num_buckets");
+        assert(byte_size > 0 && "byte_size must be greater than 0");
+        assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
         assert(begin_local_index >= 0);
         assert(end_local_index >= 0);
 
-        buckets_.resize(num_buckets_, nullptr);
+        // TODO(ms): second reduce table is currently not considered for byte_size
+        max_num_blocks_table_ = std::max<size_t>((size_t) (static_cast<double>(byte_size_)
+                               / static_cast<double>(sizeof(BucketBlock) + sizeof(BucketBlock::next))), 1);
+        num_buckets_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
+                                                                      * block_size_) * bucket_rate), 1);
+        frame_size_ = std::min<size_t>(frame_size_, num_buckets_);
+        num_frames_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
+                                                                     * block_size_) / frame_size_), 1);
+        num_items_per_frame_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
+                                                 * block_size_) / static_cast<double>(num_frames_)), 1);
 
-        num_frames_ = num_buckets_ / frame_size_;
+        buckets_.resize(num_buckets_, nullptr);
         items_per_frame_.resize(num_frames_, 0);
 
         for (size_t i = 0; i < num_frames_; i++) {
@@ -636,9 +641,6 @@ public:
         for (size_t i = 0; i < num_frames_; i++) {
             frame_writers_.push_back(frame_files_[i].GetWriter());
         }
-
-        num_items_per_frame_ = (size_t)((static_cast<double>(max_num_blocks_table * block_size_)
-                                         / static_cast<double>(num_frames_)));
     }
 
     //! non-copyable: delete copy-constructor
@@ -1051,11 +1053,11 @@ protected:
     //! Keeps the total number of blocks in the table.
     size_t num_blocks_ = 0;
 
-    //! Number of frames.
-    size_t num_frames_ = 0;
-
     //! Set of emitters, one per partition.
     std::vector<EmitterFunction> emit_;
+
+    //! Size of the table in bytes
+    size_t byte_size_ = 0;
 
     //! Store the items.
     std::vector<BucketBlock*> buckets_;
@@ -1074,6 +1076,9 @@ protected:
 
     //! Neutral element (reduce to index).
     Value neutral_element_;
+
+    //! Number of frames.
+    size_t num_frames_ = 0;
 
     //! Frame size.
     size_t frame_size_ = 0;

@@ -212,6 +212,7 @@ public:
                    ReduceFunction reduce_function,
                    std::vector<data::BlockWriter>& emit,
                    size_t byte_size = 1024 * 16,
+                   double bucket_rate = 0.01,
                    double max_partition_fill_rate = 0.5,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
@@ -229,23 +230,22 @@ public:
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
         assert(byte_size > 0 && "byte_size must be greater than 0");
+        assert(bucket_rate >= 0.0 && bucket_rate <= 1.0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
-        max_num_blocks_table_ = (size_t) (static_cast<double>(byte_size_)
-                                          / static_cast<double>(sizeof(BucketBlock) + sizeof(BucketBlock::next)));
-        max_num_blocks_table_ = (max_num_blocks_table_ != 0) ? max_num_blocks_table_ : 1;
-        num_items_per_partition_ = (size_t) std::ceil(static_cast<double>(max_num_blocks_table_ * block_size_)
-                                             / static_cast<double>(num_partitions_));
-        num_buckets_per_partition_ = (size_t) std::ceil(static_cast<double>(num_items_per_partition_)
-                                                      / (block_size_ * max_partition_fill_rate_));
+        max_num_blocks_table_ = std::max<size_t>((size_t) (static_cast<double>(byte_size_)
+                                  / static_cast<double>(sizeof(BucketBlock) + sizeof(BucketBlock::next))), 1);
+        num_items_per_partition_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_ * block_size_)
+                                             / static_cast<double>(num_partitions_)), 1);
+        num_buckets_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(num_items_per_partition_)
+                                                               * bucket_rate), 1);
         num_buckets_ = num_buckets_per_partition_ * num_partitions_;
-
-
-        for (size_t i = 0; i < emit_.size(); i++)
-            emit_stats_.push_back(0);
 
         buckets_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);
+
+        for (size_t i = 0; i < emit_.size(); i++)
+            emit_stats_.push_back(0);
     }
 
     //! non-copyable: delete copy-constructor

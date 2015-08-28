@@ -92,7 +92,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024 * 1024 * 128, 0.5)
+                            reduce_function_, emitters_, 1024 * 1024 * 128, 0.001, 0.5)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {

@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 
     core::ReducePreTable<std::string, std::string, decltype(key_ex), decltype(red_fn), true,
             core::PreReduceByHashKey<std::string>, std::equal_to<std::string>, target_block_size>
-    table(workers, key_ex, red_fn, writers, table_size, max_partition_fill_rate);
+    table(workers, key_ex, red_fn, writers, table_size, 0.001, max_partition_fill_rate);
 
     common::StatsTimer<true> timer(true);
 
