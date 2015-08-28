@@ -129,21 +129,20 @@ void malloc_tracker_print_status() {
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((constructor)) void init() { // NOLINT
-    char* error;
 
     // try to use AddressSanitizer's malloc first.
     real_malloc = (malloc_type)dlsym(RTLD_DEFAULT, "__interceptor_malloc");
     if (real_malloc)
     {
         real_realloc = (realloc_type)dlsym(RTLD_DEFAULT, "__interceptor_realloc");
-        if ((error = dlerror()) != nullptr) {
-            fprintf(stderr, PPREFIX "error %s\n", error);
+        if (!real_realloc) {
+            fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
             exit(EXIT_FAILURE);
         }
 
         real_free = (free_type)dlsym(RTLD_DEFAULT, "__interceptor_free");
-        if ((error = dlerror()) != nullptr) {
-            fprintf(stderr, PPREFIX "error %s\n", error);
+        if (!real_free) {
+            fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
             exit(EXIT_FAILURE);
         }
 
@@ -152,20 +151,20 @@ static __attribute__ ((constructor)) void init() { // NOLINT
     }
 
     real_malloc = (malloc_type)dlsym(RTLD_NEXT, "malloc");
-    if ((error = dlerror()) != nullptr) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
+    if (!real_malloc) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
 
     real_realloc = (realloc_type)dlsym(RTLD_NEXT, "realloc");
-    if ((error = dlerror()) != nullptr) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
+    if (!real_realloc) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
 
     real_free = (free_type)dlsym(RTLD_NEXT, "free");
-    if ((error = dlerror()) != nullptr) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
+    if (!real_free) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
 }
@@ -276,6 +275,12 @@ static void preinit_free(void* ptr) {
 #define NOEXCEPT
 #define MALLOC_USABLE_SIZE malloc_size
 #include <malloc/malloc.h>
+
+#elif __FreeBSD__
+
+#define NOEXCEPT
+#define MALLOC_USABLE_SIZE malloc_usable_size
+#include <malloc_np.h>
 
 #else
 
