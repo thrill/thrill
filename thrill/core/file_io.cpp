@@ -64,7 +64,13 @@ std::vector<FileSizePair> GlobFileSizePrefixSum(const std::string& path) {
 void SysFile::close() {
     if (fd_ >= 0) {
         sLOG << "SysFile::close(): fd" << fd_;
-        ::close(fd_);
+        if (::close(fd_) != 0)
+        {
+            LOG1 << "SysFile::close()"
+                 << " fd_=" << fd_
+                 << " errno=" << errno
+                 << " error=" << strerror(errno);
+        }
         fd_ = -1;
     }
     if (pid_ != 0) {
@@ -103,7 +109,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
     // first open the file and see if it exists at all.
 
-    int fd = open(path.c_str(), O_RDONLY);
+    int fd = open(path.c_str(), O_RDONLY, 0);
     if (fd < 0) {
         throw common::SystemException("Cannot open file " + path, errno);
     }
@@ -129,6 +135,13 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     }
     else {
         // not a compressed file
+        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+            throw common::SystemException(
+                "Error setting FD_CLOEXEC on SysFile", errno);
+        }
+
+        sLOG << "SysFile::OpenForRead(): filefd" << fd;
+
         return SysFile(fd);
     }
 
@@ -203,6 +216,13 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     }
     else {
         // not a compressed file
+        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+            throw common::SystemException(
+                "Error setting FD_CLOEXEC on SysFile", errno);
+        }
+
+        sLOG << "SysFile::OpenForWrite(): filefd" << fd;
+
         return SysFile(fd);
     }
 
