@@ -155,7 +155,7 @@ TEST_F(PreTable, CreateEmptyTable) {
     ASSERT_EQ(3u, table.NumItems());
 }
 
-TEST_F(PreTable, DISABLED_PopIntegers) {
+TEST_F(PreTable, PopIntegers) {
 
     auto red_fn = [](int in1, int in2) {
                       return in1 + in2;
@@ -170,19 +170,27 @@ TEST_F(PreTable, DISABLED_PopIntegers) {
     std::vector<data::File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers);
+    const size_t TargetBlockSize = 8 * 8;
+    const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int,
+            decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
 
-    //table.SetMaxNumItems(3);
+    core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+    table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 1.0);
 
+    table.Insert(0);
     table.Insert(1);
     table.Insert(2);
     table.Insert(3);
     table.Insert(4);
+    table.Insert(5);
+    table.Insert(6);
+    table.Insert(7);
 
-    ASSERT_EQ(0u, table.NumItems());
+    ASSERT_EQ(8u, table.NumItems());
 
-    table.Insert(1);
+    table.Insert(9);
 
     ASSERT_EQ(1u, table.NumItems());
 }
@@ -281,7 +289,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
 // Partial flush of items in table due to
 // max table size constraint, one partition
-TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
+TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -296,8 +304,14 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
     std::vector<data::File::Writer> writers;
     writers.emplace_back(output.GetWriter());
 
-    core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, 8 * 1024, 0.001, 1.0);
+    const size_t TargetBlockSize = 8 * 8;
+    const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int,
+            decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+
+    core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
 
     table.Insert(0);
     table.Insert(1);
@@ -315,7 +329,7 @@ TEST_F(PreTable, DISABLED_FlushIntegersPartiallyOnePartition) {
         c++;
     }
 
-    ASSERT_EQ(5, c);
+    ASSERT_EQ(4, c);
 }
 
 //// Partial flush of items in table due to
@@ -406,7 +420,7 @@ TEST_F(PreTable, ComplexType) {
     ASSERT_EQ(0u, table.NumItems());
 }
 
-TEST_F(PreTable, DISABLED_MultipleWorkers) {
+TEST_F(PreTable, MultipleWorkers) {
 
     auto key_ex = [](int in) {
                       return in;
@@ -423,8 +437,14 @@ TEST_F(PreTable, DISABLED_MultipleWorkers) {
     writers.emplace_back(output1.GetWriter());
     writers.emplace_back(output2.GetWriter());
 
-    core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, 1024 * 8, 0.001, 0.5);
+    const size_t TargetBlockSize = 8 * 8;
+    const size_t bucket_block_size = sizeof(core::ReducePreTable<int, int,
+            decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+
+    core::ReducePreTable<int, int, decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(1, key_ex, red_fn, writers, bucket_block_size, 1.0, 0.5);
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -481,7 +501,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
     ASSERT_EQ(nitems, total_sum);
 }
 
-TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
+TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     auto key_ex = [](const MyStruct& in) {
                       return in.key;
@@ -499,11 +519,16 @@ TEST_F(PreTable, DISABLED_InsertManyIntsAndTestReduce2) {
     writers.emplace_back(output.GetWriter());
 
     size_t nitems_per_key = 10;
-    size_t nitems = 1 * 32 * 1024;
+    size_t nitems = 1 * 8 * 1024;
 
-    // Hashtable with smaller block size for testing.
-    core::ReducePreTable<size_t, MyStruct, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, nitems * 16, 0.001, 0.5);
+    const size_t TargetBlockSize = 1024 * 8;
+    const size_t bucket_block_size = sizeof(core::ReducePreTable<int, MyStruct,
+            decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+
+    core::ReducePreTable<int, MyStruct, decltype(key_ex), decltype(red_fn), true,
+            core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(1, key_ex, red_fn, writers, bucket_block_size * 1024, 1.0, 1.0);
 
     // insert lots of items
     int sum = 0;
