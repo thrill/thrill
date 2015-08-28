@@ -146,12 +146,13 @@ TEST(IO, ReadFolder) {
 TEST(IO, ReadPartOfFolderCompressed) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            // folder read_ints contains compressed and non-compressed files with integers
-            // from 25 to 1 and a file 'donotread', which contains non int-castable
-            // strings
+            // folder read_ints contains compressed and non-compressed files
+            // with integers from 25 to 1 and a file 'donotread', which contains
+            // non int-castable strings
             auto integers = ReadLines(ctx, "read_ints/read*")
                             .Map([](const std::string& line) {
-                                     return std::stoi(line);
+                                    sLOG1 << "line:" << line;
+                                    return std::stoi(line);
                                  });
 
             std::vector<int> out_vec = integers.AllGather();
