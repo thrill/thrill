@@ -41,7 +41,7 @@ public:
     template <typename ItemType, typename CompareFunction>
     static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator) {
 
-        static const bool debug = true;
+        static const bool debug = false;
 
         //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608
         
@@ -68,19 +68,6 @@ public:
                 return width[b] < width[a];
             });
 
-            bool done = true;
-
-            for(size_t i = 0; i < n; i++) {
-                if(width[i] > 1) {
-                    done = false; 
-                    break;
-                }
-            }
-
-            if(done)
-                break;
-           
-
             size_t j0 = remap[0];
             size_t j = j0;
             mid[j] = left[j] + width[j] / 2;
@@ -102,14 +89,20 @@ public:
                     j = remap[i];
                     width[j] = mid[j] - left[j];   
                 } 
-            } else {
+            } else if(k > leftSum) {
                 for(size_t i = 0; i < n; i++) {
                     j = remap[i];
                     width[j] -= mid[j] - left[j];   
                     left[j] = mid[j];   
                 }
                 k -= leftSum;
+            } else {
+                k = 0;
+                break;
             }
+
+            if(k < n) 
+                break;
         }
         size_t j = remap[k];
         return files[j].GetItemAt<ItemType>(mid[j]);
@@ -219,7 +212,7 @@ public:
             result_count++;
         }
 
-        sLOG << "Merge: result_count" << result_count;
+       // sLOG << "Merge: result_count" << result_count;
     }
 
     void Dispose() final { }
@@ -278,7 +271,26 @@ private:
     
 
     size_t dataSize; //Count of items on this worker.
-    size_t prefixSize; //Count of items on all prev workers. 
+    size_t prefixSize; //Count of items on all prev workers.
+
+    template <typename T>
+    std::string VToStr(std::vector<T> data) {
+        std::stringstream ss;
+        
+        for(T elem : data)
+            ss << elem << " ";
+
+        return ss.str();
+    }
+    
+    std::string VToStr(std::vector<Pivot> data) {
+        std::stringstream ss;
+        
+        for(Pivot elem : data)
+            ss << "(" << elem.first << ", " << elem.second << ") ";
+
+        return ss.str();
+    }
 
     //! Receive elements from other workers.
     void MainOp() {
@@ -292,6 +304,8 @@ private:
         //Environment
         size_t me = context_.my_rank(); //Local rank. 
         size_t p = context_.num_workers(); //Count of all workers (and count of target partitions)
+
+        LOG << "Splitting to " << p << " workers";
 
         //Partitions in rank over all local collections.
         std::vector<size_t> partitions(p - 1);
@@ -308,6 +322,12 @@ private:
         //on each worker. 
         size_t targetSize = dataSize;
 
+        LOG << "Pick target size: " << targetSize;
+
+        //If not, one will die. 
+        size_t masterSize = flowControl.Broadcast(targetSize);
+        assert(masterSize == targetSize);
+
         //Partition borders. Let there by binary search. 
         std::vector<size_t> left(p - 1);
         std::vector<size_t> width(p - 1);
@@ -317,10 +337,12 @@ private:
        
         prefixSize = flowControl.PrefixSum(dataSize, std::plus<ValueType>(), false); 
 
+        LOG << "Data count left of me: " << prefixSize;
+
         //Rank we search for
         std::vector<size_t> srank(p - 1);
 
-        for(size_t r = 0; r  < p - 1; r++) {
+        for(size_t r = 0; r < p - 1; r++) {
             srank[r] = (r + 1) * targetSize;
         }
 
@@ -329,8 +351,7 @@ private:
         std::vector<size_t> widthsum(p - 1);
         std::vector<size_t> pivotrank(p - 1);
         std::vector<size_t> split(p - 1);
-        std::vector<Pivot> pivots;
-        pivots.reserve(p - 1);
+        std::vector<Pivot> pivots(p - 1);
         std::vector<size_t> splitsum(p - 1);
 
         Pivot zero = CreatePivot(MergeNodeHelper::GetAt<ValueType>(0, files_, comperator_), 0);
@@ -342,6 +363,10 @@ private:
             flowControl.ArrayAllReduce(width, widthsum, std::plus<ValueType>());
              
             size_t done = 0;
+
+            LOG << "left: " << VToStr(left);
+            LOG << "width: " << VToStr(width);
+            LOG << "srank: " << VToStr(srank);
 
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] <= 1) { //Not sure about this condition. It's been modified. 
@@ -359,6 +384,8 @@ private:
                     pivotrank[r] = 0;
                 }
             }
+            
+            LOG << "Pivotranks: " << VToStr(pivotrank);
 
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] > 1 &&
@@ -376,7 +403,11 @@ private:
                 }
             }
 
-            flowControl.ArrayAllReduce(pivots, pivots, [] (const Pivot a, const Pivot b) { return b < a ? a : b; }); //Return maximal pivot (Is this  OK?);
+            LOG << "Pivots: " << VToStr(pivots);
+
+            flowControl.ArrayAllReduce(pivots, pivots, [this] (const Pivot a, const Pivot b) { return comperator_(b.first, a.first) ? a : b; }); //Return maximal pivot (Is this  OK?);
+
+            LOG << "Final Pivots: " << VToStr(pivots);
 
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] <= 1) {
@@ -388,10 +419,12 @@ private:
 
             flowControl.ArrayAllReduce(split, splitsum, std::plus<ValueType>());
 
+            LOG << "Splitters: " << VToStr(split);
+
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] < 1) continue;
                 
-                if(widthsum[r] < srank[r])  {
+                if(splitsum[r] < srank[r])  {
                     left[r] += split[r];
                     width[r] -= split[r];
                     srank[r] -= splitsum[r];
@@ -401,27 +434,38 @@ private:
             } 
         }
 
-        //Cool, parts contains the global splittage now
+        //Cool, parts contains the global splitters now. But we need
+        //To convert them to file-local parts. 
 
-       for(size_t i = 0; i < partitions.size(); i++) {
-            LOG << "Part " << i << " " << partitions[i];
-       } 
+        std::vector<std::vector<size_t>> offsets(num_inputs_);
         
-        //For now, do "trivial" scattering. 
-        channels_[0] = context_.GetNewChannel();
-        channels_[1] = context_.GetNewChannel();
-
-        std::vector<size_t> offset1(context_.num_workers(), 0);  
-        std::vector<size_t> offset2(context_.num_workers(), 0);  
-        
-        size_t sizes[] = { files_[0].NumItems(), files_[1].NumItems() };
-        for (size_t i = me; i != offset1.size(); ++i) {
-            offset1[i] = sizes[0];
-            offset2[i] = sizes[1];
+        //Init channels and offsets.
+        for(size_t j = 0; j < num_inputs_; j++) {
+            channels_[j] = context_.GetNewChannel();
+            offsets[j] = std::vector<size_t>(p);
+            offsets[j][p - 1] = targetSize / num_inputs_;
         }
-    
-        channels_[0]->template Scatter<ValueType>(files_[0], offset1);
-        channels_[1]->template Scatter<ValueType>(files_[1], offset2);
+
+        for(size_t i = 0; i < p - 1; i++) {
+            ValueType pivot = MergeNodeHelper::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
+
+            size_t prefixSum = 0;
+
+            for(size_t j = 0; j < num_inputs_; j++) {
+                offsets[j][i] = files_[j].GetIndexOf(pivot, partitions[i] - prefixSum, comperator_);
+                prefixSum += files_[j].NumItems();
+            }
+
+        }
+        
+        for(size_t j = 0; j < num_inputs_; j++) {
+
+            for(size_t i = 0; i < p; i++) {
+                LOG << "Offset " << i << " for file " << j << ": " << offsets[j][i];
+            }
+
+            channels_[j]->template Scatter<ValueType>(files_[j], offsets[j]);
+        }
    }
 };
 
@@ -461,10 +505,10 @@ auto DIARef<ValueType, Stack>::Merge(
 
     static_assert(
         std::is_convertible<
-            int,
+            bool,
             CompareResult
             >::value,
-        "Comperator must return int");
+        "Comperator must return bool");
 
     StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
@@ -481,6 +525,7 @@ auto DIARef<ValueType, Stack>::Merge(
         merge_stack,
         { stats_node });
 }
+
 
 //! \}
 

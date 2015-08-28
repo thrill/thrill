@@ -335,36 +335,40 @@ ItemType File::GetItemAt(size_t index) const {
 }
 
 template <typename ItemType, typename CompareFunction>
-size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction comperator) const {
+size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction less) const {
 
     static const bool debug = false;
 
     static_assert(
             std::is_convertible<
-                int, 
+                bool, 
                 typename common::FunctionTraits<CompareFunction>::result_type
             >::value, 
        "Comperator must return int.");
 
     LOG << "Looking for item " << item;
+    LOG << "Looking for tie " << tie;
 
     // Use a binary search to find the item.
     size_t left = 0;
     size_t right = this->NumItems();
 
-    while (left < right - 1) {
-        size_t mid = (right + left) / 2;
+    while (left < right) {
+        size_t mid = (right + left) >> 1;
+        LOG << "Left: " << left;
+        LOG << "Right: " << right;
+        LOG << "Mid: " << mid;
         ItemType cur = this->GetItemAt<ItemType>(mid);
-        int res = comperator(cur, item);
-        if (res < 0 || (res == 0 && tie < mid)) {
+        LOG << "Item at mid: " << cur;
+        if (less(item, cur) || (!less(item, cur) && !less(cur, item) && tie <= mid)) {
             right = mid;
         }
         else {
-            left = mid;
+            left = mid + 1;
         }
     }
 
-    return left + 1;
+    return left;
 }
 
 //! Seek in File: return a Block range containing items begin, end of

@@ -32,7 +32,7 @@ struct MyStruct {
     int a, b;
 };
 
-struct File : public::testing::Test {
+struct MergeHelpers : public::testing::Test {
     data::BlockPool block_pool_ { nullptr };
 };
 
@@ -51,7 +51,7 @@ void CreateTrivialFiles(std::vector<data::File> &files, size_t size, size_t coun
     }
 }
 
-TEST_F(File, MultiIndexOf) {
+TEST_F(MergeHelpers, MultiIndexOf) {
     const size_t size = 500;
     const size_t count = 10;
 
@@ -59,16 +59,19 @@ TEST_F(File, MultiIndexOf) {
     std::vector<data::File> files;
     CreateTrivialFiles(files, size, count, block_pool_);
 
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 100; i++) {
         size_t val = rng() % size;
 
-        size_t idx = MergeNodeHelper::IndexOf(val, 0, files, [](size_t a, size_t b) -> int { return b - a; });
+        size_t idx = MergeNodeHelper::IndexOf(val, 0, files, std::less<size_t>());
 
         ASSERT_EQ(val, idx / count);
+        
+        size_t val2 = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
+        ASSERT_EQ(val, val2);
     }
 }
 
-TEST_F(File, MultiGetAtIndex) {
+TEST_F(MergeHelpers, MultiGetAtIndex) {
     const size_t size = 500;
     const size_t count = 10;
 
@@ -76,16 +79,18 @@ TEST_F(File, MultiGetAtIndex) {
     std::vector<data::File> files;
     CreateTrivialFiles(files, size, count, block_pool_);
 
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 100; i++) {
         size_t idx = rng() % size * count;
 
-        size_t val = MergeNodeHelper::GetAt<size_t, std::function<size_t(size_t, size_t)>>(idx, files, [](size_t a, size_t b) -> size_t { return b - a; });
+        size_t val = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
 
         ASSERT_EQ(idx / count, val);
     }
 }
-/*
+
 TEST(MergeNode, TwoBalancedIntegerArrays) {
+
+    const size_t test_size = 500;
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
@@ -102,7 +107,7 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
             // merge
             auto merge_result = merge_input1.Merge(
-                merge_input2, [](size_t a, size_t b) -> bool { return a < b; });
+                merge_input2, std::less<size_t>());
 
             // check if order was kept while merging. 
             auto res = merge_result.AllGather();
@@ -116,4 +121,4 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
     thrill::api::RunLocalTests(start_func);
 }
-*/
+

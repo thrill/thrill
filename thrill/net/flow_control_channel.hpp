@@ -267,7 +267,7 @@ public:
     template <typename T>
     T Broadcast(const T& value) {
 
-        T res;
+        T res = value;
 
         // The primary thread of each node has to handle IO.
         if(threadId == 0) {    
