@@ -228,6 +228,8 @@ public:
     void Scatter(const File& source, const std::vector<size_t>& offsets) {
         tx_timespan_.StartEventually();
 
+        assert(offsets.size() == multiplexer_.num_workers());
+
         // current item offset in Reader
         size_t current = 0;
         File::Reader reader = source.GetReader();
