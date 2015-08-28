@@ -319,7 +319,8 @@ public:
                             current->destroy_items();
                             operator delete (current);
                             current = next;
-                        } else {
+                        }
+                        else {
                             current = current->next;
                         }
                     }
@@ -360,8 +361,8 @@ public:
                     second_reduce[i] = nullptr;
                 }
 
-            // no spilled items, just flush already reduced
-            // data in primary table in current frame
+                // no spilled items, just flush already reduced
+                // data in primary table in current frame
             }
             else
             {
@@ -388,7 +389,8 @@ public:
                             current->destroy_items();
                             operator delete (current);
                             current = next;
-                        } else {
+                        }
+                        else {
                             current = current->next;
                         }
                     }
@@ -594,9 +596,9 @@ public:
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
                     size_t byte_size = 1024 * 16,
-                    double bucket_rate = 0.01,
+                    double bucket_rate = 0.001,
                     double max_frame_fill_rate = 0.5,
-                    size_t frame_size = 32,
+                    size_t frame_size = 64,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : max_frame_fill_rate_(max_frame_fill_rate),
           emit_(std::move(emit)),
@@ -609,8 +611,7 @@ public:
           index_function_(index_function),
           equal_to_function_(equal_to_function),
           flush_function_(flush_function),
-          reduce_function_(reduce_function)
-    {
+          reduce_function_(reduce_function) {
         sLOG << "creating ReducePostTable with" << emit_.size() << "output emitters";
 
         assert(max_frame_fill_rate >= 0.0 && max_frame_fill_rate <= 1.0);
@@ -622,14 +623,14 @@ public:
         assert(end_local_index >= 0);
 
         // TODO(ms): second reduce table is currently not considered for byte_size
-        max_num_blocks_table_ = std::max<size_t>((size_t) (static_cast<double>(byte_size_)
-                               / static_cast<double>(sizeof(BucketBlock))), 1);
-        num_buckets_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_) * bucket_rate), 1);
+        max_num_blocks_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
+                                                          / static_cast<double>(sizeof(BucketBlock))), 1);
+        num_buckets_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_table_) * bucket_rate), 1);
         frame_size_ = std::min<size_t>(frame_size_, num_buckets_);
-        num_frames_ = std::max<size_t>((size_t) (static_cast<double>(num_buckets_)
-                                                 / static_cast<double>(frame_size_)), 1);
-        num_items_per_frame_ = std::max<size_t>((size_t) (static_cast<double>(max_num_blocks_table_
-                                                 * block_size_) / static_cast<double>(num_frames_)), 1);
+        num_frames_ = std::max<size_t>((size_t)(static_cast<double>(num_buckets_)
+                                                / static_cast<double>(frame_size_)), 1);
+        num_items_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_table_
+                                                                             * block_size_) / static_cast<double>(num_frames_)), 1);
 
         buckets_.resize(num_buckets_, nullptr);
 
@@ -1111,7 +1112,6 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
-
 } // namespace core
 } // namespace thrill
 

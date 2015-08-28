@@ -99,7 +99,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024 * 1024 * 128, 0.001, 0.5,
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -135,7 +135,9 @@ public:
                                           SendPair,
                                           false,
                                           core::PostReduceFlushToIndex<Value>,
-                                          core::PostReduceByIndex>;
+                                          core::PostReduceByIndex,
+                                          std::equal_to<Key>,
+                                          16*1024>;
 
         size_t local_begin, local_end;
 
@@ -149,7 +151,11 @@ public:
                           core::PostReduceFlushToIndex<Value>(),
                           local_begin,
                           local_end,
-                          neutral_element_);
+                          neutral_element_,
+                          1024 * 1024 * 128 * 5,
+                          0.001,
+                          0.5,
+                          64);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method

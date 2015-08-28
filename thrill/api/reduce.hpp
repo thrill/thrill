@@ -92,7 +92,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024 * 1024 * 128, 0.001, 0.5)
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
@@ -125,11 +125,19 @@ public:
                   = core::ReducePostTable<ValueType, Key, Value,
                                           KeyExtractor,
                                           ReduceFunction,
-                                          SendPair>;
+                                          SendPair,
+                                          false,
+                                          core::PostReduceFlushToDefault<Key, ReduceFunction, false>,
+                                          core::PostReduceByHashKey<Key>,
+                                          std::equal_to<Key>,
+                                          16*1024>;
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(context_, key_extractor_, reduce_function_, cbs);
+        ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
+                core::PostReduceByHashKey<Key>(),
+                core::PostReduceFlushToDefault<Key, ReduceFunction, false>(),
+                0, 0, Value(), 1024 * 1024 * 128 * 5, 0.001, 0.5, 128);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method

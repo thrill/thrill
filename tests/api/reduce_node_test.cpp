@@ -88,8 +88,6 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
                           return p1.first < p2.first;
                       });
 
-            size_t i = 1;
-
             for (auto element : out_vec) {
                 ASSERT_EQ(element.second, (100u*99u)/2u);
             }

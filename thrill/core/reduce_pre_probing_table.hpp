@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -25,7 +26,6 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <cmath>
 
 namespace thrill {
 namespace core {
@@ -186,8 +186,7 @@ public:
           byte_size_(byte_size),
           emit_(emit),
           index_function_(index_function),
-          equal_to_function_(equal_to_function)
-    {
+          equal_to_function_(equal_to_function) {
         sLOG << "creating ReducePreProbingTable with" << emit_.size() << "output emiters";
 
         assert(num_partitions > 0);
@@ -247,7 +246,7 @@ public:
 
         KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
-        size_t num_items_per_partition = (h.partition_id != num_partitions_-1) ?
+        size_t num_items_per_partition = (h.partition_id != num_partitions_ - 1) ?
                                          num_items_per_partition_ : size_ - (h.partition_id * num_items_per_partition_);
         KeyValuePair* last_item = &items_[h.global_index - (h.global_index % num_items_per_partition_)
                                           + num_items_per_partition - 1];
@@ -367,7 +366,7 @@ public:
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
-        size_t num_items_per_partition = (partition_id != num_partitions_-1) ?
+        size_t num_items_per_partition = (partition_id != num_partitions_ - 1) ?
                                          num_items_per_partition_ : size_ - (partition_id * num_items_per_partition_);
 
         for (size_t i = partition_id * num_items_per_partition_;
@@ -553,7 +552,6 @@ private:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
-
 } // namespace core
 } // namespace thrill
 
