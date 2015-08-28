@@ -503,9 +503,7 @@ struct EmitImpl;
 
 template <typename EmitterType, typename ValueType, typename SendType>
 struct EmitImpl<true, EmitterType, ValueType, SendType>{
-    // REVIEW(ms): these both should be const& ! check everywhere that ValueType
-    // is not copied!
-    void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
+    void EmitElement(const ValueType& ele, const std::vector<EmitterType>& emitters) {
         for (auto& emitter : emitters) {
             emitter(ele);
         }
@@ -514,7 +512,7 @@ struct EmitImpl<true, EmitterType, ValueType, SendType>{
 
 template <typename EmitterType, typename ValueType, typename SendType>
 struct EmitImpl<false, EmitterType, ValueType, SendType>{
-    void EmitElement(ValueType ele, std::vector<EmitterType> emitters) {
+    void EmitElement(const ValueType& ele, const std::vector<EmitterType>& emitters) {
         for (auto& emitter : emitters) {
             emitter(ele.second);
         }
