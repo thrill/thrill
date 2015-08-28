@@ -285,8 +285,6 @@ private:
         size_t my_id_;
         //! total number of workers
         size_t num_workers_;
-        //! True, if at least one input file is compressed
-        bool contains_compressed_file_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
     };
