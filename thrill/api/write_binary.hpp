@@ -181,14 +181,14 @@ protected:
         if (!sink_) OpenNextFile();
 
         try {
-            writer_->PutItemNoSelfVerify(input);
+            writer_->PutItem(input);
         }
         catch (data::FullException& e) {
             // sink is full. flush it. and repeat, which opens new file.
             OpenNextFile();
 
             try {
-                writer_->PutItemNoSelfVerify(input);
+                writer_->PutItem(input);
             }
             catch (data::FullException& e) {
                 throw std::runtime_error(

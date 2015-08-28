@@ -319,7 +319,6 @@ private:
             }
 
             for (size_t file_nr = current_file_; file_nr < NumFiles(); file_nr++) {
-                LOG << "file: " << file_nr << " my_end_: " << my_end_ << "second: " << files_[file_nr].second;
                 if (files[file_nr + 1].second == my_end_) {
                     break;
                 }
@@ -331,10 +330,14 @@ private:
 
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
+                LOG << "my_start : " << my_start << " my_end_: " << my_end_;				
                 c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
+				//No local files, set buffer size to 2, so HasNext() does not try to read
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+				buffer_.Reserve(2);
+				buffer_.set_size(2);
                 return;
             }
             buffer_.Reserve(read_size);
@@ -374,7 +377,8 @@ private:
                         buffer_.set_size(buffer_size);
                     }
                     else {
-                        current_ = files_[current_file_].second - files_[current_file_ - 1].second;
+						current_ = 0;
+						//current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
                     if (ret.length()) {

@@ -19,6 +19,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/core/file_io.hpp>
+#include <thrill/data/block.hpp>
+#include <thrill/data/block_reader.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
 #include <algorithm>
@@ -60,17 +62,13 @@ public:
           filepath_(filepath)
     {
         filelist_ = core::GlobFilePattern(filepath_).first;
-        filesize_ = filelist_[context_.my_rank() + 1].second -
-                    filelist_[context_.my_rank()].second;
 
-        auto my_start_and_end =
+		size_t my_start, my_end;
+		std::tie(my_start,my_end) =
             common::CalculateLocalRange(filelist_[filelist_.size() - 1].second,
                                         context_.num_workers(),
                                         context_.my_rank());
-
-        size_t my_start = std::get<0>(my_start_and_end);
-        size_t my_end = std::get<1>(my_start_and_end);
-        size_t first_file = 0;
+		size_t first_file = 0;
         size_t last_file = 0;
 
         while (filelist_[first_file + 1].second <= my_start) {
@@ -78,14 +76,15 @@ public:
             last_file++;
         }
 
-        while (filelist_[last_file + 1].second <= my_end && last_file < filelist_.size() - 1) {
+        while (last_file < filelist_.size() - 1 && filelist_[last_file + 1].second <= my_end) {
             last_file++;
         }
 
-        auto start_iter = filelist_.begin() + first_file;
-        auto end_iter = filelist_.begin() + last_file + 1;
+        my_files_ = std::vector<FileSizePair>(
+			filelist_.begin() + first_file,
+			filelist_.begin() + last_file);
 
-        my_files_ = std::vector<FileSizePair>(start_iter, end_iter);
+		LOG << my_files_.size() << " files from " << my_start << " to " << my_end;
     }
 
     virtual ~ReadBinaryNode() { }
@@ -98,18 +97,17 @@ public:
         static const bool debug = false;
         LOG << "READING data " << result_file_.ToString();
 
-        BinaryFileReader bfr_;
-        bfr_.SetFileList(my_files_);
-
         // Hook Read
-        while (bfr_.HasNext()) {
-            auto item = data::Serialization<BinaryFileReader, ValueType>
-                        ::Deserialize(bfr_);
-            LOG << item;
-            for (auto func : Super::callbacks_) {
-                func(item);
-            }
-        }
+		for (const FileSizePair& file : my_files_) {
+			LOG << "OPENING FILE " << file.first;
+			data::BlockReader<InputBlockSource> br(InputBlockSource(file.first, context_));
+			while (br.HasNext()) {
+				ValueType item = br.template Next<ValueType>();
+				for (auto func : Super::callbacks_) {
+					func(item);
+				}
+			}
+		}
         LOG << "DONE!";
     }
 
@@ -137,104 +135,43 @@ private:
     //! Path of the input file.
     std::string filepath_;
 
-    std::streampos filesize_;
-
     std::vector<FileSizePair> filelist_;
     std::vector<FileSizePair> my_files_;
 
-    class BinaryFileReader
-        : public common::ItemReaderToolsBase<BinaryFileReader>
-    {
-    public:
+	class InputBlockSource 
+	{
+	public:
         const size_t read_size = 2 * 1024 * 1024;
 
-        BinaryFileReader() { }
+		InputBlockSource(std::string path, Context & ctx) : 
+			context_(ctx), c_file_(core::SysFile::OpenForRead(path)) { }
 
-        virtual ~BinaryFileReader() { }
+		data::Block NextBlock() {	
+			if (done_) return data::Block();
 
-        void CloseStream() {
-            c_file_.close();
-        }
+			data::ByteBlockPtr bytes_ = data::ByteBlock::Allocate(read_size, context_.block_pool());
+			
+			ssize_t size = c_file_.read(bytes_->data(), read_size);
+			if (size > 0) {				
+				return data::Block(bytes_, 0, size, 0, read_size);
+			} else if (size < 0) {
+				throw common::SystemException("File reading error", errno);
+			} else { //size == 0 -> read finished
+				c_file_.close();
+				done_ = true;
+				return data::Block();
+			}
+		}
 
-        void SetFileList(std::vector<FileSizePair> path) {
-            filelist_ = path;
-            if (filelist_.size() > 1) {
-                c_file_ = core::SysFile::OpenForRead(filelist_[0].first);
-                buffer_.Reserve(read_size);
-                current_size_ = filelist_[1].second - filelist_[0].second;
-            }
-        }
+		bool closed() const {
+			return done_;
+		}
 
-        bool HasNext() {
-            // no input files for this worker
-            if (filelist_.size() <= 1) {
-                return false;
-            }
-
-            if (buffer_.size() == current_) {
-                buffer_.set_size(c_file_.read(buffer_.data(), read_size));
-                current_ = 0;
-                // buffer is empty when file is already finished
-                //->go to next file if there is another one in filelist_
-                if (buffer_.size()) {
-                    return true;
-                }
-                else if (current_file_ < filelist_.size() - 2) {
-                    c_file_.close();
-                    current_file_++;
-                    current_size_ = filelist_[current_file_ + 1].second - filelist_[current_file_].second;
-                    c_file_ = core::SysFile::OpenForRead(filelist_[current_file_].first);
-                    return true;
-                }
-                else {
-                    return false;
-                }
-            }
-            else {
-                return true;
-            }
-        }
-
-        char GetByte() {
-            if (current_ == buffer_.size()) {
-                buffer_.set_size(c_file_.read(buffer_.data(), read_size));
-                current_ = 0;
-            }
-            current_++;
-            return buffer_[current_ - 1];
-        }
-
-        template <typename Type>
-        Type Get() {
-            if (buffer_.size() < current_ + sizeof(Type)) {
-                // copy rest of buffer into start of next buffer
-                std::copy(buffer_.begin() + current_,
-                          buffer_.end(),
-                          buffer_.data());
-                size_t copied_bytes = buffer_.end() - buffer_.begin() - current_;
-
-                buffer_.set_size(
-                    c_file_.read(buffer_.data() + copied_bytes,
-                                 read_size - copied_bytes) + copied_bytes);
-                current_ = 0;
-            }
-
-            Type elemc;
-            std::copy(buffer_.begin() + current_,
-                      buffer_.begin() + current_ + sizeof(Type),
-                      reinterpret_cast<char*>(&elemc));
-            current_ += sizeof(Type);
-            return elemc;
-        }
-
-    private:
-        core::SysFile c_file_;
-        size_t current_ = 0;
-        net::BufferBuilder buffer_;
-        std::vector<FileSizePair> filelist_;
-        std::streampos current_size_;
-        size_t current_file_ = 0;
-    };
+	protected:
+		Context & context_;
+		core::SysFile c_file_;
+		bool done_ = false;
+	};
 };
 
 /*!
