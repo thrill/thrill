@@ -137,7 +137,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
         // not a compressed file
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
             throw common::SystemException(
-                "Error setting FD_CLOEXEC on SysFile", errno);
+                      "Error setting FD_CLOEXEC on SysFile", errno);
         }
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
@@ -218,7 +218,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
         // not a compressed file
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
             throw common::SystemException(
-                "Error setting FD_CLOEXEC on SysFile", errno);
+                      "Error setting FD_CLOEXEC on SysFile", errno);
         }
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;

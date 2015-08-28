@@ -143,7 +143,7 @@ private:
     class InputLineIteratorUncompressed : public InputLineIterator
     {
     public:
-        typedef InputLineIterator Base;
+        using Base = InputLineIterator;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
@@ -296,7 +296,7 @@ private:
     class InputLineIteratorCompressed : public InputLineIterator
     {
     public:
-        typedef InputLineIterator Base;
+        using Base = InputLineIterator;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
