@@ -74,9 +74,10 @@ public:
     //! HasNext() returns true if at least one more byte is available.
     bool HasNext() {
         while (current_ == end_) {
-            if (!NextBlock())
+            if (!NextBlock()) {
                 return false;
-        }
+			}
+		}
         return true;
     }
 
