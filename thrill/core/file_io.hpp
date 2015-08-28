@@ -78,14 +78,13 @@ public:
     //! move-constructor
     SysFile(SysFile&& f)
         : fd_(f.fd_), pid_(f.pid_) {
-        f.fd_ = -1;
-        f.pid_ = 0;
+        f.fd_ = -1, f.pid_ = 0;
     }
     //! move-assignment
     SysFile& operator = (SysFile&& f) {
         close();
-        fd_ = f.fd_;
-        pid_ = f.pid_;
+        fd_ = f.fd_, pid_ = f.pid_;
+        f.fd_ = -1, f.pid_ = 0;
         return *this;
     }
 

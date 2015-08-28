@@ -64,6 +64,7 @@ GlobFilePattern(const std::string& path) {
 
 void SysFile::close() {
     if (fd_ >= 0) {
+        sLOG << "SysFile::close(): fd" << fd_;
         ::close(fd_);
         fd_ = -1;
     }
