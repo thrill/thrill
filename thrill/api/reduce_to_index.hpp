@@ -71,7 +71,7 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using Super::result_file_;
 
 public:
-    using Emitter = data::BlockWriter;
+    using Emitter = data::DynBlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
               KeyExtractor, ReduceFunction, RobustKey, core::PreReduceByIndex>;
@@ -204,7 +204,7 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     PreHashTable reduce_pre_table_;
 
@@ -243,6 +243,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
     const ReduceFunction &reduce_function,
     size_t size,
     ValueType neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -309,6 +310,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
     size_t size,
     typename common::FunctionTraits<ReduceFunction>::result_type
     neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -381,6 +383,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
     const ReduceFunction &reduce_function,
     size_t size,
     ValueType neutral_element) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;

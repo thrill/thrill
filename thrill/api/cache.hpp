@@ -96,6 +96,8 @@ private:
 template <typename ValueType, typename Stack>
 template <typename AnyStack>
 DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
+    assert(IsValid());
+
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIARef>;
@@ -110,6 +112,8 @@ DIARef<ValueType, Stack>::DIARef(const DIARef<ValueType, AnyStack>& rhs) {
 
 template <typename ValueType, typename Stack>
 auto DIARef<ValueType, Stack>::Cache() const {
+    assert(IsValid());
+
     // Create new LOpNode. Transfer stack from rhs to LOpNode. Build new
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIARef>;

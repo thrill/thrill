@@ -292,7 +292,7 @@ protected:
     BlockSource source_;
 
     //! The current block being read, this holds a shared pointer reference.
-    ByteBlockCPtr bytes_;
+    ByteBlockPtr bytes_;
 
     //! current read pointer into current block of file.
     const Byte* current_ = nullptr;

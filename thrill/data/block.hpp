@@ -113,7 +113,6 @@ public:
 };
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
-using ByteBlockCPtr = ByteBlock::ByteBlockCPtr;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -136,7 +135,7 @@ class Block
 public:
     Block() { }
 
-    Block(const ByteBlockCPtr& byte_block,
+    Block(const ByteBlockPtr& byte_block,
           size_t begin, size_t end, size_t first_item, size_t nitems)
         : byte_block_(byte_block),
           begin_(begin), end_(end), first_item_(first_item), nitems_(nitems)
@@ -147,7 +146,7 @@ public:
 
     //! Releases the reference to the ByteBlock and resets book-keeping info
     void Release() {
-        byte_block_ = ByteBlockCPtr();
+        byte_block_ = ByteBlockPtr();
     }
 
     // Return block as std::string (for debugging), includes eventually cut off
@@ -158,7 +157,10 @@ public:
     }
 
     //! access to byte_block_
-    const ByteBlockCPtr & byte_block() const { return byte_block_; }
+    const ByteBlockPtr & byte_block() const { return byte_block_; }
+
+    //! access to byte_block_ (mutable)
+    ByteBlockPtr & byte_block() { return byte_block_; }
 
     //! return number of items beginning in this block
     size_t nitems() const { return nitems_; }
@@ -205,13 +207,13 @@ public:
 
 protected:
     //! referenced ByteBlock
-    ByteBlockCPtr byte_block_;
+    ByteBlockPtr byte_block_;
 
     //! beginning offset of valid bytes to read
     size_t begin_;
 
-    //! one byte beyond the end of the valid bytes in the ByteBlock (can be used to
-    //! virtually shorten a ByteBlock)
+    //! one byte beyond the end of the valid bytes in the ByteBlock (can be used
+    //! to virtually shorten a ByteBlock)
     size_t end_;
 
     //! offset of first valid element in the ByteBlock in absolute bytes from

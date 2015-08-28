@@ -49,17 +49,16 @@ public:
         block = nullptr;
     }
 
+    //! boolean flag whether to check if AllocateByteBlock can fail in any
+    //! subclass (if false: accelerate BlockWriter to not be able to cope with
+    //! nullptr).
+    enum { allocate_can_fail_ = true };
+
     //! Closes the sink. Must not be called multiple times
     virtual void Close() = 0;
 
     //! Appends the Block, moving it out.
     virtual void AppendBlock(const Block& b) = 0;
-
-    //! Appends the Block and detaches it afterwards.
-    void AppendBlock(const ByteBlockPtr& byte_block, size_t begin, size_t end,
-                     size_t first_item, size_t nitems) {
-        return AppendBlock(Block(byte_block, begin, end, first_item, nitems));
-    }
 
 protected:
     //! reference to BlockPool for allocation and deallocation.

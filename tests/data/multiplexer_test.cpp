@@ -122,11 +122,11 @@ void TalkAllToAllViaChannel(net::Group* net) {
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
-    // test for all network mesh sizes 1, 2, 5, 16:
+    // test for all network mesh sizes 1, 2, 5, 9:
     net::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
     net::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
     net::Group::ExecuteLocalMock(5, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(16, TalkAllToAllViaChannel);
+    net::Group::ExecuteLocalMock(9, TalkAllToAllViaChannel);
 }
 
 TEST_F(Multiplexer, ReadCompleteChannel) {

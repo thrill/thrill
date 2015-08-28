@@ -1,0 +1,90 @@
+# Travis-CI build script for Thrill
+
+language: cpp
+
+sudo: false
+
+matrix:
+  include:
+    # gcc 4.9 with AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
+      os: linux
+      addons: &gcc49
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.9
+
+    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Release" COMPILER_FLAGS="-fsanitize=address"
+      os: linux
+      addons: *gcc49
+
+    # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="" USE_SWIG="1"
+      os: linux
+      addons: &gcc5
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1"
+      os: linux
+      addons: *gcc5
+
+    # clang 3.6 with AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
+      os: linux
+      addons: &clang36
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+          packages:
+            - clang-3.6
+
+    # clang 3.6 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
+    - env: CMAKE_CC="clang-3.6" CMAKE_CXX="clang++-3.6" BUILD_TYPE="Release" COMPILER_FLAGS=""
+      os: linux
+      addons: *clang36
+
+    # clang 3.6 on MacOSX without AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
+      os: osx
+
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
+      os: osx
+
+env:
+  global:
+    # LeakSanitizer suppressions
+    - LSAN_OPTIONS=suppressions=$PWD/misc/leak_sanitizer.supp
+
+before_script:
+
+  # Install newer swig
+  - if [ -n "$USE_SWIG" ]; then
+      curl -sS -L http://prdownloads.sourceforge.net/swig/swig-2.0.12.tar.gz | tar xz;
+      cd swig-2.0.12;
+      ./configure --without-alllang --with-python --prefix=$PWD/../swig-install;
+      make -j4;
+      make install;
+      cd ..;
+      export PATH=$PATH:$PWD/swig-install/bin;
+    fi
+
+  # print out some version numbers
+  - $CMAKE_CXX --version
+  - cmake --version
+  # configure
+  - mkdir build; cd build
+  - cmake
+      -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
+      -DCMAKE_C_COMPILER="$CMAKE_CC" -DCMAKE_CXX_COMPILER="$CMAKE_CXX"
+      -DCMAKE_C_FLAGS="$COMPILER_FLAGS" -DCMAKE_CXX_FLAGS="$COMPILER_FLAGS"
+      $CMAKE_ARGS ..
+
+script:
+  - make -j4 && ctest -V

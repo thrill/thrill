@@ -215,7 +215,7 @@ private:
 
     data::ChannelPtr channel_;
 
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey> reduce_pre_table_;
 
@@ -241,6 +241,7 @@ template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceBy(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -294,6 +295,7 @@ template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReducePair(
     const ReduceFunction &reduce_function) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
@@ -354,6 +356,7 @@ template <typename KeyExtractor, typename ReduceFunction>
 auto DIARef<ValueType, Stack>::ReduceByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function) const {
+    assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
