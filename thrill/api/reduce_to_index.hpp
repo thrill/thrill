@@ -51,7 +51,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          bool PreservesKey, bool SendPair>
+          bool RobustKey, bool SendPair>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -74,7 +74,7 @@ public:
     using Emitter = data::DynBlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, RobustKey, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -99,7 +99,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024, 0.5, 1024 * 16,
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -133,8 +133,11 @@ public:
                                           KeyExtractor,
                                           ReduceFunction,
                                           SendPair,
+                                          false,
                                           core::PostReduceFlushToIndex<Value>,
-                                          core::PostReduceByIndex>;
+                                          core::PostReduceByIndex,
+                                          std::equal_to<Key>,
+                                          16*1024>;
 
         size_t local_begin, local_end;
 
@@ -148,9 +151,13 @@ public:
                           core::PostReduceFlushToIndex<Value>(),
                           local_begin,
                           local_end,
-                          neutral_element_);
+                          neutral_element_,
+                          1024 * 1024 * 128 * 5,
+                          0.001,
+                          0.5,
+                          64);
 
-        if (PreservesKey) {
+        if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
