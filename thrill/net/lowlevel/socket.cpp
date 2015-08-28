@@ -62,7 +62,7 @@ void Socket::SetNoDelay(bool activate) {
 
     int sockoptflag = (activate ? 1 : 0);
 
-#if __linux__ || __FreeBSD__
+#if __linux__ || __FreeBSD__ || __APPLE__
     /* TCP_NODELAY If set, disable the Nagle algorithm. This means that
        segments are always sent as soon as possible, even if there is only a
        small amount of data.  When not set, data is buffered until there is a
