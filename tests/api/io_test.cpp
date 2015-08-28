@@ -151,7 +151,8 @@ TEST(IO, ReadPartOfFolderCompressed) {
             // non int-castable strings
             auto integers = ReadLines(ctx, "read_ints/read*")
                             .Map([](const std::string& line) {
-                                    return atoi(line.c_str());
+                                    sLOG1 << "line:" << line;
+                                    return std::stoi(line);
                                  });
 
             std::vector<int> out_vec = integers.AllGather();
@@ -179,7 +180,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
                 ctx,
                 "test1",
                 [](const std::string& line) {
-                    return atoi(line.c_str());
+                    return std::stoi(line);
                 },
                 generate_size);
 
@@ -365,7 +366,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
 
             auto integers = ReadLines(ctx, "test1")
                             .Map([](const std::string& line) {
-                                     return atoi(line.c_str());
+                                     return std::stoi(line);
                                  });
 
             integers.WriteBinary("binary/output_");
@@ -396,7 +397,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
             for (int i = 1; i <= 16; i++) {
                 std::string line;
                 std::getline(file, line);
-                ASSERT_EQ(line, std::to_string(i));
+                ASSERT_EQ(std::stoi(line), i);
             }
         };
 
