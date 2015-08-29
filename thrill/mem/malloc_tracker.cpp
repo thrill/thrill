@@ -14,12 +14,12 @@
 
 #include <thrill/mem/malloc_tracker.hpp>
 
+#include <dlfcn.h>
+
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
-#include <dlfcn.h>
 
 #if defined(__clang__) || defined (__GNUC__)
 #define ATTRIBUTE_NO_SANITIZE                          \

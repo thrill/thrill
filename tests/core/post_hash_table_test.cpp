@@ -11,9 +11,11 @@
 #include <gtest/gtest.h>
 #include <thrill/api/context.hpp>
 #include <thrill/core/reduce_post_table.hpp>
-
-#include <string>
 #include <thrill/net/manager.hpp>
+
+#include <algorithm>
+#include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -350,7 +352,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -362,7 +364,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
                                                                           decltype(key_ex), decltype(red_fn), false, false,
                                                                           core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                                                           core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -403,7 +405,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -415,7 +417,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
                                                                           decltype(key_ex), decltype(red_fn), false, false,
                                                                           core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                                                           core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn), true>,
@@ -463,7 +465,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -475,7 +477,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
                                                                           decltype(key_ex), decltype(red_fn), false, false,
                                                                           core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                                                           core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -522,7 +524,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -534,7 +536,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
                                                                           decltype(key_ex), decltype(red_fn), false, false,
                                                                           core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                                                           core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -582,7 +584,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -594,7 +596,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
                                                                           decltype(key_ex), decltype(red_fn), false, false,
                                                                           core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                                                           core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -642,7 +644,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {
@@ -654,7 +656,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                                                                           decltype(key_ex), decltype(red_fn), false, false,
                                                                           core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                                                           core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
@@ -701,7 +703,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back(
@@ -710,7 +712,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                 });
 
             const size_t TargetBlockSize = 16 * 1024;
-            typedef std::pair<int, int> KeyValuePair;
+            using KeyValuePair = std::pair<int, int>;
             size_t max_blocks = 128;
 
             core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,

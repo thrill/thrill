@@ -23,6 +23,8 @@
 #include <thrill/net/buffer_builder.hpp>
 
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace thrill {
 namespace api {
