@@ -23,16 +23,17 @@
 
 #include <gtest/gtest.h>
 
+#include <dirent.h>
+#include <glob.h>
+#include <sys/stat.h>
+
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
-
-#include <dirent.h>
-#include <glob.h>
-#include <sys/stat.h>
 
 using namespace thrill;
 using thrill::api::Context;

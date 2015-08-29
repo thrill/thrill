@@ -12,6 +12,7 @@
 #include <thrill/core/reduce_pre_table.hpp>
 #include <thrill/data/file.hpp>
 
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>

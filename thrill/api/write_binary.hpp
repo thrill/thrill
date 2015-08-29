@@ -22,6 +22,7 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>

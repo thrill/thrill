@@ -19,6 +19,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
+#include <string>
+#include <vector>
+
 namespace thrill {
 namespace core {
 

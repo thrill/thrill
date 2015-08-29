@@ -18,6 +18,10 @@
 
 #include <unistd.h>
 
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace thrill {
 namespace core {
 

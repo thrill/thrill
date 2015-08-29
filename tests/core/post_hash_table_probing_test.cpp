@@ -11,9 +11,10 @@
 #include <gtest/gtest.h>
 #include <thrill/api/context.hpp>
 #include <thrill/core/reduce_post_probing_table.hpp>
-
-#include <string>
 #include <thrill/net/manager.hpp>
+
+#include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -399,7 +400,7 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
                               return in1 + in2;
                           };
 
-            typedef std::function<void (const int&)> EmitterFunction;
+            using EmitterFunction = std::function<void(const int&)>;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
             emitters.push_back([&writer1](const int value) {

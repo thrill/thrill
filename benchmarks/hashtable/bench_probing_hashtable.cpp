@@ -17,12 +17,12 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
-#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <iterator>
 #include <numeric>
 #include <random>
+#include <string>
 #include <utility>
 #include <vector>
 

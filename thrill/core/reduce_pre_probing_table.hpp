@@ -106,7 +106,7 @@ class PreProbingReduceByIndex
 public:
     size_t size_;
 
-    PreProbingReduceByIndex(size_t size)
+    explicit PreProbingReduceByIndex(size_t size)
         : size_(size)
     { }
 

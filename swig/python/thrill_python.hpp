@@ -27,6 +27,7 @@
 #include <bytesobject.h>
 #include <marshal.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 

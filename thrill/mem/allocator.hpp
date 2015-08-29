@@ -131,7 +131,7 @@ class Deleter
 {
 public:
     //! constructor: need reference to Manager
-    Deleter(Manager& manager) noexcept
+    explicit Deleter(Manager& manager) noexcept
         : allocator_(manager) { }
 
     //! free the pointer
