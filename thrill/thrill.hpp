@@ -35,6 +35,7 @@ for fn in glob.glob('thrill/api/' + '*.hpp'):
 #include <thrill/api/generate_from_file.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
+#include <thrill/api/read_binary.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce.hpp>
 #include <thrill/api/reduce_to_index.hpp>
@@ -42,6 +43,7 @@ for fn in glob.glob('thrill/api/' + '*.hpp'):
 #include <thrill/api/sort.hpp>
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/write_binary.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
 #include <thrill/api/zip.hpp>

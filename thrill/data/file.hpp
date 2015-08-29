@@ -50,7 +50,7 @@ class CachingBlockQueueSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-class File : public BlockSink
+class File : public virtual BlockSink
 {
 public:
     using BlockSource = FileBlockSource;

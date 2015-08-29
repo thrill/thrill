@@ -8,6 +8,7 @@
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
+#include <thrill/common/porting.hpp>
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 
@@ -25,11 +26,7 @@ DispatcherThread::DispatcherThread(const mem::string& thread_name)
     : dispatcher_(mem::mm_make_unique<Dispatcher>(mem_manager_, mem_manager_)),
       name_(thread_name) {
     // allocate self-pipe
-    int r = ::pipe(self_pipe_);
-    if (r != 0) {
-        LOG1 << "Error opening self-pipe: " << strerror(errno);
-    }
-    die_unless(r == 0);
+    common::make_pipe(self_pipe_);
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
 }

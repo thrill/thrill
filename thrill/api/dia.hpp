@@ -98,7 +98,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(const DIANodePtr& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(node),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -113,7 +114,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(DIANodePtr&& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(std::move(node)),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -545,6 +547,22 @@ public:
     void WriteLinesMany(const std::string& filepath) const;
 
     /*!
+     * WriteBinary is a function, which writes a DIA to many files per
+     * worker. The input DIA can be recreated with ReadBinary and equal
+     * filepath.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param max_file_size size limit of individual file.
+     */
+    void WriteBinary(const std::string& filepath,
+                     size_t max_file_size = 128* 1024* 1024) const;
+
+    /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
@@ -600,8 +618,6 @@ private:
 /*!
  * ReadLines is a DOp, which reads a file from the file system and
  * creates an ordered DIA according to a given read function.
- *
- * \tparam ReadFunction Type of the read function.
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
