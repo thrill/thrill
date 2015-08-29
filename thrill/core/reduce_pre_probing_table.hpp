@@ -134,9 +134,9 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
+public:
     using KeyValuePair = std::pair<Key, Value>;
 
-public:
     struct index_result {
     public:
         //! which partition number the item belongs to.
@@ -153,7 +153,6 @@ public:
         }
     };
 
-public:
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
