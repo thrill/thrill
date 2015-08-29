@@ -593,7 +593,7 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
-                    size_t byte_size = 1024 * 16,
+                    size_t byte_size = 1024* 16,
                     double bucket_rate = 0.001,
                     double max_frame_fill_rate = 0.5,
                     size_t frame_size = 64,
@@ -1110,6 +1110,7 @@ public:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 };
+
 } // namespace core
 } // namespace thrill
 

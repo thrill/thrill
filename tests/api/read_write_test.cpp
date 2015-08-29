@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/io_test.cpp
+ * tests/api/read_write_test.cpp
  *
  * Part of Project Thrill.
  *

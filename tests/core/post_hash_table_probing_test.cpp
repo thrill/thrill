@@ -402,7 +402,8 @@ TEST_F(PostTable, WithinTableItemsLimit2) {
             typedef std::function<void (const int&)> EmitterFunction;
             std::vector<EmitterFunction> emitters;
             std::vector<int> writer1;
-            emitters.push_back([&writer1](const int value) { writer1.push_back(value);
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
                                });
 
             size_t byte_size = 4 * 32 * 1024 - 1;

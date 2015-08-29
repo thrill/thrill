@@ -12,9 +12,10 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
-#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <cerrno>
 
 namespace thrill {
 namespace common {
