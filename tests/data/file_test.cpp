@@ -350,32 +350,18 @@ TEST_F(File, SeekReadSlicesOfFiles) {
 }
 
 //! A derivative of File which only contains a limited amount of Blocks
-class BoundedFile : public data::File
+class BoundedFile : public virtual data::BoundedBlockSink,
+                    public virtual data::File
 {
 public:
     //! constructor with reference to BlockPool
     BoundedFile(data::BlockPool& block_pool, size_t max_size)
-        : File(block_pool), available_(max_size), max_size_(max_size)
+        : BlockSink(block_pool),
+          BoundedBlockSink(block_pool, max_size),
+          File(block_pool)
     { }
 
-    data::ByteBlockPtr AllocateByteBlock(size_t block_size) final {
-        if (available_ < block_size) return data::ByteBlockPtr();
-        available_ -= block_size;
-        return BlockSink::AllocateByteBlock(block_size);
-    }
-
-    void ReleaseByteBlock(data::ByteBlockPtr& block) final {
-        if (block)
-            available_ += block->size();
-        block = nullptr;
-    }
-
-    size_t max_size() const { return max_size_; }
-
     enum { allocate_can_fail_ = true };
-
-protected:
-    size_t available_, max_size_;
 };
 
 TEST_F(File, BoundedFilePutIntegerUntilFull) {

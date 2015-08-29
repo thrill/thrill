@@ -42,8 +42,9 @@ unsigned int IntegerLog2Ceil(const IntegerType& i) {
 template <typename Integral>
 static inline Integral RoundUpToPowerOfTwo(Integral n) {
     --n;
-    for (int k = 1; !(k & (2 << sizeof(n))); k <<= 1)
+    for (size_t k = 1; k != 8 * sizeof(n); k <<= 1) {
         n |= n >> k;
+    }
     ++n;
     return n;
 }

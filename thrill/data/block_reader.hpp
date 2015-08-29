@@ -13,6 +13,7 @@
 #define THRILL_DATA_BLOCK_READER_HEADER
 
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
@@ -70,11 +71,20 @@ public:
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
+    //! Next() reads a complete item T, without item counter or self
+    //! verification
+    template <typename T>
+    T NextNoSelfVerify() {
+        assert(HasNext());
+        return Serialization<BlockReader, T>::Deserialize(*this);
+    }
+
     //! HasNext() returns true if at least one more byte is available.
     bool HasNext() {
         while (current_ == end_) {
-            if (!NextBlock())
+            if (!NextBlock()) {
                 return false;
+            }
         }
         return true;
     }

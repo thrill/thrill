@@ -78,6 +78,9 @@ before_script:
   # print out some version numbers
   - $CMAKE_CXX --version
   - cmake --version
+  - gzip --version || true
+  - bzip2 --version || true
+  - xz --version || true
   # configure
   - mkdir build; cd build
   - cmake

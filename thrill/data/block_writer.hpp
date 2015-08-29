@@ -13,6 +13,7 @@
 #define THRILL_DATA_BLOCK_WRITER_HEADER
 
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_sink.hpp>
@@ -143,7 +144,7 @@ public:
         return *this;
     }
 
-    //! operator() appends a complete item, or fails with a FullException.
+    //! PutItem appends a complete item, or fails with a FullException.
     template <typename T>
     BlockWriter & PutItem(const T& x) {
         assert(!closed_);
@@ -160,8 +161,20 @@ public:
         return PutItem(x);
     }
 
-    //! appends a complete item, or fails safely with a FullException.
+    //! PutItemNoSelfVerify appends a complete item without any self
+    //! verification information, or fails with a FullException.
     template <typename T>
+    BlockWriter & PutItemNoSelfVerify(const T& x) {
+        assert(!closed_);
+
+        if (!BlockSink::allocate_can_fail_)
+            return PutItemUnsafe<T, true>(x);
+        else
+            return PutItemSafe<T, true>(x);
+    }
+
+    //! appends a complete item, or fails safely with a FullException.
+    template <typename T, bool NoSelfVerify = false>
     BlockWriter & PutItemSafe(const T& x) {
         assert(!closed_);
 
@@ -189,7 +202,7 @@ public:
 
         try {
             MarkItem();
-            if (self_verify) {
+            if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
                 Put(typeid(T).hash_code());
             }
@@ -231,7 +244,7 @@ public:
     }
 
     //! appends a complete item, or aborts with a FullException.
-    template <typename T>
+    template <typename T, bool NoSelfVerify = false>
     BlockWriter & PutItemUnsafe(const T& x) {
         assert(!closed_);
 
@@ -241,7 +254,7 @@ public:
             }
 
             MarkItem();
-            if (self_verify) {
+            if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
                 Put(typeid(T).hash_code());
             }
