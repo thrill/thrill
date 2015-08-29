@@ -135,9 +135,9 @@ public:
         DIANode<ValueType>::callback_functions(cbs);
 
         ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
-                core::PostReduceByHashKey<Key>(),
-                core::PostReduceFlushToDefault<Key, ReduceFunction, false>(),
-                0, 0, Value(), 1024 * 1024 * 128 * 5, 0.001, 0.5, 128);
+                          core::PostReduceByHashKey<Key>(),
+                          core::PostReduceFlushToDefault<Key, ReduceFunction, false>(),
+                          0, 0, Value(), 1024 * 1024 * 128 * 5, 0.001, 0.5, 128);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method

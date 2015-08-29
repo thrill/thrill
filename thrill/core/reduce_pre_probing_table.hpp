@@ -174,7 +174,7 @@ public:
                           ReduceFunction reduce_function,
                           std::vector<data::DynBlockWriter>& emit,
                           Key sentinel,
-                          size_t byte_size = 1024 * 16,
+                          size_t byte_size = 1024* 16,
                           double max_partition_fill_rate = 0.5,
                           const IndexFunction& index_function = IndexFunction(),
                           const EqualToFunction& equal_to_function = EqualToFunction())
@@ -551,6 +551,7 @@ private:
     //! Number of flushes.
     size_t num_flushes_ = 0;
 };
+
 } // namespace core
 } // namespace thrill
 

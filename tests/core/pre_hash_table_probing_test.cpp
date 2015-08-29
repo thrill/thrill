@@ -376,7 +376,7 @@ TEST_F(ReducePreProbingTable, ComplexType) {
     writers.emplace_back(output.GetDynWriter());
 
     size_t kv_size = sizeof(core::ReducePreProbingTable<std::string, StringPair,
-            decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
+                                                        decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
     core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, "", 2 * 3 * kv_size, 0.5);
@@ -543,7 +543,7 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
     size_t nitems = 1 * 4 * 1024;
 
     size_t kv_size = sizeof(core::ReducePreProbingTable<std::string, StringPair,
-            decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
+                                                        decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
     core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
     table(1, key_ex, red_fn, writers, "", nitems * kv_size, 1.0);

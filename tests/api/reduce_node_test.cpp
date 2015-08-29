@@ -89,7 +89,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
                       });
 
             for (auto element : out_vec) {
-                ASSERT_EQ(element.second, (100u*99u)/2u);
+                ASSERT_EQ(element.second, (100u * 99u) / 2u);
             }
 
             ASSERT_EQ(1000u, out_vec.size());
