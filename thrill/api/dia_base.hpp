@@ -66,7 +66,8 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag, StatsNode* stats_node)
+            const std::vector<std::shared_ptr<DIABase> >& parents,
+            const std::string& stats_tag, StatsNode* stats_node)
         : context_(ctx), parents_(parents),
           execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
           lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
@@ -106,7 +107,7 @@ public:
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
-    const DIANodeType & type() {
+    const DIANodeType & type() const {
         return stats_node_->type();
     }
 
@@ -136,6 +137,10 @@ public:
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
+    size_t id() const {
+        return stats_node_->id();
+    }
+
     data::File result_file() {
         return result_file_;
     }
