@@ -124,7 +124,7 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         // TODO(tb@ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -158,7 +158,6 @@ public:
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            bool consume = false;
             auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -168,7 +167,6 @@ public:
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            bool consume = false;
             auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {

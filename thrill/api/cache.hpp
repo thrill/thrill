@@ -68,8 +68,7 @@ public:
         writer_.Close();
     }
 
-    void PushData() final {
-        bool consume = false;
+    void PushData(bool consume) final {
         data::File::Reader reader = file_.GetReader(consume);
         for (size_t i = 0; i < file_.num_items(); ++i) {
             this->PushItem(reader.Next<ValueType>());

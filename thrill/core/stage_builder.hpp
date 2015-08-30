@@ -40,13 +40,13 @@ public:
         node_->Execute();
         node_->StopExecutionTimer();
 
-        node_->PushData();
+        node_->PushData(false);
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
         LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
-        node_->PushData();
+        node_->PushData(false);
         node_->set_state(api::DIAState::EXECUTED);
     }
 

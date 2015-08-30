@@ -36,7 +36,7 @@ public:
     void UnregisterChilds() final { }
 
     //! Actionnodes do not push data, they only Execute.
-    void PushData() final { }
+    void PushData(bool /* consume */) final { }
 };
 
 //! \}

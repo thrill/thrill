@@ -119,8 +119,7 @@ public:
     Channel(const Channel&) = delete;
     //! non-copyable: delete assignment operator
     Channel& operator = (const Channel&) = delete;
-
-    //! move-constructor
+    //! move-constructor: default
     Channel(Channel&&) = default;
 
     const ChannelId & id() const {

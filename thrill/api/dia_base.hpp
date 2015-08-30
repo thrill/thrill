@@ -97,7 +97,7 @@ public:
     virtual void Execute() = 0;
 
     //! Virtual method for pushing data. Triggers actual pushing in sub-classes.
-    virtual void PushData() = 0;
+    virtual void PushData(bool consume) = 0;
 
     //! Virtual clear method. Triggers actual disposing in sub-classes.
     virtual void Dispose() = 0;

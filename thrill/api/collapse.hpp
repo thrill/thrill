@@ -63,7 +63,7 @@ public:
      */
     void Execute() final { }
 
-    void PushData() final { }
+    void PushData(bool /* consume */) final { }
 
     void Dispose() final { }
 

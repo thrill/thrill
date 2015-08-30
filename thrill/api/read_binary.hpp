@@ -94,7 +94,7 @@ public:
     //! and emmits it after applyung the read function.
     void Execute() final { }
 
-    void PushData() final {
+    void PushData(bool /* consume */) final {
         static const bool debug = false;
         LOG << "READING data " << std::to_string(this->id());
 
