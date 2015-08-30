@@ -181,9 +181,9 @@ public:
 
             // only if items have been spilled,
             // process a second reduce
-            if (file.NumItems() > 0) {
+            if (file.num_items() > 0) {
 
-                size_t frame_length = (size_t)std::ceil(static_cast<double>(file.NumItems())
+                size_t frame_length = (size_t)std::ceil(static_cast<double>(file.num_items())
                                                         / static_cast<double>(ht->block_size_));  // TODO
 
                 // adjust size of second reduce table

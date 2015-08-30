@@ -46,8 +46,8 @@ TEST_F(File, PutSomeItemsGetItems) {
         fw.Put<uint16_t>(42);
     }
 
-    ASSERT_EQ(file.NumBlocks(), 6u);
-    ASSERT_EQ(file.NumItems(), 5u);
+    ASSERT_EQ(file.num_blocks(), 6u);
+    ASSERT_EQ(file.num_items(), 5u);
 
     ASSERT_EQ(file.block(0).size(), 16u);
     ASSERT_EQ(file.block(1).size(), 16u);
@@ -57,7 +57,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(5).size(), 14u);
 
     // Total size is equal to sum of block sizes
-    ASSERT_EQ(file.TotalSize(), 94u);
+    ASSERT_EQ(file.total_size(), 94u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
@@ -83,7 +83,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     };
 
     if (0) {
-        for (size_t i = 0; i != file.NumBlocks(); ++i) {
+        for (size_t i = 0; i != file.num_blocks(); ++i) {
             std::cout << common::hexdump(file.block(i).ToString())
                       << std::endl;
         }
@@ -215,7 +215,7 @@ TEST_F(File, RandomGetIndexOf) {
 
     fw.Close();
 
-    ASSERT_EQ(size, file.NumItems());
+    ASSERT_EQ(size, file.num_items());
 
     for (size_t i = 0; i < 10; i++) {
         size_t val = rng() % size;
@@ -260,7 +260,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     }
     fw.Close();
 
-    ASSERT_EQ(1000u, file.NumItems());
+    ASSERT_EQ(1000u, file.num_items());
 
     // read complete File
     data::File::Reader fr = file.GetReader();
@@ -383,7 +383,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
     ASSERT_EQ(file.max_size()
               / (sizeof(size_t)
                  + (data::DynBlockWriter::self_verify ? sizeof(size_t) : 0)),
-              file.NumItems());
+              file.num_items());
 }
 
 // forced instantiation

@@ -217,7 +217,7 @@ private:
 
         size_t local_begin =
             std::min(result_size_,
-                     dia_size_prefixsum_[in] - files_[in].NumItems());
+                     dia_size_prefixsum_[in] - files_[in].num_items());
         size_t local_end = std::min(result_size_, dia_size_prefixsum_[in]);
         size_t local_size = local_end - local_begin;
 
@@ -279,7 +279,7 @@ private:
 
         for (size_t in = 0; in < num_inputs_; ++in) {
             //! number of elements of this worker
-            size_t dia_local_size = files_[in].NumItems();
+            size_t dia_local_size = files_[in].num_items();
             sLOG << "input" << in << "dia_local_size" << dia_local_size;
 
             //! inclusive prefixsum of number of elements: we have items from
