@@ -29,7 +29,7 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-class BlockQueueSource;
+class ConsumeBlockQueueSource;
 
 /*!
  * A BlockQueue is a thread-safe queue used to hand-over Block objects between
@@ -45,9 +45,8 @@ class BlockQueueSource;
 class BlockQueue final : public BlockSink
 {
 public:
-    using BlockSource = BlockQueueSource;
     using Writer = BlockWriter<BlockQueue>;
-    using Reader = BlockReader<BlockQueueSource>;
+    using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
     using DynReader = DynBlockReader;
 
     //! Constructor from BlockPool
@@ -104,7 +103,7 @@ public:
     }
 
     //! return BlockReader specifically for a BlockQueue
-    Reader GetReader();
+    ConsumeReader GetConsumeReader();
 
     //! return polymorphic BlockReader variant
     DynReader GetDynReader();
@@ -122,11 +121,11 @@ private:
  * A BlockSource to read Block from a BlockQueue using a BlockReader. Each Block
  * is *taken* from the BlockQueue, hence the BlockQueue can be read only once!
  */
-class BlockQueueSource
+class ConsumeBlockQueueSource
 {
 public:
     //! Start reading from a BlockQueue
-    explicit BlockQueueSource(BlockQueue& queue)
+    explicit ConsumeBlockQueueSource(BlockQueue& queue)
         : queue_(queue)
     { }
 
@@ -146,13 +145,13 @@ protected:
 };
 
 inline
-typename BlockQueue::Reader BlockQueue::GetReader() {
-    return BlockQueue::Reader(BlockQueueSource(*this));
+typename BlockQueue::ConsumeReader BlockQueue::GetConsumeReader() {
+    return ConsumeReader(ConsumeBlockQueueSource(*this));
 }
 
 inline
 typename BlockQueue::DynReader BlockQueue::GetDynReader() {
-    return ConstructDynBlockReader<BlockQueueSource>(*this);
+    return ConstructDynBlockReader<ConsumeBlockQueueSource>(*this);
 }
 
 /*!
@@ -190,7 +189,7 @@ protected:
     bool from_queue_;
 
     //! BlockQueueSource
-    BlockQueueSource queue_src_;
+    ConsumeBlockQueueSource queue_src_;
 
     //! ConstFileBlockSource if the queue was already read.
     ConstFileBlockSource file_src_;
