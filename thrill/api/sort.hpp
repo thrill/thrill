@@ -83,7 +83,7 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool /* consume */) final {
 
         for (size_t i = 0; i < data_.size(); i++) {
             this->PushItem(data_[i]);

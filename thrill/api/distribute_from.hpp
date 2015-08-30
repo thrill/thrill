@@ -69,8 +69,7 @@ public:
         }
     }
 
-    void PushData() final {
-        bool consume = false;
+    void PushData(bool consume) final {
         data::Channel::ConcatReader readers = channel_->OpenConcatReader(consume);
 
         while (readers.HasNext()) {

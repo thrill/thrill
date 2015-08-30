@@ -127,13 +127,12 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         size_t result_count = 0;
 
         if (result_size_ != 0) {
             // get inbound readers from all Channels
             std::vector<data::Channel::ConcatReader> readers;
-            bool consume = false;
             readers.emplace_back(channels_[0]->OpenConcatReader(consume));
             readers.emplace_back(channels_[1]->OpenConcatReader(consume));
 
