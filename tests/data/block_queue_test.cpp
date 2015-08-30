@@ -18,7 +18,7 @@
 
 using namespace thrill;
 
-using MyBlockSource = data::BlockQueue::BlockSource;
+using MyBlockSource = data::ConsumeBlockQueueSource;
 using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
 struct BlockQueue : public::testing::Test {
@@ -74,7 +74,7 @@ TEST_F(BlockQueue, WriteZeroItems) {
 
     // get zero items back from file.
     {
-        data::BlockQueue::Reader br = q.GetReader();
+        data::BlockQueue::ConsumeReader br = q.GetConsumeReader();
 
         ASSERT_FALSE(br.HasNext());
     }
@@ -93,7 +93,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
 
     pool.Enqueue(
         [&q]() {
-            data::BlockQueue::Reader br = q.GetReader();
+            data::BlockQueue::ConsumeReader br = q.GetConsumeReader();
 
             ASSERT_TRUE(br.HasNext());
             int i1 = br.Next<int>();

@@ -65,6 +65,7 @@ using ChannelId = size_t;
 class Channel
 {
 public:
+    using BlockQueueSource = ConsumeBlockQueueSource;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
     using ConcatBlockSource = data::ConcatBlockSource<BlockQueueSource>;
     using ConcatBlockReader = BlockReader<ConcatBlockSource>;
