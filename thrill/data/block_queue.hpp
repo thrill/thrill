@@ -168,23 +168,38 @@ class CacheBlockQueueSource
 {
 public:
     //! Start reading from a BlockQueue
-    explicit CacheBlockQueueSource(BlockQueue& queue)
+    explicit CacheBlockQueueSource(BlockQueue* queue)
         : queue_(queue) { }
+
+    //! non-copyable: delete copy-constructor
+    CacheBlockQueueSource(const CacheBlockQueueSource&) = delete;
+    //! non-copyable: delete assignment operator
+    CacheBlockQueueSource& operator = (const CacheBlockQueueSource&) = delete;
+    //! move-constructor: default
+    CacheBlockQueueSource(CacheBlockQueueSource&& s)
+        : queue_(s.queue_) { s.queue_ = nullptr; }
 
     //! Return next block for BlockQueue, store into caching File and return it.
     Block NextBlock() {
-        Block b = queue_.Pop();
+        Block b = queue_->Pop();
 
-        // cache block in file_
+        // cache block in file_ (but not the termination block from the queue)
         if (b.IsValid())
-            queue_.file_.AppendBlock(b);
+            queue_->file_.AppendBlock(b);
 
         return b;
     }
 
+    //! Consume remaining blocks and cache them in the File.
+    ~CacheBlockQueueSource() {
+        if (queue_ && !queue_->read_closed()) {
+            while (NextBlock().IsValid()) { }
+        }
+    }
+
 protected:
     //! Reference to BlockQueue
-    BlockQueue& queue_;
+    BlockQueue* queue_;
 };
 
 inline
@@ -203,7 +218,7 @@ DynBlockSource BlockQueue::GetBlockSource(bool consume) {
     else if (!consume && !read_closed_) {
         // non-consumer but the BlockQueue has not been read.
         sLOG << "BlockQueue::GetBlockSource() non-consume, from queue.";
-        return ConstructDynBlockSource<CacheBlockQueueSource>(*this);
+        return ConstructDynBlockSource<CacheBlockQueueSource>(this);
     }
     else if (!consume && read_closed_) {
         // non-consumer: reread the file that was cached.
