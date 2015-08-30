@@ -58,7 +58,7 @@ public:
      * Returns result of global size.
      * \return result
      */
-    auto result() {
+    size_t result() const {
         return global_size_;
     }
 
