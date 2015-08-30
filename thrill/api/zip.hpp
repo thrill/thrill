@@ -96,7 +96,8 @@ public:
                const ParentDIARef1& parent1,
                ZipFunction zip_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(),
+                             { parent0.node(), parent1.node() }, "ZipNode", stats_node),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
@@ -131,9 +132,10 @@ public:
 
         if (result_size_ != 0) {
             // get inbound readers from all Channels
-            std::vector<data::Channel::CachingConcatReader> readers;
-            readers.emplace_back(channels_[0]->OpenCachingReader());
-            readers.emplace_back(channels_[1]->OpenCachingReader());
+            std::vector<data::Channel::ConcatReader> readers;
+            bool consume = false;
+            readers.emplace_back(channels_[0]->OpenConcatReader(consume));
+            readers.emplace_back(channels_[1]->OpenConcatReader(consume));
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();

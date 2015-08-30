@@ -41,10 +41,10 @@ public:
  * Think of this class being embedded into the BlockReader and delivering Blocks
  * via the virtual function class from whatever is attached.
  */
-class DynBlockSourcePtr
+class DynBlockSource
 {
 public:
-    explicit DynBlockSourcePtr(
+    explicit DynBlockSource(
         std::shared_ptr<DynBlockSourceInterface>&& block_source_ptr)
         : block_source_ptr_(std::move(block_source_ptr))
     { }
@@ -58,7 +58,7 @@ protected:
 };
 
 //! Instantiation of BlockReader for reading from the polymorphic source.
-using DynBlockReader = BlockReader<DynBlockSourcePtr>;
+using DynBlockReader = BlockReader<DynBlockSource>;
 
 /*!
  * Adapter class to wrap any existing BlockSource concept class into a
@@ -90,6 +90,18 @@ protected:
 };
 
 /*!
+ * Method to construct a DynBlockSource from a non-polymorphic BlockSource. The
+ * variadic parameters are passed to the constructor of the existing
+ * BlockSource.
+ */
+template <typename BlockSource, typename ... Params>
+DynBlockSource ConstructDynBlockSource(Params&& ... params) {
+    return DynBlockSource(
+        std::move(std::make_shared<DynBlockSourceAdapter<BlockSource> >(
+                      BlockSource(std::forward<Params>(params) ...))));
+}
+
+/*!
  * Method to construct a DynBlockReader from a non-polymorphic BlockSource. The
  * variadic parameters are passed to the constructor of the existing
  * BlockSource.
@@ -97,9 +109,7 @@ protected:
 template <typename BlockSource, typename ... Params>
 DynBlockReader ConstructDynBlockReader(Params&& ... params) {
     return DynBlockReader(
-        DynBlockSourcePtr(
-            std::move(std::make_shared<DynBlockSourceAdapter<BlockSource> >(
-                          BlockSource(std::forward<Params>(params) ...)))));
+        ConstructDynBlockSource<BlockSource>(std::forward<Params>(params) ...));
 }
 
 //! \}

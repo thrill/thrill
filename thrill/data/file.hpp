@@ -274,7 +274,7 @@ protected:
 
 inline
 typename File::ConstReader File::GetConstReader() const {
-    return ConstReader(ConstFileBlockSource(*this, 0, 0));
+    return ConstReader(ConstFileBlockSource(*this, 0));
 }
 
 /*!
@@ -289,7 +289,7 @@ class ConsumeFileBlockSource
 {
 public:
     //! Start reading a File
-    ConsumeFileBlockSource(File* file)
+    explicit ConsumeFileBlockSource(File* file)
         : file_(file) { }
 
     //! non-copyable: delete copy-constructor
@@ -342,7 +342,7 @@ typename File::Reader File::GetReader(bool consume) {
     if (consume)
         return ConstructDynBlockReader<ConsumeFileBlockSource>(this);
     else
-        return ConstructDynBlockReader<ConstFileBlockSource>(*this, 0, 0);
+        return ConstructDynBlockReader<ConstFileBlockSource>(*this, 0);
 }
 
 //! Get BlockReader seeked to the corresponding item index

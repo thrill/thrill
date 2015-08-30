@@ -173,7 +173,8 @@ public:
             // Files. Then the 2nd-PostTable stage can be repeatedly executed
             // from these Files when the StageBuilder calls "PushData()".
 
-            auto reader = channel_->OpenReader();
+            bool consume = false;
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -183,7 +184,8 @@ public:
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenReader();
+            bool consume = false;
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {

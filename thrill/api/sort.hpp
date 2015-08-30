@@ -138,7 +138,8 @@ private:
 
         std::vector<ValueType> samples;
         samples.reserve(sample_size * num_total_workers);
-        auto reader = channel_id_samples_->OpenReader();
+        // TODO(tb): OpenConsumeReader
+        auto reader = channel_id_samples_->OpenConcatReader(true);
 
         while (reader.HasNext()) {
             samples.push_back(reader.template Next<ValueType>());
@@ -333,7 +334,8 @@ private:
             for (size_t j = 1; j < num_total_workers; j++) {
                 emitters_samples_[j].Close();
             }
-            auto reader = channel_id_samples_->OpenReader();
+            bool consume = false;
+            auto reader = channel_id_samples_->OpenConcatReader(consume);
             while (reader.HasNext()) {
                 splitters.push_back(reader.template Next<ValueType>());
             }
@@ -371,7 +373,8 @@ private:
 
         data_.clear();
 
-        auto reader = channel_id_data_->OpenReader();
+        bool consume = false;
+        auto reader = channel_id_data_->OpenConcatReader(consume);
 
         while (reader.HasNext()) {
             data_.push_back(reader.template Next<ValueType>());
