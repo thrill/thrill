@@ -56,8 +56,8 @@ public:
     template <typename T>
     T Next() {
         assert(HasNext());
-        assert(nitems_ > 0);
-        --nitems_;
+        assert(num_items_ > 0);
+        --num_items_;
 
         if (self_verify) {
             // for self-verification, T is prefixed with its hash code
@@ -116,11 +116,11 @@ public:
 
         // inside the if-clause the current_ may not point to a valid item
         // boundary.
-        if (n >= nitems_)
+        if (n >= num_items_)
         {
             // *** if the current block still contains items, push it partially
 
-            if (n >= nitems_) {
+            if (n >= num_items_) {
                 // construct first Block using current_ pointer
                 out.emplace_back(
                     bytes_,
@@ -129,11 +129,11 @@ public:
                     // first item is at begin_ (we may have dropped some)
                     current_ - bytes_->begin(),
                     // remaining items in this block
-                    nitems_);
+                    num_items_);
 
                 sLOG << "partial first:" << out.back();
 
-                n -= nitems_;
+                n -= num_items_;
 
                 // get next block. if not possible -> may be okay since last
                 // item might just terminate the current block.
@@ -146,16 +146,16 @@ public:
 
             // *** then append complete blocks without deserializing them
 
-            while (n >= nitems_) {
+            while (n >= num_items_) {
                 out.emplace_back(
                     bytes_,
                     // full range is valid.
                     current_ - bytes_->begin(), end_ - bytes_->begin(),
-                    first_item_, nitems_);
+                    first_item_, num_items_);
 
                 sLOG << "middle:" << out.back();
 
-                n -= nitems_;
+                n -= num_items_;
 
                 if (!NextBlock()) {
                     assert(n == 0);
@@ -253,13 +253,13 @@ public:
             bytes -= end_ - current_;
             // deduct number of remaining items in skipped block from item skip
             // counter.
-            items -= nitems_;
+            items -= num_items_;
             if (!NextBlock())
                 throw std::runtime_error("Data underflow in BlockReader.");
         }
         current_ += bytes;
         // the last line skipped over the remaining "items" number of items.
-        nitems_ -= items;
+        num_items_ -= items;
         return *this;
     }
 
@@ -315,7 +315,7 @@ protected:
     size_t first_item_;
 
     //! remaining number of items starting in this block
-    size_t nitems_ = 0;
+    size_t num_items_ = 0;
 
     //! pointer to vector to collect blocks in GetItemRange.
     std::vector<Block>* block_collect_ = nullptr;
@@ -333,8 +333,8 @@ protected:
 
         current_ = b.data_begin();
         end_ = b.data_end();
-        first_item_ = b.first_item();
-        nitems_ = b.nitems();
+        first_item_ = b.first_item_absolute();
+        num_items_ = b.num_items();
         return true;
     }
 };

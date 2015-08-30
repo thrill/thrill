@@ -67,7 +67,7 @@ public:
 
         ValueType sum = local_sum_;
 
-        for (size_t i = 0; i < file_.NumItems(); ++i) {
+        for (size_t i = 0; i < file_.num_items(); ++i) {
             sum = sum_function_(sum, reader.Next<ValueType>());
             this->PushItem(sum);
         }

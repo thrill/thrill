@@ -70,7 +70,7 @@ public:
 
     void PushData() final {
         data::File::Reader reader = file_.GetReader();
-        for (size_t i = 0; i < file_.NumItems(); ++i) {
+        for (size_t i = 0; i < file_.num_items(); ++i) {
             this->PushItem(reader.Next<ValueType>());
         }
     }

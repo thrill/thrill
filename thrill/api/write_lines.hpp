@@ -78,7 +78,7 @@ public:
 
         data::File::Reader reader = temp_file_.GetReader();
 
-        for (size_t i = 0; i < temp_file_.NumItems(); ++i) {
+        for (size_t i = 0; i < temp_file_.num_items(); ++i) {
             file_ << reader.Next<ValueType>() << "\n";
         }
 
