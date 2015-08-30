@@ -98,7 +98,7 @@ size_t DIARef<ValueType, Stack>::Size() const {
 
     using SizeResultNode = SizeNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Size", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Size", DIANodeType::ACTION);
     auto shared_node
         = std::make_shared<SizeResultNode>(*this, stats_node);
 

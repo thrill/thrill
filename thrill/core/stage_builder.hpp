@@ -88,7 +88,8 @@ public:
                     stages_found.insert(p);
                     stages_result.push_back(Stage(p));
                     // If parent was not executed push it to the DFS
-                    if (p->state() != api::DIAState::EXECUTED || p->type() == api::NodeType::COLLAPSE) {
+                    if (p->state() != api::DIAState::EXECUTED ||
+                        p->type() == api::DIANodeType::COLLAPSE) {
                         dia_stack.push(p);
                     }
                 }

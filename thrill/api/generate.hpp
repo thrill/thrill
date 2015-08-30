@@ -74,7 +74,7 @@ public:
             common::CalculateLocalRange(size_, context_);
 
         for (size_t i = local_begin; i < local_end; i++) {
-            this->PushElement(generator_function_(i));
+            this->PushItem(generator_function_(i));
         }
     }
 
@@ -133,7 +133,7 @@ auto Generate(Context & ctx,
             >::value,
         "GeneratorFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", NodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode("Generate", DIANodeType::DOP);
     auto shared_node =
         std::make_shared<GenerateResultNode>(
             ctx, generator_function, size, stats_node);

@@ -72,7 +72,7 @@ public:
     void PushData() final {
         data::File::Reader reader = file_.GetReader();
         for (size_t i = 0; i < file_.NumItems(); ++i) {
-            this->PushElement(reader.Next<ValueType>());
+            this->PushItem(reader.Next<ValueType>());
         }
     }
 
@@ -118,7 +118,7 @@ auto DIARef<ValueType, Stack>::Cache() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::CACHE);
+    StatsNode* stats_node = AddChildStatsNode("LOp", DIANodeType::CACHE);
     auto shared_node
         = std::make_shared<LOpChainNode>(*this, "", stats_node);
     auto lop_stack = FunctionStack<ValueType>();

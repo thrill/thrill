@@ -206,7 +206,7 @@ void DIARef<ValueType, Stack>::WriteBinary(
 
     using WriteResultNode = WriteBinaryNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteBinary", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteBinary", DIANodeType::ACTION);
 
     auto shared_node =
         std::make_shared<WriteResultNode>(

@@ -74,7 +74,7 @@ public:
         data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
 
         while (readers.HasNext()) {
-            this->PushElement(readers.Next<ValueType>());
+            this->PushItem(readers.Next<ValueType>());
         }
 
         channel_->Close();
@@ -117,7 +117,7 @@ auto DistributeFrom(
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "DistributeFrom", NodeType::DOP);
+        "DistributeFrom", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<DistributeFromNode>(

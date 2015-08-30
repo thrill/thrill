@@ -93,7 +93,7 @@ void DIARef<ValueType, Stack>::WriteLinesMany(
 
     using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
 
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
