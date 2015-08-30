@@ -194,7 +194,7 @@ public:
                 /////
 
                 bool consume = false;
-                data::File::DynReader reader = file.GetReader(consume);
+                data::File::Reader reader = file.GetReader(consume);
 
                 // flag used when item is reduced to advance to next item
                 bool reduced = false;

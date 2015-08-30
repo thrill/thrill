@@ -197,7 +197,7 @@ TEST_F(File, SerializeSomeItemsDynReader) {
 
     // get items back from file.
     {
-        data::File::DynReader fr = file.GetDynReader();
+        data::File::Reader fr = file.GetReader(false);
         ASSERT_TRUE(fr.HasNext());
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
@@ -235,7 +235,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
 
     // get items back from file, consuming it.
     {
-        data::File::DynReader fr = file.GetReader(true);
+        data::File::Reader fr = file.GetReader(true);
         for (size_t i = 0; i < 50; ++i) {
             ASSERT_TRUE(fr.HasNext());
             unsigned iread = fr.Next<unsigned>();

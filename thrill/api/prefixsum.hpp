@@ -63,7 +63,8 @@ public:
     }
 
     void PushData() final {
-        data::File::DynReader reader = file_.GetReader(false);
+        bool consume = false;
+        data::File::Reader reader = file_.GetReader(consume);
 
         ValueType sum = local_sum_;
 
