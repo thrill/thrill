@@ -21,6 +21,7 @@
 #include <thrill/data/dyn_block_reader.hpp>
 
 #include <cassert>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <string>
@@ -33,6 +34,7 @@ namespace data {
 //! \{
 
 class FileBlockSource;
+class ConsumeFileBlockSource;
 class CachingBlockQueueSource;
 
 /*!
@@ -56,6 +58,7 @@ public:
     using BlockSource = FileBlockSource;
     using Writer = BlockWriter<File>;
     using Reader = BlockReader<FileBlockSource>;
+    using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
     using DynWriter = DynBlockWriter;
     using DynReader = DynBlockReader;
 
@@ -101,6 +104,11 @@ public:
         return num_items_sum_.size() ? num_items_sum_.back() : 0;
     }
 
+    //! Returns true if the File is empty.
+    bool empty() const {
+        return blocks_.empty();
+    }
+
     //! Return the number of bytes of user data in this file.
     size_t total_size() const { return size_; }
 
@@ -128,6 +136,24 @@ public:
 
     //! Get BlockReader for beginning of File
     Reader GetReader() const;
+
+    /*!
+     * Get consuming BlockReader for beginning of File
+     *
+     * \attention The reader consumes the File's contents UNCONDITIONALLY, the
+     * File will always be emptied whether all items were read via the Reader or
+     * not.
+     */
+    ConsumeReader GetConsumeReader();
+
+    /*!
+     * Get BlockReader or a consuming BlockReader for beginning of File
+     *
+     * \attention If consume is true, the reader consumes the File's contents
+     * UNCONDITIONALLY, the File will always be emptied whether all items were
+     * read via the Reader or not.
+     */
+    DynReader GetReader(bool consume);
 
     //! Get BufferedBlockReader for beginning of File
     template <typename ValueType>
@@ -180,18 +206,19 @@ public:
 protected:
     //! the container holding blocks and thus shared pointers to all byte
     //! blocks.
-    std::vector<Block> blocks_;
+    std::deque<Block> blocks_;
 
     //! inclusive prefixsum of number of elements of blocks, hence
     //! num_items_sum_[i] is the number of items starting in all blocks preceding
     //! and including the i-th block.
-    std::vector<size_t> num_items_sum_;
+    std::deque<size_t> num_items_sum_;
 
     //! Total size of this file in bytes. Sum of all block sizes.
     size_t size_ = 0;
 
     //! for access to blocks_ and used_
     friend class data::FileBlockSource;
+    friend class data::ConsumeFileBlockSource;
 
     //! Closed files can not be altered
     bool closed_ = false;
@@ -232,10 +259,6 @@ public:
         }
     }
 
-    bool closed() const {
-        return file_.closed();
-    }
-
 protected:
     //! sentinel value for not changing the first_item item
     static const size_t keep_first_item = size_t(-1);
@@ -253,16 +276,77 @@ protected:
     size_t first_item_;
 };
 
-//! Get BlockReader for beginning of File
-inline typename File::Reader File::GetReader() const {
+inline
+typename File::Reader File::GetReader() const {
     return Reader(FileBlockSource(*this, 0, 0));
 }
 
+/*!
+ * A BlockSource to read and simultaneously consume Blocks from a File. The
+ * ConsumeFileBlockSource always returns the first block of the File and removes
+ * it, hence, consuming Blocks from the File.
+ *
+ * \attention The reader consumes the File's contents UNCONDITIONALLY, the File
+ * will always be emptied whether all items were read via the Reader or not.
+ */
+class ConsumeFileBlockSource
+{
+public:
+    //! Start reading a File
+    ConsumeFileBlockSource(File* file)
+        : file_(file) { }
+
+    //! non-copyable: delete copy-constructor
+    ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
+    //! non-copyable: delete assignment operator
+    ConsumeFileBlockSource& operator = (const ConsumeFileBlockSource&) = delete;
+    //! move-constructor: default
+    ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
+        : file_(s.file_) { s.file_ = nullptr; }
+
+    //! Get the next block of file.
+    Block NextBlock() {
+        assert(file_);
+        if (file_->blocks_.empty())
+            return Block();
+
+        Block b = file_->blocks_.front();
+        file_->blocks_.pop_front();
+        return b;
+    }
+
+    //! Consume unread blocks and reset File to zero items.
+    ~ConsumeFileBlockSource() {
+        if (file_) {
+            file_->blocks_.clear();
+            file_->num_items_sum_.clear();
+        }
+    }
+
+protected:
+    //! file to consume blocks from
+    File* file_;
+};
+
+inline
+typename File::ConsumeReader File::GetConsumeReader() {
+    return ConsumeReader(ConsumeFileBlockSource(this));
+}
+
 template <typename ValueType>
-inline BufferedBlockReader<ValueType, FileBlockSource>
+inline
+BufferedBlockReader<ValueType, FileBlockSource>
 File::GetBufferedReader() const {
     return BufferedBlockReader<ValueType, FileBlockSource>(
         FileBlockSource(*this, 0, 0));
+}
+
+inline
+typename File::DynReader File::GetReader(bool consume) {
+    if (consume)
+        return ConstructDynBlockReader<ConsumeFileBlockSource>(this);
+    else
+        return ConstructDynBlockReader<FileBlockSource>(*this, 0, 0);
 }
 
 inline

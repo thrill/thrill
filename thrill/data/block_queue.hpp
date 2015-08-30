@@ -185,10 +185,6 @@ public:
         }
     }
 
-    bool closed() const {
-        return from_queue_ ? queue_src_.closed() : file_src_.closed();
-    }
-
 protected:
     //! whether we read from BlockQueue or from the File.
     bool from_queue_;

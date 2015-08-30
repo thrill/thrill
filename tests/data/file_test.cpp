@@ -157,14 +157,23 @@ TEST_F(File, SerializeSomeItems) {
     // get items back from file.
     {
         data::File::Reader fr = file.GetReader();
+        ASSERT_TRUE(fr.HasNext());
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
+
+        ASSERT_TRUE(fr.HasNext());
         MyPair i2 = fr.Next<MyPair>();
         ASSERT_EQ(i2, MyPair(5, "10abc"));
+
+        ASSERT_TRUE(fr.HasNext());
         double i3 = fr.Next<double>();
         ASSERT_DOUBLE_EQ(i3, 42.0);
+
+        ASSERT_TRUE(fr.HasNext());
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
+
+        ASSERT_TRUE(!fr.HasNext());
     }
 }
 
@@ -184,19 +193,58 @@ TEST_F(File, SerializeSomeItemsDynReader) {
         fw(static_cast<double>(42.0));
         fw(std::string("test"));
     }
+    ASSERT_EQ(4u, file.num_items());
 
     // get items back from file.
     {
         data::File::DynReader fr = file.GetDynReader();
+        ASSERT_TRUE(fr.HasNext());
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
+
+        ASSERT_TRUE(fr.HasNext());
         MyPair i2 = fr.Next<MyPair>();
         ASSERT_EQ(i2, MyPair(5, "10abc"));
+
+        ASSERT_TRUE(fr.HasNext());
         double i3 = fr.Next<double>();
         ASSERT_DOUBLE_EQ(i3, 42.0);
+
+        ASSERT_TRUE(fr.HasNext());
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
+
+        ASSERT_TRUE(!fr.HasNext());
     }
+    ASSERT_EQ(4u, file.num_items());
+}
+
+TEST_F(File, SerializeSomeItemsConsumeReader) {
+
+    // construct File with very small blocks for testing
+    data::File file(block_pool_);
+
+    // put into File some items (all of different serialization bytes)
+    {
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(53);
+        for (size_t i = 0; i < 50; ++i) {
+            fw.PutItem<unsigned>(i);
+        }
+    }
+
+    // get items back from file, consuming it.
+    {
+        data::File::DynReader fr = file.GetReader(true);
+        for (size_t i = 0; i < 50; ++i) {
+            ASSERT_TRUE(fr.HasNext());
+            unsigned iread = fr.Next<unsigned>();
+            ASSERT_EQ(i, iread);
+        }
+        ASSERT_TRUE(!fr.HasNext());
+    }
+    ASSERT_TRUE(file.empty());
+    ASSERT_EQ(0u, file.num_items());
 }
 
 TEST_F(File, RandomGetIndexOf) {
