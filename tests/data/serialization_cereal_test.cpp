@@ -92,7 +92,7 @@ TEST_F(SerializationCereal, cereal_w_FileWriter)
     w(co2);
     w.Close();
 
-    data::File::Reader r = f.GetReader();
+    data::File::ConstReader r = f.GetConstReader();
 
     ASSERT_TRUE(r.HasNext());
     CerealObject coserial = r.Next<CerealObject>();

@@ -223,7 +223,7 @@ public:
 
         // current item offset in Reader
         size_t current = 0;
-        File::Reader reader = source.GetReader();
+        File::ConstReader reader = source.GetConstReader();
 
         std::vector<Writer> writers = OpenWriters();
 

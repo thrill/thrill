@@ -192,8 +192,8 @@ protected:
     //! BlockQueueSource
     BlockQueueSource queue_src_;
 
-    //! FileBlockSource if the queue was already read.
-    FileBlockSource file_src_;
+    //! ConstFileBlockSource if the queue was already read.
+    ConstFileBlockSource file_src_;
 
     //! Reference to file for caching Blocks
     File& file_;
