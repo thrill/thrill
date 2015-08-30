@@ -67,16 +67,13 @@ class Channel
 public:
     using BlockQueueSource = ConsumeBlockQueueSource;
     using BlockQueueReader = BlockReader<BlockQueueSource>;
-    using ConcatBlockSource = data::ConcatBlockSource<BlockQueueSource>;
-    using ConcatBlockReader = BlockReader<ConcatBlockSource>;
 
-    using CachingConcatBlockSource = data::ConcatBlockSource<CachingBlockQueueSource>;
-    using CachingConcatBlockReader = BlockReader<CachingConcatBlockSource>;
+    using ConcatBlockSource = data::ConcatBlockSource<DynBlockSource>;
+    using ConcatBlockReader = BlockReader<ConcatBlockSource>;
 
     using Writer = DynBlockWriter;
     using Reader = BlockQueueReader;
     using ConcatReader = ConcatBlockReader;
-    using CachingConcatReader = CachingConcatBlockReader;
 
     using StatsCounter = common::StatsCounter<size_t, common::g_enable_stats>;
     using StatsTimer = common::StatsTimer<common::g_enable_stats>;
@@ -96,7 +93,6 @@ public:
 
         sinks_.reserve(multiplexer_.num_workers());
         queues_.reserve(multiplexer_.num_workers());
-        cache_files_.reserve(multiplexer_.num_workers());
 
         // construct ChannelSink array
         for (size_t host = 0; host < multiplexer_.num_hosts(); ++host) {
@@ -115,8 +111,6 @@ public:
                 }
                 // construct inbound queues
                 queues_.emplace_back(multiplexer_.block_pool_);
-                // construct file for caching
-                cache_files_.emplace_back(multiplexer_.block_pool_);
             }
         }
     }
@@ -172,37 +166,19 @@ public:
         return result;
     }
 
-    //! Creates a BlockReader for all workers. The BlockReader is attached to
-    //! one \ref ConcatBlockSource which includes all incoming queues of
-    //! this channel.
-    ConcatBlockReader OpenReader() {
-        rx_timespan_.StartEventually();
-
-        // construct vector of BlockQueueSources to read from queues_.
-        std::vector<BlockQueueSource> result;
-
-        for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
-            result.emplace_back(queues_[worker]);
-        }
-        // move BlockQueueSources into concatenation BlockSource, and to Reader.
-        return ConcatBlockReader(ConcatBlockSource(result));
-    }
-
-    //! Creates a BlockReader for all workers. The BlockReader is attached to
-    //! one \ref ConcatBlockSource which includes all incoming queues of this
-    //! channel. The received Blocks are also cached in the Channel, hence this
-    //! function can be called multiple times to read the items again.
-    CachingConcatBlockReader OpenCachingReader() {
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! ConcatBlockSource which includes all incoming queues of this channel.
+    ConcatBlockReader OpenConcatReader(bool consume) {
         rx_timespan_.StartEventually();
 
         // construct vector of CachingBlockQueueSources to read from queues_.
-        std::vector<CachingBlockQueueSource> result;
+        std::vector<DynBlockSource> result;
         for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
-            result.emplace_back(queues_[worker], cache_files_[worker]);
+            result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
-        // move CachingBlockQueueSources into concatenation BlockSource, and to
-        // Reader.
-        return CachingConcatBlockReader(CachingConcatBlockSource(result));
+        // move BlockQueueSources into concatenation BlockSource, and to Reader.
+        return ConcatBlockReader(ConcatBlockSource(std::move(result)));
     }
 
     /*!
@@ -334,9 +310,6 @@ protected:
 
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
-
-    //! Vector of Files to cache inbound Blocks needed for OpenCachingReader().
-    std::vector<File> cache_files_;
 
     //! number of expected / received stream closing operations. Required to know when to
     //! stop rx_lifetime

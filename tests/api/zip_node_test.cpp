@@ -103,7 +103,6 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
                 ASSERT_EQ(static_cast<long>(2 * test_size - test_size / 10 + i), res[i].b);
             }
 
-            // TODO(sl): make this work!
             // check size of zip (recalculates ZipNode)
             ASSERT_EQ(100u, zip_result.Size());
         };
