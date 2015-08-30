@@ -33,7 +33,7 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-class FileBlockSource;
+class ConstFileBlockSource;
 class ConsumeFileBlockSource;
 class CachingBlockQueueSource;
 
@@ -55,9 +55,8 @@ class CachingBlockQueueSource;
 class File : public virtual BlockSink
 {
 public:
-    using BlockSource = FileBlockSource;
     using Writer = BlockWriter<File>;
-    using Reader = BlockReader<FileBlockSource>;
+    using ConstReader = BlockReader<ConstFileBlockSource>;
     using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
     using DynWriter = DynBlockWriter;
     using DynReader = DynBlockReader;
@@ -135,7 +134,7 @@ public:
     }
 
     //! Get BlockReader for beginning of File
-    Reader GetReader() const;
+    ConstReader GetConstReader() const;
 
     /*!
      * Get consuming BlockReader for beginning of File
@@ -157,14 +156,14 @@ public:
 
     //! Get BufferedBlockReader for beginning of File
     template <typename ValueType>
-    BufferedBlockReader<ValueType, FileBlockSource> GetBufferedReader() const;
+    BufferedBlockReader<ValueType, ConstFileBlockSource> GetBufferedReader() const;
 
     //! return polymorphic BlockReader variant for beginning of File
     DynReader GetDynReader() const;
 
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
-    Reader GetReaderAt(size_t index) const;
+    ConstReader GetReaderAt(size_t index) const;
 
     //! Get item at the corresponding position. Do not use this
     // method for reading multiple successive items.
@@ -217,7 +216,7 @@ protected:
     size_t size_ = 0;
 
     //! for access to blocks_ and used_
-    friend class data::FileBlockSource;
+    friend class data::ConstFileBlockSource;
     friend class data::ConsumeFileBlockSource;
 
     //! Closed files can not be altered
@@ -225,15 +224,15 @@ protected:
 };
 
 /*!
- * A BlockSource to read Blocks from a File. The FileBlockSource mainly contains
+ * A BlockSource to read Blocks from a File. The ConstFileBlockSource mainly contains
  * an index to the current block, which is incremented when the NextBlock() must
  * be delivered.
  */
-class FileBlockSource
+class ConstFileBlockSource
 {
 public:
     //! Start reading a File
-    FileBlockSource(const File& file,
+    ConstFileBlockSource(const File& file,
                     size_t first_block = 0, size_t first_item = keep_first_item)
         : file_(file), first_block_(first_block), first_item_(first_item) {
         current_block_ = first_block_ - 1;
@@ -277,8 +276,8 @@ protected:
 };
 
 inline
-typename File::Reader File::GetReader() const {
-    return Reader(FileBlockSource(*this, 0, 0));
+typename File::ConstReader File::GetConstReader() const {
+    return ConstReader(ConstFileBlockSource(*this, 0, 0));
 }
 
 /*!
@@ -335,10 +334,10 @@ typename File::ConsumeReader File::GetConsumeReader() {
 
 template <typename ValueType>
 inline
-BufferedBlockReader<ValueType, FileBlockSource>
+BufferedBlockReader<ValueType, ConstFileBlockSource>
 File::GetBufferedReader() const {
-    return BufferedBlockReader<ValueType, FileBlockSource>(
-        FileBlockSource(*this, 0, 0));
+    return BufferedBlockReader<ValueType, ConstFileBlockSource>(
+        ConstFileBlockSource(*this, 0, 0));
 }
 
 inline
@@ -346,17 +345,17 @@ typename File::DynReader File::GetReader(bool consume) {
     if (consume)
         return ConstructDynBlockReader<ConsumeFileBlockSource>(this);
     else
-        return ConstructDynBlockReader<FileBlockSource>(*this, 0, 0);
+        return ConstructDynBlockReader<ConstFileBlockSource>(*this, 0, 0);
 }
 
 inline
 typename File::DynReader File::GetDynReader() const {
-    return ConstructDynBlockReader<FileBlockSource>(*this, 0, 0);
+    return ConstructDynBlockReader<ConstFileBlockSource>(*this, 0, 0);
 }
 
 //! Get BlockReader seeked to the corresponding item index
 template <typename ItemType>
-typename File::Reader
+typename File::ConstReader
 File::GetReaderAt(size_t index) const {
     static const bool debug = false;
 
@@ -375,9 +374,9 @@ File::GetReaderAt(size_t index) const {
          << "first_item" << blocks_[begin_block].first_item_absolute();
 
     // start Reader at given first valid item in located block
-    Reader fr(
-        FileBlockSource(*this, begin_block,
-                        blocks_[begin_block].first_item_absolute()));
+    ConstReader fr(
+        ConstFileBlockSource(*this, begin_block,
+                             blocks_[begin_block].first_item_absolute()));
 
     // skip over extra items in beginning of block
     size_t items_before = it == num_items_sum_.begin() ? 0 : *(it - 1);
@@ -387,12 +386,12 @@ File::GetReaderAt(size_t index) const {
     assert(items_before <= index);
 
     // use fixed_size information to accelerate jump.
-    if (Serialization<Reader, ItemType>::is_fixed_size)
+    if (Serialization<ConstReader, ItemType>::is_fixed_size)
     {
         const size_t skip_items = index - items_before;
         fr.Skip(skip_items,
-                skip_items * ((Reader::self_verify ? sizeof(size_t) : 0) +
-                              Serialization<Reader, ItemType>::fixed_size));
+                skip_items * ((ConstReader::self_verify ? sizeof(size_t) : 0) +
+                              Serialization<ConstReader, ItemType>::fixed_size));
     }
     else
     {
@@ -409,7 +408,7 @@ File::GetReaderAt(size_t index) const {
 template <typename ItemType>
 ItemType File::GetItemAt(size_t index) const {
 
-    Reader reader = this->GetReaderAt<ItemType>(index);
+    ConstReader reader = this->GetReaderAt<ItemType>(index);
     ItemType val = reader.Next<ItemType>();
 
     return val;

@@ -46,7 +46,7 @@ void ConductExperiment(uint64_t bytes, unsigned iterations, api::Context& ctx, c
         write_timer.Stop();
 
         std::cout << "reading " << bytes << " bytes" << std::endl;
-        auto reader = file.GetReader();
+        auto reader = file.GetConsumeReader();
         StatsTimer<true> read_timer(true);
         while (reader.HasNext())
             reader.Next<Type>();
