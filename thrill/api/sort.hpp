@@ -48,7 +48,6 @@ class SortNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
 public:
     /*!
@@ -108,7 +107,7 @@ public:
      * \return "[SortNode]"
      */
     std::string ToString() final {
-        return "[SortNode] Id:" + result_file_.ToString();
+        return "[SortNode] Id:" + this->id();
     }
 
 private:

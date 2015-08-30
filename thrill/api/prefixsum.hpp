@@ -35,7 +35,6 @@ class PrefixSumNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
 public:
     PrefixSumNode(const ParentDIARef& parent,
@@ -91,7 +90,7 @@ public:
      * \return "[PrefixSumNode]"
      */
     std::string ToString() final {
-        return "[PrefixSumNode] Id:" + result_file_.ToString();
+        return "[PrefixSumNode] Id:" + this->id();
     }
 
 private:

@@ -31,7 +31,6 @@ class GatherNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
-    using Super::result_file_;
 
     GatherNode(const ParentDIARef& parent,
                size_t target_id,
@@ -74,7 +73,7 @@ public:
     void Dispose() final { }
 
     std::string ToString() final {
-        return "[GatherNode] Id: " + result_file_.ToString();
+        return "[GatherNode] Id: " + this->id();
     }
 
 private:

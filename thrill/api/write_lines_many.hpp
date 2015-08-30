@@ -34,7 +34,6 @@ class WriteLinesManyNode : public ActionNode
 
 public:
     using Super = ActionNode;
-    using Super::result_file_;
     using Super::context_;
 
     WriteLinesManyNode(const ParentDIARef& parent,
@@ -72,7 +71,7 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() final {
-        return "[WriteNode] Id:" + result_file_.ToString();
+        return "[WriteNode] Id:" + this->id();
     }
 
 private:

@@ -46,7 +46,6 @@ class GenerateFileNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     /*!
      * Constructor for a GenerateFileNode. Sets the Context, parents, generator
@@ -77,7 +76,7 @@ public:
     void Execute() final { }
 
     void PushData() final {
-        LOG << "GENERATING data to file " << result_file_.ToString();
+        LOG << "GENERATING data to file " << this->id();
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -128,7 +127,7 @@ public:
      * \return Stringified node.
      */
     std::string ToString() final {
-        return "[GeneratorNode] Id: " + result_file_.ToString();
+        return "[GeneratorNode] Id: " + this->id();
     }
 
 private:

@@ -46,7 +46,6 @@ class ReadBinaryNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     using FileSizePair = std::pair<std::string, size_t>;
 
@@ -97,7 +96,7 @@ public:
 
     void PushData() final {
         static const bool debug = false;
-        LOG << "READING data " << result_file_.ToString();
+        LOG << "READING data " << this->id();
 
         // Hook Read
         for (const FileSizePair& file : my_files_) {
@@ -126,7 +125,7 @@ public:
     }
 
     std::string ToString() final {
-        return "[ReadBinaryNode] Id: " + result_file_.ToString();
+        return "[ReadBinaryNode] Id: " + this->id();
     }
 
 private:

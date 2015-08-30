@@ -76,7 +76,7 @@ public:
     void Dispose() final { }
 
     std::string ToString() final {
-        return "[WriteBinaryNode] Id:" + result_file_.ToString();
+        return "[WriteBinaryNode] Id:" + this->id();
     }
 
     //! function which takes pathbase and replaces $$$ with worker and ### with
