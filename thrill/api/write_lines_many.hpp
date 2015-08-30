@@ -71,7 +71,7 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() final {
-        return "[WriteNode] Id:" + this->id();
+        return "[WriteNode] Id:" + std::to_string(this->id());
     }
 
 private:

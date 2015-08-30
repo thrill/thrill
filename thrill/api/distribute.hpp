@@ -66,7 +66,7 @@ public:
     }
 
     std::string ToString() final {
-        return "[Distribute] Id: " + this->id();
+        return "[Distribute] Id: " + std::to_string(this->id());
     }
 
 private:

@@ -96,7 +96,7 @@ public:
 
     void PushData() final {
         static const bool debug = false;
-        LOG << "READING data " << this->id();
+        LOG << "READING data " << std::to_string(this->id());
 
         // Hook Read
         for (const FileSizePair& file : my_files_) {
@@ -125,7 +125,7 @@ public:
     }
 
     std::string ToString() final {
-        return "[ReadBinaryNode] Id: " + this->id();
+        return "[ReadBinaryNode] Id: " + std::to_string(this->id());
     }
 
 private:

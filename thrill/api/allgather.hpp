@@ -79,7 +79,7 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() final {
-        return "[AllGatherNode] Id: " + this->id();
+        return "[AllGatherNode] Id: " + std::to_string(this->id());
     }
 
 private:

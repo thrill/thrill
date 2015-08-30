@@ -93,7 +93,7 @@ public:
      * \return Stringified node.
      */
     std::string ToString() final {
-        return "[GeneratorNode] Id: " + this->id();
+        return "[GeneratorNode] Id: " + std::to_string(this->id());
     }
 
 private:

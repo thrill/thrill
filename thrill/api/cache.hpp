@@ -82,7 +82,7 @@ public:
      * \return "[CacheNode]"
      */
     std::string ToString() final {
-        return "[CacheNode] Id: " + this->id();
+        return "[CacheNode] Id: " + std::to_string(this->id());
     }
 
 private:

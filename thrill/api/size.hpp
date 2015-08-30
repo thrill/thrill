@@ -67,7 +67,7 @@ public:
      * \return "[SizeNode]"
      */
     std::string ToString() final {
-        return "[SizeNode] Id:" + this->id();
+        return "[SizeNode] Id:" + std::to_string(this->id());
     }
 
 private:

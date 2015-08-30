@@ -107,7 +107,7 @@ public:
      * \return "[SortNode]"
      */
     std::string ToString() final {
-        return "[SortNode] Id:" + this->id();
+        return "[SortNode] Id:" + std::to_string(this->id());
     }
 
 private:

@@ -73,7 +73,7 @@ public:
     void Dispose() final { }
 
     std::string ToString() final {
-        return "[GatherNode] Id: " + this->id();
+        return "[GatherNode] Id: " + std::to_string(this->id());
     }
 
 private:

@@ -91,7 +91,7 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() final {
-        return "[DistributeFrom] Id: " + this->id();
+        return "[DistributeFrom] Id: " + std::to_string(this->id());
     }
 
 private:
