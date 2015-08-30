@@ -54,7 +54,12 @@ public:
         std::string tmp_dir = std::string(sample) + "XXXXXX";
         // evil const_cast, but mkdtemp replaces the XXXXXX with something
         // unique. it also mkdirs.
-        mkdtemp(const_cast<char*>(tmp_dir.c_str()));
+        char* p = mkdtemp(const_cast<char*>(tmp_dir.c_str()));
+
+        if (p == nullptr) {
+            throw common::SystemException(
+                      "Could create temporary directory " + tmp_dir, errno);
+        }
 
         return tmp_dir;
     }
@@ -360,6 +365,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
             if (ctx.my_rank() == 0) {
+                // REVIEW(an): this MUST be removed.
                 std::system("rm -r ./binary/*");
             }
             ctx.Barrier();
