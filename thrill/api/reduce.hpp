@@ -281,7 +281,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceBy", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceBy", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, true, false>;
@@ -333,7 +333,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     using Key = typename ValueType::first_type;
 
-    StatsNode* stats_node = AddChildStatsNode("ReducePair", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReducePair", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<ValueType, DIARef, std::function<Key(Key)>,
                            ReduceFunction, false, true>;
@@ -396,7 +396,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Reduce", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Reduce", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, false, false>;

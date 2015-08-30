@@ -119,7 +119,7 @@ void DIARef<ValueType, Stack>::WriteLines(
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Write", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,

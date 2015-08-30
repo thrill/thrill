@@ -106,7 +106,7 @@ public:
     //! Virtual ToString method. Returns the type of node in sub-classes.
     virtual std::string ToString() = 0;
 
-    const NodeType & type() {
+    const DIANodeType & type() {
         return stats_node_->type();
     }
 

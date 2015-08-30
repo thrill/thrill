@@ -107,7 +107,7 @@ public:
                 SysFileBlockSource(file.first, context_));
 
             while (br.HasNext()) {
-                this->PushElement(br.template NextNoSelfVerify<ValueType>());
+                this->PushItem(br.template NextNoSelfVerify<ValueType>());
             }
         }
         LOG << "DONE!";
@@ -184,7 +184,7 @@ template <typename ValueType>
 DIARef<ValueType> ReadBinary(Context& ctx, const std::string& filepath) {
 
     StatsNode* stats_node =
-        ctx.stats_graph().AddNode("ReadBinary", NodeType::DOP);
+        ctx.stats_graph().AddNode("ReadBinary", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadBinaryNode<ValueType> >(

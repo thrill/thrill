@@ -102,7 +102,7 @@ DIARef<ValueType, Stack>::Gather(size_t target_id) const {
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("Gather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
 
@@ -123,7 +123,7 @@ void DIARef<ValueType, Stack>::Gather(
 
     using GatherNode = api::GatherNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Gather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 

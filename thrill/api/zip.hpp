@@ -138,7 +138,7 @@ public:
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();
                 ZipArg1 i1 = readers[1].Next<ZipArg1>();
-                this->PushElement(zip_function_(i0, i1));
+                this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
 
@@ -330,7 +330,7 @@ auto DIARef<ValueType, Stack>::Zip(
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Zip", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Zip", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
         = std::make_shared<ZipResultNode>(*this,

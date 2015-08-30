@@ -107,7 +107,7 @@ public:
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);
-            this->PushElement(elements_[rand_element]);
+            this->PushItem(elements_[rand_element]);
         }
     }
 
@@ -161,7 +161,7 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", NodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", DIANodeType::DOP);
     auto shared_node =
         std::make_shared<GenerateResultNode>(
             ctx, generator_function, filepath, size, stats_node);

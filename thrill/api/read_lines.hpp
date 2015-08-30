@@ -83,7 +83,7 @@ public:
             while (it.HasNext()) {
                 auto item = it.Next();
                 LOG << item;
-                this->PushElement(item);
+                this->PushItem(item);
             }
         }
         else {
@@ -94,7 +94,7 @@ public:
             while (it.HasNext()) {
                 auto item = it.Next();
                 LOG << item;
-                this->PushElement(item);
+                this->PushItem(item);
             }
         }
     }
@@ -456,7 +456,7 @@ private:
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", NodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

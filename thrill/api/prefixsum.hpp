@@ -70,7 +70,7 @@ public:
 
         for (size_t i = 0; i < file_.NumItems(); ++i) {
             sum = sum_function_(sum, reader.Next<ValueType>());
-            this->PushElement(sum);
+            this->PushItem(sum);
         }
     }
 
@@ -160,7 +160,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("PrefixSum", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("PrefixSum", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,

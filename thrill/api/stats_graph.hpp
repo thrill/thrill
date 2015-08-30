@@ -25,7 +25,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-enum class NodeType {
+enum class DIANodeType {
     DOP,
     ACTION,
     COLLAPSE,
@@ -48,7 +48,7 @@ public:
      * \param label Label of the node in the graphical representation.
      * \param type Switch for choosing the layout of the node.
      */
-    StatsNode(const std::string& label, const NodeType& type)
+    StatsNode(const std::string& label, const DIANodeType& type)
         : label_(label),
           type_(type)
     { }
@@ -75,7 +75,7 @@ public:
     /*!
      * Returns the type of the node.
      */
-    const NodeType & type() const {
+    const DIANodeType & type() const {
         return type_;
     }
 
@@ -121,14 +121,14 @@ public:
     std::string NodeStyle() const {
         std::string style = label_ + " [";
         switch (type_) {
-        case NodeType::DOP:
+        case DIANodeType::DOP:
             style += "style=filled, fillcolor=red, shape=box";
             break;
-        case NodeType::ACTION:
+        case DIANodeType::ACTION:
             style += "style=filled, fillcolor=yellow, shape=diamond";
             break;
-        case NodeType::CACHE:
-        case NodeType::COLLAPSE:
+        case DIANodeType::CACHE:
+        case DIANodeType::COLLAPSE:
             style += "style=filled, fillcolor=blue, shape=hexagon";
             break;
         default:
@@ -156,7 +156,7 @@ private:
     std::string label_;
 
     //! Type of node
-    NodeType type_;
+    DIANodeType type_;
 
     //! Stats messages
     std::vector<std::string> stats_msg_;
@@ -192,7 +192,7 @@ public:
      *
      * \return Pointer to the new node.
      */
-    StatsNode * AddNode(const std::string& label, const NodeType& type) {
+    StatsNode * AddNode(const std::string& label, const DIANodeType& type) {
         StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
         nodes_.push_back(node);
         return node;

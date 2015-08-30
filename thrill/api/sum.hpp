@@ -129,7 +129,7 @@ auto DIARef<ValueType, Stack>::Sum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Sum", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Sum", DIANodeType::ACTION);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,

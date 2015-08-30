@@ -87,7 +87,7 @@ public:
     void PushData() final {
 
         for (size_t i = 0; i < data_.size(); i++) {
-            this->PushElement(data_[i]);
+            this->PushItem(data_[i]);
         }
     }
 
@@ -418,7 +418,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    StatsNode* stats_node = AddChildStatsNode("Sort", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Sort", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<SortResultNode>(*this, compare_function, stats_node);
 

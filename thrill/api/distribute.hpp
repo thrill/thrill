@@ -56,7 +56,7 @@ public:
             common::CalculateLocalRange(in_vector_.size(), context_);
 
         for (size_t i = local_begin; i < local_end; ++i) {
-            this->PushElement(in_vector_[i]);
+            this->PushItem(in_vector_[i]);
         }
     }
 
@@ -93,7 +93,7 @@ auto Distribute(Context & ctx,
     using DistributeNode = api::DistributeNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", NodeType::DOP);
+        "Distribute", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, in_vector, stats_node);
@@ -122,7 +122,7 @@ auto Distribute(Context & ctx,
     using DistributeNode = api::DistributeNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "Distribute", NodeType::DOP);
+        "Distribute", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<DistributeNode>(ctx, std::move(in_vector), stats_node);

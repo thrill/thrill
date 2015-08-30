@@ -104,7 +104,7 @@ public:
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 MergeArg0 i0 = readers[0].Next<MergeArg0>();
                 MergeArg1 i1 = readers[1].Next<MergeArg1>();
-                this->PushElement(zip_function_(i0, i1));
+                this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
 
@@ -212,7 +212,7 @@ auto DIARef<ValueType, Stack>::Merge(
             >::value,
         "MergeFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
         = std::make_shared<MergeResultNode>(*this,

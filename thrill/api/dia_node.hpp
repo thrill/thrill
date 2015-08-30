@@ -27,7 +27,7 @@ namespace api {
 template <typename ValueType>
 struct CallbackPair {
     CallbackPair(const std::function<void(const ValueType&)>& cb,
-                 NodeType type)
+                 DIANodeType type)
         : cb_(cb), type_(type) { }
 
     void operator () (const ValueType& elem) const {
@@ -37,7 +37,7 @@ struct CallbackPair {
     //! callback to invoke (currently for each item)
     std::function<void(const ValueType&)> cb_;
     //! node invoked.
-    NodeType                              type_;
+    DIANodeType                           type_;
 };
 
 /*!
@@ -86,7 +86,7 @@ public:
      * locally processable operations between the parent and child.
      */
     void RegisterChild(const std::function<void(const ValueType&)>& callback,
-                       const NodeType& child_type) {
+                       const DIANodeType& child_type) {
         callbacks_.emplace_back(callback, child_type);
     }
 
@@ -94,7 +94,7 @@ public:
         callbacks_.erase(
             std::remove_if(
                 callbacks_.begin(), callbacks_.end(),
-                [](const auto& cb) { return cb.type_ != NodeType::COLLAPSE; }),
+                [](const auto& cb) { return cb.type_ != DIANodeType::COLLAPSE; }),
             callbacks_.end());
     }
 
@@ -106,7 +106,7 @@ public:
         for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
     }
 
-    void PushElement(const ValueType& elem) const {
+    void PushItem(const ValueType& elem) const {
         for (const auto& callback : callbacks_) {
             callback(elem);
         }
