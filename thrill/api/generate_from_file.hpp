@@ -107,9 +107,7 @@ public:
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(elements_[rand_element]);
-            }
+            this->PushElement(elements_[rand_element]);
         }
     }
 

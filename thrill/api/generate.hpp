@@ -74,9 +74,7 @@ public:
             common::CalculateLocalRange(size_, context_);
 
         for (size_t i = local_begin; i < local_end; i++) {
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(generator_function_(i));
-            }
+            this->PushElement(generator_function_(i));
         }
     }
 

@@ -107,10 +107,7 @@ public:
                 SysFileBlockSource(file.first, context_));
 
             while (br.HasNext()) {
-                ValueType item = br.template NextNoSelfVerify<ValueType>();
-                for (auto func : Super::callbacks_) {
-                    func(item);
-                }
+                this->PushElement(br.template NextNoSelfVerify<ValueType>());
             }
         }
         LOG << "DONE!";

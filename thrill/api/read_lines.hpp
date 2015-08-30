@@ -83,9 +83,7 @@ public:
             while (it.HasNext()) {
                 auto item = it.Next();
                 LOG << item;
-                for (auto func : Super::callbacks_) {
-                    func(item);
-                }
+                this->PushElement(item);
             }
         }
         else {
@@ -96,9 +94,7 @@ public:
             while (it.HasNext()) {
                 auto item = it.Next();
                 LOG << item;
-                for (auto func : Super::callbacks_) {
-                    func(item);
-                }
+                this->PushElement(item);
             }
         }
     }

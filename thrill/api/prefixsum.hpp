@@ -70,9 +70,7 @@ public:
 
         for (size_t i = 0; i < file_.NumItems(); ++i) {
             sum = sum_function_(sum, reader.Next<ValueType>());
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(sum);
-            }
+            this->PushElement(sum);
         }
     }
 

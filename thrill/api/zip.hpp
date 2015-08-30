@@ -138,10 +138,7 @@ public:
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();
                 ZipArg1 i1 = readers[1].Next<ZipArg1>();
-                ValueType v = zip_function_(i0, i1);
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(v);
-                }
+                this->PushElement(zip_function_(i0, i1));
                 ++result_count;
             }
 
