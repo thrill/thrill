@@ -131,9 +131,9 @@ public:
 
         if (result_size_ != 0) {
             // get inbound readers from all Channels
-            std::vector<data::Channel::CachingConcatReader> readers {
-                channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
-            };
+            std::vector<data::Channel::CachingConcatReader> readers;
+            readers.emplace_back(channels_[0]->OpenCachingReader());
+            readers.emplace_back(channels_[1]->OpenCachingReader());
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();

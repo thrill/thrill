@@ -49,6 +49,15 @@ public:
     //! Return reference to enclosed BlockSource
     BlockSource & source() { return source_; }
 
+    //! non-copyable: delete copy-constructor
+    BlockReader(const BlockReader&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockReader& operator = (const BlockReader&) = delete;
+    //! move-constructor: default
+    BlockReader(BlockReader&&) = default;
+    //! move-assignment operator: default
+    BlockReader& operator = (BlockReader&&) = default;
+
     //! \name Reading (Generic) Items
     //! \{
 
