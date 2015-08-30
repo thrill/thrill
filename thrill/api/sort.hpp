@@ -87,9 +87,7 @@ public:
     void PushData() final {
 
         for (size_t i = 0; i < data_.size(); i++) {
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(data_[i]);
-            }
+            this->PushElement(data_[i]);
         }
     }
 

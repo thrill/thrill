@@ -104,10 +104,7 @@ public:
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 MergeArg0 i0 = readers[0].Next<MergeArg0>();
                 MergeArg1 i1 = readers[1].Next<MergeArg1>();
-                ValueType v = zip_function_(i0, i1);
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(v);
-                }
+                this->PushElement(zip_function_(i0, i1));
                 ++result_count;
             }
 

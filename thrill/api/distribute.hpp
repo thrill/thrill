@@ -56,10 +56,7 @@ public:
             common::CalculateLocalRange(in_vector_.size(), context_);
 
         for (size_t i = local_begin; i < local_end; ++i) {
-            const ValueType& v = in_vector_[i];
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(v);
-            }
+            this->PushElement(in_vector_[i]);
         }
     }
 

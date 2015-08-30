@@ -30,7 +30,7 @@ struct CallbackPair {
                  NodeType type)
         : cb_(cb), type_(type) { }
 
-    void operator () (const ValueType& elem) {
+    void operator () (const ValueType& elem) const {
         cb_(elem);
     }
 
@@ -69,7 +69,7 @@ public:
      */
     DIANode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string stats_tag,
+            const std::string& stats_tag,
             StatsNode* stats_node)
         : DIABase(ctx, parents, stats_tag, stats_node)
     { }
@@ -85,7 +85,7 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(const std::function<void(const ValueType&)> callback,
+    void RegisterChild(const std::function<void(const ValueType&)>& callback,
                        const NodeType& child_type) {
         callbacks_.emplace_back(callback, child_type);
     }
@@ -106,8 +106,8 @@ public:
         for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
     }
 
-    void PushElement(const ValueType& elem) {
-        for (auto& callback : callbacks_) {
+    void PushElement(const ValueType& elem) const {
+        for (const auto& callback : callbacks_) {
             callback(elem);
         }
     }

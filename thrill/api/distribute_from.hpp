@@ -74,10 +74,7 @@ public:
         data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
 
         while (readers.HasNext()) {
-            ValueType v = readers.Next<ValueType>();
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(v);
-            }
+            this->PushElement(readers.Next<ValueType>());
         }
 
         channel_->Close();
