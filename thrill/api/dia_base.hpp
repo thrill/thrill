@@ -67,7 +67,8 @@ public:
      */
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string& stats_tag, StatsNode* stats_node)
+            const std::string& stats_tag,
+            StatsNode* stats_node)
         : context_(ctx), parents_(parents),
           execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
           lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
@@ -108,6 +109,7 @@ public:
     virtual std::string ToString() = 0;
 
     const DIANodeType & type() const {
+        assert(stats_node_);
         return stats_node_->type();
     }
 
@@ -138,6 +140,7 @@ public:
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
     size_t id() const {
+        assert(stats_node_);
         return stats_node_->id();
     }
 

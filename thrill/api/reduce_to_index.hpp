@@ -198,7 +198,7 @@ public:
      * \return "[ReduceToIndexNode]"
      */
     std::string ToString() final {
-        return "[ReduceToIndexNode] Id: " + this->id();
+        return "[ReduceToIndexNode] Id: " + std::to_string(this->id());
     }
 
 private:

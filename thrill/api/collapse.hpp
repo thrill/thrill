@@ -72,7 +72,7 @@ public:
      * \return "[CollapseNode]"
      */
     std::string ToString() final {
-        return "[CollapseNode] Id: " + this->id();
+        return "[CollapseNode] Id: " + std::to_string(this->id());
     }
 };
 

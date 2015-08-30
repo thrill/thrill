@@ -90,7 +90,7 @@ public:
      * \return "[PrefixSumNode]"
      */
     std::string ToString() final {
-        return "[PrefixSumNode] Id:" + this->id();
+        return "[PrefixSumNode] Id:" + std::to_string(this->id());
     }
 
 private:

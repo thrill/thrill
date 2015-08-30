@@ -111,7 +111,7 @@ public:
     }
 
     std::string ToString() final {
-        return "[ReadLinesNode] Id: " + this->id();
+        return "[ReadLinesNode] Id: " + std::to_string(this->id());
     }
 
 private:

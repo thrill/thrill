@@ -175,8 +175,7 @@ public:
 
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
-                "to push into post table which flushes to" <<
-                this->id();
+                "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
@@ -186,8 +185,7 @@ public:
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
-                "to push into post table which flushes to" <<
-                this->id();
+                "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
@@ -210,7 +208,7 @@ public:
      * \return "[ReduceNode]"
      */
     std::string ToString() final {
-        return "[ReduceNode] Id: " + this->id();
+        return "[ReduceNode] Id: " + std::to_string(this->id());
     }
 
 private:

@@ -75,7 +75,7 @@ public:
      * \return "[SumNode]"
      */
     std::string ToString() final {
-        return "[SumNode] Id:" + this->id();
+        return "[SumNode] Id:" + std::to_string(this->id());
     }
 
 private:
