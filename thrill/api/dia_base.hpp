@@ -141,10 +141,6 @@ public:
         return stats_node_->id();
     }
 
-    data::File result_file() {
-        return result_file_;
-    }
-
     DIAState state() const {
         return state_;
     }
@@ -209,9 +205,6 @@ protected:
     //! Children and parents of this DIABase.
     std::vector<DIABase*> children_;
     std::vector<std::shared_ptr<DIABase> > parents_;
-
-    //! Unique ID of this DIABase. Used by the data::Manager.
-    data::File result_file_ { context_.GetFile() };
 
     //! Timer that tracks execution of this node
     common::TimerPtr execution_timer_;

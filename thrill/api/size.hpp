@@ -34,8 +34,6 @@ class SizeNode : public ActionNode
 
     using Super = ActionNode;
     using Super::context_;
-    using Super::parents;
-    using Super::result_file_;
 
 public:
     SizeNode(const ParentDIARef& parent,
@@ -69,7 +67,7 @@ public:
      * \return "[SizeNode]"
      */
     std::string ToString() final {
-        return "[SizeNode] Id:" + result_file_.ToString();
+        return "[SizeNode] Id:" + this->id();
     }
 
 private:

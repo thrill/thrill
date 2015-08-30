@@ -36,7 +36,6 @@ class CollapseNode : public DIANode<ValueType>
 public:
     using Super = DIANode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
@@ -73,7 +72,7 @@ public:
      * \return "[CollapseNode]"
      */
     std::string ToString() final {
-        return "[CollapseNode] Id: " + result_file_.ToString();
+        return "[CollapseNode] Id: " + this->id();
     }
 };
 

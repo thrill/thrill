@@ -68,7 +68,6 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
-    using Super::result_file_;
 
 public:
     using Emitter = data::DynBlockWriter;
@@ -160,7 +159,7 @@ public:
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
-            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
@@ -169,7 +168,7 @@ public:
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
-            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
@@ -199,7 +198,7 @@ public:
      * \return "[ReduceToIndexNode]"
      */
     std::string ToString() final {
-        return "[ReduceToIndexNode] Id: " + result_file_.ToString();
+        return "[ReduceToIndexNode] Id: " + this->id();
     }
 
 private:

@@ -37,7 +37,6 @@ class CacheNode : public DIANode<ValueType>
 public:
     using Super = DIANode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
@@ -83,7 +82,7 @@ public:
      * \return "[CacheNode]"
      */
     std::string ToString() final {
-        return "[CacheNode] Id: " + result_file_.ToString();
+        return "[CacheNode] Id: " + this->id();
     }
 
 private:

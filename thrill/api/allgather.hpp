@@ -31,7 +31,6 @@ class AllGatherNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
-    using Super::result_file_;
 
     AllGatherNode(const ParentDIARef& parent,
                   std::vector<ValueType>* out_vector,
@@ -80,7 +79,7 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() final {
-        return "[AllGatherNode] Id: " + result_file_.ToString();
+        return "[AllGatherNode] Id: " + this->id();
     }
 
 private:

@@ -32,7 +32,6 @@ class DistributeFromNode : public DOpNode<ValueType>
 public:
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     DistributeFromNode(Context& ctx,
                        const std::vector<ValueType>& in_vector,
@@ -92,7 +91,7 @@ public:
      * \return "[AllGatherNode]"
      */
     std::string ToString() final {
-        return "[DistributeFrom] Id: " + result_file_.ToString();
+        return "[DistributeFrom] Id: " + this->id();
     }
 
 private:

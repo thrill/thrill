@@ -41,7 +41,6 @@ class ReadLinesNode : public DOpNode<std::string>
 public:
     using Super = DOpNode<std::string>;
     using Super::context_;
-    using Super::result_file_;
 
     using FileSizePair = std::pair<std::string, size_t>;
 
@@ -112,7 +111,7 @@ public:
     }
 
     std::string ToString() final {
-        return "[ReadLinesNode] Id: " + result_file_.ToString();
+        return "[ReadLinesNode] Id: " + this->id();
     }
 
 private:

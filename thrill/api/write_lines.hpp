@@ -35,7 +35,6 @@ class WriteLinesNode : public ActionNode
 
 public:
     using Super = ActionNode;
-    using Super::result_file_;
     using Super::context_;
 
     WriteLinesNode(const ParentDIARef& parent,
@@ -45,7 +44,8 @@ public:
                      "WriteSingleFile", stats_node),
           path_out_(path_out),
           file_(path_out_),
-          writer_(result_file_.GetWriter())
+          temp_file_(context_.GetFile()),
+          writer_(&temp_file_)
     {
         sLOG << "Creating write node.";
 
@@ -76,9 +76,9 @@ public:
         file_.seekp(prefix_elem);
         context_.Barrier();
 
-        data::File::Reader reader = result_file_.GetReader();
+        data::File::Reader reader = temp_file_.GetReader();
 
-        for (size_t i = 0; i < result_file_.NumItems(); ++i) {
+        for (size_t i = 0; i < temp_file_.NumItems(); ++i) {
             file_ << reader.Next<ValueType>() << "\n";
         }
 
@@ -92,7 +92,7 @@ public:
      * \return "[WriteNode]"
      */
     std::string ToString() override {
-        return "[WriteNode] Id:" + result_file_.ToString();
+        return "[WriteNode] Id:" + this->id();
     }
 
 private:
@@ -104,6 +104,9 @@ private:
 
     //! Local file size
     size_t size_ = 0;
+
+    //! Temporary File for splitting correctly?
+    data::File temp_file_;
 
     //! File writer used.
     data::File::Writer writer_;

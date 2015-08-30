@@ -70,7 +70,6 @@ class ReduceNode : public DOpNode<ValueType>
     using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
-    using Super::result_file_;
 
 public:
     /*!
@@ -177,7 +176,7 @@ public:
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" <<
-                result_file_.ToString();
+                this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
@@ -188,7 +187,7 @@ public:
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" <<
-                result_file_.ToString();
+                this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
@@ -211,7 +210,7 @@ public:
      * \return "[ReduceNode]"
      */
     std::string ToString() final {
-        return "[ReduceNode] Id: " + result_file_.ToString();
+        return "[ReduceNode] Id: " + this->id();
     }
 
 private:
