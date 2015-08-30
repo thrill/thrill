@@ -48,8 +48,9 @@ public:
      * \param label Label of the node in the graphical representation.
      * \param type Switch for choosing the layout of the node.
      */
-    StatsNode(const std::string& label, const DIANodeType& type)
-        : label_(label),
+    StatsNode(size_t id, const std::string& label, const DIANodeType& type)
+        : id_(id),
+          label_(label),
           type_(type)
     { }
 
@@ -75,8 +76,8 @@ public:
     /*!
      * Returns the type of the node.
      */
-    const DIANodeType & type() const {
-        return type_;
+    const size_t & id() const {
+        return id_;
     }
 
     /*!
@@ -84,6 +85,13 @@ public:
      */
     std::string label() const {
         return label_;
+    }
+
+    /*!
+     * Returns the type of the node.
+     */
+    const DIANodeType & type() const {
+        return type_;
     }
 
     /*!
@@ -152,6 +160,9 @@ private:
     //! Adjacent nodes
     std::vector<StatsNode*> adjacent_nodes_;
 
+    //! Serial number as id of node
+    size_t id_;
+
     //! Label of node
     std::string label_;
 
@@ -193,7 +204,8 @@ public:
      * \return Pointer to the new node.
      */
     StatsNode * AddNode(const std::string& label, const DIANodeType& type) {
-        StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
+        size_t id = nodes_id_++;
+        StatsNode* node = new StatsNode(id, label + std::to_string(id), type);
         nodes_.push_back(node);
         return node;
     }
