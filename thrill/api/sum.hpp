@@ -66,7 +66,7 @@ public:
      * Returns result of global sum.
      * \return result
      */
-    auto result() {
+    ValueType result() const {
         return global_sum_;
     }
 
