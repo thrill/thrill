@@ -56,10 +56,10 @@ class File : public virtual BlockSink
 {
 public:
     using Writer = BlockWriter<File>;
+    using Reader = DynBlockReader;
     using ConstReader = BlockReader<ConstFileBlockSource>;
     using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
     using DynWriter = DynBlockWriter;
-    using DynReader = DynBlockReader;
 
     //! Constructor from BlockPool
     explicit File(BlockPool& block_pool)
@@ -133,6 +133,15 @@ public:
         return DynWriter(this, block_size);
     }
 
+    /*!
+     * Get BlockReader or a consuming BlockReader for beginning of File
+     *
+     * \attention If consume is true, the reader consumes the File's contents
+     * UNCONDITIONALLY, the File will always be emptied whether all items were
+     * read via the Reader or not.
+     */
+    Reader GetReader(bool consume);
+
     //! Get BlockReader for beginning of File
     ConstReader GetConstReader() const;
 
@@ -145,21 +154,9 @@ public:
      */
     ConsumeReader GetConsumeReader();
 
-    /*!
-     * Get BlockReader or a consuming BlockReader for beginning of File
-     *
-     * \attention If consume is true, the reader consumes the File's contents
-     * UNCONDITIONALLY, the File will always be emptied whether all items were
-     * read via the Reader or not.
-     */
-    DynReader GetReader(bool consume);
-
     //! Get BufferedBlockReader for beginning of File
     template <typename ValueType>
     BufferedBlockReader<ValueType, ConstFileBlockSource> GetBufferedReader() const;
-
-    //! return polymorphic BlockReader variant for beginning of File
-    DynReader GetDynReader() const;
 
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
@@ -233,7 +230,7 @@ class ConstFileBlockSource
 public:
     //! Start reading a File
     ConstFileBlockSource(const File& file,
-                    size_t first_block = 0, size_t first_item = keep_first_item)
+                         size_t first_block = 0, size_t first_item = keep_first_item)
         : file_(file), first_block_(first_block), first_item_(first_item) {
         current_block_ = first_block_ - 1;
     }
@@ -341,16 +338,11 @@ File::GetBufferedReader() const {
 }
 
 inline
-typename File::DynReader File::GetReader(bool consume) {
+typename File::Reader File::GetReader(bool consume) {
     if (consume)
         return ConstructDynBlockReader<ConsumeFileBlockSource>(this);
     else
         return ConstructDynBlockReader<ConstFileBlockSource>(*this, 0, 0);
-}
-
-inline
-typename File::DynReader File::GetDynReader() const {
-    return ConstructDynBlockReader<ConstFileBlockSource>(*this, 0, 0);
 }
 
 //! Get BlockReader seeked to the corresponding item index

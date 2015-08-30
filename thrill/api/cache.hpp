@@ -70,7 +70,7 @@ public:
 
     void PushData() final {
         bool consume = false;
-        data::File::DynReader reader = file_.GetReader(consume);
+        data::File::Reader reader = file_.GetReader(consume);
         for (size_t i = 0; i < file_.num_items(); ++i) {
             this->PushItem(reader.Next<ValueType>());
         }
