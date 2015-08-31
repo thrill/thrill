@@ -312,7 +312,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-    
+
     TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
@@ -361,7 +361,7 @@ TEST(IO, GenerateStringWriteBinary) {
         });
 }
 
-TEST(IO, WriteAndReadBinaryEqualDIAS) {    
+TEST(IO, WriteAndReadBinaryEqualDIAS) {
     TemporaryDirectory tmpdir;
 
     std::function<void(Context&)> start_func =
