@@ -48,7 +48,7 @@ public:
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](ValueType input) {
+        auto pre_op_fn = [=](std::string input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at parent
@@ -57,8 +57,15 @@ public:
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(ValueType input) {
+    void PreOp(std::string input) {
+        current_file_size_ += input.size() + 1;
         file_ << input << "\n";
+        if (THRILL_UNLIKELY(current_file_size_ >= max_file_size_)) {
+            file_.close();
+            file_.open(core::make_path(
+                           out_pathbase_, context_.my_rank(), out_serial_++));
+            current_file_size_ = 0;
+        }
     }
 
     //! Closes the output file
