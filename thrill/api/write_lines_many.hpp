@@ -43,11 +43,11 @@ public:
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           out_pathbase_(path_out),
           file_(core::make_path(
-                    out_pathbase_, context_.my_rank(), out_serial_++)),      
+                    out_pathbase_, context_.my_rank(), out_serial_++)),
           max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
-        
+
         auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };

@@ -201,7 +201,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
                     writer_size++;
                     return std::to_string(item) + "\n";
                 })
-                .WriteLinesMany("outputs/out1_", 8 * 1024 * 1024);
+            .WriteLinesMany("outputs/out1_", 8 * 1024 * 1024);
 
             // DIA contains as many elements as we wanted to generate
             ASSERT_EQ(generate_size, writer_size);
@@ -311,7 +311,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-    
+
     TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
@@ -360,7 +360,7 @@ TEST(IO, GenerateStringWriteBinary) {
         });
 }
 
-TEST(IO, WriteAndReadBinaryEqualDIAS) {    
+TEST(IO, WriteAndReadBinaryEqualDIAS) {
     TemporaryDirectory tmpdir;
 
     std::function<void(Context&)> start_func =

@@ -28,7 +28,7 @@ namespace core {
 //! function which takes pathbase and replaces $$$ with worker and ### with
 //! the file_part values.
 std::string make_path(const std::string& pathbase,
-                             size_t worker, size_t file_part) {
+                      size_t worker, size_t file_part) {
 
     static const bool debug = false;
 
