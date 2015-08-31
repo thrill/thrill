@@ -123,6 +123,8 @@ build_test(examples/wordcount_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 
-file(COPY "inputs/" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY "inputs/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/inputs/")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/outputs/")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/outputs/binary/")
 
 ################################################################################

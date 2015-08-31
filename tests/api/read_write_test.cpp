@@ -122,7 +122,7 @@ protected:
 TEST(IO, ReadSingleFile) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            auto integers = ReadLines(ctx, "test1")
+            auto integers = ReadLines(ctx, "inputs/test1")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
@@ -143,7 +143,7 @@ TEST(IO, ReadSingleFile) {
 TEST(IO, ReadFolder) {
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            ASSERT_EQ(ReadLines(ctx, "read_folder/*").Size(), 20);
+            ASSERT_EQ(ReadLines(ctx, "inputs/read_folder/*").Size(), 20);
         };
 
     api::RunLocalTests(start_func);
@@ -155,7 +155,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
             // folder read_ints contains compressed and non-compressed files
             // with integers from 25 to 1 and a file 'donotread', which contains
             // non int-castable strings
-            auto integers = ReadLines(ctx, "read_ints/read*")
+            auto integers = ReadLines(ctx, "inputs/read_ints/read*")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
@@ -183,7 +183,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
             auto input = GenerateFromFile(
                 ctx,
-                "test1",
+                "inputs/test1",
                 [](const std::string& line) {
                     return std::stoi(line);
                 },
@@ -200,7 +200,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
                     writer_size++;
                     return std::to_string(item) + "\n";
                 })
-            .WriteLinesMany("out1_");
+            .WriteLinesMany("outputs/out1_");
 
             // DIA contains as many elements as we wanted to generate
             ASSERT_EQ(generate_size, writer_size);
@@ -366,23 +366,23 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
         [](Context& ctx) {
             if (ctx.my_rank() == 0) {
                 // REVIEW(an): this MUST be removed.
-                std::system("rm -r ./binary/*");
+                std::system("rm -r ./outputs/binary/*");
             }
             ctx.Barrier();
 
-            auto integers = ReadLines(ctx, "test1")
+            auto integers = ReadLines(ctx, "inputs/test1")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
 
-            integers.WriteBinary("binary/output_");
+            integers.WriteBinary("outputs/binary/output_");
 
-            std::string path = "testsf.out";
+            std::string path = "outputs/testsf.out";
 
             ctx.Barrier();
 
             auto integers2 = api::ReadBinary<int>(
-                ctx, "./binary/*");
+                ctx, "./outputs/binary/*");
 
             integers2.Map(
                 [](const int& item) {
