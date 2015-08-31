@@ -63,13 +63,7 @@ public:
         return global_size_;
     }
 
-    /*!
-     * Returns "[SizeNode]" as a string.
-     * \return "[SizeNode]"
-     */
-    std::string ToString() final {
-        return "[SizeNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Size"; }
 
 private:
     // Local size to be used.

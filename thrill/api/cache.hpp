@@ -78,13 +78,7 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[CacheNode]" and its id as a string.
-     * \return "[CacheNode]"
-     */
-    std::string ToString() final {
-        return "[CacheNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Cache"; }
 
 private:
     //! Local data file

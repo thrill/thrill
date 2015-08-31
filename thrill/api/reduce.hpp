@@ -204,13 +204,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[ReduceNode]" and its id as a string.
-     * \return "[ReduceNode]"
-     */
-    std::string ToString() final {
-        return "[ReduceNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Reduce"; }
 
 private:
     //! Key extractor function
@@ -234,7 +228,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << ToString() << " running main op";
+        LOG << NameString() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();

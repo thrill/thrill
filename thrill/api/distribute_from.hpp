@@ -86,13 +86,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[AllGatherNode]" and its id as a string.
-     * \return "[AllGatherNode]"
-     */
-    std::string ToString() final {
-        return "[DistributeFrom] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "DistributeFrom"; }
 
 private:
     //! Vector pointer to read elements from.

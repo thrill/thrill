@@ -87,13 +87,7 @@ public:
 
     void Dispose() override { }
 
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() override {
-        return "[WriteNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "WriteLines"; }
 
 private:
     //! Path of the output file.

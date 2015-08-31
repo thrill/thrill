@@ -116,13 +116,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns information about the GeneratorNode as a string.
-     * \return Stringified node.
-     */
-    std::string ToString() final {
-        return "[GeneratorNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "GenerateFrom"; }
 
 private:
     //! The read function which is applied on every line read.

@@ -106,8 +106,8 @@ public:
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
 
-    //! Virtual ToString method. Returns the type of node in sub-classes.
-    virtual std::string ToString() = 0;
+    //! Virtual NameString method which returns type of node in sub-classes.
+    virtual const char* NameString() const = 0;
 
     const DIANodeType & type() const {
         assert(stats_node_);

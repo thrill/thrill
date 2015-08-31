@@ -71,13 +71,7 @@ public:
         return global_sum_;
     }
 
-    /*!
-     * Returns "[SumNode]" as a string.
-     * \return "[SumNode]"
-     */
-    std::string ToString() final {
-        return "[SumNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Sum"; }
 
 private:
     //! The sum function which is applied to two values.
