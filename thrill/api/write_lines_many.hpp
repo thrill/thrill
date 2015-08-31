@@ -39,7 +39,7 @@ public:
     WriteLinesManyNode(const ParentDIARef& parent,
                        const std::string& path_out,
                        StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_)
     {
@@ -65,14 +65,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() final {
-        return "[WriteNode] Id:" + std::to_string(this->id());
-    }
 
 private:
     //! Path of the output file.

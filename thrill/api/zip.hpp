@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -96,8 +97,8 @@ public:
                const ParentDIARef1& parent1,
                ZipFunction zip_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(),
-                             { parent0.node(), parent1.node() }, "ZipNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() },
+                             stats_node),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
@@ -160,14 +161,6 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         return FunctionStack<ZipResult>();
-    }
-
-    /*!
-     * Returns "[ZipNode]" as a string.
-     * \return "[ZipNode]"
-     */
-    std::string ToString() final {
-        return "[ZipNode]";
     }
 
 private:
