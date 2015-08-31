@@ -116,6 +116,12 @@ public:
         return stats_node_->label();
     }
 
+    //! Virtual SetConsume flag which is called by the user via .Keep() or
+    //! .Consume() to set consumption.
+    virtual void SetConsume(bool consume) {
+        consume_on_push_data_ = consume;
+    }
+
     const DIANodeType & type() const {
         assert(stats_node_);
         return stats_node_->type();
@@ -158,6 +164,10 @@ public:
 
     DIAState set_state(DIAState state) {
         return state_ = state;
+    }
+
+    bool consume_on_push_data() const {
+        return consume_on_push_data_;
     }
 
     // Why are these stupid functions here?
@@ -225,6 +235,9 @@ protected:
 
     //! Timer that tracks the lifetime of this object
     api::StatsNode* stats_node_;
+
+    //! General consumption flag: set to true by default.
+    bool consume_on_push_data_ = true;
 };
 
 //! \}

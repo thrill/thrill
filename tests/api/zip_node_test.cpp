@@ -92,6 +92,8 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
                     return { static_cast<int>(a), b };
                 });
 
+            zip_result.Keep();
+
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();
 
