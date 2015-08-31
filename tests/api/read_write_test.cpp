@@ -312,6 +312,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
+    
     TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
@@ -360,13 +361,13 @@ TEST(IO, GenerateStringWriteBinary) {
         });
 }
 
-TEST(IO, WriteAndReadBinaryEqualDIAS) {
+TEST(IO, WriteAndReadBinaryEqualDIAS) {    
+    TemporaryDirectory tmpdir;
 
     std::function<void(Context&)> start_func =
-        [](Context& ctx) {
+        [&tmpdir](Context& ctx) {
             if (ctx.my_rank() == 0) {
-                // REVIEW(an): this MUST be removed.
-                std::system("rm -r ./outputs/binary/*");
+                tmpdir.wipe();
             }
             ctx.Barrier();
 
@@ -375,14 +376,14 @@ TEST(IO, WriteAndReadBinaryEqualDIAS) {
                                      return std::stoi(line);
                                  });
 
-            integers.WriteBinary("outputs/binary/output_");
+            integers.WriteBinary(tmpdir.get() + "/output_");
 
             std::string path = "outputs/testsf.out";
 
             ctx.Barrier();
 
             auto integers2 = api::ReadBinary<int>(
-                ctx, "./outputs/binary/*");
+                ctx, tmpdir.get() + "/*");
 
             integers2.Map(
                 [](const int& item) {
