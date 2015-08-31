@@ -25,9 +25,8 @@
 namespace thrill {
 namespace core {
 
-
 std::string make_path(const std::string& pathbase,
-                             size_t worker, size_t file_part);
+                      size_t worker, size_t file_part);
 
 // Returns true, if file at filepath is compressed (e.g, ends with
 // '.[gz/bz2,xz,lzo]')
