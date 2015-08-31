@@ -58,7 +58,7 @@ public:
     ReadLinesNode(Context& ctx,
                   const std::string& path,
                   StatsNode* stats_node)
-        : Super(ctx, { }, "Read", stats_node),
+        : Super(ctx, { }, stats_node),
           path_(path)
     {
         filesize_prefix_ = core::GlobFileSizePrefixSum(path_);
@@ -107,8 +107,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<std::string>();
     }
-
-    const char* NameString() const final { return "ReadLines"; }
 
 private:
     //! True, if at least one input file is compressed.
@@ -451,7 +449,8 @@ private:
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", DIANodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "ReadLines", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

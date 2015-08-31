@@ -36,7 +36,7 @@ public:
     AllGatherNode(const ParentDIARef& parent,
                   std::vector<ValueType>* out_vector,
                   StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "AllGather", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_vector_(out_vector),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters())
@@ -74,8 +74,6 @@ public:
     }
 
     void Dispose() final { }
-
-    const char* NameString() const final { return "AllGather"; }
 
 private:
     //! Vector pointer to write elements to.

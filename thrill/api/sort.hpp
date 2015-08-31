@@ -60,7 +60,7 @@ public:
     SortNode(const ParentDIARef& parent,
              CompareFunction compare_function,
              StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
           channel_id_samples_(parent.ctx().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
@@ -101,8 +101,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<ValueType>();
     }
-
-    const char* NameString() const final { return "Sort"; }
 
 private:
     //! The sum function which is applied to two elements.

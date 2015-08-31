@@ -39,7 +39,7 @@ class SizeNode : public ActionNode
 public:
     SizeNode(const ParentDIARef& parent,
              StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Size", stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
@@ -62,8 +62,6 @@ public:
     size_t result() const {
         return global_size_;
     }
-
-    const char* NameString() const final { return "Size"; }
 
 private:
     // Local size to be used.

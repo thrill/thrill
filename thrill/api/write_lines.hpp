@@ -40,8 +40,7 @@ public:
     WriteLinesNode(const ParentDIARef& parent,
                    const std::string& path_out,
                    StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() },
-                     "WriteSingleFile", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_),
           temp_file_(context_.GetFile()),
@@ -87,8 +86,6 @@ public:
 
     void Dispose() override { }
 
-    const char* NameString() const final { return "WriteLines"; }
-
 private:
     //! Path of the output file.
     std::string path_out_;
@@ -116,7 +113,7 @@ void DIARef<ValueType, Stack>::WriteLines(
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", DIANodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,

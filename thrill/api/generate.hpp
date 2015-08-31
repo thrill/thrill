@@ -59,7 +59,7 @@ public:
                  GeneratorFunction generator_function,
                  size_t size,
                  StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, "Generate", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           generator_function_(generator_function),
           size_(size)
     { }
@@ -83,8 +83,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<ValueType>();
     }
-
-    const char* NameString() const final { return "Generate"; }
 
 private:
     //! The generator function which is applied to every index.

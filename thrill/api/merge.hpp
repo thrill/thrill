@@ -60,7 +60,8 @@ public:
                  const ParentDIARef1& parent1,
                  MergeFunction merge_function,
                  StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "MergeNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(),
+                             { parent0.node(), parent1.node() }, stats_node),
           merge_function_(merge_function)
     {
         // Hook PreOp(s)
@@ -130,8 +131,6 @@ public:
         // Hook PostOp
         return FunctionStack<MergeResult>();
     }
-
-    const char* NameString() const final { return "Merge"; }
 
 private:
     //! Merge function

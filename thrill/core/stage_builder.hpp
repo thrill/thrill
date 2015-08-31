@@ -32,12 +32,12 @@ class Stage
 {
 public:
     explicit Stage(DIABase* node) : node_(node) {
-        sLOG << "CREATING stage" << node_->NameString() << "id" << node_->id()
+        sLOG << "CREATING stage" << node_->label() << "id" << node_->id()
              << "node" << node_;
     }
 
     void Execute() {
-        sLOG << "EXECUTING stage " << node_->NameString() << "id" << node_->id()
+        sLOG << "EXECUTING stage " << node_->label() << "id" << node_->id()
              << "node" << node_;
         node_->StartExecutionTimer();
         node_->Execute();
@@ -48,14 +48,14 @@ public:
     }
 
     void PushData() {
-        sLOG << "PUSHING stage " << node_->NameString() << "id" << node_->id()
+        sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
              << "node" << node_;
         node_->PushData();
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void Dispose() {
-        sLOG << "DISPOSING stage " << node_->NameString() << "id" << node_->id()
+        sLOG << "DISPOSING stage " << node_->label() << "id" << node_->id()
              << "node" << node_;
         node_->Dispose();
         node_->set_state(api::DIAState::DISPOSED);

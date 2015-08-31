@@ -93,7 +93,7 @@ public:
                       size_t result_size,
                       Value neutral_element,
                       StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
@@ -194,8 +194,6 @@ public:
                          return MakeFunctionStack<ValueType>(post_op_fn);*/
     }
 
-    const char* NameString() const final { return "ReduceToIndex"; }
-
 private:
     //! Key extractor function
     KeyExtractor key_extractor_;
@@ -221,7 +219,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << NameString() << " running main op";
+        LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
@@ -286,7 +284,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

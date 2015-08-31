@@ -43,7 +43,7 @@ public:
             SumFunction sum_function,
             ValueType initial_value,
             StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Sum", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -70,8 +70,6 @@ public:
     ValueType result() const {
         return global_sum_;
     }
-
-    const char* NameString() const final { return "Sum"; }
 
 private:
     //! The sum function which is applied to two values.

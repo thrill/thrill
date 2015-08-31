@@ -39,7 +39,7 @@ public:
     WriteLinesManyNode(const ParentDIARef& parent,
                        const std::string& path_out,
                        StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_)
     {
@@ -65,8 +65,6 @@ public:
     }
 
     void Dispose() final { }
-
-    const char* NameString() const final { return "WriteLinesMany"; }
 
 private:
     //! Path of the output file.

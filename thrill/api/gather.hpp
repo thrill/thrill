@@ -36,7 +36,7 @@ public:
                size_t target_id,
                std::vector<ValueType>* out_vector,
                StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Gather", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
           channel_(parent.ctx().GetNewChannel()),
@@ -71,8 +71,6 @@ public:
     }
 
     void Dispose() final { }
-
-    const char* NameString() const final { return "Gather"; }
 
 private:
     //! target worker id, which collects vector, all other workers do not get

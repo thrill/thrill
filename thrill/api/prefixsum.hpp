@@ -41,7 +41,7 @@ public:
                   SumFunction sum_function,
                   ValueType neutral_element,
                   StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "PrefixSum", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -84,8 +84,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<ValueType>();
     }
-
-    const char* NameString() const final { return "PrefixSum"; }
 
 private:
     //! The sum function which is applied to two elements.
