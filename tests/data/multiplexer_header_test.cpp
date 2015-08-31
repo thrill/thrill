@@ -1,23 +1,23 @@
 /*******************************************************************************
  * tests/data/multiplexer_header_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/multiplexer_header.hpp>
 #include <gtest/gtest.h>
+#include <thrill/data/multiplexer_header.hpp>
 
-using namespace c7a;
-using namespace c7a::data;
+using namespace thrill;
+using namespace thrill::data;
 
 struct StreamTest : public::testing::Test {
     StreamTest() {
         candidate.channel_id = 2;
         candidate.size = 4;
-        candidate.nitems = 5;
+        candidate.num_items = 5;
         candidate.sender_rank = 6;
     }
 
@@ -35,7 +35,7 @@ TEST_F(StreamTest, ChannelBlockHeaderParsesAndSerializesHeader) {
 
     ASSERT_EQ(candidate.channel_id, result.channel_id);
     ASSERT_EQ(candidate.size, result.size);
-    ASSERT_EQ(candidate.nitems, result.nitems);
+    ASSERT_EQ(candidate.num_items, result.num_items);
     ASSERT_EQ(candidate.sender_rank, result.sender_rank);
 }
 

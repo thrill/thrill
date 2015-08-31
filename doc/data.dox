@@ -2,73 +2,60 @@
 /*******************************************************************************
  * doc/data.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 namespace data {
 
 /******************************************************************************/
 /** \page data Data Subsystem
 
-The \ref data::Manager is a facade for the subsystem access to remote and local data.
+The central notion of the data subsystem is an item, which can be serialized and deserialized. All items that are processed by Thrill must be support serialization.  For these items, the data subsystems provides methods to store, retrieve, and transmit very large sets or streams of items efficiently.  The actual implementations of underlying storage and transmission methods may change in the future, but the interfaces should not.
 
-## Block, and BlockWriter and BlockReader
+## ByteBlock, Block, BlockWriter, BlockReader, and File
 
-Serialized data is stored in Block objects, which are equally sized chunks of memory. Much of the other classes are needed to correctly handle splitting and combining of small and huge items and data types into Block chunks. This is what BlockWriter and BlockReader do: serialize and deserialize items (or arbitrary datatypes) into Blocks.
+Serialized items are stored in ByteBlock objects, which are (usually equally sized) chunks of memory. Much of the other classes are needed to correctly handle splitting and combining of small and huge items and data types into ByteBlock chunks. This is what BlockWriter and BlockReader do: serialize and deserialize items (or arbitrary datatypes) into Blocks.
 
-A BlockWriter fills a Block and delivers full Blocks to a BlockSink. See the inheritance diagram of BlockSink for available sinks; there are at least: File, BlockQueue, and ChannelSink.
+An important design goal of this layer is to store serialized items **with zero overhead** in the item steam, which means there are zero extra bytes or bits marking the boundary or sizes of items. Any navigation structure must be held outside of the item sequence. Reading and writing an item sequence is only possible by requiring the serialization to implicitly how long its' items are. But this is easy: fixed sizes are trivial, and strings must be prefixed with their length.
 
-A BlockReader is parameterized by a BlockSource concept class, which delivers Blocks to the Reader. The reader then deserializes items and arbitrary data types from the Blocks, and reads new a Block if a large item extends to it.
+Hence ByteBlocks are consecutive memory bytes containing serialized items. ByteBlocks are usually wrapped in a Block object (referencing the ByteBlock via a shared pointer), and the Block structure contains additional meta-data.
 
-A BlockWriter has two additional signaling methods: \ref BlockWriter::Flush Flush() and \ref BlockWriter::Close Close() . Flush() is only needed when the buffering block should immediately be written to the BlockSink. Close() flushes the last block and no more items may be written.
+\image html byteblock-file.svg
 
-The standard loop of a BlockReader consists of testing whether another item can be read via BlockReader::HasNext() and then fetching an item Using BlockReader::Next(). The method Next() must be parameterized with the serializable item to get. Beware that any items can be mixed together, and that they deserialization *must* match the serialization done by BlockWriter.
+The meta-data in Block consists of four integers: begin and end for first and last valid bytes, a first item offset, and the number of items *beginning* in the block. These are enough to perform random block-based seeking (which is okay if seeking items is rare), allows artificial shorting of the contents of a Block while sharing the underlying ByteBlock (used for scattering locally), and much more. However, it does not allow fast random seeks to item.
 
+A BlockWriter is parameterized by a BlockSink; it allocates, fills a ByteBlock, and delivers full Blocks to a BlockSink. See the inheritance diagram of BlockSink for available sinks; there are at least: File, BlockQueue, ChannelSink, and DiscardSink.
+
+BlockWriter usually is open and then items are written via \ref BlockWriter::PutItem() "PutItem()". There are also a few variants of more low-level Put methods available. Note that BlockWriter has no type template parameter: the PutItem() method will take *any* serializable item.  BlockWriter has two additional signaling methods: \ref BlockWriter::Flush Flush() and \ref BlockWriter::Close Close() . Flush() is only needed when the buffering block should immediately be written to the BlockSink, this obviously incurs half-full blocks. Close() flushes the last block and no more items may be written.
+
+A BlockReader is parameterized by a BlockSource concept class, which delivers Blocks to the Reader. The reader then deserializes items and arbitrary data types from the Blocks, and reads new a Block if a large item extends into it.
+
+The standard loop of a BlockReader consists of testing whether another item can be read via BlockReader::HasNext() and then fetching an item Using BlockReader::Next(). The method Next() must be parameterized with the serializable item to get. Beware that any item types can be mixed together, and that while deserialization they *must* match the serialization done by BlockWriter.
+
+## Storage in a File
+
+The File is a vector of Blocks which represents an infinitely growable data storage. As nothing is infinite in this world (with one exception), the File is mostly kept in RAM, but may spill to disk, or even the disk of another compute node.
+
+File are allocated via \ref api::Context::GetFile and the File object itself contains the vector, there is no pointer indirection or reference counting. To write to the File get a BlockWriter using \ref File::GetWriter and to read from it get a BlockReader using \ref File::GetReader.
 
 ## Data Channels
 
-Workers may need to exchange many data elements between each other in an asynchronous fashion. A Channel is a communication context to exchange large amounts of items between workers. Channels may be used by DOps to implemented distributed operations.
+Workers may need to exchange many data elements between each other in an asynchronous fashion. A Channel is a communication context to exchange large amounts of items between workers. Channels may be used by DOps to implemented distributed operations. In MPI lingua, a Channel is an AllToAll collective which streams blocks asynchronously.
 
-Multiple Channels of different distributed operations can exist concurrently. Therefore the Channel objects have to be allocated in a deterministic order via Manager::GetNewChannel().
+Multiple Channels of different distributed operations can exist concurrently. Therefore the Channel objects have to be allocated in a deterministic order via \ref api::Context::GetNewChannel().
+
+Write to Channels using a BlockWriter from \ref Channel::GetWriters() which delivers writers for all workers!
 
 See the documentation of Channel and ChannelMultiplexer on how to read and write to Channels.
-
-
-# OLD DOC BY TOBI
-
-## DIAs-Partitions
-DIARef "Distributed immuteable arrays" are the central entities for addressing data inside a user's program.
-DIAs can be materialized (data elements are held in external or internal memory) or not (DIA refers internally to upstream DIAs and how to transform elements).
-Each worker holds a partition of each DIA.
-Partitions are most likely not balanced across workers and some partitions might be even empty.
-These partitions are addressed via a DIAId that is generated in a deterministic manner, such that each worker generates the same sequence of DIAIds.
-Access to elements of DIA partitions via their DIAId is provided via the Manager.
-
-## Address Schema
-DIAs and Channels are addressed by unique IDs, which are allocated via the data::Manager by calling "AllocateDIA" and "AllocateNetworkChannel".
-Each call of these methods alters the state of the Manager, thus the order in which these calls happen matters.
-All workers must call the allocate in the same order to enforce a consistent naming for DIAs and \ref Channel "NetworkChannels".
-
-## Iterators and Emitters
-The central interface to access data consists of the Iterator and the Emitter class.
-Both instances can be retrieved by passing an id to the Manager.
-When data is pushed / pulled via these classes, data elements are serialized if necessary.
-Emitters and Iterators can access locally stored data and channel data by accessing BufferChain instances.
-Both types of emitters may buffer pushed elements until Emitter::Flush() "flush" or Emitter::Close() "close" is called. Thus elements might not be visible on the attached iterators until flush or closed was called.
-Emitters and Iterators can operate concurrently - emitters can push data even after an iterator was created.
-Emitters can close a BufferChain and Iterators provide a Iterator::IsFinished() "IsFinished() method".
-If multiple emitters exist, multiple calls to Emitter::Close() "close" lead to undefined behaviour.
-Iterators offer Iterator::HasNext() and Iterator::Next() as most ocmmon interface to read data sequentially. Iterator::Seek() can be used for internal use. Seek returns a base address and byte-length of the elements that where seeked. Seek always returns continuous memory and thus only operats on a single BinaryBufer. Iterator::Seek() can be called multiple times to return multiple memory ranges until all elements have been reached, as shown in the example below.
-
 
 */
 
 } // namespace data
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

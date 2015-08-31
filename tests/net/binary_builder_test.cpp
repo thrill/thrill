@@ -1,21 +1,21 @@
 /*******************************************************************************
  * tests/net/binary_builder_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/net/buffer_builder.hpp>
-#include <c7a/net/buffer_reader.hpp>
 #include <gtest/gtest.h>
+#include <thrill/net/buffer_builder.hpp>
+#include <thrill/net/buffer_reader.hpp>
 
-using c7a::net::BufferBuilder;
-using c7a::net::BufferRef;
-using c7a::net::BufferReader;
-using c7a::net::Buffer;
+using thrill::net::BufferBuilder;
+using thrill::net::BufferRef;
+using thrill::net::BufferReader;
+using thrill::net::Buffer;
 
 TEST(BufferBuilder, Test1) {
     // construct a binary blob

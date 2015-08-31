@@ -1,13 +1,13 @@
-# c7a
+# Thrill - A Distributed Big Data Framework in C++
 
-THE code repository for the almighty c7a-framework.
-![build status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=c7a&build=15)
+THE code repository for the almighty Thrill-framework.
 
-- <a href="http://i10login.iti.kit.edu/c7a-coverage/">Code Coverage</a>
-- <a href="https://github.com/PdF14-MR/c7a/wiki/Styleguide">Styleguide</a> ist im wiki.
-- Unit-test schreiben? Lies <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">hier</a>
-- abgegebene Version des <a href="https://github.com/PdF14-MR/research-proposal/blob/b08aed24d22bcf4837f87da10763f89ff3a46212/c7a-proposal-abgabe20150424.pdf">Research Proposal PDF</a>
-- <a href="https://github.com/PdF14-MR/c7a/wiki/Running-c7a-on-the-BW-HPC-cluster">Testen am BW HPC Cluster </a>
+- Travis-CI Status [![Travis-CI Status](https://travis-ci.org/thrill/thrill.svg?branch=master)](https://travis-ci.org/thrill/thrill)
+- Jenkins Status [![Jenkins Status](http://i10login.iti.kit.edu:8080/buildStatus/icon?job=Thrill)](http://i10login.iti.kit.edu:8080/job/Thrill/)
+- [Live Doxygen Documentation](http://i10login.iti.kit.edu/thrill-doxygen/)
+- [Testsuite Code Coverage](http://i10login.iti.kit.edu/thrill-coverage/)
+- [Coding Style Guidelines](http://i10login.iti.kit.edu/thrill-doxygen/style_guide.html)
+- Write google tests? Read <a href="https://code.google.com/p/googletest/wiki/Primer#Simple_Tests">here</a>
 
 Coding camps are times of anarchy. Anarchy does not need to stick to workflow. :rage:
 

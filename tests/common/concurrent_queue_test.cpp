@@ -1,25 +1,26 @@
 /*******************************************************************************
  * tests/common/concurrent_queue_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/concurrent_queue.hpp>
-#include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/concurrent_queue.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <atomic>
+#include <memory>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     ThreadPool pool(8);
 
-    ConcurrentQueue<int> queue;
+    ConcurrentQueue<int, std::allocator<int> > queue;
     std::atomic<size_t> count(0);
     std::atomic<size_t> total_sum(0);
 
