@@ -43,7 +43,7 @@ public:
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           out_pathbase_(path_out),
           file_(core::make_path(
-                    out_pathbase_, context_.my_rank(), out_serial_++)),
+                    out_pathbase_, context_.my_rank(), 0)),
           max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
@@ -61,9 +61,13 @@ public:
         current_file_size_ += input.size() + 1;
         file_ << input << "\n";
         if (THRILL_UNLIKELY(current_file_size_ >= max_file_size_)) {
+            LOG << "Closing file" << out_serial_;
             file_.close();
-            file_.open(core::make_path(
-                           out_pathbase_, context_.my_rank(), out_serial_++));
+            std::string new_path = core::make_path(
+                out_pathbase_, context_.my_rank(), out_serial_++);
+            file_.open(new_path);
+            LOG << "Opening file: " << new_path;
+        
             current_file_size_ = 0;
         }
     }
@@ -98,7 +102,7 @@ private:
     size_t current_file_size_ = 0;
 
     //! File serial number for this worker
-    size_t out_serial_ = 0;
+    size_t out_serial_ = 1;
 };
 
 template <typename ValueType, typename Stack>
