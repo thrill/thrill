@@ -1,9 +1,9 @@
 ################################################################################
 # benchmarks/page_rank/CMakeLists.txt
 #
-# CMake file for c7a example programs.
+# CMake file for Thrill benchmark programs.
 ################################################################################
 
-c7a_build_prog(page_rank)
+thrill_build_prog(page_rank)
 
 ################################################################################

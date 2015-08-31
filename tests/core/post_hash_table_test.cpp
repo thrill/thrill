@@ -1,23 +1,25 @@
 /*******************************************************************************
  * tests/core/post_hash_table_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/core/reduce_post_table.hpp>
 #include <gtest/gtest.h>
+#include <thrill/api/context.hpp>
+#include <thrill/core/reduce_post_table.hpp>
+#include <thrill/net/manager.hpp>
 
-#include <c7a/net/manager.hpp>
+#include <algorithm>
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
 
-using namespace c7a::data;
-using namespace c7a::net;
+using namespace thrill; // NOLINT
 
 struct PostTable : public::testing::Test { };
 
@@ -27,7 +29,7 @@ std::pair<int, int> pair(int ele) {
 
 template <typename Key, typename HashFunction = std::hash<Key> >
 class CustomKeyHashFunction
-    : public c7a::core::PostReduceByHashKey<int>
+    : public core::PostReduceByHashKey<int>
 {
 public:
     explicit CustomKeyHashFunction(const HashFunction& hash_function = HashFunction())
@@ -35,15 +37,14 @@ public:
     { }
 
     template <typename ReducePostTable>
-    typename ReducePostTable::index_result
-    operator () (Key v, ReducePostTable* ht) const {
+    size_t
+    operator () (const Key& v, ReducePostTable* ht, const size_t& size) const {
 
-        using index_result = typename ReducePostTable::index_result;
+        (void)v;
+        (void)ht;
+        (void)size;
 
-        (*ht).NumItems();
-
-        size_t global_index = v / 2;
-        return index_result(global_index);
+        return 0;
     }
 
 private:
@@ -51,226 +52,696 @@ private:
 };
 
 TEST_F(PostTable, CustomHashFunction) {
-    auto key_ex = [](int in) {
-                      return in;
-                  };
 
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    using EmitterFunction = std::function<void(const int&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<int> writer1;
-    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+            auto key_ex = [](int in) {
+                              return in;
+                          };
 
-    CustomKeyHashFunction<int> cust_hash;
-    c7a::core::PostReduceFlushToDefault flush_func;
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false,
-                               c7a::core::PostReduceFlushToDefault, CustomKeyHashFunction<int> >
-    table(key_ex, red_fn, emitters, cust_hash, flush_func);
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
 
-    ASSERT_EQ(0u, writer1.size());
-    ASSERT_EQ(0u, table.NumItems());
+            CustomKeyHashFunction<int> cust_hash;
+            core::PostReduceFlushToDefault<int, decltype(red_fn)> flush_func;
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>, CustomKeyHashFunction<int> >
+            table(ctx, key_ex, red_fn, emitters, cust_hash, flush_func);
 
-    for (int i = 0; i < 16; i++) {
-        table.Insert(std::move(pair(i)));
-    }
+            ASSERT_EQ(0u, writer1.size());
 
-    ASSERT_EQ(0u, writer1.size());
-    ASSERT_EQ(16u, table.NumItems());
+            for (int i = 0; i < 16; i++) {
+                table.Insert(pair(i));
+            }
 
-    table.Flush();
+            ASSERT_EQ(0u, writer1.size());
 
-    ASSERT_EQ(16u, writer1.size());
-    ASSERT_EQ(0u, table.NumItems());
+            table.Flush();
+
+            ASSERT_EQ(16u, writer1.size());
+        };
+
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, AddIntegers) {
-    auto key_ex = [](int in) {
-                      return in;
-                  };
 
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    using EmitterFunction = std::function<void(const int&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<int> writer1;
-    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+            auto key_ex = [](int in) {
+                              return in;
+                          };
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-    table(key_ex, red_fn, emitters);
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-    table.Insert(pair(1));
-    table.Insert(pair(2));
-    table.Insert(pair(3));
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
 
-    ASSERT_EQ(3u, table.NumItems());
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
+            table(ctx, key_ex, red_fn, emitters);
 
-    table.Insert(pair(2));
+            ASSERT_EQ(0u, table.NumBlocks());
 
-    ASSERT_EQ(3u, table.NumItems());
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(0u, table.NumBlocks());
+            ASSERT_EQ(3u, writer1.size());
+        };
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, CreateEmptyTable) {
-    auto key_ex = [](int in) {
-                      return in;
-                  };
 
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+            auto key_ex = [](int in) {
+                              return in;
+                          };
 
-    using EmitterFunction = std::function<void(const int&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<int> writer1;
-    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-    table(key_ex, red_fn, emitters);
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
 
-    ASSERT_EQ(0u, table.NumItems());
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+            ASSERT_EQ(0u, table.NumItems());
+        };
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegers) {
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
 
-    using EmitterFunction = std::function<void(const int&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<int> writer1;
-    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-    table(key_ex, red_fn, emitters);
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-    table.Insert(pair(1));
-    table.Insert(pair(2));
-    table.Insert(pair(3));
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
 
-    ASSERT_EQ(3u, table.NumItems());
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters);
 
-    table.Flush();
+            ASSERT_EQ(0u, writer1.size());
 
-    ASSERT_EQ(3u, writer1.size());
-    ASSERT_EQ(0u, table.NumItems());
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
 
-    table.Insert(pair(1));
+            ASSERT_EQ(0u, writer1.size());
 
-    ASSERT_EQ(1u, table.NumItems());
+            table.Flush();
+
+            ASSERT_EQ(3u, writer1.size());
+
+            table.Insert(pair(1));
+        };
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, FlushIntegersInSequence) {
-    auto key_ex = [](int in) {
-                      return in;
-                  };
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
 
-    using EmitterFunction = std::function<void(const int&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<int> writer1;
-    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-    table(key_ex, red_fn, emitters);
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-    table.Insert(pair(1));
-    table.Insert(pair(2));
-    table.Insert(pair(3));
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
 
-    ASSERT_EQ(3u, table.NumItems());
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true>
+            table(ctx, key_ex, red_fn, emitters);
 
-    table.Flush();
+            ASSERT_EQ(0u, writer1.size());
 
-    ASSERT_EQ(3u, writer1.size());
-    ASSERT_EQ(0u, table.NumItems());
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
 
-    table.Insert(pair(1));
+            ASSERT_EQ(0u, writer1.size());
 
-    ASSERT_EQ(1u, table.NumItems());
+            table.Flush();
+
+            ASSERT_EQ(3u, writer1.size());
+
+            table.Insert(pair(4));
+            table.Insert(pair(5));
+            table.Insert(pair(6));
+
+            ASSERT_EQ(3u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(6u, writer1.size());
+        };
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, MultipleEmitters) {
-    std::vector<int> vec1;
 
-    auto key_ex = [](int in) {
-                      return in;
-                  };
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    auto red_fn = [](int in1, int in2) {
-                      return in1 + in2;
-                  };
+            std::vector<int> vec1;
 
-    using EmitterFunction = std::function<void(const int&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<int> writer1;
-    std::vector<int> writer2;
-    emitters.push_back([&writer1](const int value) { writer1.push_back(value); });
-    emitters.push_back([&writer2](const int value) { writer2.push_back(value); });
+            auto key_ex = [](int in) {
+                              return in;
+                          };
 
-    c7a::core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
-    table(key_ex, red_fn, emitters);
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
 
-    table.Insert(pair(1));
-    table.Insert(pair(2));
-    table.Insert(pair(3));
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            std::vector<int> writer2;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+            emitters.push_back([&writer2](const int value) {
+                                   writer2.push_back(value);
+                               });
 
-    ASSERT_EQ(3u, table.NumItems());
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn)>
+            table(ctx, key_ex, red_fn, emitters);
 
-    table.Flush();
+            table.Insert(pair(1));
+            table.Insert(pair(2));
+            table.Insert(pair(3));
 
-    ASSERT_EQ(0u, table.NumItems());
-    ASSERT_EQ(3u, writer1.size());
-    ASSERT_EQ(3u, writer2.size());
+            ASSERT_EQ(0u, writer1.size());
+            ASSERT_EQ(0u, writer2.size());
 
-    table.Insert(pair(1));
+            table.Flush();
 
-    ASSERT_EQ(1u, table.NumItems());
+            ASSERT_EQ(3u, writer1.size());
+            ASSERT_EQ(3u, writer2.size());
+        };
+    api::RunSameThread(start_func);
 }
 
 TEST_F(PostTable, ComplexType) {
-    using StringPair = std::pair<std::string, int>;
 
-    auto key_ex = [](StringPair in) {
-                      return in.first;
-                  };
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
 
-    auto red_fn = [](StringPair in1, StringPair in2) {
-                      return std::make_pair(in1.first, in1.second + in2.second);
-                  };
+            using StringPair = std::pair<std::string, int>;
 
-    using EmitterFunction = std::function<void(const StringPair&)>;
-    std::vector<EmitterFunction> emitters;
-    std::vector<StringPair> writer1;
-    emitters.push_back([&writer1](const StringPair value) { writer1.push_back(value); });
+            auto key_ex = [](StringPair in) {
+                              return in.first;
+                          };
 
-    c7a::core::ReducePostTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn)>
-    table(key_ex, red_fn, emitters);
+            auto red_fn = [](StringPair in1, StringPair in2) {
+                              return std::make_pair(in1.first, in1.second + in2.second);
+                          };
 
-    table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
-    table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
-    table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
+            using EmitterFunction = std::function<void(const StringPair&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<StringPair> writer1;
+            emitters.push_back([&writer1](const StringPair value) {
+                                   writer1.push_back(value);
+                               });
 
-    ASSERT_EQ(3u, table.NumItems());
+            const size_t TargetBlockSize = 24 * 8;
+            StringPair sp;
 
-    table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
+            core::ReducePostTable<StringPair, std::string, StringPair, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<std::string, decltype(red_fn), true>,
+                                  core::PostReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<std::string>(),
+                  core::PostReduceFlushToDefault<std::string, decltype(red_fn), true>(), 0, 0, sp, 1024 * 24, 1.0, 0.5, 1,
+                  std::equal_to<std::string>());
 
-    ASSERT_EQ(3u, table.NumItems());
+            table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
+            table.Insert(std::make_pair("hello", std::make_pair("hello", 2)));
+            table.Insert(std::make_pair("bonjour", std::make_pair("bonjour", 3)));
 
-    table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
+            ASSERT_EQ(3u, table.NumBlocks());
 
-    ASSERT_EQ(4u, table.NumItems());
+            table.Insert(std::make_pair("hello", std::make_pair("hello", 5)));
+
+            ASSERT_EQ(3u, table.NumBlocks());
+
+            table.Insert(std::make_pair("baguette", std::make_pair("baguette", 42)));
+
+            ASSERT_EQ(4u, table.NumBlocks());
+        };
+
+    api::RunSameThread(start_func);
 }
 
-// TODO(ms): add one test with a for loop inserting 10000 items. -> trigger
+TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+
+            const size_t TargetBlockSize = 8 * 8;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                                                                          decltype(key_ex), decltype(red_fn), false, false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            using KeyValuePair = std::pair<int, int>;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size, 1.0, 1.0, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            ASSERT_EQ(8u, block_size);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+
+            for (size_t i = 0; i < block_size; ++i) {
+                table.Insert(i);
+                ASSERT_EQ(1u, table.NumBlocks());
+            }
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(block_size, writer1.size());
+        };
+
+    api::RunSameThread(start_func);
+}
+
+TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+
+            const size_t TargetBlockSize = 8 * 8;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                                                                          decltype(key_ex), decltype(red_fn), false, false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            using KeyValuePair = std::pair<int, int>;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, true,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn), true>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, bucket_block_size, 1.0, 0.5, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            ASSERT_EQ(8u, block_size);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+            ASSERT_EQ(0u, writer1.size());
+
+            for (size_t i = 0; i < block_size; ++i) {
+                table.Insert(i);
+                ASSERT_EQ(1u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size * 0.5, table.NumItems());
+
+            for (size_t i = block_size; i < block_size * 2; ++i) {
+                table.Insert(i);
+                ASSERT_EQ(1u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size * 0.5, table.NumItems());
+
+            ASSERT_EQ(0u, writer1.size());
+            table.Flush();
+            ASSERT_EQ(0u, table.NumItems());
+            ASSERT_EQ(2 * block_size, writer1.size());
+        };
+
+    api::RunSameThread(start_func);
+}
+
+TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+
+            const size_t TargetBlockSize = 8 * 8;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                                                                          decltype(key_ex), decltype(red_fn), false, false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            using KeyValuePair = std::pair<int, int>;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size * 2, 0.5, 1.0, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            ASSERT_EQ(8u, block_size);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+
+            for (size_t i = 0; i < block_size; ++i) {
+                table.Insert(pair(i));
+                ASSERT_EQ(1u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size, table.NumItems());
+
+            for (size_t i = block_size; i < block_size * 2; ++i) {
+                table.Insert(pair(i));
+                ASSERT_EQ(2u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size * 2, table.NumItems());
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(block_size * 2, writer1.size());
+        };
+    api::RunSameThread(start_func);
+}
+
+TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+
+            const size_t TargetBlockSize = 8 * 8;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                                                                          decltype(key_ex), decltype(red_fn), false, false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            using KeyValuePair = std::pair<int, int>;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0,
+                  bucket_block_size * 2, 0.5, 0.5, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            ASSERT_EQ(8u, block_size);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+
+            for (size_t i = 0; i < block_size * 2; ++i) {
+                table.Insert(pair(i));
+                ASSERT_EQ(1u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size, table.NumItems());
+
+            for (size_t i = block_size; i < block_size * 2; ++i) {
+                table.Insert(pair(i));
+                ASSERT_EQ(1u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size, table.NumItems());
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(block_size * 2, writer1.size());
+        };
+    api::RunSameThread(start_func);
+}
+
+TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+
+            const size_t TargetBlockSize = 8 * 8;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                                                                          decltype(key_ex), decltype(red_fn), false, false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            using KeyValuePair = std::pair<int, int>;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0,
+                  bucket_block_size * 2, 1.0, 1.0, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            ASSERT_EQ(8u, block_size);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+
+            for (size_t i = 0; i < block_size; ++i) {
+                table.Insert(pair(i));
+            }
+            ASSERT_EQ(2u, table.NumBlocks());
+            ASSERT_EQ(block_size, table.NumItems());
+
+            for (size_t i = block_size; i < block_size * 2; ++i) {
+                table.Insert(pair(i));
+                ASSERT_EQ(2u, table.NumBlocks());
+            }
+            ASSERT_EQ(block_size * 2, table.NumItems());
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(block_size * 2, writer1.size());
+        };
+    api::RunSameThread(start_func);
+}
+
+TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back([&writer1](const int value) {
+                                   writer1.push_back(value);
+                               });
+
+            const size_t TargetBlockSize = 8 * 8;
+            const size_t bucket_block_size = sizeof(core::ReducePostTable<int, int, int,
+                                                                          decltype(key_ex), decltype(red_fn), false, false,
+                                                                          core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                                                          core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+            using KeyValuePair = std::pair<int, int>;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0,
+                  bucket_block_size * 2, 1.0, 0.5, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            ASSERT_EQ(8u, block_size);
+
+            ASSERT_EQ(0u, table.NumBlocks());
+
+            for (size_t i = 0; i < block_size * 2; ++i) {
+                table.Insert(pair(i));
+            }
+            ASSERT_EQ(2u, table.NumBlocks());
+            ASSERT_EQ(block_size, table.NumItems());
+
+            for (size_t i = block_size; i < block_size * 2; ++i) {
+                table.Insert(pair(i));
+            }
+            ASSERT_EQ(block_size, table.NumItems());
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(block_size * 2, writer1.size());
+        };
+    api::RunSameThread(start_func);
+}
+
+TEST_F(PostTable, MaxTableBlocks) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            auto key_ex = [](int in) {
+                              return in;
+                          };
+            auto red_fn = [](int in1, int in2) {
+                              return in1 + in2;
+                          };
+
+            using EmitterFunction = std::function<void(const int&)>;
+            std::vector<EmitterFunction> emitters;
+            std::vector<int> writer1;
+            emitters.push_back(
+                [&writer1](const int value) {
+                    writer1.push_back(value);
+                });
+
+            const size_t TargetBlockSize = 16 * 1024;
+            using KeyValuePair = std::pair<int, int>;
+            size_t max_blocks = 128;
+
+            core::ReducePostTable<int, int, int, decltype(key_ex), decltype(red_fn), false, false,
+                                  core::PostReduceFlushToDefault<int, decltype(red_fn)>,
+                                  core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
+            table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(),
+                  0, 0, 0, 1024 * 16, 0.001, 1.0, 1,
+                  std::equal_to<int>());
+
+            size_t block_size = common::max<size_t>(8, TargetBlockSize /
+                                                    sizeof(KeyValuePair));
+
+            size_t num_items = block_size * max_blocks;
+
+            ASSERT_EQ(0u, table.NumBlocks());
+
+            for (size_t i = 0; i < num_items; ++i) {
+                table.Insert(pair(i));
+                ASSERT_TRUE(table.NumBlocks() <= max_blocks);
+            }
+
+            ASSERT_EQ(0u, writer1.size());
+
+            table.Flush();
+
+            ASSERT_EQ(num_items, writer1.size());
+        };
+    api::RunSameThread(start_func);
+}
 
 /******************************************************************************/

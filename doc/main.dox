@@ -2,14 +2,14 @@
 /*******************************************************************************
  * doc/main.dox
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-namespace c7a {
+namespace thrill {
 
 /******************************************************************************/
 /** \mainpage Thrill Documentation Overview
@@ -49,9 +49,12 @@ namespace c7a {
 - \subpage net
 - \subpage data "Data Subsystem"
 - \subpage common
+- \subpage mem
+
+- \subpage style_guide
 
 */
 
-} // namespace c7a
+} // namespace thrill
 
 /******************************************************************************/

@@ -1,23 +1,23 @@
 /*******************************************************************************
  * tests/common/thread_pool_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/logger.hpp>
-#include <c7a/common/stats_timer.hpp>
-#include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <numeric>
 #include <string>
 #include <vector>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(ThreadPool1, LoopUntilEmpty) {
     size_t job_num = 256;
@@ -25,25 +25,27 @@ TEST(ThreadPool1, LoopUntilEmpty) {
     std::vector<unsigned> result1(job_num, 0);
     std::vector<unsigned> result2(job_num, 0);
 
-    ThreadPool pool(8);
+    {
+        ThreadPool pool(8);
 
-    for (size_t r = 0; r != 16; ++r) {
+        for (size_t r = 0; r != 16; ++r) {
 
-        for (size_t i = 0; i != job_num; ++i) {
-            pool.Enqueue(
-                [i, &result1, &result2, &pool]() {
-                    // set flag
-                    result1[i] = 1 + i;
+            for (size_t i = 0; i != job_num; ++i) {
+                pool.Enqueue(
+                    [i, &result1, &result2, &pool]() {
+                        // set flag
+                        result1[i] = 1 + i;
 
-                    // enqueue more work: how to call this lambda again?
-                    pool.Enqueue(
-                        [i, &result2]() {
-                            result2[i] = 2 + i;
-                        });
-                });
+                        // enqueue more work.
+                        pool.Enqueue(
+                            [i, &result2]() {
+                                result2[i] = 2 + i;
+                            });
+                    });
+            }
+
+            pool.LoopUntilEmpty();
         }
-
-        pool.LoopUntilEmpty();
     }
 
     // check that the threads have run

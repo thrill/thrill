@@ -1,10 +1,11 @@
 ################################################################################
 # benchmarks/word_count/CMakeLists.txt
 #
-# CMake file for c7a example programs.
+# CMake file for Thrill benchmark programs.
 ################################################################################
 
-c7a_build_prog(word_count)
+thrill_build_prog(word_count)
+thrill_build_prog(line_count)
 
 file(COPY "${CMAKE_SOURCE_DIR}/tests/inputs/wordcount.in"
   DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

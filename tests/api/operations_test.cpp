@@ -1,7 +1,7 @@
 /*******************************************************************************
  * tests/api/operations_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -9,20 +9,20 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/allgather.hpp>
-#include <c7a/api/cache.hpp>
-#include <c7a/api/collapse.hpp>
-#include <c7a/api/distribute.hpp>
-#include <c7a/api/distribute_from.hpp>
-#include <c7a/api/gather.hpp>
-#include <c7a/api/generate.hpp>
-#include <c7a/api/generate_from_file.hpp>
-#include <c7a/api/prefixsum.hpp>
-#include <c7a/api/read_lines.hpp>
-#include <c7a/api/size.hpp>
-#include <c7a/api/write_lines.hpp>
-#include <c7a/api/write_lines_many.hpp>
 #include <gtest/gtest.h>
+#include <thrill/api/allgather.hpp>
+#include <thrill/api/cache.hpp>
+#include <thrill/api/collapse.hpp>
+#include <thrill/api/distribute.hpp>
+#include <thrill/api/distribute_from.hpp>
+#include <thrill/api/gather.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/read_lines.hpp>
+#include <thrill/api/size.hpp>
+#include <thrill/api/write_lines.hpp>
+#include <thrill/api/write_lines_many.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -30,101 +30,7 @@
 #include <string>
 #include <vector>
 
-using namespace c7a;
-using c7a::api::Context;
-using c7a::api::DIARef;
-
-TEST(Operations, GenerateFromFileCorrectAmountOfCorrectIntegers) {
-    api::RunSameThread([](api::Context& ctx) {
-                           std::default_random_engine generator({ std::random_device()() });
-                           std::uniform_int_distribution<int> distribution(1000, 10000);
-
-                           size_t generate_size = distribution(generator);
-
-                           auto input = GenerateFromFile(
-                               ctx,
-                               "test1",
-                               [](const std::string& line) {
-                                   return std::stoi(line);
-                               },
-                               generate_size);
-
-                           size_t writer_size = 0;
-
-                           input.Map(
-                               [&writer_size](const int& item) {
-                                   // file contains ints between 1  and 15
-                                   // fails if wrong integer is generated
-                                   EXPECT_GE(item, 1);
-                                   EXPECT_GE(16, item);
-                                   writer_size++;
-                                   return std::to_string(item) + "\n";
-                               })
-                           .WriteLinesMany("test1.out");
-
-                           ASSERT_EQ(generate_size, writer_size);
-                       });
-}
-
-TEST(Operations, WriteToSingleFile) {
-
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
-
-            std::string path = "testsf.out";
-
-            auto integers = ReadLines(ctx, "test1")
-                            .Map([](const std::string& line) {
-                                     return std::stoi(line);
-                                 });
-            integers.Map(
-                [](const int& item) {
-                    return std::to_string(item);
-                })
-            .WriteLines(path);
-
-            // Race condition as one worker might be finished while others are
-            // still writing to output file.
-            ctx.Barrier();
-
-            std::ifstream file(path);
-            size_t begin = file.tellg();
-            file.seekg(0, std::ios::end);
-            size_t end = file.tellg();
-            ASSERT_EQ(end - begin, 39);
-            file.seekg(0);
-            for (int i = 1; i <= 16; i++) {
-                std::string line;
-                std::getline(file, line);
-                ASSERT_EQ(std::stoi(line), i);
-            }
-        };
-
-    api::RunLocalTests(start_func);
-}
-
-TEST(Operations, ReadAndAllGatherElementsCorrect) {
-
-    std::function<void(Context&)> start_func =
-        [](Context& ctx) {
-
-            auto integers = ReadLines(ctx, "test1")
-                            .Map([](const std::string& line) {
-                                     return std::stoi(line);
-                                 });
-
-            std::vector<int> out_vec = integers.AllGather();
-
-            int i = 1;
-            for (int element : out_vec) {
-                ASSERT_EQ(element, i++);
-            }
-
-            ASSERT_EQ((size_t)16, out_vec.size());
-        };
-
-    api::RunLocalTests(start_func);
-}
+using namespace thrill; // NOLINT
 
 TEST(Operations, DistributeAndAllGatherElements) {
 

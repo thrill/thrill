@@ -1,18 +1,18 @@
 /*******************************************************************************
  * tests/common/timed_counter_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/timed_counter.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/timed_counter.hpp>
 
 #include <thread>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(TimedCounter, TriggerIncreasesCount) {
     TimedCounter candidate;

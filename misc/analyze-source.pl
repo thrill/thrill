@@ -27,6 +27,12 @@ my $launch_emacs = 0;
 # write changes to files (dangerous!)
 my $write_changes = 0;
 
+# have autopep8 python formatter?
+my $have_autopep8;
+
+# have cogapp code generator?
+my $have_cogapp;
+
 # function testing whether to uncrustify a path
 sub filter_uncrustify($) {
     my ($path) = @_;
@@ -161,6 +167,23 @@ sub process_cpp {
 
     my @origdata = @data;
 
+    # first check whether there are cog lines and execute them
+    if ($have_cogapp) {
+        my $have_coglines = 0;
+        foreach my $ln (@data) {
+            if ($ln =~ /\[\[\[cog/) {
+                $have_coglines = 1;
+                last;
+            }
+        }
+
+        if ($have_coglines) {
+            # pipe file through cog.py
+            my $data = join("", @data);
+            @data = filter_program($data, "cog.py", "-");
+        }
+    }
+
     # put all #include lines into the includemap
     foreach my $ln (@data)
     {
@@ -179,7 +202,7 @@ sub process_cpp {
 
     # skip over custom file comments
     my $j = $i;
-    while ($data[$i] !~ /^ \* Part of Project c7a/) {
+    while ($data[$i] !~ /^ \* Part of Project Thrill/) {
         expect_re($path, $i, @data, '^ \*( .*)?\n$');
         if (++$i >= @data) {
             $i = $j; # restore read position
@@ -187,9 +210,9 @@ sub process_cpp {
         }
     }
 
-    # check "Part of Project c7a"
+    # check "Part of Project Thrill"
     expect($path, $i-1, @data, " *\n");
-    expect($path, $i, @data, " * Part of Project c7a.\n"); ++$i;
+    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
     expect($path, $i, @data, " *\n"); ++$i;
 
     # read authors
@@ -211,10 +234,10 @@ sub process_cpp {
 
         # construct include guard macro name: PROGRAM_FILE_NAME_HEADER
         my $guard = $path;
-        $guard =~ s!c7a/!!;
+        $guard =~ s!thrill/!!;
         $guard =~ tr!/-!__!;
         $guard =~ s!\.h(pp)?(\.in)?$!!;
-        $guard = "C7A_".uc($guard)."_HEADER";
+        $guard = "THRILL_".uc($guard)."_HEADER";
         #print $guard."\n";x
 
         expect($path, $i, @data, "#pragma once\n"); ++$i;
@@ -256,13 +279,15 @@ sub process_cpp {
 
         # check for NULL -> replace with nullptr.
         if ($data[$i] =~ s/\bNULL\b/nullptr/g) {
-            print("replacing NULL in test $path:$i\n");
+            print("replacing NULL in $path:$i\n");
         }
 
-        # check for typedef, issue warnings.
-        if ($data[$i] =~ m/\btypedef\b/) {
-        #if ($data[$i] =~ s/\btypedef\b(.+)\b(\w+);$/using $2 = $1;/) {
-            print("found typedef in $path:$i\n");
+        if ($path !~ /^swig/) {
+            # check for typedef, issue warnings.
+            #if ($data[$i] =~ m/\btypedef\b/) {
+            if ($data[$i] =~ s/\btypedef\b(.+)\b(\w+);$/using $2 = $1;/) {
+                print("found typedef in $path:$i\n");
+            }
         }
     }
 
@@ -369,7 +394,7 @@ sub process_pl_cmake {
     my $i = 0;
     if ($data[$i] =~ m/#!/) { ++$i; } # bash line
     expect($path, $i, @data, ('#'x80)."\n"); ++$i;
-    expect($path, $i, @data, "# $path\n"); ++$i;
+    expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
     expect($path, $i, @data, "#\n"); ++$i;
 
     # skip over comment
@@ -403,6 +428,186 @@ sub process_pl_cmake {
     }
 }
 
+sub process_py {
+    my ($path) = @_;
+
+    # read file
+    open(F, $path) or die("Cannot read file $path: $!");
+    my @data = <F>;
+    close(F);
+
+    my @origdata = @data;
+
+    # check source header
+    my $i = 0;
+    expect($path, $i, @data, "#!/usr/bin/env python\n"); ++$i;
+    expect($path, $i, @data, ('#'x74)."\n"); ++$i;
+    expectr($path, $i, @data, "# $path\n", qr/^# /); ++$i;
+    expect($path, $i, @data, "#\n"); ++$i;
+
+    # skip over comment
+    while ($data[$i] ne ('#'x74)."\n") {
+        expect_re($path, $i, @data, '^#( .*)?\n$');
+        return unless ++$i < @data;
+    }
+
+    expect($path, $i, @data, ('#'x74)."\n"); ++$i;
+
+    # check terminating ####### comment
+    {
+        my $n = scalar(@data)-1;
+        if ($data[$n] !~ m!^#{74}$!) {
+            push(@data, "\n");
+            push(@data, ("#"x74)."\n");
+        }
+    }
+
+    # run python source through autopep8
+    if ($have_autopep8)
+    {
+        my $data = join("", @data);
+        @data = filter_program($data, "autopep8", "-");
+    }
+
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
+
+    if ($write_changes)
+    {
+        open(F, "> $path") or die("Cannot write $path: $!");
+        print(F join("", @data));
+        close(F);
+    }
+}
+
+sub process_swig {
+    my ($path) = @_;
+
+    #print "$path\n";
+
+    # check permissions
+    my $st = stat($path) or die("Cannot stat() file $path: $!");
+    if ($st->mode & 0133) {
+        print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
+        if ($write_changes) {
+            chmod(0644, $path) or die("Cannot chmod() file $path: $!");
+        }
+    }
+
+    # read file
+    open(F, $path) or die("Cannot read file $path: $!");
+    my @data = <F>;
+    close(F);
+
+    my @origdata = @data;
+
+    # first check whether there are cog lines and execute them
+    if ($have_cogapp) {
+        my $have_coglines = 0;
+        foreach my $ln (@data) {
+            if ($ln =~ /\[\[\[cog/) {
+                $have_coglines = 1;
+                last;
+            }
+        }
+
+        if ($have_coglines) {
+            # pipe file through cog.py
+            my $data = join("", @data);
+            @data = filter_program($data, "cog.py", "-");
+        }
+    }
+
+    # check source header
+    my $i = 0;
+    if ($data[$i] =~ m!// -.*- mode:!) { ++$i; } # skip emacs mode line
+
+    expect($path, $i, @data, "/".('*'x79)."\n"); ++$i;
+    expectr($path, $i, @data, " * $path\n", qr/^ \* /); ++$i;
+    expect($path, $i, @data, " *\n"); ++$i;
+
+    # skip over custom file comments
+    my $j = $i;
+    while ($data[$i] !~ /^ \* Part of Project Thrill/) {
+        expect_re($path, $i, @data, '^ \*( .*)?\n$');
+        if (++$i >= @data) {
+            $i = $j; # restore read position
+            last;
+        }
+    }
+
+    # check "Part of Project Thrill"
+    expect($path, $i-1, @data, " *\n");
+    expect($path, $i, @data, " * Part of Project Thrill.\n"); ++$i;
+    expect($path, $i, @data, " *\n"); ++$i;
+
+    # read authors
+    while ($data[$i] =~ /^ \* Copyright \(C\) ([0-9-]+(, [0-9-]+)*) (?<name>[^0-9<]+)( <(?<mail>[^>]+)>)?\n/) {
+        #print "Author: $+{name} - $+{mail}\n";
+        $authormap{$+{name}}{$+{mail} || ""} = 1;
+        die unless ++$i < @data;
+    }
+
+    # otherwise check license
+    expect($path, $i, @data, " *\n"); ++$i;
+    expectr($path, $i, @data, " * This file has no license. Only Chuck Norris can compile it.\n", qr/^ \*/); ++$i;
+    expect($path, $i, @data, " ".('*'x78)."/\n"); ++$i;
+
+    # check terminating /****/ comment
+    {
+        my $n = scalar(@data)-1;
+        if ($data[$n] !~ m!^/\*{78}/$!) {
+            push(@data, "\n");
+            push(@data, "/".('*'x78)."/\n");
+        }
+    }
+
+    return if array_equal(\@data, \@origdata);
+
+    print "$path\n";
+    print diff(\@origdata, \@data);
+    #system("emacsclient -n $path");
+
+    if ($write_changes)
+    {
+        open(F, "> $path") or die("Cannot write $path: $!");
+        print(F join("", @data));
+        close(F);
+    }
+}
+
+sub process_doc_images_pdf {
+    my ($path) = @_;
+
+    #print "$path\n";
+
+    # check permissions
+    my $st = stat($path) or die("Cannot stat() file $path: $!");
+    if ($st->mode & 0133) {
+        print("Wrong mode ".sprintf("%o", $st->mode)." on $path\n");
+        if ($write_changes) {
+            chmod(0644, $path) or die("Cannot chmod() file $path: $!");
+        }
+    }
+
+    my $svg_path = $path;
+    $svg_path =~ s/\.pdf$/\.svg/;
+
+    my $svg_st = stat($svg_path);
+
+    if (!$svg_st || $svg_st->mtime < $st->mtime) {
+        print("$path is newer than the SVG $svg_path.\n");
+
+        if ($write_changes) {
+            print("running pdf2svg $path $svg_path\n");
+            system("pdf2svg", $path, $svg_path) == 0 or die("pdf2svg failed: $!");
+        }
+    }
+}
+
 ### Main ###
 
 foreach my $arg (@ARGV) {
@@ -414,14 +619,28 @@ foreach my $arg (@ARGV) {
     }
 }
 
-(-e "c7a/CMakeLists.txt")
-    or die("Please run this script in the C7A source base directory.");
+(-e "thrill/CMakeLists.txt")
+    or die("Please run this script in the Thrill source base directory.");
 
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");
 ($uncrustver eq "uncrustify 0.61\n")
     or die("Requires uncrustify 0.61 to run correctly. ".
-           "See https://github.com/PdF14-MR/c7a/wiki/Uncrustify-as-local-pre-commit-hook");
+           "See https://github.com/PdF14-MR/thrill/wiki/Uncrustify-as-local-pre-commit-hook");
+
+$have_autopep8 = 1;
+my ($check_autopep8) = filter_program("", "autopep8", "--version");
+if (!$check_autopep8 || $check_autopep8 !~ /^autopep8/) {
+    $have_autopep8 = 0;
+    warn("Could not find autopep8 - automatic python formatter.");
+}
+
+$have_cogapp = 1;
+my ($check_cogapp) = filter_program("", "cog.py", "-version");
+if (!$check_cogapp || $check_cogapp !~ /^Cog/) {
+    $have_cogapp = 0;
+    warn("Could not find cogapp - python code generator formatter.");
+}
 
 use File::Find;
 my @filelist;
@@ -440,11 +659,23 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.(h|cpp|hpp|h\.in|dox)$/) {
         process_cpp($file);
     }
-    elsif ($file =~ /\.(pl|pro)$/) {
+    elsif ($file =~ /\.pl$/) {
         process_pl_cmake($file);
+    }
+    elsif ($file =~ /^swig.*\.py$/) {
+        process_py($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {
         process_pl_cmake($file);
+    }
+    elsif ($file =~ /\.(i)$/) {
+        process_swig($file);
+    }
+    elsif ($file =~ /^doc\/images\/.*\.pdf$/) {
+        # use pdf2svg to convert pdfs to svgs for doxygen.
+        process_doc_images_pdf($file);
+    }
+    elsif ($file =~ /^doc\/images\/.*\.svg$/) {
     }
     # recognize further files
     elsif ($file =~ m!^\.git/!) {

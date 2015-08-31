@@ -1,18 +1,18 @@
 /*******************************************************************************
  * tests/data/file_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/string.hpp>
-#include <c7a/data/block_queue.hpp>
-#include <c7a/data/buffered_block_reader.hpp>
-#include <c7a/data/file.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/string.hpp>
+#include <thrill/data/block_queue.hpp>
+#include <thrill/data/buffered_block_reader.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -20,12 +20,16 @@
 #include <utility>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
-TEST(File, PutSomeItemsGetItems) {
+struct File : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
+
+TEST_F(File, PutSomeItemsGetItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     {
         data::File::Writer fw = file.GetWriter(16);
@@ -42,8 +46,8 @@ TEST(File, PutSomeItemsGetItems) {
         fw.Put<uint16_t>(42);
     }
 
-    ASSERT_EQ(file.NumBlocks(), 6u);
-    ASSERT_EQ(file.NumItems(), 5u);
+    ASSERT_EQ(file.num_blocks(), 6u);
+    ASSERT_EQ(file.num_items(), 5u);
 
     ASSERT_EQ(file.block(0).size(), 16u);
     ASSERT_EQ(file.block(1).size(), 16u);
@@ -53,7 +57,7 @@ TEST(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(5).size(), 14u);
 
     // Total size is equal to sum of block sizes
-    ASSERT_EQ(file.TotalSize(), 94u);
+    ASSERT_EQ(file.total_size(), 94u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
@@ -79,7 +83,7 @@ TEST(File, PutSomeItemsGetItems) {
     };
 
     if (0) {
-        for (size_t i = 0; i != file.NumBlocks(); ++i) {
+        for (size_t i = 0; i != file.num_blocks(); ++i) {
             std::cout << common::hexdump(file.block(i).ToString())
                       << std::endl;
         }
@@ -94,7 +98,7 @@ TEST(File, PutSomeItemsGetItems) {
 
     // check size of Block.
     {
-        data::ByteBlockCPtr bytes = file.block(0).byte_block();
+        data::ByteBlockPtr bytes = file.block(0).byte_block();
         ASSERT_EQ(16u, bytes->size());
     }
 
@@ -110,10 +114,31 @@ TEST(File, PutSomeItemsGetItems) {
     }
 }
 
-TEST(File, SerializeSomeItems) {
+TEST_F(File, WriteZeroItems) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
+
+    {
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(1024);
+
+        // but dont write anything
+        fw.Close();
+    }
+
+    // get zero items back from file.
+    {
+        data::File::Reader fr = file.GetReader();
+
+        ASSERT_FALSE(fr.HasNext());
+    }
+}
+
+TEST_F(File, SerializeSomeItems) {
+
+    // construct File with very small blocks for testing
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -143,10 +168,10 @@ TEST(File, SerializeSomeItems) {
     }
 }
 
-TEST(File, SerializeSomeItemsDynReader) {
+TEST_F(File, SerializeSomeItemsDynReader) {
 
     // construct File with very small blocks for testing
-    data::File file;
+    data::File file(block_pool_);
 
     using MyPair = std::pair<int, std::string>;
 
@@ -174,13 +199,13 @@ TEST(File, SerializeSomeItemsDynReader) {
     }
 }
 
-TEST(File, RandomGetIndexOf) {
+TEST_F(File, RandomGetIndexOf) {
     const size_t size = 500;
 
     std::minstd_rand0 rng;
 
     // Create test file.
-    data::File file;
+    data::File file(block_pool_);
 
     data::File::Writer fw = file.GetWriter(53);
 
@@ -190,7 +215,7 @@ TEST(File, RandomGetIndexOf) {
 
     fw.Close();
 
-    ASSERT_EQ(size, file.NumItems());
+    ASSERT_EQ(size, file.num_items());
 
     for (size_t i = 0; i < 10; i++) {
         size_t val = rng() % size;
@@ -200,8 +225,8 @@ TEST(File, RandomGetIndexOf) {
     }
 }
 
-TEST(File, ReadFileWIthBufferedReader) {
-    data::File file;
+TEST_F(File, ReadFileWIthBufferedReader) {
+    data::File file(block_pool_);
     data::File::Writer fw = file.GetWriter(53);
 
     size_t size = 100;
@@ -222,11 +247,11 @@ TEST(File, ReadFileWIthBufferedReader) {
     ASSERT_FALSE(br.HasValue());
 }
 
-TEST(File, SeekReadSlicesOfFiles) {
+TEST_F(File, SeekReadSlicesOfFiles) {
     static const bool debug = false;
 
     // construct a small-block File with lots of items.
-    data::File file;
+    data::File file(block_pool_);
 
     // yes, this is a prime number as block size. -tb
     data::File::Writer fw = file.GetWriter(53);
@@ -235,7 +260,7 @@ TEST(File, SeekReadSlicesOfFiles) {
     }
     fw.Close();
 
-    ASSERT_EQ(1000u, file.NumItems());
+    ASSERT_EQ(1000u, file.num_items());
 
     // read complete File
     data::File::Reader fr = file.GetReader();
@@ -267,7 +292,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(end - begin);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);
@@ -292,7 +317,7 @@ TEST(File, SeekReadSlicesOfFiles) {
                 std::vector<data::Block> blocks
                     = fr.GetItemBatch<size_t>(more);
 
-                data::BlockQueue queue;
+                data::BlockQueue queue(block_pool_);
 
                 for (data::Block& b : blocks)
                     queue.AppendBlock(b);
@@ -324,24 +349,61 @@ TEST(File, SeekReadSlicesOfFiles) {
     check_range(1000, 1000, false);
 }
 
+//! A derivative of File which only contains a limited amount of Blocks
+class BoundedFile : public virtual data::BoundedBlockSink,
+                    public virtual data::File
+{
+public:
+    //! constructor with reference to BlockPool
+    BoundedFile(data::BlockPool& block_pool, size_t max_size)
+        : BlockSink(block_pool),
+          BoundedBlockSink(block_pool, max_size),
+          File(block_pool)
+    { }
+
+    enum { allocate_can_fail_ = true };
+};
+
+TEST_F(File, BoundedFilePutIntegerUntilFull) {
+
+    // construct Partition with very small blocks for testing
+    BoundedFile file(block_pool_, 32 * 64);
+
+    try {
+        data::BlockWriter<BoundedFile> bw(&file, 64);
+        for (size_t i = 0; i != 1024000; ++i) {
+            bw(123456u + i);
+        }
+        FAIL();
+    }
+    catch (data::FullException& e) {
+        // good: we got the exception
+    }
+
+    ASSERT_EQ(file.max_size()
+              / (sizeof(size_t)
+                 + (data::DynBlockWriter::self_verify ? sizeof(size_t) : 0)),
+              file.num_items());
+}
+
 // forced instantiation
 template class data::BlockReader<data::FileBlockSource>;
 
 // fixed size serialization test
-static_assert(data::Serialization<data::BlockWriter, int>
+static_assert(data::Serialization<data::DynBlockWriter, int>
               ::is_fixed_size == true, "");
-static_assert(data::Serialization<data::BlockWriter, int>
+static_assert(data::Serialization<data::DynBlockWriter, int>
               ::fixed_size == sizeof(int), "");
 
-static_assert(data::Serialization<data::BlockWriter, std::string>
+static_assert(data::Serialization<data::DynBlockWriter, std::string>
               ::is_fixed_size == false, "");
 
-static_assert(data::Serialization<data::BlockWriter, std::pair<int, short> >
+static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, short> >
               ::is_fixed_size == true, "");
-static_assert(data::Serialization<data::BlockWriter, std::pair<int, short> >
+static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, short> >
               ::fixed_size == sizeof(int) + sizeof(short), "");
 
-static_assert(data::Serialization<data::BlockWriter, std::pair<int, std::string> >
+static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, std::string> >
               ::is_fixed_size == false, "");
 
 /******************************************************************************/

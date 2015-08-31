@@ -1,17 +1,17 @@
 /*******************************************************************************
  * benchmarks/data/file_read_write.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/api/context.hpp>
-#include <c7a/common/cmdline_parser.hpp>
-#include <c7a/common/logger.hpp>
-#include <c7a/common/stats_timer.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <iostream>
 #include <random>
@@ -20,7 +20,7 @@
 
 #include "data_generators.hpp"
 
-using namespace c7a; // NOLINT
+using namespace thrill; // NOLINT
 using common::StatsTimer;
 
 //! Writes and reads random elements from a file.
@@ -64,7 +64,7 @@ int main(int argc, const char** argv) {
     common::NameThisThread("benchmark");
 
     common::CmdlineParser clp;
-    clp.SetDescription("c7a::data benchmark for disk I/O");
+    clp.SetDescription("thrill::data benchmark for disk I/O");
     clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
     unsigned iterations = 1;
     uint64_t bytes;

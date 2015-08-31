@@ -1,20 +1,20 @@
 /*******************************************************************************
  * tests/common/cmdline_parser_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/cmdline_parser.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/cmdline_parser.hpp>
 
 #include <sstream>
 #include <string>
 
-using namespace c7a::common;
+using namespace thrill::common;
 
 TEST(CmdlineParser, Test1) {
     int a_int = 0;

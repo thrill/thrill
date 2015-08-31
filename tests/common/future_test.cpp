@@ -1,19 +1,19 @@
 /*******************************************************************************
  * tests/common/future_test.cpp
  *
- * Part of Project c7a.
+ * Part of Project Thrill.
  *
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/common/future.hpp>
-#include <c7a/common/thread_pool.hpp>
 #include <gtest/gtest.h>
+#include <thrill/common/future.hpp>
+#include <thrill/common/thread_pool.hpp>
 
 #include <string>
 
-using namespace c7a::common;
+using namespace thrill::common;
 using namespace std::literals;
 
 struct FutureTest : public::testing::Test {

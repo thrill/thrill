@@ -1,7 +1,7 @@
 ################################################################################
 # CMakeLists.txt
 #
-# Build script for c7a.
+# Build script for Thrill.
 ################################################################################
 
 cmake_minimum_required(VERSION 2.8)
@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # project: we only use C++
-project(c7a CXX)
+project(thrill CXX)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -23,8 +23,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-option(JENKINS_BUILD "Build all with more warnings" OFF)
-
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
@@ -32,6 +30,10 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+
+option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
@@ -44,13 +46,22 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
 # enable more warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
+# enable AddressSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+# enable ThreadSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+
+# enable UndefinedBehaviorSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wcast-qual")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
@@ -63,32 +74,25 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
-# enable AddressSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  # try compiling a program with auto return types
+  include(CheckCXXSourceCompiles)
+  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-# enable ThreadSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+  check_cxx_source_compiles(
+    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
 
-# enable UndefinedBehaviorSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
-
-# add sanitizer flags for debug builds
-if(JENKINS_BUILD)
-
-  if(NOT USE_VALGRIND)
-    # enable AddressSanitizer
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    # enable ThreadSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-    # enable UndefinedBehaviorSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+    message(STATUS "compiler does not support -g debug info with auto returns")
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 
-  # build using libc++ with clang in Jenkins
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-    message(STATUS "Building using libc++ on clang")
-  endif()
+  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
 endif()
 
 if(USE_IWYU)
@@ -103,21 +107,6 @@ if(USE_IWYU)
       COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
       COMMENT "Running include-what-you-use tool"
       VERBATIM)
-  endif()
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} --version
-    OUTPUT_VARIABLE clang_full_version_string)
-
-  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
-    CLANG_VERSION_STRING ${clang_full_version_string})
-
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
-    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 endif()
 
@@ -165,8 +154,8 @@ if(USE_GCOV)
   # command sequence to gather, clean and generate HTML coverage report
   add_custom_target(lcov-html
     COMMAND ${LCOV} -q --directory . --capture --output-file lcov.info
-    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' '*/tests/c7a_tests.cpp' ${LCOV_FLAGS} --output-file lcov-clean.info
-    COMMAND ${GENHTML} -q -o coverage --title "c7a ${GITDESC}" --prefix ${PROJECT_SOURCE_DIR} ${GENHTML_FLAGS} lcov-clean.info
+    COMMAND ${LCOV} -q --remove lcov.info '/usr/*' '*/extlib/*' ${LCOV_FLAGS} --output-file lcov-clean.info
+    COMMAND ${GENHTML} -q -o coverage --title "Thrill ${GITDESC}" --prefix ${PROJECT_SOURCE_DIR} ${GENHTML_FLAGS} lcov-clean.info
     DEPENDS lcov-runtests
     COMMENT "Capturing code coverage counters and create HTML coverage report"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -188,10 +177,16 @@ add_subdirectory(extlib/gtest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 # general valgrind setting, if run with USE_VALGRIND=ON.
-set(C7A_VALGRIND_OPTS
+set(THRILL_VALGRIND_OPTS
   --leak-check=full --track-origins=yes)
 #  --error-exitcode=1)
 #  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
+
+###############################################################################
+# check some required system functions
+
+include(CheckFunctionExists)
+check_function_exists(pipe2 THRILL_HAVE_PIPE2)
 
 ###############################################################################
 # add cereal
@@ -203,8 +198,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
 # find pthreads
 
-find_package(Threads)
+find_package(Threads REQUIRED)
 set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
+
+# use dl (dynamic linker library)
+
+set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # try to find Intel TBB (optional)
 
@@ -233,25 +232,37 @@ endif()
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
 
+# SWIG (optional)
+
+if(THRILL_USE_SWIG)
+  find_package(SWIG)
+  if(SWIG_FOUND)
+    include(${SWIG_USE_FILE})
+  endif()
+  if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
+    message(FATAL "Swig was not found but is mandatory.")
+  endif()
+endif()
+
 ################################################################################
 ### Build Macros
 
-# macro for building main c7a programs with correct libraries
-macro(c7a_build TARGETNAME)
+# macro for building main thrill programs with correct libraries
+macro(thrill_build TARGETNAME)
 
   add_executable(${TARGETNAME} ${ARGN})
-  target_link_libraries(${TARGETNAME} c7a ${ALL_LIBRARIES})
+  target_link_libraries(${TARGETNAME} thrill ${ALL_LIBRARIES})
 
-endmacro(c7a_build)
+endmacro(thrill_build)
 
-# macro for building a single-source c7a program
-macro(c7a_build_prog PROGNAME)
+# macro for building a single-source thrill program
+macro(thrill_build_prog PROGNAME)
 
   string(REPLACE "/" "_" TARGETNAME "${PROGNAME}") # replace slashes
 
-  c7a_build(${TARGETNAME} ${PROGNAME}.cpp ${ARGN})
+  thrill_build(${TARGETNAME} ${PROGNAME}.cpp ${ARGN})
 
-endmacro(c7a_build_prog)
+endmacro(thrill_build_prog)
 
 ################################################################################
 ### Descend into Subdirectories
@@ -259,13 +270,18 @@ endmacro(c7a_build_prog)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # descend into library source
-add_subdirectory(c7a)
+add_subdirectory(thrill)
 
 # descend into testsuite
 add_subdirectory(tests)
 
 # descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
+
+if(SWIG_FOUND)
+  # build swig frontends
+  add_subdirectory(swig)
+endif()
 
 ###############################################################################
 ### cmake script TRY_COMPILE all stxxl header files
@@ -277,9 +293,9 @@ if(TRY_COMPILE_HEADERS)
   set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
   set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/c7a/libc7a.a ${ALL_LIBRARIES})
+    ${CMAKE_BINARY_DIR}/thrill/libthrill.a ${ALL_LIBRARIES})
 
-  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "c7a/*.hpp")
+  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "thrill/*.hpp")
   list(SORT header_files)
 
   foreach(file ${header_files})

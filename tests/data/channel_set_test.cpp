@@ -1,23 +1,23 @@
 /*******************************************************************************
  * tests/data/channel_set.cpp
  *
- * Part of Project c7a.
+ * Part of Project thrill.
  *
  * Copyright (C) 2015 Tobias Sturm <mail@tobiassturm.de>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <c7a/data/multiplexer.hpp>
-#include <c7a/data/channel.hpp>
-#include <c7a/net/group.hpp>
-#include <c7a/common/thread_pool.hpp>
+#include <thrill/data/multiplexer.hpp>
+#include <thrill/data/channel.hpp>
+#include <thrill/net/group.hpp>
+#include <thrill/common/thread_pool.hpp>
 #include <gtest/gtest.h>
 
 #include <string>
 #include <vector>
 
-using namespace c7a;
+using namespace thrill;
 
 static const bool debug = true;
 static const size_t test_block_size = 1024;
@@ -27,10 +27,11 @@ TEST(ChannelSet, TestLoopbacks) {
     size_t workers_per_host = 3;
     size_t hosts = 1;
     auto groups = net::Group::ConstructLocalMesh(hosts);
-    data::Multiplexer multiplexer(workers_per_host, groups[0]);
+    data::BlockPool block_pool(nullptr);
+    data::Multiplexer multiplexer(block_pool, workers_per_host, groups[0]);
 
     auto producer = [workers_per_host](std::shared_ptr<data::Channel> channel, size_t my_id){
-        common::NameThisThread("worker " + std::to_string(my_id));
+        common::NameThisThread("worker " + mem::to_string(my_id));
         //send data between workers
         auto writers = channel->OpenWriters(test_block_size);
         for (size_t j = 0; j < workers_per_host; j++) {
@@ -40,7 +41,7 @@ TEST(ChannelSet, TestLoopbacks) {
         }
     };
     auto consumer = [workers_per_host](std::shared_ptr<data::Channel> channel, size_t my_id){
-        common::NameThisThread("worker " + std::to_string(my_id));
+        common::NameThisThread("worker " + mem::to_string(my_id));
         //check data on each worker
         auto readers = channel->OpenReaders();
         for (size_t j = 0; j < workers_per_host; j++) {
