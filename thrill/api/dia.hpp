@@ -542,9 +542,15 @@ public:
      * files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
-     * \param filepath Destination of the output file.
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param max_file_size size limit of each individual file.
      */
-    void WriteLinesMany(const std::string& filepath) const;
+    void WriteLinesMany(const std::string& filepath, size_t max_file_size = 128 * 1024 * 1024) const;
 
     /*!
      * WriteBinary is a function, which writes a DIA to many files per

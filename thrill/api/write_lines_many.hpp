@@ -38,10 +38,12 @@ public:
 
     WriteLinesManyNode(const ParentDIARef& parent,
                        const std::string& path_out,
+                       size_t max_file_size,
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
           path_out_(path_out),
-          file_(path_out_)
+          file_(path_out_),
+          max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
 
@@ -80,11 +82,14 @@ private:
 
     //! File to write to
     std::ofstream file_;
+
+    //! Maximal file size in bytes
+    size_t max_file_size_;
 };
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
-    const std::string& filepath) const {
+    const std::string& filepath, size_t max_file_size) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
@@ -97,6 +102,7 @@ void DIARef<ValueType, Stack>::WriteLinesMany(
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
+                                          max_file_size,
                                           stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
