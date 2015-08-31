@@ -59,7 +59,7 @@ public:
     ReadBinaryNode(Context& ctx,
                    const std::string& filepath,
                    StatsNode* stats_node)
-        : Super(ctx, { }, "ReadBinary", stats_node),
+        : Super(ctx, { }, stats_node),
           filepath_(filepath)
     {
         filelist_ = core::GlobFileSizePrefixSum(filepath_);
@@ -123,8 +123,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<ValueType>();
     }
-
-    const char* NameString() const final { return "ReadBinary"; }
 
 private:
     //! Path of the input file.

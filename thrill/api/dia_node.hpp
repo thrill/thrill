@@ -70,9 +70,8 @@ public:
      */
     DIANode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string& stats_tag,
             StatsNode* stats_node)
-        : DIABase(ctx, parents, stats_tag, stats_node)
+        : DIABase(ctx, parents, stats_node)
     { }
 
     //! Virtual destructor for a DIANode.

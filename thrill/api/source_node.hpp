@@ -28,9 +28,8 @@ class SourceNode : public DIANode<ValueType>
 public:
     SourceNode(Context& ctx,
                const std::vector<std::shared_ptr<DIABase> >& parents,
-               const std::string& stats_tag,
                StatsNode* stats_node)
-        : DIANode<ValueType>(ctx, parents, stats_tag, stats_node)
+        : DIANode<ValueType>(ctx, parents, stats_node)
     { }
 
     //! SourceNodes generally do not Execute, they only PushData.

@@ -62,7 +62,7 @@ public:
                      std::string path_in,
                      size_t size,
                      StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, "GenerateFromFile", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
@@ -116,8 +116,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    const char* NameString() const final { return "GenerateFrom"; }
-
 private:
     //! The read function which is applied on every line read.
     GeneratorFunction generator_function_;
@@ -148,7 +146,9 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", DIANodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "GenerateFromFile", DIANodeType::DOP);
+
     auto shared_node =
         std::make_shared<GenerateResultNode>(
             ctx, generator_function, filepath, size, stats_node);

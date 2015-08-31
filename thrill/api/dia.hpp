@@ -154,14 +154,16 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const DIANodeType& type) const {
+    StatsNode * AddChildStatsNode(const char* label, const DIANodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, node);
         return node;
     }
 
     void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
     Context & ctx() const {

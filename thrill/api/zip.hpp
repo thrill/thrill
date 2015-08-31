@@ -97,7 +97,8 @@ public:
                const ParentDIARef1& parent1,
                ZipFunction zip_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() },
+                             stats_node),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
@@ -171,8 +172,6 @@ public:
         // Hook PostOp
         return FunctionStack<ZipResult>();
     }
-
-    const char* NameString() const final { return "Zip"; }
 
 private:
     //! Zip function

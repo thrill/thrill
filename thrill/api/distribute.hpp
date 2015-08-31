@@ -36,14 +36,14 @@ public:
     DistributeNode(Context& ctx,
                    const std::vector<ValueType>& in_vector,
                    StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, "Distribute", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector)
     { }
 
     DistributeNode(Context& ctx,
                    std::vector<ValueType>&& in_vector,
                    StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, "Distribute", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(std::move(in_vector))
     { }
 
@@ -62,8 +62,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<ValueType>();
     }
-
-    const char* NameString() const final { return "Distribute"; }
 
 private:
     //! Vector pointer to read elements from.

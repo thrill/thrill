@@ -37,7 +37,7 @@ public:
                        const std::vector<ValueType>& in_vector,
                        size_t source_id,
                        StatsNode* stats_node)
-        : SourceNode<ValueType>(ctx, { }, "DistributeFrom", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
           channel_(ctx.GetNewChannel()),
@@ -85,8 +85,6 @@ public:
     auto ProduceStack() {
         return FunctionStack<ValueType>();
     }
-
-    const char* NameString() const final { return "DistributeFrom"; }
 
 private:
     //! Vector pointer to read elements from.

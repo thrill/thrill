@@ -46,8 +46,7 @@ public:
                     const std::string& path_out,
                     size_t max_file_size,
                     StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() },
-                     "WriteBinary", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
           max_file_size_(max_file_size)
     {
@@ -74,8 +73,6 @@ public:
     }
 
     void Dispose() final { }
-
-    const char* NameString() const final { return "WriteBinary"; }
 
     //! function which takes pathbase and replaces $$$ with worker and ### with
     //! the file_part values.
