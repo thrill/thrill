@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -44,9 +45,8 @@ public:
      * \param parent Parent DIARef.
      */
     CacheNode(const ParentDIARef& parent,
-              const std::string& stats_tag,
               StatsNode* stats_node)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
+        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
         auto save_fn =
             [=](const ValueType& input) {
@@ -76,14 +76,6 @@ public:
     }
 
     void Dispose() final { }
-
-    /*!
-     * Returns "[CacheNode]" and its id as a string.
-     * \return "[CacheNode]"
-     */
-    std::string ToString() final {
-        return "[CacheNode] Id: " + std::to_string(this->id());
-    }
 
 private:
     //! Local data file
@@ -117,9 +109,9 @@ auto DIARef<ValueType, Stack>::Cache() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", DIANodeType::CACHE);
+    StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
     auto shared_node
-        = std::make_shared<LOpChainNode>(*this, "", stats_node);
+        = std::make_shared<LOpChainNode>(*this, stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>(

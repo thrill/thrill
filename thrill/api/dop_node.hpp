@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -44,9 +45,8 @@ public:
      */
     DOpNode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string& stats_tag,
             StatsNode* stats_node)
-        : DIANode<ValueType>(ctx, parents, stats_tag, stats_node) { }
+        : DIANode<ValueType>(ctx, parents, stats_node) { }
 };
 
 //! \}

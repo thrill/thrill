@@ -13,7 +13,7 @@
 #define THRILL_API_DISTRIBUTE_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 
@@ -27,27 +27,25 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeNode : public DOpNode<ValueType>
+class DistributeNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     DistributeNode(Context& ctx,
                    const std::vector<ValueType>& in_vector,
                    StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Distribute", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector)
     { }
 
     DistributeNode(Context& ctx,
                    std::vector<ValueType>&& in_vector,
                    StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "Distribute", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(std::move(in_vector))
     { }
-
-    void Execute() final { }
 
     void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
@@ -65,17 +63,13 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    std::string ToString() final {
-        return "[Distribute] Id: " + std::to_string(this->id());
-    }
-
 private:
     //! Vector pointer to read elements from.
     std::vector<ValueType> in_vector_;
 };
 
 /*!
- * Distribute is an Initial-DOp, which takes a vector of data EQUAL on all
+ * Distribute is a Source-DOp, which takes a vector of data EQUAL on all
  * workers, and returns the data in a DIA. Use DistributeFrom to actually
  * distribute data from a single worker, Distribute is more a ToDIA wrapper if
  * the data is already distributed.

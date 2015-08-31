@@ -60,7 +60,7 @@ public:
     SortNode(const ParentDIARef& parent,
              CompareFunction compare_function,
              StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
           channel_id_samples_(parent.ctx().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
@@ -100,14 +100,6 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns "[SortNode]" as a string.
-     * \return "[SortNode]"
-     */
-    std::string ToString() final {
-        return "[SortNode] Id:" + std::to_string(this->id());
     }
 
 private:

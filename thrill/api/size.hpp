@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -38,7 +39,7 @@ class SizeNode : public ActionNode
 public:
     SizeNode(const ParentDIARef& parent,
              StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Size", stats_node)
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node)
     {
         // Hook PreOp(s)
         auto pre_op_fn = [=](const ValueType&) { ++local_size_; };
@@ -60,14 +61,6 @@ public:
      */
     size_t result() const {
         return global_size_;
-    }
-
-    /*!
-     * Returns "[SizeNode]" as a string.
-     * \return "[SizeNode]"
-     */
-    std::string ToString() final {
-        return "[SizeNode] Id:" + std::to_string(this->id());
     }
 
 private:
