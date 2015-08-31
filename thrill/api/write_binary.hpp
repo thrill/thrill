@@ -75,9 +75,7 @@ public:
 
     void Dispose() final { }
 
-    std::string ToString() final {
-        return "[WriteBinaryNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "WriteBinary"; }
 
     //! function which takes pathbase and replaces $$$ with worker and ### with
     //! the file_part values.

@@ -194,13 +194,7 @@ public:
                          return MakeFunctionStack<ValueType>(post_op_fn);*/
     }
 
-    /*!
-     * Returns "[ReduceToIndexNode]" and its id as a string.
-     * \return "[ReduceToIndexNode]"
-     */
-    std::string ToString() final {
-        return "[ReduceToIndexNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "ReduceToIndex"; }
 
 private:
     //! Key extractor function
@@ -227,7 +221,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << ToString() << " running main op";
+        LOG << NameString() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();

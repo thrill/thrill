@@ -63,9 +63,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    std::string ToString() final {
-        return "[Distribute] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Distribute"; }
 
 private:
     //! Vector pointer to read elements from.

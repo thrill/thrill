@@ -68,13 +68,7 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[CollapseNode]" and its id as a string.
-     * \return "[CollapseNode]"
-     */
-    std::string ToString() final {
-        return "[CollapseNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Collapse"; }
 };
 
 template <typename ValueType, typename Stack>

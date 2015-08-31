@@ -75,13 +75,7 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[AllGatherNode]" and its id as a string.
-     * \return "[AllGatherNode]"
-     */
-    std::string ToString() final {
-        return "[AllGatherNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "AllGather"; }
 
 private:
     //! Vector pointer to write elements to.

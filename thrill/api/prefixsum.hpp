@@ -85,13 +85,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[PrefixSumNode]" as a string.
-     * \return "[PrefixSumNode]"
-     */
-    std::string ToString() final {
-        return "[PrefixSumNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "PrefixSum"; }
 
 private:
     //! The sum function which is applied to two elements.

@@ -124,9 +124,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    std::string ToString() final {
-        return "[ReadBinaryNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "ReadBinary"; }
 
 private:
     //! Path of the input file.

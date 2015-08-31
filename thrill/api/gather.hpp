@@ -72,9 +72,7 @@ public:
 
     void Dispose() final { }
 
-    std::string ToString() final {
-        return "[GatherNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Gather"; }
 
 private:
     //! target worker id, which collects vector, all other workers do not get

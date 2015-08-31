@@ -172,13 +172,7 @@ public:
         return FunctionStack<ZipResult>();
     }
 
-    /*!
-     * Returns "[ZipNode]" as a string.
-     * \return "[ZipNode]"
-     */
-    std::string ToString() final {
-        return "[ZipNode]";
-    }
+    const char* NameString() const final { return "Zip"; }
 
 private:
     //! Zip function

@@ -66,13 +66,7 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() final {
-        return "[WriteNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "WriteLinesMany"; }
 
 private:
     //! Path of the output file.

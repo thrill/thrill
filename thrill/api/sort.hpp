@@ -102,13 +102,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[SortNode]" as a string.
-     * \return "[SortNode]"
-     */
-    std::string ToString() final {
-        return "[SortNode] Id:" + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Sort"; }
 
 private:
     //! The sum function which is applied to two elements.

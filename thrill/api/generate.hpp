@@ -84,13 +84,7 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns information about the GeneratorNode as a string.
-     * \return Stringified node.
-     */
-    std::string ToString() final {
-        return "[GeneratorNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "Generate"; }
 
 private:
     //! The generator function which is applied to every index.

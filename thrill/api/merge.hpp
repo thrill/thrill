@@ -131,13 +131,7 @@ public:
         return FunctionStack<MergeResult>();
     }
 
-    /*!
-     * Returns "[MergeNode]" as a string.
-     * \return "[MergeNode]"
-     */
-    std::string ToString() final {
-        return "[MergeNode]";
-    }
+    const char* NameString() const final { return "Merge"; }
 
 private:
     //! Merge function

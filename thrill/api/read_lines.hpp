@@ -108,9 +108,7 @@ public:
         return FunctionStack<std::string>();
     }
 
-    std::string ToString() final {
-        return "[ReadLinesNode] Id: " + std::to_string(this->id());
-    }
+    const char* NameString() const final { return "ReadLines"; }
 
 private:
     //! True, if at least one input file is compressed.
