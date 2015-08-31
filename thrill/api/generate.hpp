@@ -64,7 +64,6 @@ public:
           size_(size)
     { }
 
-
     void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
         std::tie(local_begin, local_end) =

@@ -48,6 +48,9 @@ public:
               StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
+        // CacheNodes are kept by default.
+        Super::consume_on_push_data_ = false;
+
         auto save_fn =
             [=](const ValueType& input) {
                 writer_(input);

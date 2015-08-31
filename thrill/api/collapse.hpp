@@ -47,7 +47,10 @@ public:
                  StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
-        auto propagate_fn = [=](ValueType input) {
+        // CollapseNodes are kept by default.
+        Super::consume_on_push_data_ = false;
+
+        auto propagate_fn = [=](const ValueType& input) {
                                 this->PushItem(input);
                             };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
@@ -66,6 +69,13 @@ public:
     void PushData(bool /* consume */) final { }
 
     void Dispose() final { }
+
+    void SetConsume(bool consume) final {
+        // propagate consumption up to parents.
+        for (auto& p : Super::parents_) {
+            p->SetConsume(consume);
+        }
+    }
 };
 
 template <typename ValueType, typename Stack>
