@@ -67,7 +67,7 @@ public:
                 out_pathbase_, context_.my_rank(), out_serial_++);
             file_.open(new_path);
             LOG << "Opening file: " << new_path;
-        
+
             current_file_size_ = 0;
         }
     }
