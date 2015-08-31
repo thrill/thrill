@@ -41,12 +41,13 @@ public:
                        size_t max_file_size,
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
-          path_out_(path_out),
-          file_(path_out_),
+          out_pathbase_(path_out),
+          file_(core::make_path(
+                    out_pathbase_, context_.my_rank(), out_serial_++)),      
           max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
-
+        
         auto pre_op_fn = [=](ValueType input) {
                              PreOp(input);
                          };
@@ -62,7 +63,7 @@ public:
 
     //! Closes the output file
     void Execute() final {
-        sLOG << "closing file" << path_out_;
+        sLOG << "closing file";
         file_.close();
     }
 
@@ -77,14 +78,20 @@ public:
     }
 
 private:
-    //! Path of the output file.
-    std::string path_out_;
+    //! Base path of the output file.
+    std::string out_pathbase_;
 
     //! File to write to
     std::ofstream file_;
 
     //! Maximal file size in bytes
     size_t max_file_size_;
+
+    //! Current file size in bytes
+    size_t current_file_size_ = 0;
+
+    //! File serial number for this worker
+    size_t out_serial_ = 0;
 };
 
 template <typename ValueType, typename Stack>
