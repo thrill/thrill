@@ -5,6 +5,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
