@@ -13,7 +13,6 @@
 #define THRILL_DATA_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/data/block_pool.hpp>
 #include <thrill/mem/manager.hpp>
 
 #include <cassert>
@@ -33,19 +32,26 @@ using Byte = uint8_t;
 //! default size of blocks in File, Channel, BlockQueue, etc.
 static const size_t default_block_size = 2 * 1024 * 1024;
 
+//forward declaration
+class BlockPool;
+
 /*!
  * A ByteBlock is the basic storage units of containers like File, BlockQueue,
  * etc. It consists of a fixed number of bytes without any type and meta
  * information. Conceptually a ByteBlock is written _once_ and can then be
  * shared read-only between containers using shared_ptr<const ByteBlock>
  * reference counting inside a Block, which adds meta information.
+ *
+ * ByteBlocks can be swapped to disk, which decreases their size to 0.
  */
 class ByteBlock : public common::ReferenceCount
 {
 public:
     //! deleter for CountingPtr<ByteBlock>
     static void deleter(ByteBlock* bb) {
-        bb->head.block_pool_->FreeBlock(bb->size());
+        assert(bb->pin_count_ == 0);
+        bb->head.block_pool_->FreeBlockMemory(bb->size());
+        bb->head.block_pool_->DestroyBlock(*this);
         operator delete (bb);
     }
     static void deleter(const ByteBlock* bb) {
@@ -62,10 +68,20 @@ protected:
 
         //! reference to BlockPool for deletion.
         BlockPool* block_pool_;
+
+        //! counts the number of pins in this block
+        common::ReferenceCount pin_count_;
+
+        //! Indicates that block resides out of memory (on disk)
+        bool swapped_out_ = { false };
+
     } head;
 
     //! the memory block itself follows here, this is just a placeholder
     Byte data_[1];
+
+    //BlockPool is a friend to modify the pin_count_
+    friend class BlockPool;
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
     //! use Allocate() for construction.
@@ -77,7 +93,7 @@ public:
     static ByteBlockPtr Allocate(
         size_t block_size, BlockPool& block_pool) {
         // this counts only the bytes and excludes the header. why? -tb
-        block_pool.AllocateBlock(block_size);
+        block_pool.ClaimBlockMemory(block_size);
 
         // allocate a new block of uninitialized memory
         ByteBlock* block =
