@@ -74,6 +74,7 @@ build_test_group(common/tests
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
+  common/counting_ptr_test.cpp
   common/delegate_test.cpp
   common/function_traits_test.cpp
   common/future_queue_test.cpp
@@ -84,8 +85,6 @@ build_test_group(common/tests
   common/thread_pool_test.cpp
   common/timed_counter_test.cpp
   )
-
-build_test(common/counting_ptr_test)
 
 build_test(mem/allocator_test)
 build_test(mem/malloc_tracker_test)
