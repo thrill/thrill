@@ -13,7 +13,7 @@
 #define THRILL_API_DISTRIBUTE_FROM_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 
@@ -27,17 +27,17 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeFromNode : public DOpNode<ValueType>
+class DistributeFromNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     DistributeFromNode(Context& ctx,
                        const std::vector<ValueType>& in_vector,
                        size_t source_id,
                        StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "DistributeFrom", stats_node),
+        : SourceNode<ValueType>(ctx, { }, "DistributeFrom", stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
           channel_(ctx.GetNewChannel()),
@@ -105,8 +105,9 @@ private:
 };
 
 /*!
- * DistributeFrom is an initial DOp, which scatters the vector data from the source_id
- * to all workers, partitioning equally, and returning the data in a DIA.
+ * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * source_id to all workers, partitioning equally, and returning the data in a
+ * DIA.
  */
 template <typename ValueType>
 auto DistributeFrom(

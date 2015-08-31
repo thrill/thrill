@@ -14,7 +14,7 @@
 #define THRILL_API_READ_BINARY_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
@@ -39,12 +39,12 @@ namespace api {
  * the file system and emits it as a DIA.
  */
 template <typename ValueType>
-class ReadBinaryNode : public DOpNode<ValueType>
+class ReadBinaryNode : public SourceNode<ValueType>
 {
     static const bool debug = false;
 
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
 
     using FileSizePair = std::pair<std::string, size_t>;

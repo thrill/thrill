@@ -14,7 +14,7 @@
 #define THRILL_API_READ_LINES_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
@@ -36,10 +36,10 @@ namespace api {
  * A DIANode which performs a line-based Read operation. Read reads a file from
  * the file system and emits it as a DIA.
  */
-class ReadLinesNode : public DOpNode<std::string>
+class ReadLinesNode : public SourceNode<std::string>
 {
 public:
-    using Super = DOpNode<std::string>;
+    using Super = SourceNode<std::string>;
     using Super::context_;
 
     using FileSizePair = std::pair<std::string, size_t>;
@@ -70,8 +70,6 @@ public:
             }
         }
     }
-
-    void Execute() final { }
 
     void PushData() final {
         if (contains_compressed_file_) {
