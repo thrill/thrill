@@ -23,11 +23,8 @@
 #include <thrill/common/functional.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,9 +34,6 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
-
-template <typename T>
-class DIANode;
 
 /*!
  * DIARef is the interface between the user and the Thrill framework. A DIARef
