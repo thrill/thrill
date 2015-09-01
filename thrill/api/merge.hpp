@@ -58,7 +58,7 @@ public:
         std::iota(remap.begin(), remap.end(), 0);
 
         for(size_t i = 0; i < n; i++) {
-            width[i] = std::min(files[i].NumItems(), k);
+            width[i] = std::min(files[i].num_items(), k);
         }
 
         while(true) {
@@ -119,7 +119,7 @@ public:
         for(size_t i = 0; i < files.size(); i++) {
             LOG << "Found " << element << " at " << idx; 
             idx += files[i].GetIndexOf(element, tie, comperator);
-            tie -= files[i].NumItems(); //Shift tie. 
+            tie -= files[i].num_items(); //Shift tie. 
         }
 
         return idx;
@@ -140,11 +140,11 @@ class TwoMergeNode : public DOpNode<ValueType>
 public:
     TwoMergeNode(const ParentDIARef0& parent0,
                  const ParentDIARef1& parent1,
-                 MergeFunction merge_function,
+                 Comperator comperator,
                  StatsNode* stats_node)
         : DOpNode<ValueType>(parent0.ctx(),
                              { parent0.node(), parent1.node() }, stats_node),
-          merge_function_(merge_function)
+          comperator_(comperator)
     {
         // Hook PreOp(s)
         auto pre_op0_fn = [=](const ValueType& input) {
@@ -314,7 +314,7 @@ private:
         dataSize = 0;
 
         for(size_t i = 0; i < files_.size(); i++) {
-            dataSize += files_[i].NumItems();
+            dataSize += files_[i].num_items();
         };
 
         //Care! This does only work if dataSize is the same
@@ -452,7 +452,7 @@ private:
 
             for(size_t j = 0; j < num_inputs_; j++) {
                 offsets[j][i] = files_[j].GetIndexOf(pivot, partitions[i] - prefixSum, comperator_);
-                prefixSum += files_[j].NumItems();
+                prefixSum += files_[j].num_items();
             }
 
         }
