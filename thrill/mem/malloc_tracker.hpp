@@ -17,12 +17,6 @@
 namespace thrill {
 namespace mem {
 
-//! bypass malloc tracker and access malloc() directly
-void * bypass_malloc(size_t size) noexcept;
-
-//! bypass malloc tracker and access free() directly
-void bypass_free(void* ptr) noexcept;
-
 //! returns the currently allocated amount of memory
 size_t malloc_tracker_current();
 
@@ -40,6 +34,12 @@ void malloc_tracker_print_status();
 
 } // namespace mem
 } // namespace thrill
+
+//! bypass malloc tracker and access malloc() directly
+void * bypass_malloc(size_t size) noexcept;
+
+//! bypass malloc tracker and access free() directly
+void bypass_free(void* ptr) noexcept;
 
 #endif // !THRILL_MEM_MALLOC_TRACKER_HEADER
 
