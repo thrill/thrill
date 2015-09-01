@@ -16,8 +16,8 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
-#include <thrill/core/stage_builder.hpp>
 #include <thrill/core/file_io.hpp>
+#include <thrill/core/stage_builder.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
 #include <fstream>
@@ -44,21 +44,18 @@ public:
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
-          file_(core::make_path(
-                    out_pathbase_, context_.my_rank(), 0)),
+          c_file_(core::SysFile::OpenForWrite(core::make_path(
+                                                  out_pathbase_,
+                                                  context_.my_rank(),
+                                                  0))),
           max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
 
-        c_file_ = core::SysFile::OpenForWrite(core::make_path(
-                                         out_pathbase_,
-                                         context_.my_rank(),
-                                         0));
-
         auto pre_op_fn = [=](std::string input) {
                              PreOp(input);
                          };
-        
+
         max_buffer_size_ = std::min(data::default_block_size,
                                     common::RoundUpToPowerOfTwo(max_file_size));
 
@@ -87,8 +84,8 @@ public:
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }
-            //String is too long to fit into buffer, write directly, add '\n' to
-            //start of next buffer.
+            // String is too long to fit into buffer, write directly, add '\n' to
+            // start of next buffer.
             if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
                 current_file_size_ += input.size() + 1;
                 c_file_.write(input.data(), input.size());
@@ -99,9 +96,8 @@ public:
         }
         curr_buffer_size_ += input.size() + 1;
         write_buffer_.AppendString(input);
-        write_buffer_.PutByte('\n');;
+        write_buffer_.PutByte('\n');
         assert(curr_buffer_size_ == write_buffer_.size());
-            
     }
 
     //! Closes the output file, write last buffer
@@ -117,9 +113,6 @@ private:
     //! Base path of the output file.
     std::string out_pathbase_;
 
-    //! Maximal file size in bytes
-    size_t max_file_size_;
-
     //! Current file size in bytes
     size_t current_file_size_ = 0;
 
@@ -128,14 +121,18 @@ private:
 
     //! File to wrtie to
     core::SysFile c_file_;
-    //! Write buffer 
+
+    //! Write buffer
     net::BufferBuilder write_buffer_;
+
     //! Maximum buffer size
     size_t max_buffer_size_;
+
     //! Current buffer size
     size_t curr_buffer_size_ = 0;
 
-    
+    //! Maximal file size in bytes
+    size_t max_file_size_;
 };
 
 template <typename ValueType, typename Stack>
