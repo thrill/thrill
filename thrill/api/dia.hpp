@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
@@ -23,11 +24,8 @@
 #include <thrill/common/functional.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,9 +35,6 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
-
-template <typename T>
-class DIANode;
 
 /*!
  * DIARef is the interface between the user and the Thrill framework. A DIARef
@@ -98,7 +93,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(const DIANodePtr& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(node),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -113,7 +109,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(DIANodePtr&& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(std::move(node)),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -157,14 +154,16 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const NodeType& type) const {
+    StatsNode * AddChildStatsNode(const char* label, const DIANodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, node);
         return node;
     }
 
     void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
     Context & ctx() const {
@@ -200,7 +199,7 @@ public:
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
-        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", NodeType::LAMBDA) });
+        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -230,7 +229,7 @@ public:
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
-        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", NodeType::LAMBDA) });
+        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -254,7 +253,7 @@ public:
         assert(IsValid());
 
         auto new_stack = stack_.push(flatmap_function);
-        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", NodeType::LAMBDA) });
+        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -480,6 +479,13 @@ public:
     auto Merge(SecondDIA second_dia, const Comperator &comperator) const;
 
     /*!
+     * TODO
+     */
+    template <typename MergeFunction, typename SecondDIA>
+    auto Merge(
+        SecondDIA second_dia, const MergeFunction &zip_function) const;
+
+    /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
      * function defines how two elements are combined to a single element.
      *
@@ -541,6 +547,22 @@ public:
     void WriteLinesMany(const std::string& filepath) const;
 
     /*!
+     * WriteBinary is a function, which writes a DIA to many files per
+     * worker. The input DIA can be recreated with ReadBinary and equal
+     * filepath.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param max_file_size size limit of individual file.
+     */
+    void WriteBinary(const std::string& filepath,
+                     size_t max_file_size = 128* 1024* 1024) const;
+
+    /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
      * each worker. This is only for testing purposes and should not be used on
      * large datasets.
@@ -596,8 +618,6 @@ private:
 /*!
  * ReadLines is a DOp, which reads a file from the file system and
  * creates an ordered DIA according to a given read function.
- *
- * \tparam ReadFunction Type of the read function.
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system

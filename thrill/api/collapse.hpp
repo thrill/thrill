@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -36,7 +37,6 @@ class CollapseNode : public DIANode<ValueType>
 public:
     using Super = DIANode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
@@ -44,12 +44,11 @@ public:
      * \param parent Parent DIARef.
      */
     CollapseNode(const ParentDIARef& parent,
-                 const std::string& stats_tag,
                  StatsNode* stats_node)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
+        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
         auto propagate_fn = [=](ValueType input) {
-                                Super::PushElement(input);
+                                this->PushItem(input);
                             };
         auto lop_chain = parent.stack().push(propagate_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
@@ -67,14 +66,6 @@ public:
     void PushData() final { }
 
     void Dispose() final { }
-
-    /*!
-     * Returns "[CollapseNode]" and its id as a string.
-     * \return "[CollapseNode]"
-     */
-    std::string ToString() final {
-        return "[CollapseNode] Id: " + result_file_.ToString();
-    }
 };
 
 template <typename ValueType, typename Stack>
@@ -85,9 +76,9 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CollapseNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::COLLAPSE);
+    StatsNode* stats_node = AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
     auto shared_node
-        = std::make_shared<LOpChainNode>(*this, "", stats_node);
+        = std::make_shared<LOpChainNode>(*this, stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>(

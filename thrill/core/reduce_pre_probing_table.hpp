@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -105,7 +106,7 @@ class PreProbingReduceByIndex
 public:
     size_t size_;
 
-    PreProbingReduceByIndex(size_t size)
+    explicit PreProbingReduceByIndex(size_t size)
         : size_(size)
     { }
 
@@ -133,9 +134,9 @@ class ReducePreProbingTable
 {
     static const bool debug = false;
 
+public:
     using KeyValuePair = std::pair<Key, Value>;
 
-public:
     struct index_result {
     public:
         //! which partition number the item belongs to.
@@ -152,7 +153,6 @@ public:
         }
     };
 
-public:
     /**
      * A data structure which takes an arbitrary value and extracts a key using a key extractor
      * function from that value. Afterwards, the value is hashed based on the key into some slot.
@@ -162,15 +162,10 @@ public:
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
      * \param sentinel Sentinel element used to flag free slots.
-     * \param num_items_init_scale Used to calculate the initial number of slots
-     *                  (num_partitions * num_items_init_scale).
-     * \param num_items_resize_scale Used to calculate the number of slots during resize
-     *                  (size * num_items_resize_scale).
-     * \param max_partition_fill_ratio Used to decide when to resize. If the current number of items
-     *                  in some partitions divided by the number of maximal number of items per partition
-     *                  is greater than max_partition_fill_ratio, resize.
-     * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
-     *                  of the partition with the most items gets flushed.
+     * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
+     *                  are flushed.
+     * \param max_partition_fill_rate Maximal number of items per partition relative to number of slots allowed
+     *                                to be filled. It the rate is exceeded, items get flushed.
      * \param index_function Function to be used for computing the slot the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
@@ -179,7 +174,7 @@ public:
                           ReduceFunction reduce_function,
                           std::vector<data::DynBlockWriter>& emit,
                           Key sentinel,
-                          size_t num_items_per_partition = 1024* 16,
+                          size_t byte_size = 1024* 16,
                           double max_partition_fill_rate = 0.5,
                           const IndexFunction& index_function = IndexFunction(),
                           const EqualToFunction& equal_to_function = EqualToFunction())
@@ -187,7 +182,7 @@ public:
           max_partition_fill_rate_(max_partition_fill_rate),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
-          num_items_per_partition_(num_items_per_partition),
+          byte_size_(byte_size),
           emit_(emit),
           index_function_(index_function),
           equal_to_function_(equal_to_function) {
@@ -195,14 +190,15 @@ public:
 
         assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(num_items_per_partition > 0);
+        assert(byte_size > 0 && "byte_size must be greater than 0");
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
+
+        size_ = (size_t)(static_cast<double>(byte_size_) / static_cast<double>(sizeof(KeyValuePair)));
+        num_items_per_partition_ = (size_t)std::ceil(static_cast<double>(size_) / static_cast<double>(num_partitions));
 
         for (size_t i = 0; i < emit.size(); i++) {
             emit_stats_.push_back(0);
         }
-
-        size_ = num_partitions_ * num_items_per_partition_;
 
         // set the key to initial key
         sentinel_ = KeyValuePair(sentinel, Value());
@@ -249,8 +245,10 @@ public:
 
         KeyValuePair* initial = &items_[h.global_index];
         KeyValuePair* current = initial;
+        size_t num_items_per_partition = (h.partition_id != num_partitions_ - 1) ?
+                                         num_items_per_partition_ : size_ - (h.partition_id * num_items_per_partition_);
         KeyValuePair* last_item = &items_[h.global_index - (h.global_index % num_items_per_partition_)
-                                          + num_items_per_partition_ - 1];
+                                          + num_items_per_partition - 1];
 
         while (!equal_to_function_(current->first, sentinel_.first))
         {
@@ -267,7 +265,7 @@ public:
 
             if (current == last_item)
             {
-                current -= (num_items_per_partition_ - 1);
+                current -= (num_items_per_partition - 1);
             }
             else
             {
@@ -275,7 +273,7 @@ public:
             }
 
             // flush partition, if all slots
-            // are occupied // TODO(ms): test!
+            // are occupied
             if (current == initial)
             {
                 FlushPartition(h.partition_id);
@@ -367,8 +365,11 @@ public:
         LOG << "Flushing items of partition with id: "
             << partition_id;
 
+        size_t num_items_per_partition = (partition_id != num_partitions_ - 1) ?
+                                         num_items_per_partition_ : size_ - (partition_id * num_items_per_partition_);
+
         for (size_t i = partition_id * num_items_per_partition_;
-             i < partition_id * num_items_per_partition_ + num_items_per_partition_; i++)
+             i < partition_id * num_items_per_partition_ + num_items_per_partition; i++)
         {
             KeyValuePair& current = items_[i];
             if (current.first != sentinel_.first)
@@ -513,8 +514,8 @@ private:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 
-    //! Calculated according to size divided by num partitions.
-    size_t num_items_per_partition_;
+    //! Size of the table in bytes
+    size_t byte_size_ = 0;
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
@@ -525,12 +526,15 @@ private:
     //! Comparator function for keys.
     EqualToFunction equal_to_function_;
 
-    //! Number of items per partition.
-    std::vector<size_t> items_per_partition_;
-
     //! Size of the table, which is the number of slots
     //! available for items.
     size_t size_ = 0;
+
+    //! Calculated according to size divided by num partitions.
+    size_t num_items_per_partition_;
+
+    //! Number of items per partition.
+    std::vector<size_t> items_per_partition_;
 
     //! Emitter stats.
     std::vector<int> emit_stats_;

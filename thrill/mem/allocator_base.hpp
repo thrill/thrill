@@ -12,11 +12,11 @@
 #ifndef THRILL_MEM_ALLOCATOR_BASE_HEADER
 #define THRILL_MEM_ALLOCATOR_BASE_HEADER
 
+#include <thrill/common/string.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
 
 #include <atomic>
 #include <cassert>
-#include <cstdarg>
 #include <deque>
 #include <iosfwd>
 #include <memory>
@@ -170,39 +170,24 @@ using vector = std::vector<T, BypassAllocator<T> >;
 template <typename T>
 using deque = std::deque<T, BypassAllocator<T> >;
 
-//! Helper for the to_string converters
-template <typename String, typename CharT = typename String::value_type>
-String to_string_helper(size_t n, const CharT* fmt, ...) {
-    CharT* s = static_cast<CharT*>(alloca(sizeof(CharT) * n));
-
-    va_list args;
-    va_start(args, fmt);
-
-    const int len = std::vsnprintf(s, n, fmt, args);
-
-    va_end(args);
-
-    return String(s, s + len);
-}
-
 //! convert to string
 static inline string to_string(int val) {
-    return to_string_helper<string>(4 * sizeof(int), "%d", val);
+    return common::str_snprintf<string>(4 * sizeof(int), "%d", val);
 }
 
 //! convert to string
 static inline string to_string(unsigned val) {
-    return to_string_helper<string>(4 * sizeof(int), "%u", val);
+    return common::str_snprintf<string>(4 * sizeof(int), "%u", val);
 }
 
 //! convert to string
 static inline string to_string(long val) {
-    return to_string_helper<string>(4 * sizeof(long), "%ld", val);
+    return common::str_snprintf<string>(4 * sizeof(long), "%ld", val);
 }
 
 //! convert to string
 static inline string to_string(unsigned long val) {
-    return to_string_helper<string>(4 * sizeof(long), "%lu", val);
+    return common::str_snprintf<string>(4 * sizeof(long), "%lu", val);
 }
 
 } // namespace mem

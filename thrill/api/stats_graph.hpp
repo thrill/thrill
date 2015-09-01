@@ -5,6 +5,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -25,7 +26,7 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-enum class NodeType {
+enum class DIANodeType {
     DOP,
     ACTION,
     COLLAPSE,
@@ -48,9 +49,8 @@ public:
      * \param label Label of the node in the graphical representation.
      * \param type Switch for choosing the layout of the node.
      */
-    StatsNode(const std::string& label, const NodeType& type)
-        : label_(label),
-          type_(type)
+    StatsNode(size_t id, const char* label, const DIANodeType& type)
+        : id_(id), label_(label), type_(type)
     { }
 
     //! Delete copy-constructor
@@ -72,18 +72,21 @@ public:
         return adjacent_nodes_;
     }
 
-    /*!
-     * Returns the type of the node.
-     */
-    const NodeType & type() const {
-        return type_;
+    //! Returns the type of the node.
+    const size_t & id() const {
+        return id_;
+    }
+
+    //! Returns the label of the node.
+    const char * label() const {
+        return label_;
     }
 
     /*!
-     * Returns the label of the node.
+     * Returns the type of the node.
      */
-    std::string label() const {
-        return label_;
+    const DIANodeType & type() const {
+        return type_;
     }
 
     /*!
@@ -119,16 +122,16 @@ public:
      * Set the node style according to the nodes type.
      */
     std::string NodeStyle() const {
-        std::string style = label_ + " [";
+        std::string style = std::string(label_) + " [";
         switch (type_) {
-        case NodeType::DOP:
+        case DIANodeType::DOP:
             style += "style=filled, fillcolor=red, shape=box";
             break;
-        case NodeType::ACTION:
+        case DIANodeType::ACTION:
             style += "style=filled, fillcolor=yellow, shape=diamond";
             break;
-        case NodeType::CACHE:
-        case NodeType::COLLAPSE:
+        case DIANodeType::CACHE:
+        case DIANodeType::COLLAPSE:
             style += "style=filled, fillcolor=blue, shape=hexagon";
             break;
         default:
@@ -152,11 +155,14 @@ private:
     //! Adjacent nodes
     std::vector<StatsNode*> adjacent_nodes_;
 
-    //! Label of node
-    std::string label_;
+    //! Serial number as id of node
+    size_t id_;
+
+    //! Label of node: usually the DIANode subclass implementing it.
+    const char* label_;
 
     //! Type of node
-    NodeType type_;
+    DIANodeType type_;
 
     //! Stats messages
     std::vector<std::string> stats_msg_;
@@ -192,8 +198,9 @@ public:
      *
      * \return Pointer to the new node.
      */
-    StatsNode * AddNode(const std::string& label, const NodeType& type) {
-        StatsNode* node = new StatsNode(label + std::to_string(nodes_id_++), type);
+    StatsNode * AddNode(const char* label, const DIANodeType& type) {
+        size_t id = nodes_id_++;
+        StatsNode* node = new StatsNode(id, label, type);
         nodes_.push_back(node);
         return node;
     }

@@ -14,6 +14,7 @@
 #ifndef THRILL_COMMON_STRING_HEADER
 #define THRILL_COMMON_STRING_HEADER
 
+#include <cstdarg>
 #include <random>
 #include <string>
 #include <vector>
@@ -55,6 +56,32 @@ bool ends_with(const std::string& str, const std::string& match) {
     if (match.size() > str.size()) return false;
     return std::equal(match.begin(), match.end(),
                       str.end() - match.size());
+}
+
+/*!
+ * Helper for using sprintf to format into std::string and also to_string
+ * converters.
+ *
+ * \param max_size maximum length of output string, longer ones are truncated.
+ * \param fmt printf format and additional parameters
+ */
+template <typename String = std::string>
+String str_snprintf(size_t max_size, const char* fmt, ...)
+__attribute__ ((format(printf, 2, 3)));
+
+template <typename String>
+String str_snprintf(size_t max_size, const char* fmt, ...) {
+    // allocate buffer on stack
+    char* s = static_cast<char*>(alloca(max_size));
+
+    va_list args;
+    va_start(args, fmt);
+
+    const int len = std::vsnprintf(s, max_size, fmt, args);
+
+    va_end(args);
+
+    return String(s, s + len);
 }
 
 /**
@@ -176,6 +203,29 @@ template <typename Container>
 static inline
 std::string join(const std::string& glue, const Container& parts) {
     return join(glue, parts.begin(), parts.end());
+}
+
+/**
+ * Replace all occurrences of needle in str. Each needle will be replaced with
+ * instead, if found. The replacement is done in the given string and a
+ * reference to the same is returned.
+ *
+ * \param str           the string to process
+ * \param needle        string to search for in str
+ * \param instead       replace needle with instead
+ * \return              reference to str
+ */
+static inline
+std::string & replace_all(std::string& str, const std::string& needle,
+                          const std::string& instead) {
+    std::string::size_type lastpos = 0, thispos;
+
+    while ((thispos = str.find(needle, lastpos)) != std::string::npos)
+    {
+        str.replace(thispos, needle.size(), instead);
+        lastpos = thispos + instead.size();
+    }
+    return str;
 }
 
 /**

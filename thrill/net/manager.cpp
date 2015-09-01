@@ -273,6 +273,11 @@ protected:
                                      return OnConnected(nc, address);
                                  });
         }
+        else if (errno == ECONNREFUSED) {
+            LOG << "Early connect refused.";
+            // connect() already refused connection?
+            OnConnected(nc, address, errno);
+        }
         else {
             // Failed to even try the connection - this might be a permanent
             // error.
@@ -357,12 +362,15 @@ protected:
      * \param address The associated address. This parameter is needed in case
      * we need to reconnect.
      *
+     * \param _err An errno state if called synchronously after a connect().
+     *
      * \return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(Connection& conn, const SocketAddress& address) {
+    bool OnConnected(Connection& conn, const SocketAddress& address,
+                     int _err = 0) {
 
         // First, check if everything went well.
-        int err = conn.GetSocket().GetError();
+        int err = _err ? _err : conn.GetSocket().GetError();
 
         if (conn.state() != ConnectionState::Connecting) {
             LOG << "Client " << my_rank_
@@ -371,8 +379,7 @@ protected:
             die("FAULTY STATE DETECTED");
         }
 
-        if (err == Socket::Errors::ConnectionRefused ||
-            err == Socket::Errors::Timeout) {
+        if (err == ECONNREFUSED || err == ETIMEDOUT) {
 
             // Connection refused. The other workers might not be online yet.
 
@@ -547,7 +554,13 @@ protected:
 Manager::Manager(size_t my_rank,
                  const std::vector<std::string>& endpoints)
     : my_rank_(my_rank) {
-    Construction(*this).Initialize(my_rank_, endpoints);
+    try {
+        Construction(*this).Initialize(my_rank_, endpoints);
+    }
+    catch (std::exception& e) {
+        LOG1 << "Exception: " << e.what();
+        throw;
+    }
 }
 
 Manager::Manager(size_t my_rank,

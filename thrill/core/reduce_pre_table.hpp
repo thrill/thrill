@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <functional>
 #include <iostream>
@@ -199,13 +200,10 @@ public:
      * \param key_extractor Key extractor function to extract a key from a value.
      * \param reduce_function Reduce function to reduce to values.
      * \param emit A set of BlockWriter to flush items. One BlockWriter per partition.
-     * \param num_buckets_init_scale Used to calculate the initial number of buckets
-     *                  (num_partitions * num_buckets_init_scale).
-     * \param num_buckets_resize_scale Used to calculate the number of buckets during resize
-     *                  (size * num_buckets_resize_scale).
-     * \param max_num_items_per_bucket Maximal number of items allowed in a bucket. Used to decide when to resize.
-     * \param max_num_items_table Maximal number of items allowed before some items are flushed. The items
-     *                  of the partition with the most items gets flushed.
+     * \param byte_size Maximal size of the table in byte. In case size of table exceeds that value, items
+     *                  are flushed.
+     * \param max_partition_fill_rate Maximal number of items per partition relative to number of slots allowed
+     *                                to be filled. It the rate is exceeded, items get flushed.
      * \param index_function Function to be used for computing the bucket the item to be inserted.
      * \param equal_to_function Function for checking equality fo two keys.
      */
@@ -213,43 +211,40 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   size_t num_buckets_per_partition = 1024,
+                   size_t byte_size = 1024* 16,
+                   double bucket_rate = 0.01,
                    double max_partition_fill_rate = 0.5,
-                   size_t max_num_blocks_table = 1024* 16,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
-          num_buckets_per_partition_(num_buckets_per_partition),
           max_partition_fill_rate_(max_partition_fill_rate),
-          max_num_blocks_table_(max_num_blocks_table),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emit_(emit),
+          byte_size_(byte_size),
           index_function_(index_function),
           equal_to_function_(equal_to_function) {
         sLOG << "creating ReducePreTable with" << emit_.size() << "output emitters";
 
-        assert(num_partitions >= 0);
+        assert(num_partitions > 0);
         assert(num_partitions == emit.size());
-        assert(num_buckets_per_partition > 0);
+        assert(byte_size > 0 && "byte_size must be greater than 0");
+        assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
-        assert(max_num_blocks_table > 0);
 
-        for (size_t i = 0; i < emit_.size(); i++)
-            emit_stats_.push_back(0);
-
-        num_buckets_ = num_partitions_ * num_buckets_per_partition;
-        if (num_partitions_ > num_buckets_ &&
-            num_buckets_ % num_partitions_ != 0) {
-            throw std::invalid_argument("partition_size must be less than or equal to num_buckets "
-                                        "AND partition_size a divider of num_buckets");
-        }
+        max_num_blocks_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
+                                                          / static_cast<double>(sizeof(BucketBlock))), 1);
+        num_items_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_table_ * block_size_)
+                                                             / static_cast<double>(num_partitions_)), 1);
+        num_buckets_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_table_)
+                                                                / static_cast<double>(num_partitions_)) * bucket_rate), 1);
+        num_buckets_ = num_buckets_per_partition_ * num_partitions_;
 
         buckets_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);
 
-        num_items_per_partition_ = (size_t)((static_cast<double>(max_num_blocks_table * block_size_)
-                                             / static_cast<double>(num_partitions)) / max_partition_fill_rate);
+        for (size_t i = 0; i < emit_.size(); i++)
+            emit_stats_.push_back(0);
     }
 
     //! non-copyable: delete copy-constructor
@@ -611,6 +606,9 @@ protected:
 
     //! Set of emitters, one per partition.
     std::vector<data::DynBlockWriter>& emit_;
+
+    //! Size of the table in bytes
+    size_t byte_size_ = 0;
 
     //! Index Calculation functions: Hash or ByIndex.
     IndexFunction index_function_;

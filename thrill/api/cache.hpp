@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -37,7 +38,6 @@ class CacheNode : public DIANode<ValueType>
 public:
     using Super = DIANode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     /*!
      * Constructor for a LOpNode. Sets the Context, parents and stack.
@@ -45,9 +45,8 @@ public:
      * \param parent Parent DIARef.
      */
     CacheNode(const ParentDIARef& parent,
-              const std::string& stats_tag,
               StatsNode* stats_node)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
+        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
         auto save_fn =
             [=](const ValueType& input) {
@@ -71,20 +70,12 @@ public:
 
     void PushData() final {
         data::File::Reader reader = file_.GetReader();
-        for (size_t i = 0; i < file_.NumItems(); ++i) {
-            this->PushElement(reader.Next<ValueType>());
+        for (size_t i = 0; i < file_.num_items(); ++i) {
+            this->PushItem(reader.Next<ValueType>());
         }
     }
 
     void Dispose() final { }
-
-    /*!
-     * Returns "[CacheNode]" and its id as a string.
-     * \return "[CacheNode]"
-     */
-    std::string ToString() final {
-        return "[CacheNode] Id: " + result_file_.ToString();
-    }
 
 private:
     //! Local data file
@@ -118,9 +109,9 @@ auto DIARef<ValueType, Stack>::Cache() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CacheNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", NodeType::CACHE);
+    StatsNode* stats_node = AddChildStatsNode("Cache", DIANodeType::CACHE);
     auto shared_node
-        = std::make_shared<LOpChainNode>(*this, "", stats_node);
+        = std::make_shared<LOpChainNode>(*this, stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>(

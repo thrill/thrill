@@ -35,17 +35,16 @@ class WriteLinesNode : public ActionNode
 
 public:
     using Super = ActionNode;
-    using Super::result_file_;
     using Super::context_;
 
     WriteLinesNode(const ParentDIARef& parent,
                    const std::string& path_out,
                    StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() },
-                     "WriteSingleFile", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_),
-          writer_(result_file_.GetWriter())
+          temp_file_(context_.GetFile()),
+          writer_(&temp_file_)
     {
         sLOG << "Creating write node.";
 
@@ -76,9 +75,9 @@ public:
         file_.seekp(prefix_elem);
         context_.Barrier();
 
-        data::File::Reader reader = result_file_.GetReader();
+        data::File::Reader reader = temp_file_.GetReader();
 
-        for (size_t i = 0; i < result_file_.NumItems(); ++i) {
+        for (size_t i = 0; i < temp_file_.num_items(); ++i) {
             file_ << reader.Next<ValueType>() << "\n";
         }
 
@@ -86,14 +85,6 @@ public:
     }
 
     void Dispose() override { }
-
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() override {
-        return "[WriteNode] Id:" + result_file_.ToString();
-    }
 
 private:
     //! Path of the output file.
@@ -104,6 +95,9 @@ private:
 
     //! Local file size
     size_t size_ = 0;
+
+    //! Temporary File for splitting correctly?
+    data::File temp_file_;
 
     //! File writer used.
     data::File::Writer writer_;
@@ -119,7 +113,7 @@ void DIARef<ValueType, Stack>::WriteLines(
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
