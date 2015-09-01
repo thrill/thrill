@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <thrill/common/logger.hpp>
 #include <thrill/mem/allocator.hpp>
 
 #include <deque>
@@ -45,7 +46,7 @@ namespace thrill {
 namespace mem {
 
 // forced instantiations
-template class BypassAllocator<int>;
+template class FixedAllocator<int, g_bypass_manager>;
 template class Allocator<int>;
 
 } // namespace mem
