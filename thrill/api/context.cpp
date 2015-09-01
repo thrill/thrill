@@ -75,7 +75,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
     std::vector<std::thread> threads(host_count * workers_per_host);
 
     for (size_t host = 0; host < host_count; host++) {
-        mem::string log_prefix = "host " + mem::to_string(host);
+        mem::by_string log_prefix = "host " + mem::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; worker++) {
             threads[host * workers_per_host + worker] = std::thread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
@@ -133,7 +133,7 @@ int RunDistributedTCP(
     size_t my_host_rank,
     const std::vector<std::string>& endpoints,
     std::function<void(Context&)> job_startpoint,
-    const mem::string& log_prefix) {
+    const mem::by_string& log_prefix) {
 
     // TODO pull this out of ENV
     const size_t workers_per_host = 1;
