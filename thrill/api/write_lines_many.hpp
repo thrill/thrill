@@ -48,7 +48,7 @@ public:
                                                   out_pathbase_,
                                                   context_.my_rank(),
                                                   0))),
-          max_file_size_(max_file_size)
+        max_file_size_(max_file_size)
     {
         sLOG << "Creating write node.";
 
@@ -57,7 +57,7 @@ public:
                          };
 
         max_buffer_size_ = std::min(data::default_block_size,
-                                    common::RoundUpToPowerOfTwo(max_file_size));
+                                    common::RoundUpToPowerOfTwo(max_file_size_));
 
         write_buffer_.Reserve(max_buffer_size_);
 
@@ -69,12 +69,12 @@ public:
 
     void PreOp(std::string input) {
 
-        if (THRILL_UNLIKELY(curr_buffer_size_ + input.size() + 1
+        if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
                             >= max_buffer_size_)) {
-            c_file_.write(write_buffer_.data(), curr_buffer_size_);
+            c_file_.write(write_buffer_.data(), current_buffer_size_);
             write_buffer_.set_size(0);
-            current_file_size_ += curr_buffer_size_;
-            curr_buffer_size_ = 0;
+            current_file_size_ += current_buffer_size_;
+            current_buffer_size_ = 0;
             if (THRILL_UNLIKELY(current_file_size_ >= max_file_size_)) {
                 LOG << "Closing file" << out_serial_;
                 c_file_.close();
@@ -89,21 +89,21 @@ public:
             if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
                 current_file_size_ += input.size() + 1;
                 c_file_.write(input.data(), input.size());
-                curr_buffer_size_ = 1;
+                current_buffer_size_ = 1;
                 write_buffer_.PutByte('\n');
                 return;
             }
         }
-        curr_buffer_size_ += input.size() + 1;
+        current_buffer_size_ += input.size() + 1;
         write_buffer_.AppendString(input);
         write_buffer_.PutByte('\n');
-        assert(curr_buffer_size_ == write_buffer_.size());
+        assert(current_buffer_size_ == write_buffer_.size());
     }
 
     //! Closes the output file, write last buffer
     void Execute() final {
         sLOG << "closing file";
-        c_file_.write(write_buffer_.data(), curr_buffer_size_);
+        c_file_.write(write_buffer_.data(), current_buffer_size_);
         c_file_.close();
     }
 
@@ -129,7 +129,7 @@ private:
     size_t max_buffer_size_;
 
     //! Current buffer size
-    size_t curr_buffer_size_ = 0;
+    size_t current_buffer_size_ = 0;
 
     //! Maximal file size in bytes
     size_t max_file_size_;
