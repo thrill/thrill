@@ -13,7 +13,6 @@
 #endif
 
 #include <thrill/mem/malloc_tracker.hpp>
-#include <thrill/mem/manager.hpp>
 
 #include <dlfcn.h>
 
@@ -90,6 +89,16 @@ ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
     curr -= dec;
     --current_allocs;
+}
+
+//! bypass malloc tracker and access malloc() directly
+void * bypass_malloc(size_t size) noexcept {
+    return real_malloc(size);
+}
+
+//! bypass malloc tracker and access free() directly
+void bypass_free(void* ptr) noexcept {
+    return real_free(ptr);
 }
 
 //! user function to return the currently allocated amount of memory
@@ -177,8 +186,6 @@ static __attribute__ ((destructor)) void finish() { // NOLINT
 /****************************************************/
 
 using namespace thrill::mem; // NOLINT
-
-Manager bypass_manager(nullptr, "Bypass");
 
 ATTRIBUTE_NO_SANITIZE
 static void * preinit_malloc(size_t size) noexcept {
@@ -393,21 +400,6 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     return newptr;
 }
 
-//! bypass malloc tracker and access malloc() directly
-void * bypass_malloc(size_t size) noexcept {
-    void* ptr = real_malloc(size);
-    size_t size_used = MALLOC_USABLE_SIZE(ptr);
-    bypass_manager.add(size_used);
-    return ptr;
-}
-
-//! bypass malloc tracker and access free() directly
-void bypass_free(void* ptr) noexcept {
-    size_t size_used = MALLOC_USABLE_SIZE(ptr);
-    bypass_manager.subtract(size_used);
-    return real_free(ptr);
-}
-
 #else // GENERIC IMPLEMENTATION
 
 /*
@@ -538,16 +530,6 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     *reinterpret_cast<size_t*>(newptr) = size;
 
     return static_cast<char*>(newptr) + padding;
-}
-
-//! bypass malloc tracker and access malloc() directly
-void * bypass_malloc(size_t size) noexcept {
-    return real_malloc(size);
-}
-
-//! bypass malloc tracker and access free() directly
-void bypass_free(void* ptr) noexcept {
-    real_free(ptr);
 }
 
 #endif // IMPLEMENTATION SWITCH
