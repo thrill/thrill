@@ -545,9 +545,10 @@ public:
      * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
      * automatically appended.
      *
-     * \param max_file_size size limit of each individual file.
+     * \param target_file_size target size of each individual file.
      */
-    void WriteLinesMany(const std::string& filepath, size_t max_file_size = 128* 1024* 1024) const;
+    void WriteLinesMany(const std::string& filepath,
+                        size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
      * WriteBinary is a function, which writes a DIA to many files per
