@@ -42,11 +42,11 @@ class BlockQueueSource;
  * GetWriter() and GetReader().  Each block is available only *once* via the
  * BlockQueueSource.
  */
-class BlockQueue : public BlockSink
+class BlockQueue final : public BlockSink
 {
 public:
     using BlockSource = BlockQueueSource;
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<BlockQueue>;
     using Reader = BlockReader<BlockQueueSource>;
     using DynReader = DynBlockReader;
 
@@ -54,6 +54,15 @@ public:
     explicit BlockQueue(BlockPool& block_pool)
         : BlockSink(block_pool)
     { }
+
+    //! non-copyable: delete copy-constructor
+    BlockQueue(const BlockQueue&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockQueue& operator = (const BlockQueue&) = delete;
+    //! move-constructor: default
+    BlockQueue(BlockQueue&&) = default;
+    //! move-assignment operator: default
+    BlockQueue& operator = (BlockQueue&&) = default;
 
     void AppendBlock(const Block& b) final {
         queue_.emplace(b);
@@ -67,6 +76,8 @@ public:
         // enqueue a closing Block.
         queue_.emplace();
     }
+
+    enum { allocate_can_fail_ = false };
 
     Block Pop() {
         assert(!read_closed_);

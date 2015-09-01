@@ -64,13 +64,13 @@ TEST_F(ReducePreProbingTable, CustomHashFunction) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     CustomKeyHashFunction<int> cust_hash;
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true,
                                 CustomKeyHashFunction<int> >
-    table(1, key_ex, red_fn, writers, -1, 8, 0.5, cust_hash);
+    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 0.5, cust_hash);
 
     for (int i = 0; i < 16; i++) {
         table.Insert(i);
@@ -100,11 +100,11 @@ TEST_F(ReducePreProbingTable, AddIntegers) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 8, 1.0);
+    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -129,11 +129,11 @@ TEST_F(ReducePreProbingTable, CreateEmptyTable) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 8, 1.0);
+    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -158,11 +158,11 @@ TEST_F(ReducePreProbingTable, DISABLED_TestSetMaxSizeSetter) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 10, 1.0);
+    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -190,11 +190,11 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyOnePartition) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 8, 1.0);
+    table(1, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -231,12 +231,12 @@ TEST_F(ReducePreProbingTable, FlushIntegersManuallyTwoPartitions) {
 
     data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output1.GetWriter());
-    writers.emplace_back(output2.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output1.GetDynWriter());
+    writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1, 8, 1.0);
+    table(2, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -282,11 +282,11 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyOnePartition) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, 8, 0.5);
+    table(1, key_ex, red_fn, writers, -1, 2 * 4 * 2 * 4, 0.5);
 
     table.Insert(0);
     table.Insert(1);
@@ -322,12 +322,12 @@ TEST_F(ReducePreProbingTable, FlushIntegersPartiallyTwoPartitions) {
 
     data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output1.GetWriter());
-    writers.emplace_back(output2.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output1.GetDynWriter());
+    writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1, 8, 1.0);
+    table(2, key_ex, red_fn, writers, -1, 1024 * 16, 1.0);
 
     table.Insert(0);
     table.Insert(1);
@@ -372,11 +372,14 @@ TEST_F(ReducePreProbingTable, ComplexType) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
+
+    size_t kv_size = sizeof(core::ReducePreProbingTable<std::string, StringPair,
+                                                        decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
 
     core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, "", 4, 0.75);
+    table(1, key_ex, red_fn, writers, "", 2 * 3 * kv_size, 0.5);
 
     table.Insert(StringPair("hallo", 1));
     table.Insert(StringPair("hello", 1));
@@ -405,12 +408,12 @@ TEST_F(ReducePreProbingTable, MultipleWorkers) {
 
     data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output1.GetWriter());
-    writers.emplace_back(output2.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output1.GetDynWriter());
+    writers.emplace_back(output2.GetDynWriter());
 
     core::ReducePreProbingTable<int, int, decltype(key_ex), decltype(red_fn), true>
-    table(2, key_ex, red_fn, writers, -1, 2, 1.0);
+    table(2, key_ex, red_fn, writers, -1, 6 * 8, 0.5);
 
     ASSERT_EQ(0u, table.NumItems());
 
@@ -437,14 +440,14 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     size_t nitems = 1 * 1024 * 1024;
 
     // Hashtable with smaller block size for testing.
     core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, nitems, 1.0);
+    table(1, key_ex, red_fn, writers, -1, nitems * 16, 1.0);
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
@@ -477,15 +480,15 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     size_t nitems_per_key = 10;
     size_t nitems = 1 * 32 * 1024;
 
     // Hashtable with smaller block size for testing.
     core::ReducePreProbingTable<int, IntPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, -1, nitems, 1.0);
+    table(1, key_ex, red_fn, writers, -1, nitems * 16, 1.0);
 
     // insert lots of items
     int sum = 0;
@@ -533,14 +536,17 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
 
     data::BlockPool block_pool(nullptr);
     data::File output(block_pool);
-    std::vector<data::File::Writer> writers;
-    writers.emplace_back(output.GetWriter());
+    std::vector<data::File::DynWriter> writers;
+    writers.emplace_back(output.GetDynWriter());
 
     size_t nitems_per_key = 2;
     size_t nitems = 1 * 4 * 1024;
 
+    size_t kv_size = sizeof(core::ReducePreProbingTable<std::string, StringPair,
+                                                        decltype(key_ex), decltype(red_fn), true>::KeyValuePair);
+
     core::ReducePreProbingTable<std::string, StringPair, decltype(key_ex), decltype(red_fn), true>
-    table(1, key_ex, red_fn, writers, "", nitems, 1.0);
+    table(1, key_ex, red_fn, writers, "", nitems * kv_size, 1.0);
 
     // insert lots of items
     int sum = 0;

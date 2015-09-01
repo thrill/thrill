@@ -48,7 +48,6 @@ class SortNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
 public:
     /*!
@@ -61,7 +60,7 @@ public:
     SortNode(const ParentDIARef& parent,
              CompareFunction compare_function,
              StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Sort", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           compare_function_(compare_function),
           channel_id_samples_(parent.ctx().GetNewChannel()),
           emitters_samples_(channel_id_samples_->OpenWriters()),
@@ -87,9 +86,7 @@ public:
     void PushData() final {
 
         for (size_t i = 0; i < data_.size(); i++) {
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(data_[i]);
-            }
+            this->PushItem(data_[i]);
         }
     }
 
@@ -105,14 +102,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[SortNode]" as a string.
-     * \return "[SortNode]"
-     */
-    std::string ToString() final {
-        return "[SortNode] Id:" + result_file_.ToString();
-    }
-
 private:
     //! The sum function which is applied to two elements.
     CompareFunction compare_function_;
@@ -121,11 +110,11 @@ private:
 
     //! Emitter to send samples to process 0
     data::ChannelPtr channel_id_samples_;
-    std::vector<data::BlockWriter> emitters_samples_;
+    std::vector<data::Channel::Writer> emitters_samples_;
 
     //! Emitters to send data to other workers specified by splitters.
     data::ChannelPtr channel_id_data_;
-    std::vector<data::BlockWriter> emitters_data_;
+    std::vector<data::Channel::Writer> emitters_data_;
 
     // epsilon
     static constexpr double desired_imbalance_ = 0.25;
@@ -394,6 +383,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
 auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
+    assert(IsValid());
 
     using SortResultNode
               = SortNode<ValueType, DIARef, CompareFunction>;
@@ -419,7 +409,7 @@ auto DIARef<ValueType, Stack>::Sort(const CompareFunction &compare_function) con
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    StatsNode* stats_node = AddChildStatsNode("Sort", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Sort", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<SortResultNode>(*this, compare_function, stats_node);
 

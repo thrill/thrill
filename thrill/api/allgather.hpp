@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -31,12 +32,11 @@ class AllGatherNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
-    using Super::result_file_;
 
     AllGatherNode(const ParentDIARef& parent,
                   std::vector<ValueType>* out_vector,
                   StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "AllGather", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_vector_(out_vector),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters())
@@ -75,32 +75,25 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[AllGatherNode]" and its id as a string.
-     * \return "[AllGatherNode]"
-     */
-    std::string ToString() final {
-        return "[AllGatherNode] Id: " + result_file_.ToString();
-    }
-
 private:
     //! Vector pointer to write elements to.
     std::vector<ValueType>* out_vector_;
 
     data::ChannelPtr channel_;
-    std::vector<data::BlockWriter> emitters_;
+    std::vector<data::Channel::Writer> emitters_;
 
     static const bool debug = false;
 };
 
 template <typename ValueType, typename Stack>
 std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
+    assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<AllGatherNode>(*this, &output, stats_node);
 
@@ -112,10 +105,11 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::AllGather(
     std::vector<ValueType>* out_vector)  const {
+    assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("AllGather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("AllGather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<AllGatherNode>(*this, out_vector, stats_node);
 

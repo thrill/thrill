@@ -34,13 +34,12 @@ class WriteLinesManyNode : public ActionNode
 
 public:
     using Super = ActionNode;
-    using Super::result_file_;
     using Super::context_;
 
     WriteLinesManyNode(const ParentDIARef& parent,
                        const std::string& path_out,
                        StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_)
     {
@@ -67,14 +66,6 @@ public:
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() final {
-        return "[WriteNode] Id:" + result_file_.ToString();
-    }
-
 private:
     //! Path of the output file.
     std::string path_out_;
@@ -86,13 +77,14 @@ private:
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
     const std::string& filepath) const {
+    assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLinesMany needs an std::string as input parameter");
 
     using WriteResultNode = WriteLinesManyNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteLinesMany", DIANodeType::ACTION);
 
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,

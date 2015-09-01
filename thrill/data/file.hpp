@@ -50,12 +50,13 @@ class CachingBlockQueueSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-class File : public BlockSink
+class File : public virtual BlockSink
 {
 public:
     using BlockSource = FileBlockSource;
-    using Writer = BlockWriter;
+    using Writer = BlockWriter<File>;
     using Reader = BlockReader<FileBlockSource>;
+    using DynWriter = DynBlockWriter;
     using DynReader = DynBlockReader;
 
     //! Constructor from BlockPool
@@ -69,7 +70,7 @@ public:
         assert(!closed_);
         if (b.size() == 0) return;
         blocks_.push_back(b);
-        nitems_sum_.push_back(NumItems() + b.nitems());
+        num_items_sum_.push_back(num_items() + b.num_items());
         size_ += b.size();
     }
 
@@ -77,6 +78,11 @@ public:
         assert(!closed_);
         closed_ = true;
     }
+
+    //! boolean flag whether to check if AllocateByteBlock can fail in any
+    //! subclass (if false: accelerate BlockWriter to not be able to cope with
+    //! nullptr).
+    enum { allocate_can_fail_ = false };
 
     // returns a string that identifies this string instance
     std::string ToString() {
@@ -88,15 +94,15 @@ public:
     }
 
     //! Return the number of blocks
-    size_t NumBlocks() const { return blocks_.size(); }
+    size_t num_blocks() const { return blocks_.size(); }
 
     //! Return the number of items in the file
-    size_t NumItems() const {
-        return nitems_sum_.size() ? nitems_sum_.back() : 0;
+    size_t num_items() const {
+        return num_items_sum_.size() ? num_items_sum_.back() : 0;
     }
 
     //! Return the number of bytes of user data in this file.
-    size_t TotalSize() const { return size_; }
+    size_t total_size() const { return size_; }
 
     //! Return shared pointer to a block
     const Block & block(size_t i) const {
@@ -107,12 +113,17 @@ public:
     //! Return number of items starting in block i
     size_t ItemsStartIn(size_t i) const {
         assert(i < blocks_.size());
-        return nitems_sum_[i] - (i == 0 ? 0 : nitems_sum_[i - 1]);
+        return num_items_sum_[i] - (i == 0 ? 0 : num_items_sum_[i - 1]);
     }
 
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size) {
         return Writer(this, block_size);
+    }
+
+    //! Get BlockWriter.
+    DynWriter GetDynWriter(size_t block_size = default_block_size) {
+        return DynWriter(this, block_size);
     }
 
     //! Get BlockReader for beginning of File
@@ -172,9 +183,9 @@ protected:
     std::vector<Block> blocks_;
 
     //! inclusive prefixsum of number of elements of blocks, hence
-    //! nitems_sum_[i] is the number of items starting in all blocks preceding
+    //! num_items_sum_[i] is the number of items starting in all blocks preceding
     //! and including the i-th block.
-    std::vector<size_t> nitems_sum_;
+    std::vector<size_t> num_items_sum_;
 
     //! Total size of this file in bytes. Sum of all block sizes.
     size_t size_ = 0;
@@ -206,7 +217,7 @@ public:
     Block NextBlock() {
         ++current_block_;
 
-        if (current_block_ >= file_.NumBlocks())
+        if (current_block_ >= file_.num_blocks())
             return Block();
 
         if (current_block_ == first_block_) {
@@ -268,24 +279,24 @@ File::GetReaderAt(size_t index) const {
     // perform binary search for item block with largest exclusive size
     // prefixsum less or equal to index.
     auto it =
-        std::lower_bound(nitems_sum_.begin(), nitems_sum_.end(), index);
+        std::lower_bound(num_items_sum_.begin(), num_items_sum_.end(), index);
 
-    if (it == nitems_sum_.end())
+    if (it == num_items_sum_.end())
         die("Access beyond end of File?");
 
-    size_t begin_block = it - nitems_sum_.begin();
+    size_t begin_block = it - num_items_sum_.begin();
 
     sLOG << "item" << index << "in block" << begin_block
-         << "psum" << nitems_sum_[begin_block]
-         << "first_item" << blocks_[begin_block].first_item();
+         << "psum" << num_items_sum_[begin_block]
+         << "first_item" << blocks_[begin_block].first_item_absolute();
 
     // start Reader at given first valid item in located block
     Reader fr(
         FileBlockSource(*this, begin_block,
-                        blocks_[begin_block].first_item()));
+                        blocks_[begin_block].first_item_absolute()));
 
     // skip over extra items in beginning of block
-    size_t items_before = it == nitems_sum_.begin() ? 0 : *(it - 1);
+    size_t items_before = it == num_items_sum_.begin() ? 0 : *(it - 1);
 
     sLOG << "items_before" << items_before << "index" << index
          << "delta" << (index - items_before);
@@ -329,7 +340,7 @@ size_t File::GetIndexOf(ItemType item, const CompareFunction comperator) const {
 
     // Use a binary search to find the item.
     size_t left = 0;
-    size_t right = this->NumItems();
+    size_t right = num_items();
 
     while (left < right - 1) {
         size_t mid = (right + left) / 2;

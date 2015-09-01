@@ -27,7 +27,7 @@ class ThreadBarrier
 
 private:
     std::mutex mutex_;
-    std::condition_variable_any event_;
+    std::condition_variable cv_;
     const size_t thread_count_;
     size_t counts_[2] = { 0, 0 };
     size_t current_ = 0;
@@ -48,22 +48,21 @@ public:
      * the method.
      */
     void Await() {
-        std::atomic_thread_fence(std::memory_order_release);
-        mutex_.lock();
+        std::unique_lock<std::mutex> lock(mutex_);
+
         size_t local_ = current_;
         counts_[local_]++;
 
         if (counts_[local_] < thread_count_) {
             while (counts_[local_] < thread_count_) {
-                event_.wait(mutex_);
+                cv_.wait(lock);
             }
         }
         else {
             current_ = current_ ? 0 : 1;
             counts_[current_] = 0;
-            event_.notify_all();
+            cv_.notify_all();
         }
-        mutex_.unlock();
     }
 };
 
