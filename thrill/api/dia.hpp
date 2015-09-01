@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
@@ -23,11 +24,8 @@
 #include <thrill/common/functional.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,9 +35,6 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
-
-template <typename T>
-class DIANode;
 
 /*!
  * DIARef is the interface between the user and the Thrill framework. A DIARef
@@ -159,14 +154,16 @@ public:
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const DIANodeType& type) const {
+    StatsNode * AddChildStatsNode(const char* label, const DIANodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, node);
         return node;
     }
 
     void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
     Context & ctx() const {

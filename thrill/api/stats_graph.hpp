@@ -5,6 +5,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -48,10 +49,8 @@ public:
      * \param label Label of the node in the graphical representation.
      * \param type Switch for choosing the layout of the node.
      */
-    StatsNode(size_t id, const std::string& label, const DIANodeType& type)
-        : id_(id),
-          label_(label),
-          type_(type)
+    StatsNode(size_t id, const char* label, const DIANodeType& type)
+        : id_(id), label_(label), type_(type)
     { }
 
     //! Delete copy-constructor
@@ -73,17 +72,13 @@ public:
         return adjacent_nodes_;
     }
 
-    /*!
-     * Returns the type of the node.
-     */
+    //! Returns the type of the node.
     const size_t & id() const {
         return id_;
     }
 
-    /*!
-     * Returns the label of the node.
-     */
-    std::string label() const {
+    //! Returns the label of the node.
+    const char * label() const {
         return label_;
     }
 
@@ -127,7 +122,7 @@ public:
      * Set the node style according to the nodes type.
      */
     std::string NodeStyle() const {
-        std::string style = label_ + " [";
+        std::string style = std::string(label_) + " [";
         switch (type_) {
         case DIANodeType::DOP:
             style += "style=filled, fillcolor=red, shape=box";
@@ -163,8 +158,8 @@ private:
     //! Serial number as id of node
     size_t id_;
 
-    //! Label of node
-    std::string label_;
+    //! Label of node: usually the DIANode subclass implementing it.
+    const char* label_;
 
     //! Type of node
     DIANodeType type_;
@@ -203,9 +198,9 @@ public:
      *
      * \return Pointer to the new node.
      */
-    StatsNode * AddNode(const std::string& label, const DIANodeType& type) {
+    StatsNode * AddNode(const char* label, const DIANodeType& type) {
         size_t id = nodes_id_++;
-        StatsNode* node = new StatsNode(id, label + std::to_string(id), type);
+        StatsNode* node = new StatsNode(id, label, type);
         nodes_.push_back(node);
         return node;
     }

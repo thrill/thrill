@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
@@ -67,12 +68,16 @@ public:
      */
     DIABase(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string& stats_tag,
             StatsNode* stats_node)
         : context_(ctx), parents_(parents),
-          execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
-          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
+          execution_timer_(
+              ctx.stats().CreateTimer(
+                  "DIABase::execution", stats_node->label())),
+          lifetime_(
+              ctx.stats().CreateTimer(
+                  "DIABase::lifetime", stats_node->label(), true)),
           stats_node_(stats_node) {
+
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -105,8 +110,11 @@ public:
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
 
-    //! Virtual ToString method. Returns the type of node in sub-classes.
-    virtual std::string ToString() = 0;
+    //! return label of DIANode subclass as stored by StatsNode
+    const char * label() const {
+        assert(stats_node_);
+        return stats_node_->label();
+    }
 
     const DIANodeType & type() const {
         assert(stats_node_);

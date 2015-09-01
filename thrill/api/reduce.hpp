@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -85,7 +86,7 @@ public:
                KeyExtractor key_extractor,
                ReduceFunction reduce_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
@@ -203,14 +204,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[ReduceNode]" and its id as a string.
-     * \return "[ReduceNode]"
-     */
-    std::string ToString() final {
-        return "[ReduceNode] Id: " + std::to_string(this->id());
-    }
-
 private:
     //! Key extractor function
     KeyExtractor key_extractor_;
@@ -233,7 +226,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << ToString() << " running main op";
+        LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
@@ -393,7 +386,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Reduce", DIANodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceByKey", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, false, false>;
