@@ -99,10 +99,10 @@ TEST_F(Serialization, pod_struct) {
     ASSERT_EQ(foo.i1, fooserial.i1);
     ASSERT_FLOAT_EQ(foo.d2, fooserial.d2);
     static_assert(
-        data::Serialization<data::BlockWriter, MyPodStruct>::is_fixed_size,
+        data::Serialization<data::DynBlockWriter, MyPodStruct>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
     static_assert(
-        data::Serialization<data::BlockWriter, MyPodStruct>::fixed_size
+        data::Serialization<data::DynBlockWriter, MyPodStruct>::fixed_size
         == sizeof(MyPodStruct),
         "Serialization::fixed_size is wrong");
 }
@@ -120,7 +120,7 @@ TEST_F(Serialization, tuple) {
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
     ASSERT_EQ(std::get<2>(foo), std::get<2>(fooserial));
     static_assert(
-        !data::Serialization<data::BlockWriter, decltype(foo)>::is_fixed_size,
+        !data::Serialization<data::DynBlockWriter, decltype(foo)>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
 }
 
@@ -132,7 +132,7 @@ TEST_F(Serialization, tuple_w_pair) {
         auto w = f.GetWriter();
         w(foo); //gets serialized
     }
-    ASSERT_EQ(1u, f.NumItems());
+    ASSERT_EQ(1u, f.num_items());
     auto r = f.GetReader();
     auto fooserial = r.Next<decltype(foo)>();
     ASSERT_EQ(std::get<0>(foo), std::get<0>(fooserial));
@@ -146,8 +146,8 @@ TEST_F(Serialization, tuple_check_fixed_size) {
     data::File f(block_pool_);
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, 42.0);
-    auto no = data::Serialization<data::BlockWriter, decltype(n)>::is_fixed_size;
-    auto yes = data::Serialization<data::BlockWriter, decltype(y)>::is_fixed_size;
+    auto no = data::Serialization<data::DynBlockWriter, decltype(n)>::is_fixed_size;
+    auto yes = data::Serialization<data::DynBlockWriter, decltype(y)>::is_fixed_size;
 
     ASSERT_EQ(no, false);
     ASSERT_EQ(yes, true);
@@ -163,7 +163,7 @@ TEST_F(Serialization, StringVector) {
         w(vec1);
         w(static_cast<int>(42));
     }
-    ASSERT_EQ(2u, f.NumItems());
+    ASSERT_EQ(2u, f.num_items());
     auto r = f.GetReader();
     auto vec2 = r.Next<std::vector<std::string> >();
     ASSERT_EQ(7u, vec1.size());
@@ -183,7 +183,7 @@ TEST_F(Serialization, StringArray) {
         w(vec1);
         w(static_cast<int>(42));
     }
-    ASSERT_EQ(2u, f.NumItems());
+    ASSERT_EQ(2u, f.num_items());
     auto r = f.GetReader();
     auto vec2 = r.Next<std::array<std::string, 7> >();
     ASSERT_EQ(7u, vec1.size());

@@ -62,14 +62,14 @@ void Socket::SetNoDelay(bool activate) {
 
     int sockoptflag = (activate ? 1 : 0);
 
-#if __linux__ || __FreeBSD__
+#if __linux__ || __FreeBSD__ || __APPLE__
     /* TCP_NODELAY If set, disable the Nagle algorithm. This means that
        segments are always sent as soon as possible, even if there is only a
        small amount of data.  When not set, data is buffered until there is a
        sufficient amount to send out, thereby avoiding the frequent sending of
        small packets, which results in poor utilization of the network. This
        option cannot be used at the same time as the option TCP_CORK. */
-    if (::setsockopt(fd_, SOL_TCP, TCP_NODELAY,
+    if (::setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY,
                      &sockoptflag, sizeof(sockoptflag)) != 0)
     {
         LOG << "Cannot set TCP_NODELAY on socket fd " << fd_

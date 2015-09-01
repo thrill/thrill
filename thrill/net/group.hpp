@@ -19,14 +19,14 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/net/connection.hpp>
 
+#include <sys/select.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <functional>
 #include <string>
 #include <vector>
-
-#include <sys/select.h>
 
 namespace thrill {
 namespace net {

@@ -51,6 +51,8 @@ namespace thrill {
 - \subpage common
 - \subpage mem
 
+- \subpage style_guide
+
 */
 
 } // namespace thrill

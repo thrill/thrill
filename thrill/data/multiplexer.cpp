@@ -90,7 +90,7 @@ void Multiplexer::OnChannelBlock(
 
     channel->OnChannelBlock(
         sender_worker_rank,
-        Block(bytes, 0, header.size, header.first_item, header.nitems));
+        Block(bytes, 0, header.size, header.first_item, header.num_items));
 
     AsyncReadChannelBlockHeader(s);
 }

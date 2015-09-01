@@ -4,6 +4,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -42,7 +43,7 @@ public:
             SumFunction sum_function,
             ValueType initial_value,
             StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Sum", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
           local_sum_(initial_value)
     {
@@ -66,16 +67,8 @@ public:
      * Returns result of global sum.
      * \return result
      */
-    auto result() {
+    ValueType result() const {
         return global_sum_;
-    }
-
-    /*!
-     * Returns "[SumNode]" as a string.
-     * \return "[SumNode]"
-     */
-    std::string ToString() final {
-        return "[SumNode] Id:" + result_file_.ToString();
     }
 
 private:
@@ -106,6 +99,7 @@ template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::Sum(
     const SumFunction &sum_function, ValueType initial_value) const {
+    assert(IsValid());
 
     using SumResultNode
               = SumNode<ValueType, DIARef, SumFunction>;
@@ -128,7 +122,7 @@ auto DIARef<ValueType, Stack>::Sum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Sum", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Sum", DIANodeType::ACTION);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,
