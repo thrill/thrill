@@ -26,7 +26,7 @@ namespace common {
 
 /******************************************************************************/
 
-using StringCount = std::pair<mem::string, size_t>;
+using StringCount = std::pair<mem::by_string, size_t>;
 
 //! deque without malloc tracking
 template <class Key, class T, class Compare = std::less<Key> >
@@ -40,7 +40,7 @@ static std::mutex mutex_;
 static bypass_map<std::thread::id, StringCount> threads_;
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const mem::string& name) {
+void NameThisThread(const mem::by_string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
     threads_[std::this_thread::get_id()] = StringCount(name, 0);
 }
@@ -92,7 +92,7 @@ Logger<true>::~Logger() {
     // multi-threaded programs.
     std::unique_lock<std::mutex> lock(logger_mutex_);
     oss_.flush();
-    mem::string out = buf_.str();
+    mem::by_string out = buf_.str();
     std::cout.write(out.data(), out.size());
 }
 
@@ -110,7 +110,7 @@ SpacingLogger<true>::~SpacingLogger() {
     // multi-threaded programs.
     std::unique_lock<std::mutex> lock(logger_mutex_);
     oss_.flush();
-    mem::string out = buf_.str();
+    mem::by_string out = buf_.str();
     std::cout.write(out.data(), out.size());
 }
 

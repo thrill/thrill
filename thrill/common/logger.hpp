@@ -24,7 +24,7 @@ namespace thrill {
 namespace common {
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const mem::string& name);
+void NameThisThread(const mem::by_string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();
@@ -98,7 +98,7 @@ class Logger<true>
 {
 protected:
     //! stringbuf without malloc tracking
-    mem::stringbuf buf_;
+    mem::by_stringbuf buf_;
 
     //! collector stream
     std::ostream oss_;
@@ -150,7 +150,7 @@ protected:
     bool first_ = true;
 
     //! stringbuf without malloc tracking
-    mem::stringbuf buf_;
+    mem::by_stringbuf buf_;
 
     //! collector stream
     std::ostream oss_;

@@ -66,7 +66,7 @@ public:
     mem::Manager mem_manager_ { nullptr, "DispatcherThread" };
 
 public:
-    explicit DispatcherThread(const mem::string& thread_name);
+    explicit DispatcherThread(const mem::by_string& thread_name);
     ~DispatcherThread();
 
     //! non-copyable: delete copy-constructor
@@ -160,7 +160,7 @@ private:
     std::atomic<bool> terminate_ { false };
 
     //! thread name for logging
-    mem::string name_;
+    mem::by_string name_;
 
     //! self-pipe to wake up thread.
     int self_pipe_[2];

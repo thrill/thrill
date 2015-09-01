@@ -14,6 +14,7 @@
 
 #include <thrill/common/logger.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 

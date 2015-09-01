@@ -155,39 +155,39 @@ public:
 };
 
 //! string without malloc tracking
-using string = std::basic_string<
+using by_string = std::basic_string<
           char, std::char_traits<char>, BypassAllocator<char> >;
 
 //! stringbuf without malloc tracking
-using stringbuf = std::basic_stringbuf<
+using by_stringbuf = std::basic_stringbuf<
           char, std::char_traits<char>, BypassAllocator<char> >;
 
 //! vector without malloc tracking
 template <typename T>
-using vector = std::vector<T, BypassAllocator<T> >;
+using by_vector = std::vector<T, BypassAllocator<T> >;
 
 //! deque without malloc tracking
 template <typename T>
-using deque = std::deque<T, BypassAllocator<T> >;
+using by_deque = std::deque<T, BypassAllocator<T> >;
 
 //! convert to string
-static inline string to_string(int val) {
-    return common::str_snprintf<string>(4 * sizeof(int), "%d", val);
+static inline by_string to_string(int val) {
+    return common::str_snprintf<by_string>(4 * sizeof(int), "%d", val);
 }
 
 //! convert to string
-static inline string to_string(unsigned val) {
-    return common::str_snprintf<string>(4 * sizeof(int), "%u", val);
+static inline by_string to_string(unsigned val) {
+    return common::str_snprintf<by_string>(4 * sizeof(int), "%u", val);
 }
 
 //! convert to string
-static inline string to_string(long val) {
-    return common::str_snprintf<string>(4 * sizeof(long), "%ld", val);
+static inline by_string to_string(long val) {
+    return common::str_snprintf<by_string>(4 * sizeof(long), "%ld", val);
 }
 
 //! convert to string
-static inline string to_string(unsigned long val) {
-    return common::str_snprintf<string>(4 * sizeof(long), "%lu", val);
+static inline by_string to_string(unsigned long val) {
+    return common::str_snprintf<by_string>(4 * sizeof(long), "%lu", val);
 }
 
 } // namespace mem
