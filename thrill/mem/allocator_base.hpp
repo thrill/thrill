@@ -14,6 +14,7 @@
 
 #include <thrill/common/string.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
+#include <thrill/mem/manager.hpp>
 
 #include <atomic>
 #include <cassert>
@@ -85,10 +86,13 @@ public:
     }
 };
 
-template <typename Type>
-class BypassAllocator : public AllocatorBase<Type>
+/******************************************************************************/
+// FixedAllocator
+
+template <typename Type, Manager& manager_>
+class FixedAllocator : public AllocatorBase<Type>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     using value_type = Type;
@@ -99,19 +103,23 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
+    //! C++11 type flag
+    using is_always_equal = std::true_type;
+
     //! Return allocator for different type.
     template <class U>
-    struct rebind { using other = BypassAllocator<U>; };
+    struct rebind { using other = FixedAllocator<U, manager_>; };
 
-    //! Construct Allocator with MemoryManager object
-    BypassAllocator() noexcept { }
+    //! default constructor
+    FixedAllocator() noexcept = default;
 
     //! copy-constructor
-    BypassAllocator(const BypassAllocator&) noexcept = default;
+    FixedAllocator(const FixedAllocator&) noexcept = default;
 
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
-    BypassAllocator(const BypassAllocator<OtherType>& /* other */) noexcept { }
+    FixedAllocator(const FixedAllocator<OtherType, manager_>& other) noexcept
+    { }
 
     //! Attempts to allocate a block of storage with a size large enough to
     //! contain n elements of member type value_type, and returns a pointer to
@@ -120,30 +128,45 @@ public:
         if (n > this->max_size())
             throw std::bad_alloc();
 
+        manager_.add(n * sizeof(Type));
+
+        if (debug) {
+            printf("allocate() n=%lu sizeof(T)=%lu total=%lu\n",
+                   n, sizeof(Type), manager_.total());
+        }
+
         return static_cast<Type*>(bypass_malloc(n * sizeof(Type)));
     }
 
     //! Releases a block of storage previously allocated with member allocate
     //! and not yet released.
-    void deallocate(pointer p, size_type /* n */) const noexcept {
+    void deallocate(pointer p, size_type n) const noexcept {
+
+        manager_.subtract(n * sizeof(Type));
+
+        if (debug) {
+            printf("deallocate() n=%lu sizeof(T)=%lu total=%lu\n",
+                   n, sizeof(Type), manager_.total());
+        }
+
         bypass_free(p);
     }
 
     //! Compare to another allocator of same type
     template <class Other>
-    bool operator == (const BypassAllocator<Other>&) const noexcept {
+    bool operator == (const FixedAllocator<Other, manager_>&) const noexcept {
         return true;
     }
 
     //! Compare to another allocator of same type
     template <class Other>
-    bool operator != (const BypassAllocator<Other>&) const noexcept {
+    bool operator != (const FixedAllocator<Other, manager_>&) const noexcept {
         return true;
     }
 };
 
-template <>
-class BypassAllocator<void>
+template <Manager& manager_>
+class FixedAllocator<void, manager_>
 {
 public:
     using pointer = void*;
@@ -151,8 +174,38 @@ public:
     using value_type = void;
 
     template <class U>
-    struct rebind { using other = BypassAllocator<U>; };
+    struct rebind { using other = FixedAllocator<U, manager_>; };
 };
+
+/******************************************************************************/
+// BypassAllocator
+
+//! global bypass memory manager
+extern Manager g_bypass_manager;
+
+//! instantiate FixedAllocator as BypassAllocator
+template <typename Type>
+using BypassAllocator = FixedAllocator<Type, g_bypass_manager>;
+
+//! operator new with our Allocator
+template <typename T, class ... Args>
+T * by_new(Args&& ... args) {
+    BypassAllocator<T> allocator;
+    T* value = allocator.allocate(1);
+    allocator.construct(value, std::forward<Args>(args) ...);
+    return value;
+}
+
+//! operator delete with our Allocator
+template <typename T>
+void by_delete(T* value) {
+    BypassAllocator<T> allocator;
+    allocator.destroy(value);
+    allocator.deallocate(value, 1);
+}
+
+/******************************************************************************/
+// template aliases with BypassAllocator
 
 //! string without malloc tracking
 using by_string = std::basic_string<
