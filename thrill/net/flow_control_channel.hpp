@@ -284,8 +284,6 @@ public:
         // barrier. If you really want to support items >= 256 then keep the
         // pointer passing (after fixing it) as a fallback mechanism.
 
-        T res;
-
         // The primary thread of each node has to handle IO.
         if(threadId == 0) {    
             SetLocalShared(&res);

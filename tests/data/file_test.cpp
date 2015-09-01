@@ -241,7 +241,7 @@ TEST_F(File, TieGetIndexOf) {
 
     fw.Close();
 
-    ASSERT_EQ(size, file.NumItems());
+    ASSERT_EQ(size, file.num_items());
 
     for (size_t i = 0; i < 100; i++) {
         size_t val = rng() % (size / 4);
