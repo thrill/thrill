@@ -55,12 +55,11 @@ TEST_F(MergeHelpers, MultiIndexOf) {
     const size_t size = 500;
     const size_t count = 10;
 
-    std::minstd_rand0 rng(0);
     std::vector<data::File> files;
     CreateTrivialFiles(files, size, count, block_pool_);
 
-    for (size_t i = 0; i < 100; i++) {
-        size_t val = rng() % size;
+    for (size_t i = 0; i < size; i++) {
+        size_t val = i;
 
         size_t idx = MergeNodeHelper::IndexOf(val, 0, files, std::less<size_t>());
 
@@ -75,12 +74,11 @@ TEST_F(MergeHelpers, MultiGetAtIndex) {
     const size_t size = 500;
     const size_t count = 10;
 
-    std::minstd_rand0 rng(0);
     std::vector<data::File> files;
     CreateTrivialFiles(files, size, count, block_pool_);
 
-    for (size_t i = 0; i < 100; i++) {
-        size_t idx = rng() % size * count;
+    for (size_t i = 0; i < (size * count) / 17; i++) {
+        size_t idx = (i * 17);
 
         size_t val = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
 
@@ -101,7 +99,7 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
                 [](size_t index) { return index * 2; },
                 test_size);
 
-            // odd numbers in 1..9999
+            // odd numbers in 1..999
             auto merge_input2 = merge_input1.Map(
                 [](size_t i) { return i + 1; } );
 

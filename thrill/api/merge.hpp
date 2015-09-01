@@ -57,9 +57,18 @@ public:
         std::fill(left.begin(), left.end(), 0);
         std::iota(remap.begin(), remap.end(), 0);
 
+        size_t sum = 0, len;
+
         for(size_t i = 0; i < n; i++) {
-            width[i] = std::min(files[i].num_items(), k);
+            len = files[i].num_items();
+            sum += len;
+            width[i] = std::min(len, k);
         }
+
+        //Assert check wether k is in bounds of all files. 
+        assert(sum > k);
+
+        LOG << "Searching for element with rank " << k;
 
         while(true) {
 
@@ -101,8 +110,9 @@ public:
                 break;
             }
 
-            if(k < n) 
+            if(leftSum == 0) 
                 break;
+
         }
         size_t j = remap[k];
         return files[j].GetItemAt<ItemType>(mid[j]);
@@ -176,6 +186,9 @@ public:
     void PushData() override {
 
         size_t result_count = 0;
+        static const bool debug = true;
+
+        LOG << "Entering Main OP";
 
         typedef data::BufferedBlockReader<ValueType, data::ConcatBlockSource<data::CachingBlockQueueSource>> Reader; 
 
@@ -201,6 +214,7 @@ public:
             }
 
             if(biggest == -1) {
+                LOG << "Finished Merge.";
                 //We finished.
                 break;
             }
@@ -255,16 +269,18 @@ private:
     struct Pivot {
         ValueType first;
         size_t second;
-
+        bool valid;
+/*
         bool operator <(const Pivot& y) const {
-            return std::tie(first, second) < std::tie(y.first, y.second);
-        }
+            return std::tie(valid, first, second) < std::tie(valid, y.first, y.second);
+        }*/
     };
 
     Pivot CreatePivot(ValueType v, size_t i) {
         Pivot p;
         p.first = v;
         p.second = i;
+        p.valid = true;
         return p;
     }
     
@@ -286,7 +302,7 @@ private:
         std::stringstream ss;
         
         for(Pivot elem : data)
-            ss << "(" << elem.first << ", " << elem.second << ") ";
+            ss << "(" << elem.valid << ", " << elem.first << ", " << elem.second << ") ";
 
         return ss.str();
     }
@@ -317,15 +333,29 @@ private:
             dataSize += files_[i].num_items();
         };
 
-        //Care! This does only work if dataSize is the same
-        //on each worker. 
-        size_t targetSize = dataSize;
+        //Global size off aaaalll data.
+        size_t globalSize = flowControl.AllReduce(dataSize, std::plus<ValueType>());
 
-        LOG << "Pick target size: " << targetSize;
+        LOG << "Global size: " << globalSize;
 
-        //If not, one will die. 
-        size_t masterSize = flowControl.Broadcast(targetSize);
-        assert(masterSize == targetSize);
+        //Rank we search for
+        std::vector<size_t> srank(p - 1);
+
+        for(size_t r = 0; r < p - 1; r++) {
+            srank[r] = (globalSize / p) * r;
+        }
+        for(size_t r = 0; r < globalSize % p; r++) {
+            srank[r] += 1;
+        }
+
+        if(debug) {
+            for(size_t r = 0; r < p - 1; r++) { 
+                LOG << "Search Rank " << r << ": " << srank[r];
+
+                size_t res = flowControl.Broadcast(srank[r]);
+                assert(res == srank[r]);
+            }
+        }
 
         //Partition borders. Let there by binary search. 
         std::vector<size_t> left(p - 1);
@@ -338,13 +368,6 @@ private:
 
         LOG << "Data count left of me: " << prefixSize;
 
-        //Rank we search for
-        std::vector<size_t> srank(p - 1);
-
-        for(size_t r = 0; r < p - 1; r++) {
-            srank[r] = (r + 1) * targetSize;
-        }
-
         //Auxillary Arrays
         std::vector<size_t> widthscan(p - 1);
         std::vector<size_t> widthsum(p - 1);
@@ -354,6 +377,7 @@ private:
         std::vector<size_t> splitsum(p - 1);
 
         Pivot zero = CreatePivot(MergeNodeHelper::GetAt<ValueType>(0, files_, comperator_), 0);
+        zero.valid = false;
 
         //Partition loop 
         
@@ -366,6 +390,7 @@ private:
             LOG << "left: " << VToStr(left);
             LOG << "width: " << VToStr(width);
             LOG << "srank: " << VToStr(srank);
+            LOG << "widthsum: " << VToStr(widthsum);
 
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] <= 1) { //Not sure about this condition. It's been modified. 
@@ -374,7 +399,12 @@ private:
                 }
             }
 
-            if(done == p - 1) break;
+            if(done == p - 1) {
+                LOG << "Finished";
+                break;
+            } else {
+                LOG << "Continue";
+            }
             
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] > 1) {
@@ -398,13 +428,29 @@ private:
 
                    pivots[r] = pivot;
                 } else {
+                   LOG << "Selecting zero pivot";
                    pivots[r] = zero;
                 }
             }
 
             LOG << "Pivots: " << VToStr(pivots);
 
-            flowControl.ArrayAllReduce(pivots, pivots, [this] (const Pivot a, const Pivot b) { return comperator_(b.first, a.first) ? a : b; }); //Return maximal pivot (Is this  OK?);
+            flowControl.ArrayAllReduce(pivots, pivots, 
+            [this] (const Pivot a, const Pivot b) { 
+                    if(!a.valid) {
+                        return b; 
+                    } else if(!b.valid) {
+                        return a;
+                    } else if(comperator_(b.first, a.first)) {
+                        return a; 
+                    } else if(comperator_(a.first, b.first)) {
+                        return b;
+                    } else if(a.second > b.second) {
+                        return a;
+                    } else {
+                        return b;
+                    }
+            }); //Return maximal pivot (Is this  OK?);
 
             LOG << "Final Pivots: " << VToStr(pivots);
 
@@ -423,11 +469,18 @@ private:
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] < 1) continue;
                 
+                if(debug) {
+                    assert(width[r] - split[r] <= width[r]);
+                }
+
                 if(splitsum[r] < srank[r])  {
                     left[r] += split[r];
                     width[r] -= split[r];
                     srank[r] -= splitsum[r];
                 } else {
+                    if(debug) {
+                        assert(width[r] >= split[r]);
+                    }
                     width[r] = split[r];
                 }
             } 
@@ -437,25 +490,40 @@ private:
         //To convert them to file-local parts. 
 
         std::vector<std::vector<size_t>> offsets(num_inputs_);
+
+        LOG << "Creating channels";
         
         //Init channels and offsets.
         for(size_t j = 0; j < num_inputs_; j++) {
             channels_[j] = context_.GetNewChannel();
             offsets[j] = std::vector<size_t>(p);
-            offsets[j][p - 1] = targetSize / num_inputs_;
+            offsets[j][p - 1] = files_[j].num_items();
         }
 
+        LOG << "Calculating offsets.";
+
+        //TODO(ej) - this is superfluiouuiuius. We can probably
+        //Extract the ranks per file from the above loop. 
         for(size_t i = 0; i < p - 1; i++) {
-            ValueType pivot = MergeNodeHelper::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
+            size_t globalSplitter = partitions[i];
+            if(globalSplitter < dataSize) {
+                //We have to find file-local splitters.
+                ValueType pivot = MergeNodeHelper::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
 
-            size_t prefixSum = 0;
+                size_t prefixSum = 0;
 
-            for(size_t j = 0; j < num_inputs_; j++) {
-                offsets[j][i] = files_[j].GetIndexOf(pivot, partitions[i] - prefixSum, comperator_);
-                prefixSum += files_[j].num_items();
+                for(size_t j = 0; j < num_inputs_; j++) {
+                    offsets[j][i] = files_[j].GetIndexOf(pivot, partitions[i] - prefixSum, comperator_);
+                    prefixSum += files_[j].num_items();
+                }
+            } else {
+                //Ok, splitter beyond all sizes. 
+                for(size_t j = 0; j < num_inputs_; j++) {
+                    offsets[j][i] = files_[j].num_items();
+                }
             }
-
         }
+        LOG << "Scattering.";
         
         for(size_t j = 0; j < num_inputs_; j++) {
 
