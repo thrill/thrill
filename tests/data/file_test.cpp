@@ -46,8 +46,8 @@ TEST_F(File, PutSomeItemsGetItems) {
         fw.Put<uint16_t>(42);
     }
 
-    ASSERT_EQ(file.NumBlocks(), 6u);
-    ASSERT_EQ(file.NumItems(), 5u);
+    ASSERT_EQ(file.num_blocks(), 6u);
+    ASSERT_EQ(file.num_items(), 5u);
 
     ASSERT_EQ(file.block(0).size(), 16u);
     ASSERT_EQ(file.block(1).size(), 16u);
@@ -57,7 +57,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     ASSERT_EQ(file.block(5).size(), 14u);
 
     // Total size is equal to sum of block sizes
-    ASSERT_EQ(file.TotalSize(), 94u);
+    ASSERT_EQ(file.total_size(), 94u);
 
     const unsigned char block_data_bytes[] = {
         // fw.Append("testtest");
@@ -83,7 +83,7 @@ TEST_F(File, PutSomeItemsGetItems) {
     };
 
     if (0) {
-        for (size_t i = 0; i != file.NumBlocks(); ++i) {
+        for (size_t i = 0; i != file.num_blocks(); ++i) {
             std::cout << common::hexdump(file.block(i).ToString())
                       << std::endl;
         }
@@ -215,7 +215,7 @@ TEST_F(File, RandomGetIndexOf) {
 
     fw.Close();
 
-    ASSERT_EQ(size, file.NumItems());
+    ASSERT_EQ(size, file.num_items());
 
     for (size_t i = 0; i < 100; i++) {
         size_t val = rng() % size;
@@ -290,7 +290,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     }
     fw.Close();
 
-    ASSERT_EQ(1000u, file.NumItems());
+    ASSERT_EQ(1000u, file.num_items());
 
     // read complete File
     data::File::Reader fr = file.GetReader();
@@ -380,32 +380,18 @@ TEST_F(File, SeekReadSlicesOfFiles) {
 }
 
 //! A derivative of File which only contains a limited amount of Blocks
-class BoundedFile : public data::File
+class BoundedFile : public virtual data::BoundedBlockSink,
+                    public virtual data::File
 {
 public:
     //! constructor with reference to BlockPool
     BoundedFile(data::BlockPool& block_pool, size_t max_size)
-        : File(block_pool), available_(max_size), max_size_(max_size)
+        : BlockSink(block_pool),
+          BoundedBlockSink(block_pool, max_size),
+          File(block_pool)
     { }
 
-    data::ByteBlockPtr AllocateByteBlock(size_t block_size) final {
-        if (available_ < block_size) return data::ByteBlockPtr();
-        available_ -= block_size;
-        return BlockSink::AllocateByteBlock(block_size);
-    }
-
-    void ReleaseByteBlock(data::ByteBlockPtr& block) final {
-        if (block)
-            available_ += block->size();
-        block = nullptr;
-    }
-
-    size_t max_size() const { return max_size_; }
-
     enum { allocate_can_fail_ = true };
-
-protected:
-    size_t available_, max_size_;
 };
 
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
@@ -427,7 +413,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
     ASSERT_EQ(file.max_size()
               / (sizeof(size_t)
                  + (data::DynBlockWriter::self_verify ? sizeof(size_t) : 0)),
-              file.NumItems());
+              file.num_items());
 }
 
 // forced instantiation

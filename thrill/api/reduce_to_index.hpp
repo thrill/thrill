@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -51,7 +52,7 @@ namespace api {
  */
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename ReduceFunction,
-          bool PreservesKey, bool SendPair>
+          bool RobustKey, bool SendPair>
 class ReduceToIndexNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
@@ -68,13 +69,12 @@ class ReduceToIndexNode : public DOpNode<ValueType>
     using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
-    using Super::result_file_;
 
 public:
     using Emitter = data::DynBlockWriter;
     using PreHashTable = typename core::ReducePreTable<
               Key, Value,
-              KeyExtractor, ReduceFunction, PreservesKey, core::PreReduceByIndex>;
+              KeyExtractor, ReduceFunction, RobustKey, core::PreReduceByIndex>;
 
     /*!
      * Constructor for a ReduceToIndexNode. Sets the parent, stack,
@@ -93,13 +93,13 @@ public:
                       size_t result_size,
                       Value neutral_element,
                       StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "ReduceToIndex", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024, 0.5, 1024 * 16,
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5,
                             core::PreReduceByIndex(result_size)),
           result_size_(result_size),
           neutral_element_(neutral_element)
@@ -133,8 +133,11 @@ public:
                                           KeyExtractor,
                                           ReduceFunction,
                                           SendPair,
+                                          false,
                                           core::PostReduceFlushToIndex<Value>,
-                                          core::PostReduceByIndex>;
+                                          core::PostReduceByIndex,
+                                          std::equal_to<Key>,
+                                          16*1024>;
 
         size_t local_begin, local_end;
 
@@ -148,12 +151,16 @@ public:
                           core::PostReduceFlushToIndex<Value>(),
                           local_begin,
                           local_end,
-                          neutral_element_);
+                          neutral_element_,
+                          1024 * 1024 * 128 * 5,
+                          0.001,
+                          0.5,
+                          64);
 
-        if (PreservesKey) {
+        if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
-            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
@@ -162,7 +169,7 @@ public:
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
-            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << result_file_.ToString();
+            sLOG << "reading data from" << channel_->id() << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
@@ -185,14 +192,6 @@ public:
                          };
 
                          return MakeFunctionStack<ValueType>(post_op_fn);*/
-    }
-
-    /*!
-     * Returns "[ReduceToIndexNode]" and its id as a string.
-     * \return "[ReduceToIndexNode]"
-     */
-    std::string ToString() final {
-        return "[ReduceToIndexNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -220,7 +219,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << ToString() << " running main op";
+        LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
@@ -285,7 +284,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndexByKey(
                                   KeyExtractor, ReduceFunction,
                                   false, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndexByKey", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,
@@ -350,7 +349,7 @@ auto DIARef<ValueType, Stack>::ReducePairToIndex(
                                   std::function<Key(Key)>,
                                   ReduceFunction, false, true>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceToPairIndex", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              [](Key key) {
@@ -425,7 +424,7 @@ auto DIARef<ValueType, Stack>::ReduceToIndex(
                                   KeyExtractor, ReduceFunction,
                                   true, false>;
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceToIndex", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
                                              key_extractor,

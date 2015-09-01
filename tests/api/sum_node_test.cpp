@@ -33,7 +33,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount1) {
 
             auto input = GenerateFromFile(
                 ctx,
-                "test1",
+                "inputs/test1",
                 [](const std::string& line) {
                     return std::stoi(line);
                 },
@@ -59,7 +59,7 @@ TEST(SumNode, GenerateAndSumHaveEqualAmount2) {
         [](Context& ctx) {
 
             // TODO(ms): Replace this with some test-specific rendered file
-            auto input = ReadLines(ctx, "test1")
+            auto input = ReadLines(ctx, "inputs/test1")
                          .Map([](const std::string& line) {
                                   return std::stoi(line);
                               });

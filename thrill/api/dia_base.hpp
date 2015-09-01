@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chuck Norris can compile it.
@@ -66,11 +67,17 @@ public:
      * \param parents Reference to parents of this node, which have to be computed previously
      */
     DIABase(Context& ctx,
-            const std::vector<std::shared_ptr<DIABase> >& parents, std::string stats_tag, StatsNode* stats_node)
+            const std::vector<std::shared_ptr<DIABase> >& parents,
+            StatsNode* stats_node)
         : context_(ctx), parents_(parents),
-          execution_timer_(ctx.stats().CreateTimer("DIABase::execution", stats_tag)),
-          lifetime_(ctx.stats().CreateTimer("DIABase::lifetime", stats_tag, true)),
+          execution_timer_(
+              ctx.stats().CreateTimer(
+                  "DIABase::execution", stats_node->label())),
+          lifetime_(
+              ctx.stats().CreateTimer(
+                  "DIABase::lifetime", stats_node->label(), true)),
           stats_node_(stats_node) {
+
         for (auto parent : parents_) {
             parent->add_child(this);
         }
@@ -103,10 +110,14 @@ public:
     //! Virtual method for removing all childs. Triggers actual removing in sub-classes.
     virtual void UnregisterChilds() = 0;
 
-    //! Virtual ToString method. Returns the type of node in sub-classes.
-    virtual std::string ToString() = 0;
+    //! return label of DIANode subclass as stored by StatsNode
+    const char * label() const {
+        assert(stats_node_);
+        return stats_node_->label();
+    }
 
-    const NodeType & type() {
+    const DIANodeType & type() const {
+        assert(stats_node_);
         return stats_node_->type();
     }
 
@@ -136,8 +147,9 @@ public:
 
     //! Returns the unique ID of this DIABase.
     //! \return The unique ID of this DIABase.
-    data::File result_file() {
-        return result_file_;
+    size_t id() const {
+        assert(stats_node_);
+        return stats_node_->id();
     }
 
     DIAState state() const {
@@ -204,9 +216,6 @@ protected:
     //! Children and parents of this DIABase.
     std::vector<DIABase*> children_;
     std::vector<std::shared_ptr<DIABase> > parents_;
-
-    //! Unique ID of this DIABase. Used by the data::Manager.
-    data::File result_file_ { context_.GetFile() };
 
     //! Timer that tracks execution of this node
     common::TimerPtr execution_timer_;

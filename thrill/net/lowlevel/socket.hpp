@@ -16,6 +16,7 @@
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/common/system_exception.hpp>
 #include <thrill/net/lowlevel/socket_address.hpp>
 
 #include <fcntl.h>
@@ -49,6 +50,7 @@ namespace lowlevel {
 class Socket
 {
     static const bool debug = false;
+    static const bool debug_data = false;
 
 public:
     //! \name Creation
@@ -69,14 +71,23 @@ public:
 
     //! Create a new stream socket.
     static Socket Create() {
+#ifdef SOCK_CLOEXEC
+        int fd = ::socket(PF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+#else
         int fd = ::socket(PF_INET, SOCK_STREAM, 0);
-
+#endif
         if (fd < 0) {
             LOG << "Socket::Create()"
                 << " fd=" << fd
                 << " error=" << strerror(errno);
         }
 
+#ifndef SOCK_CLOEXEC
+        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+            throw common::SystemException(
+                      "Error setting FD_CLOEXEC on network socket", errno);
+        }
+#endif
         return Socket(fd);
     }
 
@@ -84,26 +95,29 @@ public:
     //! test connection pairs.
     static std::pair<Socket, Socket> CreatePair() {
         int fds[2];
+#ifdef SOCK_CLOEXEC
+        int r = ::socketpair(PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, fds);
+#else
         int r = ::socketpair(PF_UNIX, SOCK_STREAM, 0, fds);
-
+#endif
         if (r != 0) {
             LOG << "Socket::CreatePair()"
                 << " error=" << strerror(errno);
             abort();
         }
 
+#ifndef SOCK_CLOEXEC
+        if (fcntl(fds[0], F_SETFD, FD_CLOEXEC) != 0) {
+            throw common::SystemException(
+                      "Error setting FD_CLOEXEC on network socket", errno);
+        }
+        if (fcntl(fds[1], F_SETFD, FD_CLOEXEC) != 0) {
+            throw common::SystemException(
+                      "Error setting FD_CLOEXEC on network socket", errno);
+        }
+#endif
         return std::make_pair(Socket(fds[0]), Socket(fds[1]));
     }
-
-    // Re-definition of standard socket errors.
-    class Errors
-    {
-    public:
-        // No-one listening on the remote address.
-        static const int ConnectionRefused = ECONNREFUSED;
-        // Timeout while attempting connection.
-        static const int Timeout = ETIMEDOUT;
-    };
 
     //! \}
 
@@ -328,7 +342,7 @@ public:
             LOG << "Socket::send_one()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << common::hexdump(data, size)
+                << " data=" << maybe_hexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -349,7 +363,7 @@ public:
             LOG << "Socket::send()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << common::hexdump(data, size)
+                << " data=" << maybe_hexdump(data, size)
                 << " flags=" << flags;
         }
 
@@ -391,7 +405,7 @@ public:
             LOG << "Socket::sendto()"
                 << " fd_=" << fd_
                 << " size=" << size
-                << " data=" << common::hexdump(data, size)
+                << " data=" << maybe_hexdump(data, size)
                 << " flags=" << flags
                 << " dest=" << dest;
         }
@@ -419,7 +433,7 @@ public:
                 << " fd_=" << fd_
                 << " msg_name=" << msg_name
                 << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
                 << " flags=" << flags;
         }
 
@@ -439,10 +453,16 @@ public:
     ssize_t recv_one(void* outdata, size_t maxsize, int flags = 0) {
         assert(IsValid());
 
+#if __APPLE__
+        // this is a work-around, since on MacOSX errno is spontaneously ==
+        // EINVAL, with no relationship to recv -tb 2015-08-28
+        errno = 0;
+#endif
         LOG << "Socket::recv_one()"
             << " fd_=" << fd_
             << " maxsize=" << maxsize
-            << " flags=" << flags;
+            << " flags=" << flags
+            << " errno=" << errno;
 
         ssize_t r = ::recv(fd_, outdata, maxsize, flags);
 
@@ -450,7 +470,8 @@ public:
             LOG << "done Socket::recv_one()"
                 << " fd_=" << fd_
                 << " return=" << r
-                << " data=" << (r >= 0 ? common::hexdump(outdata, r) : "<error>");
+                << " errno=" << errno
+                << " data=" << (r >= 0 ? maybe_hexdump(outdata, r) : "<error>");
         }
 
         return r;
@@ -492,7 +513,7 @@ public:
             LOG << "done Socket::recv()"
                 << " fd_=" << fd_
                 << " return=" << rb
-                << " data=" << common::hexdump(outdata, rb);
+                << " data=" << maybe_hexdump(outdata, rb);
         }
 
         return rb;
@@ -521,7 +542,7 @@ public:
                 << " fd_=" << fd_
                 << " return=" << r
                 << " data="
-                << (r >= 0 ? common::hexdump(outdata, r) : "<error>")
+                << (r >= 0 ? maybe_hexdump(outdata, r) : "<error>")
                 << " out_source="
                 << (out_source ? out_source->ToStringHostPort() : "<null>");
         }
@@ -542,7 +563,7 @@ public:
                 << " fd_=" << fd_
                 << " msg_name=" << msg_name
                 << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
                 << " flags=" << flags;
         }
 
@@ -563,7 +584,7 @@ public:
                 << " fd_=" << fd_
                 << " msg_name=" << msg_name
                 << " iovec=" << iovec_tostring(msg->msg_iov, msg->msg_iovlen)
-                << " control=" << common::hexdump(msg->msg_control, msg->msg_controllen)
+                << " control=" << maybe_hexdump(msg->msg_control, msg->msg_controllen)
                 << " flags=" << flags;
         }
 
@@ -632,13 +653,13 @@ public:
         if (iovlen == 0)
             return "[empty]";
         if (iovlen == 1)
-            return common::hexdump(iov[0].iov_base, iov[0].iov_len);
+            return maybe_hexdump(iov[0].iov_base, iov[0].iov_len);
 
         std::ostringstream oss;
         oss << '[';
         for (size_t i = 0; i < iovlen; ++i) {
             if (i != 0) oss << ',';
-            oss << common::hexdump(iov[i].iov_base, iov[i].iov_len);
+            oss << maybe_hexdump(iov[i].iov_base, iov[i].iov_len);
         }
         oss << ']';
         return oss.str();
@@ -647,6 +668,14 @@ public:
 protected:
     //! the file descriptor of the socket.
     int fd_;
+
+    //! return hexdump or just <data> if not debugging
+    static std::string maybe_hexdump(const void* data, size_t size) {
+        if (debug_data)
+            return common::hexdump(data, size);
+        else
+            return "<data>";
+    }
 };
 
 // \}

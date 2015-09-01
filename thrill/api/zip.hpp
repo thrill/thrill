@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -96,7 +97,8 @@ public:
                const ParentDIARef1& parent1,
                ZipFunction zip_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "ZipNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() },
+                             stats_node),
           zip_function_(zip_function)
     {
         // Hook PreOp(s)
@@ -131,17 +133,14 @@ public:
 
         if (result_size_ != 0) {
             // get inbound readers from all Channels
-            std::vector<data::Channel::CachingConcatReader> readers {
-                channels_[0]->OpenCachingReader(), channels_[1]->OpenCachingReader()
-            };
+            std::vector<data::Channel::CachingConcatReader> readers;
+            readers.emplace_back(channels_[0]->OpenCachingReader());
+            readers.emplace_back(channels_[1]->OpenCachingReader());
 
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 ZipArg0 i0 = readers[0].Next<ZipArg0>();
                 ZipArg1 i1 = readers[1].Next<ZipArg1>();
-                ValueType v = zip_function_(i0, i1);
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(v);
-                }
+                this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
 
@@ -172,14 +171,6 @@ public:
     auto ProduceStack() {
         // Hook PostOp
         return FunctionStack<ZipResult>();
-    }
-
-    /*!
-     * Returns "[ZipNode]" as a string.
-     * \return "[ZipNode]"
-     */
-    std::string ToString() final {
-        return "[ZipNode]";
     }
 
 private:
@@ -220,7 +211,7 @@ private:
 
         size_t local_begin =
             std::min(result_size_,
-                     dia_size_prefixsum_[in] - files_[in].NumItems());
+                     dia_size_prefixsum_[in] - files_[in].num_items());
         size_t local_end = std::min(result_size_, dia_size_prefixsum_[in]);
         size_t local_size = local_end - local_begin;
 
@@ -282,7 +273,7 @@ private:
 
         for (size_t in = 0; in < num_inputs_; ++in) {
             //! number of elements of this worker
-            size_t dia_local_size = files_[in].NumItems();
+            size_t dia_local_size = files_[in].num_items();
             sLOG << "input" << in << "dia_local_size" << dia_local_size;
 
             //! inclusive prefixsum of number of elements: we have items from
@@ -333,7 +324,7 @@ auto DIARef<ValueType, Stack>::Zip(
             >::value,
         "ZipFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Zip", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Zip", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto zip_node
         = std::make_shared<ZipResultNode>(*this,

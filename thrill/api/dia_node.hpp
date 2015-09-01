@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -27,17 +28,17 @@ namespace api {
 template <typename ValueType>
 struct CallbackPair {
     CallbackPair(const std::function<void(const ValueType&)>& cb,
-                 NodeType type)
+                 DIANodeType type)
         : cb_(cb), type_(type) { }
 
-    void operator () (const ValueType& elem) {
+    void operator () (const ValueType& elem) const {
         cb_(elem);
     }
 
     //! callback to invoke (currently for each item)
     std::function<void(const ValueType&)> cb_;
     //! node invoked.
-    NodeType                              type_;
+    DIANodeType                           type_;
 };
 
 /*!
@@ -69,9 +70,8 @@ public:
      */
     DIANode(Context& ctx,
             const std::vector<std::shared_ptr<DIABase> >& parents,
-            const std::string stats_tag,
             StatsNode* stats_node)
-        : DIABase(ctx, parents, stats_tag, stats_node)
+        : DIABase(ctx, parents, stats_node)
     { }
 
     //! Virtual destructor for a DIANode.
@@ -85,8 +85,8 @@ public:
      * \param callback Callback function from the child including all
      * locally processable operations between the parent and child.
      */
-    void RegisterChild(const std::function<void(const ValueType&)> callback,
-                       const NodeType& child_type) {
+    void RegisterChild(const std::function<void(const ValueType&)>& callback,
+                       const DIANodeType& child_type) {
         callbacks_.emplace_back(callback, child_type);
     }
 
@@ -94,7 +94,7 @@ public:
         callbacks_.erase(
             std::remove_if(
                 callbacks_.begin(), callbacks_.end(),
-                [](const auto& cb) { return cb.type_ != NodeType::COLLAPSE; }),
+                [](const auto& cb) { return cb.type_ != DIANodeType::COLLAPSE; }),
             callbacks_.end());
     }
 
@@ -106,8 +106,8 @@ public:
         for (auto& cb_pair : callbacks_) cbs.push_back(cb_pair.cb_);
     }
 
-    void PushElement(const ValueType& elem) {
-        for (auto& callback : callbacks_) {
+    void PushItem(const ValueType& elem) const {
+        for (const auto& callback : callbacks_) {
             callback(elem);
         }
     }

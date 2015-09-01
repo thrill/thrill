@@ -14,12 +14,12 @@
 
 #include <thrill/mem/malloc_tracker.hpp>
 
+#include <dlfcn.h>
+
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
-#include <dlfcn.h>
 
 #if defined(__clang__) || defined (__GNUC__)
 #define ATTRIBUTE_NO_SANITIZE                          \
@@ -129,21 +129,20 @@ void malloc_tracker_print_status() {
 
 ATTRIBUTE_NO_SANITIZE
 static __attribute__ ((constructor)) void init() { // NOLINT
-    char* error;
 
     // try to use AddressSanitizer's malloc first.
     real_malloc = (malloc_type)dlsym(RTLD_DEFAULT, "__interceptor_malloc");
     if (real_malloc)
     {
         real_realloc = (realloc_type)dlsym(RTLD_DEFAULT, "__interceptor_realloc");
-        if ((error = dlerror()) != nullptr) {
-            fprintf(stderr, PPREFIX "error %s\n", error);
+        if (!real_realloc) {
+            fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
             exit(EXIT_FAILURE);
         }
 
         real_free = (free_type)dlsym(RTLD_DEFAULT, "__interceptor_free");
-        if ((error = dlerror()) != nullptr) {
-            fprintf(stderr, PPREFIX "error %s\n", error);
+        if (!real_free) {
+            fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
             exit(EXIT_FAILURE);
         }
 
@@ -152,20 +151,20 @@ static __attribute__ ((constructor)) void init() { // NOLINT
     }
 
     real_malloc = (malloc_type)dlsym(RTLD_NEXT, "malloc");
-    if ((error = dlerror()) != nullptr) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
+    if (!real_malloc) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
 
     real_realloc = (realloc_type)dlsym(RTLD_NEXT, "realloc");
-    if ((error = dlerror()) != nullptr) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
+    if (!real_realloc) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
 
     real_free = (free_type)dlsym(RTLD_NEXT, "free");
-    if ((error = dlerror()) != nullptr) {
-        fprintf(stderr, PPREFIX "error %s\n", error);
+    if (!real_free) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
 }
@@ -217,7 +216,7 @@ static void * preinit_malloc(size_t size) noexcept {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static void * preinit_realloc(void* ptr, size_t size) noexcept {
+static void * preinit_realloc(void* ptr, size_t size) {
 
     if (log_operations_init_heap) {
         fprintf(stderr, PPREFIX "realloc(%p) = on init heap\n", ptr);
@@ -249,7 +248,7 @@ static void * preinit_realloc(void* ptr, size_t size) noexcept {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static void preinit_free(void* ptr) noexcept {
+static void preinit_free(void* ptr) {
     // don't do any real deallocation.
 
     ptr = static_cast<char*>(ptr) - padding;
@@ -276,6 +275,12 @@ static void preinit_free(void* ptr) noexcept {
 #define NOEXCEPT
 #define MALLOC_USABLE_SIZE malloc_size
 #include <malloc/malloc.h>
+
+#elif __FreeBSD__
+
+#define NOEXCEPT
+#define MALLOC_USABLE_SIZE malloc_usable_size
+#include <malloc_np.h>
 
 #else
 

@@ -25,25 +25,27 @@ TEST(ThreadPool1, LoopUntilEmpty) {
     std::vector<unsigned> result1(job_num, 0);
     std::vector<unsigned> result2(job_num, 0);
 
-    ThreadPool pool(8);
+    {
+        ThreadPool pool(8);
 
-    for (size_t r = 0; r != 16; ++r) {
+        for (size_t r = 0; r != 16; ++r) {
 
-        for (size_t i = 0; i != job_num; ++i) {
-            pool.Enqueue(
-                [i, &result1, &result2, &pool]() {
-                    // set flag
-                    result1[i] = 1 + i;
+            for (size_t i = 0; i != job_num; ++i) {
+                pool.Enqueue(
+                    [i, &result1, &result2, &pool]() {
+                        // set flag
+                        result1[i] = 1 + i;
 
-                    // enqueue more work: how to call this lambda again?
-                    pool.Enqueue(
-                        [i, &result2]() {
-                            result2[i] = 2 + i;
-                        });
-                });
+                        // enqueue more work.
+                        pool.Enqueue(
+                            [i, &result2]() {
+                                result2[i] = 2 + i;
+                            });
+                    });
+            }
+
+            pool.LoopUntilEmpty();
         }
-
-        pool.LoopUntilEmpty();
     }
 
     // check that the threads have run

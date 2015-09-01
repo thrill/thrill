@@ -13,7 +13,7 @@
 #define THRILL_API_DISTRIBUTE_FROM_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 
@@ -27,18 +27,17 @@ namespace api {
 //! \{
 
 template <typename ValueType>
-class DistributeFromNode : public DOpNode<ValueType>
+class DistributeFromNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     DistributeFromNode(Context& ctx,
                        const std::vector<ValueType>& in_vector,
                        size_t source_id,
                        StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "DistributeFrom", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           in_vector_(in_vector),
           source_id_(source_id),
           channel_(ctx.GetNewChannel()),
@@ -74,10 +73,7 @@ public:
         data::Channel::CachingConcatReader readers = channel_->OpenCachingReader();
 
         while (readers.HasNext()) {
-            ValueType v = readers.Next<ValueType>();
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(v);
-            }
+            this->PushItem(readers.Next<ValueType>());
         }
 
         channel_->Close();
@@ -88,14 +84,6 @@ public:
 
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns "[AllGatherNode]" and its id as a string.
-     * \return "[AllGatherNode]"
-     */
-    std::string ToString() final {
-        return "[DistributeFrom] Id: " + result_file_.ToString();
     }
 
 private:
@@ -109,8 +97,9 @@ private:
 };
 
 /*!
- * DistributeFrom is an initial DOp, which scatters the vector data from the source_id
- * to all workers, partitioning equally, and returning the data in a DIA.
+ * DistributeFrom is a Source DOp, which scatters the vector data from the
+ * source_id to all workers, partitioning equally, and returning the data in a
+ * DIA.
  */
 template <typename ValueType>
 auto DistributeFrom(
@@ -120,7 +109,7 @@ auto DistributeFrom(
     using DistributeFromNode = api::DistributeFromNode<ValueType>;
 
     StatsNode* stats_node = ctx.stats_graph().AddNode(
-        "DistributeFrom", NodeType::DOP);
+        "DistributeFrom", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<DistributeFromNode>(

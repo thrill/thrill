@@ -139,11 +139,12 @@ class TwoMergeNode : public DOpNode<ValueType>
 
 public:
     TwoMergeNode(const ParentDIARef0& parent0,
-               const ParentDIARef1& parent1,
-               Comperator comperator,
-               StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "MergeNode", stats_node),
-          comperator_(comperator)
+                 const ParentDIARef1& parent1,
+                 MergeFunction merge_function,
+                 StatsNode* stats_node)
+        : DOpNode<ValueType>(parent0.ctx(),
+                             { parent0.node(), parent1.node() }, stats_node),
+          merge_function_(merge_function)
     {
         // Hook PreOp(s)
         auto pre_op0_fn = [=](const ValueType& input) {
@@ -184,6 +185,9 @@ public:
             readers.emplace_back(std::move(channels_[i]->OpenCachingReaderSource()));
         }
 
+        // TODO(ej) - call WriteChannelStats() for each channel when these
+        // when they are closed ( = you read all data + called Close() on the
+        // channels).
         while(true) {
 
             int biggest = -1;
@@ -225,20 +229,15 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[MergeNode]" as a string.
-     * \return "[MergeNode]"
-     */
-    std::string ToString() final {
-        return "[MergeNode]";
-    }
-
 private:
     //! Merge comperator
     Comperator comperator_;
 
     //! Number of storage DIAs backing
     static const size_t num_inputs_ = 2;
+
+    //! TODO
+    size_t result_size_;
 
     //! Files for intermediate storage
     std::vector<data::File> files_ {
@@ -510,7 +509,7 @@ auto DIARef<ValueType, Stack>::Merge(
             >::value,
         "Comperator must return bool");
 
-    StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
         = std::make_shared<MergeResultNode>(*this,

@@ -7,6 +7,7 @@
  *
  * Copyright (C) 2015 Matthias Stumpp <mstumpp@gmail.com>
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
@@ -70,7 +71,6 @@ class ReduceNode : public DOpNode<ValueType>
     using KeyValuePair = std::pair<Key, Value>;
 
     using Super::context_;
-    using Super::result_file_;
 
 public:
     /*!
@@ -86,13 +86,13 @@ public:
                KeyExtractor key_extractor,
                ReduceFunction reduce_function,
                StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "Reduce", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_)
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
@@ -125,18 +125,58 @@ public:
                   = core::ReducePostTable<ValueType, Key, Value,
                                           KeyExtractor,
                                           ReduceFunction,
-                                          SendPair>;
+                                          SendPair,
+                                          false,
+                                          core::PostReduceFlushToDefault<Key, ReduceFunction, false>,
+                                          core::PostReduceByHashKey<Key>,
+                                          std::equal_to<Key>,
+                                          16*1024>;
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
-        ReduceTable table(context_, key_extractor_, reduce_function_, cbs);
+        ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
+                          core::PostReduceByHashKey<Key>(),
+                          core::PostReduceFlushToDefault<Key, ReduceFunction, false>(),
+                          0, 0, Value(), 1024 * 1024 * 128 * 5, 0.001, 0.5, 128);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
+
+            // REVIEW(ms): the comment above is important: currently there are
+            // three round trips of data to memory/disk, but only two are
+            // necessary. a) PreOp gets items -> pushes them into the pretable
+            // (which is fully in RAM). then the pre table flushes items into
+            // the Channel. The Channel is transmitted to the workers and stored
+            // by the data::Multiplexer in Files because a lot of data will be
+            // receives (there is NO immediate processing). b) the Channel's
+            // storage is read by this function and pushed into the table. It
+            // lands in the first stage of the post reduce table, which usually
+            // spills the items out to disk. c) the spilled items are read back
+            // from disk in the .Flush().
+            //
+            // We have to figure out a way to reduce the number of round trips
+            // from three to two. This means designing a method to get the data
+            // blocks from the Channel immediately, without extra storage.
+            // Combined with the REVIEW comment on what happens in PushData(),
+            // this means that the ReducePostTable is the ACTUAL STORAGE element
+            // of the ReduceNode, and not ReducePreTable (as below).
+            //
+            // One way this could be done is to change the StageBuilder executor
+            // to give a signal "Start PreOp Execute", this signal also contains
+            // the amount of RAM that may be used. On this signal two threads
+            // are started (actually just one, plus the existing one): one with
+            // the PreTable which processes PreOp items, and one with the
+            // PostTable which does nothing but wait for items from the network
+            // Channel. (actually this is more difficult: it must wait for items
+            // from ANY worker simultaneously, currently not implemented in the
+            // data layer). When all items were delivered by PreOp ("Finish
+            // PreOp Execute"), the PreTable and PostTable must be flushed to
+            // Files. Then the 2nd-PostTable stage can be repeatedly executed
+            // from these Files when the StageBuilder calls "PushData()".
+
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
-                "to push into post table which flushes to" <<
-                result_file_.ToString();
+                "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
@@ -146,8 +186,7 @@ public:
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
             auto reader = channel_->OpenReader();
             sLOG << "reading data from" << channel_->id() <<
-                "to push into post table which flushes to" <<
-                result_file_.ToString();
+                "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
@@ -163,14 +202,6 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns "[ReduceNode]" and its id as a string.
-     * \return "[ReduceNode]"
-     */
-    std::string ToString() final {
-        return "[ReduceNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -195,7 +226,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        LOG << ToString() << " running main op";
+        LOG << this->label() << " running main op";
         // Flush hash table before the postOp
         reduce_pre_table_.Flush();
         reduce_pre_table_.CloseEmitter();
@@ -240,7 +271,7 @@ auto DIARef<ValueType, Stack>::ReduceBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("ReduceBy", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceBy", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, true, false>;
@@ -292,7 +323,7 @@ auto DIARef<ValueType, Stack>::ReducePair(
 
     using Key = typename ValueType::first_type;
 
-    StatsNode* stats_node = AddChildStatsNode("ReducePair", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReducePair", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<ValueType, DIARef, std::function<Key(Key)>,
                            ReduceFunction, false, true>;
@@ -355,7 +386,7 @@ auto DIARef<ValueType, Stack>::ReduceByKey(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("Reduce", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("ReduceByKey", DIANodeType::DOP);
     using ReduceResultNode
               = ReduceNode<DOpResult, DIARef, KeyExtractor,
                            ReduceFunction, false, false>;

@@ -20,8 +20,23 @@
 
 import unittest
 import threading
+import sys
 
 import thrill
+
+
+class TryThread(threading.Thread):
+
+    def __init__(self, **kwargs):
+        threading.Thread.__init__(self, **kwargs)
+        self.exception = None
+
+    def run(self):
+        try:
+            threading.Thread.run(self)
+        except Exception:
+            self.exception = sys.exc_info()
+            raise
 
 
 def run_thrill_threads(num_threads, thread_func):
@@ -31,7 +46,7 @@ def run_thrill_threads(num_threads, thread_func):
     # but then start python threads for each context
     threads = []
     for thrid in range(0, num_threads):
-        t = threading.Thread(target=thread_func, args=(ctxs[thrid],))
+        t = TryThread(target=thread_func, args=(ctxs[thrid],))
         t.start()
         threads.append(t)
 
@@ -39,9 +54,14 @@ def run_thrill_threads(num_threads, thread_func):
     for thr in threads:
         thr.join()
 
+    # check for exceptions
+    for thr in threads:
+        if thr.exception:
+            raise Exception(thr.exception)
+
 
 def run_tests(thread_func):
-    for num_threads in [1, 2, 4, 7]:
+    for num_threads in [1, 2, 5]:
         run_thrill_threads(num_threads, thread_func)
 
 
@@ -83,7 +103,7 @@ class TestOperations(unittest.TestCase):
 
         run_tests(test)
 
-    def test_distribute_allgather(self):
+    def test_distribute_map_filter_allgather(self):
 
         def test(ctx):
             test_size = 1024
@@ -93,9 +113,11 @@ class TestOperations(unittest.TestCase):
 
             dia2 = dia1.Map(lambda x: [int(x), "hello %d" % (x)])
 
+            dia3 = dia2.Filter(lambda x: x[0] >= 16 and x[0] < 10000)
+
             check = [[int(x * x), "hello %d" % (x * x)]
-                     for x in range(0, test_size)]
-            self.assertEqual(dia2.AllGather(), check)
+                     for x in range(4, 100)]
+            self.assertEqual(dia3.AllGather(), check)
 
         run_tests(test)
 

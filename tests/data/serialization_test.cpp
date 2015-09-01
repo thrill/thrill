@@ -132,7 +132,7 @@ TEST_F(Serialization, tuple_w_pair) {
         auto w = f.GetWriter();
         w(foo); //gets serialized
     }
-    ASSERT_EQ(1u, f.NumItems());
+    ASSERT_EQ(1u, f.num_items());
     auto r = f.GetReader();
     auto fooserial = r.Next<decltype(foo)>();
     ASSERT_EQ(std::get<0>(foo), std::get<0>(fooserial));
@@ -163,7 +163,7 @@ TEST_F(Serialization, StringVector) {
         w(vec1);
         w(static_cast<int>(42));
     }
-    ASSERT_EQ(2u, f.NumItems());
+    ASSERT_EQ(2u, f.num_items());
     auto r = f.GetReader();
     auto vec2 = r.Next<std::vector<std::string> >();
     ASSERT_EQ(7u, vec1.size());
@@ -183,7 +183,7 @@ TEST_F(Serialization, StringArray) {
         w(vec1);
         w(static_cast<int>(42));
     }
-    ASSERT_EQ(2u, f.NumItems());
+    ASSERT_EQ(2u, f.num_items());
     auto r = f.GetReader();
     auto vec2 = r.Next<std::array<std::string, 7> >();
     ASSERT_EQ(7u, vec1.size());

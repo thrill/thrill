@@ -31,13 +31,12 @@ class GatherNode : public ActionNode
 public:
     using Super = ActionNode;
     using Super::context_;
-    using Super::result_file_;
 
     GatherNode(const ParentDIARef& parent,
                size_t target_id,
                std::vector<ValueType>* out_vector,
                StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Gather", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           target_id_(target_id),
           out_vector_(out_vector),
           channel_(parent.ctx().GetNewChannel()),
@@ -73,10 +72,6 @@ public:
 
     void Dispose() final { }
 
-    std::string ToString() final {
-        return "[GatherNode] Id: " + result_file_.ToString();
-    }
-
 private:
     //! target worker id, which collects vector, all other workers do not get
     //! the data.
@@ -102,7 +97,7 @@ DIARef<ValueType, Stack>::Gather(size_t target_id) const {
 
     std::vector<ValueType> output;
 
-    StatsNode* stats_node = AddChildStatsNode("Gather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<GatherNode>(*this, target_id, &output, stats_node);
 
@@ -123,7 +118,7 @@ void DIARef<ValueType, Stack>::Gather(
 
     using GatherNode = api::GatherNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Gather", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("Gather", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<GatherNode>(*this, target_id, out_vector, stats_node);
 
