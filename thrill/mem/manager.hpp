@@ -12,8 +12,6 @@
 #ifndef THRILL_MEM_MANAGER_HEADER
 #define THRILL_MEM_MANAGER_HEADER
 
-#include <thrill/common/logger.hpp>
-
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -36,12 +34,7 @@ public:
         : super_(super), name_(name)
     { }
 
-    ~Manager() {
-        LOG << "mem::Manager() name=" << name_
-            << " alloc_count_=" << alloc_count_
-            << " peak_=" << peak_
-            << " total_=" << total_;
-    }
+    ~Manager();
 
     //! return the superior Manager
     Manager * super() { return super_; }
