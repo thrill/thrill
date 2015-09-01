@@ -40,7 +40,7 @@ public:
 
     WriteLinesManyNode(const ParentDIARef& parent,
                        const std::string& path_out,
-                       size_t max_file_size,
+                       size_t target_file_size,
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
@@ -48,7 +48,7 @@ public:
                                                   out_pathbase_,
                                                   context_.my_rank(),
                                                   0))),
-        max_file_size_(max_file_size)
+        target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
 
@@ -57,7 +57,7 @@ public:
                          };
 
         max_buffer_size_ = std::min(data::default_block_size,
-                                    common::RoundUpToPowerOfTwo(max_file_size_));
+                                    common::RoundUpToPowerOfTwo(target_file_size_));
 
         write_buffer_.Reserve(max_buffer_size_);
 
@@ -75,7 +75,7 @@ public:
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
-            if (THRILL_UNLIKELY(current_file_size_ >= max_file_size_)) {
+            if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
                 c_file_.close();
                 std::string new_path = core::make_path(
@@ -131,13 +131,13 @@ private:
     //! Current buffer size
     size_t current_buffer_size_ = 0;
 
-    //! Maximal file size in bytes
-    size_t max_file_size_;
+    //! Targetl file size in bytes
+    size_t target_file_size_;
 };
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
-    const std::string& filepath, size_t max_file_size) const {
+    const std::string& filepath, size_t target_file_size) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
@@ -150,7 +150,7 @@ void DIARef<ValueType, Stack>::WriteLinesMany(
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
-                                          max_file_size,
+                                          target_file_size,
                                           stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
