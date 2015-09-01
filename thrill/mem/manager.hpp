@@ -28,13 +28,18 @@ namespace mem {
  */
 class Manager
 {
+    static const bool debug = true;
+
 public:
     explicit Manager(Manager* super, const char* name)
         : super_(super), name_(name)
     { }
 
     ~Manager() {
-        LOG1 << "mem::Manager() name=" << name_ << " peak_=" << peak_;
+        LOG << "mem::Manager() name=" << name_
+            << " alloc_count_=" << alloc_count_
+            << " peak_=" << peak_
+            << " total_=" << total_;
     }
 
     //! return the superior Manager
@@ -47,6 +52,7 @@ public:
     Manager & add(size_t amount) {
         size_t current = (total_ += amount);
         peak_ = std::max(peak_.load(), current);
+        ++alloc_count_;
         if (super_) super_->add(amount);
         return *this;
     }
@@ -71,6 +77,9 @@ protected:
 
     //! peak allocation
     std::atomic<size_t> peak_ { 0 };
+
+    //! number of allocation
+    std::atomic<size_t> alloc_count_ { 0 };
 };
 
 } // namespace mem
