@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -31,11 +32,13 @@ class Stage
 {
 public:
     explicit Stage(DIABase* node) : node_(node) {
-        LOG << "CREATING stage" << node_->ToString() << "node" << node_;
+        sLOG << "CREATING stage" << node_->label() << "id" << node_->id()
+             << "node" << node_;
     }
 
     void Execute() {
-        LOG << "EXECUTING stage " << node_->ToString() << "node" << node_;
+        sLOG << "EXECUTING stage " << node_->label() << "id" << node_->id()
+             << "node" << node_;
         node_->StartExecutionTimer();
         node_->Execute();
         node_->StopExecutionTimer();
@@ -45,13 +48,15 @@ public:
     }
 
     void PushData() {
-        LOG << "PUSHING stage " << node_->ToString() << "node" << node_;
+        sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
+             << "node" << node_;
         node_->PushData();
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void Dispose() {
-        LOG << "DISPOSING stage " << node_->ToString() << "node" << node_;
+        sLOG << "DISPOSING stage " << node_->label() << "id" << node_->id()
+             << "node" << node_;
         node_->Dispose();
         node_->set_state(api::DIAState::DISPOSED);
     }

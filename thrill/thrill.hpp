@@ -41,6 +41,7 @@ for fn in glob.glob('thrill/api/' + '*.hpp'):
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_binary.hpp>

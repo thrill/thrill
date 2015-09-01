@@ -17,6 +17,8 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/core/stage_builder.hpp>
+#include <thrill/core/file_io.hpp>
+#include <thrill/net/buffer_builder.hpp>
 
 #include <fstream>
 #include <string>
@@ -40,7 +42,7 @@ public:
                        const std::string& path_out,
                        size_t max_file_size,
                        StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() }, "Write", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
           file_(core::make_path(
                     out_pathbase_, context_.my_rank(), 0)),
@@ -48,9 +50,20 @@ public:
     {
         sLOG << "Creating write node.";
 
+        c_file_ = core::SysFile::OpenForWrite(core::make_path(
+                                         out_pathbase_,
+                                         context_.my_rank(),
+                                         0));
+
         auto pre_op_fn = [=](std::string input) {
                              PreOp(input);
                          };
+        
+        max_buffer_size_ = std::min(data::default_block_size,
+                                    common::RoundUpToPowerOfTwo(max_file_size));
+
+        write_buffer_.Reserve(max_buffer_size_);
+
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
@@ -58,42 +71,51 @@ public:
     }
 
     void PreOp(std::string input) {
-        current_file_size_ += input.size() + 1;
-        file_ << input << "\n";
-        if (THRILL_UNLIKELY(current_file_size_ >= max_file_size_)) {
-            LOG << "Closing file" << out_serial_;
-            file_.close();
-            std::string new_path = core::make_path(
-                out_pathbase_, context_.my_rank(), out_serial_++);
-            file_.open(new_path);
-            LOG << "Opening file: " << new_path;
 
-            current_file_size_ = 0;
+        if (THRILL_UNLIKELY(curr_buffer_size_ + input.size() + 1
+                            >= max_buffer_size_)) {
+            c_file_.write(write_buffer_.data(), curr_buffer_size_);
+            write_buffer_.set_size(0);
+            current_file_size_ += curr_buffer_size_;
+            curr_buffer_size_ = 0;
+            if (THRILL_UNLIKELY(current_file_size_ >= max_file_size_)) {
+                LOG << "Closing file" << out_serial_;
+                c_file_.close();
+                std::string new_path = core::make_path(
+                    out_pathbase_, context_.my_rank(), out_serial_++);
+                c_file_ = core::SysFile::OpenForWrite(new_path);
+                LOG << "Opening file: " << new_path;
+                current_file_size_ = 0;
+            }
+            //String is too long to fit into buffer, write directly, add '\n' to
+            //start of next buffer.
+            if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
+                current_file_size_ += input.size() + 1;
+                c_file_.write(input.data(), input.size());
+                curr_buffer_size_ = 1;
+                write_buffer_.PutByte('\n');
+                return;
+            }
         }
+        curr_buffer_size_ += input.size() + 1;
+        write_buffer_.AppendString(input);
+        write_buffer_.PutByte('\n');;
+        assert(curr_buffer_size_ == write_buffer_.size());
+            
     }
 
-    //! Closes the output file
+    //! Closes the output file, write last buffer
     void Execute() final {
         sLOG << "closing file";
-        file_.close();
+        c_file_.write(write_buffer_.data(), curr_buffer_size_);
+        c_file_.close();
     }
 
     void Dispose() final { }
 
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() final {
-        return "[WriteNode] Id:" + std::to_string(this->id());
-    }
-
 private:
     //! Base path of the output file.
     std::string out_pathbase_;
-
-    //! File to write to
-    std::ofstream file_;
 
     //! Maximal file size in bytes
     size_t max_file_size_;
@@ -103,6 +125,17 @@ private:
 
     //! File serial number for this worker
     size_t out_serial_ = 1;
+
+    //! File to wrtie to
+    core::SysFile c_file_;
+    //! Write buffer 
+    net::BufferBuilder write_buffer_;
+    //! Maximum buffer size
+    size_t max_buffer_size_;
+    //! Current buffer size
+    size_t curr_buffer_size_ = 0;
+
+    
 };
 
 template <typename ValueType, typename Stack>

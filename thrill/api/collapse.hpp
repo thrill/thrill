@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill.
  *
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
@@ -43,9 +44,8 @@ public:
      * \param parent Parent DIARef.
      */
     CollapseNode(const ParentDIARef& parent,
-                 const std::string& stats_tag,
                  StatsNode* stats_node)
-        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_tag, stats_node)
+        : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
         auto propagate_fn = [=](ValueType input) {
                                 this->PushItem(input);
@@ -66,14 +66,6 @@ public:
     void PushData() final { }
 
     void Dispose() final { }
-
-    /*!
-     * Returns "[CollapseNode]" and its id as a string.
-     * \return "[CollapseNode]"
-     */
-    std::string ToString() final {
-        return "[CollapseNode] Id: " + std::to_string(this->id());
-    }
 };
 
 template <typename ValueType, typename Stack>
@@ -84,9 +76,9 @@ auto DIARef<ValueType, Stack>::Collapse() const {
     // DIARef with empty stack and LOpNode
     using LOpChainNode = CollapseNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("LOp", DIANodeType::COLLAPSE);
+    StatsNode* stats_node = AddChildStatsNode("Collapse", DIANodeType::COLLAPSE);
     auto shared_node
-        = std::make_shared<LOpChainNode>(*this, "", stats_node);
+        = std::make_shared<LOpChainNode>(*this, stats_node);
     auto lop_stack = FunctionStack<ValueType>();
 
     return DIARef<ValueType, decltype(lop_stack)>(

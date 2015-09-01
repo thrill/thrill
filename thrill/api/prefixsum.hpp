@@ -41,7 +41,7 @@ public:
                   SumFunction sum_function,
                   ValueType neutral_element,
                   StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "PrefixSum", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -83,14 +83,6 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns "[PrefixSumNode]" as a string.
-     * \return "[PrefixSumNode]"
-     */
-    std::string ToString() final {
-        return "[PrefixSumNode] Id:" + std::to_string(this->id());
     }
 
 private:
