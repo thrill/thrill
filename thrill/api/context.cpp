@@ -64,7 +64,7 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
  */
 void
 RunLocalMock(size_t host_count, size_t workers_per_host,
-             std::function<void(api::Context&)> job_startpoint) {
+             const std::function<void(api::Context&)>& job_startpoint) {
     static const bool debug = false;
 
     // construct a mock network of hosts
@@ -104,7 +104,7 @@ RunLocalMock(size_t host_count, size_t workers_per_host,
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of host and workers as independent threads in one program.
  */
-void RunLocalTests(std::function<void(Context&)> job_startpoint) {
+void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     int num_hosts[] = { 1, 2, 5, 8 };
     int num_workers[] = { 1 };//, 2, 3};
 
@@ -115,7 +115,7 @@ void RunLocalTests(std::function<void(Context&)> job_startpoint) {
     }
 }
 
-void RunSameThread(std::function<void(Context&)> job_startpoint) {
+void RunSameThread(const std::function<void(Context&)>& job_startpoint) {
 
     size_t my_host_rank = 0;
     size_t workers_per_host = 1;
@@ -132,7 +132,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint) {
 int RunDistributedTCP(
     size_t my_host_rank,
     const std::vector<std::string>& endpoints,
-    std::function<void(Context&)> job_startpoint,
+    const std::function<void(Context&)>& job_startpoint,
     const mem::by_string& log_prefix) {
 
     // TODO pull this out of ENV
@@ -181,7 +181,7 @@ int RunDistributedTCP(
  * non-zero return value of any thread is returned.
  */
 int Run(
-    std::function<void(Context&)> job_startpoint,
+    const std::function<void(Context&)>& job_startpoint,
     const std::string& /*log_prefix*/) {
 
     char* endptr;
