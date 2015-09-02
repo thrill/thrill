@@ -61,6 +61,8 @@ public:
         : Super(ctx, { }, stats_node),
           path_(path)
     {
+		LOG << "Opening read notes for " << path_;
+		
         filesize_prefix_ = core::GlobFileSizePrefixSum(path_);
 
         for (auto file : filesize_prefix_) {
@@ -78,9 +80,7 @@ public:
 
             // Hook Read
             while (it.HasNext()) {
-                auto item = it.Next();
-                LOG << item;
-                this->PushItem(item);
+                this->PushItem(it.Next());
             }
         }
         else {
@@ -89,9 +89,7 @@ public:
 
             // Hook Read
             while (it.HasNext()) {
-                auto item = it.Next();
-                LOG << item;
-                this->PushItem(item);
+                this->PushItem(it.Next());
             }
         }
     }
@@ -345,10 +343,14 @@ private:
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         size_t strlen = it - buffer_.begin() - current_;
                         current_ = it - buffer_.begin() + 1;
-                        return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
+						if (ret.size()) {
+							return ret.append(it - strlen, it + 1);
+						} else {
+							return std::string(it - strlen, it + 1);
+						}
                     }
                 }
-                ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
+                ret.append(buffer_.begin() + current_, buffer_.end());
                 current_ = 0;
                 ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
                 offset_ += buffer_.size();
@@ -419,7 +421,7 @@ private:
                 }
             }
             else {
-                return files_[current_file_].second < my_end_;
+				return files_[current_file_].second < my_end_;
             }
         }
 
