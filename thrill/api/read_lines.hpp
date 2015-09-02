@@ -341,26 +341,23 @@ private:
             ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
+			data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        std::string Next() {
-            std::string ret;
+        const std::string& Next() {
             while (true) {
+				data_.clear();
                 for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - current_;
                         current_ = it + 1;
-						if (ret.size()) {
-							return ret.append(it - strlen, it);
-						} else {
-							return std::string(it - strlen, it);
-						}
-                    }
+						return data_;
+                    } else {
+						data_.push_back(*it);
+					}
                 }
-                ret.append(current_, buffer_.end());
                 current_ = buffer_.begin();
                 ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
                 offset_ += buffer_.size();
@@ -380,12 +377,11 @@ private:
                     }
                     else {
                         current_ = buffer_.begin();
-                        // current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
-                    if (ret.length()) {
-                        LOG << "end - returning string of length" << ret.length();
-                        return ret;
+                    if (data_.length()) {
+                        LOG << "end - returning string of length" << data_.length();
+                        return data_;
                     }
                 }
             }
@@ -456,6 +452,8 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
+
+		std::string data_;
     };
 };
 
