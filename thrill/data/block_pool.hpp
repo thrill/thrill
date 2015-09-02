@@ -27,7 +27,7 @@ class BlockPool
 
 public:
     explicit BlockPool(mem::Manager* mem_manager)
-        : mem_manager_(mem_manager)
+        : mem_manager_(mem_manager, "BlockPool")
     { }
 
     void AllocateBlock(size_t block_size) {

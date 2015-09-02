@@ -11,6 +11,7 @@
  ******************************************************************************/
 
 #include <thrill/common/logger.hpp>
+#include <thrill/mem/manager.hpp>
 
 #include <functional>
 #include <iomanip>
@@ -26,21 +27,24 @@ namespace common {
 
 /******************************************************************************/
 
-using StringCount = std::pair<mem::string, size_t>;
+//! memory manager singleton for Logger
+mem::Manager g_logger_mem_manager(nullptr, "Logger");
+
+using StringCount = std::pair<mem::by_string, size_t>;
 
 //! deque without malloc tracking
 template <class Key, class T, class Compare = std::less<Key> >
-using bypass_map = std::map<Key, T, Compare,
-                            mem::BypassAllocator<std::pair<const Key, T> > >;
+using logger_map = std::map<Key, T, Compare,
+                            LoggerAllocator<std::pair<const Key, T> > >;
 
 //! mutex for threads_ map
 static std::mutex mutex_;
 
 //! map thread id -> (name, message counter)
-static bypass_map<std::thread::id, StringCount> threads_;
+static logger_map<std::thread::id, StringCount> threads_;
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const mem::string& name) {
+void NameThisThread(const mem::by_string& name) {
     std::lock_guard<std::mutex> lock(mutex_);
     threads_[std::this_thread::get_id()] = StringCount(name, 0);
 }
@@ -79,7 +83,7 @@ std::string GetNameForThisThread() {
 static std::mutex logger_mutex_;
 
 //! constructor: if real = false the output is suppressed.
-Logger<true>::Logger() : oss_(&buf_) {
+Logger<true>::Logger() {
     oss_ << '[';
     FormatNameForThisThread(oss_);
     oss_ << "] ";
@@ -91,13 +95,11 @@ Logger<true>::~Logger() {
     // lock the global mutex of logger for serialized output in
     // multi-threaded programs.
     std::unique_lock<std::mutex> lock(logger_mutex_);
-    oss_.flush();
-    mem::string out = buf_.str();
-    std::cout.write(out.data(), out.size());
+    std::cout << oss_.str();
 }
 
 //! constructor: if real = false the output is suppressed.
-SpacingLogger<true>::SpacingLogger() : oss_(&buf_) {
+SpacingLogger<true>::SpacingLogger() {
     oss_ << '[';
     FormatNameForThisThread(oss_);
     oss_ << "] ";
@@ -109,9 +111,7 @@ SpacingLogger<true>::~SpacingLogger() {
     // lock the global mutex of logger for serialized output in
     // multi-threaded programs.
     std::unique_lock<std::mutex> lock(logger_mutex_);
-    oss_.flush();
-    mem::string out = buf_.str();
-    std::cout.write(out.data(), out.size());
+    std::cout << oss_.str();
 }
 
 } // namespace common
