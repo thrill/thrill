@@ -315,6 +315,7 @@ private:
                     break;
                 }
             }
+			
 
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
@@ -326,11 +327,13 @@ private:
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
                 buffer_.Reserve(2);
                 buffer_.set_size(2);
+				current_ = buffer_.begin();
                 return;
             }
             buffer_.Reserve(read_size);
             ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
             buffer_.set_size(buffer_size);
+			current_ = buffer_.begin();
         }
 
         //! returns the next element if one exists
@@ -339,19 +342,19 @@ private:
         std::string Next() {
             std::string ret;
             while (true) {
-                for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - buffer_.begin() - current_;
-                        current_ = it - buffer_.begin() + 1;
+                        size_t strlen = it - current_;
+                        current_ = it + 1;
 						if (ret.size()) {
-							return ret.append(it - strlen, it + 1);
+							return ret.append(it - strlen, it);
 						} else {
-							return std::string(it - strlen, it + 1);
+							return std::string(it - strlen, it);
 						}
                     }
                 }
-                ret.append(buffer_.begin() + current_, buffer_.end());
-                current_ = 0;
+                ret.append(current_, buffer_.end());
+                current_ = buffer_.begin();
                 ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
                 offset_ += buffer_.size();
                 if (buffer_size) {
@@ -369,7 +372,7 @@ private:
                         buffer_.set_size(buffer_size);
                     }
                     else {
-                        current_ = 0;
+                        current_ = buffer_.begin();
                         // current_ = files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
@@ -389,10 +392,10 @@ private:
         bool HasNext() {
             // if block is fully read, read next block. needs to be done here
             // as HasNext() has to know if file is finished
-            //  v-- no new line at end ||   v-- newline at end of file
-            if (current_ >= buffer_.size() || (current_ >= buffer_.size() - 1 && buffer_[current_] == '\n')) {
+            //         v-- no new line at end ||   v-- newline at end of file
+            if (current_ >= buffer_.end() || (current_ + 1 >= buffer_.end() && *current_ == '\n')) {
                 LOG << "New buffer in HasNext()";
-                current_ = 0;
+                current_ = buffer_.begin();
                 ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
                 offset_ += buffer_.size();
                 if (buffer_size > 1 || (buffer_size == 1 && buffer_[0] != '\n')) {
@@ -435,7 +438,8 @@ private:
         //! Offset of current block in c_file_.
         size_t offset_ = 0;
         //! Start of next element in current buffer.
-        size_t current_ = 0;
+		unsigned char* current_;
+        //size_t current_ = 0;
         //! (exclusive) end of local block
         size_t my_end_;
         //! Byte buffer to create line-std::strings
