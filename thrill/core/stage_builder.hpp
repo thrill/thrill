@@ -79,11 +79,11 @@ public:
     void FindStages(DIABase* action, mem::mm_vector<Stage>& stages_result) {
         LOG << "FINDING stages:";
         mm_set<const DIABase*> stages_found(
-            mem::Allocator<const DIABase*>(action->context().mem_manager()));
+            mem::Allocator<const DIABase*>(action->mem_manager()));
 
         // Do a reverse DFS and find all stages
         mem::mm_deque<DIABase*> dia_stack(
-            mem::Allocator<DIABase*>(action->context().mem_manager()));
+            mem::Allocator<DIABase*>(action->mem_manager()));
 
         dia_stack.push_back(action);
         stages_found.insert(action);
@@ -113,7 +113,7 @@ public:
 
     void RunScope(DIABase* action) {
         mem::mm_vector<Stage> result(
-            mem::Allocator<Stage>(action->context().mem_manager()));
+            mem::Allocator<Stage>(action->mem_manager()));
 
         FindStages(action, result);
         for (auto s : result)
