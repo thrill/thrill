@@ -73,6 +73,9 @@ public:
     //! number of workers per host (all have the same).
     size_t workers_per_host() const { return workers_per_host_; }
 
+    //! host-global memory manager
+    mem::Manager& mem_manager() { return mem_manager_; }
+
     //! net manager constructs communication groups to other hosts.
     net::Manager & net_manager() { return net_manager_; }
 
@@ -116,12 +119,14 @@ protected:
 class Context
 {
 public:
-    Context(net::Manager& net_manager,
+    Context(mem::Manager& mem_manager,
+            net::Manager& net_manager,
             net::FlowControlChannelManager& flow_manager,
             data::BlockPool& block_pool,
             data::Multiplexer& multiplexer,
             size_t workers_per_host, size_t local_worker_id)
-        : net_manager_(net_manager),
+        : mem_manager_(mem_manager),
+          net_manager_(net_manager),
           flow_manager_(flow_manager),
           block_pool_(block_pool),
           multiplexer_(multiplexer),
@@ -131,7 +136,8 @@ public:
     }
 
     Context(HostContext& host_context, size_t local_worker_id)
-        : net_manager_(host_context.net_manager()),
+        : mem_manager_(host_context.mem_manager()),
+          net_manager_(host_context.net_manager()),
           flow_manager_(host_context.flow_manager()),
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
@@ -240,7 +246,13 @@ public:
         return stats_graph_;
     }
 
+    //! returns the host-global memory manager
+    mem::Manager& mem_manager() { return mem_manager_; }
+
 private:
+    //! host-global memory manager
+    mem::Manager& mem_manager_;
+
     //! net::Manager instance that is shared among workers
     net::Manager& net_manager_;
 
