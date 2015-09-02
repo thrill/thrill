@@ -172,12 +172,12 @@ public:
     { return ptr_ != other_ptr.ptr_; }
 
     //! test equality of only the address pointed to
-    bool operator == (const Type& other) const noexcept
-    { return ptr_ == &other; }
+    bool operator == (Type* other) const noexcept
+    { return ptr_ == other; }
 
     //! test inequality of only the address pointed to
-    bool operator != (const Type& other) const noexcept
-    { return ptr_ != &other; }
+    bool operator != (Type* other) const noexcept
+    { return ptr_ != other; }
 
     //! cast to bool check for a nullptr pointer
     operator bool () const noexcept
