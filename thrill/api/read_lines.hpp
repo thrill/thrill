@@ -169,22 +169,23 @@ private:
             buffer_.Reserve(Base::read_size);
             ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
             buffer_.set_size(buffer_size);
+			current_ = buffer_.begin();
 
             if (offset_ != 0) {
                 bool found_n = false;
 
                 // find next newline, discard all previous data as previous worker already covers it
                 while (!found_n) {
-                    for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                    for (auto it = current_; it != buffer_.end(); it++) {
                         if (THRILL_UNLIKELY(*it == '\n')) {
-                            current_ = it - buffer_.begin() + 1;
+                            current_ = it + 1;
                             found_n = true;
                             break;
                         }
                     }
                     // no newline found: read new data into buffer_builder
                     if (!found_n) {
-                        current_ = 0;
+                        current_ = buffer_.begin();
                         offset_ += buffer_.size();
                         buffer_size = read(c_file_, buffer_.data(), Base::read_size);
                         // EOF = newline per definition
@@ -194,7 +195,7 @@ private:
                         buffer_.set_size(buffer_size);
                     }
                 }
-                assert(buffer_[current_ - 1] == '\n' || !buffer_size);
+                assert(*(current_ - 1) == '\n' || !buffer_size);
             }
         }
 
@@ -204,16 +205,16 @@ private:
         std::string Next() {
             std::string ret;
             while (true) {
-                for (auto it = buffer_.begin() + current_; it != buffer_.end(); it++) {
+                for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - buffer_.begin() - current_;
-                        current_ = it - buffer_.begin() + 1;
+                        size_t strlen = it - current_;
+                        current_ = it + 1;
                         LOG << "returning string";
-                        return ret.append(buffer_.PartialToString(current_ - strlen - 1, strlen));
+                        return ret.append(it - strlen, it);
                     }
                 }
-                ret.append(buffer_.PartialToString(current_, buffer_.size() - current_));
-                current_ = 0;
+                ret.append(current_, buffer_.end());
+                current_ = buffer_.begin();
                 ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
                 offset_ += buffer_.size();
                 if (buffer_size) {
@@ -230,7 +231,7 @@ private:
                         buffer_.set_size(buffer_size);
                     }
                     else {
-                        current_ = files_[current_file_].second - files_[current_file_ - 1].second;
+                        current_ = buffer_.begin() + files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
                     if (ret.length()) {
@@ -243,9 +244,11 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            size_t global_index = offset_ + current_ + files_[current_file_].second;
+            size_t global_index = offset_ + current_ - buffer_.begin() + files_[current_file_].second;
             return global_index < my_end_ ||
-                   (global_index == my_end_ && files_[current_file_ + 1].second - files_[current_file_].second > offset_ + current_);
+				(global_index == my_end_ && 
+				 files_[current_file_ + 1].second - files_[current_file_].second >
+				 offset_ + (current_ - buffer_.begin()));
         }
 
         size_t NumFiles() {
@@ -268,7 +271,7 @@ private:
         //! Offset of current block in c_file_.
         size_t offset_ = 0;
         //! Start of next element in current buffer.
-        size_t current_ = 0;
+		unsigned char* current_;
         //! (exclusive) end of local block
         size_t my_end_;
         //! Byte buffer to create line-std::strings
@@ -439,7 +442,6 @@ private:
         size_t offset_ = 0;
         //! Start of next element in current buffer.
 		unsigned char* current_;
-        //size_t current_ = 0;
         //! (exclusive) end of local block
         size_t my_end_;
         //! Byte buffer to create line-std::strings
