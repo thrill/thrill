@@ -210,7 +210,11 @@ private:
                         size_t strlen = it - current_;
                         current_ = it + 1;
                         LOG << "returning string";
-                        return ret.append(it - strlen, it);
+						if (ret.size()) {
+							return ret.append(it - strlen, it);
+						} else {
+							return std::string(it - strlen, it);
+						}
                     }
                 }
                 ret.append(current_, buffer_.end());
