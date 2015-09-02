@@ -157,7 +157,7 @@ private:
             if (done_) return data::Block();
 
             data::ByteBlockPtr bytes
-                = data::ByteBlock::Allocate(block_size, context_.block_pool());
+                = context_.block_pool().AllocateBlock(block_size);
 
             ssize_t size = sysfile_.read(bytes->data(), block_size);
             stats_total_bytes_ += size;
