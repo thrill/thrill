@@ -171,6 +171,14 @@ public:
     bool operator != (const CountingPtr& other_ptr) const noexcept
     { return ptr_ != other_ptr.ptr_; }
 
+    //! test equality of only the address pointed to
+    bool operator == (const Type& other) const noexcept
+    { return ptr_ == &other; }
+
+    //! test inequality of only the address pointed to
+    bool operator != (const Type& other) const noexcept
+    { return ptr_ != &other; }
+
     //! cast to bool check for a nullptr pointer
     operator bool () const noexcept
     { return valid(); }
@@ -256,7 +264,7 @@ public:
      * dropped to zero)
      */
     bool DecReference() const noexcept
-    { return (--reference_count_ == 0); }
+    { assert(reference_count_ > 0); return (--reference_count_ == 0); }
 
     //! Test if the ReferenceCount is referenced by only one CountingPtr.
     bool unique() const noexcept
