@@ -52,8 +52,15 @@ protected:
     friend class BlockPool;
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
-    //! use Allocate() for construction.
+    //! use BlockPoolAllocate() for construction.
     explicit ByteBlock(size_t size, BlockPool* block_pool);
+
+    //! Construct a block of given size.
+    static ByteBlockPtr Allocate(
+        size_t block_size, BlockPool* block_pool);
+
+    //! No default construction of Byteblock
+    ByteBlock() = delete;
 
     //decrease reference count because references held by pool should not be
     //accounted
@@ -62,9 +69,13 @@ protected:
     }
 
 public:
-    //! Construct a block of given size.
-    static ByteBlockPtr Allocate(
-        size_t block_size, BlockPool& block_pool);
+
+    //! Construct a block of given size WIHTOUT pool management
+    //! Do this only when the block should not be accounted by memory
+    //! management. Use only recommended for tests
+    static ByteBlockPtr Allocate(size_t block_size) {
+        return Allocate(block_size, nullptr);
+    }
 
     //! mutable data accessor to memory block
     Byte * data() { return data_; }
