@@ -360,7 +360,6 @@ private:
                 }
                 current_ = buffer_.begin();
                 ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
-                offset_ += buffer_.size();
                 if (buffer_size) {
                     buffer_.set_size(buffer_size);
                 }
@@ -368,7 +367,6 @@ private:
                     LOG << "Opening new file!";
                     c_file_.close();
                     current_file_++;
-                    offset_ = 0;
 
                     if (current_file_ < NumFiles()) {
                         c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
@@ -400,7 +398,6 @@ private:
                 LOG << "New buffer in HasNext()";
                 current_ = buffer_.begin();
                 ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
-                offset_ += buffer_.size();
                 if (buffer_size > 1 || (buffer_size == 1 && buffer_[0] != '\n')) {
                     buffer_.set_size(buffer_size);
                     return true;
@@ -415,8 +412,6 @@ private:
                     // if (this worker reads at least one more file)
                     if (my_end_ > files_[current_file_ + 1].second) {
                         current_file_++;
-                        offset_ = 0;
-
                         c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
                         buffer_.set_size(c_file_.read(buffer_.data(), read_size));
                         return true;
@@ -438,8 +433,6 @@ private:
         size_t current_file_ = 0;
         //! File handle to files_[current_file_]
         core::SysFile c_file_;
-        //! Offset of current block in c_file_.
-        size_t offset_ = 0;
         //! Start of next element in current buffer.
 		unsigned char* current_;
         //! (exclusive) end of local block
