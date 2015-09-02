@@ -122,31 +122,31 @@ public:
     }
 
     //! Returns the children of this DIABase.
-    //! \return A vector of all children
     const std::vector<DIABase*> & children() {
         return children_;
     }
 
     //! Returns the parents of this DIABase.
-    //! \return A vector of all parents
     const std::vector<std::shared_ptr<DIABase> > & parents() {
         return parents_;
     }
 
     //! Returns the api::Context of this DIABase.
-    //! \return The api::Context of this DIABase.
     Context & context() {
         return context_;
     }
 
+    //! Return the Context's memory manager
+    mem::Manager& mem_manager() {
+        return context_.mem_manager();
+    }
+
     //! Adds a child to the vector of children. This method is called in the constructor.
-    //! \param child The child to add.
     void add_child(DIABase* child) {
         children_.push_back(child);
     }
 
     //! Returns the unique ID of this DIABase.
-    //! \return The unique ID of this DIABase.
     size_t id() const {
         assert(stats_node_);
         return stats_node_->id();
