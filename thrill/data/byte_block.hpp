@@ -1,0 +1,91 @@
+#pragma once
+#include <thrill/common/counting_ptr.hpp>
+
+namespace thrill {
+namespace data {
+//! type of underlying memory area
+using Byte = uint8_t;
+
+//forward declaration (definition further below)
+class BlockPool;
+/*!
+ * A ByteBlock is the basic storage units of containers like File, BlockQueue,
+ * etc. It consists of a fixed number of bytes without any type and meta
+ * information. Conceptually a ByteBlock is written _once_ and can then be
+ * shared read-only between containers using shared_ptr<const ByteBlock>
+ * reference counting inside a Block, which adds meta information.
+ *
+ * ByteBlocks can be swapped to disk, which decreases their size to 0.
+ */
+class ByteBlock : public common::ReferenceCount
+{
+public:
+    //! deleter for CountingPtr<ByteBlock>
+    static void deleter(ByteBlock* bb);
+    static void deleter(const ByteBlock* bb);
+
+    using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
+    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
+
+protected:
+    struct {
+        //! the allocated size of the buffer in bytes, excluding the size_ field
+        size_t   size_;
+
+        //! reference to BlockPool for deletion.
+        BlockPool* block_pool_;
+
+        //! counts the number of pins in this block
+        //! this is not atomic since a) head would not be a POD and
+        //! b) the count is only modified by BlockPool which is thread-safe
+        size_t pin_count_ = { 0 };
+
+        //! Indicates that block resides out of memory (on disk)
+        bool swapped_out_ = { false };
+
+    } head;
+
+    //! the memory block itself follows here, this is just a placeholder
+    Byte data_[1];
+
+    //BlockPool is a friend to modify the head's pin_count_
+    friend class BlockPool;
+
+    //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
+    //! use Allocate() for construction.
+    explicit ByteBlock(size_t size, BlockPool* block_pool);
+
+    //decrease reference count because references held by pool should not be
+    //accounted
+    void DecRef() noexcept {
+        ReferenceCount::DecReference();
+    }
+
+public:
+    //! Construct a block of given size.
+    static ByteBlockPtr Allocate(
+        size_t block_size, BlockPool& block_pool);
+
+    //! mutable data accessor to memory block
+    Byte * data() { return data_; }
+    //! const data accessor to memory block
+    const Byte * data() const { return data_; }
+
+    //! mutable data accessor to beginning of memory block
+    Byte * begin() { return data_; }
+    //! const data accessor to beginning of memory block
+    const Byte * begin() const { return data_; }
+
+    //! mutable data accessor beyond end of memory block
+    Byte * end() { return data_ + head.size_; }
+    //! const data accessor beyond end of memory block
+    const Byte * end() const { return data_ + head.size_; }
+
+    //! the block size
+    size_t size() const { return head.size_; }
+
+};
+
+using ByteBlockPtr = ByteBlock::ByteBlockPtr;
+} //namespace data
+} //namespace thrill

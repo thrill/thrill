@@ -13,6 +13,7 @@
 #define THRILL_DATA_BLOCK_HEADER
 
 #include <thrill/common/counting_ptr.hpp>
+#include <thrill/data/block_pool.hpp>
 #include <thrill/mem/manager.hpp>
 
 #include <cassert>
@@ -26,109 +27,9 @@ namespace data {
 //! \addtogroup data Data Subsystem
 //! \{
 
-//! type of underlying memory area
-using Byte = uint8_t;
-
 //! default size of blocks in File, Channel, BlockQueue, etc.
 static const size_t default_block_size = 2 * 1024 * 1024;
 
-//forward declaration
-class BlockPool;
-
-/*!
- * A ByteBlock is the basic storage units of containers like File, BlockQueue,
- * etc. It consists of a fixed number of bytes without any type and meta
- * information. Conceptually a ByteBlock is written _once_ and can then be
- * shared read-only between containers using shared_ptr<const ByteBlock>
- * reference counting inside a Block, which adds meta information.
- *
- * ByteBlocks can be swapped to disk, which decreases their size to 0.
- */
-class ByteBlock : public common::ReferenceCount
-{
-public:
-    //! deleter for CountingPtr<ByteBlock>
-    static void deleter(ByteBlock* bb) {
-        assert(bb->pin_count_ == 0);
-        bb->head.block_pool_->FreeBlockMemory(bb->size());
-        bb->head.block_pool_->DestroyBlock(*this);
-        operator delete (bb);
-    }
-    static void deleter(const ByteBlock* bb) {
-        return deleter(const_cast<ByteBlock*>(bb));
-    }
-
-    using ByteBlockPtr = common::CountingPtr<ByteBlock, deleter>;
-    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
-
-protected:
-    struct {
-        //! the allocated size of the buffer in bytes, excluding the size_ field
-        size_t   size_;
-
-        //! reference to BlockPool for deletion.
-        BlockPool* block_pool_;
-
-        //! counts the number of pins in this block
-        common::ReferenceCount pin_count_;
-
-        //! Indicates that block resides out of memory (on disk)
-        bool swapped_out_ = { false };
-
-    } head;
-
-    //! the memory block itself follows here, this is just a placeholder
-    Byte data_[1];
-
-    //BlockPool is a friend to modify the pin_count_
-    friend class BlockPool;
-
-    //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
-    //! use Allocate() for construction.
-    explicit ByteBlock(size_t size, BlockPool* block_pool)
-        : head({ size, block_pool }) { }
-
-public:
-    //! Construct a block of given size.
-    static ByteBlockPtr Allocate(
-        size_t block_size, BlockPool& block_pool) {
-        // this counts only the bytes and excludes the header. why? -tb
-        block_pool.ClaimBlockMemory(block_size);
-
-        // allocate a new block of uninitialized memory
-        ByteBlock* block =
-            static_cast<ByteBlock*>(
-                operator new (
-                    sizeof(common::ReferenceCount) + sizeof(head) + block_size));
-
-        // initialize block using constructor
-        new (block)ByteBlock(block_size, &block_pool);
-
-        // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
-        // this whole procedure with std::make_shared.
-        return ByteBlockPtr(block);
-    }
-
-    //! mutable data accessor to memory block
-    Byte * data() { return data_; }
-    //! const data accessor to memory block
-    const Byte * data() const { return data_; }
-
-    //! mutable data accessor to beginning of memory block
-    Byte * begin() { return data_; }
-    //! const data accessor to beginning of memory block
-    const Byte * begin() const { return data_; }
-
-    //! mutable data accessor beyond end of memory block
-    Byte * end() { return data_ + head.size_; }
-    //! const data accessor beyond end of memory block
-    const Byte * end() const { return data_ + head.size_; }
-
-    //! the block size
-    size_t size() const { return head.size_; }
-};
-
-using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
