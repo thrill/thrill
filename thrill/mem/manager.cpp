@@ -17,8 +17,12 @@ namespace thrill {
 namespace mem {
 
 Manager::~Manager() {
-    printf("mem::Manager() name=%s alloc_count_=%lu peak_=%lu total_=%lu\n",
-           name_, alloc_count_.load(), peak_.load(), total_.load());
+	// You can not use the logger here, because there is maybe no LoggerAllocator
+	// any more
+	if (debug) {
+		printf("mem::Manager() name=%s alloc_count_=%lu peak_=%lu total_=%lu\n",
+			   name_, alloc_count_.load(), peak_.load(), total_.load());
+	}
 }
 
 Manager g_bypass_manager(nullptr, "Bypass");
