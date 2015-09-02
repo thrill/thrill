@@ -73,17 +73,24 @@ private:
 class StageBuilder
 {
 public:
-    void FindStages(DIABase* action, std::vector<Stage>& stages_result) {
+    template <typename T>
+    using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
+
+    void FindStages(DIABase* action, mem::mm_vector<Stage>& stages_result) {
         LOG << "FINDING stages:";
-        std::set<const DIABase*> stages_found;
+        mm_set<const DIABase*> stages_found(
+            mem::Allocator<const DIABase*>(action->context().mem_manager()));
+
         // Do a reverse DFS and find all stages
-        std::stack<DIABase*> dia_stack;
-        dia_stack.push(action);
+        mem::mm_deque<DIABase*> dia_stack(
+            mem::Allocator<DIABase*>(action->context().mem_manager()));
+
+        dia_stack.push_back(action);
         stages_found.insert(action);
         stages_result.push_back(Stage(action));
         while (!dia_stack.empty()) {
-            DIABase* curr = dia_stack.top();
-            dia_stack.pop();
+            DIABase* curr = dia_stack.front();
+            dia_stack.pop_front();
             const auto parents = curr->parents();
             for (size_t i = 0; i < parents.size(); ++i) {
                 // Check if parent was already added
@@ -95,7 +102,7 @@ public:
                     // If parent was not executed push it to the DFS
                     if (p->state() != api::DIAState::EXECUTED ||
                         p->type() == api::DIANodeType::COLLAPSE) {
-                        dia_stack.push(p);
+                        dia_stack.push_back(p);
                     }
                 }
             }
@@ -105,7 +112,9 @@ public:
     }
 
     void RunScope(DIABase* action) {
-        std::vector<Stage> result;
+        mem::mm_vector<Stage> result(
+            mem::Allocator<Stage>(action->context().mem_manager()));
+
         FindStages(action, result);
         for (auto s : result)
         {
