@@ -18,7 +18,7 @@ namespace data {
         mem_manager_.add(block_size);
         std::lock_guard<std::mutex>lock (list_mutex_);
 
-        ByteBlockPtr result = ByteBlock::Allocate(block_size, *this);
+        ByteBlockPtr result = ByteBlock::Allocate(block_size, this);
         //push_back creates a copy - we can then safely decrease the ref count
         //by one, because helding BlockPtrs in this lists should not
         //prevent the deleter beeing called.

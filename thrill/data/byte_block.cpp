@@ -6,8 +6,12 @@ namespace data{
 
 void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->head.pin_count_ == 0);
-    bb->head.block_pool_->FreeBlockMemory(bb->size());
-    bb->head.block_pool_->DestroyBlock(bb);
+
+    //some blocks are created in 'detached' state (tests etc)
+    if(bb->head.block_pool_) {
+        bb->head.block_pool_->FreeBlockMemory(bb->size());
+        bb->head.block_pool_->DestroyBlock(bb);
+    }
     operator delete (bb);
 }
 void ByteBlock::deleter(const ByteBlock* bb) {
@@ -19,9 +23,9 @@ ByteBlock::ByteBlock(size_t size, BlockPool* block_pool)
 
 //! Construct a block of given size.
 ByteBlockPtr ByteBlock::Allocate(
-    size_t block_size, BlockPool& block_pool) {
+    size_t block_size, BlockPool* block_pool) {
     // this counts only the bytes and excludes the header. why? -tb
-    block_pool.ClaimBlockMemory(block_size);
+    block_pool->ClaimBlockMemory(block_size);
 
     // allocate a new block of uninitialized memory
     ByteBlock* block =
@@ -30,7 +34,7 @@ ByteBlockPtr ByteBlock::Allocate(
                 sizeof(common::ReferenceCount) + sizeof(head) + block_size));
 
     // initialize block using constructor
-    new (block)ByteBlock(block_size, &block_pool);
+    new (block)ByteBlock(block_size, block_pool);
 
     // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
     // this whole procedure with std::make_shared.

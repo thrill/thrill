@@ -70,7 +70,7 @@ void Multiplexer::OnChannelBlockHeader(Connection& s, net::Buffer&& buffer) {
         sLOG << "stream header from" << s << "on channel" << id
              << "from" << header.sender_rank;
 
-        ByteBlockPtr bytes = ByteBlock::Allocate(header.size, block_pool_);
+        ByteBlockPtr bytes = block_pool_.AllocateBlock(header.size);
 
         dispatcher_.AsyncRead(
             s, bytes,

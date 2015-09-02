@@ -33,7 +33,7 @@ public:
         : mem_manager_(mem_manager, "BlockPool")
     { }
 
-    ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = true);
+    ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = false);
 
     void UnpinBlock(const ByteBlockPtr& block_ptr);
 
