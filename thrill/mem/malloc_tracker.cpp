@@ -288,6 +288,9 @@ static void preinit_free(void* ptr) {
 #define MALLOC_USABLE_SIZE malloc_usable_size
 #include <malloc.h>
 
+#include <execinfo.h>
+#include <unistd.h>
+
 #endif
 
 #if HAVE_MALLOC_USABLE_SIZE
@@ -314,6 +317,26 @@ void * malloc(size_t size) NOEXCEPT {
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%lu / %lu) = %p   (current %lu)\n",
                 size, size_used, ret, curr);
+
+#if __linux__ && 1
+        static thread_local bool recursive = false;
+
+        if (!recursive) {
+            recursive = true;
+
+            // storage array for stack trace address data
+            void* addrlist[64 + 1];
+
+            // retrieve current stack addresses
+            int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
+
+            fprintf(stderr, "--- begin stack -------------------------------\n");
+            backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
+            fprintf(stderr, "--- end stack ---------------------------------\n");
+
+            recursive = false;
+        }
+#endif
     }
 
     return ret;
