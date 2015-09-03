@@ -113,11 +113,11 @@ public:
         file_.write(write_buffer_.data(), current_buffer_size_);
         file_.close();
 
-        STATC(context_.my_rank()) << "NodeType" << "WriteLinesMany"
-                                  << "TotalBytes" << stats_total_bytes_
-                                  << "TotalLines" << stats_total_elements_
-                                  << "TotalWrites" << stats_total_writes_
-                                  << "TotalFiles" << out_serial_;
+        STAT(context_) << "NodeType" << "WriteLinesMany"
+             << "TotalBytes" << stats_total_bytes_
+             << "TotalLines" << stats_total_elements_
+             << "TotalWrites" << stats_total_writes_
+             << "TotalFiles" << out_serial_;
     }
 
     void Dispose() final { }

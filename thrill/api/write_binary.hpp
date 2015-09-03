@@ -71,9 +71,9 @@ public:
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
-        STATC(context_.my_rank()) << "NodeType" << "WriteBinary"
-                                  << "TotalElements" << stats_total_elements_
-                                  << "TotalWrites" << stats_total_writes_;
+        STAT(context_) << "NodeType" << "WriteBinary"
+                       << "TotalElements" << stats_total_elements_
+                       << "TotalWrites" << stats_total_writes_;
     }
 
     void Dispose() final { }

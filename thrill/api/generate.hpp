@@ -18,6 +18,7 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 
 #include <fstream>
 #include <random>
@@ -73,7 +74,7 @@ public:
             this->PushItem(generator_function_(i));
         }
 
-        STATC(context_.my_rank()) << "NodeType" << "Generate";
+        STAT(context_) << "NodeType" << "Generate";
     }
 
     void Dispose() final { }

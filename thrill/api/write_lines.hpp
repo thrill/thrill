@@ -67,9 +67,9 @@ public:
     void Execute() override {
         writer_.Close();
 
-        STATC(context_.my_rank()) << "NodeType" << "WriteLines"
-                                  << "TotalBytes" << size_
-                                  << "TotalLines" << stats_total_elements_;
+        STAT(context_) << "NodeType" << "WriteLines"
+             << "TotalBytes" << size_
+             << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
         size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
