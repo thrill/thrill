@@ -68,8 +68,8 @@ public:
         writer_.Close();
 
         STAT(context_) << "NodeType" << "WriteLines"
-             << "TotalBytes" << size_
-             << "TotalLines" << stats_total_elements_;
+                       << "TotalBytes" << size_
+                       << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
         size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
