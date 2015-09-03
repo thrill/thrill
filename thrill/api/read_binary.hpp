@@ -103,12 +103,17 @@ public:
             LOG << "OPENING FILE " << file.first;
 
             data::BlockReader<SysFileBlockSource> br(
-                SysFileBlockSource(file.first, context_));
+                SysFileBlockSource(file.first, context_,
+								   stats_total_bytes, stats_total_reads));
 
             while (br.HasNext()) {
                 this->PushItem(br.template NextNoSelfVerify<ValueType>());
             }
         }
+
+		STATC(context_.my_rank()) << "NodeType" << "ReadBinary"
+								  << "TotalBytes" << stats_total_bytes
+								  << "TotalReads" << stats_total_reads;
         LOG << "DONE!";
     }
 
@@ -131,14 +136,21 @@ private:
     std::vector<FileSizePair> filelist_;
     std::vector<FileSizePair> my_files_;
 
+	size_t stats_total_bytes = 0;
+	size_t stats_total_reads = 0;
+
     class SysFileBlockSource
     {
     public:
         const size_t block_size = data::default_block_size;
 
-        SysFileBlockSource(std::string path, Context& ctx)
+        SysFileBlockSource(std::string path, Context& ctx,
+						   size_t& stats_total_bytes,
+						   size_t& stats_total_reads)
             : context_(ctx),
-              sysfile_(core::SysFile::OpenForRead(path)) { }
+              sysfile_(core::SysFile::OpenForRead(path)),
+			  stats_total_bytes_(stats_total_bytes),
+			  stats_total_reads_(stats_total_reads) { }
 
         data::Block NextBlock() {
             if (done_) return data::Block();
@@ -147,6 +159,9 @@ private:
                 = data::ByteBlock::Allocate(block_size, context_.block_pool());
 
             ssize_t size = sysfile_.read(bytes->data(), block_size);
+			stats_total_bytes_ += size;
+			stats_total_reads_++;
+
             if (size > 0) {
                 return data::Block(bytes, 0, size, 0, 0);
             }
@@ -164,6 +179,8 @@ private:
     protected:
         Context& context_;
         core::SysFile sysfile_;
+		size_t & stats_total_bytes_;
+		size_t & stats_total_reads_;
         bool done_ = false;
     };
 };

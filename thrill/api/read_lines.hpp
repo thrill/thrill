@@ -158,7 +158,7 @@ private:
 			STATC(context_.my_rank()) << "NodeType" << "ReadLines"
 									  << "TotalBytes" << stats_total_bytes
 									  << "TotalReads" <<	stats_total_reads 
-									  << "TotalElements" << stats_total_elements;
+									  << "TotalLines" << stats_total_elements;
 		}
     };
 
