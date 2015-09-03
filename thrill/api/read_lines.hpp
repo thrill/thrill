@@ -143,10 +143,9 @@ private:
             Context& ctx)
             : files_(files) {
 
-            input_size_ = files[NumFiles()].second;
             // Go to start of 'local part'.
             size_t my_start;
-            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, ctx.num_workers(), ctx.my_rank());
+            std::tie(my_start, my_end_) = common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -272,8 +271,6 @@ private:
         size_t my_end_;
         //! Byte buffer to create line-std::strings
         net::BufferBuilder buffer_;
-        //! Size of all files combined (in bytes)
-        size_t input_size_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -288,11 +285,9 @@ private:
 			Context& ctx)
             : files_(files) {
 
-            input_size_ = files[NumFiles()].second;
-
             // Go to start of 'local part'.
             size_t my_start;
-            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, ctx.num_workers(), ctx.my_rank());
+            std::tie(my_start, my_end_) = common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -424,8 +419,6 @@ private:
         size_t my_end_;
         //! Byte buffer to create line-std::strings
         net::BufferBuilder buffer_;
-        //! Size of all files combined (in bytes)
-        size_t input_size_;
     };
 };
 
