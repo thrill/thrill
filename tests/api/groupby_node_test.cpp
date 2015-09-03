@@ -26,16 +26,14 @@
 
 using namespace thrill; // NOLINT
 
-static const bool debug = true;
+static const bool debug = false;
 
 TEST(GroupByNode, Compile_and_Sum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            int n = 16;
-            int m = 4;
-            int result_sum = (n * n + n )/2;
-            LOG << "RUNNING NEW TEST WITH EXPECTED SUM " << result_sum;
+            int n = 100000;
+            int m = 10;
 
             auto integers = Generate(
                 ctx,
@@ -44,48 +42,43 @@ TEST(GroupByNode, Compile_and_Sum) {
                 },
                 n);
 
-            auto keyfn = [](size_t in) { return (in % 4); };
+            auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
-            auto add_fn =
-            [](data::File::Reader r) {
+            auto sum_fn =
+            [m](data::File::Reader r) {
                     int res = 0;
                     int k = 0;
                     while(r.HasNext()) {
                         auto n = r.template Next<int>();
-                        k = n % 4;
+                        k = n % m;
                         res += n;
                     }
-                    // LOG << "SUM OF KEY " << k << " IS " << res;
                     return res;
                 };
 
-            auto reduced = integers.GroupBy(keyfn, add_fn);
-
-            auto add_function = [](int in1, int in2) {
-                                    return in1 + in2;
-                                };
-
-            ASSERT_EQ(result_sum, reduced.Sum(add_function));
-
+            // group by to compute sum and gather results
+            auto reduced = integers.GroupBy(modulo_keyfn, sum_fn);
             std::vector<int> out_vec = reduced.AllGather();
-            std::sort(out_vec.begin(), out_vec.end());
 
-            // ???
-            std::vector<int> resultref(m, 0);
+            // compute vector with expected results
+            std::vector<int> res_vec(m, 0);
             for (int t = 0; t <= n; ++t) {
-                resultref[t%m] += t;
+                res_vec[t%m] += t;
             }
 
-            LOG << "   OUT VEC IS";
+            std::sort(out_vec.begin(), out_vec.end());
+            std::sort(res_vec.begin(), res_vec.end());
+
+            LOG << "out_vec " << "/" << " res_vec";
             for (std::size_t i = 0; i < out_vec.size(); ++i) {
-                // ASSERT_EQ(out_vec[i], resultref[i]);
-                LOG << "      ELEMENT IS " << out_vec[i];
+                ASSERT_EQ(out_vec[i], res_vec[i]);
+                LOG << out_vec[i] << " / " << res_vec[i];
             }
 
-            // ASSERT_EQ((size_t)2, out_vec.size());
         };
 
-    api::RunLocalTests(start_func);
+    // api::RunLocalTests(start_func);
+        api::RunLocalMock(2, 1, start_func);
 }
 
 

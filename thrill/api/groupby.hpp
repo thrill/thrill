@@ -118,6 +118,7 @@ public:
 
     void PushData() override {
         //OMG THIS IS SO HACKY. THIS MUST BE POSSIBLE MORE ELEGANTLY
+        // split sorted files to multiple files for each key
         std::vector<data::File> user_files;
         auto r = sorted_elems_.GetReader();
         if (r.HasNext()) {
@@ -129,8 +130,8 @@ public:
                 {
                     auto w = user_files.back().GetWriter();
                     w(v1);
+                    LOG << "Host " << context_.host_rank() << " added " << v1;
                     inserted = true;
-                    // LOG << "INSERTED " << v1;
 
                     while (inserted && r.HasNext()) {
                         Value v2 = r.template Next<Value>();
@@ -138,10 +139,9 @@ public:
                         inserted = false;
                         if (k2 == k1) {
                             w(v2);
+                            LOG << "Host " << context_.host_rank() << " added " << v2;
                             inserted = true;
-                            // LOG << "INSERTED " << v2;
                         } else {
-                            // LOG << "NEW KEY " << k2;
                             v1 = v2;
                             k1 = k2;
                         }
@@ -159,6 +159,7 @@ public:
         //push data to callback functions
         for (size_t i = 0; i < data_.size(); i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
+                LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
                 func(data_[i]);
             }
         }
@@ -206,6 +207,7 @@ private:
      * Sort and store elements in a file
      */
     void FlushVectorToFile(std::vector<Value> & v) {
+        // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         data::File f;
         {
@@ -228,7 +230,7 @@ private:
 
         LOG << ToString() << " running main op";
 
-        const size_t FIXED_VECTOR_SIZE = 2;
+        const size_t FIXED_VECTOR_SIZE = 99999;
         std::vector<Value> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
@@ -248,14 +250,17 @@ private:
                 incoming.clear();
             }
             // store incoming element
-            incoming.push_back(reader.template Next<Value>());
-            LOG << "RECEIVED KEY " << key_extractor_(incoming.back());
+            auto elem = reader.template Next<Value>();
+            incoming.push_back(elem);
+            LOG << "Host " << context_.host_rank() << " received " << elem << " with key " << key_extractor_(incoming.back());
             ++totalsize;
         }
         FlushVectorToFile(incoming);
 
+        // if there's only one run, store it
         if (files_.size() == 1) {
             sorted_elems_ = files_[0];
+        // otherwise sort all runs using multiway merge
         } else {
             std::vector<std::pair<Iterator, Iterator>> seq;
             seq.reserve(files_.size());
