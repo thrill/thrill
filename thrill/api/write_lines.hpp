@@ -60,11 +60,16 @@ public:
     void PreOp(const ValueType& input) {
         writer_(input);
         size_ += input.size() + 1;
+		stats_total_elements_++;
     }
 
     //! Closes the output file
     void Execute() override {
         writer_.Close();
+
+		STATC(context_.my_rank()) << "NodeType" << "WriteLines"
+								  << "TotalBytes" << size_
+								  << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
         size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
@@ -101,6 +106,9 @@ private:
 
     //! File writer used.
     data::File::Writer writer_;
+
+
+	size_t stats_total_elements_ = 0;
 };
 
 template <typename ValueType, typename Stack>
