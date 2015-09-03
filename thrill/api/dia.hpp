@@ -478,8 +478,39 @@ public:
         const typename FunctionTraits<ReduceFunction>::result_type&
         neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
 
-    //TODO(cn) Doku
-    template <typename KeyExtractor, typename GroupByFunction, typename HashFunction = std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
+    /*!
+     * GroupBy is a DOp, which groups elements of the DIARef by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and arbitrary
+     * results may be emitted as output.
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     * As GroupBy is a DOp, it creates a new DIANode. The DIARef returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIARef consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     *      input param: api::GroupByEmitter with function Emit()
+     */
+    template <typename KeyExtractor,
+              typename GroupByFunction,
+              typename HashFunction =
+                std::hash<typename common::FunctionTraits<KeyExtractor>::result_type> >
     auto GroupBy(const KeyExtractor &key_extractor,
                  const GroupByFunction &reduce_function) const;
 
