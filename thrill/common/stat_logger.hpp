@@ -19,7 +19,14 @@
 namespace thrill {
 namespace common {
 
-class StatLogger {
+static const bool stats_enabled = true;
+
+template <bool Enabled>
+class StatLogger 
+	{ };
+
+template <>
+class StatLogger<true> {
 
 protected:
     //! collector stream
@@ -38,9 +45,9 @@ public:
     StatLogger& operator << (const AnyType& at) {
 		if (elements_ > 0) {
 			if (elements_ % 2 == 0) {
-				oss_ << ", ";
+				oss_ << ",";
 			} else {
-				oss_ << ": ";
+				oss_ << ":";
 			}
 		}
 		elements_++;
@@ -54,11 +61,19 @@ public:
 		oss_ << "}\n";
 		std::cout << oss_.str();
 	};
-
 };
 
+template <>
+class StatLogger<false> {
 
-#define STAT ::thrill::common::StatLogger()
+public:
+	template <typename AnyType>
+	StatLogger& operator << (const AnyType&) {
+		return *this;
+	}
+};
+
+#define STAT ::thrill::common::StatLogger<::thrill::common::stats_enabled>()
 
 
 
