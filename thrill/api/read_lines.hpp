@@ -118,7 +118,7 @@ private:
     {
     public:
 		InputLineIterator(
-			std::vector<FileSizePair> files) : files_(files) { };
+			const std::vector<FileSizePair>& files) : files_(files) { };
 
         static const bool debug = false;
         const size_t read_size = 2 * 1024 * 1024;
@@ -126,7 +126,7 @@ private:
 		//! String, which Next() references to
 		std::string data_;
         //! Input files with size prefixsum.
-        std::vector<FileSizePair> files_; // REVIEW(an): use a const & to the vector
+        const std::vector<FileSizePair>& files_;
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! Byte buffer to create line-std::strings
@@ -153,7 +153,7 @@ private:
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
-            std::vector<FileSizePair> files,
+            const std::vector<FileSizePair>& files,
             Context& ctx)
             : IteratorBase(files) {
 
@@ -291,7 +291,7 @@ private:
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
-            std::vector<FileSizePair> files,
+            const std::vector<FileSizePair>& files,
 			Context& ctx)
             : IteratorBase(files) {
 
@@ -415,9 +415,7 @@ private:
 				return files_[current_file_].second < my_end_;
             }
         }
-
 	private:
-
         //! File handle to files_[current_file_]
         core::SysFile file_;
     };
