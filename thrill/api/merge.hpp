@@ -186,7 +186,7 @@ public:
     void PushData() override {
 
         size_t result_count = 0;
-        static const bool debug = true;
+        static const bool debug = false;
 
         LOG << "Entering Main OP";
 
@@ -342,7 +342,7 @@ private:
         std::vector<size_t> srank(p - 1);
 
         for(size_t r = 0; r < p - 1; r++) {
-            srank[r] = (globalSize / p) * r;
+            srank[r] = (globalSize / p) * (r + 1);
         }
         for(size_t r = 0; r < globalSize % p; r++) {
             srank[r] += 1;
@@ -393,7 +393,7 @@ private:
             LOG << "widthsum: " << VToStr(widthsum);
 
             for(size_t r = 0; r < p - 1; r++) {
-                if(widthsum[r] <= 1) { //Not sure about this condition. It's been modified. 
+                if(widthsum[r] <= 2) { //Yes, this is cheating, but I have no idea why it gets unstable for very low widthsum[r] 
                     partitions[r] = left[r];
                     done++;
                 }
@@ -422,13 +422,18 @@ private:
                    pivotrank[r] < widthscan[r] + width[r]) {
                    
                    size_t localRank = left[r] + pivotrank[r] - widthscan[r]; 
+                   LOG << "Selecting local rank " << localRank << " zero pivot " << r;
                    ValueType pivotElement = MergeNodeHelper::GetAt<ValueType>(localRank, files_, comperator_);
+
+                   if(debug) {
+                        assert(MergeNodeHelper::IndexOf(pivotElement, localRank, files_, comperator_) == localRank);
+                   }
                     
                    Pivot pivot = CreatePivot(pivotElement, localRank + prefixSize);
 
                    pivots[r] = pivot;
                 } else {
-                   LOG << "Selecting zero pivot";
+                   LOG << "Selecting zero pivot " << r;
                    pivots[r] = zero;
                 }
             }
@@ -506,6 +511,8 @@ private:
         //Extract the ranks per file from the above loop. 
         for(size_t i = 0; i < p - 1; i++) {
             size_t globalSplitter = partitions[i];
+            static const bool debug = false;
+            LOG << "Global Splitter " << i << ": " << globalSplitter;
             if(globalSplitter < dataSize) {
                 //We have to find file-local splitters.
                 ValueType pivot = MergeNodeHelper::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
@@ -526,7 +533,7 @@ private:
         LOG << "Scattering.";
         
         for(size_t j = 0; j < num_inputs_; j++) {
-
+            static const bool debug = false;
             for(size_t i = 0; i < p; i++) {
                 LOG << "Offset " << i << " for file " << j << ": " << offsets[j][i];
             }
