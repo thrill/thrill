@@ -144,7 +144,6 @@ private:
               num_workers_(num_workers) {
 
             input_size_ = files[NumFiles()].second;
-
             // Go to start of 'local part'.
             auto my_start_and_end = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
 
@@ -197,27 +196,23 @@ private:
                 }
                 assert(*(current_ - 1) == '\n' || !buffer_size);
             }
+			data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        std::string Next() {
-            std::string ret;
+        const std::string& Next() {
+			data_.clear();
             while (true) {
                 for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
-                        size_t strlen = it - current_;
                         current_ = it + 1;
-                        LOG << "returning string";
-						if (ret.size()) {
-							return ret.append(it - strlen, it);
-						} else {
-							return std::string(it - strlen, it);
-						}
-                    }
+						return data_;
+                    } else {
+						data_.push_back(*it);
+					}
                 }
-                ret.append(current_, buffer_.end());
                 current_ = buffer_.begin();
                 ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
                 offset_ += buffer_.size();
@@ -238,9 +233,8 @@ private:
                         current_ = buffer_.begin() + files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
-                    if (ret.length()) {
-                        LOG << "end - returning string of length" << ret.length();
-                        return ret;
+                    if (data_.length()) {
+                        return data_;
                     }
                 }
             }
@@ -286,6 +280,8 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
+		//! String, which Next() references to
+		std::string data_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -445,7 +441,7 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-
+		//! String, which Next() references to
 		std::string data_;
     };
 };
