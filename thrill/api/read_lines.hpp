@@ -118,13 +118,14 @@ private:
     class InputLineIterator
     {
     public:
-		InputLineIterator(
-			const std::vector<FileSizePair>& files) : files_(files) { };
+		InputLineIterator(const std::vector<FileSizePair>& files, Context& ctx)
+			: files_(files), context_(ctx) { };
 
-        static const bool debug = true;
+        static const bool debug = false;
 
+	protected:
 		//! Block read size
-        const size_t read_size = 2 * 1024 * 1024;
+        const size_t read_size = data::default_block_size;
 		//! String, which Next() references to
 		std::string data_;
         //! Input files with size prefixsum.
@@ -137,34 +138,40 @@ private:
 		unsigned char* current_;
         //! (exclusive) end of local block
         size_t my_end_;
+		//! Reference to context
+		Context& context_;
+
+		size_t stats_total_bytes = 0;
+		size_t stats_total_reads = 0;
+		size_t stats_total_elements = 0;
 
 		bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
 			ssize_t bytes = file.read(buffer.data(), read_size);
 			buffer.set_size(bytes);
 			current_ = buffer.begin();
+			stats_total_bytes += bytes;
+			stats_total_reads++;
 			return bytes > 0;
 		}
 
-        virtual ~InputLineIterator() { }
+        ~InputLineIterator() {
+			STATC(context_.my_rank()) << "NodeType" << "ReadLines"
+									  << "TotalBytes" << stats_total_bytes
+									  << "TotalReads" <<	stats_total_reads 
+									  << "TotalElements" << stats_total_elements;
+		}
     };
 
     //! InputLineIterator gives you access to lines of a file
     class InputLineIteratorUncompressed : public InputLineIterator
     {
     public:
-        using IteratorBase = InputLineIterator;
-		using IteratorBase::buffer_;
-		using IteratorBase::current_;
-		using IteratorBase::my_end_;
-		using IteratorBase::current_file_;
-		using IteratorBase::files_;
-		using IteratorBase::data_;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
             const std::vector<FileSizePair>& files,
             Context& ctx)
-            : IteratorBase(files) {
+            : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
             size_t my_start;
@@ -186,7 +193,7 @@ private:
             // find offset in current file:
             // offset = start - sum of previous file sizes
             offset_ = file_.lseek(my_start - files_[current_file_].second);
-            buffer_.Reserve(IteratorBase::read_size);
+            buffer_.Reserve(read_size);
 			ReadBlock(file_, buffer_);
 
             if (offset_ != 0) {
@@ -217,6 +224,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
+			stats_total_elements++;
 			data_.clear();
             while (true) {
 				while (current_ < buffer_.end()) {
@@ -227,7 +235,6 @@ private:
 						data_.push_back(*current_++);
 					}
                 }
-                current_ = buffer_.begin();
 				if (!ReadBlock(file_, buffer_)) {
                     file_.close();
                     current_file_++;
@@ -273,23 +280,16 @@ private:
     class InputLineIteratorCompressed : public InputLineIterator
     {
     public:
-        using IteratorBase = InputLineIterator;
-		using IteratorBase::current_file_;
-		using IteratorBase::files_;
-		using IteratorBase::buffer_;
-		using IteratorBase::current_;
-		using IteratorBase::my_end_;
-		using IteratorBase::data_;
-
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
             const std::vector<FileSizePair>& files,
 			Context& ctx)
-            : IteratorBase(files) {
+            : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
             size_t my_start;
-            std::tie(my_start, my_end_) = common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
+            std::tie(my_start, my_end_) = 
+				common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -327,6 +327,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
+			stats_total_elements++;
 			data_.clear();
             while (true) {
 				while (current_ < buffer_.end()) {
