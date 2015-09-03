@@ -147,7 +147,7 @@ private:
             }
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
-                c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
@@ -156,9 +156,9 @@ private:
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = c_file_.lseek(my_start - files_[current_file_].second);
+            offset_ = file_.lseek(my_start - files_[current_file_].second);
             buffer_.Reserve(Base::read_size);
-            ssize_t buffer_size = c_file_.read(buffer_.data(), Base::read_size);
+            ssize_t buffer_size = file_.read(buffer_.data(), Base::read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
 
@@ -178,7 +178,7 @@ private:
                     if (!found_n) {
                         current_ = buffer_.begin();
                         offset_ += buffer_.size();
-                        buffer_size = c_file_.read(buffer_.data(), Base::read_size);
+                        buffer_size = file_.read(buffer_.data(), Base::read_size);
                         // EOF = newline per definition
                         if (!buffer_size) {
                             found_n = true;
@@ -206,19 +206,19 @@ private:
 					}
                 }
                 current_ = buffer_.begin();
-                ssize_t buffer_size = c_file_.read(buffer_.data(), Base::read_size);
+                ssize_t buffer_size = file_.read(buffer_.data(), Base::read_size);
                 offset_ += buffer_.size();
                 if (buffer_size) {
                     buffer_.set_size(buffer_size);
                 }
                 else {
-                    c_file_.close();
+                    file_.close();
                     current_file_++;
                     offset_ = 0;
 
                     if (current_file_ < NumFiles()) {
-                        c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
-                        ssize_t buffer_size = c_file_.read(buffer_.data(), Base::read_size);
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ssize_t buffer_size = file_.read(buffer_.data(), Base::read_size);
                         buffer_.set_size(buffer_size);
                     }
                     else {
@@ -257,8 +257,8 @@ private:
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! File handle to files_[current_file_]
-		core::SysFile c_file_;
-        //! Offset of current block in c_file_.
+		core::SysFile file_;
+        //! Offset of current block in file_.
         size_t offset_ = 0;
         //! Start of next element in current buffer.
 		unsigned char* current_;
@@ -302,7 +302,7 @@ private:
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
-                c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
@@ -313,7 +313,7 @@ private:
                 return;
             }
             buffer_.Reserve(read_size);
-            ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
+            ssize_t buffer_size = file_.read(buffer_.data(), read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
 			Base::data_.reserve(4 * 1024);
@@ -334,18 +334,18 @@ private:
 					}
                 }
                 current_ = buffer_.begin();
-                ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
+                ssize_t buffer_size = file_.read(buffer_.data(), read_size);
                 if (buffer_size) {
                     buffer_.set_size(buffer_size);
                 }
                 else {
                     LOG << "Opening new file!";
-                    c_file_.close();
+                    file_.close();
                     current_file_++;
 
                     if (current_file_ < NumFiles()) {
-                        c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
-                        ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ssize_t buffer_size = file_.read(buffer_.data(), read_size);
                         buffer_.set_size(buffer_size);
                     }
                     else {
@@ -372,7 +372,7 @@ private:
             if (current_ >= buffer_.end() || (current_ + 1 >= buffer_.end() && *current_ == '\n')) {
                 LOG << "New buffer in HasNext()";
                 current_ = buffer_.begin();
-                ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
+                ssize_t buffer_size = file_.read(buffer_.data(), read_size);
                 if (buffer_size > 1 || (buffer_size == 1 && buffer_[0] != '\n')) {
                     buffer_.set_size(buffer_size);
                     return true;
@@ -383,12 +383,12 @@ private:
                     if (current_file_ >= NumFiles() - 1) {
                         return false;
                     }
-                    c_file_.close();
+                    file_.close();
                     // if (this worker reads at least one more file)
                     if (my_end_ > files_[current_file_ + 1].second) {
                         current_file_++;
-                        c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
-                        buffer_.set_size(c_file_.read(buffer_.data(), read_size));
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        buffer_.set_size(file_.read(buffer_.data(), read_size));
                         return true;
                     }
                     else {
@@ -407,7 +407,7 @@ private:
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! File handle to files_[current_file_]
-        core::SysFile c_file_;
+        core::SysFile file_;
         //! Start of next element in current buffer.
 		unsigned char* current_;
         //! (exclusive) end of local block
