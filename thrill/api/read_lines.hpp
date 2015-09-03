@@ -141,24 +141,24 @@ private:
 		//! Reference to context
 		Context& context_;
 
-		size_t stats_total_bytes = 0;
-		size_t stats_total_reads = 0;
-		size_t stats_total_elements = 0;
+		size_t stats_total_bytes_ = 0;
+		size_t stats_total_reads_ = 0;
+		size_t stats_total_elements_ = 0;
 
 		bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
 			ssize_t bytes = file.read(buffer.data(), read_size);
 			buffer.set_size(bytes);
 			current_ = buffer.begin();
-			stats_total_bytes += bytes;
-			stats_total_reads++;
+			stats_total_bytes_ += bytes;
+			stats_total_reads_++;
 			return bytes > 0;
 		}
 
         ~InputLineIterator() {
 			STATC(context_.my_rank()) << "NodeType" << "ReadLines"
-									  << "TotalBytes" << stats_total_bytes
-									  << "TotalReads" <<	stats_total_reads 
-									  << "TotalLines" << stats_total_elements;
+									  << "TotalBytes" << stats_total_bytes_
+									  << "TotalReads" <<	stats_total_reads_ 
+									  << "TotalLines" << stats_total_elements_;
 		}
     };
 
@@ -224,7 +224,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
-			stats_total_elements++;
+			stats_total_elements_++;
 			data_.clear();
             while (true) {
 				while (current_ < buffer_.end()) {
@@ -327,7 +327,7 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
-			stats_total_elements++;
+			stats_total_elements_++;
 			data_.clear();
             while (true) {
 				while (current_ < buffer_.end()) {
