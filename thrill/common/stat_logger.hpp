@@ -16,6 +16,8 @@
 
 #include <thrill/common/logger.hpp>
 
+#include <type_traits>
+
 namespace thrill {
 namespace common {
 
@@ -40,6 +42,35 @@ public:
 		oss_ << "{";
 	};
 
+	//! output and escape std::string
+	StatLogger& operator << (const std::string& str) {
+		if (elements_ > 0) {
+			if (elements_ % 2 == 0) {
+				oss_ << ",";
+			} else {
+				oss_ << ":";
+			}
+		}
+		oss_ << "\"";
+		//from: http://stackoverflow.com/a/7725289
+		for (auto iter = str.begin(); iter != str.end(); iter++) {
+			switch (*iter) {
+			case '\\': oss_ << "\\\\"; break;
+			case '"': oss_ << "\\\""; break;
+			case '/': oss_ << "\\/"; break;
+			case '\b': oss_ << "\\b"; break;
+			case '\f': oss_ << "\\f"; break;
+			case '\n': oss_ << "\\n"; break;
+			case '\r': oss_ << "\\r"; break;
+			case '\t': oss_ << "\\t"; break;
+			default: oss_ << *iter; break;
+			}
+		}
+		elements_++;
+		oss_ << "\"";
+		return *this;
+	}
+
     //! output any type, including io manipulators
     template <typename AnyType>
     StatLogger& operator << (const AnyType& at) {
@@ -51,9 +82,21 @@ public:
 			}
 		}
 		elements_++;
-        oss_ << "\"" << at << "\"";
+		if (std::is_integral<AnyType>::value || std::is_floating_point<AnyType>::value) {
+			oss_ << at;
+		} else if (std::is_same<AnyType, bool>::value) {
+			if (at) {
+				oss_ << "true";
+			} else {
+				oss_ << "false";
+			}
+		} else {
+			oss_ << "\"" << at << "\"";
+		}
         return *this;
     }
+
+	
 
     //! destructor: output a } and a newline
     ~StatLogger() {
