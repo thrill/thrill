@@ -72,6 +72,8 @@ public:
         for (size_t i = local_begin; i < local_end; i++) {
             this->PushItem(generator_function_(i));
         }
+
+		STATC(context_.my_rank()) << "NodeType" << "Generate";
     }
 
     void Dispose() final { }

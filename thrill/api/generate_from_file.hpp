@@ -17,6 +17,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
 
 #include <fstream>
 #include <random>
@@ -102,6 +103,8 @@ public:
             size_t rand_element = distribution(generator);
             this->PushItem(elements_[rand_element]);
         }
+		
+		STATC(context_.my_rank()) << "NodeType" << "GenerateFromFile";
     }
 
     void Dispose() final { }
