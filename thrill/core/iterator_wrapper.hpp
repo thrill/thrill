@@ -1,3 +1,15 @@
+/*******************************************************************************
+ * thrill/core/iterator_wrapper.hpp
+ *
+ * Part of Project Thrill.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
+#pragma once
+#ifndef THRILL_CORE_ITERATOR_WRAPPER_HEADER
+#define THRILL_CORE_ITERATOR_WRAPPER_HEADER
 /******************************************************************************
  * src/SortAlgo.h
  *
@@ -30,8 +42,8 @@
 #ifndef ITERATOR_WRAPPER_HEADER
 #define ITERATOR_WRAPPER_HEADER
 
-#include <thrill/data/file.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/data/file.hpp>
 
 #include <iomanip>
 #include <vector>
@@ -44,25 +56,24 @@ static const bool debug = false;
 template <typename ArrayItem>
 class StxxlFileOutputWrapper
 {
-using File = typename data::File;
-using Writer = typename File::Writer;
+    using File = typename data::File;
+    using Writer = typename File::Writer;
 
 protected:
     std::shared_ptr<Writer> writer_;
 
 public:
-    StxxlFileOutputWrapper(std::shared_ptr<Writer> writer) : writer_(writer) {}
+    StxxlFileOutputWrapper(std::shared_ptr<Writer> writer) : writer_(writer) { }
 
-    void operator() (const ArrayItem& a) const {
+    void operator () (const ArrayItem& a) const {
         (*writer_)(a);
     }
 };
 
-
 template <typename ArrayItem>
 struct IterStats {
-    bool has_elem_ = false;
-    bool is_valid_ = true;
+    bool      has_elem_ = false;
+    bool      is_valid_ = true;
     ArrayItem item_;
 };
 
@@ -71,13 +82,11 @@ struct IterStats {
 
 // iterator based on http://zotu.blogspot.de/2010/01/creating-random-access-iterator.html
 
-
 template <typename ArrayItem>
 class StxxlFileWrapper : public std::iterator<std::random_access_iterator_tag, ArrayItem>
 {
-using File = typename data::File;
-using Reader = typename File::Reader;
-
+    using File = typename data::File;
+    using Reader = typename File::Reader;
 
 protected:
     File* file_;
@@ -85,7 +94,7 @@ protected:
     // Reader* reader_;
     std::size_t pos_;
 
-    std::shared_ptr<IterStats<ArrayItem>> stats_;
+    std::shared_ptr<IterStats<ArrayItem> > stats_;
 
 public:
     typedef std::iterator<std::random_access_iterator_tag, ArrayItem> base_type;
@@ -119,19 +128,20 @@ public:
     void GetItemOrInvalidate() const {
         if (reader_->HasNext()) {
             GetItem();
-        } else {
+        }
+        else {
             Invalidate();
         }
     }
 
-    StxxlFileWrapper() : file_(), pos_(0) {}
+    StxxlFileWrapper() : file_(), pos_(0) { }
 
-    StxxlFileWrapper(File* file, std::shared_ptr<Reader> reader, std::size_t pos, bool valid=true)
+    StxxlFileWrapper(File* file, std::shared_ptr<Reader> reader, std::size_t pos, bool valid = true)
     // StxxlFileWrapper(File* file, Reader* reader, std::size_t pos, bool valid=true)
-                     : file_(file),
-                       reader_(reader),
-                       pos_(pos),
-                       stats_(std::make_shared<IterStats<ArrayItem>>(IterStats<ArrayItem>())) {
+        : file_(file),
+          reader_(reader),
+          pos_(pos),
+          stats_(std::make_shared<IterStats<ArrayItem> >(IterStats<ArrayItem>())) {
 
         stats_->is_valid_ = valid;
 
@@ -146,7 +156,7 @@ public:
     }
 
     // StxxlFileWrapper(const StxxlFileWrapper& r) {}
-    StxxlFileWrapper& operator=(const StxxlFileWrapper& r) {
+    StxxlFileWrapper& operator = (const StxxlFileWrapper& r) {
         file_ = r.file_;
         reader_ = r.reader_;
         stats_ = r.stats_;
@@ -157,8 +167,7 @@ public:
         return *this;
     }
 
-
-    StxxlFileWrapper& operator++() {
+    StxxlFileWrapper& operator ++ () {
         GetItemOrInvalidate();
         ++pos_;
 
@@ -180,7 +189,7 @@ public:
     //     return *this;
     // }
 
-    StxxlFileWrapper operator++(int) {
+    StxxlFileWrapper operator ++ (int) {
         auto r = StxxlFileWrapper(file_, reader_, ++pos_, stats_.is_valid_);
         LOG << "    Operator++ (postfix)";
         LOG << "        " << std::left << std::setw(7) << "pos: " << r.pos_;
@@ -191,9 +200,9 @@ public:
 
     // StxxlFileWrapper operator--(int) {}
 
-    StxxlFileWrapper operator+(const difference_type& n) const {
-        auto w = StxxlFileWrapper(file_, reader_, pos_+n, stats_->is_valid_);
-        for (difference_type t = 0; t < n-1; ++t){
+    StxxlFileWrapper operator + (const difference_type& n) const {
+        auto w = StxxlFileWrapper(file_, reader_, pos_ + n, stats_->is_valid_);
+        for (difference_type t = 0; t < n - 1; ++t) {
             w.GetItemOrInvalidate();
         }
 
@@ -204,9 +213,9 @@ public:
         return w;
     }
 
-    StxxlFileWrapper& operator+=(const difference_type& n) {
+    StxxlFileWrapper& operator += (const difference_type& n) {
         pos_ += n;
-        for (difference_type t = 0; t < n; ++t){
+        for (difference_type t = 0; t < n; ++t) {
             GetItemOrInvalidate();
         }
 
@@ -228,7 +237,7 @@ public:
 
     // StxxlFileWrapper& operator-=(const difference_type& n) {}
 
-    reference operator*() const {
+    reference operator * () const {
         LOG << "-----------------------------------------";
         LOG << "Trying to return " << stats_->item_ << " from " << pos_ << " " << file_->ToString();
         LOG << "-----------------------------------------";
@@ -247,7 +256,7 @@ public:
     // pointer operator->() const {
     // reference operator[](const difference_type& n) const {}
 
-    bool operator==(const StxxlFileWrapper& r) {
+    bool operator == (const StxxlFileWrapper& r) {
         LOG << "    Operator== ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
@@ -257,14 +266,14 @@ public:
         return (file_ == r.file_) && (pos_ == r.pos_);
     }
 
-    bool operator!=(const StxxlFileWrapper& r) {
+    bool operator != (const StxxlFileWrapper& r) {
         LOG << "    Operator!= ";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r.pos_;
         LOG << "        " << std::left << std::setw(7) << "file: " << file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "file2: " << r.file_->ToString();
         LOG << "        " << std::left << std::setw(7) << "result: " << std::boolalpha << ((file_ != r.file_) || (pos_ != r.pos_));
-        return (file_ != r.file_) || (pos_ != r.pos_) ;
+        return (file_ != r.file_) || (pos_ != r.pos_);
     }
 
     // bool operator<(const StxxlFileWrapper& r)
@@ -282,7 +291,7 @@ public:
     // difference_type operator+(const StxxlFileWrapper& r2) const
     // { return (pos_ + r2.pos_); }
 
-    difference_type operator-(const StxxlFileWrapper& r2) const {
+    difference_type operator - (const StxxlFileWrapper& r2) const {
         LOG << "    Operator-  StxxlFileWrapper";
         LOG << "        " << std::left << std::setw(7) << "pos: " << pos_;
         LOG << "        " << std::left << std::setw(7) << "pos2: " << r2.pos_;
@@ -290,8 +299,6 @@ public:
         return (pos_ - r2.pos_);
     }
 };
-
-
 
 // ****************************************************************************
 // *** Iterator Adapter for vectors
@@ -304,7 +311,7 @@ class StxxlVectorWrapper : public std::iterator<std::random_access_iterator_tag,
 protected:
     // SortArray*  m_array;
     std::vector<ArrayItem>* m_array;
-    size_t      m_pos;
+    size_t m_pos;
 
 public:
     typedef std::iterator<std::random_access_iterator_tag, ArrayItem> base_type;
@@ -316,75 +323,76 @@ public:
     typedef typename base_type::reference reference;
     typedef typename base_type::pointer pointer;
 
-    StxxlVectorWrapper() : m_array(NULL), m_pos(0) {}
+    StxxlVectorWrapper() : m_array(nullptr), m_pos(0) { }
 
-    StxxlVectorWrapper(std::vector<ArrayItem>* A, size_t p) : m_array(A), m_pos(p) {}
+    StxxlVectorWrapper(std::vector<ArrayItem>* A, size_t p) : m_array(A), m_pos(p) { }
 
-    StxxlVectorWrapper(const StxxlVectorWrapper& r) : m_array(r.m_array), m_pos(r.m_pos) {}
+    StxxlVectorWrapper(const StxxlVectorWrapper& r) : m_array(r.m_array), m_pos(r.m_pos) { }
 
-    StxxlVectorWrapper& operator=(const StxxlVectorWrapper& r)
+    StxxlVectorWrapper& operator = (const StxxlVectorWrapper& r)
     { m_array = r.m_array, m_pos = r.m_pos; return *this; }
 
-    StxxlVectorWrapper& operator++()
+    StxxlVectorWrapper& operator ++ ()
     { ++m_pos; return *this; }
 
-    StxxlVectorWrapper& operator--()
+    StxxlVectorWrapper& operator -- ()
     { --m_pos; return *this; }
 
-    StxxlVectorWrapper operator++(int)
+    StxxlVectorWrapper operator ++ (int)
     { return StxxlVectorWrapper(m_array, m_pos++); }
 
-    StxxlVectorWrapper operator--(int)
+    StxxlVectorWrapper operator -- (int)
     { return StxxlVectorWrapper(m_array, m_pos--); }
 
-    StxxlVectorWrapper operator+(const difference_type& n) const
+    StxxlVectorWrapper operator + (const difference_type& n) const
     { return StxxlVectorWrapper(m_array, m_pos + n); }
 
-    StxxlVectorWrapper& operator+=(const difference_type& n)
+    StxxlVectorWrapper& operator += (const difference_type& n)
     { m_pos += n; return *this; }
 
-    StxxlVectorWrapper operator-(const difference_type& n) const
+    StxxlVectorWrapper operator - (const difference_type& n) const
     { return StxxlVectorWrapper(m_array, m_pos - n); }
 
-    StxxlVectorWrapper& operator-=(const difference_type& n)
+    StxxlVectorWrapper& operator -= (const difference_type& n)
     { m_pos -= n; return *this; }
 
-    reference operator*() const
+    reference operator * () const
     { return m_array->at(m_pos); }
 
-    pointer operator->() const
+    pointer operator -> () const
     { return &(m_array->at(m_pos)); }
 
-    reference operator[](const difference_type& n) const
+    reference operator [] (const difference_type& n) const
     { return m_array->at(n); }
 
-    bool operator==(const StxxlVectorWrapper& r)
+    bool operator == (const StxxlVectorWrapper& r)
     { return (m_array == r.m_array) && (m_pos == r.m_pos); }
 
-    bool operator!=(const StxxlVectorWrapper& r)
+    bool operator != (const StxxlVectorWrapper& r)
     { return (m_array != r.m_array) || (m_pos != r.m_pos); }
 
-    bool operator<(const StxxlVectorWrapper& r)
+    bool operator < (const StxxlVectorWrapper& r)
     { return (m_array == r.m_array ? (m_pos < r.m_pos) : (m_array < r.m_array)); }
 
-    bool operator>(const StxxlVectorWrapper& r)
+    bool operator > (const StxxlVectorWrapper& r)
     { return (m_array == r.m_array ? (m_pos > r.m_pos) : (m_array > r.m_array)); }
 
-    bool operator<=(const StxxlVectorWrapper& r)
+    bool operator <= (const StxxlVectorWrapper& r)
     { return (m_array == r.m_array ? (m_pos <= r.m_pos) : (m_array <= r.m_array)); }
 
-    bool operator>=(const StxxlVectorWrapper& r)
+    bool operator >= (const StxxlVectorWrapper& r)
     { return (m_array == r.m_array ? (m_pos >= r.m_pos) : (m_array >= r.m_array)); }
 
-    difference_type operator+(const StxxlVectorWrapper& r2) const
+    difference_type operator + (const StxxlVectorWrapper& r2) const
     { return (m_pos + r2.m_pos); }
 
-    difference_type operator-(const StxxlVectorWrapper& r2) const
+    difference_type operator - (const StxxlVectorWrapper& r2) const
     { return (m_pos - r2.m_pos); }
 };
-
-
 } //end namespace core
+#endif // !THRILL_CORE_ITERATOR_WRAPPER_HEADER
 } //end namespace thrill
 
 #endif // ITERATOR_WRAPPER_HEADER
+
+/******************************************************************************/
