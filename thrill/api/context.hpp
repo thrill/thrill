@@ -16,6 +16,7 @@
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/channel.hpp>
 #include <thrill/data/file.hpp>

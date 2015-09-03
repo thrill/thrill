@@ -14,6 +14,7 @@
 #ifndef THRILL_COMMON_STAT_LOGGER_HEADER
 #define THRILL_COMMON_STAT_LOGGER_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <type_traits>
@@ -38,9 +39,14 @@ protected:
 	size_t elements_ = 0;
 
 public:
+	StatLogger(size_t rank) {		
+		oss_ << "{\"WorkerID\":" << rank;
+		elements_ = 2;
+	};
+	
 	StatLogger() {
 		oss_ << "{";
-	};
+	}
 
 	//! output and escape std::string
 	StatLogger& operator << (const std::string& str) {
@@ -117,6 +123,7 @@ public:
 };
 
 #define STAT ::thrill::common::StatLogger<::thrill::common::stats_enabled>()
+#define STATC(rank) ::thrill::common::StatLogger<::thrill::common::stats_enabled>(rank)
 
 
 
