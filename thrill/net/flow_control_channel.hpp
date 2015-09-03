@@ -43,7 +43,7 @@ class FlowControlChannel
 {
 protected:
 
-    static const bool self_verify = false;
+    static const bool self_verify = true;
 
     /**
      * The group associated with this channel.

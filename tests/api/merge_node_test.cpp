@@ -51,6 +51,24 @@ void CreateTrivialFiles(std::vector<data::File> &files, size_t size, size_t coun
     }
 }
 
+void CreateRandomSizeFiles(std::vector<data::File> &files, size_t maxSize, size_t count, data::BlockPool &block_pool_) {
+    files.reserve(count);
+
+    std::mt19937 gen(0);
+
+    for(size_t i = 0; i < count; i++) {
+        files.emplace_back(block_pool_);
+        data::File::Writer fw = files[i].GetWriter(53);
+
+        size_t size = gen() % maxSize;
+        for (size_t j = 0; j < size; j++) {
+            fw(j);
+        }
+
+        fw.Close();
+    }
+}
+
 TEST_F(MergeHelpers, MultiIndexOf) {
     const size_t size = 500;
     const size_t count = 10;
@@ -85,38 +103,97 @@ TEST_F(MergeHelpers, MultiGetAtIndex) {
         ASSERT_EQ(idx / count, val);
     }
 }
+/*
+template <typename stackA, typename stackB>
+void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef<size_t, stackB> merge_input2, size_t expected_size, int num_workers) {
+        // merge
+        auto merge_result = merge_input1.Merge(
+            merge_input2, std::less<size_t>());
+
+        // check if order was kept while merging. 
+        int count = 0;
+        auto res = merge_result.Map([&count] (size_t in) { 
+                count++; 
+                return in; 
+        }).AllGather();
+
+        ASSERT_EQ(expected_size, res.size());
+
+        for (size_t i = 0; i != res.size() - 1; ++i) {
+            ASSERT_TRUE(res[i] < res[i + 1]);
+        }
+
+        // check if balancing condition was met
+        ASSERT_TRUE(abs((int)res.size() / num_workers - count) < 10);
+}
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {
 
-    const size_t test_size = 500;
+    const size_t test_size = 50;
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
 
-            // even numbers in 0..998 (evenly distributed to workers)
+            // even numbers in 0..98 (evenly distributed to workers)
             auto merge_input1 = Generate(
                 ctx,
                 [](size_t index) { return index * 2; },
                 test_size);
 
-            // odd numbers in 1..999
+            // odd numbers in 1..99
             auto merge_input2 = merge_input1.Map(
                 [](size_t i) { return i + 1; } );
 
-            // merge
-            auto merge_result = merge_input1.Merge(
-                merge_input2, std::less<size_t>());
-
-            // check if order was kept while merging. 
-            auto res = merge_result.AllGather();
-
-            ASSERT_EQ(test_size * 2, res.size());
-
-            for (size_t i = 0; i != res.size() - 1; ++i) {
-                ASSERT_TRUE(res[i] < res[i + 1]);
-            }
+            DoMergeAndCheckResult(merge_input1, merge_input2, test_size * 2, ctx.num_workers());
         };
 
     thrill::api::RunLocalTests(start_func);
 }
 
+TEST(MergeNode, TwoImbalancedIntegerArrays) {
+
+    const size_t test_size = 50;
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // numbers in 0..50 (evenly distributed to workers)
+            auto merge_input1 = Generate(
+                ctx,
+                [](size_t index) { return index ; },
+                test_size);
+
+            // numbers in 100..150
+            auto merge_input2 = merge_input1.Map(
+                [](size_t i) { return i + 100; } );
+
+            DoMergeAndCheckResult(merge_input1, merge_input2, test_size * 2, ctx.num_workers());
+        };
+
+    thrill::api::RunLocalTests(start_func);
+}
+
+TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
+
+    const size_t test_size = 50;
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+
+            // numbers in 0..50 (evenly distributed to workers)
+            auto merge_input1 = Generate(
+                ctx,
+                [](size_t index) { return index ; },
+                test_size);
+
+            // numbers in 10..110
+            auto merge_input2 = Generate(
+                ctx,
+                [](size_t index) { return index + 10; },
+                test_size * 2);
+
+            DoMergeAndCheckResult(merge_input1, merge_input2, test_size * 3, ctx.num_workers());
+        };
+
+    thrill::api::RunLocalTests(start_func);
+}*/
