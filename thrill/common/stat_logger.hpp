@@ -17,9 +17,9 @@
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <iostream>
 #include <string>
 #include <type_traits>
-#include <iostream>
 
 namespace thrill {
 namespace common {
