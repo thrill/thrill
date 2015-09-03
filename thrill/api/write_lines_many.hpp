@@ -45,10 +45,10 @@ public:
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
           file_(core::SysFile::OpenForWrite(core::make_path(
-                                                  out_pathbase_,
-                                                  context_.my_rank(),
-                                                  0))),
-        target_file_size_(target_file_size)
+                                                out_pathbase_,
+                                                context_.my_rank(),
+                                                0))),
+          target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
 
@@ -68,12 +68,12 @@ public:
     }
 
     void PreOp(std::string input) {
-		stats_total_elements_++;
+        stats_total_elements_++;
 
         if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
                             >= max_buffer_size_)) {
-			stats_total_writes_++;
-			stats_total_bytes_ += current_buffer_size_;
+            stats_total_writes_++;
+            stats_total_bytes_ += current_buffer_size_;
             file_.write(write_buffer_.data(), current_buffer_size_);
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
@@ -90,8 +90,8 @@ public:
             // String is too long to fit into buffer, write directly, add '\n' to
             // start of next buffer.
             if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
-				stats_total_writes_++;
-				stats_total_bytes_ += input.size();
+                stats_total_writes_++;
+                stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
                 file_.write(input.data(), input.size());
                 current_buffer_size_ = 1;
@@ -108,16 +108,16 @@ public:
     //! Closes the output file, write last buffer
     void Execute() final {
         sLOG << "closing file";
-		stats_total_writes_++;
-		stats_total_bytes_ += current_buffer_size_;
+        stats_total_writes_++;
+        stats_total_bytes_ += current_buffer_size_;
         file_.write(write_buffer_.data(), current_buffer_size_);
         file_.close();
 
-		STATC(context_.my_rank()) << "NodeType" << "WriteLinesMany"
-								  << "TotalBytes" << stats_total_bytes_
-								  << "TotalLines" << stats_total_elements_
-								  << "TotalWrites" << stats_total_writes_
-								  << "TotalFiles" << out_serial_;
+        STATC(context_.my_rank()) << "NodeType" << "WriteLinesMany"
+                                  << "TotalBytes" << stats_total_bytes_
+                                  << "TotalLines" << stats_total_elements_
+                                  << "TotalWrites" << stats_total_writes_
+                                  << "TotalFiles" << out_serial_;
     }
 
     void Dispose() final { }
@@ -147,9 +147,9 @@ private:
     //! Targetl file size in bytes
     size_t target_file_size_;
 
-	size_t stats_total_bytes_ = 0;
-	size_t stats_total_elements_ = 0;
-	size_t stats_total_writes_ = 0;
+    size_t stats_total_bytes_ = 0;
+    size_t stats_total_elements_ = 0;
+    size_t stats_total_writes_ = 0;
 };
 
 template <typename ValueType, typename Stack>
