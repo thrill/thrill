@@ -76,7 +76,7 @@ public:
     void PushData() final {
         if (contains_compressed_file_) {
             InputLineIteratorCompressed it = InputLineIteratorCompressed(
-                filesize_prefix_, context_.my_rank(), context_.num_workers());
+                filesize_prefix_, context_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -85,7 +85,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
-                filesize_prefix_, context_.my_rank(), context_.num_workers());
+                filesize_prefix_, context_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -140,16 +140,13 @@ private:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
             std::vector<FileSizePair> files,
-            size_t my_id,
-            size_t num_workers)
-            : files_(files),
-			  my_id_(my_id),
-              num_workers_(num_workers) {
+            Context& ctx)
+            : files_(files) {
 
             input_size_ = files[NumFiles()].second;
             // Go to start of 'local part'.
             size_t my_start;
-            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
+            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, ctx.num_workers(), ctx.my_rank());
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -275,10 +272,6 @@ private:
         size_t my_end_;
         //! Byte buffer to create line-std::strings
         net::BufferBuilder buffer_;
-        //! Worker ID
-        size_t my_id_;
-        //! total number of workers
-        size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
     };
@@ -292,17 +285,14 @@ private:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
             std::vector<FileSizePair> files,
-            size_t my_id,
-            size_t num_workers)
-            : files_(files),
-              my_id_(my_id),
-              num_workers_(num_workers) {
+			Context& ctx)
+            : files_(files) {
 
             input_size_ = files[NumFiles()].second;
 
             // Go to start of 'local part'.
             size_t my_start;
-            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, num_workers_, my_id_);
+            std::tie(my_start, my_end_) = common::CalculateLocalRange(input_size_, ctx.num_workers(), ctx.my_rank());
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
@@ -434,10 +424,6 @@ private:
         size_t my_end_;
         //! Byte buffer to create line-std::strings
         net::BufferBuilder buffer_;
-        //! Worker ID
-        size_t my_id_;
-        //! total number of workers
-        size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
     };
