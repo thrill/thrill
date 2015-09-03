@@ -22,7 +22,6 @@
 #include <algorithm>
 
 #include <thrill/common/logger.hpp>
-#include <thrill/core/stxxl_merge.hpp>
 #include <thrill/core/stxxl_losertree.hpp>
 
 namespace stxxl {
