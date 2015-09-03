@@ -65,7 +65,7 @@ size_t WordCountBasic(Context& ctx) {
             return wc.first + ": " + std::to_string(wc.second);
         })
     .WriteLinesMany(
-        "outputs/wordcount_" + std::to_string(ctx.my_rank()) + ".out");
+        "outputs/wordcount-");
 
     return 0;
 }
@@ -86,7 +86,7 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
             return wc.first + ": " + std::to_string(wc.second);
         })
     .WriteLinesMany(
-        "outputs/wordcount_" + std::to_string(ctx.my_rank()) + ".out");
+        "outputs/wordcount-");
 
     return 42;
 }

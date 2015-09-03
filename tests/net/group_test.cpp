@@ -33,7 +33,7 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 
     size_t received = 0;
-    mem::Manager mem_manager(nullptr);
+    mem::Manager mem_manager(nullptr, "Dispatcher");
     Dispatcher dispatcher(mem_manager);
 
     AsyncReadCallback callback =

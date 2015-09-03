@@ -12,8 +12,7 @@
 #ifndef THRILL_MEM_MANAGER_HEADER
 #define THRILL_MEM_MANAGER_HEADER
 
-#include <thrill/common/logger.hpp>
-
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 
@@ -28,10 +27,14 @@ namespace mem {
  */
 class Manager
 {
+    static const bool debug = false;
+
 public:
-    explicit Manager(Manager* super)
-        : super_(super)
+    explicit Manager(Manager* super, const char* name)
+        : super_(super), name_(name)
     { }
+
+    ~Manager();
 
     //! return the superior Manager
     Manager * super() { return super_; }
@@ -41,7 +44,9 @@ public:
 
     //! add memory consumption.
     Manager & add(size_t amount) {
-        total_ += amount;
+        size_t current = (total_ += amount);
+        peak_ = std::max(peak_.load(), current);
+        ++alloc_count_;
         if (super_) super_->add(amount);
         return *this;
     }
@@ -58,8 +63,17 @@ protected:
     //! reference to superior memory counter
     Manager* super_;
 
+    //! description for output
+    const char* name_;
+
     //! total allocation
     std::atomic<size_t> total_ { 0 };
+
+    //! peak allocation
+    std::atomic<size_t> peak_ { 0 };
+
+    //! number of allocation
+    std::atomic<size_t> alloc_count_ { 0 };
 };
 
 } // namespace mem

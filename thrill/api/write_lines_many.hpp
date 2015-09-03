@@ -16,7 +16,9 @@
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
+#include <thrill/core/file_io.hpp>
 #include <thrill/core/stage_builder.hpp>
+#include <thrill/net/buffer_builder.hpp>
 
 #include <fstream>
 #include <string>
@@ -38,45 +40,104 @@ public:
 
     WriteLinesManyNode(const ParentDIARef& parent,
                        const std::string& path_out,
+                       size_t target_file_size,
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
-          path_out_(path_out),
-          file_(path_out_)
+          out_pathbase_(path_out),
+          c_file_(core::SysFile::OpenForWrite(core::make_path(
+                                                  out_pathbase_,
+                                                  context_.my_rank(),
+                                                  0))),
+        target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
 
-        auto pre_op_fn = [=](ValueType input) {
+        auto pre_op_fn = [=](std::string input) {
                              PreOp(input);
                          };
+
+        max_buffer_size_ = std::min(data::default_block_size,
+                                    common::RoundUpToPowerOfTwo(target_file_size_));
+
+        write_buffer_.Reserve(max_buffer_size_);
+
         // close the function stack with our pre op and register it at parent
         // node for output
         auto lop_chain = parent.stack().push(pre_op_fn).emit();
         parent.node()->RegisterChild(lop_chain, this->type());
     }
 
-    void PreOp(ValueType input) {
-        file_ << input << "\n";
+    void PreOp(std::string input) {
+
+        if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
+                            >= max_buffer_size_)) {
+            c_file_.write(write_buffer_.data(), current_buffer_size_);
+            write_buffer_.set_size(0);
+            current_file_size_ += current_buffer_size_;
+            current_buffer_size_ = 0;
+            if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
+                LOG << "Closing file" << out_serial_;
+                c_file_.close();
+                std::string new_path = core::make_path(
+                    out_pathbase_, context_.my_rank(), out_serial_++);
+                c_file_ = core::SysFile::OpenForWrite(new_path);
+                LOG << "Opening file: " << new_path;
+                current_file_size_ = 0;
+            }
+            // String is too long to fit into buffer, write directly, add '\n' to
+            // start of next buffer.
+            if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
+                current_file_size_ += input.size() + 1;
+                c_file_.write(input.data(), input.size());
+                current_buffer_size_ = 1;
+                write_buffer_.PutByte('\n');
+                return;
+            }
+        }
+        current_buffer_size_ += input.size() + 1;
+        write_buffer_.AppendString(input);
+        write_buffer_.PutByte('\n');
+        assert(current_buffer_size_ == write_buffer_.size());
     }
 
-    //! Closes the output file
+    //! Closes the output file, write last buffer
     void Execute() final {
-        sLOG << "closing file" << path_out_;
-        file_.close();
+        sLOG << "closing file";
+        c_file_.write(write_buffer_.data(), current_buffer_size_);
+        c_file_.close();
     }
 
     void Dispose() final { }
 
 private:
-    //! Path of the output file.
-    std::string path_out_;
+    //! Base path of the output file.
+    std::string out_pathbase_;
 
-    //! File to write to
-    std::ofstream file_;
+    //! Current file size in bytes
+    size_t current_file_size_ = 0;
+
+    //! File serial number for this worker
+    size_t out_serial_ = 1;
+
+    //! File to wrtie to
+    core::SysFile c_file_;
+
+    //! Write buffer
+    net::BufferBuilder write_buffer_;
+
+    //! Maximum buffer size
+    size_t max_buffer_size_;
+
+    //! Current buffer size
+    size_t current_buffer_size_ = 0;
+
+    //! Targetl file size in bytes
+    size_t target_file_size_;
 };
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLinesMany(
-    const std::string& filepath) const {
+    const std::string& filepath, size_t target_file_size) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
@@ -89,6 +150,7 @@ void DIARef<ValueType, Stack>::WriteLinesMany(
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,
+                                          target_file_size,
                                           stats_node);
 
     core::StageBuilder().RunScope(shared_node.get());
