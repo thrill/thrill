@@ -339,8 +339,8 @@ private:
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
+			data_.clear();
             while (true) {
-				data_.clear();
 				while (current_ < buffer_.end()) {
                     if (THRILL_UNLIKELY(*current_ == '\n')) {
 						current_++;
