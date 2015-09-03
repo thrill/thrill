@@ -256,8 +256,7 @@ private:
         // if there's only one run, store it
         if (files_.size() == 1) {
             sorted_elems_ = files_[0];
-            // otherwise sort all runs using multiway merge
-        }
+        } // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(files_.size());
