@@ -129,6 +129,12 @@ private:
         std::vector<FileSizePair> files_; // REVIEW(an): use a const & to the vector
         //! Index of current file in files_
         size_t current_file_ = 0;
+        //! Byte buffer to create line-std::strings
+        net::BufferBuilder buffer_;
+        //! Start of next element in current buffer.
+		unsigned char* current_;
+        //! (exclusive) end of local block
+        size_t my_end_;
 
         virtual ~InputLineIterator() { }
     };
@@ -137,24 +143,30 @@ private:
     class InputLineIteratorUncompressed : public InputLineIterator
     {
     public:
-        using Base = InputLineIterator;
+        using IteratorBase = InputLineIterator;
+		using IteratorBase::buffer_;
+		using IteratorBase::current_;
+		using IteratorBase::my_end_;
+		using IteratorBase::current_file_;
+		using IteratorBase::files_;
+		using IteratorBase::data_;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(
             std::vector<FileSizePair> files,
             Context& ctx)
-            : Base(files) {
+            : IteratorBase(files) {
 
             // Go to start of 'local part'.
             size_t my_start;
             std::tie(my_start, my_end_) = common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
 
-            while (Base::files_[Base::current_file_ + 1].second <= my_start) {
-                Base::current_file_++;
+            while (files_[current_file_ + 1].second <= my_start) {
+                current_file_++;
             }
             if (my_start < my_end_) {
-                LOG << "Opening file " << Base::current_file_;
-                file_ = core::SysFile::OpenForRead(Base::files_[Base::current_file_].first);
+                LOG << "Opening file " << current_file_;
+                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
@@ -163,9 +175,9 @@ private:
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = file_.lseek(my_start - Base::files_[Base::current_file_].second);
-            buffer_.Reserve(Base::read_size);
-            ssize_t buffer_size = file_.read(buffer_.data(), Base::read_size);
+            offset_ = file_.lseek(my_start - files_[current_file_].second);
+            buffer_.Reserve(IteratorBase::read_size);
+            ssize_t buffer_size = file_.read(buffer_.data(), IteratorBase::read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
 
@@ -185,7 +197,7 @@ private:
                     if (!found_n) {
                         current_ = buffer_.begin();
                         offset_ += buffer_.size();
-                        buffer_size = file_.read(buffer_.data(), Base::read_size);
+                        buffer_size = file_.read(buffer_.data(), IteratorBase::read_size);
                         // EOF = newline per definition
                         if (!buffer_size) {
                             found_n = true;
@@ -195,45 +207,45 @@ private:
                 }
                 assert(*(current_ - 1) == '\n' || !buffer_size);
             }
-			Base::data_.reserve(4 * 1024);
+			data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
-			Base::data_.clear();
+			data_.clear();
             while (true) {
                 for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         current_ = it + 1;
-						return Base::data_;
+						return data_;
                     } else {
-						Base::data_.push_back(*it);
+						data_.push_back(*it);
 					}
                 }
                 current_ = buffer_.begin();
-                ssize_t buffer_size = file_.read(buffer_.data(), Base::read_size);
+                ssize_t buffer_size = file_.read(buffer_.data(), IteratorBase::read_size);
                 offset_ += buffer_.size();
                 if (buffer_size) {
                     buffer_.set_size(buffer_size);
                 }
                 else {
                     file_.close();
-                    Base::current_file_++;
+                    current_file_++;
                     offset_ = 0;
 
-                    if (Base::current_file_ < NumFiles()) {
-                        file_ = core::SysFile::OpenForRead(Base::files_[Base::current_file_].first);
-                        ssize_t buffer_size = file_.read(buffer_.data(), Base::read_size);
+                    if (current_file_ < NumFiles()) {
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ssize_t buffer_size = file_.read(buffer_.data(), IteratorBase::read_size);
                         buffer_.set_size(buffer_size);
                     }
                     else {
-                        current_ = buffer_.begin() + Base::files_[Base::current_file_].second - Base::files_[Base::current_file_ - 1].second;
+                        current_ = buffer_.begin() + files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
-                    if (Base::data_.length()) {
-                        return Base::data_;
+                    if (data_.length()) {
+                        return data_;
                     }
                 }
             }
@@ -241,15 +253,15 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            size_t global_index = offset_ + current_ - buffer_.begin() + Base::files_[Base::current_file_].second;
+            size_t global_index = offset_ + current_ - buffer_.begin() + files_[current_file_].second;
             return global_index < my_end_ ||
 				(global_index == my_end_ && 
-				 Base::files_[Base::current_file_ + 1].second - Base::files_[Base::current_file_].second >
+				 files_[current_file_ + 1].second - files_[current_file_].second >
 				 offset_ + (current_ - buffer_.begin()));
         }
 
         size_t NumFiles() {
-            return Base::files_.size() - 1;
+            return files_.size() - 1;
         }
 
         //! Open file and return file handle
@@ -259,53 +271,53 @@ private:
         }
 
     private:
-        //! File handle to Base::files_[Base::current_file_]
-		core::SysFile file_;
         //! Offset of current block in file_.
         size_t offset_ = 0;
-        //! Start of next element in current buffer.
-		unsigned char* current_;
-        //! (exclusive) end of local block
-        size_t my_end_;
-        //! Byte buffer to create line-std::strings
-        net::BufferBuilder buffer_;
+        //! File handle to files_[current_file_]
+        core::SysFile file_;
     };
 
     //! InputLineIterator gives you access to lines of a file
     class InputLineIteratorCompressed : public InputLineIterator
     {
     public:
-        using Base = InputLineIterator;
+        using IteratorBase = InputLineIterator;
+		using IteratorBase::current_file_;
+		using IteratorBase::files_;
+		using IteratorBase::buffer_;
+		using IteratorBase::current_;
+		using IteratorBase::my_end_;
+		using IteratorBase::data_;
 
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(
             std::vector<FileSizePair> files,
 			Context& ctx)
-            : Base(files) {
+            : IteratorBase(files) {
 
             // Go to start of 'local part'.
             size_t my_start;
             std::tie(my_start, my_end_) = common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
 
-            while (Base::files_[Base::current_file_ + 1].second <= my_start) {
-                Base::current_file_++;
+            while (files_[current_file_ + 1].second <= my_start) {
+                current_file_++;
             }
 
-            for (size_t file_nr = Base::current_file_; file_nr < NumFiles(); file_nr++) {
+            for (size_t file_nr = current_file_; file_nr < NumFiles(); file_nr++) {
                 if (files[file_nr + 1].second == my_end_) {
                     break;
                 }
                 if (files[file_nr + 1].second > my_end_) {
-                    my_end_ = Base::files_[file_nr].second;
+                    my_end_ = files_[file_nr].second;
                     break;
                 }
             }
 			
 
             if (my_start < my_end_) {
-                LOG << "Opening file " << Base::current_file_;
+                LOG << "Opening file " << current_file_;
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
-                file_ = core::SysFile::OpenForRead(Base::files_[Base::current_file_].first);
+                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
@@ -319,7 +331,7 @@ private:
             ssize_t buffer_size = file_.read(buffer_.data(), read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
-			Base::data_.reserve(4 * 1024);
+			data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
@@ -327,13 +339,13 @@ private:
         //! does no checks whether a next element exists!
         const std::string& Next() {
             while (true) {
-				Base::data_.clear();
+				data_.clear();
                 for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         current_ = it + 1;
-						return Base::data_;
+						return data_;
                     } else {
-						Base::data_.push_back(*it);
+						data_.push_back(*it);
 					}
                 }
                 current_ = buffer_.begin();
@@ -344,10 +356,10 @@ private:
                 else {
                     LOG << "Opening new file!";
                     file_.close();
-                    Base::current_file_++;
+                    current_file_++;
 
-                    if (Base::current_file_ < NumFiles()) {
-                        file_ = core::SysFile::OpenForRead(Base::files_[Base::current_file_].first);
+                    if (current_file_ < NumFiles()) {
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
                         ssize_t buffer_size = file_.read(buffer_.data(), read_size);
                         buffer_.set_size(buffer_size);
                     }
@@ -355,16 +367,16 @@ private:
                         current_ = buffer_.begin();
                     }
 
-                    if (Base::data_.length()) {
-                        LOG << "end - returning string of length" << Base::data_.length();
-                        return Base::data_;
+                    if (data_.length()) {
+                        LOG << "end - returning string of length" << data_.length();
+                        return data_;
                     }
                 }
             }
         }
 
         size_t NumFiles() {
-            return Base::files_.size() - 1;
+            return files_.size() - 1;
         }
 
         //! returns true, if an element is available in local part
@@ -383,14 +395,14 @@ private:
                 else {
                     LOG << "Opening new file in HasNext()";
                     // already at last file
-                    if (Base::current_file_ >= NumFiles() - 1) {
+                    if (current_file_ >= NumFiles() - 1) {
                         return false;
                     }
                     file_.close();
                     // if (this worker reads at least one more file)
-                    if (my_end_ > Base::files_[Base::current_file_ + 1].second) {
-                        Base::current_file_++;
-                        file_ = core::SysFile::OpenForRead(Base::files_[Base::current_file_].first);
+                    if (my_end_ > files_[current_file_ + 1].second) {
+                        current_file_++;
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
                         buffer_.set_size(file_.read(buffer_.data(), read_size));
                         return true;
                     }
@@ -400,19 +412,14 @@ private:
                 }
             }
             else {
-				return Base::files_[Base::current_file_].second < my_end_;
+				return files_[current_file_].second < my_end_;
             }
         }
 
-    private:
-        //! File handle to Base::files_[Base::current_file_]
+	private:
+
+        //! File handle to files_[current_file_]
         core::SysFile file_;
-        //! Start of next element in current buffer.
-		unsigned char* current_;
-        //! (exclusive) end of local block
-        size_t my_end_;
-        //! Byte buffer to create line-std::strings
-        net::BufferBuilder buffer_;
     };
 };
 
