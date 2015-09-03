@@ -20,7 +20,6 @@
 #include <thrill/core/iterator_wrapper.hpp>
 #include <thrill/core/stxxl_multiway_merge.hpp>
 
-
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -30,7 +29,6 @@
 
 namespace thrill {
 namespace api {
-
 
 template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
@@ -46,19 +44,17 @@ class GroupByNode : public DOpNode<ValueType>
 
     struct ValueComparator
     {
-       ValueComparator( const GroupByNode& info ) : info_(info) { }
-       const GroupByNode& info_;
+        ValueComparator(const GroupByNode& info) : info_(info) { }
+        const GroupByNode& info_;
 
-       bool operator()(const Value & i,
-                       const Value & j)
-       {
+        bool operator () (const Value& i,
+                          const Value& j) {
             auto i_cmp = info_.hash_function_(info_.key_extractor_(i));
             auto j_cmp = info_.hash_function_(info_.key_extractor_(j));
             return (i_cmp < j_cmp);
-       }
+        }
     };
     // using Merger = typename stxxl::parallel::LoserTreeCopyBase<ValueType, ValueComparator>;
-
 
     using Super::context_;
     using Super::result_file_;
@@ -77,15 +73,15 @@ public:
                 KeyExtractor key_extractor,
                 GroupFunction groupby_function,
                 StatsNode* stats_node,
-                const HashFunction & hash_function = HashFunction())
+                const HashFunction& hash_function = HashFunction())
         : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "GroupBy", stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
           channel_(parent.ctx().GetNewChannel()),
           emitter_(channel_->OpenWriters())
-        {
-       // Hook PreOp
+    {
+        // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
                              PreOp(input);
                          };
@@ -109,15 +105,14 @@ public:
         MainOp();
     }
 
-    void ProcessGroup(data::File & f) {
+    void ProcessGroup(data::File& f) {
         auto r = f.GetReader();
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
-
     }
 
     void PushData() override {
-        //OMG THIS IS SO HACKY. THIS MUST BE POSSIBLE MORE ELEGANTLY
+        // OMG THIS IS SO HACKY. THIS MUST BE POSSIBLE MORE ELEGANTLY
         // split sorted files to multiple files for each key
         std::vector<data::File> user_files;
         auto r = sorted_elems_.GetReader();
@@ -125,7 +120,7 @@ public:
             Value v1 = r.template Next<Value>();
             Key k1 = key_extractor_(v1);
             bool inserted = false;
-            while(r.HasNext()) {
+            while (r.HasNext()) {
                 user_files.push_back(data::File());
                 {
                     auto w = user_files.back().GetWriter();
@@ -141,7 +136,8 @@ public:
                             w(v2);
                             LOG << "Host " << context_.host_rank() << " added " << v2;
                             inserted = true;
-                        } else {
+                        }
+                        else {
                             v1 = v2;
                             k1 = k2;
                         }
@@ -150,13 +146,13 @@ public:
             }
         }
 
-        //call user function
+        // call user function
         for (auto t : user_files) {
             auto r = t.GetReader();
             data_.push_back(groupby_function_(r));
         }
 
-        //push data to callback functions
+        // push data to callback functions
         for (size_t i = 0; i < data_.size(); i++) {
             for (auto func : DIANode<ValueType>::callbacks_) {
                 LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
@@ -206,13 +202,13 @@ private:
     /*
      * Sort and store elements in a file
      */
-    void FlushVectorToFile(std::vector<Value> & v) {
+    void FlushVectorToFile(std::vector<Value>& v) {
         // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         data::File f;
         {
             auto w = f.GetWriter();
-            for (auto & e : v) {
+            for (auto& e : v) {
                 w(e);
             }
         }
@@ -220,7 +216,7 @@ private:
         files_.push_back(f);
     }
 
-    //!Receive elements from other workers.
+    //! Receive elements from other workers.
     auto MainOp() {
         using Iterator = thrill::core::StxxlFileWrapper<Value>;
         using OIterator = thrill::core::StxxlFileOutputWrapper<int>;
@@ -260,9 +256,10 @@ private:
         // if there's only one run, store it
         if (files_.size() == 1) {
             sorted_elems_ = files_[0];
-        // otherwise sort all runs using multiway merge
-        } else {
-            std::vector<std::pair<Iterator, Iterator>> seq;
+            // otherwise sort all runs using multiway merge
+        }
+        else {
+            std::vector<std::pair<Iterator, Iterator> > seq;
             seq.reserve(files_.size());
             for (std::size_t t = 0; t < files_.size(); ++t) {
                 auto reader = std::make_shared<Reader>(files_[t].GetReader());
@@ -272,7 +269,7 @@ private:
             }
 
             {
-                OIterator oiter (std::make_shared<Writer>(sorted_elems_.GetWriter()));
+                OIterator oiter(std::make_shared<Writer>(sorted_elems_.GetWriter()));
 
                 stxxl::parallel::sequential_file_multiway_merge<true, false>(
                     std::begin(seq),
@@ -296,8 +293,7 @@ auto DIARef<ValueType, Stack>::GroupBy(
     using DOpResult
               = typename common::FunctionTraits<GroupFunction>::result_type;
 
-    //TODO(cn) find correct assertions for input paarms
-
+    // TODO(cn) find correct assertions for input paarms
 
     StatsNode* stats_node = AddChildStatsNode("GroupBy", NodeType::DOP);
     using GroupByResultNode
@@ -316,7 +312,6 @@ auto DIARef<ValueType, Stack>::GroupBy(
         groupby_stack,
         { stats_node });
 }
-
 
 } // namespace api
 } // namespace thrill

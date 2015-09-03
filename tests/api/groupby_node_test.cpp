@@ -7,7 +7,6 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-
 #include <thrill/api/allgather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/groupby.hpp>
@@ -15,14 +14,14 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/file.hpp>
 
-
-#include <thrill/core/stxxl_multiway_merge.hpp>
 #include <gtest/gtest.h>
+#include <thrill/core/stxxl_multiway_merge.hpp>
 
 #include <algorithm>
+#include <cstdlib>
+#include <limits>
 #include <string>
 #include <vector>
-#include <cstdlib>
 
 using namespace thrill; // NOLINT
 
@@ -32,8 +31,8 @@ TEST(GroupByNode, Compile_and_Sum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            int n = 100000;
-            int m = 10;
+            int n = 10000;
+            int m = 4;
 
             auto integers = Generate(
                 ctx,
@@ -45,10 +44,10 @@ TEST(GroupByNode, Compile_and_Sum) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto sum_fn =
-            [m](data::File::Reader r) {
+                [m](data::File::Reader r) {
                     int res = 0;
                     int k = 0;
-                    while(r.HasNext()) {
+                    while (r.HasNext()) {
                         auto n = r.template Next<int>();
                         k = n % m;
                         res += n;
@@ -63,7 +62,7 @@ TEST(GroupByNode, Compile_and_Sum) {
             // compute vector with expected results
             std::vector<int> res_vec(m, 0);
             for (int t = 0; t <= n; ++t) {
-                res_vec[t%m] += t;
+                res_vec[t % m] += t;
             }
 
             std::sort(out_vec.begin(), out_vec.end());
@@ -74,12 +73,9 @@ TEST(GroupByNode, Compile_and_Sum) {
                 ASSERT_EQ(out_vec[i], res_vec[i]);
                 LOG << out_vec[i] << " / " << res_vec[i];
             }
-
         };
 
-    // api::RunLocalTests(start_func);
-        api::RunLocalMock(2, 1, start_func);
+    api::RunLocalTests(start_func);
 }
-
 
 /******************************************************************************/
