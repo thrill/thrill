@@ -144,7 +144,7 @@ private:
         size_t stats_total_bytes_ = 0;
         size_t stats_total_reads_ = 0;
         size_t stats_total_elements_ = 0;
-        
+
         bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
             ssize_t bytes = file.read(buffer.data(), read_size);
             buffer.set_size(bytes);
@@ -157,7 +157,7 @@ private:
         ~InputLineIterator() {
             STAT(context_) << "NodeType" << "ReadLines"
                            << "TotalBytes" << stats_total_bytes_
-                           << "TotalReads" <<	stats_total_reads_ 
+                           << "TotalReads" << stats_total_reads_
                            << "TotalLines" << stats_total_elements_;
         }
     };

@@ -1,4 +1,4 @@
- /*******************************************************************************
+/*******************************************************************************
  * thrill/api/context.hpp
  *
  * Part of Project Thrill.
@@ -239,7 +239,6 @@ public:
     api::StatsGraph & stats_graph() {
         return stats_graph_;
     }
-    
 
 private:
     //! net::Manager instance that is shared among workers

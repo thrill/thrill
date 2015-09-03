@@ -27,7 +27,8 @@ namespace common {
 static const bool stats_enabled = true;
 
 template <bool Enabled>
-class StatLogger { };
+class StatLogger
+{ };
 
 template <>
 class StatLogger<true>
@@ -40,11 +41,11 @@ protected:
     size_t elements_ = 0;
 
 public:
-    StatLogger(Context& ctx)  {		
+    StatLogger(Context& ctx) {
         oss_ << "{\"WorkerID\":" << ctx.my_rank();
         elements_ = 2;
     }
-	
+
     StatLogger() {
         oss_ << "{";
     }
@@ -59,18 +60,27 @@ public:
             }
         }
         oss_ << "\"";
-        //from: http://stackoverflow.com/a/7725289
+        // from: http://stackoverflow.com/a/7725289
         for (auto iter = str.begin(); iter != str.end(); iter++) {
             switch (*iter) {
-            case '\\': oss_ << "\\\\"; break;
-            case '"': oss_ << "\\\""; break;
-            case '/': oss_ << "\\/"; break;
-            case '\b': oss_ << "\\b"; break;
-            case '\f': oss_ << "\\f"; break;
-            case '\n': oss_ << "\\n"; break;
-            case '\r': oss_ << "\\r"; break;
-            case '\t': oss_ << "\\t"; break;
-            default: oss_ << *iter; break;
+            case '\\': oss_ << "\\\\";
+                break;
+            case '"': oss_ << "\\\"";
+                break;
+            case '/': oss_ << "\\/";
+                break;
+            case '\b': oss_ << "\\b";
+                break;
+            case '\f': oss_ << "\\f";
+                break;
+            case '\n': oss_ << "\\n";
+                break;
+            case '\r': oss_ << "\\r";
+                break;
+            case '\t': oss_ << "\\t";
+                break;
+            default: oss_ << *iter;
+                break;
             }
         }
         elements_++;
@@ -83,10 +93,10 @@ public:
     StatLogger& operator << (const AnyType& at) {
         if (elements_ > 0) {
             if (elements_ % 2 == 0) {
-                oss_ << ',';
+                oss_ << ",";
             }
             else {
-                oss_ << ':';
+                oss_ << ":";
             }
         }
         elements_++;
@@ -102,7 +112,7 @@ public:
             }
         }
         else {
-            oss_ << '"' << at << '"';
+            oss_ << "\"" << at << "\"";
         }
         return *this;
     }
@@ -128,7 +138,7 @@ public:
 
 #define STAT_NO_RANK ::thrill::common::StatLogger<::thrill::common::stats_enabled>()
 
-//!Creates a common::StatLogger with {"WorkerID":my rank in the beginning
+//! Creates a common::StatLogger with {"WorkerID":my rank in the beginning
 #define STAT(ctx) ::thrill::common::StatLogger<::thrill::common::stats_enabled>(ctx)
 
 } // namespace common
