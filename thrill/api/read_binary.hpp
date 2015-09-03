@@ -111,9 +111,10 @@ public:
             }
         }
 
-        STATC(context_.my_rank()) << "NodeType" << "ReadBinary"
-                                  << "TotalBytes" << stats_total_bytes
-                                  << "TotalReads" << stats_total_reads;
+        STAT(context_) << "NodeType" << "ReadBinary"
+                       << "TotalBytes" << stats_total_bytes
+                       << "TotalReads" << stats_total_reads;
+
         LOG << "DONE!";
     }
 

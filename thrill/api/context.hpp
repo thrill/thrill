@@ -1,4 +1,4 @@
-/*******************************************************************************
+ /*******************************************************************************
  * thrill/api/context.hpp
  *
  * Part of Project Thrill.
@@ -15,7 +15,6 @@
 
 #include <thrill/api/stats_graph.hpp>
 #include <thrill/common/config.hpp>
-#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/stats.hpp>
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/channel.hpp>
@@ -240,6 +239,7 @@ public:
     api::StatsGraph & stats_graph() {
         return stats_graph_;
     }
+    
 
 private:
     //! net::Manager instance that is shared among workers

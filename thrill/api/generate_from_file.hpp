@@ -104,7 +104,7 @@ public:
             this->PushItem(elements_[rand_element]);
         }
 
-        STATC(context_.my_rank()) << "NodeType" << "GenerateFromFile";
+        STAT(context_) << "NodeType" << "GenerateFromFile";
     }
 
     void Dispose() final { }
