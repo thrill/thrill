@@ -114,11 +114,6 @@ private:
 
     std::vector<std::pair<std::string, size_t> > filesize_prefix_;
 
-    // REVIEW(an): this is useless, you never use the inheritance.  But, you
-    // actually SHOULD use it! for all member fields and methods that are in
-    // common. But NOT for virtual functions. Remove the virtuals. Find out what
-    // functions the methods below have in common and make them functions of the
-    // superclass.
     class InputLineIterator
     {
     public:
@@ -152,7 +147,7 @@ private:
             }
             if (my_start < my_end_) {
                 LOG << "Opening file " << current_file_;
-                c_file_ = OpenFile(files_[current_file_].first);
+                c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
                 LOG << "my_start : " << my_start << " my_end_: " << my_end_;
@@ -161,9 +156,9 @@ private:
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = lseek(c_file_, my_start - files_[current_file_].second, SEEK_CUR);
+            offset_ = c_file_.lseek(my_start - files_[current_file_].second);
             buffer_.Reserve(Base::read_size);
-            ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
+            ssize_t buffer_size = c_file_.read(buffer_.data(), Base::read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
 
@@ -183,7 +178,7 @@ private:
                     if (!found_n) {
                         current_ = buffer_.begin();
                         offset_ += buffer_.size();
-                        buffer_size = read(c_file_, buffer_.data(), Base::read_size);
+                        buffer_size = c_file_.read(buffer_.data(), Base::read_size);
                         // EOF = newline per definition
                         if (!buffer_size) {
                             found_n = true;
@@ -211,19 +206,19 @@ private:
 					}
                 }
                 current_ = buffer_.begin();
-                ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
+                ssize_t buffer_size = c_file_.read(buffer_.data(), Base::read_size);
                 offset_ += buffer_.size();
                 if (buffer_size) {
                     buffer_.set_size(buffer_size);
                 }
                 else {
-                    close(c_file_);
+                    c_file_.close();
                     current_file_++;
                     offset_ = 0;
 
                     if (current_file_ < NumFiles()) {
-                        c_file_ = OpenFile(files_[current_file_].first);
-                        ssize_t buffer_size = read(c_file_, buffer_.data(), Base::read_size);
+                        c_file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ssize_t buffer_size = c_file_.read(buffer_.data(), Base::read_size);
                         buffer_.set_size(buffer_size);
                     }
                     else {
@@ -262,7 +257,7 @@ private:
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! File handle to files_[current_file_]
-        int c_file_;
+		core::SysFile c_file_;
         //! Offset of current block in c_file_.
         size_t offset_ = 0;
         //! Start of next element in current buffer.
