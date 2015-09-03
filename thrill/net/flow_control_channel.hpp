@@ -129,7 +129,7 @@ protected:
         if(self_verify) {
             assert(threadId == 0);
             *shmem = nullptr;
-            barrier.await();
+            barrier.Await();
         }
     }
 
