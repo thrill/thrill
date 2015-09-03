@@ -107,7 +107,6 @@ private:
     //! File writer used.
     data::File::Writer writer_;
 
-
 	size_t stats_total_elements_ = 0;
 };
 
