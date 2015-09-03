@@ -103,8 +103,8 @@ public:
             size_t rand_element = distribution(generator);
             this->PushItem(elements_[rand_element]);
         }
-		
-		STATC(context_.my_rank()) << "NodeType" << "GenerateFromFile";
+
+        STATC(context_.my_rank()) << "NodeType" << "GenerateFromFile";
     }
 
     void Dispose() final { }
