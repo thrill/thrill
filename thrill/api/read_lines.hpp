@@ -121,8 +121,9 @@ private:
 			const std::vector<FileSizePair>& files) : files_(files) { };
 
         static const bool debug = false;
-        const size_t read_size = 2 * 1024 * 1024;
 
+		//! Block read size
+        const size_t read_size = 2 * 1024 * 1024;
 		//! String, which Next() references to
 		std::string data_;
         //! Input files with size prefixsum.
@@ -186,9 +187,8 @@ private:
 
                 // find next newline, discard all previous data as previous worker already covers it
                 while (!found_n) {
-                    for (auto it = current_; it != buffer_.end(); it++) {
-                        if (THRILL_UNLIKELY(*it == '\n')) {
-                            current_ = it + 1;
+					while (current_ < buffer_.end()) {
+                        if (THRILL_UNLIKELY(*current_++ == '\n')) {
                             found_n = true;
                             break;
                         }
@@ -216,12 +216,12 @@ private:
         const std::string& Next() {
 			data_.clear();
             while (true) {
-                for (auto it = current_; it != buffer_.end(); it++) {
-                    if (THRILL_UNLIKELY(*it == '\n')) {
-                        current_ = it + 1;
+				while (current_ < buffer_.end()) {
+                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+						current_++;
 						return data_;
                     } else {
-						data_.push_back(*it);
+						data_.push_back(*current_++);
 					}
                 }
                 current_ = buffer_.begin();
@@ -241,7 +241,8 @@ private:
                         buffer_.set_size(buffer_size);
                     }
                     else {
-                        current_ = buffer_.begin() + files_[current_file_].second - files_[current_file_ - 1].second;
+                        current_ = buffer_.begin() +
+							files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
                     if (data_.length()) {
@@ -340,12 +341,12 @@ private:
         const std::string& Next() {
             while (true) {
 				data_.clear();
-                for (auto it = current_; it != buffer_.end(); it++) {
-                    if (THRILL_UNLIKELY(*it == '\n')) {
-                        current_ = it + 1;
+				while (current_ < buffer_.end()) {
+                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+						current_++;
 						return data_;
                     } else {
-						data_.push_back(*it);
+						data_.push_back(*current_++);
 					}
                 }
                 current_ = buffer_.begin();
