@@ -31,8 +31,8 @@ TEST(GroupByNode, Compile_and_Sum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            int n = 10000;
-            int m = 4;
+            unsigned n = 10000;
+            unsigned m = 4;
 
             auto integers = Generate(
                 ctx,
@@ -44,7 +44,8 @@ TEST(GroupByNode, Compile_and_Sum) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [m](api::GroupByIterator<int> r) {
+                [m](api::GroupByIterator<int> r,
+                    api::GroupByEmitter<int> e) {
                     int res = 0;
                     int k = 0;
                     while (r.HasNext()) {
@@ -52,6 +53,7 @@ TEST(GroupByNode, Compile_and_Sum) {
                         k = n % m;
                         res += n;
                     }
+                    e.Emit(res);
                     return res;
                 };
 
@@ -60,8 +62,8 @@ TEST(GroupByNode, Compile_and_Sum) {
             std::vector<int> out_vec = reduced.AllGather();
 
             // compute vector with expected results
-            std::vector<int> res_vec(m, 0);
-            for (int t = 0; t <= n; ++t) {
+            std::vector<unsigned> res_vec(m, 0);
+            for (unsigned t = 0; t <= n; ++t) {
                 res_vec[t % m] += t;
             }
 
