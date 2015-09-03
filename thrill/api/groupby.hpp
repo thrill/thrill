@@ -46,6 +46,19 @@ private:
     data::File::Reader &r_;
 };
 
+template <typename ValueTypeOut>
+class GroupByEmitter {
+public:
+    using ValueType = ValueTypeOut;
+    GroupByEmitter(data::File::Writer &w) : w_(w) {}
+
+    void Emit(ValueTypeOut v) {
+        w_(v);
+    }
+private:
+    data::File::Writer &w_;
+};
+
 template <typename ValueTypeIn, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode : public DOpNode<ValueTypeIn>
@@ -53,7 +66,7 @@ class GroupByNode : public DOpNode<ValueTypeIn>
     static const bool debug = false;
     using Super = DOpNode<ValueTypeIn>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using ValueTypeOut = typename common::FunctionTraits<GroupFunction>::result_type;
+    using ValueTypeOut = typename common::FunctionTraits<GroupFunction>::template arg_plain<1>::ValueType;
     using ReduceArg = typename common::FunctionTraits<GroupFunction>
                       ::template arg<0>;
     using KeyValuePair = typename std::pair<Key, ValueTypeIn>;
@@ -162,19 +175,33 @@ public:
             }
         }
 
-        // call user function
-        for (auto t : user_files) {
-            auto r = t.GetReader();
-            data_.push_back(groupby_function_(GroupByIterator<ValueTypeIn>(r)));
-        }
-
-        // push data to callback functions
-        for (size_t i = 0; i < data_.size(); i++) {
-            for (auto func : DIANode<ValueTypeIn>::callbacks_) {
-                LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
-                func(data_[i]);
+        {
+        auto result_writer = result_.GetWriter();
+            // call user function
+            for (auto t : user_files) {
+                auto r = t.GetReader();
+                data_.push_back(
+                    groupby_function_(GroupByIterator<ValueTypeIn>(r),
+                                      GroupByEmitter<ValueTypeOut>(result_writer)));
             }
         }
+
+        auto result_reader = result_.GetReader();
+        while(result_reader.HasNext()) {
+            auto elem_out = result_reader.template Next<ValueTypeOut>();
+            for (auto func : DIANode<ValueTypeIn>::callbacks_) {
+                LOG << "Host " << context_.host_rank() << " grouped to value " << elem_out;
+                func(elem_out);
+            }
+        }
+
+        // // push data to callback functions
+        // for (size_t i = 0; i < data_.size(); i++) {
+        //     for (auto func : DIANode<ValueTypeIn>::callbacks_) {
+        //         LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
+        //         func(data_[i]);
+        //     }
+        // }
     }
 
     void Dispose() override { }
@@ -205,6 +232,7 @@ private:
     std::vector<data::File> files_;
     data::File sorted_elems_;
     std::vector<ValueTypeOut> data_;
+    data::File result_;
 
     /*
      * Send all elements to their designated PEs
