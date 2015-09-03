@@ -18,6 +18,7 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
@@ -160,7 +161,8 @@ private:
 
             // Go to start of 'local part'.
             size_t my_start;
-            std::tie(my_start, my_end_) = common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
+            std::tie(my_start, my_end_) = 
+				common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
 
             while (files_[current_file_ + 1].second <= my_start) {
                 current_file_++;
