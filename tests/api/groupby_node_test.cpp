@@ -44,11 +44,11 @@ TEST(GroupByNode, Compile_and_Sum) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [m](data::File::Reader r) {
+                [m](api::GroupByIterator<int> r) {
                     int res = 0;
                     int k = 0;
                     while (r.HasNext()) {
-                        auto n = r.template Next<int>();
+                        auto n = r.Next();
                         k = n % m;
                         res += n;
                     }
