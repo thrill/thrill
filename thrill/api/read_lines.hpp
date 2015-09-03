@@ -125,6 +125,9 @@ private:
         static const bool debug = false;
         const size_t read_size = 2 * 1024 * 1024;
 
+		//! String, which Next() references to
+		std::string data_;
+
         virtual ~InputLineIterator() { }
     };
 
@@ -140,7 +143,7 @@ private:
             size_t my_id,
             size_t num_workers)
             : files_(files),
-              my_id_(my_id),
+			  my_id_(my_id),
               num_workers_(num_workers) {
 
             input_size_ = files[NumFiles()].second;
@@ -194,21 +197,21 @@ private:
                 }
                 assert(*(current_ - 1) == '\n' || !buffer_size);
             }
-			data_.reserve(4 * 1024);
+			Base::data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
         const std::string& Next() {
-			data_.clear();
+			Base::data_.clear();
             while (true) {
                 for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         current_ = it + 1;
-						return data_;
+						return Base::data_;
                     } else {
-						data_.push_back(*it);
+						Base::data_.push_back(*it);
 					}
                 }
                 current_ = buffer_.begin();
@@ -231,8 +234,8 @@ private:
                         current_ = buffer_.begin() + files_[current_file_].second - files_[current_file_ - 1].second;
                     }
 
-                    if (data_.length()) {
-                        return data_;
+                    if (Base::data_.length()) {
+                        return Base::data_;
                     }
                 }
             }
@@ -278,8 +281,6 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-		//! String, which Next() references to
-		std::string data_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -335,7 +336,7 @@ private:
             ssize_t buffer_size = c_file_.read(buffer_.data(), read_size);
             buffer_.set_size(buffer_size);
 			current_ = buffer_.begin();
-			data_.reserve(4 * 1024);
+			Base::data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
@@ -343,13 +344,13 @@ private:
         //! does no checks whether a next element exists!
         const std::string& Next() {
             while (true) {
-				data_.clear();
+				Base::data_.clear();
                 for (auto it = current_; it != buffer_.end(); it++) {
                     if (THRILL_UNLIKELY(*it == '\n')) {
                         current_ = it + 1;
-						return data_;
+						return Base::data_;
                     } else {
-						data_.push_back(*it);
+						Base::data_.push_back(*it);
 					}
                 }
                 current_ = buffer_.begin();
@@ -371,9 +372,9 @@ private:
                         current_ = buffer_.begin();
                     }
 
-                    if (data_.length()) {
-                        LOG << "end - returning string of length" << data_.length();
-                        return data_;
+                    if (Base::data_.length()) {
+                        LOG << "end - returning string of length" << Base::data_.length();
+                        return Base::data_;
                     }
                 }
             }
@@ -439,8 +440,6 @@ private:
         size_t num_workers_;
         //! Size of all files combined (in bytes)
         size_t input_size_;
-		//! String, which Next() references to
-		std::string data_;
     };
 };
 
