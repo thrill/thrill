@@ -42,6 +42,9 @@ namespace net {
 class FlowControlChannel
 {
 protected:
+
+    static const bool self_verify = false;
+
     /**
      * The group associated with this channel.
      */
@@ -110,7 +113,8 @@ protected:
 
     template <typename T>
     void SetLocalShared(T* value) {
-        assert(*shmem == nullptr);
+        if(self_verify)
+            assert(*shmem == nullptr);
         assert(threadId == 0);
         *shmem = value;
     }
@@ -122,8 +126,11 @@ protected:
     }
 
     void ClearLocalShared() {
-        assert(threadId == 0);
-        *shmem = nullptr;
+        if(self_verify) {
+            assert(threadId == 0);
+            *shmem = nullptr;
+            barrier.await();
+        }
     }
 
 public:
