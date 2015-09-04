@@ -44,8 +44,7 @@ TEST(GroupByNode, Compile_and_Sum) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [m](api::GroupByIterator<int> r,
-                    api::GroupByEmitter<int> e) {
+                [m](api::GroupByIterator<int> r) {
                     int res = 0;
                     int k = 0;
                     while (r.HasNext()) {
@@ -53,7 +52,6 @@ TEST(GroupByNode, Compile_and_Sum) {
                         k = n % m;
                         res += n;
                     }
-                    e.Emit(res);
                     return res;
                 };
 

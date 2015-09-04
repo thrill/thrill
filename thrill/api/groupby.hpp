@@ -46,19 +46,6 @@ private:
     data::File::Reader &r_;
 };
 
-template <typename ValueTypeOut>
-class GroupByEmitter {
-public:
-    using ValueType = ValueTypeOut;
-    GroupByEmitter(data::File::Writer &w) : w_(w) {}
-
-    void Emit(ValueTypeOut v) {
-        w_(v);
-    }
-private:
-    data::File::Writer &w_;
-};
-
 template <typename ValueTypeIn, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 class GroupByNode : public DOpNode<ValueTypeIn>
@@ -66,7 +53,7 @@ class GroupByNode : public DOpNode<ValueTypeIn>
     static const bool debug = false;
     using Super = DOpNode<ValueTypeIn>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using ValueTypeOut = typename common::FunctionTraits<GroupFunction>::template arg_plain<1>::ValueType;
+    using ValueTypeOut = typename common::FunctionTraits<GroupFunction>::result_type;
     using ReduceArg = typename common::FunctionTraits<GroupFunction>
                       ::template arg<0>;
     using KeyValuePair = typename std::pair<Key, ValueTypeIn>;
@@ -83,7 +70,6 @@ class GroupByNode : public DOpNode<ValueTypeIn>
             return (i_cmp < j_cmp);
         }
     };
-    // using Merger = typename stxxl::parallel::LoserTreeCopyBase<ValueTypeIn, ValueComparator>;
 
     using Super::context_;
     using Super::result_file_;
@@ -181,27 +167,17 @@ public:
             for (auto t : user_files) {
                 auto r = t.GetReader();
                 data_.push_back(
-                    groupby_function_(GroupByIterator<ValueTypeIn>(r),
-                                      GroupByEmitter<ValueTypeOut>(result_writer)));
+                    groupby_function_(GroupByIterator<ValueTypeIn>(r)));
             }
         }
 
-        auto result_reader = result_.GetReader();
-        while(result_reader.HasNext()) {
-            auto elem_out = result_reader.template Next<ValueTypeOut>();
+        // push data to callback functions
+        for (size_t i = 0; i < data_.size(); i++) {
             for (auto func : DIANode<ValueTypeIn>::callbacks_) {
-                LOG << "Host " << context_.host_rank() << " grouped to value " << elem_out;
-                func(elem_out);
+                LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
+                func(data_[i]);
             }
         }
-
-        // // push data to callback functions
-        // for (size_t i = 0; i < data_.size(); i++) {
-        //     for (auto func : DIANode<ValueTypeIn>::callbacks_) {
-        //         LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
-        //         func(data_[i]);
-        //     }
-        // }
     }
 
     void Dispose() override { }
