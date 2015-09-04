@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
         });
 
 		word_pairs.Sort([](const WordCountPair& wc1, const WordCountPair& wc2) {
-				return wc1 < wc2;
+				return wc1.second < wc2.second;
 			}).Map(
         [](const WordCountPair& wc) {
 			return wc.first + ": " + std::to_string(wc.second);
