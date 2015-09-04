@@ -199,7 +199,7 @@ public:
 
         // current item offset in Reader
         size_t current = 0;
-        File::ConstReader reader = source.GetConstReader();
+        File::KeepReader reader = source.GetKeepReader();
 
         std::vector<Writer> writers = OpenWriters();
 
