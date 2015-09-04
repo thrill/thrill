@@ -118,7 +118,7 @@ public:
 
     //! copy-constructor from a rebound allocator
     template <typename OtherType>
-    FixedAllocator(const FixedAllocator<OtherType, manager_>& other) noexcept
+    FixedAllocator(const FixedAllocator<OtherType, manager_>&) noexcept
     { }
 
     //! Attempts to allocate a block of storage with a size large enough to
