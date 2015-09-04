@@ -3,7 +3,7 @@
  *
  * DIANode for a merge operation. Performs the actual merge operation
  *
- * Part of Project thrill.
+ * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Emanuel Jöbstl <emanuel.joebstl@gmail.com>
@@ -35,6 +35,8 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
+
+// REVIEW(ej): merge_local namespace
 
     //TODO(ej) Move somewhere else.
 class MergeNodeHelper {
@@ -154,6 +156,7 @@ public:
         }
     }
 };
+
 //! todo(ej) todo(tb) Can probably subclass a lot here.
 
 template <typename ValueType,
@@ -213,7 +216,6 @@ public:
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
         for(size_t i = 0; i < channels_.size(); i++) {
-           // Reader keks(std::move(channels_[i]->OpenConcatReader(consume).source()));
             readers.emplace_back(std::move(channels_[i]->GetConcatSource(consume)));
         }
 
@@ -225,6 +227,8 @@ public:
         while(true) {
 
             int biggest = -1;
+
+            // REVIEW(ej): i didnt even see that this merges, so horrible.
 
             for (size_t i = 0; i < readers.size(); i++) {
                 if(readers[i].HasValue()) {
@@ -360,7 +364,7 @@ private:
         };
 
         //Global size off aaaalll data.
-        size_t globalSize = flowControl.AllReduce(dataSize, std::plus<ValueType>());
+        size_t globalSize = flowControl.AllReduce(dataSize);
 
         LOG << "Global size: " << globalSize;
 
@@ -570,7 +574,7 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename Comperator, typename SecondDIA>
+template <typename SecondDIA, typename Comperator>
 auto DIARef<ValueType, Stack>::Merge(
     SecondDIA second_dia, const Comperator &comperator) const {
     assert(IsValid());
