@@ -149,6 +149,45 @@ static void MultiThreadPrefixSum(Group* net) {
         });
 }
 
+/**
+ * Does a lot of operations to provoke race contitions. 
+ */
+static void DoLotsOfStuff(Group* net) {
+
+    const size_t count = 16;
+
+    ExecuteMultiThreads(
+        net, count, [=](FlowControlChannel& channel, size_t id) {
+            size_t myRank = net->my_host_rank() * count + id;
+            std::vector<size_t> pres;
+            std::vector<size_t> rres;
+
+            for (int i = 0; i < 20; i++) {
+                //Make a prefix sum and push res
+                pres.push_back(channel.PrefixSum(myRank));
+                //Make an all reduce and push res. 
+                rres.push_back(channel.AllReduce(myRank));
+
+                //Assert that broadcast gives us the result of the master
+                size_t bRes = channel.Broadcast(i + net->my_host_rank());
+                ASSERT_EQ(bRes, i);
+            }
+            size_t pexpected = 0;
+            for (size_t i = 0; i <= net->my_host_rank() * count + id; i++) {
+                pexpected += i;
+            }
+            size_t rexpected = 0;
+            for (size_t i = 0; i < net->num_hosts() * count; i++) {
+                rexpected += i;
+            }
+            
+            for (size_t i = 0; i < pres.size(); i++) { 
+                ASSERT_EQ(pexpected, pres[i]);
+                ASSERT_EQ(rexpected, rres[i]);
+            }
+        });
+}
+
 TEST(Group, PrefixSum) {
     Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
 }
@@ -171,6 +210,10 @@ TEST(Group, AllReduce) {
 
 TEST(Group, MultiThreadAllReduce) {
     Group::ExecuteLocalMock(6, MultiThreadAllReduce);
+}
+
+TEST(Group, HardcoreRaceConditionTest) {
+    Group::ExecuteLocalMock(6, DoLotsOfStuff);
 }
 
 /******************************************************************************/

@@ -88,7 +88,7 @@ TEST_F(PreTable, CustomHashFunction) {
 
     table.Flush();
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     int c = 0;
     while (it1.HasNext()) {
         it1.Next<int>();
@@ -227,7 +227,7 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
     table.Flush();
     ASSERT_EQ(0u, table.NumItems());
 
-    auto it = output.GetReader();
+    auto it = output.GetKeepReader();
     int c = 0;
     while (it.HasNext()) {
         it.Next<int>();
@@ -269,7 +269,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
     table.Flush();
     ASSERT_EQ(0u, table.NumItems());
 
-    auto it1 = output1.GetReader();
+    auto it1 = output1.GetKeepReader();
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next<int>();
@@ -278,7 +278,7 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
 
     ASSERT_EQ(3, c1);
 
-    auto it2 = output2.GetReader();
+    auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next<int>();
@@ -323,7 +323,7 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
 
     table.Insert(4);
 
-    auto it = output.GetReader();
+    auto it = output.GetKeepReader();
     int c = 0;
     while (it.HasNext()) {
         it.Next<int>();
@@ -365,7 +365,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     table.Insert(4);
     table.Flush();
 
-    auto it1 = output1.GetReader();
+    auto it1 = output1.GetKeepReader();
     int c1 = 0;
     while (it1.HasNext()) {
         it1.Next<int>();
@@ -375,7 +375,7 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
     ASSERT_EQ(3, c1);
     table.Flush();
 
-    auto it2 = output2.GetReader();
+    auto it2 = output2.GetKeepReader();
     int c2 = 0;
     while (it2.HasNext()) {
         it2.Next<int>();
@@ -490,7 +490,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     table.Flush();
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
         auto n = it1.Next<MyStruct>();
         total_count++;
@@ -547,7 +547,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
 
     ASSERT_EQ(0u, table.NumItems());
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
         auto n = it1.Next<MyStruct>();
         ASSERT_EQ(sum, n.count);
@@ -603,7 +603,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
 
     ASSERT_EQ(0u, table.NumItems());
 
-    auto it1 = output.GetReader();
+    auto it1 = output.GetKeepReader();
     while (it1.HasNext()) {
         auto n = it1.Next<StringPair>();
         ASSERT_EQ(sum, n.second);
