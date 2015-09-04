@@ -165,19 +165,26 @@ public:
         return result;
     }
 
-    //! Creates a BlockReader which concatenates items from all workers in
-    //! worker rank order. The BlockReader is attached to one \ref
-    //! ConcatBlockSource which includes all incoming queues of this channel.
-    ConcatBlockReader OpenConcatReader(bool consume) {
-        rx_timespan_.StartEventually();
-
+    //! Creates a BlockSource which concatenates items from all workers in
+    //! worker rank order. 
+    ConcatBlockSource GetConcatSource(bool consume) {
         // construct vector of CachingBlockQueueSources to read from queues_.
         std::vector<DynBlockSource> result;
         for (size_t worker = 0; worker < multiplexer_.num_workers(); ++worker) {
             result.emplace_back(queues_[worker].GetBlockSource(consume));
         }
         // move BlockQueueSources into concatenation BlockSource, and to Reader.
-        return ConcatBlockReader(ConcatBlockSource(std::move(result)));
+        //
+        return ConcatBlockSource(std::move(result));
+    }
+
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! ConcatBlockSource which includes all incoming queues of this channel.
+    ConcatBlockReader OpenConcatReader(bool consume) {
+        rx_timespan_.StartEventually();
+
+        return ConcatBlockReader(GetConcatSource(consume));
     }
 
     /*!

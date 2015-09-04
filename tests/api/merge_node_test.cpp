@@ -68,7 +68,7 @@ void CreateRandomSizeFiles(std::vector<data::File> &files, size_t maxSize, size_
         fw.Close();
     }
 }
-/*
+
 TEST_F(MergeHelpers, MultiIndexOf) {
     const size_t size = 500;
     const size_t count = 10;
@@ -87,15 +87,20 @@ TEST_F(MergeHelpers, MultiIndexOf) {
         ASSERT_EQ(val, val2);
     }
 }
-*/
-TEST_F(MergeHelpers, MultiGetAtIndex) {
+
+TEST_F(MergeHelpers, RandomFileSizeMultiGetAtIndex) {
     const size_t size = 500;
     const size_t count = 10;
 
     std::vector<data::File> files;
     CreateRandomSizeFiles(files, size, count, block_pool_);
 
-    for (size_t i = 0; i < (size * count) / 17; i++) {
+    size_t sizeSum = 0;
+    for(size_t i = 0; i < files.size(); i++) {
+        sizeSum += files[i].num_items();
+    }
+
+    for (size_t i = 0; i < sizeSum / 17; i++) {
         size_t idx = (i * 17);
 
         size_t val = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
@@ -104,7 +109,7 @@ TEST_F(MergeHelpers, MultiGetAtIndex) {
 
         ASSERT_EQ(idx2, idx);
     }
-}/*
+}
 template <typename stackA, typename stackB>
 void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef<size_t, stackB> merge_input2, size_t expected_size, int num_workers) {
         // merge
@@ -121,7 +126,7 @@ void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef
         ASSERT_EQ(expected_size, res.size());
 
         for (size_t i = 0; i != res.size() - 1; ++i) {
-            ASSERT_TRUE(res[i] < res[i + 1]);
+            ASSERT_TRUE(res[i] <= res[i + 1]);
         }
 
         // check if balancing condition was met
@@ -197,4 +202,4 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
         };
 
     thrill::api::RunLocalTests(start_func);
-}*/
+}
