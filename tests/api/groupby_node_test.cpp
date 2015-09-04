@@ -45,7 +45,7 @@ TEST(GroupByNode, Compile_and_Sum) {
 
             auto sum_fn =
                 [m](api::GroupByIterator<int> r) {
-                    int res = 0;
+                    unsigned res = 0;
                     int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
@@ -57,7 +57,7 @@ TEST(GroupByNode, Compile_and_Sum) {
 
             // group by to compute sum and gather results
             auto reduced = integers.GroupBy(modulo_keyfn, sum_fn);
-            std::vector<int> out_vec = reduced.AllGather();
+            std::vector<unsigned> out_vec = reduced.AllGather();
 
             // compute vector with expected results
             std::vector<unsigned> res_vec(m, 0);
