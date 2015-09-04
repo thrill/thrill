@@ -319,7 +319,7 @@ TEST_F(PostTable, ComplexType) {
                                   core::PostReduceFlushToDefault<std::string, decltype(red_fn), true>,
                                   core::PostReduceByHashKey<std::string>, std::equal_to<std::string>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<std::string>(),
-                  core::PostReduceFlushToDefault<std::string, decltype(red_fn), true>(), 0, 0, sp, 1024 * 24, 1.0, 0.5, 1,
+                  core::PostReduceFlushToDefault<std::string, decltype(red_fn), true>(), 0, 0, sp, 1024 * 24, 1.0, 0.5, 0.01,
                   std::equal_to<std::string>());
 
             table.Insert(std::make_pair("hallo", std::make_pair("hallo", 1)));
@@ -370,7 +370,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
-                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size, 1.0, 1.0, 1,
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size, 1.0, 1.0, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -423,7 +423,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
                                   core::PostReduceFlushToDefault<int, decltype(red_fn), true>,
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
-                  core::PostReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, bucket_block_size, 1.0, 0.5, 1,
+                  core::PostReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, bucket_block_size, 1.0, 0.5, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -484,7 +484,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
                                   core::PostReduceFlushToDefault<int, decltype(red_fn)>,
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
-                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size * 3, 0.5, 1.0, 1,
+                  core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size * 3, 0.5, 1.0, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -544,7 +544,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0,
-                  bucket_block_size * 2, 0.5, 0.5, 1,
+                  bucket_block_size * 2, 0.5, 0.5, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -604,7 +604,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0,
-                  bucket_block_size * 3, 1.0, 1.0, 1,
+                  bucket_block_size * 3, 1.0, 1.0, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -664,7 +664,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0,
-                  bucket_block_size * 3, 1.0, 0.5, 1,
+                  bucket_block_size * 3, 1.0, 0.5, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
@@ -721,7 +721,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                                   core::PostReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
             table(ctx, key_ex, red_fn, emitters, core::PostReduceByHashKey<int>(),
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(),
-                  0, 0, 0, 1024 * 16, 0.001, 1.0, 1,
+                  0, 0, 0, 1024 * 16, 0.001, 1.0, 0.01,
                   std::equal_to<int>());
 
             size_t block_size = common::max<size_t>(8, TargetBlockSize /
