@@ -222,7 +222,7 @@ public:
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
     data::ChannelPtr GetNewChannel() {
-        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
+        return multiplexer_.GetNewChannel(local_worker_id_);
     }
 
     //! the block manager keeps all data blocks moving through the system.
