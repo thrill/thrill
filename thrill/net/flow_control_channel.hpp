@@ -296,7 +296,10 @@ public:
 
         barrier.Await();
 
-        res = *GetLocalShared<T>();
+        // other threads: read value from thread 0.
+        if (threadId != 0) {
+            res = *GetLocalShared<T>();
+        }
 
         if (threadId == 0) {
             ClearLocalShared();
