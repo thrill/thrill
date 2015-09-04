@@ -42,6 +42,9 @@ namespace net {
 class FlowControlChannel
 {
 protected:
+
+    static const bool self_verify = false;
+
     /**
      * The group associated with this channel.
      */
@@ -110,7 +113,8 @@ protected:
 
     template <typename T>
     void SetLocalShared(T* value) {
-        assert(*shmem == nullptr);
+        if(self_verify)
+            assert(*shmem == nullptr);
         assert(threadId == 0);
         *shmem = value;
     }
@@ -122,8 +126,11 @@ protected:
     }
 
     void ClearLocalShared() {
-        assert(threadId == 0);
-        *shmem = nullptr;
+        if(self_verify) {
+            assert(threadId == 0);
+            *shmem = nullptr;
+            barrier.Await();
+        }
     }
 
 public:
@@ -160,7 +167,7 @@ public:
         // return value when computing non-exclusive prefix sum
         T exclusiveRes = T();
         std::vector<T> localPrefixBuffer(threadCount);
-
+            
         // Local Reduce
         if (threadId == 0) {
             // Master allocate memory.
@@ -252,23 +259,7 @@ public:
     template <typename T>
     T Broadcast(const T& value) {
 
-        // REVIEW(ej): ThreadSanitizer shows a data race in this function. The
-        // problem seems to be that you use two synchronizations: one to pass
-        // the *address* of res to the other threads and then to pass the value
-        // inside. These are not separated.
-        //
-        // More generally: I dont like the two barriers for one
-        // broadcast. Things should work like this: one thread has the item and
-        // puts it somewhere, all threads await the barrier, then all threads
-        // can take out the item.
-        //
-        // The passing of the memory address to others requires the two
-        // barriers.  You should make one common shared areas (say of 256
-        // bytes), into which threads put their data and get the data after a
-        // barrier. If you really want to support items >= 256 then keep the
-        // pointer passing (after fixing it) as a fallback mechanism.
-
-        T res;
+        T res = value;
 
         // The primary thread of each node has to handle IO
         if (threadId == 0) {
@@ -289,13 +280,16 @@ public:
 
         barrier.Await();
 
-        res = *GetLocalShared<T>();
-
-        barrier.Await();
+        // other threads: read value from thread 0.
+        if (threadId != 0) {
+            res = *GetLocalShared<T>();
+        }
 
         if (threadId == 0) {
             ClearLocalShared();
         }
+
+        barrier.Await();
 
         return res;
     }
@@ -315,6 +309,7 @@ public:
     T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
+            
 
         // Local Reduce
         if (threadId == 0) {
@@ -353,7 +348,6 @@ public:
             SetLocalShared(&res);
             barrier.Await();
             // Slave get result
-            barrier.Await();
             ClearLocalShared();
         }
         else {
@@ -367,8 +361,9 @@ public:
             barrier.Await();
             // Slave get result
             res = *GetLocalShared<T>();
-            barrier.Await();
         }
+        
+        barrier.Await();
 
         return res;
     }
