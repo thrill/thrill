@@ -11,13 +11,10 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/api/dia.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/examples/word_count.hpp>
 
-
-using WordCountPair = std::pair<std::string, size_t>;
 using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
@@ -26,15 +23,9 @@ int main(int argc, char* argv[]) {
 
     clp.SetVerboseProcess(false);
 
-    std::string input;
-    clp.AddParamString("input", input,
-                       "input file pattern");
-
-
-    std::string output;
-    clp.AddParamString("output", output,
-                       "output file pattern");
-
+    unsigned int elements = 1000;
+    clp.AddUInt('s', "elements", "S", elements,
+                "Create wordcount example with S generated words");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -43,13 +34,9 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [input, output](api::Context& ctx) {
-		auto input_dia = ReadLines(ctx, input);
-		auto counted_words = examples::WordCount(input_dia);
-		counted_words.Map(
-        [](const WordCountPair& wc) {
-            return wc.first + ": " + std::to_string(wc.second);
-			}).WriteLinesMany(output);
+        [elements](api::Context& ctx) {
+            size_t uniques = examples::WordCountGenerated(ctx, elements);
+            sLOG1 << "wrote counts of" << uniques << "unique words";
         };
 
     return api::Run(start_func);
