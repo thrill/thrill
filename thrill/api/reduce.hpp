@@ -118,7 +118,7 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -174,7 +174,7 @@ public:
             // Files. Then the 2nd-PostTable stage can be repeatedly executed
             // from these Files when the StageBuilder calls "PushData()".
 
-            auto reader = channel_->OpenReader();
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -184,7 +184,7 @@ public:
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenReader();
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {

@@ -57,7 +57,7 @@ void ExperimentAllPairs(
             // read phase
             StatsTimer<true> read_timer(true);
             {
-                auto reader = channel->OpenReader();
+                auto reader = channel->OpenConcatReader(true);
 
                 while (reader.HasNext()) {
                     reader.Next<Type>();
@@ -117,7 +117,7 @@ void ExperimentFull(
     // read phase
     StatsTimer<true> read_timer(true);
     {
-        auto reader = channel->OpenReader();
+        auto reader = channel->OpenConcatReader(true);
 
         while (reader.HasNext()) {
             reader.Next<Type>();

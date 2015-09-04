@@ -43,14 +43,15 @@ public:
         node_->Execute();
         node_->StopExecutionTimer();
 
-        node_->PushData();
+        node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
     }
 
     void PushData() {
         sLOG << "PUSHING stage " << node_->label() << "id" << node_->id()
              << "node" << node_;
-        node_->PushData();
+        die_unless(!node_->consume_on_push_data());
+        node_->PushData(node_->consume_on_push_data());
         node_->set_state(api::DIAState::EXECUTED);
     }
 
@@ -66,7 +67,7 @@ public:
     }
 
 private:
-    static const bool debug = false;
+    static const bool debug = true;
     DIABase* node_;
 };
 

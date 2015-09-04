@@ -65,7 +65,7 @@ public:
           size_(size)
     { }
 
-    void PushData() final {
+    void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
         std::tie(local_begin, local_end) =
             common::CalculateLocalRange(size_, context_);
