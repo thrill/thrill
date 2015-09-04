@@ -67,7 +67,7 @@ public:
     }
 
 private:
-    static const bool debug = true;
+    static const bool debug = false;
     DIABase* node_;
 };
 
