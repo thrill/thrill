@@ -164,7 +164,7 @@ TEST_F(Multiplexer, ReadCompleteChannel) {
                       w.Close();
                   }
 
-                  auto reader = c->OpenReader();
+                  auto reader = c->OpenConcatReader(true);
                   ASSERT_EQ("I came from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I am another message from worker 0", reader.Next<std::string>());
                   ASSERT_EQ("I came from worker 1", reader.Next<std::string>());
@@ -208,7 +208,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                   }
 
                   {
-                      auto reader = c->OpenCachingReader();
+                      auto reader = c->OpenConcatReader(false);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -218,7 +218,7 @@ TEST_F(Multiplexer, ReadCompleteChannelTwice) {
                       ASSERT_TRUE(!reader.HasNext());
                   }
                   {
-                      auto reader = c->OpenCachingReader();
+                      auto reader = c->OpenConcatReader(true);
                       ASSERT_EQ("I came from worker 0",
                                 reader.Next<std::string>());
                       ASSERT_EQ("I am another message from worker 0",
@@ -250,7 +250,7 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             ch->Scatter<std::string>(file, { 2 });
 
             // check that got items
-            auto reader = ch->OpenReader();
+            auto reader = ch->OpenConcatReader(true);
             ASSERT_TRUE(reader.HasNext());
             ASSERT_EQ(reader.Next<std::string>(), "foo");
             ASSERT_TRUE(reader.HasNext());
@@ -277,7 +277,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ch->Scatter<std::string>(file, { 2, 2 });
 
             // check that got items
-            auto res = ch->OpenReader().ReadComplete<std::string>();
+            auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
             ASSERT_EQ(res, (std::vector<std::string>{ "foo", "bar" }));
         };
     auto w1 =
@@ -297,7 +297,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             ch->Scatter<std::string>(file, { 0, 3 });
 
             // check that got items
-            auto res = ch->OpenReader().ReadComplete<std::string>();
+            auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
             ASSERT_EQ(res, (std::vector<std::string>{ "hello", "world", "." }));
         };
     Execute(w0, w1);
@@ -319,7 +319,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<std::string>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "foo", "hello" }));
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
@@ -338,7 +338,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
                   ch->Scatter<std::string>(file, { 1, 2 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<std::string>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<std::string>();
                   ASSERT_EQ(res, (std::vector<std::string>{ "bar", "world" }));
               };
     Execute(w0, w1);
@@ -360,7 +360,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 2, 2, 2 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<int>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 1, 2 }));
               };
     auto w1 = [](data::Multiplexer& multiplexer) {
@@ -380,7 +380,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 0, 2, 4 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<int>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 3, 4 }));
               };
     auto w2 = [](data::Multiplexer& multiplexer) {
@@ -393,7 +393,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
                   ch->Scatter<int>(file, { 0, 0, 0 });
 
                   // check that got items
-                  auto res = ch->OpenReader().ReadComplete<int>();
+                  auto res = ch->OpenConcatReader(true).ReadComplete<int>();
                   ASSERT_EQ(res, (std::vector<int>{ 5, 6 }));
               };
     Execute(w0, w1, w2);

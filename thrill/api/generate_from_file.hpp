@@ -70,7 +70,8 @@ public:
     { }
 
     virtual ~GenerateFileNode() { }
-    void PushData() final {
+
+    void PushData(bool /* consume */) final {
         LOG << "GENERATING data to file " << this->id();
 
         std::ifstream file(path_in_);

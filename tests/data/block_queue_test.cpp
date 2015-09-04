@@ -18,7 +18,7 @@
 
 using namespace thrill;
 
-using MyBlockSource = data::BlockQueue::BlockSource;
+using MyBlockSource = data::ConsumeBlockQueueSource;
 using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
 struct BlockQueue : public::testing::Test {
@@ -74,7 +74,7 @@ TEST_F(BlockQueue, WriteZeroItems) {
 
     // get zero items back from file.
     {
-        data::BlockQueue::Reader br = q.GetReader();
+        data::BlockQueue::ConsumeReader br = q.GetConsumeReader();
 
         ASSERT_FALSE(br.HasNext());
     }
@@ -93,17 +93,48 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
 
     pool.Enqueue(
         [&q]() {
-            data::BlockQueue::Reader br = q.GetReader();
+            {
+                data::BlockQueue::Reader br = q.GetReader(false);
 
-            ASSERT_TRUE(br.HasNext());
-            int i1 = br.Next<int>();
-            ASSERT_EQ(42, i1);
+                ASSERT_TRUE(br.HasNext());
+                int i1 = br.Next<int>();
+                ASSERT_EQ(42, i1);
 
-            ASSERT_TRUE(br.HasNext());
-            std::string i2 = br.Next<std::string>();
-            ASSERT_EQ("hello there BlockQueue", i2);
+                ASSERT_TRUE(br.HasNext());
+                std::string i2 = br.Next<std::string>();
+                ASSERT_EQ("hello there BlockQueue", i2);
 
-            ASSERT_FALSE(br.HasNext());
+                ASSERT_FALSE(br.HasNext());
+                ASSERT_FALSE(br.HasNext());
+            }
+            {
+                data::BlockQueue::Reader br = q.GetReader(false);
+
+                ASSERT_TRUE(br.HasNext());
+                int i1 = br.Next<int>();
+                ASSERT_EQ(42, i1);
+
+                ASSERT_TRUE(br.HasNext());
+                std::string i2 = br.Next<std::string>();
+                ASSERT_EQ("hello there BlockQueue", i2);
+
+                ASSERT_FALSE(br.HasNext());
+                ASSERT_FALSE(br.HasNext());
+            }
+            {
+                data::BlockQueue::Reader br = q.GetReader(true);
+
+                ASSERT_TRUE(br.HasNext());
+                int i1 = br.Next<int>();
+                ASSERT_EQ(42, i1);
+
+                ASSERT_TRUE(br.HasNext());
+                std::string i2 = br.Next<std::string>();
+                ASSERT_EQ("hello there BlockQueue", i2);
+
+                ASSERT_FALSE(br.HasNext());
+                ASSERT_FALSE(br.HasNext());
+            }
         });
 
     pool.LoopUntilEmpty();
@@ -154,7 +185,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
 
     pool.Enqueue(
         [&q]() {
-            data::BlockQueue::DynReader br = q.GetDynReader();
+            data::BlockQueue::Reader br = q.GetReader(false);
 
             ASSERT_TRUE(br.HasNext());
             int i1 = br.Next<int>();
