@@ -149,7 +149,7 @@ private:
 		bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
 			ssize_t bytes = file.read(buffer.data(), read_size);
 			if(bytes < 0) {
-				throw common::SystemException("Read error", errno);
+				throw common::ErrnoException("Read error");
 			}
 			buffer.set_size(bytes);
 			current_ = buffer.begin();
