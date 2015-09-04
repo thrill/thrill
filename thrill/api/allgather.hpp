@@ -100,7 +100,7 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 
     core::StageBuilder().RunScope(shared_node.get());
 
-    return std::move(output);
+    return output;
 }
 
 template <typename ValueType, typename Stack>

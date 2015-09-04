@@ -109,7 +109,7 @@ public:
 
         T elem = std::move(elements_.front());
         elements_.pop_front();
-        return std::move(elem);
+        return elem;
     }
 };
 
