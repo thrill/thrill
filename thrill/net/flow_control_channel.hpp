@@ -43,7 +43,7 @@ class FlowControlChannel
 {
 protected:
 
-    static const bool self_verify = true;
+    static const bool self_verify = false;
 
     /**
      * The group associated with this channel.
@@ -129,7 +129,6 @@ protected:
         if(self_verify) {
             assert(threadId == 0);
             *shmem = nullptr;
-            barrier.Await();
         }
     }
 
