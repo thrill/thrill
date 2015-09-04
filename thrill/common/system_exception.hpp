@@ -20,19 +20,28 @@ namespace thrill {
 namespace common {
 
 /*!
- * An Exception which is thrown on system errors and contains errno information.
+ * An Exception which is thrown on system errors.
  */
 class SystemException : public std::runtime_error
 {
 public:
     explicit SystemException(const std::string& what)
-        : std::runtime_error(what)
+        : std::runtime_error(what) { }
+};
+
+/*!
+ * An Exception which is thrown on system errors and contains errno information.
+ */
+class ErrnoException : public SystemException
+{
+public:
+    ErrnoException(const std::string& what, int _errno)
+        : SystemException(
+            what + ": [" + std::to_string(_errno) + "] " + strerror(_errno))
     { }
 
-    SystemException(const std::string& what, int _errno)
-        : std::runtime_error(
-              what + ": [" + std::to_string(_errno) + "] " + strerror(_errno))
-    { }
+    explicit ErrnoException(const std::string& what)
+        : ErrnoException(what, errno) { }
 };
 
 } // namespace common

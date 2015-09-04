@@ -142,7 +142,7 @@ template <typename Key, typename Value,
           const bool RobustKey = false,
           typename IndexFunction = PreReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          size_t TargetBlockSize = 16*4
+          size_t TargetBlockSize = 16*16
           >
 class ReducePreTable
 {
@@ -211,9 +211,9 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   size_t byte_size = 1024* 16,
-                   double bucket_rate = 0.01,
-                   double max_partition_fill_rate = 0.5,
+                   size_t byte_size = 1024 * 1024 * 128 * 4,
+                   double bucket_rate = 0.9,
+                   double max_partition_fill_rate = 0.6,
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : num_partitions_(num_partitions),
@@ -239,6 +239,13 @@ public:
         num_buckets_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_table_)
                                                                 / static_cast<double>(num_partitions_)) * bucket_rate), 1);
         num_buckets_ = num_buckets_per_partition_ * num_partitions_;
+
+        // reduce number of blocks once we know how many buckets we have, thus
+        // knowing the size of pointers in the bucket vector
+
+        max_num_blocks_table_ -= std::max<size_t>((size_t)(std::ceil(
+                static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
+                / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         buckets_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);
