@@ -138,21 +138,22 @@ private:
         unsigned char* current_;
         //! (exclusive) end of local block
         size_t my_end_;
-        //! Reference to context
-        Context& context_;
+		//! Reference to context
+		Context& context_;
 
-        size_t stats_total_bytes_ = 0;
-        size_t stats_total_reads_ = 0;
-        size_t stats_total_elements_ = 0;
+		size_t stats_total_bytes_ = 0;
+		size_t stats_total_reads_ = 0;
+		size_t stats_total_elements_ = 0;
 
-        bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
-            ssize_t bytes = file.read(buffer.data(), read_size);
-            buffer.set_size(bytes);
-            current_ = buffer.begin();
-            stats_total_bytes_ += bytes;
-            stats_total_reads_++;
-            return bytes > 0;
-        }
+		bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
+			ssize_t bytes = file.read(buffer.data(), read_size);
+			buffer.set_size(bytes);
+			current_ = buffer.begin();
+			stats_total_bytes_ += bytes;
+			stats_total_reads_++;
+			LOG1 << "Opening block with " << bytes << " bytes.";
+			return bytes > 0;
+		}
 
         ~InputLineIterator() {
             STAT(context_) << "NodeType" << "ReadLines"
