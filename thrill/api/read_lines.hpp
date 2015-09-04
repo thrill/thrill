@@ -20,6 +20,7 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
 
@@ -147,11 +148,14 @@ private:
 
 		bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
 			ssize_t bytes = file.read(buffer.data(), read_size);
+			if(bytes < 0) {
+				throw common::SystemException("Read error", errno);
+			}
 			buffer.set_size(bytes);
 			current_ = buffer.begin();
 			stats_total_bytes_ += bytes;
 			stats_total_reads_++;
-			LOG1 << "Opening block with " << bytes << " bytes.";
+			LOG << "Opening block with " << bytes << " bytes.";
 			return bytes > 0;
 		}
 
@@ -236,13 +240,17 @@ private:
                         data_.push_back(*current_++);
                     }
                 }
+				offset_ += buffer_.size();
                 if (!ReadBlock(file_, buffer_)) {
+					LOG << "opening next file";
+
                     file_.close();
                     current_file_++;
                     offset_ = 0;
 
                     if (current_file_ < NumFiles()) {
                         file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+						offset_ += buffer_.size();
                         ReadBlock(file_, buffer_);
                     }
                     else {
@@ -259,11 +267,13 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            size_t global_index = offset_ + current_ - buffer_.begin() + files_[current_file_].second;
+			size_t position_in_buf = current_ - buffer_.begin(); 
+			assert(current_ >= buffer_.begin());
+            size_t global_index = offset_ + position_in_buf + files_[current_file_].second;
             return global_index < my_end_ ||
                    (global_index == my_end_ &&
                     files_[current_file_ + 1].second - files_[current_file_].second >
-                    offset_ + (current_ - buffer_.begin()));
+                    offset_ + position_in_buf);
         }
 
         size_t NumFiles() {
