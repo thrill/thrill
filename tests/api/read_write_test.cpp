@@ -177,7 +177,7 @@ TEST(IO, ReadPartOfFolderCompressed) {
 TEST(IO, GenerateFromFileRandomIntegers) {
     api::RunSameThread(
         [](api::Context& ctx) {
-            std::default_random_engine generator({ std::random_device()() });
+            std::default_random_engine generator(std::random_device{}());
             std::uniform_int_distribution<int> distribution(1000, 10000);
 
             size_t generate_size = distribution(generator);
