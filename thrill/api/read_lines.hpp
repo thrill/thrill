@@ -74,7 +74,7 @@ public:
         }
     }
 
-    void PushData() final {
+    void PushData(bool /* consume */) final {
         if (contains_compressed_file_) {
             InputLineIteratorCompressed it = InputLineIteratorCompressed(
                 filesize_prefix_, context_);
