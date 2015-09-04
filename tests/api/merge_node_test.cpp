@@ -103,7 +103,6 @@ TEST_F(MergeHelpers, MultiGetAtIndex) {
         ASSERT_EQ(idx / count, val);
     }
 }
-/*
 template <typename stackA, typename stackB>
 void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef<size_t, stackB> merge_input2, size_t expected_size, int num_workers) {
         // merge
@@ -196,4 +195,4 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
         };
 
     thrill::api::RunLocalTests(start_func);
-}*/
+}
