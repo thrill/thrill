@@ -15,6 +15,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <cerrno>
 
 namespace thrill {
 namespace common {
