@@ -142,7 +142,7 @@ template <typename ValueType,
           typename Comperator>
 class TwoMergeNode : public DOpNode<ValueType>
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
