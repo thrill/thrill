@@ -21,6 +21,7 @@
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/buffered_block_reader.hpp>
+#include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/net/collective_communication.hpp>
 
 #include <algorithm>
@@ -41,7 +42,7 @@ public:
     template <typename ItemType, typename CompareFunction>
     static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator) {
 
-        static const bool debug = true;
+        static const bool debug = false;
 
         //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608
         
@@ -65,11 +66,12 @@ public:
             width[i] = std::min(len, k);
         }
 
+        LOG << "#################################";
+        LOG << "Searching for element with rank " << k;
+        
         //Assert check wether k is in bounds of all files. 
         assert(sum > k);
 
-        LOG << "#################################";
-        LOG << "Searching for element with rank " << k;
 
         while(true) {
 
@@ -116,27 +118,40 @@ public:
 
         }
         size_t j = remap[k];
-        return files[j].GetItemAt<ItemType>(mid[j]);
+        ItemType value = files[j].GetItemAt<ItemType>(mid[j]);
+        LOG << "Selected value " << value; 
+        return value;
     }
 
     template <typename ItemType, typename Comperator>
     static size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files, Comperator comperator) {
-        static const bool debug = true;
+        static const bool debug = false;
 
         //Get the index of a given element, or the first
         //Greater one - 1 
-        size_t idx = 0;
+        size_t lidx = 0;
+        size_t hidx = 0;
+
+        LOG << "Looking for element " << element << " with tie " << tie;
 
         for(size_t i = 0; i < files.size(); i++) {
-            LOG << "Found " << element << " at " << idx; 
-            idx += files[i].GetIndexOf(element, tie, comperator);
-            if(tie > files[i].num_items())
-                tie -= files[i].num_items(); //Shift tie. 
-            else
-                tie = 0;
+            //LOG << "Found " << element << " at " << idx;
+            //auto reader = files[i].GetKeepReader();
+            //LOG << "File " << i << ": " << VToStr(reader.ReadComplete<size_t>());
+            
+            lidx += files[i].GetIndexOf(element, 0, comperator);
+            hidx += files[i].GetIndexOf(element, std::numeric_limits<size_t>::max(), comperator);
         }
 
-        return idx;
+        LOG << "hidx: " << hidx << ", lidx: " << lidx << ", tie: " << tie; 
+
+        if(tie > hidx) {
+            return hidx;
+        } else if(tie < lidx) {
+            return lidx;
+        } else {
+            return tie;
+        }
     }
 };
 //! todo(ej) todo(tb) Can probably subclass a lot here.
@@ -193,13 +208,16 @@ public:
 
         LOG << "Entering Main OP";
 
-        typedef data::BufferedBlockReader<ValueType, data::ConcatBlockSource<data::CachingBlockQueueSource>> Reader; 
+        typedef data::BufferedBlockReader<ValueType, data::ConcatBlockSource<data::DynBlockSource>> Reader; 
 
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
         for(size_t i = 0; i < channels_.size(); i++) {
-            readers.emplace_back(std::move(channels_[i]->OpenConcatReader(consume)));
+           // Reader keks(std::move(channels_[i]->OpenConcatReader(consume).source()));
+            readers.emplace_back(std::move(channels_[i]->GetConcatSource(consume)));
         }
+
+        std::ostringstream out; 
 
         // TODO(ej) - call WriteChannelStats() for each channel when these
         // when they are closed ( = you read all data + called Close() on the
@@ -220,11 +238,14 @@ public:
                 LOG << "Finished Merge.";
                 //We finished.
                 break;
+            } else {
+                LOG << "Use " << biggest; 
             }
 
             auto &reader = readers[biggest];
 
             for (auto func : DIANode<ValueType>::callbacks_) {
+                out << reader.Value() << " ";
                 func(reader.Value());
             }
 
@@ -232,6 +253,8 @@ public:
 
             result_count++;
         }
+
+        LOG << "Merged: " << out.str();
 
        // sLOG << "Merge: result_count" << result_count;
     }
@@ -396,7 +419,7 @@ private:
             LOG << "widthsum: " << VToStr(widthsum);
 
             for(size_t r = 0; r < p - 1; r++) {
-                if(widthsum[r] <= 2) { //Yes, this is cheating, but I have no idea why it gets unstable for very low widthsum[r] 
+                if(widthsum[r] <= 9) { //Yes, this is cheating, but I have no idea why it gets unstable for very low widthsum[r]. 9 is randomly choosen by fair dice roll.  
                     partitions[r] = left[r];
                     done++;
                 }
