@@ -41,7 +41,7 @@ public:
     template <typename ItemType, typename CompareFunction>
     static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator) {
 
-        static const bool debug = false;
+        static const bool debug = true;
 
         //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608
         
@@ -68,6 +68,7 @@ public:
         //Assert check wether k is in bounds of all files. 
         assert(sum > k);
 
+        LOG << "#################################";
         LOG << "Searching for element with rank " << k;
 
         while(true) {
@@ -80,7 +81,7 @@ public:
             size_t j0 = remap[0];
             size_t j = j0;
             mid[j] = left[j] + width[j] / 2;
-            LOG << "Master selecting pivot from " << mid[j];
+            LOG << "Master selecting pivot at " << mid[j];
             ItemType pivot = files[j].GetItemAt<ItemType>(mid[j]);
             size_t leftSum = mid[j] - left[j];
 
@@ -120,16 +121,19 @@ public:
 
     template <typename ItemType, typename Comperator>
     static size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files, Comperator comperator) {
-        static const bool debug = false;
+        static const bool debug = true;
 
         //Get the index of a given element, or the first
-        //Greater one. 
+        //Greater one - 1 
         size_t idx = 0;
 
         for(size_t i = 0; i < files.size(); i++) {
             LOG << "Found " << element << " at " << idx; 
             idx += files[i].GetIndexOf(element, tie, comperator);
-            tie -= files[i].num_items(); //Shift tie. 
+            if(tie > files[i].num_items())
+                tie -= files[i].num_items(); //Shift tie. 
+            else
+                tie = 0;
         }
 
         return idx;

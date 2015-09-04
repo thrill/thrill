@@ -348,6 +348,7 @@ size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction less) c
 
     LOG << "Looking for item " << item;
     LOG << "Looking for tie " << tie;
+    LOG << "Len: " << num_items();
 
     // Use a binary search to find the item.
     size_t left = 0;
@@ -367,6 +368,8 @@ size_t File::GetIndexOf(ItemType item, size_t tie, const CompareFunction less) c
             left = mid + 1;
         }
     }
+
+    LOG << "Found element at: " << left;
 
     return left;
 }
