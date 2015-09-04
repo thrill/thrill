@@ -187,6 +187,9 @@ set(THRILL_VALGRIND_OPTS
 
 include(CheckFunctionExists)
 check_function_exists(pipe2 THRILL_HAVE_PIPE2)
+if(THRILL_HAVE_PIPE2)
+  add_definitions(-DTHRILL_HAVE_PIPE2=1)
+endif()
 
 ###############################################################################
 # add cereal
@@ -213,16 +216,16 @@ endif()
 
 if(NOT TBB_FOUND)
   message(STATUS "Intel TBB not found. No problem, using slower replacements.")
-  add_definitions(-DHAVE_INTELTBB=0)
+  add_definitions(-DTHRILL_HAVE_INTELTBB=0)
 elseif(TBB_INTERFACE_VERSION LESS 8000)
   message(STATUS "Intel TBB ${TBB_INTERFACE_VERSION} is too old. "
     "No problem, using slower replacements.")
-  add_definitions(-DHAVE_INTELTBB=0)
+  add_definitions(-DTHRILL_HAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
   include_directories(${TBB_INCLUDE_DIRS})
   link_directories(${TBB_LIBRARY_DIRS})
   set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
-  add_definitions(-DHAVE_INTELTBB=1)
+  add_definitions(-DTHRILL_HAVE_INTELTBB=1)
 endif()
 
 # example: use Boost libraries:

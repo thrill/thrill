@@ -104,7 +104,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     // read File contents using BlockReader
     {
-        data::File::Reader fr = file.GetReader();
+        data::File::KeepReader fr = file.GetKeepReader();
         ASSERT_EQ(fr.Read(8), "testtest");
         ASSERT_EQ(fr.GetVarint(), 123456u);
         ASSERT_EQ(fr.GetString(), "test1test2test3");
@@ -129,7 +129,7 @@ TEST_F(File, WriteZeroItems) {
 
     // get zero items back from file.
     {
-        data::File::Reader fr = file.GetReader();
+        data::File::KeepReader fr = file.GetKeepReader();
 
         ASSERT_FALSE(fr.HasNext());
     }
@@ -156,15 +156,24 @@ TEST_F(File, SerializeSomeItems) {
 
     // get items back from file.
     {
-        data::File::Reader fr = file.GetReader();
+        data::File::KeepReader fr = file.GetKeepReader();
+        ASSERT_TRUE(fr.HasNext());
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
+
+        ASSERT_TRUE(fr.HasNext());
         MyPair i2 = fr.Next<MyPair>();
         ASSERT_EQ(i2, MyPair(5, "10abc"));
+
+        ASSERT_TRUE(fr.HasNext());
         double i3 = fr.Next<double>();
         ASSERT_DOUBLE_EQ(i3, 42.0);
+
+        ASSERT_TRUE(fr.HasNext());
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
+
+        ASSERT_TRUE(!fr.HasNext());
     }
 }
 
@@ -184,19 +193,58 @@ TEST_F(File, SerializeSomeItemsDynReader) {
         fw(static_cast<double>(42.0));
         fw(std::string("test"));
     }
+    ASSERT_EQ(4u, file.num_items());
 
     // get items back from file.
     {
-        data::File::DynReader fr = file.GetDynReader();
+        data::File::Reader fr = file.GetReader(false);
+        ASSERT_TRUE(fr.HasNext());
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
+
+        ASSERT_TRUE(fr.HasNext());
         MyPair i2 = fr.Next<MyPair>();
         ASSERT_EQ(i2, MyPair(5, "10abc"));
+
+        ASSERT_TRUE(fr.HasNext());
         double i3 = fr.Next<double>();
         ASSERT_DOUBLE_EQ(i3, 42.0);
+
+        ASSERT_TRUE(fr.HasNext());
         std::string i4 = fr.Next<std::string>();
         ASSERT_EQ(i4, "test");
+
+        ASSERT_TRUE(!fr.HasNext());
     }
+    ASSERT_EQ(4u, file.num_items());
+}
+
+TEST_F(File, SerializeSomeItemsConsumeReader) {
+
+    // construct File with very small blocks for testing
+    data::File file(block_pool_);
+
+    // put into File some items (all of different serialization bytes)
+    {
+        // construct File with very small blocks for testing
+        data::File::Writer fw = file.GetWriter(53);
+        for (size_t i = 0; i < 50; ++i) {
+            fw.PutItem<unsigned>(i);
+        }
+    }
+
+    // get items back from file, consuming it.
+    {
+        data::File::Reader fr = file.GetReader(true);
+        for (size_t i = 0; i < 50; ++i) {
+            ASSERT_TRUE(fr.HasNext());
+            unsigned iread = fr.Next<unsigned>();
+            ASSERT_EQ(i, iread);
+        }
+        ASSERT_TRUE(!fr.HasNext());
+    }
+    ASSERT_TRUE(file.empty());
+    ASSERT_EQ(0u, file.num_items());
 }
 
 TEST_F(File, RandomGetIndexOf) {
@@ -321,7 +369,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     ASSERT_EQ(1000u, file.num_items());
 
     // read complete File
-    data::File::Reader fr = file.GetReader();
+    data::File::KeepReader fr = file.GetKeepReader();
     for (size_t i = 0; i < 1000; ++i) {
         ASSERT_TRUE(fr.HasNext());
         ASSERT_EQ(i, fr.Next<size_t>());
@@ -334,7 +382,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
             LOG << "Test range [" << begin << "," << end << ")";
 
             // seek in File to begin.
-            data::File::Reader fr = file.GetReaderAt<size_t>(begin);
+            data::File::KeepReader fr = file.GetReaderAt<size_t>(begin);
 
             // read a few items
             if (end - begin > 5 && do_more) {
@@ -356,7 +404,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                     queue.AppendBlock(b);
                 queue.Close();
 
-                data::BlockQueue::Reader qr = queue.GetReader();
+                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
 
                 for (size_t i = begin; i < end; ++i) {
                     ASSERT_TRUE(qr.HasNext());
@@ -381,7 +429,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
                     queue.AppendBlock(b);
                 queue.Close();
 
-                data::BlockQueue::Reader qr = queue.GetReader();
+                data::BlockQueue::ConsumeReader qr = queue.GetConsumeReader();
 
                 for (size_t i = end; i < end + more; ++i) {
                     ASSERT_TRUE(qr.HasNext());
@@ -445,7 +493,8 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
 }
 
 // forced instantiation
-template class data::BlockReader<data::FileBlockSource>;
+template class data::BlockReader<data::KeepFileBlockSource>;
+template class data::BlockReader<data::ConsumeFileBlockSource>;
 
 // fixed size serialization test
 static_assert(data::Serialization<data::DynBlockWriter, int>

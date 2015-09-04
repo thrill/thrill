@@ -167,7 +167,8 @@ public:
                 // reduce data from spilled files
                 /////
 
-                data::File::Reader reader = file.GetReader();
+                bool consume = false;
+                data::File::Reader reader = file.GetReader(consume);
 
                 // flag used when item is reduced to advance to next item
                 bool reduced = false;

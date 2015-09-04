@@ -48,6 +48,9 @@ public:
               StatsNode* stats_node)
         : DIANode<ValueType>(parent.ctx(), { parent.node() }, stats_node)
     {
+        // CacheNodes are kept by default.
+        Super::consume_on_push_data_ = false;
+
         auto save_fn =
             [=](const ValueType& input) {
                 writer_(input);
@@ -68,8 +71,8 @@ public:
         writer_.Close();
     }
 
-    void PushData() final {
-        data::File::Reader reader = file_.GetReader();
+    void PushData(bool consume) final {
+        data::File::Reader reader = file_.GetReader(consume);
         for (size_t i = 0; i < file_.num_items(); ++i) {
             this->PushItem(reader.Next<ValueType>());
         }
