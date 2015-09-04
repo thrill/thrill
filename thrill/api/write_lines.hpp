@@ -60,11 +60,16 @@ public:
     void PreOp(const ValueType& input) {
         writer_(input);
         size_ += input.size() + 1;
+        stats_total_elements_++;
     }
 
     //! Closes the output file
     void Execute() override {
         writer_.Close();
+
+        STAT(context_) << "NodeType" << "WriteLines"
+                       << "TotalBytes" << size_
+                       << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
         size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
@@ -75,7 +80,7 @@ public:
         file_.seekp(prefix_elem);
         context_.Barrier();
 
-        data::File::Reader reader = temp_file_.GetReader();
+        data::File::ConsumeReader reader = temp_file_.GetConsumeReader();
 
         for (size_t i = 0; i < temp_file_.num_items(); ++i) {
             file_ << reader.Next<ValueType>() << "\n";
@@ -101,6 +106,8 @@ private:
 
     //! File writer used.
     data::File::Writer writer_;
+
+    size_t stats_total_elements_ = 0;
 };
 
 template <typename ValueType, typename Stack>

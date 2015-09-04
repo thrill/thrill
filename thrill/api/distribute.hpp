@@ -47,7 +47,7 @@ public:
           in_vector_(std::move(in_vector))
     { }
 
-    void PushData() final {
+    void PushData(bool /* consume */) final {
         size_t local_begin, local_end;
         std::tie(local_begin, local_end) =
             common::CalculateLocalRange(in_vector_.size(), context_);

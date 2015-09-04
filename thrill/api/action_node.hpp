@@ -36,7 +36,11 @@ public:
     void UnregisterChilds() final { }
 
     //! Actionnodes do not push data, they only Execute.
-    void PushData() final { }
+    void PushData(bool /* consume */) final { }
+
+    void SetConsume(bool /* consume */) final {
+        die("Setting .Keep() or .Consume() on Actions does not make sense.");
+    }
 };
 
 //! \}

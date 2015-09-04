@@ -44,11 +44,11 @@ public:
                        StatsNode* stats_node)
         : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           out_pathbase_(path_out),
-          c_file_(core::SysFile::OpenForWrite(core::make_path(
-                                                  out_pathbase_,
-                                                  context_.my_rank(),
-                                                  0))),
-        target_file_size_(target_file_size)
+          file_(core::SysFile::OpenForWrite(core::make_path(
+                                                out_pathbase_,
+                                                context_.my_rank(),
+                                                0))),
+          target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
 
@@ -68,27 +68,32 @@ public:
     }
 
     void PreOp(std::string input) {
+        stats_total_elements_++;
 
         if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
                             >= max_buffer_size_)) {
-            c_file_.write(write_buffer_.data(), current_buffer_size_);
+            stats_total_writes_++;
+            stats_total_bytes_ += current_buffer_size_;
+            file_.write(write_buffer_.data(), current_buffer_size_);
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
             if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
-                c_file_.close();
+                file_.close();
                 std::string new_path = core::make_path(
                     out_pathbase_, context_.my_rank(), out_serial_++);
-                c_file_ = core::SysFile::OpenForWrite(new_path);
+                file_ = core::SysFile::OpenForWrite(new_path);
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }
             // String is too long to fit into buffer, write directly, add '\n' to
             // start of next buffer.
             if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
+                stats_total_writes_++;
+                stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
-                c_file_.write(input.data(), input.size());
+                file_.write(input.data(), input.size());
                 current_buffer_size_ = 1;
                 write_buffer_.PutByte('\n');
                 return;
@@ -103,8 +108,16 @@ public:
     //! Closes the output file, write last buffer
     void Execute() final {
         sLOG << "closing file";
-        c_file_.write(write_buffer_.data(), current_buffer_size_);
-        c_file_.close();
+        stats_total_writes_++;
+        stats_total_bytes_ += current_buffer_size_;
+        file_.write(write_buffer_.data(), current_buffer_size_);
+        file_.close();
+
+        STAT(context_) << "NodeType" << "WriteLinesMany"
+                       << "TotalBytes" << stats_total_bytes_
+                       << "TotalLines" << stats_total_elements_
+                       << "TotalWrites" << stats_total_writes_
+                       << "TotalFiles" << out_serial_;
     }
 
     void Dispose() final { }
@@ -120,7 +133,7 @@ private:
     size_t out_serial_ = 1;
 
     //! File to wrtie to
-    core::SysFile c_file_;
+    core::SysFile file_;
 
     //! Write buffer
     net::BufferBuilder write_buffer_;
@@ -133,6 +146,10 @@ private:
 
     //! Targetl file size in bytes
     size_t target_file_size_;
+
+    size_t stats_total_bytes_ = 0;
+    size_t stats_total_elements_ = 0;
+    size_t stats_total_writes_ = 0;
 };
 
 template <typename ValueType, typename Stack>

@@ -16,6 +16,7 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/file_io.hpp>
 #include <thrill/core/stage_builder.hpp>
@@ -70,6 +71,9 @@ public:
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
         sink_.reset();
+        STAT(context_) << "NodeType" << "WriteBinary"
+                       << "TotalElements" << stats_total_elements_
+                       << "TotalWrites" << stats_total_writes_;
     }
 
     void Dispose() final { }
@@ -80,13 +84,18 @@ protected:
     {
     public:
         SysFileSink(data::BlockPool& block_pool,
-                    const std::string& path, size_t max_file_size)
+                    const std::string& path, size_t max_file_size,
+                    size_t& stats_total_elements,
+                    size_t& stats_total_writes)
             : BlockSink(block_pool),
               BoundedBlockSink(block_pool, max_file_size),
-              file_(core::SysFile::OpenForWrite(path)) { }
+              file_(core::SysFile::OpenForWrite(path)),
+              stats_total_elements_(stats_total_elements),
+              stats_total_writes_(stats_total_writes) { }
 
         void AppendBlock(const data::Block& b) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
+            stats_total_writes_++;
             file_.write(b.data_begin(), b.size());
         }
 
@@ -96,6 +105,8 @@ protected:
 
     protected:
         core::SysFile file_;
+        size_t& stats_total_elements_;
+        size_t& stats_total_writes_;
     };
 
     using Writer = data::BlockWriter<SysFileSink>;
@@ -118,6 +129,9 @@ protected:
     //! BlockWriter to sink.
     std::unique_ptr<Writer> writer_;
 
+    size_t stats_total_elements_ = 0;
+    size_t stats_total_writes_ = 0;
+
     //! Function to create sink_ and writer_ for next file
     void OpenNextFile() {
         writer_.reset();
@@ -130,13 +144,16 @@ protected:
         sLOG << "OpenNextFile() out_path" << out_path;
 
         sink_ = std::make_unique<SysFileSink>(
-            context_.block_pool(), out_path, max_file_size_);
+            context_.block_pool(), out_path, max_file_size_,
+            stats_total_elements_, stats_total_writes_);
 
         writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
     }
 
     //! writer preop: put item into file, create files as needed.
     void PreOp(const ValueType& input) {
+        stats_total_elements_++;
+
         if (!sink_) OpenNextFile();
 
         try {

@@ -92,6 +92,8 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
                     return { static_cast<int>(a), b };
                 });
 
+            zip_result.Keep();
+
             // check result
             std::vector<MyStruct> res = zip_result.AllGather();
 
@@ -103,7 +105,6 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
                 ASSERT_EQ(static_cast<long>(2 * test_size - test_size / 10 + i), res[i].b);
             }
 
-            // TODO(sl): make this work!
             // check size of zip (recalculates ZipNode)
             ASSERT_EQ(100u, zip_result.Size());
         };

@@ -172,6 +172,27 @@ public:
     }
 
     /*!
+     * Mark the referenced DIANode for keeping, which makes children not consume
+     * the data when executing. This does not create a new DIA, but returns the
+     * existing one.
+     */
+    DIARef & Keep() {
+        assert(IsValid());
+        node_->SetConsume(false);
+        return *this;
+    }
+
+    /*!
+     * Mark the referenced DIANode as consuming, which makes it only executable
+     * once. This does not create a new DIA, but returns the existing one.
+     */
+    DIARef & Consume() {
+        assert(IsValid());
+        node_->SetConsume(true);
+        return *this;
+    }
+
+    /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
      * element of a possibly different type. The function chain of the returned

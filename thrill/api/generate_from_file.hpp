@@ -17,6 +17,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
 
 #include <fstream>
 #include <random>
@@ -69,7 +70,8 @@ public:
     { }
 
     virtual ~GenerateFileNode() { }
-    void PushData() final {
+
+    void PushData(bool /* consume */) final {
         LOG << "GENERATING data to file " << this->id();
 
         std::ifstream file(path_in_);
@@ -102,6 +104,8 @@ public:
             size_t rand_element = distribution(generator);
             this->PushItem(elements_[rand_element]);
         }
+
+        STAT(context_) << "NodeType" << "GenerateFromFile";
     }
 
     void Dispose() final { }

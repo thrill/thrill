@@ -187,8 +187,7 @@ public:
         MainOp();
     }
 
-    void PushData() override {
-
+    void PushData(bool consume) final {
         size_t result_count = 0;
         static const bool debug = false;
 
@@ -199,7 +198,7 @@ public:
         // get buffered inbound readers from all Channels
         std::vector<Reader> readers;
         for(size_t i = 0; i < channels_.size(); i++) {
-            readers.emplace_back(std::move(channels_[i]->OpenCachingReaderSource()));
+            readers.emplace_back(std::move(channels_[i]->OpenConcatReader(consume)));
         }
 
         // TODO(ej) - call WriteChannelStats() for each channel when these
