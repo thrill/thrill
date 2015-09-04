@@ -167,7 +167,7 @@ public:
         // return value when computing non-exclusive prefix sum
         T exclusiveRes = T();
         std::vector<T> localPrefixBuffer(threadCount);
-
+            
         // Local Reduce
         if (threadId == 0) {
             // Master allocate memory.
@@ -275,7 +275,7 @@ public:
         // barrier. If you really want to support items >= 256 then keep the
         // pointer passing (after fixing it) as a fallback mechanism.
 
-        T res;
+        T res = value;
 
         // The primary thread of each node has to handle IO
         if (threadId == 0) {
@@ -298,11 +298,11 @@ public:
 
         res = *GetLocalShared<T>();
 
-        barrier.Await();
-
         if (threadId == 0) {
             ClearLocalShared();
         }
+
+        barrier.Await();
 
         return res;
     }
@@ -322,6 +322,7 @@ public:
     T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
+            
 
         // Local Reduce
         if (threadId == 0) {
@@ -360,7 +361,6 @@ public:
             SetLocalShared(&res);
             barrier.Await();
             // Slave get result
-            barrier.Await();
             ClearLocalShared();
         }
         else {
@@ -374,8 +374,9 @@ public:
             barrier.Await();
             // Slave get result
             res = *GetLocalShared<T>();
-            barrier.Await();
         }
+        
+        barrier.Await();
 
         return res;
     }
