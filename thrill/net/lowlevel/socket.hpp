@@ -84,8 +84,8 @@ public:
 
 #ifndef SOCK_CLOEXEC
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on network socket", errno);
+            throw common::ErrnoException(
+                "Error setting FD_CLOEXEC on network socket");
         }
 #endif
         return Socket(fd);
@@ -108,12 +108,12 @@ public:
 
 #ifndef SOCK_CLOEXEC
         if (fcntl(fds[0], F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on network socket", errno);
+            throw common::ErrnoException(
+                      "Error setting FD_CLOEXEC on network socket");
         }
         if (fcntl(fds[1], F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::SystemException(
-                      "Error setting FD_CLOEXEC on network socket", errno);
+            throw common::ErrnoException(
+                      "Error setting FD_CLOEXEC on network socket");
         }
 #endif
         return std::make_pair(Socket(fds[0]), Socket(fds[1]));

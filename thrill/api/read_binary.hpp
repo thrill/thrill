@@ -167,7 +167,7 @@ private:
                 return data::Block(bytes, 0, size, 0, 0);
             }
             else if (size < 0) {
-                throw common::SystemException("File reading error", errno);
+                throw common::ErrnoException("File reading error");
             }
             else {
                 // size == 0 -> read finished

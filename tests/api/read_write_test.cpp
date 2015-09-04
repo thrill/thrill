@@ -58,8 +58,8 @@ public:
         char* p = mkdtemp(const_cast<char*>(tmp_dir.c_str()));
 
         if (p == nullptr) {
-            throw common::SystemException(
-                      "Could create temporary directory " + tmp_dir, errno);
+            throw common::ErrnoException(
+                      "Could create temporary directory " + tmp_dir);
         }
 
         return tmp_dir;
@@ -69,8 +69,8 @@ public:
     static void wipe_directory(const std::string& tmp_dir, bool do_rmdir) {
         DIR* d = opendir(tmp_dir.c_str());
         if (d == nullptr) {
-            throw common::SystemException(
-                      "Could open temporary directory " + tmp_dir, errno);
+            throw common::ErrnoException(
+                      "Could open temporary directory " + tmp_dir);
         }
 
         struct dirent* de, entry;
