@@ -30,9 +30,11 @@
 namespace thrill {
 namespace api {
 
-template <typename ValueTypeIn>
+template <typename ValueType>
 class GroupByIterator {
 public:
+    using ValueTypeIn = ValueType;
+
     GroupByIterator(data::File::Reader &r) : r_(r) {}
 
     bool HasNext() {
@@ -46,25 +48,24 @@ private:
     data::File::Reader &r_;
 };
 
-template <typename ValueTypeIn, typename ParentDIARef,
+template <typename ValueType, typename ParentDIARef,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
-class GroupByNode : public DOpNode<ValueTypeIn>
+class GroupByNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
-    using Super = DOpNode<ValueTypeIn>;
+    using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using ValueTypeOut = typename common::FunctionTraits<GroupFunction>::result_type;
-    using ReduceArg = typename common::FunctionTraits<GroupFunction>
-                      ::template arg<0>;
-    using KeyValuePair = typename std::pair<Key, ValueTypeIn>;
+    using ValueTypeOut = ValueType;
+    using ValueTypeIn = typename common::FunctionTraits<GroupFunction>
+                      ::template arg<0>::ValueTypeIn;
 
     struct ValueComparator
     {
         ValueComparator(const GroupByNode& info) : info_(info) { }
         const GroupByNode& info_;
 
-        bool operator () (const ValueTypeIn& i,
-                          const ValueTypeIn& j) {
+        bool operator () (const ValueType& i,
+                          const ValueType& j) {
             auto i_cmp = info_.hash_function_(info_.key_extractor_(i));
             auto j_cmp = info_.hash_function_(info_.key_extractor_(j));
             return (i_cmp < j_cmp);
@@ -89,7 +90,7 @@ public:
                 GroupFunction groupby_function,
                 StatsNode* stats_node,
                 const HashFunction& hash_function = HashFunction())
-        : DOpNode<ValueTypeIn>(parent.ctx(), { parent.node() }, "GroupBy", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "GroupBy", stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
@@ -122,8 +123,8 @@ public:
 
     void ProcessGroup(data::File& f) {
         auto r = f.GetReader();
-        std::vector<std::function<void(const ValueTypeIn&)> > cbs;
-        DIANode<ValueTypeIn>::callback_functions(cbs);
+        std::vector<std::function<void(const ValueType&)> > cbs;
+        DIANode<ValueType>::callback_functions(cbs);
     }
 
     void PushData() override {
@@ -164,9 +165,9 @@ public:
         // call user function
         for (auto t : user_files) {
             auto r = t.GetReader();
-            const auto res = groupby_function_(GroupByIterator<ValueTypeIn>(r));
+            const ValueTypeOut res = groupby_function_(GroupByIterator<ValueTypeIn>(r));
             // push result to callback functions
-            for (auto func : DIANode<ValueTypeIn>::callbacks_) {
+            for (auto func : DIANode<ValueType>::callbacks_) {
                 LOG << "Host " << context_.host_rank() << " grouped to value " << res;
                 func(res);
             }
@@ -180,7 +181,7 @@ public:
      * \return PostOp function stack
      */
     auto ProduceStack() {
-        return FunctionStack<ValueTypeIn>();
+        return FunctionStack<ValueType>();
     }
 
     /*!
@@ -276,7 +277,7 @@ private:
                 auto reader = std::make_shared<Reader>(files_[t].GetReader());
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].NumItems(), false);
-                seq.push_back(std::make_pair(s, e));
+                seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
             {
@@ -295,9 +296,9 @@ private:
 
 /******************************************************************************/
 
-template <typename ValueTypeIn, typename Stack>
+template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename GroupFunction, typename HashFunction>
-auto DIARef<ValueTypeIn, Stack>::GroupBy(
+auto DIARef<ValueType, Stack>::GroupBy(
     const KeyExtractor &key_extractor,
     const GroupFunction &groupby_function) const {
 
