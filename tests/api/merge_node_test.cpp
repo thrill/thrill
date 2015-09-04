@@ -129,6 +129,8 @@ void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef
             ASSERT_TRUE(res[i] <= res[i + 1]);
         }
 
+        // REVIEW(ej): check CONTENTS of res as well!
+
         // check if balancing condition was met
         ASSERT_TRUE(abs((int)res.size() / num_workers - count) < 10);
 }
@@ -203,3 +205,5 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
 
     thrill::api::RunLocalTests(start_func);
 }
+
+// REVIEW(ej): test another data type, one which is not default constructible!

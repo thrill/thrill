@@ -496,12 +496,14 @@ public:
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
 
+    // REVIEW(ej): use default comparator. remove everywhere where it is
+    // duplicate.
+
     /*!
      * TODO
      */
-    template <typename Comperator, typename SecondDIA> 
-    auto Merge(SecondDIA second_dia, const Comperator &comperator) const;
-
+    template <typename SecondDIA, typename Comperator = std::less<ValueType> >
+    auto Merge(SecondDIA second_dia, const Comperator &comperator = Comperator()) const;
 
     /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
