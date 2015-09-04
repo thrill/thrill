@@ -519,17 +519,18 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
-    size_t nitems_per_key = 10;
-    size_t nitems = 1 * 8 * 1024;
+    const size_t nitems_per_key = 10;
+    const size_t nitems = 1 * 4 * 1024;
 
-    const size_t TargetBlockSize = 1024 * 8;
+    const size_t TargetBlockSize = nitems * sizeof(MyStruct);
     const size_t bucket_block_size = sizeof(core::ReducePreTable<int, MyStruct,
                                                                  decltype(key_ex), decltype(red_fn), true,
-                                                                 core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>::BucketBlock);
+                                                                 core::PreReduceByHashKey<int>, std::equal_to<int>,
+            TargetBlockSize>::BucketBlock);
 
     core::ReducePreTable<int, MyStruct, decltype(key_ex), decltype(red_fn), true,
                          core::PreReduceByHashKey<int>, std::equal_to<int>, TargetBlockSize>
-    table(1, key_ex, red_fn, writers, bucket_block_size * 1024, 1.0, 1.0);
+    table(1, key_ex, red_fn, writers, bucket_block_size * bucket_block_size, 1.0, 1.0);
 
     // insert lots of items
     int sum = 0;
@@ -539,6 +540,8 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
             table.Insert(MyStruct { j, static_cast<int>(i) });
         }
     }
+
+    ASSERT_EQ(nitems, table.NumItems());
 
     table.Flush();
 
