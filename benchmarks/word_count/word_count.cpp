@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     clp.PrintResult();
 
     auto start_func =
-        [input, output](api::Context& ctx) {
+        [&input, &output](api::Context& ctx) {
 		auto input_dia = ReadLines(ctx, input);
 		auto counted_words = examples::WordCount(input_dia);
 		counted_words.Map(
