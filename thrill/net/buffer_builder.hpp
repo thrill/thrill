@@ -240,7 +240,7 @@ public:
     net::Buffer ToBuffer() {
         net::Buffer b = net::Buffer::Acquire(data_, size_);
         Detach();
-        return std::move(b);
+        return b;
     }
 
     //! \}

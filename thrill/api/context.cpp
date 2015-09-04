@@ -35,7 +35,7 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
     std::array<std::vector<net::Group>, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = std::move(net::Group::ConstructLocalMesh(host_count));
+        group[g] = net::Group::ConstructLocalMesh(host_count);
     }
 
     // construct host context
