@@ -104,7 +104,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     // read File contents using BlockReader
     {
-        data::File::ConstReader fr = file.GetConstReader();
+        data::File::KeepReader fr = file.GetKeepReader();
         ASSERT_EQ(fr.Read(8), "testtest");
         ASSERT_EQ(fr.GetVarint(), 123456u);
         ASSERT_EQ(fr.GetString(), "test1test2test3");
@@ -129,7 +129,7 @@ TEST_F(File, WriteZeroItems) {
 
     // get zero items back from file.
     {
-        data::File::ConstReader fr = file.GetConstReader();
+        data::File::KeepReader fr = file.GetKeepReader();
 
         ASSERT_FALSE(fr.HasNext());
     }
@@ -156,7 +156,7 @@ TEST_F(File, SerializeSomeItems) {
 
     // get items back from file.
     {
-        data::File::ConstReader fr = file.GetConstReader();
+        data::File::KeepReader fr = file.GetKeepReader();
         ASSERT_TRUE(fr.HasNext());
         unsigned i1 = fr.Next<unsigned>();
         ASSERT_EQ(i1, 5u);
@@ -311,7 +311,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     ASSERT_EQ(1000u, file.num_items());
 
     // read complete File
-    data::File::ConstReader fr = file.GetConstReader();
+    data::File::KeepReader fr = file.GetKeepReader();
     for (size_t i = 0; i < 1000; ++i) {
         ASSERT_TRUE(fr.HasNext());
         ASSERT_EQ(i, fr.Next<size_t>());
@@ -324,7 +324,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
             LOG << "Test range [" << begin << "," << end << ")";
 
             // seek in File to begin.
-            data::File::ConstReader fr = file.GetReaderAt<size_t>(begin);
+            data::File::KeepReader fr = file.GetReaderAt<size_t>(begin);
 
             // read a few items
             if (end - begin > 5 && do_more) {
@@ -435,7 +435,7 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
 }
 
 // forced instantiation
-template class data::BlockReader<data::ConstFileBlockSource>;
+template class data::BlockReader<data::KeepFileBlockSource>;
 template class data::BlockReader<data::ConsumeFileBlockSource>;
 
 // fixed size serialization test

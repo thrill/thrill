@@ -224,7 +224,7 @@ DynBlockSource BlockQueue::GetBlockSource(bool consume) {
         // non-consumer: reread the file that was cached.
         sLOG << "BlockQueue::GetBlockSource() non-consume, from cache:"
              << file_.num_items();
-        return ConstructDynBlockSource<ConstFileBlockSource>(file_, 0);
+        return ConstructDynBlockSource<KeepFileBlockSource>(file_, 0);
     }
     else {
         // impossible
