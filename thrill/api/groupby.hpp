@@ -161,21 +161,14 @@ public:
             }
         }
 
-        {
-        auto result_writer = result_.GetWriter();
-            // call user function
-            for (auto t : user_files) {
-                auto r = t.GetReader();
-                data_.push_back(
-                    groupby_function_(GroupByIterator<ValueTypeIn>(r)));
-            }
-        }
-
-        // push data to callback functions
-        for (size_t i = 0; i < data_.size(); i++) {
+        // call user function
+        for (auto t : user_files) {
+            auto r = t.GetReader();
+            const auto res = groupby_function_(GroupByIterator<ValueTypeIn>(r));
+            // push result to callback functions
             for (auto func : DIANode<ValueTypeIn>::callbacks_) {
-                LOG << "Host " << context_.host_rank() << " grouped to value " << data_[i];
-                func(data_[i]);
+                LOG << "Host " << context_.host_rank() << " grouped to value " << res;
+                func(res);
             }
         }
     }
@@ -207,15 +200,13 @@ private:
     std::vector<data::BlockWriter> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_;
-    std::vector<ValueTypeOut> data_;
-    data::File result_;
 
     /*
      * Send all elements to their designated PEs
      */
     void PreOp(const ValueTypeIn& v) {
-        Key k = key_extractor_(v);
-        auto recipient = hash_function_(k) % emitter_.size();
+        const Key k = key_extractor_(v);
+        const auto recipient = hash_function_(k) % emitter_.size();
         emitter_[recipient](v);
     }
 
@@ -228,7 +219,7 @@ private:
         data::File f;
         {
             auto w = f.GetWriter();
-            for (auto& e : v) {
+            for (const auto& e : v) {
                 w(e);
             }
         }
@@ -244,9 +235,9 @@ private:
         using Reader = File::Reader;
         using Writer = File::Writer;
 
-        LOG << ToString() << " running main op";
+        LOG << ToString() << " running group by main op";
 
-        const size_t FIXED_VECTOR_SIZE = 99999;
+        const std::size_t FIXED_VECTOR_SIZE = 99999;
         std::vector<ValueTypeIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
@@ -255,7 +246,7 @@ private:
             e.Close();
         }
 
-        size_t totalsize = 0;
+        std::size_t totalsize = 0;
 
         // get incoming elements
         auto reader = channel_->OpenReader();
@@ -266,21 +257,22 @@ private:
                 incoming.clear();
             }
             // store incoming element
-            auto elem = reader.template Next<ValueTypeIn>();
+            const auto elem = reader.template Next<ValueTypeIn>();
             incoming.push_back(elem);
             LOG << "Host " << context_.host_rank() << " received " << elem << " with key " << key_extractor_(incoming.back());
             ++totalsize;
         }
         FlushVectorToFile(incoming);
 
+        const auto num_elems = files_.size();
         // if there's only one run, store it
-        if (files_.size() == 1) {
-            sorted_elems_ = files_[0];
+        if (num_elems == 1) {
+            sorted_elems_ = std::move(files_[0]);
         } // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
-            seq.reserve(files_.size());
-            for (std::size_t t = 0; t < files_.size(); ++t) {
+            seq.reserve(num_elems);
+            for (std::size_t t = 0; t < num_elems; ++t) {
                 auto reader = std::make_shared<Reader>(files_[t].GetReader());
                 Iterator s = Iterator(&files_[t], reader, 0, true);
                 Iterator e = Iterator(&files_[t], reader, files_[t].NumItems(), false);
