@@ -68,7 +68,7 @@ void CreateRandomSizeFiles(std::vector<data::File> &files, size_t maxSize, size_
         fw.Close();
     }
 }
-
+/*
 TEST_F(MergeHelpers, MultiIndexOf) {
     const size_t size = 500;
     const size_t count = 10;
@@ -87,22 +87,24 @@ TEST_F(MergeHelpers, MultiIndexOf) {
         ASSERT_EQ(val, val2);
     }
 }
-
+*/
 TEST_F(MergeHelpers, MultiGetAtIndex) {
     const size_t size = 500;
     const size_t count = 10;
 
     std::vector<data::File> files;
-    CreateTrivialFiles(files, size, count, block_pool_);
+    CreateRandomSizeFiles(files, size, count, block_pool_);
 
     for (size_t i = 0; i < (size * count) / 17; i++) {
         size_t idx = (i * 17);
 
         size_t val = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
 
-        ASSERT_EQ(idx / count, val);
+        size_t idx2 = MergeNodeHelper::IndexOf(val, idx, files, std::less<size_t>());
+
+        ASSERT_EQ(idx2, idx);
     }
-}
+}/*
 template <typename stackA, typename stackB>
 void DoMergeAndCheckResult(api::DIARef<size_t, stackA> merge_input1, api::DIARef<size_t, stackB> merge_input2, size_t expected_size, int num_workers) {
         // merge
@@ -195,4 +197,4 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
         };
 
     thrill::api::RunLocalTests(start_func);
-}
+}*/

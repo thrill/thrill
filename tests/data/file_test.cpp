@@ -228,6 +228,28 @@ TEST_F(File, RandomGetIndexOf) {
 TEST_F(File, TieGetIndexOf) {
     const size_t size = 500;
 
+    // Create test file.
+    data::File file(block_pool_);
+
+    data::File::Writer fw = file.GetWriter(53);
+
+    for (size_t i = 0; i < size; i++) {
+        fw(i);
+    }
+
+    fw.Close();
+
+    for (size_t i = 0; i < size; i++) {
+        size_t val = i;
+        size_t idx = file.GetIndexOf(i, i, std::less<size_t>());
+        
+        ASSERT_EQ(idx, i);
+    }
+}
+
+TEST_F(File, TieGetIndexOfWithDuplicates) {
+    const size_t size = 500;
+
     std::minstd_rand0 rng(0);
 
     // Create test file.
@@ -243,15 +265,21 @@ TEST_F(File, TieGetIndexOf) {
 
     ASSERT_EQ(size, file.num_items());
 
-    for (size_t i = 0; i < 100; i++) {
-        size_t val = rng() % (size / 4);
-        size_t idxL = file.GetIndexOf(val, 0, std::less<size_t>());
-        size_t idxH = file.GetIndexOf(val, size * 2, std::less<size_t>());
-
-        ASSERT_EQ(val, file.GetItemAt<size_t>(idxL));
-        //ASSERT_EQ(val, file.GetItemAt<size_t>(idxH));
-        ASSERT_EQ(val * 4, idxL);
-        ASSERT_EQ(val * 4 + 4, idxH);
+    for (size_t i = 0; i < size; i++) {
+        if(i % 4 == 0) {
+            size_t val = i / 4;
+            size_t idxL = file.GetIndexOf(val, 0, std::less<size_t>());
+            size_t idxH = file.GetIndexOf(val, size * 2, std::less<size_t>());
+            size_t idxE = file.GetIndexOf(val, val, std::less<size_t>());
+            
+            ASSERT_EQ(val * 4, idxL);
+            ASSERT_EQ(idxE, idxL);
+            ASSERT_EQ(val * 4 + 4, idxH);
+            ASSERT_EQ(val, file.GetItemAt<size_t>(idxL));
+        }
+        size_t val = i;
+        size_t idxM = file.GetIndexOf(val / 4, val, std::less<size_t>());
+        ASSERT_EQ(idxM, val);
     }
 }
 
