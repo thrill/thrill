@@ -246,7 +246,7 @@ static inline by_string to_string(unsigned long val) {
 #if defined(_MSC_VER)
 //! convert to string
 static inline by_string to_string(size_t val) {
-        return common::str_snprintf<by_string>(4 * sizeof(long), "%zu", val);
+    return common::str_snprintf<by_string>(4 * sizeof(long), "%zu", val);
 }
 #endif
 

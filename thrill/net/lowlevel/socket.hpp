@@ -85,7 +85,7 @@ public:
 #ifndef SOCK_CLOEXEC
         if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
             throw common::ErrnoException(
-                "Error setting FD_CLOEXEC on network socket");
+                      "Error setting FD_CLOEXEC on network socket");
         }
 #endif
         return Socket(fd);

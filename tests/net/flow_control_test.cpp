@@ -150,7 +150,7 @@ static void MultiThreadPrefixSum(Group* net) {
 }
 
 /**
- * Does a lot of operations to provoke race contitions. 
+ * Does a lot of operations to provoke race contitions.
  */
 static void DoLotsOfStuff(Group* net) {
 
@@ -163,12 +163,12 @@ static void DoLotsOfStuff(Group* net) {
             std::vector<size_t> rres;
 
             for (int i = 0; i < 20; i++) {
-                //Make a prefix sum and push res
+                // Make a prefix sum and push res
                 pres.push_back(channel.PrefixSum(myRank));
-                //Make an all reduce and push res. 
+                // Make an all reduce and push res.
                 rres.push_back(channel.AllReduce(myRank));
 
-                //Assert that broadcast gives us the result of the master
+                // Assert that broadcast gives us the result of the master
                 size_t bRes = channel.Broadcast(i + net->my_host_rank());
                 ASSERT_EQ(bRes, i);
             }
@@ -180,8 +180,8 @@ static void DoLotsOfStuff(Group* net) {
             for (size_t i = 0; i < net->num_hosts() * count; i++) {
                 rexpected += i;
             }
-            
-            for (size_t i = 0; i < pres.size(); i++) { 
+
+            for (size_t i = 0; i < pres.size(); i++) {
                 ASSERT_EQ(pexpected, pres[i]);
                 ASSERT_EQ(rexpected, rres[i]);
             }

@@ -300,7 +300,7 @@ private:
 
         LOG << prefix_elem << " elements, out of " << total_elem;
 
-        std::default_random_engine generator(std::random_device{}());
+        std::default_random_engine generator(std::random_device { } ());
         std::uniform_int_distribution<int> distribution(0, data_.size() - 1);
 
         // Send samples to worker 0

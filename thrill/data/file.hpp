@@ -230,7 +230,7 @@ class KeepFileBlockSource
 public:
     //! Start reading a File
     KeepFileBlockSource(const File& file,
-                         size_t first_block = 0, size_t first_item = keep_first_item)
+                        size_t first_block = 0, size_t first_item = keep_first_item)
         : file_(file), first_block_(first_block), first_item_(first_item) {
         current_block_ = first_block_ - 1;
     }
@@ -368,7 +368,7 @@ File::GetReaderAt(size_t index) const {
     // start Reader at given first valid item in located block
     KeepReader fr(
         KeepFileBlockSource(*this, begin_block,
-                             blocks_[begin_block].first_item_absolute()));
+                            blocks_[begin_block].first_item_absolute()));
 
     // skip over extra items in beginning of block
     size_t items_before = it == num_items_sum_.begin() ? 0 : *(it - 1);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/word_count/word_count.cpp
+ * benchmarks/word_count/word_count_gen.cpp
  *
  * Runner program for WordCount example. See thrill/examples/word_count.hpp for
  * the source to the example.
