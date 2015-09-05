@@ -103,9 +103,6 @@ public:
     //! move constructor
     delegate(delegate&&) = default;
 
-    //! constructor of invalid delegate from nullptr
-    delegate(const std::nullptr_t&) noexcept { }
-
     //! copy assignment operator
     delegate& operator = (const delegate&) = default;
 
