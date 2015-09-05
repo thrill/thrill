@@ -80,7 +80,7 @@ public:
                 throw Exception("Could not listen on socket "
                                 + lsa.ToStringHostPort(), errno);
 
-            listener_ = std::move(Connection(listen_socket));
+            listener_ = Connection(listen_socket);
         }
 
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
@@ -128,7 +128,7 @@ protected:
     Manager& mgr_;
 
     //! Temporary Manager for construction
-    mem::Manager mem_manager_ { nullptr };
+    mem::Manager mem_manager_ { nullptr, "Construction" };
 
     //! Link to manager's groups to initialize
     std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
@@ -305,7 +305,7 @@ protected:
         Connection& nc = groups_[group].connection(id);
         if (nc.IsValid()) nc.Close();
 
-        nc = std::move(Connection(Socket::Create()));
+        nc = Connection(Socket::Create());
         nc.set_group_id(group);
         nc.set_peer_id(id);
 
@@ -578,7 +578,7 @@ Manager::ConstructLocalMesh(size_t host_count) {
     std::array<std::vector<Group>, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = std::move(Group::ConstructLocalMesh(host_count));
+        group[g] = Group::ConstructLocalMesh(host_count);
     }
 
     // construct list of uninitialized net::Manager objects.

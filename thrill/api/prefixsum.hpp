@@ -62,8 +62,8 @@ public:
         MainOp();
     }
 
-    void PushData() final {
-        data::File::Reader reader = file_.GetReader();
+    void PushData(bool consume) final {
+        data::File::Reader reader = file_.GetReader(consume);
 
         ValueType sum = local_sum_;
 

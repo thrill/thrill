@@ -172,6 +172,27 @@ public:
     }
 
     /*!
+     * Mark the referenced DIANode for keeping, which makes children not consume
+     * the data when executing. This does not create a new DIA, but returns the
+     * existing one.
+     */
+    DIARef & Keep() {
+        assert(IsValid());
+        node_->SetConsume(false);
+        return *this;
+    }
+
+    /*!
+     * Mark the referenced DIANode as consuming, which makes it only executable
+     * once. This does not create a new DIA, but returns the existing one.
+     */
+    DIARef & Consume() {
+        assert(IsValid());
+        node_->SetConsume(true);
+        return *this;
+    }
+
+    /*!
      * Map is a LOp, which maps this DIARef according to the map_fn given by the
      * user.  The map_fn maps each element to another
      * element of a possibly different type. The function chain of the returned
@@ -539,9 +560,16 @@ public:
      * files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
-     * \param filepath Destination of the output file.
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param target_file_size target size of each individual file.
      */
-    void WriteLinesMany(const std::string& filepath) const;
+    void WriteLinesMany(const std::string& filepath,
+                        size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
      * WriteBinary is a function, which writes a DIA to many files per

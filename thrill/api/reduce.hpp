@@ -92,7 +92,7 @@ public:
           channel_(parent.ctx().GetNewChannel()),
           emitters_(channel_->OpenWriters()),
           reduce_pre_table_(parent.ctx().num_workers(), key_extractor,
-                            reduce_function_, emitters_, 1024 * 1024 * 128 * 5, 0.001, 0.5)
+                            reduce_function_, emitters_, 1024 * 1024 * 128 * 8, 0.9, 0.6)
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueType& input) {
@@ -118,7 +118,7 @@ public:
         MainOp();
     }
 
-    void PushData() final {
+    void PushData(bool consume) final {
         // TODO(ms): this is not what should happen: every thing is reduced again:
 
         using ReduceTable
@@ -130,14 +130,14 @@ public:
                                           core::PostReduceFlushToDefault<Key, ReduceFunction, false>,
                                           core::PostReduceByHashKey<Key>,
                                           std::equal_to<Key>,
-                                          16*1024>;
+                                          16*16>;
         std::vector<std::function<void(const ValueType&)> > cbs;
         DIANode<ValueType>::callback_functions(cbs);
 
         ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
                           core::PostReduceByHashKey<Key>(),
                           core::PostReduceFlushToDefault<Key, ReduceFunction, false>(),
-                          0, 0, Value(), 1024 * 1024 * 128 * 5, 0.001, 0.5, 128);
+                          0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 128);
 
         if (RobustKey) {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
@@ -174,7 +174,7 @@ public:
             // Files. Then the 2nd-PostTable stage can be repeatedly executed
             // from these Files when the StageBuilder calls "PushData()".
 
-            auto reader = channel_->OpenReader();
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -184,7 +184,7 @@ public:
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
-            auto reader = channel_->OpenReader();
+            auto reader = channel_->OpenConcatReader(consume);
             sLOG << "reading data from" << channel_->id() <<
                 "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
@@ -215,7 +215,8 @@ private:
 
     std::vector<data::Channel::Writer> emitters_;
 
-    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey> reduce_pre_table_;
+    core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
+            core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given

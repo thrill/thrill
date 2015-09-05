@@ -64,7 +64,8 @@ public:
             emitters_[i].Close();
         }
 
-        auto reader = channel_->OpenReader();
+        bool consume = false;
+        auto reader = channel_->OpenConcatReader(consume);
 
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
@@ -99,7 +100,7 @@ std::vector<ValueType> DIARef<ValueType, Stack>::AllGather()  const {
 
     core::StageBuilder().RunScope(shared_node.get());
 
-    return std::move(output);
+    return output;
 }
 
 template <typename ValueType, typename Stack>

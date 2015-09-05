@@ -12,11 +12,11 @@
 #ifndef THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 #include <tbb/concurrent_queue.h>
 
-#endif // HAVE_INTELTBB
+#endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
 #include <condition_variable>
@@ -133,17 +133,17 @@ public:
     }
 };
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
 
-#else   // !HAVE_INTELTBB
+#else   // !THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 
-#endif // !HAVE_INTELTBB
+#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

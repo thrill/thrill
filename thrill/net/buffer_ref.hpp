@@ -82,7 +82,7 @@ public:
         net::Buffer b = net::Buffer::Acquire(addr, size_);
         data_ = nullptr;
         size_ = 0;
-        return std::move(b);
+        return b;
     }
 
     //! Compare contents of two BufferRefs.
