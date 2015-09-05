@@ -115,22 +115,22 @@ public:
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
     void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr);
+                    AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write byte and block and callback when delivered. The
     //! block is reference counted by the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer, const data::Block& block,
-                    AsyncWriteCallback done_cb = nullptr);
+                    AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = nullptr);
+                        AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = nullptr);
+                        AsyncWriteCallback done_cb = AsyncWriteCallback());
 
     //! \}
 
