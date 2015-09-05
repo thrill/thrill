@@ -86,6 +86,7 @@ build_test_group(common/tests
   common/timed_counter_test.cpp
   )
 
+if(NOT MSVC)
 build_test(mem/allocator_test)
 build_test(mem/malloc_tracker_test)
 
@@ -118,6 +119,7 @@ build_test(api/sum_node_test)
 build_test(api/zip_node_test)
 
 build_test(examples/wordcount_test)
+endif()
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 
