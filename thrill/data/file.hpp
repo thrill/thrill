@@ -273,7 +273,7 @@ protected:
 };
 
 inline
-typename File::KeepReader File::GetKeepReader() const {
+File::KeepReader File::GetKeepReader() const {
     return KeepReader(KeepFileBlockSource(*this, 0));
 }
 
@@ -325,7 +325,7 @@ protected:
 };
 
 inline
-typename File::ConsumeReader File::GetConsumeReader() {
+File::ConsumeReader File::GetConsumeReader() {
     return ConsumeReader(ConsumeFileBlockSource(this));
 }
 
@@ -338,7 +338,7 @@ File::GetBufferedReader() const {
 }
 
 inline
-typename File::Reader File::GetReader(bool consume) {
+File::Reader File::GetReader(bool consume) {
     if (consume)
         return ConstructDynBlockReader<ConsumeFileBlockSource>(this);
     else
