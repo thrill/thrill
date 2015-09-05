@@ -103,13 +103,6 @@ public:
         other_ptr.ptr_ = nullptr;
     }
 
-    //! copy-constructor from other counting pointer (pointer types must be
-    //! convertible): also initializes new reference to ptr.
-    template <typename Other, CountingPtrDeleter<Other> other_deleter>
-    CountingPtr(const CountingPtr<Other, other_deleter>& other_ptr)
-        : ptr_(other_ptr.ptr_)
-    { IncReference(); }
-
     //! move-constructor from other counting pointer (pointer types must be
     //! convertible): also initializes new reference to ptr.
     template <typename Other>
