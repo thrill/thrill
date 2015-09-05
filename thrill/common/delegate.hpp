@@ -104,7 +104,7 @@ public:
     delegate(delegate&&) = default;
 
     //! constructor of invalid delegate from nullptr
-    delegate(const std::nullptr_t) noexcept { }
+    delegate(const std::nullptr_t&) noexcept { }
 
     //! copy assignment operator
     delegate& operator = (const delegate&) = default;
@@ -295,7 +295,7 @@ public:
     }
 
     //! explicit conversion to bool -> valid or invalid.
-    explicit operator bool () const noexcept { return caller_; }
+    explicit operator bool () const noexcept { return caller_ != nullptr; }
 
     //! most important method: call. The call is forwarded to the selected
     //! function caller.
@@ -405,7 +405,7 @@ private:
     //! function caller for functor class.
     template <typename T>
     static typename std::enable_if <
-    !(is_member_pair<T>{ } || is_const_member_pair<T>{ }), R
+        !(is_member_pair<T>::value || is_const_member_pair<T>::value), R
     > ::type
     functor_caller(void* const object_ptr, A&& ... args) {
         return (*static_cast<T*>(object_ptr))(std::forward<A>(args) ...);
@@ -414,7 +414,7 @@ private:
     //! function caller for const functor class.
     template <typename T>
     static typename std::enable_if <
-    (is_member_pair<T>{ } || is_const_member_pair<T>{ }), R
+        (is_member_pair<T>::value || is_const_member_pair<T>::value), R
     > ::type
     functor_caller(void* const object_ptr, A&& ... args) {
         return (static_cast<T*>(object_ptr)->first->*
