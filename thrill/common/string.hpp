@@ -68,9 +68,9 @@ bool ends_with(const std::string& str, const std::string& match) {
 template <typename String = std::string>
 String str_snprintf(size_t max_size, const char* fmt, ...)
 #if defined(__GNUC__) || defined(__clang__)
-    __attribute__ ((format(printf, 2, 3)))
+__attribute__ ((format(printf, 2, 3)))
 #endif
-    ;
+;
 
 template <typename String>
 String str_snprintf(size_t max_size, const char* fmt, ...) {

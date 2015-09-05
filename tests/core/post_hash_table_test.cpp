@@ -725,7 +725,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                   std::equal_to<int>());
 
             size_t block_size = std::max<size_t>(8, TargetBlockSize /
-                                                    sizeof(KeyValuePair));
+                                                 sizeof(KeyValuePair));
 
             size_t num_items = block_size * max_blocks;
 
