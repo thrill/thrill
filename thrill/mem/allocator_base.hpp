@@ -70,7 +70,11 @@ public:
 
     //! Destroys in-place the object pointed by p.
     void destroy(pointer p) const noexcept {
-        p->~Type();
+#if defined(_MSC_VER)
+		// disable false-positive warning C4100: 'p': unreferenced formal parameter
+#pragma warning(suppress:4100)	
+#endif
+		p->~Type();
     }
 
     //! Constructs an element object on the location pointed by p.
