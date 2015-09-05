@@ -193,7 +193,8 @@ public:
                 // reduce data from spilled files
                 /////
 
-                data::File::Reader reader = file.GetReader();
+                bool consume = false;
+                data::File::Reader reader = file.GetReader(consume);
 
                 // flag used when item is reduced to advance to next item
                 bool reduced = false;
@@ -526,7 +527,7 @@ template <typename ValueType, typename Key, typename Value,
           typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction, ClearAfterFlush>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          size_t TargetBlockSize = 16*4
+          size_t TargetBlockSize = 16*16
           >
 class ReducePostTable
 {
@@ -593,10 +594,10 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
-                    size_t byte_size = 1024* 16,
-                    double bucket_rate = 0.001,
-                    double max_frame_fill_rate = 0.5,
-                    size_t frame_size = 64,
+                    size_t byte_size = 1024 * 1024 * 128 * 4,
+                    double bucket_rate = 0.9,
+                    double max_frame_fill_rate = 0.6,
+                    size_t frame_size = 128,
                     const EqualToFunction& equal_to_function = EqualToFunction())
         : max_frame_fill_rate_(max_frame_fill_rate),
           emit_(std::move(emit)),
@@ -624,14 +625,20 @@ public:
         max_num_blocks_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
                                                           / static_cast<double>(sizeof(BucketBlock))), 1);
         num_buckets_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_table_) * bucket_rate), 1);
+
         frame_size_ = std::min<size_t>(frame_size_, num_buckets_);
         num_frames_ = std::max<size_t>((size_t)(static_cast<double>(num_buckets_)
                                                 / static_cast<double>(frame_size_)), 1);
         num_items_per_frame_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_table_
                                                                              * block_size_) / static_cast<double>(num_frames_)), 1);
 
-        buckets_.resize(num_buckets_, nullptr);
+        // reduce number of blocks once we know how many buckets we have, thus
+        // knowing the size of pointers in the bucket vector
+        max_num_blocks_table_ -= std::max<size_t>((size_t)(std::ceil(
+                static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
+                / static_cast<double>(sizeof(BucketBlock)))), 0);
 
+        buckets_.resize(num_buckets_, nullptr);
         items_per_frame_.resize(num_frames_, 0);
 
         for (size_t i = 0; i < num_frames_; i++) {

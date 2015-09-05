@@ -90,7 +90,7 @@ protected:
     size_t workers_per_host_;
 
     //! host-global memory manager
-    mem::Manager mem_manager_ { nullptr };
+    mem::Manager mem_manager_ { nullptr, "HostContext" };
 
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
@@ -222,7 +222,7 @@ public:
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
     data::ChannelPtr GetNewChannel() {
-        return std::move(multiplexer_.GetNewChannel(local_worker_id_));
+        return multiplexer_.GetNewChannel(local_worker_id_);
     }
 
     //! the block manager keeps all data blocks moving through the system.

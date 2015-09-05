@@ -22,7 +22,7 @@
 namespace thrill {
 namespace net {
 
-DispatcherThread::DispatcherThread(const mem::string& thread_name)
+DispatcherThread::DispatcherThread(const mem::by_string& thread_name)
     : dispatcher_(mem::mm_make_unique<Dispatcher>(mem_manager_, mem_manager_)),
       name_(thread_name) {
     // allocate self-pipe

@@ -82,7 +82,7 @@ void ConductExperiment(uint64_t bytes, int iterations,
                              write_timers[id].Start();
                              channels[id]->Scatter<Type>(files[id], offsets[id]);
                              write_timers[id].Stop();
-                             auto reader = channels[id]->OpenReader();
+                             auto reader = channels[id]->OpenConcatReader(true);
                              read_timers[id].Start();
                              while (reader.HasNext()) {
                                  reader.Next<Type>();

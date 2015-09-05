@@ -33,7 +33,7 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 
     size_t received = 0;
-    mem::Manager mem_manager(nullptr);
+    mem::Manager mem_manager(nullptr, "Dispatcher");
     Dispatcher dispatcher(mem_manager);
 
     AsyncReadCallback callback =
@@ -147,7 +147,7 @@ static void ThreadInitializeSendReceive(Group* net) {
 static void RealGroupConstructAndCall(
     std::function<void(Group*)> thread_function) {
     // randomize base port number for test
-    std::default_random_engine generator({ std::random_device()() });
+    std::default_random_engine generator(std::random_device{}());
     std::uniform_int_distribution<int> distribution(10000, 30000);
     const size_t port_base = distribution(generator);
 
