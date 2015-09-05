@@ -373,7 +373,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size, 1.0, 1.0, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
             ASSERT_EQ(0u, table.NumBlocks());
@@ -426,7 +426,7 @@ TEST_F(PostTable, OneBucketOneBlockTestFillRate2) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn), true>(), 0, 0, 0, bucket_block_size, 1.0, 0.5, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
             ASSERT_EQ(0u, table.NumBlocks());
@@ -487,7 +487,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate) {
                   core::PostReduceFlushToDefault<int, decltype(red_fn)>(), 0, 0, 0, bucket_block_size * 3, 0.5, 1.0, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
             ASSERT_EQ(0u, table.NumBlocks());
@@ -547,7 +547,7 @@ TEST_F(PostTable, OneBucketTwoBlocksTestFillRate2) {
                   bucket_block_size * 2, 0.5, 0.5, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
             ASSERT_EQ(0u, table.NumBlocks());
@@ -607,7 +607,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
                   bucket_block_size * 3, 1.0, 1.0, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
             ASSERT_EQ(0u, table.NumBlocks());
@@ -667,7 +667,7 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                   bucket_block_size * 3, 1.0, 0.5, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
+            size_t block_size = std::max<size_t>(8, TargetBlockSize / sizeof(KeyValuePair));
             ASSERT_EQ(8u, block_size);
 
             ASSERT_EQ(0u, table.NumBlocks());
@@ -724,7 +724,7 @@ TEST_F(PostTable, MaxTableBlocks) {
                   0, 0, 0, 1024 * 16, 0.001, 1.0, 1,
                   std::equal_to<int>());
 
-            size_t block_size = common::max<size_t>(8, TargetBlockSize /
+            size_t block_size = std::max<size_t>(8, TargetBlockSize /
                                                     sizeof(KeyValuePair));
 
             size_t num_items = block_size * max_blocks;
