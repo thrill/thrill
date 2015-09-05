@@ -37,6 +37,10 @@ option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
+# BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
+# make it prominent in the GUI.
+option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
+
 option(ENABLE_STATS "enable stats" OFF)
 if(ENABLE_STATS)
     message(STATUS "Add Stats support")
@@ -45,54 +49,73 @@ else()
     add_definitions(-DENABLE_STATS=0)
 endif()
 
-# enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
+if(NOT MSVC)
+  # enable warnings
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
-# enable more warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
+  # enable more warnings
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
-# enable AddressSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+  # enable AddressSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
-# enable ThreadSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+  # enable ThreadSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
 
-# enable UndefinedBehaviorSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  # enable UndefinedBehaviorSanitizer
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtautological-compare")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-pure-const -Wsuggest-attribute=const")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
-  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
-  # try compiling a program with auto return types
-  include(CheckCXXSourceCompiles)
-  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
-  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
-
-  check_cxx_source_compiles(
-    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
-     int main() { A<int> a; return 0; }"
-    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
-
-  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
-    message(STATUS "compiler does not support -g debug info with auto returns")
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  # enable extra warnings on gcc
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtautological-compare")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-pure-const -Wsuggest-attribute=const")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
   endif()
 
-  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet.
+  # try compiling a platform test for auto return types
+  if(ON)
+    include(CheckCXXSourceCompiles)
+    set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+    set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+    check_cxx_source_compiles(
+      "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+      THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+
+    if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+      message(STATUS "compiler does not support -g debug info with auto returns")
+      string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+      string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+    endif()
+
+    set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
+  endif()
+elseif(MSVC)
+  # Force to always compile with W4
+  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+  endif()
+  ### disable verbose warnings:
+  # warning C4127: conditional expression is constant
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4127")
+  # disable lots of warnings about "unsecure" C runtime function
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  # disable lots of warnings about "unsecure" STL functions
+  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+  # windef.h bizzarly defines min and max as macros, unless this is defined.
+  add_definitions(-DNOMINMAX)
 endif()
 
 if(USE_IWYU)
@@ -184,6 +207,7 @@ endif(USE_GCOV)
 enable_testing()
 
 # google test + mock - enable "make test" and add_test()
+set(gtest_force_shared_crt ON) # this fixes compilation with static libs on MSVC
 add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
@@ -289,8 +313,10 @@ add_subdirectory(thrill)
 # descend into testsuite
 add_subdirectory(tests)
 
-# descend into benchmarks and examples programs
-add_subdirectory(benchmarks)
+if(NOT MSVC)
+  # descend into benchmarks and examples programs
+  add_subdirectory(benchmarks)
+endif()
 
 if(SWIG_FOUND)
   # build swig frontends
