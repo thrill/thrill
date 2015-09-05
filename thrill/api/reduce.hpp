@@ -216,7 +216,7 @@ private:
     std::vector<data::Channel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-            core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
+                         core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given

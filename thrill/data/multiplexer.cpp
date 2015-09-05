@@ -29,9 +29,9 @@ Multiplexer::~Multiplexer() {
 
 ChannelPtr Multiplexer::_GetOrCreateChannel(size_t id, size_t local_worker_id) {
     return channels_.GetOrCreate(
-            id, local_worker_id,
-            // initializers for Channels
-            *this, id, local_worker_id);
+        id, local_worker_id,
+        // initializers for Channels
+        *this, id, local_worker_id);
 }
 
 /******************************************************************************/

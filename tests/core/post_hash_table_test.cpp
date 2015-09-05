@@ -616,13 +616,13 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate) {
                 table.Insert(pair(i));
             }
             ASSERT_EQ(2u, table.NumBlocks());
-            //ASSERT_EQ(block_size, table.NumItems());
+            // ASSERT_EQ(block_size, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(i));
                 ASSERT_EQ(2u, table.NumBlocks());
             }
-            //ASSERT_EQ(block_size * 2, table.NumItems());
+            // ASSERT_EQ(block_size * 2, table.NumItems());
 
             ASSERT_EQ(0u, writer1.size());
 
@@ -676,12 +676,12 @@ TEST_F(PostTable, TwoBucketsTwoBlocksTestFillRate2) {
                 table.Insert(pair(i));
             }
             ASSERT_EQ(2u, table.NumBlocks());
-            //ASSERT_EQ(block_size, table.NumItems());
+            // ASSERT_EQ(block_size, table.NumItems());
 
             for (size_t i = block_size; i < block_size * 2; ++i) {
                 table.Insert(pair(i));
             }
-            //ASSERT_EQ(block_size, table.NumItems());
+            // ASSERT_EQ(block_size, table.NumItems());
 
             ASSERT_EQ(0u, writer1.size());
 

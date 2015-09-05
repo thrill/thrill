@@ -594,7 +594,7 @@ public:
                     size_t begin_local_index = 0,
                     size_t end_local_index = 0,
                     Value neutral_element = Value(),
-                    size_t byte_size = 1024 * 1024 * 128 * 4,
+                    size_t byte_size = 1024* 1024* 128* 4,
                     double bucket_rate = 0.9,
                     double max_frame_fill_rate = 0.6,
                     size_t frame_size = 128,
@@ -635,8 +635,8 @@ public:
         // reduce number of blocks once we know how many buckets we have, thus
         // knowing the size of pointers in the bucket vector
         max_num_blocks_table_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                               static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
+                                                               / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         buckets_.resize(num_buckets_, nullptr);
         items_per_frame_.resize(num_frames_, 0);

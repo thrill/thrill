@@ -104,7 +104,7 @@ public:
     ChannelPtr GetNewChannel(size_t local_worker_id) {
         std::lock_guard<std::mutex> lock(mutex_);
         return _GetOrCreateChannel(
-                channels_.AllocateId(local_worker_id), local_worker_id);
+            channels_.AllocateId(local_worker_id), local_worker_id);
     }
 
 private:

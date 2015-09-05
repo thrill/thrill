@@ -401,18 +401,18 @@ private:
 
     //! function caller for functor class.
     template <typename T>
-    static typename std::enable_if <
+    static typename std::enable_if<
         !(is_member_pair<T>::value || is_const_member_pair<T>::value), R
-    > ::type
+        >::type
     functor_caller(void* const object_ptr, A&& ... args) {
         return (*static_cast<T*>(object_ptr))(std::forward<A>(args) ...);
     }
 
     //! function caller for const functor class.
     template <typename T>
-    static typename std::enable_if <
+    static typename std::enable_if<
         (is_member_pair<T>::value || is_const_member_pair<T>::value), R
-    > ::type
+        >::type
     functor_caller(void* const object_ptr, A&& ... args) {
         return (static_cast<T*>(object_ptr)->first->*
                 static_cast<T*>(object_ptr)->second)(std::forward<A>(args) ...);

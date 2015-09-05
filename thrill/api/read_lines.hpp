@@ -139,25 +139,25 @@ private:
         unsigned char* current_;
         //! (exclusive) end of local block
         size_t my_end_;
-		//! Reference to context
-		Context& context_;
+        //! Reference to context
+        Context& context_;
 
-		size_t stats_total_bytes_ = 0;
-		size_t stats_total_reads_ = 0;
-		size_t stats_total_elements_ = 0;
+        size_t stats_total_bytes_ = 0;
+        size_t stats_total_reads_ = 0;
+        size_t stats_total_elements_ = 0;
 
-		bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
-			ssize_t bytes = file.read(buffer.data(), read_size);
-			if(bytes < 0) {
-				throw common::ErrnoException("Read error");
-			}
-			buffer.set_size(bytes);
-			current_ = buffer.begin();
-			stats_total_bytes_ += bytes;
-			stats_total_reads_++;
-			LOG << "Opening block with " << bytes << " bytes.";
-			return bytes > 0;
-		}
+        bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
+            ssize_t bytes = file.read(buffer.data(), read_size);
+            if (bytes < 0) {
+                throw common::ErrnoException("Read error");
+            }
+            buffer.set_size(bytes);
+            current_ = buffer.begin();
+            stats_total_bytes_ += bytes;
+            stats_total_reads_++;
+            LOG << "Opening block with " << bytes << " bytes.";
+            return bytes > 0;
+        }
 
         ~InputLineIterator() {
             STAT(context_) << "NodeType" << "ReadLines"
@@ -240,9 +240,9 @@ private:
                         data_.push_back(*current_++);
                     }
                 }
-				offset_ += buffer_.size();
+                offset_ += buffer_.size();
                 if (!ReadBlock(file_, buffer_)) {
-					LOG << "opening next file";
+                    LOG << "opening next file";
 
                     file_.close();
                     current_file_++;
@@ -250,7 +250,7 @@ private:
 
                     if (current_file_ < NumFiles()) {
                         file_ = core::SysFile::OpenForRead(files_[current_file_].first);
-						offset_ += buffer_.size();
+                        offset_ += buffer_.size();
                         ReadBlock(file_, buffer_);
                     }
                     else {
@@ -267,8 +267,8 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-			size_t position_in_buf = current_ - buffer_.begin(); 
-			assert(current_ >= buffer_.begin());
+            size_t position_in_buf = current_ - buffer_.begin();
+            assert(current_ >= buffer_.begin());
             size_t global_index = offset_ + position_in_buf + files_[current_file_].second;
             return global_index < my_end_ ||
                    (global_index == my_end_ &&
