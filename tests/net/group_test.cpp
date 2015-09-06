@@ -221,6 +221,31 @@ TEST(Group, SendCyclic) {
     Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
 }
 
+TEST(Group, TestPrefixSumInHypercube) {
+    for (size_t p = 1; p <= 8; p <<= 1) {
+        // Construct Group of p workers which perform a PrefixSum collective
+        Group::ExecuteLocalMock(
+            p, [](Group* net) {
+                size_t local_value = 1;
+                PrefixSumForPowersOfTwo(*net, local_value);
+                ASSERT_EQ(local_value, net->my_host_rank() + 1);
+            });
+    }
+}
+
+TEST(Group, TestReduceToRoot) {
+    for (size_t p = 0; p <= 8; ++p) {
+        // Construct Group of p workers which perform an Broadcast collective
+        Group::ExecuteLocalMock(
+            p, [](Group* net) {
+                size_t local_value = net->my_host_rank();
+                ReduceToRoot(*net, local_value);
+                if (net->my_host_rank() == 0)
+                    ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
+            });
+    }
+}
+
 #if COLLECTIVES_ARE_DISABLED_MAYBE_REMOVE
 
 TEST(Group, TestPrefixSum) {
@@ -230,18 +255,6 @@ TEST(Group, TestPrefixSum) {
             p, [](Group* net) {
                 size_t local_value = 1;
                 PrefixSum(*net, local_value);
-                ASSERT_EQ(local_value, net->my_host_rank() + 1);
-            });
-    }
-}
-
-TEST(Group, TestPrefixSumInHypercube) {
-    for (size_t p = 1; p <= 8; p <<= 1) {
-        // Construct Group of p workers which perform a PrefixSum collective
-        Group::ExecuteLocalMock(
-            p, [](Group* net) {
-                size_t local_value = 1;
-                PrefixSumForPowersOfTwo(*net, local_value);
                 ASSERT_EQ(local_value, net->my_host_rank() + 1);
             });
     }
@@ -280,19 +293,6 @@ TEST(Group, TestBroadcast) {
                 if (net->my_host_rank() == 0) local_value = 42;
                 Broadcast(*net, local_value);
                 ASSERT_EQ(local_value, 42u);
-            });
-    }
-}
-
-TEST(Group, TestReduceToRoot) {
-    for (size_t p = 0; p <= 8; ++p) {
-        // Construct Group of p workers which perform an Broadcast collective
-        Group::ExecuteLocalMock(
-            p, [](Group* net) {
-                size_t local_value = net->my_host_rank();
-                ReduceToRoot(*net, local_value);
-                if (net->my_host_rank() == 0)
-                    ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
             });
     }
 }
