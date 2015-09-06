@@ -53,6 +53,11 @@ TEST_F(BlockPoolTest, AllocatedBlocksHaveRefCountOne) {
     ASSERT_EQ(1u, block->reference_count());
 }
 
+TEST_F(BlockPoolTest, CopiedBlocksHaveRefCountOne) {
+    auto block = block_pool_.AllocateBlock(8);
+    auto copy = block;
+    ASSERT_EQ(2u, block->reference_count());
+}
 
 
 /******************************************************************************/
