@@ -43,7 +43,7 @@ namespace lowlevel {
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
  */
-class SelectDispatcher : protected Select
+class SelectDispatcher
 {
     static const bool debug = false;
 
@@ -85,8 +85,8 @@ public:
     void AddRead(int fd, const Callback& read_cb) {
         CheckSize(fd);
         if (!watch_[fd].read_cb.size()) {
-            Select::SetRead(fd);
-            Select::SetException(fd);
+            select_.SetRead(fd);
+            select_.SetException(fd);
         }
         watch_[fd].active = true;
         watch_[fd].read_cb.emplace_back(read_cb);
@@ -103,8 +103,8 @@ public:
         int fd = c.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].write_cb.size()) {
-            Select::SetWrite(fd);
-            Select::SetException(fd);
+            select_.SetWrite(fd);
+            select_.SetException(fd);
         }
         watch_[fd].active = true;
         watch_[fd].write_cb.emplace_back(write_cb);
@@ -115,7 +115,7 @@ public:
         int fd = c.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].except_cb) {
-            Select::SetException(fd);
+            select_.SetException(fd);
         }
         watch_[fd].active = true;
         watch_[fd].except_cb = except_cb;
@@ -131,9 +131,9 @@ public:
             LOG << "SelectDispatcher::Cancel() fd=" << fd
                 << " called with no callbacks registered.";
 
-        Select::ClearRead(fd);
-        Select::ClearWrite(fd);
-        Select::ClearException(fd);
+        select_.ClearRead(fd);
+        select_.ClearWrite(fd);
+        select_.ClearException(fd);
 
         Watch& w = watch_[fd];
         w.read_cb.clear();
@@ -167,6 +167,9 @@ public:
 private:
     //! reference to memory manager
     mem::Manager& mem_manager_;
+
+    //! select() manager object
+    Select select_;
 
     //! self-pipe to wake up select.
     int self_pipe_[2];
