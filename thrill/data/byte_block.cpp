@@ -8,7 +8,7 @@ void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->head.pin_count_ == 0);
 
     //some blocks are created in 'detached' state (tests etc)
-    if(bb->head.block_pool_) {
+    if(bb->head.block_pool_ && bb->reference_count() == bb->die_limit_) {
         bb->head.block_pool_->FreeBlockMemory(bb->size());
         bb->head.block_pool_->DestroyBlock(bb);
     }
