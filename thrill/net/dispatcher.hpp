@@ -361,9 +361,8 @@ protected:
                     if (callback_) callback_(conn_, Buffer());
                     return false;
                 }
-                throw Exception("AsyncReadBuffer() error in recv () on fd "
-                                + std::to_string(conn_.GetSocket().fd()),
-                                errno);
+                throw Exception("AsyncReadBuffer() error in recv () on "
+                                "connection " + conn_.ToString(), errno);
             }
 
             size_ += r;
@@ -598,11 +597,11 @@ protected:
     /**************************************************************************/
 
     //! Default exception handler
-    static bool ExceptionCallback(Connection& s) {
+    static bool ExceptionCallback(Connection& c) {
         // exception on listen socket ?
         throw Exception(
                   "Dispatcher() exception on socket fd "
-                  + std::to_string(s.GetSocket().fd()) + "!", errno);
+                  + c.ToString() + "!", errno);
     }
 };
 
