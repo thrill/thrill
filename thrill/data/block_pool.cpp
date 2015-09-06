@@ -15,7 +15,6 @@ namespace thrill {
 namespace data {
 
     ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
-        mem_manager_.add(block_size);
         std::lock_guard<std::mutex>lock (list_mutex_);
 
         ByteBlockPtr result = ByteBlock::Allocate(block_size, this);
