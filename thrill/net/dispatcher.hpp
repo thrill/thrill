@@ -20,7 +20,6 @@
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
 #include <thrill/net/lowlevel/socket.hpp>
 
 // TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
@@ -66,10 +65,6 @@ class Dispatcher
     static const bool debug = false;
 
 protected:
-    //! switch between different low-level dispatchers
-    using SubDispatcher = lowlevel::SelectDispatcher;
-    // using SubDispatcher =  lowlevel::EPollDispatcher ;
-
     //! import into class namespace
     using Socket = lowlevel::Socket;
 
@@ -109,19 +104,13 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const AsyncCallback& read_cb) {
-        return dispatcher_.AddRead(c, read_cb);
-    }
+    virtual void AddRead(Connection& c, const AsyncCallback& read_cb) = 0;
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const AsyncCallback& write_cb) {
-        return dispatcher_.AddWrite(c, write_cb);
-    }
+    virtual void AddWrite(Connection& c, const AsyncCallback& write_cb) = 0;
 
     //! Cancel all callbacks on a given connection.
-    void Cancel(Connection& c) {
-        return dispatcher_.Cancel(c);
-    }
+    virtual void Cancel(Connection& c) = 0;
 
     //! \}
 
@@ -249,7 +238,7 @@ public:
         // calculate time until next timer event
         if (timer_pq_.empty()) {
             LOG << "Dispatch(): empty timer queue - selecting for 10s";
-            dispatcher_.Dispatch(milliseconds(10000));
+            DispatchOne(milliseconds(10000));
         }
         else {
             auto diff = std::chrono::duration_cast<milliseconds>(
@@ -258,7 +247,7 @@ public:
             if (diff < milliseconds(1)) diff = milliseconds(1);
 
             sLOG << "Dispatch(): waiting" << diff.count() << "ms";
-            dispatcher_.Dispatch(diff);
+            DispatchOne(diff);
         }
 
         // clean up finished AsyncRead/Writes
@@ -285,9 +274,7 @@ public:
     }
 
     //! Interrupt current dispatch
-    void Interrupt() {
-        dispatcher_.Interrupt();
-    }
+    virtual void Interrupt() = 0;
 
     //! Causes the dispatcher to break out after the next timeout occurred
     //! Does not interrupt the currently running read/write operation, but
@@ -304,14 +291,13 @@ public:
     //! \}
 
 protected:
+    virtual void DispatchOne(const std::chrono::milliseconds& timeout) = 0;
+
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
 
     //! superior memory manager
     mem::Manager& mem_manager_;
-
-    //! low-level file descriptor async processing
-    SubDispatcher dispatcher_ { mem_manager_ };
 
     //! struct for timer callbacks
     struct Timer

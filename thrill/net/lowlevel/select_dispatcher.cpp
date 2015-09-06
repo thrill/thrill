@@ -19,7 +19,7 @@ namespace net {
 namespace lowlevel {
 
 //! Run one iteration of dispatching select().
-void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
+void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
 
     // copy select fdset
     Select fdset = select_;
