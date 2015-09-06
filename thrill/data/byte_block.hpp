@@ -38,11 +38,10 @@ protected:
         //! counts the number of pins in this block
         //! this is not atomic since a) head would not be a POD and
         //! b) the count is only modified by BlockPool which is thread-safe
-        size_t pin_count_ = { 0 };
+        size_t   pin_count_;
 
         //! Indicates that block resides out of memory (on disk)
-        bool swapped_out_ = { false };
-
+        bool     swapped_out_;
     } head;
 
     //! the memory block itself follows here, this is just a placeholder
@@ -53,7 +52,7 @@ protected:
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
     //! use BlockPoolAllocate() for construction.
-    explicit ByteBlock(size_t size, BlockPool* block_pool);
+    explicit ByteBlock(size_t size, BlockPool* block_pool, bool pinned = false);
 
     //! Construct a block of given size.
     static ByteBlockPtr Allocate(

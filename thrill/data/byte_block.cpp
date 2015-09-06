@@ -18,8 +18,10 @@ void ByteBlock::deleter(const ByteBlock* bb) {
     return deleter(const_cast<ByteBlock*>(bb));
 }
 
-ByteBlock::ByteBlock(size_t size, BlockPool* block_pool)
-        : head({ size, block_pool }) { }
+ByteBlock::ByteBlock(size_t size, BlockPool* block_pool, bool pinned)
+    : head({
+               size, block_pool, 0, pinned
+           }) { }
 
 //! Construct a block of given size.
 ByteBlockPtr ByteBlock::Allocate(
