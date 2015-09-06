@@ -79,9 +79,8 @@ void DispatcherThread::AddWrite(
 
 //! Cancel all callbacks on a given connection.
 void DispatcherThread::Cancel(Connection& c) {
-    int fd = c.GetSocket().fd();
-    Enqueue([this, fd]() {
-                dispatcher_->Cancel(fd);
+    Enqueue([this, &c]() {
+                dispatcher_->Cancel(c);
             });
     WakeUpThread();
 }
