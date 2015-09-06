@@ -32,9 +32,6 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-// TODO(ej) Cleanup the Group. Make to a sole collection holding a bunch of connections.
-// Move everything else into appropriate channel.
-
 /*!
  * Collection of NetConnections to workers, allows point-to-point client
  * communication and simple collectives like MPI.
@@ -167,28 +164,6 @@ public:
     //! \{
 
     /**
-     * \brief Sends a string to a worker.
-     * \details Sends a string to a worker.
-     *
-     * \param dest The worker to send the string to.
-     * \param data The string to send.
-     */
-    void SendStringTo(size_t dest, const std::string& data) {
-        connection(dest).SendString(data);
-    }
-
-    /**
-     * \brief Receives a string from the given worker.
-     * \details Receives a string from the given worker.
-     *
-     * \param src The worker to receive the string from.
-     * \param data A pointer to the string where the received string should be stored.
-     */
-    void ReceiveStringFrom(size_t src, std::string* data) {
-        connection(src).ReceiveString(data);
-    }
-
-    /**
      * \brief Sends a fixed lentgh type to the given worker.
      * \details Sends a fixed lentgh type to the given worker.
      *
@@ -213,38 +188,31 @@ public:
     }
 
     /**
-     * \brief Broadcasts a string to all workers.
-     * \details Broadcasts a string to all workers.
+     * \brief Sends a string to a worker.
+     * \details Sends a string to a worker.
      *
-     * \param data The string to broadcast.
+     * \param dest The worker to send the string to.
+     * \param data The string to send.
      */
-    void BroadcastString(const std::string& data) {
-        for (size_t i = 0; i < connections_.size(); i++)
-        {
-            if (i == my_rank_) continue;
-            SendStringTo(i, data);
-        }
+    void SendStringTo(size_t dest, const std::string& data) {
+        connection(dest).SendString(data);
     }
 
     /**
-     * \brief Broadcasts a fixed length type to all workers.
-     * \details Broadcasts a fixed length type to all workers.
+     * \brief Receives a string from the given worker.
+     * \details Receives a string from the given worker.
      *
-     * \param data The data to broadcast.
+     * \param src The worker to receive the string from.
+     * \param data A pointer to the string where the received string should be stored.
      */
-    template <typename T>
-    void BroadcastString(const T& data) {
-        for (size_t i = 0; i < connections_.size(); i++)
-        {
-            if (i == my_rank_) continue;
-            SendStringTo(i, data);
-        }
+    void ReceiveStringFrom(size_t src, std::string* data) {
+        connection(src).ReceiveString(data);
     }
 
     //! \}
 
 private:
-    //! The client id of this object in the Group.
+    //! The rank of this peer in the Group.
     size_t my_rank_;
 
     bool connected_ = false;
