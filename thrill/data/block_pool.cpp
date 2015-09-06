@@ -19,9 +19,8 @@ namespace data {
         std::lock_guard<std::mutex>lock (list_mutex_);
 
         ByteBlockPtr result = ByteBlock::Allocate(block_size, this);
-        //push_back creates a copy - we can then safely decrease the ref count
-        //by one, because helding BlockPtrs in this lists should not
-        //prevent the deleter beeing called.
+
+        //we store a raw pointer --> does not increase ref count
         if (pinned) {
             pinned_blocks_.push_back(result);
             pinned_blocks_.back()->head.pin_count_++;

@@ -48,13 +48,13 @@ protected:
     mem::Manager mem_manager_;
 
     //list of all blocks that are no victims & not swapped
-    std::deque<ByteBlockPtr> pinned_blocks_;
+    std::deque<ByteBlock*> pinned_blocks_;
 
     //list of all blocks that are not swapped but are not pinned
-    std::deque<ByteBlockPtr> victim_blocks_;
+    std::deque<ByteBlock*> victim_blocks_;
 
     //list of all blocks that are swapped out and not pinned
-    std::deque<ByteBlockPtr> swapped_blocks_;
+    std::deque<ByteBlock*> swapped_blocks_;
 
     std::mutex list_mutex_;
 
