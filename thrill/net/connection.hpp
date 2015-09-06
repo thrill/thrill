@@ -48,11 +48,16 @@ class ConnectionBase
 public:
     static const bool self_verify_ = common::g_self_verify;
 
+    virtual bool IsValid() const = 0;
+
     //! \name Send Functions
     //! \{
 
     //! Send a message of given size.
     virtual ssize_t SyncSend(const void* data, size_t size, int flags = 0) = 0;
+
+    //! Send a partial message of given size.
+    virtual ssize_t SendOne(const void* data, size_t size) = 0;
 
     //! Send a fixed-length type T (possibly without length header).
     template <typename T>
@@ -93,6 +98,9 @@ public:
 
     //! Receive a message of given size. The size must match the SyncSend size.
     virtual ssize_t SyncRecv(void* out_data, size_t size) = 0;
+
+    //! Receive a partial message of given size. The size must match.
+    virtual ssize_t RecvOne(void* out_data, size_t size) = 0;
 
     //! Receive a fixed-length type, possibly without length header.
     template <typename T>
@@ -238,7 +246,7 @@ public:
     }
 
     //! Check whether the contained file descriptor is valid.
-    bool IsValid() const
+    bool IsValid() const final
     { return socket_.IsValid(); }
 
     //! Return the raw socket object for more low-level network programming.
@@ -277,8 +285,16 @@ public:
         return socket_.send(data, size, flags);
     }
 
+    ssize_t SendOne(const void* data, size_t size) final {
+        return socket_.send_one(data, size);
+    }
+
     ssize_t SyncRecv(void* out_data, size_t size) final {
         return socket_.recv(out_data, size);
+    }
+
+    ssize_t RecvOne(void* out_data, size_t size) final {
+        return socket_.recv_one(out_data, size);
     }
 
     //! Close this Connection
