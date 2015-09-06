@@ -22,7 +22,7 @@ namespace lowlevel {
 void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
     // copy select fdset
-    Select fdset = *this;
+    Select fdset = select_;
 
     if (self_verify_ || debug)
     {
@@ -34,14 +34,14 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
             if (!w.active) continue;
 
-            assert((w.read_cb.size() == 0) != Select::InRead(fd));
-            assert((w.write_cb.size() == 0) != Select::InWrite(fd));
+            assert((w.read_cb.size() == 0) != select_.InRead(fd));
+            assert((w.write_cb.size() == 0) != select_.InWrite(fd));
 
-            if (Select::InRead(fd))
+            if (select_.InRead(fd))
                 oss << "r" << fd << " ";
-            if (Select::InWrite(fd))
+            if (select_.InWrite(fd))
                 oss << "w" << fd << " ";
-            if (Select::InException(fd))
+            if (select_.InException(fd))
                 oss << "e" << fd << " ";
         }
 
@@ -87,12 +87,12 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
                 if (w->read_cb.size() == 0) {
                     // if all read callbacks are done, listen no longer.
-                    Select::ClearRead(fd);
+                    select_.ClearRead(fd);
                     if (w->write_cb.size() == 0 && !w->except_cb) {
                         // if also all write callbacks are done, stop
                         // listening.
-                        Select::ClearWrite(fd);
-                        Select::ClearException(fd);
+                        select_.ClearWrite(fd);
+                        select_.ClearException(fd);
                         w->active = false;
                     }
                 }
@@ -101,7 +101,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
                 LOG << "SelectDispatcher: got read event for fd "
                     << fd << " without a read handler.";
 
-                Select::ClearRead(fd);
+                select_.ClearRead(fd);
             }
         }
 
@@ -119,12 +119,12 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
 
                 if (w->write_cb.size() == 0) {
                     // if all write callbacks are done, listen no longer.
-                    Select::ClearWrite(fd);
+                    select_.ClearWrite(fd);
                     if (w->read_cb.size() == 0 && !w->except_cb) {
                         // if also all write callbacks are done, stop
                         // listening.
-                        Select::ClearRead(fd);
-                        Select::ClearException(fd);
+                        select_.ClearRead(fd);
+                        select_.ClearException(fd);
                         w->active = false;
                     }
                 }
@@ -133,7 +133,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
                 LOG << "SelectDispatcher: got write event for fd "
                     << fd << " without a write handler.";
 
-                Select::ClearWrite(fd);
+                select_.ClearWrite(fd);
             }
         }
 
@@ -143,7 +143,7 @@ void SelectDispatcher::Dispatch(const std::chrono::milliseconds& timeout) {
                 if (!w->except_cb()) {
                     w = &watch_[fd];
                     // callback returned false: remove fd from set
-                    Select::ClearException(fd);
+                    select_.ClearException(fd);
                 }
                 w = &watch_[fd];
             }
