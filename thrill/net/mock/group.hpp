@@ -34,7 +34,7 @@ public:
     std::condition_variable cv_;
 
     //! type of message queue
-    using DataQueue = std::deque<net::Buffer>;
+    using DataQueue = std::deque<std::string>;
 
     //! inbound message queue from each of the network peers
     std::vector<DataQueue> inbound_;
@@ -46,7 +46,7 @@ public:
     //! \{
 
     //! Send a buffer to peer tgt. Blocking, ... sort of.
-    void Send(size_t tgt, net::Buffer&& msg) {
+    void Send(size_t tgt, std::string&& msg) {
         assert(tgt < peers_.size());
 
         sLOG1 << "Sending" << my_rank_ << "->" << tgt
@@ -58,11 +58,11 @@ public:
     }
 
     //! Receive a buffer from peer src. Blocks until one is received!
-    net::Buffer Receive(size_t src) {
+    std::string Receive(size_t src) {
         assert(src < peers_.size());
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [=]() { return !inbound_[src].empty(); });
-        net::Buffer msg = std::move(inbound_[src].front());
+        std::string msg = std::move(inbound_[src].front());
         inbound_[src].pop_front();
         return msg;
     }
@@ -97,13 +97,14 @@ public:
 
     //! Send a string buffer
     ssize_t SyncSend(const void* data, size_t size, int /* flags */) final {
-        group_.Send(peer_, net::Buffer(data, size));
+        group_.Send(peer_,
+                    std::string(reinterpret_cast<const char*>(data), size));
         return size;
     }
 
     //! Receive a buffer.
     ssize_t SyncRecv(void* out_data, size_t size) final {
-        net::Buffer msg = group_.Receive(peer_);
+        std::string msg = group_.Receive(peer_);
         die_unequal(msg.size(), size);
         char* out_cdata = reinterpret_cast<char*>(out_data);
         std::copy(msg.begin(), msg.end(), out_cdata);

@@ -46,7 +46,6 @@ void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
 }
 
 TEST(MockGroup, RealInitializeAndClose) {
-    // Construct a real Group of 6 workers which do nothing but terminate.
     MockTest([](net::mock::Group* net) {
                  size_t local_value = 1;
                  net::PrefixSumForPowersOfTwo(*net, local_value);
