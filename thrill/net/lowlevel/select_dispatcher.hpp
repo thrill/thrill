@@ -20,6 +20,7 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/connection.hpp>
+#include <thrill/net/dispatcher.hpp>
 #include <thrill/net/exception.hpp>
 #include <thrill/net/lowlevel/select.hpp>
 #include <thrill/net/lowlevel/socket.hpp>
@@ -43,16 +44,19 @@ namespace lowlevel {
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
  */
-class SelectDispatcher
+class SelectDispatcher : public net::Dispatcher
 {
     static const bool debug = false;
 
     static const bool self_verify_ = common::g_self_verify;
 
 public:
+    //! type for file descriptor readiness callbacks
+    using Callback = AsyncCallback;
+
     //! constructor
     explicit SelectDispatcher(mem::Manager& mem_manager)
-        : mem_manager_(mem_manager) {
+        : net::Dispatcher(mem_manager) {
         // allocate self-pipe
         common::make_pipe(self_pipe_);
 
@@ -69,9 +73,6 @@ public:
         ::close(self_pipe_[0]);
         ::close(self_pipe_[1]);
     }
-
-    //! type for file descriptor readiness callbacks
-    using Callback = common::delegate<bool()>;
 
     //! Grow table if needed
     void CheckSize(int fd) {
@@ -93,13 +94,13 @@ public:
     }
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const Callback& read_cb) {
+    void AddRead(Connection& c, const Callback& read_cb) final {
         int fd = c.GetSocket().fd();
         return AddRead(fd, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const Callback& write_cb) {
+    void AddWrite(Connection& c, const Callback& write_cb) final {
         int fd = c.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].write_cb.size()) {
@@ -122,7 +123,7 @@ public:
     }
 
     //! Cancel all callbacks on a given fd.
-    void Cancel(Connection& c) {
+    void Cancel(Connection& c) final {
         int fd = c.GetSocket().fd();
         CheckSize(fd);
 
@@ -143,10 +144,10 @@ public:
     }
 
     //! Run one iteration of dispatching select().
-    void Dispatch(const std::chrono::milliseconds& timeout);
+    void DispatchOne(const std::chrono::milliseconds& timeout) final;
 
     //! Interrupt the current select via self-pipe
-    void Interrupt() {
+    void Interrupt() final {
         // there are multiple very platform-dependent ways to do this. we'll try
         // to use the self-pipe trick for now. The select() method waits on
         // another fd, which we write one byte to when we need to interrupt the
@@ -165,9 +166,6 @@ public:
     }
 
 private:
-    //! reference to memory manager
-    mem::Manager& mem_manager_;
-
     //! select() manager object
     Select select_;
 

@@ -9,7 +9,7 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/lowlevel/select_dispatcher.hpp>
 #include <thrill/net/manager.hpp>
 
 #include <deque>
@@ -148,7 +148,7 @@ protected:
      * The dispatcher instance used by this Manager
      * to perform async operations.
      */
-    Dispatcher dispatcher_ { mem_manager_ };
+    lowlevel::SelectDispatcher dispatcher_ { mem_manager_ };
 
     // Some definitions for convenience
     using Socket = lowlevel::Socket;
