@@ -108,11 +108,13 @@ namespace data {
 
         //we have one reference, but we decreased that by hand
         if (block->head.swapped_out_) {
-            assert(std::find(swapped_blocks_.begin(), swapped_blocks_.end(), block) != swapped_blocks_.end());
-            swapped_blocks_.erase(std::find(swapped_blocks_.begin(), swapped_blocks_.end(), block));
+            const auto pos = std::find(swapped_blocks_.begin(), swapped_blocks_.end(), block);
+            assert(pos != swapped_blocks_.end());
+            swapped_blocks_.erase(pos);
         } else {
-            assert(std::find(victim_blocks_.begin(), victim_blocks_.end(), block) != victim_blocks_.end());
-            victim_blocks_.erase(std::find(victim_blocks_.begin(), victim_blocks_.end(), block));
+            const auto pos = std::find(victim_blocks_.begin(), victim_blocks_.end(), block);
+            assert(pos != victim_blocks_.end());
+            victim_blocks_.erase(pos);
         }
     }
 
