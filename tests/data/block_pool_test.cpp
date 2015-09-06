@@ -18,7 +18,7 @@ using namespace thrill;
 struct BlockPoolTest : public::testing::Test {
     BlockPoolTest() : mem_manager_(nullptr, "mem"), block_pool_(&mem_manager_) { }
 
-    mem::Manager mem_manager_;
+    mem::Manager    mem_manager_;
     data::BlockPool block_pool_;
 };
 
@@ -26,7 +26,7 @@ TEST_F(BlockPoolTest, AllocateAccountsSizeInManager) {
     auto block = block_pool_.AllocateBlock(8);
     ASSERT_EQ(8u, mem_manager_.total());
     auto block2 = block_pool_.AllocateBlock(2);
-    ASSERT_EQ(10u,  mem_manager_.total());
+    ASSERT_EQ(10u, mem_manager_.total());
 }
 
 TEST_F(BlockPoolTest, AllocateIncreasesBlockCountByOne) {
@@ -58,6 +58,5 @@ TEST_F(BlockPoolTest, CopiedBlocksHaveRefCountOne) {
     auto copy = block;
     ASSERT_EQ(2u, block->reference_count());
 }
-
 
 /******************************************************************************/

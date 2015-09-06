@@ -1,14 +1,22 @@
-#include <thrill/data/byte_block.hpp>
+/*******************************************************************************
+ * thrill/data/byte_block.cpp
+ *
+ * Part of Project Thrill.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
 #include <thrill/data/block_pool.hpp>
+#include <thrill/data/byte_block.hpp>
 
 namespace thrill {
-namespace data{
+namespace data {
 
 void ByteBlock::deleter(ByteBlock* bb) {
     assert(bb->head.pin_count_ == 0);
 
-    //some blocks are created in 'detached' state (tests etc)
-    if(bb->head.block_pool_ && bb->reference_count() == 0) {
+    // some blocks are created in 'detached' state (tests etc)
+    if (bb->head.block_pool_ && bb->reference_count() == 0) {
         bb->head.block_pool_->FreeBlockMemory(bb->size());
         bb->head.block_pool_->DestroyBlock(bb);
     }
@@ -43,7 +51,8 @@ ByteBlockPtr ByteBlock::Allocate(
     return ByteBlockPtr(block);
 }
 
-
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 }
 }
+
+/******************************************************************************/

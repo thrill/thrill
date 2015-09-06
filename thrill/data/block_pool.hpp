@@ -9,6 +9,8 @@
  ******************************************************************************/
 
 #pragma once
+#ifndef THRILL_DATA_BLOCK_POOL_HEADER
+#define THRILL_DATA_BLOCK_POOL_HEADER
 
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
@@ -18,8 +20,6 @@
 
 namespace thrill {
 namespace data {
-
-
 
 /*!
  * Pool to allocate, keep, swap out/in, and free all ByteBlocks on the host.
@@ -37,7 +37,7 @@ public:
 
     void UnpinBlock(const ByteBlockPtr& block_ptr);
 
-    //TODO make this a future + Async
+    // TODO make this a future + Async
     //! Pins a block by swapping it in if required.
     ByteBlockPtr PinBlock(const ByteBlockPtr& block_ptr);
 
@@ -47,13 +47,13 @@ protected:
     //! local Manager counting only ByteBlock allocations.
     mem::Manager mem_manager_;
 
-    //list of all blocks that are no victims & not swapped
+    // list of all blocks that are no victims & not swapped
     std::deque<ByteBlock*> pinned_blocks_;
 
-    //list of all blocks that are not swapped but are not pinned
+    // list of all blocks that are not swapped but are not pinned
     std::deque<ByteBlock*> victim_blocks_;
 
-    //list of all blocks that are swapped out and not pinned
+    // list of all blocks that are swapped out and not pinned
     std::deque<ByteBlock*> swapped_blocks_;
 
     std::mutex list_mutex_;
@@ -76,6 +76,6 @@ protected:
 
 } // namespace data
 } // namespace thrill
-
+#endif // !THRILL_DATA_BLOCK_POOL_HEADER
 
 /******************************************************************************/

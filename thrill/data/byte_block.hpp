@@ -1,4 +1,15 @@
+/*******************************************************************************
+ * thrill/data/byte_block.hpp
+ *
+ * Part of Project Thrill.
+ *
+ *
+ * This file has no license. Only Chunk Norris can compile it.
+ ******************************************************************************/
+
 #pragma once
+#ifndef THRILL_DATA_BYTE_BLOCK_HEADER
+#define THRILL_DATA_BYTE_BLOCK_HEADER
 #include <thrill/common/counting_ptr.hpp>
 
 namespace thrill {
@@ -6,7 +17,7 @@ namespace data {
 //! type of underlying memory area
 using Byte = uint8_t;
 
-//forward declaration (definition further below)
+// forward declaration (definition further below)
 class BlockPool;
 /*!
  * A ByteBlock is the basic storage units of containers like File, BlockQueue,
@@ -47,7 +58,7 @@ protected:
     //! the memory block itself follows here, this is just a placeholder
     Byte data_[1];
 
-    //BlockPool is a friend to modify the head's pin_count_
+    // BlockPool is a friend to modify the head's pin_count_
     friend class BlockPool;
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
@@ -61,9 +72,7 @@ protected:
     //! No default construction of Byteblock
     ByteBlock() = delete;
 
-
 public:
-
     //! Construct a block of given size WIHTOUT pool management
     //! Do this only when the block should not be accounted by memory
     //! management. Use only recommended for tests
@@ -88,9 +97,11 @@ public:
 
     //! the block size
     size_t size() const { return head.size_; }
-
 };
 
+#endif // !THRILL_DATA_BYTE_BLOCK_HEADER
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 } //namespace data
 } //namespace thrill
+
+/******************************************************************************/
