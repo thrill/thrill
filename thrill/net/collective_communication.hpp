@@ -14,8 +14,6 @@
 #ifndef THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
-// http://memegenerator.net/instance2/1128363 (ts)
-#if DISABLE_MAYBE_REMOVE
 
 #include <thrill/common/functional.hpp>
 #include <thrill/net/group.hpp>
@@ -41,7 +39,8 @@ namespace net {
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
 template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSumForPowersOfTwo(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+static void PrefixSumForPowersOfTwo(Group& net, T& value,
+                                    BinarySumOp sumOp = BinarySumOp()) {
     T total_sum = value;
 
     static const bool debug = false;
@@ -98,6 +97,8 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
         }
     }
 }
+
+#if DISABLE_MAYBE_REMOVE
 
 //! \brief   Broadcasts the value of the worker with index 0 to all the others.
 //!
@@ -213,12 +214,13 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     }
 }
 
+#endif // DISABLE_MAYBE_REMOVE
+
 //! \}
 
 } // namespace net
 } // namespace thrill
 
-#endif // DISABLE_MAYBE_REMOVE
 
 #endif // !THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
