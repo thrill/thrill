@@ -32,11 +32,24 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
+class GroupBase
+{
+public:
+    //! Return our rank among hosts in this group.
+    size_t my_host_rank() const { return my_rank_; }
+
+    //! Return number of connections in this group (= number computing hosts)
+    virtual size_t num_hosts() const = 0;
+
+    //! our rank in the network group
+    size_t my_rank_;
+};
+
 /*!
  * Collection of NetConnections to workers, allows point-to-point client
  * communication and simple collectives like MPI.
  */
-class Group
+class Group : public GroupBase
 {
     static const bool debug = false;
 
@@ -130,13 +143,8 @@ public:
     }
 
     //! Return number of connections in this group (= number computing hosts)
-    size_t num_hosts() const {
+    size_t num_hosts() const final {
         return connections_.size();
-    }
-
-    //! Return my rank in the connection group (computing hosts)
-    size_t my_host_rank() const {
-        return my_rank_;
     }
 
     //! Closes all client connections
@@ -212,9 +220,6 @@ public:
     //! \}
 
 private:
-    //! The rank of this peer in the Group.
-    size_t my_rank_;
-
     bool connected_ = false;
 
     //! Connections to all other clients in the Group.

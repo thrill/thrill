@@ -20,16 +20,13 @@ namespace thrill {
 namespace net {
 namespace mock {
 
-class Socket;
+class Connection;
 
-class Group
+class Group : public net::GroupBase
 {
     static const bool debug_data = true;
 
 public:
-    //! our rank in the mock network
-    size_t my_rank_;
-
     //! Mutex to lock access to message queues
     std::mutex mutex_;
 
@@ -37,7 +34,7 @@ public:
     std::condition_variable cv_;
 
     //! type of message queue
-    using DataQueue = std::deque<std::string>;
+    using DataQueue = std::deque<net::Buffer>;
 
     //! inbound message queue from each of the network peers
     std::vector<DataQueue> inbound_;
@@ -49,7 +46,7 @@ public:
     //! \{
 
     //! Send a buffer to peer tgt. Blocking, ... sort of.
-    void Send(size_t tgt, std::string&& msg) {
+    void Send(size_t tgt, net::Buffer&& msg) {
         assert(tgt < peers_.size());
 
         sLOG1 << "Sending" << my_rank_ << "->" << tgt
@@ -61,22 +58,20 @@ public:
     }
 
     //! Receive a buffer from peer src. Blocks until one is received!
-    std::string Receive(size_t src) {
+    net::Buffer Receive(size_t src) {
         assert(src < peers_.size());
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [=]() { return !inbound_[src].empty(); });
-        std::string msg = inbound_[src].front();
+        net::Buffer msg = std::move(inbound_[src].front());
         inbound_[src].pop_front();
         return msg;
     }
 
     //! \}
 
-    Socket connection(size_t peer);
+    Connection connection(size_t peer);
 
-    size_t my_host_rank() const { return my_rank_; }
-
-    size_t num_hosts() const { return peers_.size(); }
+    size_t num_hosts() const final { return peers_.size(); }
 
     //! return hexdump or just <data> if not debugging
     static std::string maybe_hexdump(const void* data, size_t size) {
@@ -87,48 +82,37 @@ public:
     }
 };
 
-class Socket
+class Connection : public net::ConnectionBase
 {
 public:
     //! Reference to our group.
     Group& group_;
 
-    //! Outgoing peer id of this Socket.
+    //! Outgoing peer id of this Connection.
     size_t peer_;
 
     //! construct from mock::Group
-    Socket(Group& group, size_t peer)
+    Connection(Group& group, size_t peer)
         : group_(group), peer_(peer) { }
 
     //! Send a string buffer
-    void SendString(const void* data, size_t size) {
-        group_.Send(
-            peer_, std::string(reinterpret_cast<const char*>(data), size));
+    ssize_t SyncSend(const void* data, size_t size, int /* flags */) final {
+        group_.Send(peer_, net::Buffer(data, size));
+        return size;
     }
 
-    //! Send a serializable Item.
-    template <typename T>
-    void Send(const T& value) {
-        static_assert(std::is_pod<T>::value,
-                      "You only want to send POD types as raw values.");
-
-        SendString(&value, sizeof(value));
-    }
-
-    //! Receive a fixed-length type, possibly without length header.
-    template <typename T>
-    void Receive(T* out_value) {
-        static_assert(std::is_pod<T>::value,
-                      "You only want to receive POD types as raw values.");
-
-        std::string msg = group_.Receive(peer_);
-        assert(msg.size() == sizeof(T));
-        *out_value = *reinterpret_cast<const T*>(msg.data());
+    //! Receive a buffer.
+    ssize_t SyncRecv(void* out_data, size_t size) final {
+        net::Buffer msg = group_.Receive(peer_);
+        die_unequal(msg.size(), size);
+        char* out_cdata = reinterpret_cast<char*>(out_data);
+        std::copy(msg.begin(), msg.end(), out_cdata);
+        return size;
     }
 };
 
-inline Socket Group::connection(size_t peer) {
-    return Socket(*this, peer);
+inline Connection Group::connection(size_t peer) {
+    return Connection(*this, peer);
 }
 
 } // namespace mock
