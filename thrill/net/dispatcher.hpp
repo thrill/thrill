@@ -119,7 +119,7 @@ public:
 
     //! asynchronously read n bytes and deliver them to the callback
     void AsyncRead(Connection& c, size_t n, AsyncReadCallback done_cb) {
-        assert(c.GetSocket().IsValid());
+        assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
         if (n == 0) {
@@ -139,7 +139,7 @@ public:
     //! asynchronously read the full ByteBlock and deliver it to the callback
     void AsyncRead(Connection& c, const data::ByteBlockPtr& block,
                    AsyncReadByteBlockCallback done_cb) {
-        assert(c.GetSocket().IsValid());
+        assert(c.IsValid());
 
         LOG << "async read on read dispatcher";
         if (block->size() == 0) {
@@ -160,7 +160,7 @@ public:
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
                     AsyncWriteCallback done_cb = AsyncWriteCallback()) {
-        assert(c.GetSocket().IsValid());
+        assert(c.IsValid());
 
         if (buffer.size() == 0) {
             if (done_cb) done_cb(c);
@@ -180,7 +180,7 @@ public:
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, const data::Block& block,
                     AsyncWriteCallback done_cb = AsyncWriteCallback()) {
-        assert(c.GetSocket().IsValid());
+        assert(c.IsValid());
 
         if (block.size() == 0) {
             if (done_cb) done_cb(c);
@@ -346,7 +346,7 @@ protected:
 
         //! Should be called when the socket is readable
         bool operator () () {
-            int r = conn_.GetSocket().recv_one(
+            int r = conn_.RecvOne(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -414,7 +414,7 @@ protected:
 
         //! Should be called when the socket is writable
         bool operator () () {
-            int r = conn_.GetSocket().send_one(
+            int r = conn_.SendOne(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -479,7 +479,7 @@ protected:
 
         //! Should be called when the socket is readable
         bool operator () () {
-            int r = conn_.GetSocket().recv_one(
+            int r = conn_.RecvOne(
                 block_->data() + size_, block_->size() - size_);
 
             if (r <= 0) {
@@ -546,9 +546,8 @@ protected:
 
         //! Should be called when the socket is writable
         bool operator () () {
-            int r = conn_.GetSocket().send_one(
-                block_.data_begin() + size_,
-                block_.size() - size_);
+            int r = conn_.SendOne(
+                block_.data_begin() + size_, block_.size() - size_);
 
             if (r <= 0) {
                 if (errno == EINTR || errno == EAGAIN) return true;

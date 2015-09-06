@@ -95,11 +95,17 @@ public:
     Connection(Group& group, size_t peer)
         : group_(group), peer_(peer) { }
 
+    bool IsValid() const final { return true; }
+
     //! Send a string buffer
     ssize_t SyncSend(const void* data, size_t size, int /* flags */) final {
         group_.Send(peer_,
                     std::string(reinterpret_cast<const char*>(data), size));
         return size;
+    }
+
+    ssize_t SendOne(const void* data, size_t size) final {
+        return SyncSend(data, size, 0);
     }
 
     //! Receive a buffer.
@@ -109,6 +115,10 @@ public:
         char* out_cdata = reinterpret_cast<char*>(out_data);
         std::copy(msg.begin(), msg.end(), out_cdata);
         return size;
+    }
+
+    ssize_t RecvOne(void* out_data, size_t size) final {
+        return SyncRecv(out_data, size);
     }
 };
 
