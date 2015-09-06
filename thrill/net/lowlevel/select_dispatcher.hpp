@@ -17,14 +17,16 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/delegate.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/mem/allocator.hpp>
-#include <thrill/net/exception.hpp>
 #include <thrill/net/connection.hpp>
+#include <thrill/net/exception.hpp>
 #include <thrill/net/lowlevel/select.hpp>
 #include <thrill/net/lowlevel/socket.hpp>
 
 #include <cerrno>
 #include <chrono>
+#include <csignal>
 #include <deque>
 #include <functional>
 #include <vector>
@@ -50,7 +52,23 @@ class SelectDispatcher : protected Select
 public:
     //! constructor
     explicit SelectDispatcher(mem::Manager& mem_manager)
-        : mem_manager_(mem_manager) { }
+        : mem_manager_(mem_manager) {
+        // allocate self-pipe
+        common::make_pipe(self_pipe_);
+
+        // Ignore PIPE signals (received when writing to closed sockets)
+        signal(SIGPIPE, SIG_IGN);
+
+        // wait interrupts via self-pipe.
+        AddRead(self_pipe_[0],
+                Callback::from<SelectDispatcher,
+                               & SelectDispatcher::SelfPipeCallback>(this));
+    }
+
+    ~SelectDispatcher() {
+        ::close(self_pipe_[0]);
+        ::close(self_pipe_[1]);
+    }
 
     //! type for file descriptor readiness callbacks
     using Callback = common::delegate<bool()>;
@@ -74,6 +92,7 @@ public:
         watch_[fd].read_cb.emplace_back(read_cb);
     }
 
+    //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const Callback& read_cb) {
         int fd = c.GetSocket().fd();
         return AddRead(fd, read_cb);
@@ -126,9 +145,34 @@ public:
     //! Run one iteration of dispatching select().
     void Dispatch(const std::chrono::milliseconds& timeout);
 
+    //! Interrupt the current select via self-pipe
+    void Interrupt() {
+        // there are multiple very platform-dependent ways to do this. we'll try
+        // to use the self-pipe trick for now. The select() method waits on
+        // another fd, which we write one byte to when we need to interrupt the
+        // select().
+
+        // another method would be to send a signal() via pthread_kill() to the
+        // select thread, but that had a race condition for waking up the other
+        // thread. -tb
+
+        // send one byte to wake up the select() handler.
+        ssize_t wb;
+        while ((wb = write(self_pipe_[1], this, 1)) == 0) {
+            LOG1 << "WakeUp: error sending to self-pipe: " << errno;
+        }
+        die_unless(wb == 1);
+    }
+
 private:
     //! reference to memory manager
     mem::Manager& mem_manager_;
+
+    //! self-pipe to wake up select.
+    int self_pipe_[2];
+
+    //! buffer to receive one byte from self-pipe
+    int self_pipe_buffer_;
 
     //! callback vectors per watched file descriptor
     struct Watch
@@ -153,6 +197,16 @@ private:
     //! Default exception handler
     static bool DefaultExceptionCallback() {
         throw Exception("SelectDispatcher() exception on socket!", errno);
+    }
+
+    //! Self-pipe callback
+    bool SelfPipeCallback() {
+        ssize_t rb;
+        while ((rb = read(self_pipe_[0], &self_pipe_buffer_, 1)) == 0) {
+            LOG1 << "Work: error reading from self-pipe: " << errno;
+        }
+        die_unless(rb == 1);
+        return true;
     }
 };
 

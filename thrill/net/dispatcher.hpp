@@ -284,6 +284,11 @@ public:
         }
     }
 
+    //! Interrupt current dispatch
+    void Interrupt() {
+        dispatcher_.Interrupt();
+    }
+
     //! Causes the dispatcher to break out after the next timeout occurred
     //! Does not interrupt the currently running read/write operation, but
     //! breaks after the operation finished or timed out.
