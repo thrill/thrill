@@ -23,8 +23,10 @@ namespace data {
         if (pinned) {
             pinned_blocks_.push_back(result);
             pinned_blocks_.back()->head.pin_count_++;
+            LOG << "allocating pinned block @" << &*result;
         } else {
             victim_blocks_.push_back(result);
+            LOG << "allocating unpinned block @" << &*result;
         }
 
         LOG << "AllocateBlock() total_count=" << block_count()
@@ -34,7 +36,9 @@ namespace data {
 
     void BlockPool::UnpinBlock(const ByteBlockPtr& block_ptr) {
         std::lock_guard<std::mutex>lock (list_mutex_);
-        if(--block_ptr->head.pin_count_ == 0) {
+        LOG << "unpinning block @" << &*block_ptr;
+        if(--(block_ptr->head.pin_count_) == 0) {
+            sLOG << "unpinned block reached ping-count 0";
             //pin count reached 0 --> move to victim list
             pinned_blocks_.erase(std::find(pinned_blocks_.begin(), pinned_blocks_.end(), block_ptr));
             victim_blocks_.push_back(block_ptr);
@@ -45,8 +49,11 @@ namespace data {
     //! Pins a block by swapping it in if required.
     ByteBlockPtr BlockPool::PinBlock(const ByteBlockPtr& block_ptr) {
         std::lock_guard<std::mutex>lock (list_mutex_);
-        if(block_ptr->head.pin_count_ > 0)
+        LOG << "pinning block @" << &*block_ptr;
+        if(block_ptr->head.pin_count_ > 0) {
+            sLOG << "already pinned - return ptr";
             return block_ptr;
+        }
         SwapBlockIn(block_ptr);
         block_ptr->head.pin_count_++;
 
@@ -79,18 +86,23 @@ namespace data {
             " total_size=" << mem_manager_.total();
     }
 
-    //! Mechanism to swap block to disk. No changes to pool or block state are made. Blocking call.
+    //! Mechanism to swap block to disk. No changes to pool or block state
+    //! are made. Blocking call.
     void BlockPool::SwapBlockOut(const ByteBlockPtr& block_ptr) const {
         //TODO implement this
     }
 
-    //! Mechanism to swap block from disk. No changes to pool or block state are made. Blocking call.
+    //! Mechanism to swap block from disk. No changes to pool or block state
+    //! are made. Blocking call.
     void BlockPool::SwapBlockIn(const ByteBlockPtr& block_ptr) {
         //TODO implement this
     }
 
     void BlockPool::DestroyBlock(ByteBlock* block) {
+        //pinned blocks cannot be destroyed since they are always unpinned first
         assert(block->head.pin_count_ == 0);
+
+        LOG << "destroying block @" << block;
 
         //we have one reference, but we decreased that by hand
         if (block->head.swapped_out_) {
