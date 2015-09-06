@@ -280,7 +280,7 @@ public:
     }
 
 protected:
-    //! Underlying socket.
+    //! Underlying socket or connection handle.
     Socket socket_;
 
     //! The connection state of this connection in the Thrill network state

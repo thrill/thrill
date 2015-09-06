@@ -14,7 +14,6 @@
 #ifndef THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 #define THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
-
 #include <thrill/common/functional.hpp>
 #include <thrill/net/group.hpp>
 
@@ -38,9 +37,9 @@ namespace net {
 //! \param   net The current worker onto which to apply the operation
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
-template <typename T, typename BinarySumOp = std::plus<T> >
-static void PrefixSumForPowersOfTwo(Group& net, T& value,
-                                    BinarySumOp sumOp = BinarySumOp()) {
+template <typename T, typename Group, typename BinarySumOp = std::plus<T> >
+static void PrefixSumForPowersOfTwo(
+    Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     T total_sum = value;
 
     static const bool debug = false;
@@ -214,13 +213,12 @@ static void PrefixSum(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     }
 }
 
-#endif // DISABLE_MAYBE_REMOVE
+#endif  // DISABLE_MAYBE_REMOVE
 
 //! \}
 
 } // namespace net
 } // namespace thrill
-
 
 #endif // !THRILL_NET_COLLECTIVE_COMMUNICATION_HEADER
 
