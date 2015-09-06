@@ -30,7 +30,6 @@ namespace data {
 //! default size of blocks in File, Channel, BlockQueue, etc.
 static const size_t default_block_size = 2 * 1024 * 1024;
 
-
 /**
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
  * information. The book-keeping meta-information currently is the start of the
