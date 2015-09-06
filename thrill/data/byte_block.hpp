@@ -62,11 +62,6 @@ protected:
     //! No default construction of Byteblock
     ByteBlock() = delete;
 
-    //decrease reference count because references held by pool should not be
-    //accounted
-    void DecRef() noexcept {
-        ReferenceCount::DecReference();
-    }
 
 public:
 
