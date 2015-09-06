@@ -19,6 +19,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/exception.hpp>
+#include <thrill/net/connection.hpp>
 #include <thrill/net/lowlevel/select.hpp>
 #include <thrill/net/lowlevel/socket.hpp>
 
@@ -73,8 +74,14 @@ public:
         watch_[fd].read_cb.emplace_back(read_cb);
     }
 
+    void AddRead(Connection& c, const Callback& read_cb) {
+        int fd = c.GetSocket().fd();
+        return AddRead(fd, read_cb);
+    }
+
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(int fd, const Callback& write_cb) {
+    void AddWrite(Connection& c, const Callback& write_cb) {
+        int fd = c.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].write_cb.size()) {
             Select::SetWrite(fd);
@@ -85,7 +92,8 @@ public:
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void SetExcept(int fd, const Callback& except_cb) {
+    void SetExcept(Connection& c, const Callback& except_cb) {
+        int fd = c.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].except_cb) {
             Select::SetException(fd);
@@ -95,7 +103,8 @@ public:
     }
 
     //! Cancel all callbacks on a given fd.
-    void Cancel(int fd) {
+    void Cancel(Connection& c) {
+        int fd = c.GetSocket().fd();
         CheckSize(fd);
 
         if (watch_[fd].read_cb.size() == 0 &&

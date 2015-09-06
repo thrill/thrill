@@ -110,17 +110,17 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const AsyncCallback& read_cb) {
-        return dispatcher_.AddRead(c.GetSocket().fd(), read_cb);
+        return dispatcher_.AddRead(c, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const AsyncCallback& write_cb) {
-        return dispatcher_.AddWrite(c.GetSocket().fd(), write_cb);
+        return dispatcher_.AddWrite(c, write_cb);
     }
 
     //! Cancel all callbacks on a given connection.
-    void Cancel(int fd) {
-        return dispatcher_.Cancel(fd);
+    void Cancel(Connection& c) {
+        return dispatcher_.Cancel(c);
     }
 
     //! \}
