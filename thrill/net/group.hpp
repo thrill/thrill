@@ -35,6 +35,18 @@ namespace net {
 class GroupBase
 {
 public:
+    // default constructor
+    GroupBase() = default;
+
+    //! non-copyable: delete copy-constructor
+    GroupBase(const GroupBase &) = delete;
+    //! non-copyable: delete assignment operator
+    GroupBase & operator = (const GroupBase &) = delete;
+    //! move-constructor: default
+    GroupBase(GroupBase &&) = default;
+    //! move-assignment operator: default
+    GroupBase & operator = (GroupBase &&) = default;
+
     //! Return our rank among hosts in this group.
     size_t my_host_rank() const { return my_rank_; }
 
