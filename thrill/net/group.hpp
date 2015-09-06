@@ -19,8 +19,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/net/connection.hpp>
 
-#include <sys/select.h>
-
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -167,126 +165,6 @@ public:
 
     //! \name Richer ReceiveFromAny Functions
     //! \{
-
-    /*!
-     * Receive a fixed-length integral type from any worker into out_value, puts
-     * worker id in *src.
-     *
-     * \param out_src The id of the client the data was received from.
-     * \param out_value The received value.
-     */
-    template <typename T>
-    void ReceiveFromAny(size_t* out_src, T* out_value) {
-        fd_set fds;
-        int max_fd = 0;
-
-        FD_ZERO(&fds);
-
-        // TODO(ej) use NetDispatcher here?
-        // TODO(rh) use NetDispatcher here and everywhere else in this class
-        // (somewhen)
-
-        sLOG0 << "--- Group::ReceiveFromAny() - select():";
-
-        for (size_t i = 0; i != connections_.size(); ++i)
-        {
-            if (i == my_rank_) continue;
-
-            int fd = connections_[i].GetSocket().fd();
-            FD_SET(fd, &fds);
-            max_fd = std::max(max_fd, fd);
-            sLOG0 << "select from fd=" << fd;
-        }
-
-        int retval = select(max_fd + 1, &fds, nullptr, nullptr, nullptr);
-
-        if (retval < 0) {
-            perror("select()");
-            abort();
-        }
-        else if (retval == 0) {
-            perror("select() TIMEOUT");
-            abort();
-        }
-
-        for (size_t i = 0; i < connections_.size(); i++)
-        {
-            if (i == my_rank_) continue;
-
-            int fd = connections_[i].GetSocket().fd();
-
-            if (FD_ISSET(fd, &fds))
-            {
-                sLOG << "select() readable fd" << fd;
-
-                *out_src = i;
-                return connections_[i].Receive<T>(out_value);
-            }
-        }
-
-        sLOG << "Select() returned but no fd was readable.";
-
-        return ReceiveFromAny<T>(out_src, out_value);
-    }
-
-    /*!
-     * Receives a string message from any worker into out_data, which will be
-     * resized as needed, puts worker id in *src.
-     *
-     * \param out_src The id of the worker the string was received from.
-     * \param out_data The string received from the worker.
-     */
-    void ReceiveStringFromAny(size_t* out_src, std::string* out_data) {
-        fd_set fds;
-        int max_fd = 0;
-
-        FD_ZERO(&fds);
-
-        // add file descriptor to read set for poll TODO(ts): make this faster
-        // (somewhen)
-
-        sLOG0 << "--- Group::ReceiveFromAny() - select():";
-
-        for (size_t i = 0; i != connections_.size(); ++i)
-        {
-            if (i == my_rank_) continue;
-
-            int fd = connections_[i].GetSocket().fd();
-            FD_SET(fd, &fds);
-            max_fd = std::max(max_fd, fd);
-            sLOG0 << "select from fd=" << fd;
-        }
-
-        int retval = select(max_fd + 1, &fds, nullptr, nullptr, nullptr);
-
-        if (retval < 0) {
-            perror("select()");
-            abort();
-        }
-        else if (retval == 0) {
-            perror("select() TIMEOUT");
-            abort();
-        }
-
-        for (size_t i = 0; i < connections_.size(); i++)
-        {
-            if (i == my_rank_) continue;
-
-            int fd = connections_[i].GetSocket().fd();
-
-            if (FD_ISSET(fd, &fds))
-            {
-                sLOG << my_rank_ << "- select() readable fd" << fd << "id" << i;
-
-                *out_src = i;
-                return connections_[i].ReceiveString(out_data);
-            }
-        }
-
-        sLOG << my_rank_ << " - Select() returned but no fd was readable.";
-
-        return ReceiveStringFromAny(out_src, out_data);
-    }
 
     /**
      * \brief Sends a string to a worker.

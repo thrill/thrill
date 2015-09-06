@@ -87,13 +87,10 @@ static void ThreadInitializeBroadcastIntegral(Group* net) {
         if (i == net->my_host_rank()) continue;
 
         size_t val;
-        size_t id;
 
-        net->ReceiveFromAny<size_t>(&id, &val);
-
-        LOG << "Received " << val << " from " << id;
-
-        ASSERT_EQ(id, val);
+        net->ReceiveFrom<size_t>(i, &val);
+        LOG << "Received " << val << " from " << i;
+        ASSERT_EQ(i, val);
     }
 }
 
@@ -117,29 +114,6 @@ static void ThreadInitializeSendReceive(Group* net) {
         sLOG << "Received from client" << i << "msg" << msg;
 
         ASSERT_EQ(msg, "Hello " + std::to_string(i)
-                  + " -> " + std::to_string(net->my_host_rank()));
-    }
-
-    // *****************************************************************
-
-    // send another message to all other clients except ourselves. Now with connection access.
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        net->connection(i).SendString("Hello " + std::to_string(net->my_host_rank())
-                                      + " -> " + std::to_string(i));
-    }
-    // receive the n-1 messages from clients in any order
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-
-        size_t from;
-        std::string msg;
-        net->ReceiveStringFromAny(&from, &msg);
-        sLOG << "Received from client" << i << "msg" << msg;
-
-        ASSERT_EQ(msg, "Hello " + std::to_string(from)
                   + " -> " + std::to_string(net->my_host_rank()));
     }
 }
