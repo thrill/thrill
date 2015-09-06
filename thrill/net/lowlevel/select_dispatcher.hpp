@@ -95,13 +95,17 @@ public:
 
     //! Register a buffered read callback and a default exception callback.
     void AddRead(Connection& c, const Callback& read_cb) final {
-        int fd = c.GetSocket().fd();
+        assert(dynamic_cast<TcpConnection*>(&c));
+        TcpConnection& tc = static_cast<TcpConnection&>(c);
+        int fd = tc.GetSocket().fd();
         return AddRead(fd, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
     void AddWrite(Connection& c, const Callback& write_cb) final {
-        int fd = c.GetSocket().fd();
+        assert(dynamic_cast<TcpConnection*>(&c));
+        TcpConnection& tc = static_cast<TcpConnection&>(c);
+        int fd = tc.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].write_cb.size()) {
             select_.SetWrite(fd);
@@ -113,7 +117,9 @@ public:
 
     //! Register a buffered write callback and a default exception callback.
     void SetExcept(Connection& c, const Callback& except_cb) {
-        int fd = c.GetSocket().fd();
+        assert(dynamic_cast<TcpConnection*>(&c));
+        TcpConnection& tc = static_cast<TcpConnection&>(c);
+        int fd = tc.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].except_cb) {
             select_.SetException(fd);
@@ -124,7 +130,9 @@ public:
 
     //! Cancel all callbacks on a given fd.
     void Cancel(Connection& c) final {
-        int fd = c.GetSocket().fd();
+        assert(dynamic_cast<TcpConnection*>(&c));
+        TcpConnection& tc = static_cast<TcpConnection&>(c);
+        int fd = tc.GetSocket().fd();
         CheckSize(fd);
 
         if (watch_[fd].read_cb.size() == 0 &&

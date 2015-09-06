@@ -43,7 +43,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFuture) {
     using lowlevel::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    Connection connA(sp.first), connB(sp.second);
+    TcpConnection connA(sp.first), connB(sp.second);
 
     DispatcherThread disp("dispatcher");
 
@@ -75,7 +75,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
     using lowlevel::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    Connection connA(sp.first), connB(sp.second);
+    TcpConnection connA(sp.first), connB(sp.second);
 
     DispatcherThread disp("dispatcher");
 
@@ -88,13 +88,13 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
 
     pool.Enqueue(
         [&]() {
-            FutureX<Connection, Buffer> f;
+            FutureX<int, Buffer> f;
             disp.AsyncRead(connB, 5,
                            [&f](Connection& c, Buffer&& b) -> void {
                                sLOG << "Got Hello in callback";
-                               f.Callback(std::move(c), std::move(b));
+                               f.Callback(42, std::move(b));
                            });
-            std::tuple<Connection, Buffer> t = f.Wait();
+            std::tuple<int, Buffer> t = f.Wait();
             Buffer& b = std::get<1>(t);
             sLOG << "Waiter got packet:" << b.ToString();
         });
@@ -112,7 +112,7 @@ TEST_F(DispatcherThreadTest, DISABLED_AsyncWriteAndReadIntoStdFuture) {
     using lowlevel::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    Connection connA(sp.first), connB(sp.second);
+    TcpConnection connA(sp.first), connB(sp.second);
 
     DispatcherThread disp("dispatcher");
 

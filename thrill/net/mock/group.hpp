@@ -12,6 +12,9 @@
 #ifndef THRILL_NET_MOCK_GROUP_HEADER
 #define THRILL_NET_MOCK_GROUP_HEADER
 
+#include <thrill/common/delegate.hpp>
+#include <thrill/net/dispatcher.hpp>
+
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -82,7 +85,7 @@ public:
     }
 };
 
-class Connection : public net::ConnectionBase
+class Connection final : public net::Connection
 {
 public:
     //! Reference to our group.
@@ -96,6 +99,10 @@ public:
         : group_(group), peer_(peer) { }
 
     bool IsValid() const final { return true; }
+
+    std::string ToString() const final {
+        return "peer: " + std::to_string(peer_);
+    }
 
     //! Send a string buffer
     ssize_t SyncSend(const void* data, size_t size, int /* flags */) final {
@@ -125,6 +132,21 @@ public:
 inline Connection Group::connection(size_t peer) {
     return Connection(*this, peer);
 }
+
+class Dispatcher : public net::Dispatcher
+{
+public:
+    //! type for file descriptor readiness callbacks
+    using Callback = common::delegate<bool()>;
+
+    //! Register a buffered read callback and a default exception callback.
+    void AddRead(net::Connection& c, const Callback& read_cb) final { }
+
+    void AddWrite(net::Connection& c, const Callback& write_cb) final { }
+
+    //! Run one iteration of dispatching select().
+    void Dispatch(const std::chrono::milliseconds& timeout);
+};
 
 } // namespace mock
 } // namespace net

@@ -43,12 +43,14 @@ enum ConnectionState : unsigned {
 #define MSG_MORE 0
 #endif
 
-class ConnectionBase
+class Connection
 {
 public:
     static const bool self_verify_ = common::g_self_verify;
 
     virtual bool IsValid() const = 0;
+
+    virtual std::string ToString() const = 0;
 
     //! \name Send Functions
     //! \{
@@ -153,7 +155,7 @@ public:
  * instead of explicit error handling. If ever an error occurs, we probably have
  * to rebuild the whole network explicitly.
  */
-class Connection : public ConnectionBase
+class TcpConnection final : public Connection
 {
     static const bool debug = false;
 
@@ -161,22 +163,22 @@ class Connection : public ConnectionBase
 
 public:
     //! default construction, contains invalid socket
-    Connection() = default;
+    TcpConnection() = default;
 
     //! Construct Connection from a Socket
-    explicit Connection(const Socket& s)
+    explicit TcpConnection(const Socket& s)
         : socket_(s)
     { }
 
     //! Construct Connection from a Socket, with immediate
     //! initialization. (Currently used by tests).
-    Connection(const Socket& s, size_t group_id, size_t peer_id)
+    TcpConnection(const Socket& s, size_t group_id, size_t peer_id)
         : socket_(s),
           group_id_(group_id), peer_id_(peer_id)
     { }
 
     //! move-constructor
-    Connection(Connection&& other)
+    TcpConnection(TcpConnection&& other)
         : socket_(other.socket_),
           state_(other.state_),
           group_id_(other.group_id_),
@@ -186,7 +188,7 @@ public:
     }
 
     //! move assignment-operator
-    Connection& operator = (Connection&& other) {
+    TcpConnection& operator = (TcpConnection&& other) {
         if (IsValid()) {
             sLOG1 << "Assignment-destruction of valid Connection" << this;
             Close();
@@ -249,6 +251,8 @@ public:
     bool IsValid() const final
     { return socket_.IsValid(); }
 
+    std::string ToString() const final { return std::to_string(GetSocket().fd()); }
+
     //! Return the raw socket object for more low-level network programming.
     Socket & GetSocket()
     { return socket_; }
@@ -270,12 +274,12 @@ public:
     { return socket_.GetPeerAddress().ToStringHostPort(); }
 
     //! Checks wether two connections have the same underlying socket or not.
-    bool operator == (const Connection& c) const
+    bool operator == (const TcpConnection& c) const
     { return GetSocket().fd() == c.GetSocket().fd(); }
 
     //! Destruction of Connection should be explicitly done by a NetGroup or
     //! other network class.
-    ~Connection() {
+    ~TcpConnection() {
         if (IsValid()) {
             Close();
         }
@@ -303,8 +307,8 @@ public:
     }
 
     //! make ostreamable
-    friend std::ostream& operator << (std::ostream& os, const Connection& c) {
-        os << "[Connection"
+    friend std::ostream& operator << (std::ostream& os, const TcpConnection& c) {
+        os << "[TcpConnection"
            << " fd=" << c.GetSocket().fd();
 
         if (c.IsValid())

@@ -80,7 +80,7 @@ public:
                 throw Exception("Could not listen on socket "
                                 + lsa.ToStringHostPort(), errno);
 
-            listener_ = Connection(listen_socket);
+            listener_ = TcpConnection(listen_socket);
         }
 
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
@@ -142,7 +142,7 @@ protected:
      * The Connections responsible
      * for listening to incoming connections.
      */
-    Connection listener_;
+    TcpConnection listener_;
 
     /**
      * The dispatcher instance used by this Manager
@@ -159,7 +159,7 @@ protected:
     //! Array of opened connections that are not assigned to any (group,id)
     //! client, yet. This must be a deque. When welcomes are received the
     //! Connection is moved out of the deque into the right Group.
-    std::deque<Connection> connections_;
+    std::deque<TcpConnection> connections_;
 
     //! Array of connect timeouts which are exponentially increased from 10msec
     //! on failed connects.
@@ -255,7 +255,10 @@ protected:
      * \param nc The connection to connect.
      * \param address The address of the endpoint to connect to.
      */
-    void AsyncConnect(Connection& nc, const SocketAddress& address) {
+    void AsyncConnect(Connection& _nc, const SocketAddress& address) {
+        assert(dynamic_cast<TcpConnection*>(&_nc));
+        TcpConnection& nc = static_cast<TcpConnection&>(_nc);
+
         // Start asynchronous connect.
         nc.GetSocket().SetNonBlocking(true);
         int res = nc.GetSocket().connect(address);
@@ -302,10 +305,10 @@ protected:
         size_t group, size_t id, const SocketAddress& address) {
 
         // Construct a new socket (old one is destroyed)
-        Connection& nc = groups_[group].connection(id);
+        TcpConnection& nc = groups_[group].connection(id);
         if (nc.IsValid()) nc.Close();
 
-        nc = Connection(Socket::Create());
+        nc = TcpConnection(Socket::Create());
         nc.set_group_id(group);
         nc.set_peer_id(id);
 
@@ -319,7 +322,10 @@ protected:
      *
      * \param conn The connection for which the hello is sent.
      */
-    void OnHelloSent(Connection& conn) {
+    void OnHelloSent(Connection& _conn) {
+        assert(dynamic_cast<TcpConnection*>(&_conn));
+        TcpConnection& conn = static_cast<TcpConnection&>(_conn);
+
         if (conn.state() == ConnectionState::TransportConnected) {
             conn.set_state(ConnectionState::HelloSent);
         }
@@ -366,8 +372,10 @@ protected:
      *
      * \return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(Connection& conn, const SocketAddress& address,
+    bool OnConnected(Connection& _conn, const SocketAddress& address,
                      int _err = 0) {
+        assert(dynamic_cast<TcpConnection*>(&_conn));
+        TcpConnection& conn = static_cast<TcpConnection&>(_conn);
 
         // First, check if everything went well.
         int err = _err ? _err : conn.GetSocket().GetError();
@@ -449,7 +457,9 @@ protected:
      *
      * \return A boolean indicating wether this handler should stay attached.
      */
-    void OnIncomingWelcome(Connection& conn, Buffer&& buffer) {
+    void OnIncomingWelcome(Connection& _conn, Buffer&& buffer) {
+        assert(dynamic_cast<TcpConnection*>(&_conn));
+        TcpConnection& conn = static_cast<TcpConnection&>(_conn);
 
         die_unless(conn.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
@@ -483,7 +493,9 @@ protected:
      *
      * \return A boolean indicating wether this handler should stay attached.
      */
-    void OnIncomingWelcomeAndReply(Connection& conn, Buffer&& buffer) {
+    void OnIncomingWelcomeAndReply(Connection& _conn, Buffer&& buffer) {
+        assert(dynamic_cast<TcpConnection*>(&_conn));
+        TcpConnection& conn = static_cast<TcpConnection&>(_conn);
 
         die_unless(conn.GetSocket().IsValid());
         die_unless(conn.state() != ConnectionState::TransportConnected);
@@ -529,7 +541,10 @@ protected:
      * \param conn The listener connection.
      * \return A boolean indicating wether this handler should stay attached.
      */
-    bool OnIncomingConnection(Connection& conn) {
+    bool OnIncomingConnection(Connection& _conn) {
+        assert(dynamic_cast<TcpConnection*>(&_conn));
+        TcpConnection& conn = static_cast<TcpConnection&>(_conn);
+
         // accept listening socket
         connections_.emplace_back(conn.GetSocket().accept());
         die_unless(connections_.back().GetSocket().IsValid());
