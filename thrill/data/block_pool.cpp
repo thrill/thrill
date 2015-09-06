@@ -99,6 +99,8 @@ namespace data {
     }
 
     void BlockPool::DestroyBlock(ByteBlock* block) {
+        std::lock_guard<std::mutex>lock (list_mutex_);
+
         //pinned blocks cannot be destroyed since they are always unpinned first
         assert(block->head.pin_count_ == 0);
 
