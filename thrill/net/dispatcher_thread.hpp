@@ -161,12 +161,6 @@ private:
 
     //! thread name for logging
     mem::by_string name_;
-
-    //! self-pipe to wake up thread.
-    int self_pipe_[2];
-
-    //! buffer to receive one byte from self-pipe
-    int self_pipe_buffer_;
 };
 
 //! \}
