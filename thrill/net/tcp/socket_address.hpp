@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/socket_address.hpp
+ * thrill/net/tcp/socket_address.hpp
  *
  * Implements lookups and conversions to low-level socket address structs.
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
-#define THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
+#ifndef THRILL_NET_TCP_SOCKET_ADDRESS_HEADER
+#define THRILL_NET_TCP_SOCKET_ADDRESS_HEADER
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -25,7 +25,7 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -277,10 +277,10 @@ public:
 
 // \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SOCKET_ADDRESS_HEADER
+#endif // !THRILL_NET_TCP_SOCKET_ADDRESS_HEADER
 
 /******************************************************************************/

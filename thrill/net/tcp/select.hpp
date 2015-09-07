@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/select.hpp
+ * thrill/net/tcp/select.hpp
  *
  * Lightweight wrapper around select()
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SELECT_HEADER
-#define THRILL_NET_LOWLEVEL_SELECT_HEADER
+#ifndef THRILL_NET_TCP_SELECT_HEADER
+#define THRILL_NET_TCP_SELECT_HEADER
 
 #include <sys/select.h>
 
@@ -22,7 +22,7 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -127,10 +127,10 @@ protected:
 
 //! \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SELECT_HEADER
+#endif // !THRILL_NET_TCP_SELECT_HEADER
 
 /******************************************************************************/

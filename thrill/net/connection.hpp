@@ -18,7 +18,7 @@
 #include <thrill/common/config.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/exception.hpp>
-#include <thrill/net/lowlevel/socket.hpp>
+#include <thrill/net/tcp/socket.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -159,7 +159,7 @@ class TcpConnection final : public Connection
 {
     static const bool debug = false;
 
-    using Socket = lowlevel::Socket;
+    using Socket = tcp::Socket;
 
 public:
     //! default construction, contains invalid socket

@@ -20,10 +20,9 @@
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
-#include <thrill/net/lowlevel/socket.hpp>
 
 // TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
-// #include <thrill/net/lowlevel/epoll-dispatcher.hpp>
+// #include <thrill/net/tcp/epoll-dispatcher.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -65,9 +64,6 @@ class Dispatcher
     static const bool debug = false;
 
 protected:
-    //! import into class namespace
-    using Socket = lowlevel::Socket;
-
     //! import into class namespace
     using steady_clock = std::chrono::steady_clock;
 

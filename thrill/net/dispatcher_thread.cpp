@@ -10,7 +10,7 @@
 
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <unistd.h>
 
@@ -23,7 +23,7 @@ namespace net {
 
 DispatcherThread::DispatcherThread(const mem::by_string& thread_name)
     : dispatcher_(
-          mem::mm_new<lowlevel::SelectDispatcher>(mem_manager_, mem_manager_),
+          mem::mm_new<tcp::SelectDispatcher>(mem_manager_, mem_manager_),
           mem::Deleter<Dispatcher>(mem_manager_)
           ),
       name_(thread_name) {
