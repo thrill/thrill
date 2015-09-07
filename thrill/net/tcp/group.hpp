@@ -42,8 +42,6 @@ class Group final : public net::Group
 {
     static const bool debug = false;
 
-    using TcpConnection = tcp::Connection;
-
 public:
     //! \name Construction and Initialization
     //! \{
@@ -100,7 +98,7 @@ public:
     //! \{
 
     //! Return Connection to client id.
-    TcpConnection & tcp_connection(size_t id) {
+    Connection & tcp_connection(size_t id) {
         if (id >= connections_.size())
             throw Exception("Group::Connection() requested "
                             "invalid client id " + std::to_string(id));
@@ -126,7 +124,7 @@ public:
      * \return A ref to the assigned connection, which is always valid, but might be different from the
      * inut connection.
      */
-    TcpConnection & AssignConnection(TcpConnection& connection) {
+    Connection & AssignConnection(Connection& connection) {
         if (connection.peer_id() >= connections_.size())
             throw Exception("Group::GetClient() requested "
                             "invalid client id "
@@ -167,7 +165,7 @@ private:
     bool connected_ = false;
 
     //! Connections to all other clients in the Group.
-    std::vector<TcpConnection> connections_;
+    std::vector<Connection> connections_;
 };
 
 //! \}
