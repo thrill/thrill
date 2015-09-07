@@ -70,8 +70,8 @@ protected:
     explicit ByteBlock(size_t size, BlockPool* block_pool, bool pinned = false);
 
     //! Construct a block of given size.
-    static ByteBlockPtr Allocate(
-        size_t block_size, BlockPool* block_pool);
+    static ByteBlock* Allocate(
+        size_t block_size, BlockPool* block_pool, bool pinned = false);
 
     //! No default construction of Byteblock
     ByteBlock() = delete;
@@ -80,7 +80,7 @@ public:
     //! Construct a block of given size WIHTOUT pool management
     //! Do this only when the block should not be accounted by memory
     //! management. Use only recommended for tests
-    static ByteBlockPtr Allocate(size_t block_size) {
+    static ByteBlock* Allocate(size_t block_size) {
         return Allocate(block_size, nullptr);
     }
 

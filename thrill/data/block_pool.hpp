@@ -14,6 +14,7 @@
 
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
+#include <thrill/mem/page_mapper.hpp>
 
 #include <deque>
 #include <mutex>
@@ -46,6 +47,8 @@ public:
 protected:
     //! local Manager counting only ByteBlock allocations.
     mem::Manager mem_manager_;
+
+    mem::PageMapper page_mapper_;
 
     // list of all blocks that are no victims & not swapped
     std::deque<ByteBlock*> pinned_blocks_;

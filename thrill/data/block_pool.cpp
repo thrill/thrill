@@ -8,6 +8,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
+#include <sys/mman.h>
+
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block_pool.hpp>
 
@@ -15,24 +17,39 @@ namespace thrill {
 namespace data {
 
 ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
+    ByteBlock* block = nullptr;
+
+    if (block_size == default_block_size) {
+        //allocate backed memory region for block
+        sLOG << "allocating block with size" << block_size << " with disk backing";
+        block = reinterpret_cast<ByteBlock*>(page_mapper_.Allocate());
+
+        //call ctor of ByteBlock to initialize
+        size_t actual_size = block_size - sizeof(common::ReferenceCount) - sizeof(ByteBlock::head);
+        new (block)ByteBlock(actual_size, this, pinned);
+    } else {
+        //fallback to normal allocate
+        sLOG << "allocating block with size" << block_size << " without disk backing";
+        block = ByteBlock::Allocate(block_size, this, pinned);
+    }
+
     std::lock_guard<std::mutex> lock(list_mutex_);
-
-    ByteBlockPtr result = ByteBlock::Allocate(block_size, this);
-
     // we store a raw pointer --> does not increase ref count
     if (pinned) {
-        pinned_blocks_.push_back(result);
+        pinned_blocks_.push_back(block);
         pinned_blocks_.back()->head.pin_count_++;
-        LOG << "allocating pinned block @" << &*result;
+        LOG << "allocating pinned block @" << block;
     }
     else {
-        victim_blocks_.push_back(result);
-        LOG << "allocating unpinned block @" << &*result;
+        victim_blocks_.push_back(block);
+        LOG << "allocating unpinned block @" << block;
     }
 
     LOG << "AllocateBlock() total_count=" << block_count()
         << " total_size=" << mem_manager_.total();
-    return result;
+
+    //pack and ship as ref-counting pointer
+    return ByteBlockPtr(block);
 }
 
 void BlockPool::UnpinBlock(const ByteBlockPtr& block_ptr) {
