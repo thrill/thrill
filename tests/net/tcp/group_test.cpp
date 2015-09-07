@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/group_test.cpp
+ * tests/net/tcp/group_test.cpp
  *
  * Part of Project Thrill.
  *
@@ -15,6 +15,8 @@
 #include <thrill/net/manager.hpp>
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
+
+#include <tests/net/group_test_base.hpp>
 
 #include <random>
 #include <string>
@@ -52,69 +54,6 @@ static void ThreadInitializeAsyncRead(tcp::Group* net) {
 
     while (received < net->num_hosts() - 1) {
         dispatcher.Dispatch();
-    }
-}
-
-static void ThreadInitializeSendCyclic(tcp::Group* net) {
-
-    size_t id = net->my_host_rank();
-
-    if (id != 0) {
-        size_t res;
-        net->ReceiveFrom<size_t>(id - 1, &res);
-        ASSERT_EQ(id - 1, res);
-    }
-
-    if (id != net->num_hosts() - 1) {
-        net->SendTo(id + 1, id);
-    }
-}
-
-static void ThreadInitializeBroadcastIntegral(tcp::Group* net) {
-
-    static const bool debug = false;
-
-    // Broadcast our ID to everyone
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        net->SendTo(i, net->my_host_rank());
-    }
-
-    // Receive the id from everyone. Make sure that the id is correct.
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-
-        size_t val;
-
-        net->ReceiveFrom<size_t>(i, &val);
-        LOG << "Received " << val << " from " << i;
-        ASSERT_EQ(i, val);
-    }
-}
-
-static void ThreadInitializeSendReceive(tcp::Group* net) {
-    static const bool debug = false;
-
-    // send a message to all other clients except ourselves.
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        net->SendStringTo(i, "Hello " + std::to_string(net->my_host_rank())
-                          + " -> " + std::to_string(i));
-    }
-    // receive the n-1 messages from clients in order
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-
-        std::string msg;
-        net->ReceiveStringFrom(i, &msg);
-        sLOG << "Received from client" << i << "msg" << msg;
-
-        ASSERT_EQ(msg, "Hello " + std::to_string(i)
-                  + " -> " + std::to_string(net->my_host_rank()));
     }
 }
 
@@ -162,21 +101,15 @@ static void RealGroupConstructAndCall(
     }
 }
 
-TEST(Group, RealInitializeAndClose) {
+TEST(Group, RealNoOperation) {
     // Construct a real Group of 6 workers which do nothing but terminate.
-    RealGroupConstructAndCall([](tcp::Group*) { });
+    RealGroupConstructAndCall(TestNoOperation);
 }
 
 TEST(Group, RealInitializeSendReceive) {
     // Construct a real Group of 6 workers which execute the thread function
     // above which sends and receives a message from all neighbors.
-    RealGroupConstructAndCall(ThreadInitializeSendReceive);
-}
-
-TEST(Group, RealInitializeSendReceiveALot) {
-    // Construct a real Group of 6 workers which execute the thread function
-    // above which sends and receives a message from all neighbors.
-    RealGroupConstructAndCall(ThreadInitializeSendReceive);
+    RealGroupConstructAndCall(TestSendReceiveAll2All);
 }
 
 TEST(Group, RealInitializeSendReceiveAsync) { //TODO(ej) test hangs from time to time
@@ -185,19 +118,13 @@ TEST(Group, RealInitializeSendReceiveAsync) { //TODO(ej) test hangs from time to
     RealGroupConstructAndCall(ThreadInitializeAsyncRead);
 }
 
-TEST(Group, RealInitializeSendReceiveAsyncALot) {
-    // Construct a real Group of 6 workers which execute the thread function
-    // above which sends and receives a message from all neighbors.
-    RealGroupConstructAndCall(ThreadInitializeSendReceive);
-}
-
 TEST(Group, RealInitializeBroadcast) {
     // Construct a real Group of 6 workers which execute the thread function
     // above which sends and receives a message from all workers.
-    RealGroupConstructAndCall(ThreadInitializeBroadcastIntegral);
+    RealGroupConstructAndCall(TestBroadcastIntegral);
 }
 TEST(Group, RealSendCyclic) {
-    RealGroupConstructAndCall(ThreadInitializeSendCyclic);
+    RealGroupConstructAndCall(TestSendRecvCyclic);
 }
 
 TEST(Group, InitializeAndClose) {
@@ -205,31 +132,21 @@ TEST(Group, InitializeAndClose) {
     tcp::Group::ExecuteLocalMock(6, [](tcp::Group*) { });
 }
 
-TEST(Group, InitializeSendReceive) {
-    // Construct a Group of 6 workers which execute the thread function
-    // which sends and receives asynchronous messages between all workers.
-    tcp::Group::ExecuteLocalMock(6, ThreadInitializeSendReceive);
+TEST(Group, TestSendReceiveAll2All) {
+    tcp::Group::ExecuteLocalMock(6, TestSendReceiveAll2All);
 }
 
-TEST(Group, InitializeBroadcast) {
-    // Construct a Group of 6 workers which execute the thread function
-    // above which sends and receives a message from all workers.
-    tcp::Group::ExecuteLocalMock(6, ThreadInitializeBroadcastIntegral);
+TEST(Group, TestBroadcastIntegral) {
+    tcp::Group::ExecuteLocalMock(6, TestBroadcastIntegral);
 }
 
 TEST(Group, SendCyclic) {
-    tcp::Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
+    tcp::Group::ExecuteLocalMock(6, TestSendRecvCyclic);
 }
 
 TEST(Group, TestPrefixSumInHypercube) {
     for (size_t p = 1; p <= 8; p <<= 1) {
-        // Construct Group of p workers which perform a PrefixSum collective
-        tcp::Group::ExecuteLocalMock(
-            p, [](tcp::Group* net) {
-                size_t local_value = 1;
-                PrefixSumForPowersOfTwo(*net, local_value);
-                ASSERT_EQ(local_value, net->my_host_rank() + 1);
-            });
+        tcp::Group::ExecuteLocalMock(p, TestPrefixSumForPowersOfTwo);
     }
 }
 
