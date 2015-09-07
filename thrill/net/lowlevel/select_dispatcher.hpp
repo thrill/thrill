@@ -173,7 +173,7 @@ public:
         die_unless(wb == 1);
     }
 
-private:
+protected:
     //! select() manager object
     Select select_;
 
