@@ -129,7 +129,7 @@ TEST(Group, RealSendCyclic) {
 
 TEST(Group, InitializeAndClose) {
     // Construct a Group of 6 workers which do nothing but terminate.
-    tcp::Group::ExecuteLocalMock(6, [](tcp::Group*) { });
+    tcp::Group::ExecuteLocalMock(6, TestNoOperation);
 }
 
 TEST(Group, TestSendReceiveAll2All) {
