@@ -13,6 +13,7 @@
 #define THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 
 #include <thrill/net/group.hpp>
+#include <thrill/common/math.hpp>
 
 #include <string>
 
@@ -121,9 +122,16 @@ static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
 
 //! let group of p hosts perform a PrefixSum collective
 static void TestPrefixSumForPowersOfTwo(net::Group* net) {
-    size_t local_value = 1;
+    // only for powers of two
+
+// if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
+//    return;
+
+    size_t local_value = 10 + net->my_host_rank();
     net::PrefixSumForPowersOfTwo(*net, local_value);
-    ASSERT_EQ(local_value, net->my_host_rank() + 1);
+    ASSERT_EQ(
+        (net->my_host_rank() + 1) * 10 +
+        net->my_host_rank() * (net->my_host_rank() + 1) / 2, local_value);
 }
 
 // let group of p hosts perform an ReduceToRoot collective
@@ -133,6 +141,8 @@ static void TestReduceToRoot(net::Group* net) {
     if (net->my_host_rank() == 0)
         ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
 }
+
+
 
 #endif // !THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 

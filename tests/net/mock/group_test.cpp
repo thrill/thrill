@@ -19,9 +19,8 @@
 
 using namespace thrill;      // NOLINT
 
-void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
-
-    size_t group_size = 8;
+void MockTestOne(size_t group_size,
+                 const std::function<void(net::mock::Group*)>& thread_function) {
 
     std::vector<net::mock::Group> groups(group_size);
 
@@ -45,8 +44,22 @@ void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
     }
 }
 
+void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
+    MockTestOne(1, thread_function);
+    MockTestOne(2, thread_function);
+    MockTestOne(3, thread_function);
+    MockTestOne(4, thread_function);
+    MockTestOne(5, thread_function);
+    MockTestOne(6, thread_function);
+    MockTestOne(7, thread_function);
+    MockTestOne(8, thread_function);
+    MockTestOne(16, thread_function);
+    MockTestOne(20, thread_function);
+}
+
 /*[[[cog
 import tests.net.group_test_gen as m
+
 m.generate_group_tests('MockGroup', 'MockTest')
 m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
   ]]]*/
