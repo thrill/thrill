@@ -19,6 +19,10 @@
 #include <stdio.h>     //remove file
 #include <sys/mman.h>  //mappings + advice
 
+#ifdef USE_EXPLAIN
+#include <libexplain/mmap.h> // explain mmap errors
+#endif
+
 #include <queue>
 
 #include <thrill/common/logger.hpp>
