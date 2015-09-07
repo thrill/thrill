@@ -101,6 +101,9 @@ public:
 
     //! the block size
     size_t size() const { return head.size_; }
+
+    //! indicates whether this block is backed to disk
+    bool swapable() const { return head.size_ == default_block_size - sizeof(common::ReferenceCount) - sizeof(head); }
 };
 
 #endif // !THRILL_DATA_BYTE_BLOCK_HEADER
