@@ -29,6 +29,8 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
+option(USE_EXPLAIN "Use (optional) explain library for errno-explanations" OFF)
+
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
 
 option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
@@ -208,8 +210,11 @@ set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
 
 set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
-# try to find Intel TBB (optional)
+if(USE_EXPLAIN)
+  set(ALL_LIBRARIES explain ${ALL_LIBRARIES})
+endif()
 
+# try to find Intel TBB (optional)
 if(USE_TBB)
   find_package(TBB)
 endif()
