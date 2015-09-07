@@ -45,28 +45,33 @@ void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
     }
 }
 
+/*[[[cog
+import tests.net.group_test_gen as m
+m.generate_group_tests('MockGroup', 'MockTest')
+m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
+  ]]]*/
 TEST(MockGroup, NoOperation) {
     MockTest(TestNoOperation);
 }
-
 TEST(MockGroup, SendRecvCyclic) {
     MockTest(TestSendRecvCyclic);
 }
-
 TEST(MockGroup, BroadcastIntegral) {
     MockTest(TestBroadcastIntegral);
 }
-
 TEST(MockGroup, SendReceiveAll2All) {
     MockTest(TestSendReceiveAll2All);
 }
-
-TEST(MockGroup, DispatcherSyncSendAsyncRead) {
-    MockTest(TestDispatcherSyncSendAsyncRead<net::mock::Dispatcher>);
-}
-
 TEST(MockGroup, PrefixSumForPowersOfTwo) {
     MockTest(TestPrefixSumForPowersOfTwo);
 }
+TEST(MockGroup, ReduceToRoot) {
+    MockTest(TestReduceToRoot);
+}
+TEST(MockGroup, DispatcherSyncSendAsyncRead) {
+    MockTest(
+        DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);
+}
+// [[[end]]]
 
 /******************************************************************************/
