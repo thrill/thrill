@@ -10,10 +10,7 @@
  ******************************************************************************/
 
 #include <thrill/net/manager.hpp>
-#include <thrill/net/tcp/connection.hpp>
 #include <thrill/net/tcp/construction.hpp>
-#include <thrill/net/tcp/group.hpp>
-#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <deque>
 #include <map>

@@ -43,8 +43,6 @@ protected:
      */
     void* shmem;
 
-    using Group = tcp::Group;
-
 public:
     /**
      * \brief Initializes a certain count of flow control channels.
