@@ -26,8 +26,8 @@
 using namespace thrill;      // NOLINT
 using namespace thrill::net; // NOLINT
 
-static void RealGroupConstructAndCall(
-    std::function<void(tcp::Group*)> thread_function) {
+static void RealGroupTest(
+    const std::function<void(tcp::Group*)>& thread_function) {
     // randomize base port number for test
     std::default_random_engine generator(std::random_device { } ());
     std::uniform_int_distribution<int> distribution(10000, 30000);
@@ -70,71 +70,67 @@ static void RealGroupConstructAndCall(
     }
 }
 
-TEST(Group, RealNoOperation) {
-    // Construct a real Group of 6 workers which do nothing but terminate.
-    RealGroupConstructAndCall(TestNoOperation);
+static void MockGroupTest(
+    const std::function<void(tcp::Group*)>& thread_function) {
+    tcp::Group::ExecuteLocalMock(6, thread_function);
 }
 
-TEST(Group, RealInitializeSendReceive) {
-    // Construct a real Group of 6 workers which execute the thread function
-    // above which sends and receives a message from all neighbors.
-    RealGroupConstructAndCall(TestSendReceiveAll2All);
-}
+/*[[[cog
+import tests.net.group_test_gen as m
+m.generate_group_tests('TcpRealGroup', 'RealGroupTest')
+m.generate_dispatcher_tests('TcpRealGroup', 'RealGroupTest',
+                            'net::tcp::SelectDispatcher')
 
-TEST(Group, RealDispatcherSyncSendAsyncRead) {
-    RealGroupConstructAndCall(
-        TestDispatcherSyncSendAsyncRead<net::tcp::SelectDispatcher>);
-}
+m.generate_group_tests('TcpMockGroup', 'MockGroupTest')
+m.generate_dispatcher_tests('TcpMockGroup', 'MockGroupTest',
+                            'net::tcp::SelectDispatcher')
 
-TEST(Group, RealInitializeBroadcast) {
-    // Construct a real Group of 6 workers which execute the thread function
-    // above which sends and receives a message from all workers.
-    RealGroupConstructAndCall(TestBroadcastIntegral);
+  ]]]*/
+TEST(TcpRealGroup, NoOperation) {
+    RealGroupTest(TestNoOperation);
 }
-TEST(Group, RealSendCyclic) {
-    RealGroupConstructAndCall(TestSendRecvCyclic);
+TEST(TcpRealGroup, SendRecvCyclic) {
+    RealGroupTest(TestSendRecvCyclic);
 }
-
-TEST(Group, InitializeAndClose) {
-    // Construct a Group of 6 workers which do nothing but terminate.
-    tcp::Group::ExecuteLocalMock(6, TestNoOperation);
+TEST(TcpRealGroup, BroadcastIntegral) {
+    RealGroupTest(TestBroadcastIntegral);
 }
-
-TEST(Group, TestSendReceiveAll2All) {
-    tcp::Group::ExecuteLocalMock(6, TestSendReceiveAll2All);
+TEST(TcpRealGroup, SendReceiveAll2All) {
+    RealGroupTest(TestSendReceiveAll2All);
 }
-
-TEST(Group, TestBroadcastIntegral) {
-    tcp::Group::ExecuteLocalMock(6, TestBroadcastIntegral);
+TEST(TcpRealGroup, PrefixSumForPowersOfTwo) {
+    RealGroupTest(TestPrefixSumForPowersOfTwo);
 }
-
-TEST(Group, SendCyclic) {
-    tcp::Group::ExecuteLocalMock(6, TestSendRecvCyclic);
+TEST(TcpRealGroup, ReduceToRoot) {
+    RealGroupTest(TestReduceToRoot);
 }
-
-TEST(Group, MockDispatcherSyncSendAsyncRead) {
-    tcp::Group::ExecuteLocalMock(
-        6, TestDispatcherSyncSendAsyncRead<net::tcp::SelectDispatcher>);
+TEST(TcpRealGroup, DispatcherSyncSendAsyncRead) {
+    RealGroupTest(
+        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
-
-TEST(Group, TestPrefixSumInHypercube) {
-    for (size_t p = 1; p <= 8; p <<= 1) {
-        tcp::Group::ExecuteLocalMock(p, TestPrefixSumForPowersOfTwo);
-    }
+TEST(TcpMockGroup, NoOperation) {
+    MockGroupTest(TestNoOperation);
 }
-
-TEST(Group, TestReduceToRoot) {
-    for (size_t p = 0; p <= 8; ++p) {
-        // Construct Group of p workers which perform an Broadcast collective
-        tcp::Group::ExecuteLocalMock(
-            p, [](tcp::Group* net) {
-                size_t local_value = net->my_host_rank();
-                ReduceToRoot(*net, local_value);
-                if (net->my_host_rank() == 0)
-                    ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
-            });
-    }
+TEST(TcpMockGroup, SendRecvCyclic) {
+    MockGroupTest(TestSendRecvCyclic);
 }
+TEST(TcpMockGroup, BroadcastIntegral) {
+    MockGroupTest(TestBroadcastIntegral);
+}
+TEST(TcpMockGroup, SendReceiveAll2All) {
+    MockGroupTest(TestSendReceiveAll2All);
+}
+TEST(TcpMockGroup, PrefixSumForPowersOfTwo) {
+    MockGroupTest(TestPrefixSumForPowersOfTwo);
+}
+TEST(TcpMockGroup, ReduceToRoot) {
+    MockGroupTest(TestReduceToRoot);
+}
+TEST(TcpMockGroup, DispatcherSyncSendAsyncRead) {
+    MockGroupTest(
+        DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
+}
+// [[[end]]]
 
 #if COLLECTIVES_ARE_DISABLED_MAYBE_REMOVE
 

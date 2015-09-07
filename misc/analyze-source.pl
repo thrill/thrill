@@ -662,7 +662,7 @@ foreach my $file (@filelist)
     elsif ($file =~ /\.pl$/) {
         process_pl_cmake($file);
     }
-    elsif ($file =~ /^swig.*\.py$/) {
+    elsif ($file =~ /^(swig|tests).*\.py$/) {
         process_py($file);
     }
     elsif ($file =~ m!(^|/)CMakeLists\.txt$!) {

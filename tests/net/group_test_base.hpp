@@ -88,7 +88,7 @@ static void TestSendReceiveAll2All(net::Group* net) {
 
 //! sends and receives asynchronous messages between all workers.
 template <typename Dispatcher>
-static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
+static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
@@ -124,6 +124,14 @@ static void TestPrefixSumForPowersOfTwo(net::Group* net) {
     size_t local_value = 1;
     net::PrefixSumForPowersOfTwo(*net, local_value);
     ASSERT_EQ(local_value, net->my_host_rank() + 1);
+}
+
+// let group of p hosts perform an ReduceToRoot collective
+static void TestReduceToRoot(net::Group* net) {
+    size_t local_value = net->my_host_rank();
+    ReduceToRoot(*net, local_value);
+    if (net->my_host_rank() == 0)
+        ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
 }
 
 #endif // !THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
