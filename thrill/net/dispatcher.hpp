@@ -87,6 +87,9 @@ public:
     //! non-copyable: delete assignment operator
     Dispatcher& operator = (const Dispatcher&) = delete;
 
+    //! virtual destructor
+    virtual ~Dispatcher() { }
+
     //! \name Timeout Callbacks
     //! \{
 
