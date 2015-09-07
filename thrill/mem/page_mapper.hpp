@@ -61,7 +61,7 @@ public:
         static const int flags = MAP_PRIVATE | MAP_HUGETLB | MAP_ANONYMOUS;
         static void* addr_hint = nullptr; //we give no hint - kernel decides alone
         static const int fd = -1; //for portability
-        static const size_t offset = -1; //for portability
+        static const size_t offset = 0; //for portability
         void* result = mmap(addr_hint, object_size_, protection_flags, flags, fd, offset);
         die_unless(result != MAP_FAILED);
         return static_cast<char*>(result);
