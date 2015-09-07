@@ -58,7 +58,7 @@ public:
         //- don't zero out pages
         //- anonymous = not backed by a file :)
         static const int protection_flags = PROT_READ | PROT_WRITE;
-        static const int flags = MAP_PRIVATE | MAP_HUGETLB | MAP_ANONYMOUS;
+        static const int flags = MAP_PRIVATE | MAP_ANONYMOUS;
         static void* addr_hint = nullptr; //we give no hint - kernel decides alone
         static const int fd = -1; //for portability
         static const size_t offset = 0; //for portability
