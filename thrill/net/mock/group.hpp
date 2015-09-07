@@ -17,11 +17,14 @@
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/group.hpp>
 
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
 #include <map>
 #include <mutex>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace thrill {
 namespace net {
@@ -100,7 +103,7 @@ protected:
     friend class Dispatcher;
 };
 
-class Group : public net::GroupBase
+class Group final : public net::Group
 {
     static const bool debug = false;
     static const bool debug_data = true;
@@ -168,7 +171,7 @@ public:
     //! type for file descriptor readiness callbacks
     using Callback = AsyncCallback;
 
-    Dispatcher(mem::Manager& mem_manager)
+    explicit Dispatcher(mem::Manager& mem_manager)
         : net::Dispatcher(mem_manager)
     { }
 

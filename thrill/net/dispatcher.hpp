@@ -21,9 +21,6 @@
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
 
-// TODO(tb) can we use a os switch? Do we want that? -tb: yes, later.
-// #include <thrill/net/tcp/epoll-dispatcher.hpp>
-
 #include <atomic>
 #include <chrono>
 #include <ctime>

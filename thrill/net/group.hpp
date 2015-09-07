@@ -32,20 +32,20 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-class GroupBase
+class Group
 {
 public:
     // default constructor
-    GroupBase() = default;
+    Group() = default;
 
     //! non-copyable: delete copy-constructor
-    GroupBase(const GroupBase&) = delete;
+    Group(const Group&) = delete;
     //! non-copyable: delete assignment operator
-    GroupBase& operator = (const GroupBase&) = delete;
+    Group& operator = (const Group&) = delete;
     //! move-constructor: default
-    GroupBase(GroupBase&&) = default;
+    Group(Group&&) = default;
     //! move-assignment operator: default
-    GroupBase& operator = (GroupBase&&) = default;
+    Group& operator = (Group&&) = default;
 
     //! Return our rank among hosts in this group.
     size_t my_host_rank() const { return my_rank_; }

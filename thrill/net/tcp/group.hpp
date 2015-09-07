@@ -38,7 +38,7 @@ namespace tcp {
  * Collection of NetConnections to workers, allows point-to-point client
  * communication and simple collectives like MPI.
  */
-class Group final : public net::GroupBase
+class Group final : public net::Group
 {
     static const bool debug = false;
 

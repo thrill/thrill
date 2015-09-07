@@ -45,7 +45,7 @@ namespace tcp {
  * Socket objects for readability and writability checks, buffered reads and
  * writes with completion callbacks, and also timer functions.
  */
-class SelectDispatcher : public net::Dispatcher
+class SelectDispatcher final : public net::Dispatcher
 {
     static const bool debug = false;
 

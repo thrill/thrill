@@ -18,7 +18,6 @@
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/net/exception.hpp>
-#include <thrill/net/tcp/socket.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -34,9 +33,9 @@ namespace net {
 //! \{
 
 // Because Mac OSX does not know MSG_MORE.
-#ifndef MSG_MORE
-#define MSG_MORE 0
-#endif
+// #ifndef MSG_MORE
+// #define MSG_MORE 0
+// #endif
 
 class Connection
 {
@@ -46,6 +45,9 @@ public:
     virtual bool IsValid() const = 0;
 
     virtual std::string ToString() const = 0;
+
+    // TODO(tb): fixup later: add MSG_MORE flag to send.
+    static const int MsgMore = 0;
 
     //! \name Send Functions
     //! \{
@@ -65,7 +67,7 @@ public:
         if (self_verify_) {
             // for communication verification, send sizeof.
             size_t len = sizeof(value);
-            if (SyncSend(&len, sizeof(len), MSG_MORE) != sizeof(len))
+            if (SyncSend(&len, sizeof(len), MsgMore) != sizeof(len))
                 throw Exception("Error during Send", errno);
         }
 
@@ -76,7 +78,7 @@ public:
 
     //! Send a string buffer.
     void SendString(const void* data, size_t len) {
-        if (SyncSend(&len, sizeof(len), MSG_MORE) != sizeof(len))
+        if (SyncSend(&len, sizeof(len), MsgMore) != sizeof(len))
             throw Exception("Error during SendString", errno);
 
         if (SyncSend(data, len) != static_cast<ssize_t>(len))
