@@ -13,7 +13,7 @@
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/group.hpp>
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 #include <thrill/net/manager.hpp>
 
 #include <random>
@@ -34,7 +34,7 @@ static void ThreadInitializeAsyncRead(Group* net) {
 
     size_t received = 0;
     mem::Manager mem_manager(nullptr, "Dispatcher");
-    lowlevel::SelectDispatcher dispatcher(mem_manager);
+    tcp::SelectDispatcher dispatcher(mem_manager);
 
     AsyncReadCallback callback =
         [net, &received](Connection& /* s */, const Buffer& buffer) {

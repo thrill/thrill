@@ -24,7 +24,7 @@ namespace thrill {
 namespace net {
 
 std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
-    using lowlevel::Socket;
+    using tcp::Socket;
 
     // construct a group of num_clients
     std::vector<Group> group(num_clients);
@@ -54,7 +54,7 @@ std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
 void Group::ExecuteLocalMock(
     size_t num_clients,
     const std::function<void(Group*)>& thread_function) {
-    using lowlevel::Socket;
+    using tcp::Socket;
 
     // construct a group of num_clients
     std::vector<Group> group = ConstructLocalMesh(num_clients);

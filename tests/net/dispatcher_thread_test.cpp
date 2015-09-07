@@ -40,7 +40,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFuture) {
 
     ThreadPool pool(2);
 
-    using lowlevel::Socket;
+    using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
     TcpConnection connA(sp.first), connB(sp.second);
@@ -72,7 +72,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
 
     ThreadPool pool(2);
 
-    using lowlevel::Socket;
+    using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
     TcpConnection connA(sp.first), connB(sp.second);
@@ -109,7 +109,7 @@ TEST_F(DispatcherThreadTest, DISABLED_AsyncWriteAndReadIntoStdFuture) {
 
     ThreadPool pool(2);
 
-    using lowlevel::Socket;
+    using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
     TcpConnection connA(sp.first), connB(sp.second);

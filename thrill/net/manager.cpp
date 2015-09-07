@@ -9,8 +9,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
 #include <thrill/net/manager.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <deque>
 #include <map>
@@ -148,12 +148,12 @@ protected:
      * The dispatcher instance used by this Manager
      * to perform async operations.
      */
-    lowlevel::SelectDispatcher dispatcher_ { mem_manager_ };
+    tcp::SelectDispatcher dispatcher_ { mem_manager_ };
 
     // Some definitions for convenience
-    using Socket = lowlevel::Socket;
-    using SocketAddress = lowlevel::SocketAddress;
-    using IPv4Address = lowlevel::IPv4Address;
+    using Socket = tcp::Socket;
+    using SocketAddress = tcp::SocketAddress;
+    using IPv4Address = tcp::IPv4Address;
     using GroupNodeIdPair = std::pair<size_t, size_t>;
 
     //! Array of opened connections that are not assigned to any (group,id)

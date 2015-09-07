@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/socket.hpp
+ * thrill/net/tcp/socket.hpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -11,13 +11,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SOCKET_HEADER
-#define THRILL_NET_LOWLEVEL_SOCKET_HEADER
+#ifndef THRILL_NET_TCP_SOCKET_HEADER
+#define THRILL_NET_TCP_SOCKET_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/net/lowlevel/socket_address.hpp>
+#include <thrill/net/tcp/socket_address.hpp>
 
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -32,7 +32,7 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 //! \addtogroup netsock Low Level Socket API
 //! \ingroup net
@@ -680,10 +680,10 @@ protected:
 
 // \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SOCKET_HEADER
+#endif // !THRILL_NET_TCP_SOCKET_HEADER
 
 /******************************************************************************/

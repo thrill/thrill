@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/select_dispatcher.hpp
+ * thrill/net/tcp/select_dispatcher.hpp
  *
  * Asynchronous callback wrapper around select()
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
-#define THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#ifndef THRILL_NET_TCP_SELECT_DISPATCHER_HEADER
+#define THRILL_NET_TCP_SELECT_DISPATCHER_HEADER
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/delegate.hpp>
@@ -22,8 +22,8 @@
 #include <thrill/net/connection.hpp>
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/exception.hpp>
-#include <thrill/net/lowlevel/select.hpp>
-#include <thrill/net/lowlevel/socket.hpp>
+#include <thrill/net/tcp/select.hpp>
+#include <thrill/net/tcp/socket.hpp>
 
 #include <cerrno>
 #include <chrono>
@@ -34,7 +34,7 @@
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 //! \addtogroup netsock Low Level Socket API
 //! \{
@@ -221,10 +221,10 @@ protected:
 
 //! \}
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
-#endif // !THRILL_NET_LOWLEVEL_SELECT_DISPATCHER_HEADER
+#endif // !THRILL_NET_TCP_SELECT_DISPATCHER_HEADER
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/lowlevel/select_dispatcher.cpp
+ * thrill/net/tcp/select_dispatcher.cpp
  *
  * Lightweight wrapper around BSD socket API.
  *
@@ -10,13 +10,13 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#include <thrill/net/lowlevel/select_dispatcher.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <sstream>
 
 namespace thrill {
 namespace net {
-namespace lowlevel {
+namespace tcp {
 
 //! Run one iteration of dispatching select().
 void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
@@ -154,7 +154,7 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
     }
 }
 
-} // namespace lowlevel
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 
