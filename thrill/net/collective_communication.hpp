@@ -79,7 +79,7 @@ static void PrefixSumForPowersOfTwo(
 //! \param   net The current worker onto which to apply the operation
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
-template <typename T, typename BinarySumOp = std::plus<T> >
+template <typename T, typename Group, typename BinarySumOp = std::plus<T> >
 void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
     bool active = true;
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {

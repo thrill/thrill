@@ -22,6 +22,7 @@
 #include <thrill/net/connection.hpp>
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/exception.hpp>
+#include <thrill/net/tcp/connection.hpp>
 #include <thrill/net/tcp/select.hpp>
 #include <thrill/net/tcp/socket.hpp>
 
@@ -94,17 +95,17 @@ public:
     }
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, const Callback& read_cb) final {
-        assert(dynamic_cast<TcpConnection*>(&c));
-        TcpConnection& tc = static_cast<TcpConnection&>(c);
+    void AddRead(net::Connection& c, const Callback& read_cb) final {
+        assert(dynamic_cast<Connection*>(&c));
+        Connection& tc = static_cast<Connection&>(c);
         int fd = tc.GetSocket().fd();
         return AddRead(fd, read_cb);
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, const Callback& write_cb) final {
-        assert(dynamic_cast<TcpConnection*>(&c));
-        TcpConnection& tc = static_cast<TcpConnection&>(c);
+    void AddWrite(net::Connection& c, const Callback& write_cb) final {
+        assert(dynamic_cast<Connection*>(&c));
+        Connection& tc = static_cast<Connection&>(c);
         int fd = tc.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].write_cb.size()) {
@@ -116,9 +117,9 @@ public:
     }
 
     //! Register a buffered write callback and a default exception callback.
-    void SetExcept(Connection& c, const Callback& except_cb) {
-        assert(dynamic_cast<TcpConnection*>(&c));
-        TcpConnection& tc = static_cast<TcpConnection&>(c);
+    void SetExcept(net::Connection& c, const Callback& except_cb) {
+        assert(dynamic_cast<Connection*>(&c));
+        Connection& tc = static_cast<Connection&>(c);
         int fd = tc.GetSocket().fd();
         CheckSize(fd);
         if (!watch_[fd].except_cb) {
@@ -129,9 +130,9 @@ public:
     }
 
     //! Cancel all callbacks on a given fd.
-    void Cancel(Connection& c) final {
-        assert(dynamic_cast<TcpConnection*>(&c));
-        TcpConnection& tc = static_cast<TcpConnection&>(c);
+    void Cancel(net::Connection& c) final {
+        assert(dynamic_cast<Connection*>(&c));
+        Connection& tc = static_cast<Connection&>(c);
         int fd = tc.GetSocket().fd();
         CheckSize(fd);
 

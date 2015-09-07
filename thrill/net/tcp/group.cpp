@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/group.cpp
+ * thrill/net/tcp/group.cpp
  *
  * net::Group is a collection of Connections providing simple MPI-like
  * collectives and point-to-point communication.
@@ -13,7 +13,7 @@
  ******************************************************************************/
 
 #include <thrill/common/logger.hpp>
-#include <thrill/net/group.hpp>
+#include <thrill/net/tcp/group.hpp>
 
 #include <string>
 #include <thread>
@@ -22,6 +22,7 @@
 
 namespace thrill {
 namespace net {
+namespace tcp {
 
 std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
     using tcp::Socket;
@@ -77,6 +78,7 @@ void Group::ExecuteLocalMock(
     }
 }
 
+} // namespace tcp
 } // namespace net
 } // namespace thrill
 

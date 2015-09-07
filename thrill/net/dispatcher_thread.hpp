@@ -20,6 +20,7 @@
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/mem/allocator.hpp>
+#include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
 
 #include <string>

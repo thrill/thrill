@@ -135,12 +135,14 @@ public:
 
     //! \}
 
-    net::Connection & connection(size_t peer) {
+    net::Connection & connection(size_t peer) final {
         assert(peer < peers_.size());
         return conns_[peer];
     }
 
     size_t num_hosts() const final { return peers_.size(); }
+
+    void Close() final { }
 
     //! return hexdump or just <data> if not debugging
     static std::string maybe_hexdump(const void* data, size_t size) {

@@ -12,6 +12,7 @@
 #include <thrill/common/future.hpp>
 #include <thrill/common/thread_pool.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
+#include <thrill/net/tcp/connection.hpp>
 
 #include <future>
 #include <tuple>
@@ -43,7 +44,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFuture) {
     using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    TcpConnection connA(sp.first), connB(sp.second);
+    tcp::Connection connA(sp.first), connB(sp.second);
 
     DispatcherThread disp("dispatcher");
 
@@ -75,7 +76,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
     using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    TcpConnection connA(sp.first), connB(sp.second);
+    tcp::Connection connA(sp.first), connB(sp.second);
 
     DispatcherThread disp("dispatcher");
 
@@ -112,7 +113,7 @@ TEST_F(DispatcherThreadTest, DISABLED_AsyncWriteAndReadIntoStdFuture) {
     using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    TcpConnection connA(sp.first), connB(sp.second);
+    tcp::Connection connA(sp.first), connB(sp.second);
 
     DispatcherThread disp("dispatcher");
 

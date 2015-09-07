@@ -13,7 +13,7 @@
 #include <thrill/data/channel.hpp>
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
-#include <thrill/net/group.hpp>
+#include <thrill/net/tcp/group.hpp>
 
 #include <string>
 #include <vector>
@@ -28,7 +28,7 @@ struct Multiplexer : public::testing::Test {
     using WorkerThread = std::function<void(data::Multiplexer&)>;
 
     static void FunctionSelect(
-        net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
+        net::tcp::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         data::BlockPool block_pool(nullptr);
         data::Multiplexer multiplexer(block_pool, 1, *group);
         switch (group->my_host_rank()) {
@@ -50,10 +50,10 @@ struct Multiplexer : public::testing::Test {
     static void Execute(WorkerThread f1 = nullptr,
                         WorkerThread f2 = nullptr,
                         WorkerThread f3 = nullptr) {
-        net::Group::ExecuteLocalMock(
+        net::tcp::Group::ExecuteLocalMock(
             // calculate number of threads
             (f1 ? 1 : 0) + (f2 ? 1 : 0) + (f3 ? 1 : 0),
-            [=](net::Group* g) {
+            [=](net::tcp::Group* g) {
                 FunctionSelect(g, f1, f2, f3);
             });
     }
@@ -61,7 +61,7 @@ struct Multiplexer : public::testing::Test {
 
 // open a Channel via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
-void TalkAllToAllViaChannel(net::Group* net) {
+void TalkAllToAllViaChannel(net::tcp::Group* net) {
     common::NameThisThread("chmp" + mem::to_string(net->my_host_rank()));
 
     unsigned char send_buffer[123];
@@ -123,10 +123,10 @@ void TalkAllToAllViaChannel(net::Group* net) {
 
 TEST_F(Multiplexer, TalkAllToAllViaChannelForManyNetSizes) {
     // test for all network mesh sizes 1, 2, 5, 9:
-    net::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(5, TalkAllToAllViaChannel);
-    net::Group::ExecuteLocalMock(9, TalkAllToAllViaChannel);
+    net::tcp::Group::ExecuteLocalMock(1, TalkAllToAllViaChannel);
+    net::tcp::Group::ExecuteLocalMock(2, TalkAllToAllViaChannel);
+    net::tcp::Group::ExecuteLocalMock(5, TalkAllToAllViaChannel);
+    net::tcp::Group::ExecuteLocalMock(9, TalkAllToAllViaChannel);
 }
 
 TEST_F(Multiplexer, ReadCompleteChannel) {

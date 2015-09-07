@@ -43,6 +43,8 @@ protected:
      */
     void* shmem;
 
+    using Group = tcp::Group;
+
 public:
     /**
      * \brief Initializes a certain count of flow control channels.
@@ -51,7 +53,7 @@ public:
      * \param local_worker_count The count of threads to spawn flow channels for.
      *
      */
-    explicit FlowControlChannelManager(net::Group& group, int local_worker_count)
+    explicit FlowControlChannelManager(Group& group, int local_worker_count)
         : barrier(local_worker_count), shmem(nullptr) {
 
         for (int i = 0; i < local_worker_count; i++) {
