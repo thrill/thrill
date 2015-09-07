@@ -13,6 +13,8 @@
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/mock/group.hpp>
 
+#include <tests/net/group_test_base.hpp>
+
 #include <thread>
 
 using namespace thrill;      // NOLINT
@@ -43,12 +45,20 @@ void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
     }
 }
 
-TEST(MockGroup, RealInitializeAndClose) {
-    MockTest([](net::mock::Group* net) {
-                 size_t local_value = 1;
-                 net::PrefixSumForPowersOfTwo(*net, local_value);
-                 ASSERT_EQ(local_value, net->my_host_rank() + 1);
-             });
+TEST(MockGroup, PrefixSumForPowersOfTwo) {
+    MockTest(TestPrefixSumForPowersOfTwo);
+}
+
+TEST(MockGroup, TestSendRecvCyclic) {
+    MockTest(TestSendRecvCyclic);
+}
+
+TEST(MockGroup, TestBroadcastIntegral) {
+    MockTest(TestBroadcastIntegral);
+}
+
+TEST(MockGroup, TestSendReceiveAll2All) {
+    MockTest(TestSendReceiveAll2All);
 }
 
 static void ThreadInitializeAsyncRead(net::mock::Group* net) {
