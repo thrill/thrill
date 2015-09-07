@@ -86,6 +86,39 @@ static void TestSendReceiveAll2All(net::Group* net) {
     }
 }
 
+//! sends and receives asynchronous messages between all workers.
+template <typename Dispatcher>
+static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
+    // send a message to all other clients except ourselves.
+    for (size_t i = 0; i != net->num_hosts(); ++i)
+    {
+        if (i == net->my_host_rank()) continue;
+        net->connection(i).SyncSend(&i, sizeof(size_t));
+    }
+
+    size_t received = 0;
+    mem::Manager mem_manager(nullptr, "Dispatcher");
+    Dispatcher dispatcher(mem_manager);
+
+    net::AsyncReadCallback callback =
+        [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {
+            ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
+                      net->my_host_rank());
+            received++;
+        };
+
+    // add async reads to net dispatcher
+    for (size_t i = 0; i != net->num_hosts(); ++i)
+    {
+        if (i == net->my_host_rank()) continue;
+        dispatcher.AsyncRead(net->connection(i), sizeof(size_t), callback);
+    }
+
+    while (received < net->num_hosts() - 1) {
+        dispatcher.Dispatch();
+    }
+}
+
 //! let group of p hosts perform a PrefixSum collective
 static void TestPrefixSumForPowersOfTwo(net::Group* net) {
     size_t local_value = 1;

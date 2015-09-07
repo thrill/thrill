@@ -26,37 +26,6 @@
 using namespace thrill;      // NOLINT
 using namespace thrill::net; // NOLINT
 
-static void ThreadInitializeAsyncRead(tcp::Group* net) {
-    // send a message to all other clients except ourselves.
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        net->tcp_connection(i).GetSocket().send(&i, sizeof(size_t));
-    }
-
-    size_t received = 0;
-    mem::Manager mem_manager(nullptr, "Dispatcher");
-    tcp::SelectDispatcher dispatcher(mem_manager);
-
-    AsyncReadCallback callback =
-        [net, &received](Connection& /* s */, const Buffer& buffer) {
-            ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
-                      net->my_host_rank());
-            received++;
-        };
-
-    // add async reads to net dispatcher
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        dispatcher.AsyncRead(net->connection(i), sizeof(size_t), callback);
-    }
-
-    while (received < net->num_hosts() - 1) {
-        dispatcher.Dispatch();
-    }
-}
-
 static void RealGroupConstructAndCall(
     std::function<void(tcp::Group*)> thread_function) {
     // randomize base port number for test
@@ -112,10 +81,9 @@ TEST(Group, RealInitializeSendReceive) {
     RealGroupConstructAndCall(TestSendReceiveAll2All);
 }
 
-TEST(Group, RealInitializeSendReceiveAsync) { //TODO(ej) test hangs from time to time
-    // Construct a real Group of 6 workers which execute the thread function
-    // which sends and receives asynchronous messages between all workers.
-    RealGroupConstructAndCall(ThreadInitializeAsyncRead);
+TEST(Group, RealDispatcherSyncSendAsyncRead) {
+    RealGroupConstructAndCall(
+        TestDispatcherSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 
 TEST(Group, RealInitializeBroadcast) {
@@ -142,6 +110,11 @@ TEST(Group, TestBroadcastIntegral) {
 
 TEST(Group, SendCyclic) {
     tcp::Group::ExecuteLocalMock(6, TestSendRecvCyclic);
+}
+
+TEST(Group, MockDispatcherSyncSendAsyncRead) {
+    tcp::Group::ExecuteLocalMock(
+        6, TestDispatcherSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 
 TEST(Group, TestPrefixSumInHypercube) {
