@@ -37,37 +37,40 @@ namespace net {
 //! \param   net The current worker onto which to apply the operation
 //! \param   value The value to be summed up
 //! \param   sumOp A custom summation operator
-template <typename T, typename Group, typename BinarySumOp = std::plus<T> >
+template <typename T, typename BinarySumOp = std::plus<T> >
 static void PrefixSumForPowersOfTwo(
-    Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+    Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     T total_sum = value;
 
     static const bool debug = false;
 
     for (size_t d = 1; d < net.num_hosts(); d <<= 1)
     {
+        // communication peer for this round (hypercube dimension)
+        size_t peer = net.my_host_rank() ^ d;
+
         // Send total sum of this hypercube to worker with id = id XOR d
-        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
-            net.connection(net.my_host_rank() ^ d).Send(total_sum);
-            sLOG << "PREFIX_SUM: Worker" << net.my_host_rank() << ": Sending" << total_sum
-                 << "to worker" << (net.my_host_rank() ^ d);
+        if (peer < net.num_hosts()) {
+            net.SendTo(peer, total_sum);
+            sLOG << "PREFIX_SUM: host" << net.my_host_rank() << ": sending" << total_sum
+                 << "to peer" << peer;
         }
 
         // Receive total sum of smaller hypercube from worker with id = id XOR d
         T recv_data;
-        if ((net.my_host_rank() ^ d) < net.num_hosts()) {
-            net.connection(net.my_host_rank() ^ d).Receive(&recv_data);
-            total_sum = sumOp(total_sum, recv_data);
+        if (peer < net.num_hosts()) {
+            net.ReceiveFrom(peer, &recv_data);
+            total_sum = sum_op(total_sum, recv_data);
             // Variable 'value' represents the prefix sum of this worker
             if (net.my_host_rank() & d)
-                value = sumOp(value, recv_data);
-            sLOG << "PREFIX_SUM: Worker" << net.my_host_rank() << ": Received" << recv_data
-                 << "from worker" << (net.my_host_rank() ^ d)
+                value = sum_op(value, recv_data);
+            sLOG << "PREFIX_SUM: host" << net.my_host_rank() << ": received" << recv_data
+                 << "from peer" << peer
                  << "value =" << value;
         }
     }
 
-    sLOG << "PREFIX_SUM: Worker" << net.my_host_rank()
+    sLOG << "PREFIX_SUM: host" << net.my_host_rank()
          << ": value after prefix sum =" << value;
 }
 
@@ -79,19 +82,19 @@ static void PrefixSumForPowersOfTwo(
 //! \param   net The current worker onto which to apply the operation
 //! \param   value The value to be added to the aggregation
 //! \param   sumOp A custom summation operator
-template <typename T, typename Group, typename BinarySumOp = std::plus<T> >
-void ReduceToRoot(Group& net, T& value, BinarySumOp sumOp = BinarySumOp()) {
+template <typename T, typename BinarySumOp = std::plus<T> >
+void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     bool active = true;
     for (size_t d = 1; d < net.num_hosts(); d <<= 1) {
         if (active) {
             if (net.my_host_rank() & d) {
-                net.connection(net.my_host_rank() - d).Send(value);
+                net.SendTo(net.my_host_rank() - d, value);
                 active = false;
             }
             else if (net.my_host_rank() + d < net.num_hosts()) {
                 T recv_data;
-                net.connection(net.my_host_rank() + d).Receive(&recv_data);
-                value = sumOp(value, recv_data);
+                net.ReceiveFrom(net.my_host_rank() + d, &recv_data);
+                value = sum_op(value, recv_data);
             }
         }
     }

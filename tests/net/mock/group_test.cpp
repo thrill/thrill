@@ -45,6 +45,10 @@ void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
     }
 }
 
+TEST(MockGroup, NoOperation) {
+    MockTest(TestNoOperation);
+}
+
 TEST(MockGroup, PrefixSumForPowersOfTwo) {
     MockTest(TestPrefixSumForPowersOfTwo);
 }
