@@ -14,6 +14,10 @@
 
 namespace thrill {
 namespace data {
+
+//! default size of blocks in File, Channel, BlockQueue, etc.
+static const size_t default_block_size = 2 * 1024 * 1024;
+
 //! type of underlying memory area
 using Byte = uint8_t;
 
