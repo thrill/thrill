@@ -58,7 +58,9 @@ public:
         static void* addr_hint = nullptr; //we give no hint - kernel decides alone
         static const int fd = -1; //for portability
         static const size_t offset = -1; //for portability
-        return static_cast<char*>(mmap(addr_hint, object_size_, protection_flags, flags, fd, offset));
+        void* result = mmap(addr_hint, object_size_, protection_flags, flags, fd, offset);
+        die_unless(result != MAP_FAILED);
+        return static_cast<char*>(result);
     }
 
     void Free(char* addr) {
