@@ -14,15 +14,14 @@
 
 using namespace thrill;
 
-TEST(PageMapper, AllocateReturnsMemoryAreaThatIsAccessible) {
+TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
     mem::PageMapper mapper;
 
     int* array = reinterpret_cast<int*>(mapper.Allocate());
 
     //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i < mapper.object_size(); i += sizeof(int)) {
+    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
         array[i] = i;
-        std::cout << i << std::endl;
     }
 
     mapper.Free(reinterpret_cast<char*>(array));
