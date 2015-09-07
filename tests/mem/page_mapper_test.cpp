@@ -33,7 +33,7 @@ TEST(PageMapper, FreeMakesMemoryAreaInaccessible) {
     int* array = reinterpret_cast<int*>(mapper.Allocate());
     mapper.Free(reinterpret_cast<char*>(array));
 
-    ASSERT_DEATH({ array[1] = 42; }, "Segfault");
+    ASSERT_DEATH({ array[1] = 42; }, "");
 }
 
 TEST(PageMapper, SwapOutLeavesAreaAccessible) {
@@ -43,7 +43,7 @@ TEST(PageMapper, SwapOutLeavesAreaAccessible) {
     mapper.SwapOut(reinterpret_cast<char*>(array));
 
     //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i < mapper.object_size(); i += sizeof(int)) {
+    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
         array[i] = i;
     }
 
@@ -57,7 +57,7 @@ TEST(PageMapper, PrefetchLeavesAreaAccessible) {
     mapper.Prefetch(reinterpret_cast<char*>(array));
 
     //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i < mapper.object_size(); i += sizeof(int)) {
+    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
         array[i] = i;
     }
 
