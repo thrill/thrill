@@ -77,6 +77,7 @@ static void MockGroupTest(
 
 /*[[[cog
 import tests.net.group_test_gen as m
+
 m.generate_group_tests('TcpRealGroup', 'RealGroupTest')
 m.generate_dispatcher_tests('TcpRealGroup', 'RealGroupTest',
                             'net::tcp::SelectDispatcher')
