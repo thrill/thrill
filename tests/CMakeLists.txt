@@ -87,6 +87,7 @@ build_test_group(common/tests
   )
 
 build_test(mem/allocator_test)
+build_test(mem/page_mapper_test)
 build_test(mem/malloc_tracker_test)
 
 build_test(net/binary_builder_test)
