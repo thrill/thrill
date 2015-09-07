@@ -50,7 +50,7 @@ class Multiplexer
 {
 public:
     explicit Multiplexer(data::BlockPool& block_pool,
-                         size_t num_workers_per_host, net::Group& group)
+                         size_t num_workers_per_host, net::GroupBase& group)
         : block_pool_(block_pool),
           dispatcher_("multiplexer"),
           group_(group),
@@ -118,7 +118,7 @@ private:
     net::DispatcherThread dispatcher_;
 
     // Holds NetConnections for outgoing Channels
-    net::Group& group_;
+    net::GroupBase& group_;
 
     //! Number of workers per host
     size_t num_workers_per_host_;

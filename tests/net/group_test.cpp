@@ -12,9 +12,9 @@
 #include <thrill/mem/manager.hpp>
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/group.hpp>
-#include <thrill/net/tcp/select_dispatcher.hpp>
 #include <thrill/net/manager.hpp>
+#include <thrill/net/tcp/group.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <random>
 #include <string>
@@ -24,12 +24,12 @@
 using namespace thrill;      // NOLINT
 using namespace thrill::net; // NOLINT
 
-static void ThreadInitializeAsyncRead(Group* net) {
+static void ThreadInitializeAsyncRead(tcp::Group* net) {
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;
-        net->connection(i).GetSocket().send(&i, sizeof(size_t));
+        net->tcp_connection(i).GetSocket().send(&i, sizeof(size_t));
     }
 
     size_t received = 0;
@@ -55,7 +55,7 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 }
 
-static void ThreadInitializeSendCyclic(Group* net) {
+static void ThreadInitializeSendCyclic(tcp::Group* net) {
 
     size_t id = net->my_host_rank();
 
@@ -70,7 +70,7 @@ static void ThreadInitializeSendCyclic(Group* net) {
     }
 }
 
-static void ThreadInitializeBroadcastIntegral(Group* net) {
+static void ThreadInitializeBroadcastIntegral(tcp::Group* net) {
 
     static const bool debug = false;
 
@@ -94,7 +94,7 @@ static void ThreadInitializeBroadcastIntegral(Group* net) {
     }
 }
 
-static void ThreadInitializeSendReceive(Group* net) {
+static void ThreadInitializeSendReceive(tcp::Group* net) {
     static const bool debug = false;
 
     // send a message to all other clients except ourselves.
@@ -119,7 +119,7 @@ static void ThreadInitializeSendReceive(Group* net) {
 }
 
 static void RealGroupConstructAndCall(
-    std::function<void(Group*)> thread_function) {
+    std::function<void(tcp::Group*)> thread_function) {
     // randomize base port number for test
     std::default_random_engine generator(std::random_device { } ());
     std::uniform_int_distribution<int> distribution(10000, 30000);
@@ -164,7 +164,7 @@ static void RealGroupConstructAndCall(
 
 TEST(Group, RealInitializeAndClose) {
     // Construct a real Group of 6 workers which do nothing but terminate.
-    RealGroupConstructAndCall([](Group*) { });
+    RealGroupConstructAndCall([](tcp::Group*) { });
 }
 
 TEST(Group, RealInitializeSendReceive) {
@@ -202,30 +202,30 @@ TEST(Group, RealSendCyclic) {
 
 TEST(Group, InitializeAndClose) {
     // Construct a Group of 6 workers which do nothing but terminate.
-    Group::ExecuteLocalMock(6, [](Group*) { });
+    tcp::Group::ExecuteLocalMock(6, [](tcp::Group*) { });
 }
 
 TEST(Group, InitializeSendReceive) {
     // Construct a Group of 6 workers which execute the thread function
     // which sends and receives asynchronous messages between all workers.
-    Group::ExecuteLocalMock(6, ThreadInitializeSendReceive);
+    tcp::Group::ExecuteLocalMock(6, ThreadInitializeSendReceive);
 }
 
 TEST(Group, InitializeBroadcast) {
     // Construct a Group of 6 workers which execute the thread function
     // above which sends and receives a message from all workers.
-    Group::ExecuteLocalMock(6, ThreadInitializeBroadcastIntegral);
+    tcp::Group::ExecuteLocalMock(6, ThreadInitializeBroadcastIntegral);
 }
 
 TEST(Group, SendCyclic) {
-    Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
+    tcp::Group::ExecuteLocalMock(6, ThreadInitializeSendCyclic);
 }
 
 TEST(Group, TestPrefixSumInHypercube) {
     for (size_t p = 1; p <= 8; p <<= 1) {
         // Construct Group of p workers which perform a PrefixSum collective
-        Group::ExecuteLocalMock(
-            p, [](Group* net) {
+        tcp::Group::ExecuteLocalMock(
+            p, [](tcp::Group* net) {
                 size_t local_value = 1;
                 PrefixSumForPowersOfTwo(*net, local_value);
                 ASSERT_EQ(local_value, net->my_host_rank() + 1);
@@ -236,8 +236,8 @@ TEST(Group, TestPrefixSumInHypercube) {
 TEST(Group, TestReduceToRoot) {
     for (size_t p = 0; p <= 8; ++p) {
         // Construct Group of p workers which perform an Broadcast collective
-        Group::ExecuteLocalMock(
-            p, [](Group* net) {
+        tcp::Group::ExecuteLocalMock(
+            p, [](tcp::Group* net) {
                 size_t local_value = net->my_host_rank();
                 ReduceToRoot(*net, local_value);
                 if (net->my_host_rank() == 0)
@@ -251,7 +251,7 @@ TEST(Group, TestReduceToRoot) {
 TEST(Group, TestPrefixSum) {
     for (size_t p = 1; p <= 8; ++p) {
         // Construct Group of p workers which perform a PrefixSum collective
-        Group::ExecuteLocalMock(
+        tcp::Group::ExecuteLocalMock(
             p, [](Group* net) {
                 size_t local_value = 1;
                 PrefixSum(*net, local_value);
@@ -263,8 +263,8 @@ TEST(Group, TestPrefixSum) {
 TEST(Group, TestAllReduce) {
     for (size_t p = 0; p <= 8; ++p) {
         // Construct Group of p workers which perform an AllReduce collective
-        Group::ExecuteLocalMock(
-            p, [](Group* net) {
+        tcp::Group::ExecuteLocalMock(
+            p, [](tcp::Group* net) {
                 size_t local_value = net->my_host_rank();
                 AllReduce(*net, local_value);
                 ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);

@@ -25,7 +25,7 @@ using namespace thrill::net;
 /**
  * Calculates a prefix sum over all worker ids.
  */
-static void SingleThreadPrefixSum(Group* net) {
+static void SingleThreadPrefixSum(tcp::Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t myRank = net->my_host_rank();
@@ -43,7 +43,7 @@ static void SingleThreadPrefixSum(Group* net) {
 /**
  * Broadcasts the ID of the master, which is 0.
  */
-static void SingleThreadBroadcast(Group* net) {
+static void SingleThreadBroadcast(tcp::Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t magic = 1337;
@@ -56,7 +56,7 @@ static void SingleThreadBroadcast(Group* net) {
 }
 
 static void ExecuteMultiThreads(
-    Group* net, size_t count, std::function<void(FlowControlChannel&, size_t)> function) {
+    tcp::Group* net, size_t count, std::function<void(FlowControlChannel&, size_t)> function) {
 
     std::vector<std::thread> threads(count);
     FlowControlChannelManager manager(*net, count);
@@ -75,7 +75,7 @@ static void ExecuteMultiThreads(
 /**
  * Broadcasts the ID of the master, which is 0.
  */
-static void MultiThreadBroadcast(Group* net) {
+static void MultiThreadBroadcast(tcp::Group* net) {
     const size_t count = 4;
     const size_t magic = 1337;
     ExecuteMultiThreads(
@@ -91,7 +91,7 @@ static void MultiThreadBroadcast(Group* net) {
 /**
  * Calculates a sum over all worker ids.
  */
-static void SingleThreadAllReduce(Group* net) {
+static void SingleThreadAllReduce(tcp::Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
@@ -110,7 +110,7 @@ static void SingleThreadAllReduce(Group* net) {
 /**
  * Calculates a sum over all worker and thread ids.
  */
-static void MultiThreadAllReduce(Group* net) {
+static void MultiThreadAllReduce(tcp::Group* net) {
 
     const size_t count = 4;
 
@@ -131,7 +131,7 @@ static void MultiThreadAllReduce(Group* net) {
 /**
  * Calculates a sum over all worker and thread ids.
  */
-static void MultiThreadPrefixSum(Group* net) {
+static void MultiThreadPrefixSum(tcp::Group* net) {
 
     const size_t count = 4;
 
@@ -152,7 +152,7 @@ static void MultiThreadPrefixSum(Group* net) {
 /**
  * Does a lot of operations to provoke race contitions.
  */
-static void DoLotsOfStuff(Group* net) {
+static void DoLotsOfStuff(tcp::Group* net) {
 
     const size_t count = 16;
 
@@ -189,31 +189,31 @@ static void DoLotsOfStuff(Group* net) {
 }
 
 TEST(Group, PrefixSum) {
-    Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
+    tcp::Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
 }
 
 TEST(Group, MultiThreadPrefixSum) {
-    Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
+    tcp::Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
 }
 
 TEST(Group, Broadcast) {
-    Group::ExecuteLocalMock(6, SingleThreadBroadcast);
+    tcp::Group::ExecuteLocalMock(6, SingleThreadBroadcast);
 }
 
 TEST(Group, MultiThreadBroadcast) {
-    Group::ExecuteLocalMock(6, MultiThreadBroadcast);
+    tcp::Group::ExecuteLocalMock(6, MultiThreadBroadcast);
 }
 
 TEST(Group, AllReduce) {
-    Group::ExecuteLocalMock(6, SingleThreadAllReduce);
+    tcp::Group::ExecuteLocalMock(6, SingleThreadAllReduce);
 }
 
 TEST(Group, MultiThreadAllReduce) {
-    Group::ExecuteLocalMock(6, MultiThreadAllReduce);
+    tcp::Group::ExecuteLocalMock(6, MultiThreadAllReduce);
 }
 
 TEST(Group, HardcoreRaceConditionTest) {
-    Group::ExecuteLocalMock(6, DoLotsOfStuff);
+    tcp::Group::ExecuteLocalMock(6, DoLotsOfStuff);
 }
 
 /******************************************************************************/

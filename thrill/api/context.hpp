@@ -23,6 +23,7 @@
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/manager.hpp>
+#include <thrill/net/tcp/group.hpp>
 
 #include <cassert>
 #include <functional>
@@ -56,7 +57,7 @@ public:
 #ifndef SWIG
     //! constructor from existing net Groups for use from ConstructLocalMock().
     HostContext(size_t my_host_rank,
-                std::array<net::Group, net::Manager::kGroupCount>&& groups,
+                std::array<net::tcp::Group, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host)
         : workers_per_host_(workers_per_host),
           net_manager_(my_host_rank, std::move(groups)),

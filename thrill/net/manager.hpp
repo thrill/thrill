@@ -14,7 +14,7 @@
 #define THRILL_NET_MANAGER_HEADER
 
 #include <thrill/net/connection.hpp>
-#include <thrill/net/group.hpp>
+#include <thrill/net/tcp/group.hpp>
 
 #include <array>
 #include <string>
@@ -22,6 +22,11 @@
 
 namespace thrill {
 namespace net {
+namespace tcp {
+
+class Construction;
+
+} // namespace tcp
 
 //! \addtogroup net Network Communication
 //! \{
@@ -44,6 +49,8 @@ public:
      * getters for the net::Groups should be changed as well.
      */
     static const size_t kGroupCount = 3;
+
+    using Group = tcp::Group;
 
     size_t my_host_rank() {
         return GetSystemGroup().my_host_rank();
@@ -122,7 +129,7 @@ private:
     std::array<Group, kGroupCount> groups_;
 
     //! for initialization of members
-    friend class Construction;
+    friend class tcp::Construction;
 };
 
 //! \}
