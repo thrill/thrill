@@ -40,7 +40,7 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
     if (pinned || block_size != default_block_size) {
         pinned_blocks_.push_back(block);
         pinned_blocks_.back()->head.pin_count_++;
-        PinBlock(result);
+        block->head.pin_count_++;
         LOG << "allocating pinned block @" << block;
     }
     else {
