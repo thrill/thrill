@@ -248,77 +248,7 @@ public:
         Notify(nullptr);
     }
 
-    void DispatchOne(const std::chrono::milliseconds& timeout) final {
-
-        Connection* c;
-        if (!notify_.pop_for(c, timeout)) {
-            sLOG << "DispatchOne timeout";
-            return;
-        }
-
-        if (c == nullptr) {
-            sLOG << "DispatchOne interrupt";
-            return;
-        }
-
-        sLOG << "DispatchOne run";
-
-        std::unique_lock<std::mutex> d_lock(mutex_);
-
-        Map::iterator it = map_.find(c);
-        Watch& w = it->second;
-        assert(w.active);
-
-        std::unique_lock<std::mutex> c_lock(c->mutex_);
-
-        // check for readability
-        if (w.read_cb.size() && c->inbound_.size()) {
-
-            while (c->inbound_.size() && w.read_cb.size()) {
-                c_lock.unlock();
-                d_lock.unlock();
-
-                bool ret = w.read_cb.front()();
-
-                d_lock.lock();
-                c_lock.lock();
-
-                if (ret) break;
-                w.read_cb.pop_front();
-            }
-
-            if (w.read_cb.size() == 0 && w.write_cb.size() == 0) {
-                // if all callbacks are done, listen no longer.
-                c->watcher_.erase(this);
-                map_.erase(it);
-                return;
-            }
-        }
-
-        // "check" for writable. virtual sockets are always writable.
-        if (w.write_cb.size()) {
-
-            while (w.write_cb.size()) {
-                c_lock.unlock();
-                d_lock.unlock();
-
-                bool ret = w.write_cb.front()();
-
-                d_lock.lock();
-                c_lock.lock();
-
-                if (ret) break;
-                w.write_cb.pop_front();
-            }
-
-            if (w.read_cb.size() == 0 && w.write_cb.size() == 0) {
-                // if all callbacks are done, listen no longer.
-                c->watcher_.erase(this);
-                map_.erase(it);
-                return;
-            }
-        }
-    }
+    void DispatchOne(const std::chrono::milliseconds& timeout) final;
 
 protected:
     //! Mutex to lock access to watch lists

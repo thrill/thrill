@@ -10,6 +10,8 @@
 
 #include <thrill/net/mock/group.hpp>
 
+#include <vector>
+
 namespace thrill {
 namespace net {
 namespace mock {
@@ -54,6 +56,85 @@ void Connection::InboundMsg(net::Buffer&& msg) {
     cv_.notify_all();
     for (Dispatcher* d : watcher_)
         d->Notify(this);
+}
+
+/******************************************************************************/
+
+void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
+
+    Connection* c;
+    if (!notify_.pop_for(c, timeout)) {
+        sLOG << "DispatchOne timeout";
+        return;
+    }
+
+    if (c == nullptr) {
+        sLOG << "DispatchOne interrupt";
+        return;
+    }
+
+    sLOG << "DispatchOne run";
+
+    std::unique_lock<std::mutex> d_lock(mutex_);
+
+    Map::iterator it = map_.find(c);
+    if (it == map_.end()) {
+        sLOG << "DispatchOne expired connection?";
+        return;
+    }
+
+    Watch& w = it->second;
+    assert(w.active);
+
+    std::unique_lock<std::mutex> c_lock(c->mutex_);
+
+    // check for readability
+    if (w.read_cb.size() && c->inbound_.size()) {
+
+        while (c->inbound_.size() && w.read_cb.size()) {
+            c_lock.unlock();
+            d_lock.unlock();
+
+            bool ret = w.read_cb.front()();
+
+            d_lock.lock();
+            c_lock.lock();
+
+            if (ret) break;
+            w.read_cb.pop_front();
+        }
+
+        if (w.read_cb.size() == 0 && w.write_cb.size() == 0) {
+            // if all callbacks are done, listen no longer.
+            c->watcher_.erase(this);
+            map_.erase(it);
+            return;
+        }
+    }
+
+    // "check" for writable. virtual sockets are always writable.
+    if (w.write_cb.size()) {
+
+        while (w.write_cb.size()) {
+            c_lock.unlock();
+            d_lock.unlock();
+
+            bool ret = w.write_cb.front()();
+
+            d_lock.lock();
+            c_lock.lock();
+
+            if (ret) break;
+            w.write_cb.pop_front();
+        }
+
+        if (w.read_cb.size() == 0 && w.write_cb.size() == 0) {
+            // if all callbacks are done, listen no longer.
+            c->watcher_.erase(this);
+            map_.erase(it);
+            return;
+        }
+    }
 }
 
 } // namespace mock

@@ -70,6 +70,15 @@ TEST(MockGroup, ReduceToRoot) {
 TEST(MockGroup, ReduceToRootString) {
     MockTest(TestReduceToRootString);
 }
+TEST(MockGroup, DispatcherLaunchAndTerminate) {
+    MockTest(TestDispatcherLaunchAndTerminate);
+}
+TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFuture) {
+    MockTest(TestDispatcherAsyncWriteAndReadIntoFuture);
+}
+TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
+    MockTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
+}
 TEST(MockGroup, DispatcherSyncSendAsyncRead) {
     MockTest(
         DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);

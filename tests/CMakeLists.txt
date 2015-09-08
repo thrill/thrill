@@ -93,7 +93,6 @@ build_test(net/mock/group_test)
 
 build_test(net/binary_builder_test)
 build_test(net/buffer_test)
-build_test(net/dispatcher_thread_test)
 build_test(net/flow_control_test)
 build_test(net/tcp/group_test)
 
