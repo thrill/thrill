@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# tests/net/group_test_gen.py
+# tests/net/test_gen.py
 #
 # Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
 #

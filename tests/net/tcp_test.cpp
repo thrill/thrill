@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/tcp/group_test.cpp
+ * tests/net/tcp_test.cpp
  *
  * Part of Project Thrill.
  *
@@ -13,13 +13,13 @@
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
 
-#include <tests/net/flow_control_test_base.hpp>
-#include <tests/net/group_test_base.hpp>
-
 #include <random>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include "flow_control_test_base.hpp"
+#include "group_test_base.hpp"
 
 using namespace thrill;      // NOLINT
 
@@ -40,7 +40,7 @@ static void LocalGroupTest(
 }
 
 /*[[[cog
-import tests.net.group_test_gen as m
+import tests.net.test_gen as m
 
 m.generate_group_tests('RealTcpGroup', 'RealGroupTest')
 m.generate_dispatcher_tests('RealTcpGroup', 'RealGroupTest',
