@@ -26,7 +26,6 @@ using namespace thrill;
 
 using thrill::api::Context;
 using thrill::api::DIARef;
-using thrill::api::MergeNodeHelper;
 
 struct MyStruct {
     int a, b;
@@ -79,11 +78,11 @@ TEST_F(MergeHelpers, MultiIndexOf) {
     for (size_t i = 0; i < size; i++) {
         size_t val = i;
 
-        size_t idx = MergeNodeHelper::IndexOf(val, 0, files, std::less<size_t>());
+        size_t idx = thrill::api::merge_local::IndexOf(val, 0, files, std::less<size_t>());
 
         ASSERT_EQ(val, idx / count);
         
-        size_t val2 = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
+        size_t val2 = thrill::api::merge_local::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
         ASSERT_EQ(val, val2);
     }
 }
@@ -103,9 +102,9 @@ TEST_F(MergeHelpers, RandomFileSizeMultiGetAtIndex) {
     for (size_t i = 0; i < sizeSum / 17; i++) {
         size_t idx = (i * 17);
 
-        size_t val = MergeNodeHelper::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
+        size_t val = thrill::api::merge_local::GetAt<size_t, std::less<size_t>>(idx, files, std::less<size_t>());
 
-        size_t idx2 = MergeNodeHelper::IndexOf(val, idx, files, std::less<size_t>());
+        size_t idx2 = thrill::api::merge_local::IndexOf(val, idx, files, std::less<size_t>());
 
         ASSERT_EQ(idx2, idx);
     }

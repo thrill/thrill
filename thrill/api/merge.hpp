@@ -36,20 +36,11 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-// REVIEW(ej): merge_local namespace
-
-    //TODO(ej) Move somewhere else.
-class MergeNodeHelper {
-public:
+namespace merge_local {
     template <typename ItemType, typename CompareFunction>
     static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator) {
 
         static const bool debug = false;
-
-        //TODO: https://stackoverflow.com/questions/8753345/finding-kth-smallest-number-from-n-sorted-arrays/8799608#8799608
-        
-        //Non-parallel n-way binary search. log^3(n). Yay.
-        //Find element with rank k in n sorted arrays. 
         
         size_t n = files.size();
         std::vector<size_t> left(n);
@@ -157,8 +148,6 @@ public:
     }
 };
 
-//! todo(ej) todo(tb) Can probably subclass a lot here.
-
 template <typename ValueType,
           typename ParentDIARef0, typename ParentDIARef1,
           typename Comperator>
@@ -219,11 +208,6 @@ public:
             readers.emplace_back(std::move(channels_[i]->GetConcatSource(consume)));
         }
 
-        std::ostringstream out; 
-
-        // TODO(ej) - call WriteChannelStats() for each channel when these
-        // when they are closed ( = you read all data + called Close() on the
-        // channels).
         while(true) {
 
             int biggest = -1;
@@ -249,7 +233,6 @@ public:
             auto &reader = readers[biggest];
 
             for (auto func : DIANode<ValueType>::callbacks_) {
-                out << reader.Value() << " ";
                 func(reader.Value());
             }
 
@@ -258,9 +241,12 @@ public:
             result_count++;
         }
 
-        LOG << "Merged: " << out.str();
-
-       // sLOG << "Merge: result_count" << result_count;
+        for (size_t i = 0; i < channels_.size(); i++) {
+            channels_[i]->Close();
+            this->WriteChannelStats(channels_[i]);
+        }
+        
+        sLOG << "Merge: result_count" << result_count;
     }
 
     void Dispose() final { }
@@ -300,10 +286,6 @@ private:
         ValueType first;
         size_t second;
         bool valid;
-/*
-        bool operator <(const Pivot& y) const {
-            return std::tie(valid, first, second) < std::tie(valid, y.first, y.second);
-        }*/
     };
 
     Pivot CreatePivot(ValueType v, size_t i) {
@@ -406,7 +388,7 @@ private:
         std::vector<Pivot> pivots(p - 1);
         std::vector<size_t> splitsum(p - 1);
 
-        Pivot zero = CreatePivot(MergeNodeHelper::GetAt<ValueType>(0, files_, comperator_), 0);
+        Pivot zero = CreatePivot(merge_local::GetAt<ValueType>(0, files_, comperator_), 0);
         zero.valid = false;
 
         //Partition loop 
@@ -453,10 +435,10 @@ private:
                    
                    size_t localRank = left[r] + pivotrank[r] - widthscan[r]; 
                    LOG << "Selecting local rank " << localRank << " zero pivot " << r;
-                   ValueType pivotElement = MergeNodeHelper::GetAt<ValueType>(localRank, files_, comperator_);
+                   ValueType pivotElement = merge_local::GetAt<ValueType>(localRank, files_, comperator_);
 
                    if(debug) {
-                        assert(MergeNodeHelper::IndexOf(pivotElement, localRank, files_, comperator_) == localRank);
+                        assert(merge_local::IndexOf(pivotElement, localRank, files_, comperator_) == localRank);
                    }
                     
                    Pivot pivot = CreatePivot(pivotElement, localRank + prefixSize);
@@ -493,7 +475,7 @@ private:
                 if(widthsum[r] <= 1) {
                     split[r] = 0;
                 } else {
-                    split[r] = MergeNodeHelper::IndexOf(pivots[r].first, pivots[r].second - prefixSize, files_, comperator_) - left[r];
+                    split[r] = merge_local::IndexOf(pivots[r].first, pivots[r].second - prefixSize, files_, comperator_) - left[r];
                 }
             }
 
@@ -545,7 +527,7 @@ private:
             LOG << "Global Splitter " << i << ": " << globalSplitter;
             if(globalSplitter < dataSize) {
                 //We have to find file-local splitters.
-                ValueType pivot = MergeNodeHelper::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
+                ValueType pivot = merge_local::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
 
                 size_t prefixSum = 0;
 
