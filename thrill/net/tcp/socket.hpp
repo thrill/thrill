@@ -56,17 +56,29 @@ public:
     //! \name Creation
     //! \{
 
-    //! Construct new Socket object from existing file descriptor.
-    explicit Socket(int fd)
-        : fd_(fd)
-    { }
+    //! construct new Socket object from existing file descriptor.
+    explicit Socket(int fd) : fd_(fd) { }
 
-    Socket()
-        : fd_(-1) { }
+    //! default constructor: invalid socket.
+    Socket() : fd_(-1) { }
 
-    //! Release this socket fd, make the Socket invalid.
-    void Release() {
-        fd_ = -1;
+    //! non-copyable: delete copy-constructor
+    Socket(const Socket &) = delete;
+    //! non-copyable: delete assignment operator
+    Socket & operator = (const Socket &) = delete;
+    //! move-constructor: move file descriptor
+    Socket(Socket && s) : fd_(s.fd_) { s.fd_ = -1; }
+    //! move-assignment operator: move file descriptor
+    Socket & operator = (Socket && s) {
+        if (this == &s) return *this;
+        if (fd_ >= 0) close();
+        fd_ = s.fd_;
+        s.fd_ = -1;
+        return *this;
+    }
+
+    ~Socket() {
+        if (fd_ >= 0) close();
     }
 
     //! Create a new stream socket.

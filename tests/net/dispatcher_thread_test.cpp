@@ -44,7 +44,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFuture) {
     using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    tcp::Connection connA(sp.first), connB(sp.second);
+    tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
 
     DispatcherThread disp("dispatcher");
 
@@ -76,7 +76,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
     using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    tcp::Connection connA(sp.first), connB(sp.second);
+    tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
 
     DispatcherThread disp("dispatcher");
 
@@ -113,7 +113,7 @@ TEST_F(DispatcherThreadTest, DISABLED_AsyncWriteAndReadIntoStdFuture) {
     using tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    tcp::Connection connA(sp.first), connB(sp.second);
+    tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
 
     DispatcherThread disp("dispatcher");
 
