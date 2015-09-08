@@ -128,10 +128,37 @@ static void TestPrefixSumForPowersOfTwo(net::Group* net) {
 //    return;
 
     size_t local_value = 10 + net->my_host_rank();
-    net::PrefixSumForPowersOfTwo(*net, local_value);
+    PrefixSumForPowersOfTwo(*net, local_value);
     ASSERT_EQ(
         (net->my_host_rank() + 1) * 10 +
         net->my_host_rank() * (net->my_host_rank() + 1) / 2, local_value);
+}
+
+//! let group of p hosts perform a PrefixSum collective on std::string
+static void TestPrefixSumForPowersOfTwoString(net::Group* net) {
+    // only for powers of two
+
+    if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
+        return;
+
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+
+    // TODO(rh): associativity of Prefixsum is broken!
+
+    // rank 0 hosts 8 value a
+    // rank 1 hosts 8 value ba
+    // rank 2 hosts 8 value cab
+    // rank 3 hosts 8 value dcba
+    // rank 4 hosts 8 value eabcd
+    // rank 5 hosts 8 value febadc
+    // rank 6 hosts 8 value gefcdab
+    // rank 7 hosts 8 value hgfedcba
+
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    PrefixSumForPowersOfTwo(*net, local_value);
+    sLOG1 << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
+          << "value" << local_value;
+    // ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
 }
 
 // let group of p hosts perform an ReduceToRoot collective
@@ -140,6 +167,15 @@ static void TestReduceToRoot(net::Group* net) {
     ReduceToRoot(*net, local_value);
     if (net->my_host_rank() == 0)
         ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
+}
+
+//! let group of p hosts perform a ReduceToRoot collective on std::string
+static void TestReduceToRootString(net::Group* net) {
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    ReduceToRoot(*net, local_value);
+    if (net->my_host_rank() == 0)
+        ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 
 #endif // !THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER

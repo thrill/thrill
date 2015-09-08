@@ -22,6 +22,7 @@ using namespace thrill;      // NOLINT
 void MockTestOne(size_t group_size,
                  const std::function<void(net::mock::Group*)>& thread_function) {
 
+    sLOG0 << "group_size" << group_size;
     std::vector<net::mock::Group> groups(group_size);
 
     for (size_t i = 0; i < groups.size(); ++i) {
@@ -78,8 +79,14 @@ TEST(MockGroup, SendReceiveAll2All) {
 TEST(MockGroup, PrefixSumForPowersOfTwo) {
     MockTest(TestPrefixSumForPowersOfTwo);
 }
+TEST(MockGroup, PrefixSumForPowersOfTwoString) {
+    MockTest(TestPrefixSumForPowersOfTwoString);
+}
 TEST(MockGroup, ReduceToRoot) {
     MockTest(TestReduceToRoot);
+}
+TEST(MockGroup, ReduceToRootString) {
+    MockTest(TestReduceToRootString);
 }
 TEST(MockGroup, DispatcherSyncSendAsyncRead) {
     MockTest(

@@ -101,8 +101,14 @@ TEST(TcpRealGroup, SendReceiveAll2All) {
 TEST(TcpRealGroup, PrefixSumForPowersOfTwo) {
     RealGroupTest(TestPrefixSumForPowersOfTwo);
 }
+TEST(TcpRealGroup, PrefixSumForPowersOfTwoString) {
+    RealGroupTest(TestPrefixSumForPowersOfTwoString);
+}
 TEST(TcpRealGroup, ReduceToRoot) {
     RealGroupTest(TestReduceToRoot);
+}
+TEST(TcpRealGroup, ReduceToRootString) {
+    RealGroupTest(TestReduceToRootString);
 }
 TEST(TcpRealGroup, DispatcherSyncSendAsyncRead) {
     RealGroupTest(
@@ -123,8 +129,14 @@ TEST(TcpMockGroup, SendReceiveAll2All) {
 TEST(TcpMockGroup, PrefixSumForPowersOfTwo) {
     MockGroupTest(TestPrefixSumForPowersOfTwo);
 }
+TEST(TcpMockGroup, PrefixSumForPowersOfTwoString) {
+    MockGroupTest(TestPrefixSumForPowersOfTwoString);
+}
 TEST(TcpMockGroup, ReduceToRoot) {
     MockGroupTest(TestReduceToRoot);
+}
+TEST(TcpMockGroup, ReduceToRootString) {
+    MockGroupTest(TestReduceToRootString);
 }
 TEST(TcpMockGroup, DispatcherSyncSendAsyncRead) {
     MockGroupTest(
