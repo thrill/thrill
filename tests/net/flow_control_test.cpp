@@ -56,7 +56,8 @@ static void SingleThreadBroadcast(tcp::Group* net) {
 }
 
 static void ExecuteMultiThreads(
-    tcp::Group* net, size_t count, std::function<void(FlowControlChannel&, size_t)> function) {
+    tcp::Group* net, size_t count,
+    const std::function<void(FlowControlChannel&, size_t)>& function) {
 
     std::vector<std::thread> threads(count);
     FlowControlChannelManager manager(*net, count);
