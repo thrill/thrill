@@ -610,6 +610,8 @@ sub process_doc_images_pdf {
 
 ### Main ###
 
+$ENV{PYTHONDONTWRITEBYTECODE} = "1";
+
 foreach my $arg (@ARGV) {
     if ($arg eq "-w") { $write_changes = 1; }
     elsif ($arg eq "-e") { $launch_emacs = 1; }
