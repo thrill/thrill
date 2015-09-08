@@ -77,6 +77,15 @@ TEST(RealTcpGroup, ReduceToRoot) {
 TEST(RealTcpGroup, ReduceToRootString) {
     RealGroupTest(TestReduceToRootString);
 }
+TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
+    RealGroupTest(TestDispatcherLaunchAndTerminate);
+}
+TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
+    RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFuture);
+}
+TEST(RealTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
+    RealGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
+}
 TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
     RealGroupTest(
         DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
@@ -104,6 +113,15 @@ TEST(LocalTcpGroup, ReduceToRoot) {
 }
 TEST(LocalTcpGroup, ReduceToRootString) {
     LocalGroupTest(TestReduceToRootString);
+}
+TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
+    LocalGroupTest(TestDispatcherLaunchAndTerminate);
+}
+TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFuture) {
+    LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFuture);
+}
+TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
+    LocalGroupTest(TestDispatcherAsyncWriteAndReadIntoFutureX);
 }
 TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
     LocalGroupTest(

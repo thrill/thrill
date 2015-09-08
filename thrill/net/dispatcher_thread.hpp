@@ -65,8 +65,7 @@ public:
 
     DispatcherThread(
         mem::Manager& mem_manager,
-        class Group& group,
-        const mem::by_string& thread_name);
+        class Group& group, const mem::by_string& thread_name);
 
     ~DispatcherThread();
 

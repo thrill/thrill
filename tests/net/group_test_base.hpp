@@ -12,10 +12,14 @@
 #ifndef THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 #define THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 
+#include <thrill/common/future.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/net/group.hpp>
 
+#include <future>
 #include <string>
+#include <tuple>
+#include <vector>
 
 using namespace thrill;      // NOLINT
 
@@ -87,39 +91,6 @@ static void TestSendReceiveAll2All(net::Group* net) {
     }
 }
 
-//! sends and receives asynchronous messages between all workers.
-template <typename Dispatcher>
-static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
-    // send a message to all other clients except ourselves.
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        net->connection(i).SyncSend(&i, sizeof(size_t));
-    }
-
-    size_t received = 0;
-    mem::Manager mem_manager(nullptr, "Dispatcher");
-    Dispatcher dispatcher(mem_manager);
-
-    net::AsyncReadCallback callback =
-        [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {
-            ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
-                      net->my_host_rank());
-            received++;
-        };
-
-    // add async reads to net dispatcher
-    for (size_t i = 0; i != net->num_hosts(); ++i)
-    {
-        if (i == net->my_host_rank()) continue;
-        dispatcher.AsyncRead(net->connection(i), sizeof(size_t), callback);
-    }
-
-    while (received < net->num_hosts() - 1) {
-        dispatcher.Dispatch();
-    }
-}
-
 //! let group of p hosts perform a PrefixSum collective
 static void TestPrefixSumForPowersOfTwo(net::Group* net) {
     // only for powers of two
@@ -176,6 +147,188 @@ static void TestReduceToRootString(net::Group* net) {
     ReduceToRoot(*net, local_value);
     if (net->my_host_rank() == 0)
         ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
+}
+
+/******************************************************************************/
+// Dispatcher Tests
+
+//! sends and receives asynchronous messages between all workers.
+template <typename Dispatcher>
+static void DispatcherTestSyncSendAsyncRead(net::Group* net) {
+    // send a message to all other clients except ourselves.
+    for (size_t i = 0; i < net->num_hosts(); ++i)
+    {
+        if (i == net->my_host_rank()) continue;
+        net->connection(i).SyncSend(&i, sizeof(size_t));
+    }
+
+    size_t received = 0;
+    mem::Manager mem_manager(nullptr, "Dispatcher");
+    Dispatcher dispatcher(mem_manager);
+
+    net::AsyncReadCallback callback =
+        [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {
+            ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
+                      net->my_host_rank());
+            received++;
+        };
+
+    // add async reads to net dispatcher
+    for (size_t i = 0; i != net->num_hosts(); ++i)
+    {
+        if (i == net->my_host_rank()) continue;
+        dispatcher.AsyncRead(net->connection(i), sizeof(size_t), callback);
+    }
+
+    while (received < net->num_hosts() - 1) {
+        dispatcher.Dispatch();
+    }
+}
+
+/******************************************************************************/
+// DispatcherThread tests
+
+//! sleep for a new ticks until the dispatcher thread reaches select().
+static void TestDispatcherLaunchAndTerminate(net::Group* net) {
+    mem::Manager mem_manager_(nullptr, "DispatcherTest");
+
+    net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
+
+    // sleep for a new ticks until the dispatcher thread reaches select().
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
+}
+
+//! use DispatcherThread to send and receive messages asynchronously.
+static void TestDispatcherAsyncWriteAndReadIntoFuture(net::Group* net) {
+    static const bool debug = false;
+
+    mem::Manager mem_manager_(nullptr, "DispatcherTest");
+
+    net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
+
+    // send a message to all other clients except ourselves.
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+        disp.AsyncWriteCopy(net->connection(i),
+                            "Hello " + std::to_string(i % 10));
+        sLOG << "I just sent Hello to" << i;
+    }
+
+    // issue async callbacks for getting messages from all other clients.
+
+    std::vector<common::Future<net::Buffer> > results(net->num_hosts());
+
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+
+        disp.AsyncRead(
+            net->connection(i), 7,
+            [i, &results](net::Connection&, net::Buffer&& b) -> void {
+                sLOG << "Got Hello in callback from" << i;
+                results[i].Callback(std::move(b));
+            });
+    }
+
+    // wait for futures from all clients
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+
+        net::Buffer b = results[i].Wait();
+        sLOG << "Waiter got packet:" << b.ToString();
+        ASSERT_EQ("Hello " + std::to_string(net->my_host_rank() % 10),
+                  b.ToString());
+    }
+}
+
+//! use DispatcherThread to send and receive messages asynchronously.
+static void TestDispatcherAsyncWriteAndReadIntoFutureX(net::Group* net) {
+    static const bool debug = false;
+
+    mem::Manager mem_manager_(nullptr, "DispatcherTest");
+
+    net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
+
+    // send a message to all other clients except ourselves.
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+        disp.AsyncWriteCopy(net->connection(i),
+                            "Hello " + std::to_string(i % 10));
+        sLOG << "I just sent Hello to" << i;
+    }
+
+    // issue async callbacks for getting messages from all other clients.
+
+    std::vector<common::FutureX<int, net::Buffer> > results(net->num_hosts());
+
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+
+        disp.AsyncRead(
+            net->connection(i), 7,
+            [i, &results](net::Connection&, net::Buffer&& b) -> void {
+                sLOG << "Got Hello in callback from" << i;
+                results[i].Callback(42, std::move(b));
+            });
+    }
+
+    // wait for futures from all clients
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+
+        std::tuple<int, net::Buffer> t = results[i].Wait();
+        net::Buffer& b = std::get<1>(t);
+
+        sLOG << "Waiter got packet:" << b.ToString();
+        ASSERT_EQ("Hello " + std::to_string(net->my_host_rank() % 10),
+                  b.ToString());
+    }
+}
+
+//! use DispatcherThread to send and receive messages asynchronously.
+//! this test produces a data race condition, which is probably a problem of
+//! std::future
+void DisabledTestDispatcherAsyncWriteAndReadIntoStdFuture(net::Group* net) {
+    static const bool debug = false;
+
+    mem::Manager mem_manager_(nullptr, "DispatcherTest");
+
+    net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
+
+    // send a message to all other clients except ourselves.
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+        disp.AsyncWriteCopy(net->connection(i),
+                            "Hello " + std::to_string(i % 10));
+        sLOG << "I just sent Hello to" << i;
+    }
+
+    // issue async callbacks for getting messages from all other clients.
+
+    std::vector<std::promise<net::Buffer> > results(net->num_hosts());
+
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+
+        disp.AsyncRead(
+            net->connection(i), 7,
+            [i, &results](net::Connection&, net::Buffer&& b) -> void {
+                sLOG << "Got Hello in callback from" << i;
+                results[i].set_value(std::move(b));
+            });
+    }
+
+    // wait for futures from all clients
+    for (size_t i = 0; i < net->num_hosts(); ++i) {
+        if (i == net->my_host_rank()) continue;
+
+        std::future<net::Buffer> f = results[i].get_future();
+        f.wait();
+        net::Buffer b = f.get();
+
+        sLOG << "Waiter got packet:" << b.ToString();
+        ASSERT_EQ("Hello " + std::to_string(net->my_host_rank() % 10),
+                  b.ToString());
+    }
 }
 
 #endif // !THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
