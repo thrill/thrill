@@ -55,24 +55,23 @@ public:
     Connection() = default;
 
     //! Construct Connection from a Socket
-    explicit Connection(const Socket& s)
-        : socket_(s)
+    explicit Connection(Socket&& s)
+        : socket_(std::move(s))
     { }
 
     //! Construct Connection from a Socket, with immediate
     //! initialization. (Currently used by tests).
-    Connection(const Socket& s, size_t group_id, size_t peer_id)
-        : socket_(s),
+    Connection(Socket&& s, size_t group_id, size_t peer_id)
+        : socket_(std::move(s)),
           group_id_(group_id), peer_id_(peer_id)
     { }
 
     //! move-constructor
     Connection(Connection&& other)
-        : socket_(other.socket_),
+        : socket_(std::move(other.socket_)),
           state_(other.state_),
           group_id_(other.group_id_),
           peer_id_(other.peer_id_) {
-        other.socket_.Release();
         other.state_ = ConnectionState::Invalid;
     }
 
@@ -82,12 +81,11 @@ public:
             sLOG1 << "Assignment-destruction of valid Connection" << this;
             Close();
         }
-        socket_ = other.socket_;
+        socket_ = std::move(other.socket_);
         state_ = other.state_;
         group_id_ = other.group_id_;
         peer_id_ = other.peer_id_;
 
-        other.socket_.Release();
         other.state_ = ConnectionState::Invalid;
         return *this;
     }

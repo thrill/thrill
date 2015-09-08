@@ -87,7 +87,7 @@ public:
                 throw Exception("Could not listen on socket "
                                 + lsa.ToStringHostPort(), errno);
 
-            listener_ = Connection(listen_socket);
+            listener_ = Connection(std::move(listen_socket));
         }
 
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
