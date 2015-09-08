@@ -41,12 +41,20 @@ void MockTest(const std::function<void(net::Group*)>& thread_function) {
     MockTestOne(20, thread_function);
 }
 
+void MockTestLess(const std::function<void(net::Group*)>& thread_function) {
+    MockTestOne(1, thread_function);
+    MockTestOne(2, thread_function);
+    MockTestOne(3, thread_function);
+    MockTestOne(5, thread_function);
+    MockTestOne(8, thread_function);
+}
+
 /*[[[cog
 import tests.net.group_test_gen as m
 
 m.generate_group_tests('MockGroup', 'MockTest')
 m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
-m.generate_flow_control_tests('MockGroup', 'MockTest')
+m.generate_flow_control_tests('MockGroup', 'MockTestLess')
   ]]]*/
 TEST(MockGroup, NoOperation) {
     MockTest(TestNoOperation);
@@ -86,7 +94,25 @@ TEST(MockGroup, DispatcherSyncSendAsyncRead) {
         DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);
 }
 TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
-    MockTest(TestSingleThreadPrefixSum);
+    MockTestLess(TestSingleThreadPrefixSum);
+}
+TEST(FlowControlMockGroup, SingleThreadBroadcast) {
+    MockTestLess(TestSingleThreadBroadcast);
+}
+TEST(FlowControlMockGroup, MultiThreadBroadcast) {
+    MockTestLess(TestMultiThreadBroadcast);
+}
+TEST(FlowControlMockGroup, SingleThreadAllReduce) {
+    MockTestLess(TestSingleThreadAllReduce);
+}
+TEST(FlowControlMockGroup, MultiThreadAllReduce) {
+    MockTestLess(TestMultiThreadAllReduce);
+}
+TEST(FlowControlMockGroup, MultiThreadPrefixSum) {
+    MockTestLess(TestMultiThreadPrefixSum);
+}
+TEST(FlowControlMockGroup, HardcoreRaceConditionTest) {
+    MockTestLess(TestHardcoreRaceConditionTest);
 }
 // [[[end]]]
 
