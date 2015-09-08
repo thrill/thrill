@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/flow_control_test.cpp
+ * tests/net/flow_control_test_base.hpp
  *
  * Part of Project Thrill.
  *
@@ -7,6 +7,10 @@
  *
  * This file has no license. Only Chunk Norris can compile it.
  ******************************************************************************/
+
+#pragma once
+#ifndef THRILL_TESTS_NET_FLOW_CONTROL_TEST_BASE_HEADER
+#define THRILL_TESTS_NET_FLOW_CONTROL_TEST_BASE_HEADER
 
 #include <gtest/gtest.h>
 #include <thrill/net/dispatcher.hpp>
@@ -26,7 +30,7 @@ using namespace thrill::net;
 /**
  * Calculates a prefix sum over all worker ids.
  */
-static void SingleThreadPrefixSum(tcp::Group* net) {
+static void TestSingleThreadPrefixSum(Group* net) {
     FlowControlChannelManager manager(*net, 1);
     FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t myRank = net->my_host_rank();
@@ -190,32 +194,34 @@ static void DoLotsOfStuff(tcp::Group* net) {
         });
 }
 
-TEST(Group, PrefixSum) {
-    tcp::Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
-}
+// TEST(Group, PrefixSum) {
+//     tcp::Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
+// }
 
-TEST(Group, MultiThreadPrefixSum) {
-    tcp::Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
-}
+// TEST(Group, MultiThreadPrefixSum) {
+//     tcp::Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
+// }
 
-TEST(Group, Broadcast) {
-    tcp::Group::ExecuteLocalMock(6, SingleThreadBroadcast);
-}
+// TEST(Group, Broadcast) {
+//     tcp::Group::ExecuteLocalMock(6, SingleThreadBroadcast);
+// }
 
-TEST(Group, MultiThreadBroadcast) {
-    tcp::Group::ExecuteLocalMock(6, MultiThreadBroadcast);
-}
+// TEST(Group, MultiThreadBroadcast) {
+//     tcp::Group::ExecuteLocalMock(6, MultiThreadBroadcast);
+// }
 
-TEST(Group, AllReduce) {
-    tcp::Group::ExecuteLocalMock(6, SingleThreadAllReduce);
-}
+// TEST(Group, AllReduce) {
+//     tcp::Group::ExecuteLocalMock(6, SingleThreadAllReduce);
+// }
 
-TEST(Group, MultiThreadAllReduce) {
-    tcp::Group::ExecuteLocalMock(6, MultiThreadAllReduce);
-}
+// TEST(Group, MultiThreadAllReduce) {
+//     tcp::Group::ExecuteLocalMock(6, MultiThreadAllReduce);
+// }
 
-TEST(Group, HardcoreRaceConditionTest) {
-    tcp::Group::ExecuteLocalMock(6, DoLotsOfStuff);
-}
+// TEST(Group, HardcoreRaceConditionTest) {
+//     tcp::Group::ExecuteLocalMock(6, DoLotsOfStuff);
+// }
+
+#endif // !THRILL_TESTS_NET_FLOW_CONTROL_TEST_BASE_HEADER
 
 /******************************************************************************/

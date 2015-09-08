@@ -13,6 +13,7 @@
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/mock/group.hpp>
 
+#include <tests/net/flow_control_test_base.hpp>
 #include <tests/net/group_test_base.hpp>
 
 #include <thread>
@@ -45,6 +46,7 @@ import tests.net.group_test_gen as m
 
 m.generate_group_tests('MockGroup', 'MockTest')
 m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
+m.generate_flow_control_tests('MockGroup', 'MockTest')
   ]]]*/
 TEST(MockGroup, NoOperation) {
     MockTest(TestNoOperation);
@@ -82,6 +84,9 @@ TEST(MockGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
 TEST(MockGroup, DispatcherSyncSendAsyncRead) {
     MockTest(
         DispatcherTestSyncSendAsyncRead<net::mock::Dispatcher>);
+}
+TEST(FlowControlMockGroup, SingleThreadPrefixSum) {
+    MockTest(TestSingleThreadPrefixSum);
 }
 // [[[end]]]
 

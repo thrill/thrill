@@ -54,4 +54,21 @@ def generate_dispatcher_tests(testname, runner, dispatcher):
             cog.outl("        DispatcherTest%s<%s>);" % (func, dispatcher))
             cog.outl("}")
 
+
+def generate_flow_control_tests(testname, runner):
+
+    lines = [line.rstrip('\n')
+             for line in open('tests/net/flow_control_test_base.hpp')]
+
+    p1 = re.compile('^static void Test([A-Za-z0-9]+)\(')
+
+    for ln in lines:
+        m1 = p1.match(ln)
+        if m1:
+            func = m1.group(1)
+            cog.outl("TEST(FlowControl%s, %s) {" % (testname, func))
+            cog.outl("    %s(Test%s);" % (runner, func))
+            cog.outl("}")
+
+
 ##########################################################################

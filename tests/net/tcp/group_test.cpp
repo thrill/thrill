@@ -10,9 +10,6 @@
 
 #include <gtest/gtest.h>
 #include <thrill/mem/manager.hpp>
-#include <thrill/net/collective_communication.hpp>
-#include <thrill/net/flow_control_channel.hpp>
-#include <thrill/net/manager.hpp>
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
 

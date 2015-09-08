@@ -89,11 +89,9 @@ build_test_group(common/tests
 build_test(mem/allocator_test)
 build_test(mem/malloc_tracker_test)
 
-build_test(net/mock/group_test)
-
 build_test(net/binary_builder_test)
 build_test(net/buffer_test)
-build_test(net/flow_control_test)
+build_test(net/mock/group_test)
 build_test(net/tcp/group_test)
 
 build_test(data/block_queue_test)
