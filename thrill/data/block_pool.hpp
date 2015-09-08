@@ -68,10 +68,6 @@ protected:
 
     friend class ByteBlock;
 
-    void ClaimBlockMemory(size_t block_size);
-
-    //! Called by ByteBlock when it is deleted or swapped
-    void FreeBlockMemory(size_t block_size);
 
     //! Mechanism to swap block to disk. Blocking call.
     void SwapBlockOut(const ByteBlockPtr& block_ptr);
