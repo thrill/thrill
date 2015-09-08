@@ -24,7 +24,7 @@ using namespace thrill; // NOLINT
 static const bool debug = false;
 
 struct Serialization : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr };
+    data::BlockPool block_pool_ { nullptr, nullptr };
 };
 
 TEST_F(Serialization, string) {

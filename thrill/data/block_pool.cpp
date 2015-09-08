@@ -34,10 +34,13 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
     }
 
     std::lock_guard<std::mutex> lock(list_mutex_);
+    mem_manager_.add(block_size);
+    ByteBlockPtr result(block);
     // we store a raw pointer --> does not increase ref count
-    if (pinned) {
+    if (pinned || block_size != default_block_size) {
         pinned_blocks_.push_back(block);
         pinned_blocks_.back()->head.pin_count_++;
+        PinBlock(result);
         LOG << "allocating pinned block @" << block;
     }
     else {
@@ -49,7 +52,7 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
         << " total_size=" << mem_manager_.total();
 
     //pack and ship as ref-counting pointer
-    return ByteBlockPtr(block);
+    return result;
 }
 
 void BlockPool::UnpinBlock(const ByteBlockPtr& block_ptr) {
@@ -105,14 +108,18 @@ void BlockPool::FreeBlockMemory(size_t block_size) {
 
 //! Mechanism to swap block to disk. No changes to pool or block state
 //! are made. Blocking call.
-void BlockPool::SwapBlockOut(const ByteBlockPtr& block_ptr) const {
+void BlockPool::SwapBlockOut(const ByteBlockPtr& block_ptr) {
     // TODO implement this
+    ext_mem_manager_.add(block_ptr->size());
+    mem_manager_.subtract(block_ptr->size());
 }
 
 //! Mechanism to swap block from disk. No changes to pool or block state
 //! are made. Blocking call.
 void BlockPool::SwapBlockIn(const ByteBlockPtr& block_ptr) {
     // TODO implement this
+    ext_mem_manager_.subtract(block_ptr->size());
+    mem_manager_.add(block_ptr->size());
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block) {
@@ -128,11 +135,13 @@ void BlockPool::DestroyBlock(ByteBlock* block) {
         const auto pos = std::find(swapped_blocks_.begin(), swapped_blocks_.end(), block);
         assert(pos != swapped_blocks_.end());
         swapped_blocks_.erase(pos);
+        ext_mem_manager_.subtract(block->size());
     }
     else {
         const auto pos = std::find(victim_blocks_.begin(), victim_blocks_.end(), block);
         assert(pos != victim_blocks_.end());
         victim_blocks_.erase(pos);
+        mem_manager_.subtract(block->size());
     }
 }
 

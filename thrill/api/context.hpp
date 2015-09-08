@@ -89,7 +89,10 @@ protected:
     //! number of workers per host (all have the same).
     size_t workers_per_host_;
 
-    //! host-global memory manager
+    //! host-global memory manager for external memory only
+    mem::Manager mem_manager_external_ { nullptr, "HostContext-External" };
+
+    //! host-global memory manager for internal memory only
     mem::Manager mem_manager_ { nullptr, "HostContext" };
 
     //! net manager constructs communication groups to other hosts.
@@ -99,7 +102,7 @@ protected:
     net::FlowControlChannelManager flow_manager_;
 
     //! data block pool
-    data::BlockPool block_pool_ { &mem_manager_ };
+    data::BlockPool block_pool_ { &mem_manager_, &mem_manager_external_ };
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_;

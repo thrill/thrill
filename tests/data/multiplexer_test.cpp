@@ -29,7 +29,7 @@ struct Multiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        data::BlockPool block_pool(nullptr);
+        data::BlockPool block_pool(nullptr, nullptr);
         data::Multiplexer multiplexer(block_pool, 1, *group);
         switch (group->my_host_rank()) {
         case 0:
@@ -72,7 +72,7 @@ void TalkAllToAllViaChannel(net::Group* net) {
     size_t my_local_worker_id = 0;
     size_t num_workers_per_node = 1;
 
-    data::BlockPool block_pool(nullptr);
+    data::BlockPool block_pool(nullptr, nullptr);
     data::Multiplexer multiplexer(block_pool, num_workers_per_node, *net);
     {
         data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
