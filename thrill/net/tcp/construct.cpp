@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/net/tcp/construction.hpp
+ * thrill/net/tcp/construct.cpp
  *
  * Part of Project Thrill.
  *
@@ -9,12 +9,8 @@
  * This file has no license. Only Chuck Norris can compile it.
  ******************************************************************************/
 
-#pragma once
-#ifndef THRILL_NET_TCP_CONSTRUCTION_HEADER
-#define THRILL_NET_TCP_CONSTRUCTION_HEADER
-
-#include <thrill/net/manager.hpp>
 #include <thrill/net/tcp/connection.hpp>
+#include <thrill/net/tcp/construct.hpp>
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
 
@@ -35,11 +31,10 @@ class Construction
 {
     static const bool debug = false;
 
-    static const size_t kGroupCount = Manager::kGroupCount;
-
 public:
-    explicit Construction(Manager& mgr)
-        : mgr_(mgr)
+    Construction(std::unique_ptr<Group>* groups, size_t group_count)
+        : groups_(groups),
+          group_count_(group_count)
     { }
 
     /**
@@ -64,7 +59,7 @@ public:
             throw new Exception("This net manager has already been initialized.");
         }
 
-        for (size_t i = 0; i < kGroupCount; i++) {
+        for (size_t i = 0; i < group_count_; i++) {
             groups_[i] = std::make_unique<Group>();
             groups_[i]->Initialize(my_rank_, endpoints.size());
         }
@@ -94,7 +89,7 @@ public:
         LOG << "Client " << my_rank_ << " listening: " << endpoints[my_rank_];
 
         // Initiate connections to all hosts with higher id.
-        for (uint32_t g = 0; g < kGroupCount; g++) {
+        for (uint32_t g = 0; g < group_count_; g++) {
             for (size_t id = my_rank_ + 1; id < address_list.size(); ++id) {
                 AsyncConnect(g, id, address_list[id]);
             }
@@ -118,7 +113,7 @@ public:
 
         LOG << "Client " << my_rank_ << " done";
 
-        for (size_t j = 0; j < kGroupCount; j++) {
+        for (size_t j = 0; j < group_count_; j++) {
             // output list of file descriptors connected to partners
             for (size_t i = 0; i != address_list.size(); ++i) {
                 if (i == my_rank_) continue;
@@ -129,23 +124,17 @@ public:
                 groups_[j]->tcp_connection(i).GetSocket().SetNonBlocking(true);
             }
         }
-
-        // copy unique_ptr to constructed groups back to net::Manager (this
-        // upcasts tcp::Group to net::Group)
-        for (size_t i = 0; i < kGroupCount; ++i) {
-            mgr_.groups_[i] = std::move(groups_[i]);
-        }
     }
 
 protected:
-    //! Link to manager being initialized
-    Manager& mgr_;
-
     //! Temporary Manager for construction
     mem::Manager mem_manager_ { nullptr, "Construction" };
 
-    //! Link to manager's groups to initialize
-    std::array<std::unique_ptr<tcp::Group>, kGroupCount> groups_;
+    //! Link to groups to initialize
+    std::unique_ptr<Group>* groups_;
+
+    //! number of groups to initialize
+    size_t group_count_;
 
     /**
      * The rank associated with the local worker.
@@ -162,7 +151,7 @@ protected:
      * The dispatcher instance used by this Manager
      * to perform async operations.
      */
-    tcp::SelectDispatcher dispatcher_ { mem_manager_ };
+    SelectDispatcher dispatcher_ { mem_manager_ };
 
     // Some definitions for convenience
     using GroupNodeIdPair = std::pair<size_t, size_t>;
@@ -235,7 +224,7 @@ protected:
      */
     bool IsInitializationFinished() {
 
-        for (size_t g = 0; g < kGroupCount; g++) {
+        for (size_t g = 0; g < group_count_; g++) {
 
             for (size_t id = 0; id < groups_[g]->num_hosts(); ++id) {
                 if (id == my_rank_) continue;
@@ -511,7 +500,7 @@ protected:
             << " group " << msg_in->group_id
             << " id " << msg_in->id;
 
-        die_unless(msg_in->group_id < kGroupCount);
+        die_unless(msg_in->group_id < group_count_);
         die_unless(msg_in->id < groups_[msg_in->group_id]->num_hosts());
 
         die_unequal(groups_[msg_in->group_id]->tcp_connection(msg_in->id).state(),
@@ -570,12 +559,18 @@ protected:
     }
 };
 
+//! Connect to peers via endpoints using TCP sockets. Construct a group_count
+//! tcp::Group objects at once. Within each Group this host has my_rank.
+void Construct(size_t my_rank,
+               const std::vector<std::string>& endpoints,
+               std::unique_ptr<Group>* groups, size_t group_count) {
+    Construction(groups, group_count).Initialize(my_rank, endpoints);
+}
+
 //! \}
 
 } // namespace tcp
 } // namespace net
 } // namespace thrill
-
-#endif // !THRILL_NET_TCP_CONSTRUCTION_HEADER
 
 /******************************************************************************/

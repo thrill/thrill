@@ -27,128 +27,86 @@ using namespace thrill;      // NOLINT
 
 static void RealGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
-    // randomize base port number for test
-    std::default_random_engine generator(std::random_device { } ());
-    std::uniform_int_distribution<int> distribution(10000, 30000);
-    const size_t port_base = distribution(generator);
-
-    std::vector<std::string> endpoints = {
-        "127.0.0.1:" + std::to_string(port_base + 0),
-        "127.0.0.1:" + std::to_string(port_base + 1),
-        "127.0.0.1:" + std::to_string(port_base + 2),
-        "127.0.0.1:" + std::to_string(port_base + 3),
-        "127.0.0.1:" + std::to_string(port_base + 4),
-        "127.0.0.1:" + std::to_string(port_base + 5)
-    };
-
-    sLOG1 << "Group test uses ports" << port_base << "-" << port_base + 5;
-
-    const size_t count = endpoints.size();
-
-    std::vector<std::thread> threads(count);
-
-    // lambda to construct Group and call user thread function.
-
-    std::vector<std::unique_ptr<net::Manager> > groups(count);
-
-    for (size_t i = 0; i < count; i++) {
-        threads[i] = std::thread(
-            [i, &endpoints, thread_function, &groups]() {
-                // construct Group i with endpoints
-                groups[i] = std::make_unique<net::Manager>(i, endpoints);
-                // run thread function
-                thread_function(&groups[i]->GetFlowGroup());
-            });
-    }
-
-    for (size_t i = 0; i < count; i++) {
-        threads[i].join();
-    }
-    for (size_t i = 0; i < count; i++) {
-        groups[i]->Close();
-    }
-}
-
-static void MockGroupTestOne(
-    size_t num_hosts,
-    const std::function<void(net::Group*)>& thread_function) {
     // execute local stream socket tests
     net::ExecuteLocalMock<net::tcp::Group>(
-        net::tcp::Group::ConstructLocalMesh(num_hosts),
+        net::tcp::Group::ConstructLocalRealTCPMesh(6),
         thread_function);
 }
 
-static void MockGroupTest(
+static void LocalGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
-    MockGroupTestOne(6, thread_function);
+    // execute local stream socket tests
+    net::ExecuteLocalMock<net::tcp::Group>(
+        net::tcp::Group::ConstructLocalMesh(6),
+        thread_function);
 }
 
 /*[[[cog
 import tests.net.group_test_gen as m
 
-m.generate_group_tests('TcpRealGroup', 'RealGroupTest')
-m.generate_dispatcher_tests('TcpRealGroup', 'RealGroupTest',
+m.generate_group_tests('RealTcpGroup', 'RealGroupTest')
+m.generate_dispatcher_tests('RealTcpGroup', 'RealGroupTest',
                             'net::tcp::SelectDispatcher')
 
-m.generate_group_tests('TcpMockGroup', 'MockGroupTest')
-m.generate_dispatcher_tests('TcpMockGroup', 'MockGroupTest',
+m.generate_group_tests('LocalTcpGroup', 'LocalGroupTest')
+m.generate_dispatcher_tests('LocalTcpGroup', 'LocalGroupTest',
                             'net::tcp::SelectDispatcher')
 
   ]]]*/
-TEST(TcpRealGroup, NoOperation) {
+TEST(RealTcpGroup, NoOperation) {
     RealGroupTest(TestNoOperation);
 }
-TEST(TcpRealGroup, SendRecvCyclic) {
+TEST(RealTcpGroup, SendRecvCyclic) {
     RealGroupTest(TestSendRecvCyclic);
 }
-TEST(TcpRealGroup, BroadcastIntegral) {
+TEST(RealTcpGroup, BroadcastIntegral) {
     RealGroupTest(TestBroadcastIntegral);
 }
-TEST(TcpRealGroup, SendReceiveAll2All) {
+TEST(RealTcpGroup, SendReceiveAll2All) {
     RealGroupTest(TestSendReceiveAll2All);
 }
-TEST(TcpRealGroup, PrefixSumForPowersOfTwo) {
+TEST(RealTcpGroup, PrefixSumForPowersOfTwo) {
     RealGroupTest(TestPrefixSumForPowersOfTwo);
 }
-TEST(TcpRealGroup, PrefixSumForPowersOfTwoString) {
+TEST(RealTcpGroup, PrefixSumForPowersOfTwoString) {
     RealGroupTest(TestPrefixSumForPowersOfTwoString);
 }
-TEST(TcpRealGroup, ReduceToRoot) {
+TEST(RealTcpGroup, ReduceToRoot) {
     RealGroupTest(TestReduceToRoot);
 }
-TEST(TcpRealGroup, ReduceToRootString) {
+TEST(RealTcpGroup, ReduceToRootString) {
     RealGroupTest(TestReduceToRootString);
 }
-TEST(TcpRealGroup, DispatcherSyncSendAsyncRead) {
+TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
     RealGroupTest(
         DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
-TEST(TcpMockGroup, NoOperation) {
-    MockGroupTest(TestNoOperation);
+TEST(LocalTcpGroup, NoOperation) {
+    LocalGroupTest(TestNoOperation);
 }
-TEST(TcpMockGroup, SendRecvCyclic) {
-    MockGroupTest(TestSendRecvCyclic);
+TEST(LocalTcpGroup, SendRecvCyclic) {
+    LocalGroupTest(TestSendRecvCyclic);
 }
-TEST(TcpMockGroup, BroadcastIntegral) {
-    MockGroupTest(TestBroadcastIntegral);
+TEST(LocalTcpGroup, BroadcastIntegral) {
+    LocalGroupTest(TestBroadcastIntegral);
 }
-TEST(TcpMockGroup, SendReceiveAll2All) {
-    MockGroupTest(TestSendReceiveAll2All);
+TEST(LocalTcpGroup, SendReceiveAll2All) {
+    LocalGroupTest(TestSendReceiveAll2All);
 }
-TEST(TcpMockGroup, PrefixSumForPowersOfTwo) {
-    MockGroupTest(TestPrefixSumForPowersOfTwo);
+TEST(LocalTcpGroup, PrefixSumForPowersOfTwo) {
+    LocalGroupTest(TestPrefixSumForPowersOfTwo);
 }
-TEST(TcpMockGroup, PrefixSumForPowersOfTwoString) {
-    MockGroupTest(TestPrefixSumForPowersOfTwoString);
+TEST(LocalTcpGroup, PrefixSumForPowersOfTwoString) {
+    LocalGroupTest(TestPrefixSumForPowersOfTwoString);
 }
-TEST(TcpMockGroup, ReduceToRoot) {
-    MockGroupTest(TestReduceToRoot);
+TEST(LocalTcpGroup, ReduceToRoot) {
+    LocalGroupTest(TestReduceToRoot);
 }
-TEST(TcpMockGroup, ReduceToRootString) {
-    MockGroupTest(TestReduceToRootString);
+TEST(LocalTcpGroup, ReduceToRootString) {
+    LocalGroupTest(TestReduceToRootString);
 }
-TEST(TcpMockGroup, DispatcherSyncSendAsyncRead) {
-    MockGroupTest(
+TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
+    LocalGroupTest(
         DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
 }
 // [[[end]]]
