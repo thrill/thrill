@@ -34,7 +34,7 @@ namespace thrill {
 namespace net {
 namespace tcp {
 
-//! \addtogroup netsock Low Level Socket API
+//! \addtogroup net_tcp TCP Socket API
 //! \ingroup net
 //! \{
 

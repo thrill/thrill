@@ -34,6 +34,20 @@ Group::ConstructLocalMesh(size_t num_hosts) {
     return groups;
 }
 
+/******************************************************************************/
+
+void Connection::SyncSend(const void* data, size_t size, int /* flags */) {
+    group_->Send(peer_, net::Buffer(data, size));
+}
+
+void Connection::InboundMsg(net::Buffer&& msg) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    inbound_.emplace_back(std::move(msg));
+    cv_.notify_all();
+    for (Dispatcher* d : watcher_)
+        d->Notify(this);
+}
+
 } // namespace mock
 } // namespace net
 } // namespace thrill
