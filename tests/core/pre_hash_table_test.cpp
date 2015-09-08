@@ -23,7 +23,11 @@ using IntPair = std::pair<int, int>;
 using StringPairPair = std::pair<std::string, std::pair<std::string, int> >;
 using StringPair = std::pair<std::string, int>;
 
-struct PreTable : public::testing::Test { };
+struct PreTable : public::testing::Test {
+    PreTable() : block_pool(nullptr, nullptr), output(block_pool) { }
+    data::BlockPool block_pool;
+    data::File output;
+};
 
 struct MyStruct
 {
@@ -72,8 +76,6 @@ TEST_F(PreTable, CustomHashFunction) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -108,8 +110,6 @@ TEST_F(PreTable, AddIntegers) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -137,8 +137,6 @@ TEST_F(PreTable, CreateEmptyTable) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -166,8 +164,6 @@ TEST_F(PreTable, PopIntegers) {
                       return in;
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -208,8 +204,6 @@ TEST_F(PreTable, FlushIntegersManuallyOnePartition) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -249,7 +243,6 @@ TEST_F(PreTable, FlushIntegersManuallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output1.GetDynWriter());
@@ -300,8 +293,6 @@ TEST_F(PreTable, FlushIntegersPartiallyOnePartition) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -345,7 +336,6 @@ TEST_F(PreTable, FlushIntegersPartiallyTwoPartitions) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
 
     std::vector<data::File::DynWriter> writers;
@@ -396,8 +386,6 @@ TEST_F(PreTable, ComplexType) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -431,7 +419,6 @@ TEST_F(PreTable, MultipleWorkers) {
                       return in1 + in2;
                   };
 
-    data::BlockPool block_pool(nullptr);
     data::File output1(block_pool), output2(block_pool);
 
     std::vector<data::File::DynWriter> writers;
@@ -472,8 +459,6 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce1) {
 
     size_t total_sum = 0, total_count = 0;
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -514,8 +499,6 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
                       };
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
@@ -576,8 +559,6 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
                       return std::make_pair(in1.first, in1.second + in2.second);
                   };
 
-    data::BlockPool block_pool(nullptr);
-    data::File output(block_pool);
     std::vector<data::File::DynWriter> writers;
     writers.emplace_back(output.GetDynWriter());
 
