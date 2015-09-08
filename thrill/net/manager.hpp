@@ -83,12 +83,6 @@ public:
         : my_rank_(my_rank),
           groups_(std::move(groups)) { }
 
-    //! Construct a mock network, consisting of node_count compute
-    //! nodes. Delivers this number of net::Manager objects, which are
-    //! internally connected.
-    static std::vector<std::unique_ptr<Manager> >
-    ConstructLocalMesh(size_t node_count);
-
     /**
      * \brief Returns the net group for the system control channel.
      */
