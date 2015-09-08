@@ -19,33 +19,15 @@
 
 using namespace thrill;      // NOLINT
 
-void MockTestOne(size_t group_size,
+void MockTestOne(size_t num_hosts,
                  const std::function<void(net::mock::Group*)>& thread_function) {
 
-    sLOG0 << "group_size" << group_size;
-    std::vector<net::mock::Group> groups(group_size);
-
-    for (size_t i = 0; i < groups.size(); ++i) {
-        groups[i].Initialize(i, group_size);
-        for (size_t j = 0; j < groups.size(); ++j) {
-            groups[i].peers_[j] = &groups[j];
-        }
-    }
-
-    // create a thread for each Group object and run user program.
-    std::vector<std::thread> threads(group_size);
-
-    for (size_t i = 0; i != group_size; ++i) {
-        threads[i] = std::thread(
-            std::bind(thread_function, &groups[i]));
-    }
-
-    for (size_t i = 0; i != group_size; ++i) {
-        threads[i].join();
-    }
+    net::ExecuteLocalMock(
+        net::mock::Group::ConstructLocalMesh(num_hosts),
+        thread_function);
 }
 
-void MockTest(const std::function<void(net::mock::Group*)>& thread_function) {
+void MockTest(const std::function<void(net::Group*)>& thread_function) {
     MockTestOne(1, thread_function);
     MockTestOne(2, thread_function);
     MockTestOne(3, thread_function);
