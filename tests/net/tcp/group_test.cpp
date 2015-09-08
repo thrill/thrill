@@ -13,6 +13,7 @@
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
 
+#include <tests/net/flow_control_test_base.hpp>
 #include <tests/net/group_test_base.hpp>
 
 #include <random>
@@ -48,6 +49,7 @@ m.generate_dispatcher_tests('RealTcpGroup', 'RealGroupTest',
 m.generate_group_tests('LocalTcpGroup', 'LocalGroupTest')
 m.generate_dispatcher_tests('LocalTcpGroup', 'LocalGroupTest',
                             'net::tcp::SelectDispatcher')
+m.generate_flow_control_tests('LocalTcpGroup', 'LocalGroupTest')
 
   ]]]*/
 TEST(RealTcpGroup, NoOperation) {
@@ -123,6 +125,27 @@ TEST(LocalTcpGroup, DispatcherAsyncWriteAndReadIntoFutureX) {
 TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
     LocalGroupTest(
         DispatcherTestSyncSendAsyncRead<net::tcp::SelectDispatcher>);
+}
+TEST(FlowControlLocalTcpGroup, SingleThreadPrefixSum) {
+    LocalGroupTest(TestSingleThreadPrefixSum);
+}
+TEST(FlowControlLocalTcpGroup, SingleThreadBroadcast) {
+    LocalGroupTest(TestSingleThreadBroadcast);
+}
+TEST(FlowControlLocalTcpGroup, MultiThreadBroadcast) {
+    LocalGroupTest(TestMultiThreadBroadcast);
+}
+TEST(FlowControlLocalTcpGroup, SingleThreadAllReduce) {
+    LocalGroupTest(TestSingleThreadAllReduce);
+}
+TEST(FlowControlLocalTcpGroup, MultiThreadAllReduce) {
+    LocalGroupTest(TestMultiThreadAllReduce);
+}
+TEST(FlowControlLocalTcpGroup, MultiThreadPrefixSum) {
+    LocalGroupTest(TestMultiThreadPrefixSum);
+}
+TEST(FlowControlLocalTcpGroup, HardcoreRaceConditionTest) {
+    LocalGroupTest(TestHardcoreRaceConditionTest);
 }
 // [[[end]]]
 

@@ -17,7 +17,6 @@
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
-#include <thrill/net/manager.hpp>
 #include <thrill/net/tcp/group.hpp>
 
 #include <functional>
@@ -25,14 +24,14 @@
 #include <thread>
 #include <vector>
 
-using namespace thrill::net;
+using namespace thrill; // NOLINT
 
 /**
  * Calculates a prefix sum over all worker ids.
  */
-static void TestSingleThreadPrefixSum(Group* net) {
-    FlowControlChannelManager manager(*net, 1);
-    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+static void TestSingleThreadPrefixSum(net::Group* net) {
+    net::FlowControlChannelManager manager(*net, 1);
+    net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t myRank = net->my_host_rank();
 
     size_t sum = channel.PrefixSum(myRank);
@@ -48,9 +47,9 @@ static void TestSingleThreadPrefixSum(Group* net) {
 /**
  * Broadcasts the ID of the master, which is 0.
  */
-static void SingleThreadBroadcast(tcp::Group* net) {
-    FlowControlChannelManager manager(*net, 1);
-    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+static void TestSingleThreadBroadcast(net::Group* net) {
+    net::FlowControlChannelManager manager(*net, 1);
+    net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t magic = 1337;
     size_t myRank = net->my_host_rank();
     size_t value = myRank + magic;
@@ -61,16 +60,17 @@ static void SingleThreadBroadcast(tcp::Group* net) {
 }
 
 static void ExecuteMultiThreads(
-    tcp::Group* net, size_t count,
-    const std::function<void(FlowControlChannel&, size_t)>& function) {
+    net::Group* net, size_t count,
+    const std::function<void(net::FlowControlChannel&, size_t)>& function) {
 
     std::vector<std::thread> threads(count);
-    FlowControlChannelManager manager(*net, count);
+    net::FlowControlChannelManager manager(*net, count);
 
     for (size_t i = 0; i < count; i++) {
-        threads[i] = std::thread([i, function, &manager] {
-                                     function(manager.GetFlowControlChannel(i), i);
-                                 });
+        threads[i] = std::thread(
+            [i, function, &manager] {
+                function(manager.GetFlowControlChannel(i), i);
+            });
     }
 
     for (size_t i = 0; i < count; i++) {
@@ -81,11 +81,11 @@ static void ExecuteMultiThreads(
 /**
  * Broadcasts the ID of the master, which is 0.
  */
-static void MultiThreadBroadcast(tcp::Group* net) {
+static void TestMultiThreadBroadcast(net::Group* net) {
     const size_t count = 4;
     const size_t magic = 1337;
     ExecuteMultiThreads(
-        net, count, [=](FlowControlChannel& channel, size_t id) {
+        net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id + magic;
 
             size_t res = channel.Broadcast(myRank);
@@ -97,9 +97,9 @@ static void MultiThreadBroadcast(tcp::Group* net) {
 /**
  * Calculates a sum over all worker ids.
  */
-static void SingleThreadAllReduce(tcp::Group* net) {
-    FlowControlChannelManager manager(*net, 1);
-    FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+static void TestSingleThreadAllReduce(net::Group* net) {
+    net::FlowControlChannelManager manager(*net, 1);
+    net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
 
     size_t myRank = net->my_host_rank();
 
@@ -116,12 +116,12 @@ static void SingleThreadAllReduce(tcp::Group* net) {
 /**
  * Calculates a sum over all worker and thread ids.
  */
-static void MultiThreadAllReduce(tcp::Group* net) {
+static void TestMultiThreadAllReduce(net::Group* net) {
 
     const size_t count = 4;
 
     ExecuteMultiThreads(
-        net, count, [=](FlowControlChannel& channel, size_t id) {
+        net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id;
 
             size_t res = channel.AllReduce(myRank);
@@ -137,12 +137,12 @@ static void MultiThreadAllReduce(tcp::Group* net) {
 /**
  * Calculates a sum over all worker and thread ids.
  */
-static void MultiThreadPrefixSum(tcp::Group* net) {
+static void TestMultiThreadPrefixSum(net::Group* net) {
 
     const size_t count = 4;
 
     ExecuteMultiThreads(
-        net, count, [=](FlowControlChannel& channel, size_t id) {
+        net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id;
 
             size_t res = channel.PrefixSum(myRank);
@@ -156,14 +156,14 @@ static void MultiThreadPrefixSum(tcp::Group* net) {
 }
 
 /**
- * Does a lot of operations to provoke race contitions.
+ * Does a lot of operations to provoke race conditions.
  */
-static void DoLotsOfStuff(tcp::Group* net) {
+static void TestHardcoreRaceConditionTest(net::Group* net) {
 
     const size_t count = 16;
 
     ExecuteMultiThreads(
-        net, count, [=](FlowControlChannel& channel, size_t id) {
+        net, count, [=](net::FlowControlChannel& channel, size_t id) {
             size_t myRank = net->my_host_rank() * count + id;
             std::vector<size_t> pres;
             std::vector<size_t> rres;
@@ -193,34 +193,6 @@ static void DoLotsOfStuff(tcp::Group* net) {
             }
         });
 }
-
-// TEST(Group, PrefixSum) {
-//     tcp::Group::ExecuteLocalMock(6, SingleThreadPrefixSum);
-// }
-
-// TEST(Group, MultiThreadPrefixSum) {
-//     tcp::Group::ExecuteLocalMock(6, MultiThreadPrefixSum);
-// }
-
-// TEST(Group, Broadcast) {
-//     tcp::Group::ExecuteLocalMock(6, SingleThreadBroadcast);
-// }
-
-// TEST(Group, MultiThreadBroadcast) {
-//     tcp::Group::ExecuteLocalMock(6, MultiThreadBroadcast);
-// }
-
-// TEST(Group, AllReduce) {
-//     tcp::Group::ExecuteLocalMock(6, SingleThreadAllReduce);
-// }
-
-// TEST(Group, MultiThreadAllReduce) {
-//     tcp::Group::ExecuteLocalMock(6, MultiThreadAllReduce);
-// }
-
-// TEST(Group, HardcoreRaceConditionTest) {
-//     tcp::Group::ExecuteLocalMock(6, DoLotsOfStuff);
-// }
 
 #endif // !THRILL_TESTS_NET_FLOW_CONTROL_TEST_BASE_HEADER
 
