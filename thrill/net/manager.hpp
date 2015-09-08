@@ -126,9 +126,6 @@ private:
      * The Groups initialized and managed by this Manager.
      */
     std::array<GroupPtr, kGroupCount> groups_;
-
-    //! for initialization of members
-    friend class tcp::Construction;
 };
 
 //! \}
