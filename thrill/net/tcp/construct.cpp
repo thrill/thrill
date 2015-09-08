@@ -60,8 +60,7 @@ public:
         }
 
         for (size_t i = 0; i < group_count_; i++) {
-            groups_[i] = std::make_unique<Group>();
-            groups_[i]->Initialize(my_rank_, endpoints.size());
+            groups_[i] = std::make_unique<Group>(my_rank_, endpoints.size());
         }
 
         // Parse endpoints.

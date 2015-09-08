@@ -66,22 +66,10 @@ public:
         size_t num_hosts,
         const std::function<void(Group*)>& thread_function);
 
-    //! Default empty constructor, must be Initialize()d later.
-    Group()
-    { }
-
-    //! Initialize a real Group for construction from the NetManager.
-    void Initialize(size_t my_rank, size_t group_size) {
-        my_rank_ = my_rank;
-        assert(!connected_);
-        connected_ = true;
-        connections_.resize(group_size);
-    }
-
     //! Initializing constructor, used by tests for creating Groups.
-    Group(size_t my_rank, size_t group_size) {
-        Initialize(my_rank, group_size);
-    }
+    Group(size_t my_rank, size_t group_size)
+        : net::Group(my_rank),
+          connections_(group_size) { }
 
     //! \}
 
@@ -151,7 +139,6 @@ public:
         }
 
         connections_.clear();
-        connected_ = false;
     }
 
     //! Closes all client connections
@@ -162,8 +149,6 @@ public:
     //! \}
 
 private:
-    bool connected_ = false;
-
     //! Connections to all other clients in the Group.
     std::vector<Connection> connections_;
 };

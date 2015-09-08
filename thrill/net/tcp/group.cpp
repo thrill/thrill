@@ -33,8 +33,7 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(
     std::vector<std::unique_ptr<Group> > group(num_hosts);
 
     for (size_t i = 0; i < num_hosts; ++i) {
-        group[i] = std::make_unique<Group>();
-        group[i]->Initialize(i, num_hosts);
+        group[i] = std::make_unique<Group>(i, num_hosts);
     }
 
     // construct a stream socket pair for (i,j) with i < j
