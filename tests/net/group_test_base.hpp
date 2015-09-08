@@ -70,8 +70,8 @@ static void TestSendReceiveAll2All(net::Group* net) {
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;
-        net->SendStringTo(i, "Hello " + std::to_string(net->my_host_rank())
-                          + " -> " + std::to_string(i));
+        net->SendTo(i, "Hello " + std::to_string(net->my_host_rank())
+                    + " -> " + std::to_string(i));
     }
     // receive the n-1 messages from clients in order
     for (size_t i = 0; i != net->num_hosts(); ++i)
@@ -79,7 +79,7 @@ static void TestSendReceiveAll2All(net::Group* net) {
         if (i == net->my_host_rank()) continue;
 
         std::string msg;
-        net->ReceiveStringFrom(i, &msg);
+        net->ReceiveFrom(i, &msg);
         sLOG << "Received from client" << i << "msg" << msg;
 
         ASSERT_EQ(msg, "Hello " + std::to_string(i)

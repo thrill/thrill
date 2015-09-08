@@ -92,28 +92,6 @@ public:
         connection(src).Receive(data);
     }
 
-    /**
-     * \brief Sends a string to a worker.
-     * \details Sends a string to a worker.
-     *
-     * \param dest The worker to send the string to.
-     * \param data The string to send.
-     */
-    void SendStringTo(size_t dest, const std::string& data) {
-        connection(dest).SendString(data);
-    }
-
-    /**
-     * \brief Receives a string from the given worker.
-     * \details Receives a string from the given worker.
-     *
-     * \param src The worker to receive the string from.
-     * \param data A pointer to the string where the received string should be stored.
-     */
-    void ReceiveStringFrom(size_t src, std::string* data) {
-        connection(src).ReceiveString(data);
-    }
-
     //! \}
 };
 

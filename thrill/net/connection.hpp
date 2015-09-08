@@ -17,6 +17,9 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/data/serialization.hpp>
+#include <thrill/net/buffer_builder.hpp>
+#include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/exception.hpp>
 
 #include <cassert>
@@ -52,42 +55,41 @@ public:
     //! \name Send Functions
     //! \{
 
-    //! Send a message of given size.
-    virtual ssize_t SyncSend(const void* data, size_t size, int flags = 0) = 0;
+    //! Synchronous blocking send of the (data,size) packet. if sending fails, a
+    //! net::Exception is thrown.
+    virtual void SyncSend(const void* data, size_t size, int flags = 0) = 0;
 
-    //! Send a partial message of given size.
+    //! Non-blocking send of a (data,size) message. returns number of bytes
+    //! possible to send. check errno for errors.
     virtual ssize_t SendOne(const void* data, size_t size) = 0;
 
-    //! Send a fixed-length type T (possibly without length header).
+    //! Send any serializable item T.
     template <typename T>
     void Send(const T& value) {
-        static_assert(std::is_pod<T>::value,
-                      "You only want to send POD types as raw values.");
-
         if (self_verify_) {
-            // for communication verification, send sizeof.
-            size_t len = sizeof(value);
-            if (SyncSend(&len, sizeof(len), MsgMore) != sizeof(len))
-                throw Exception("Error during Send", errno);
+            // for communication verification, send hash_code.
+            size_t hash_code = typeid(T).hash_code();
+            SyncSend(&hash_code, sizeof(hash_code));
         }
-
-        if (SyncSend(&value, sizeof(value))
-            != static_cast<ssize_t>(sizeof(value)))
-            throw Exception("Error during Send", errno);
-    }
-
-    //! Send a string buffer.
-    void SendString(const void* data, size_t len) {
-        if (SyncSend(&len, sizeof(len), MsgMore) != sizeof(len))
-            throw Exception("Error during SendString", errno);
-
-        if (SyncSend(data, len) != static_cast<ssize_t>(len))
-            throw Exception("Error during SendString", errno);
-    }
-
-    //! Send a string message.
-    void SendString(const std::string& message) {
-        SendString(message.data(), message.size());
+        if (std::is_pod<T>::value) {
+            // send PODs directly from memory.
+            SyncSend(&value, sizeof(value));
+        }
+        else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
+            // fixed_size items can be sent without size header
+            // TODO(tb): make bb allocate on stack.
+            BufferBuilder bb;
+            data::Serialization<BufferBuilder, T>::Serialize(value, bb);
+            SyncSend(bb.data(), bb.size());
+        }
+        else {
+            // variable length items must be prefixed with size header
+            BufferBuilder bb;
+            data::Serialization<BufferBuilder, T>::Serialize(value, bb);
+            size_t size = bb.size();
+            SyncSend(&size, sizeof(size), MsgMore);
+            SyncSend(bb.data(), bb.size());
+        }
     }
 
     //! \}
@@ -95,49 +97,51 @@ public:
     //! \name Receive Functions
     //! \{
 
-    //! Receive a message of given size. The size must match the SyncSend size.
-    virtual ssize_t SyncRecv(void* out_data, size_t size) = 0;
+    //! Synchronous blocking receive a message of given size. The size must
+    //! match the SyncSend size for some network layers may only support
+    //! matching messages (read: RDMA!, but also true for the mock net). Throws
+    //! a net::Exception on errors.
+    virtual void SyncRecv(void* out_data, size_t size) = 0;
 
-    //! Receive a partial message of given size. The size must match.
+    //! Non-blocking receive of at most size data. returns number of bytes
+    //! actually received. check errno for errors.
     virtual ssize_t RecvOne(void* out_data, size_t size) = 0;
 
-    //! Receive a fixed-length type, possibly without length header.
+    //! Receive any serializable item T.
     template <typename T>
     void Receive(T* out_value) {
-        static_assert(std::is_pod<T>::value,
-                      "You only want to receive POD types as raw values.");
-
         if (self_verify_) {
-            // for communication verification, receive sizeof.
-            size_t len = 0;
-            if (SyncRecv(&len, sizeof(len)) != sizeof(len))
-                throw Exception("Error during Receive", errno);
-
-            // if this fails, then fixed-length type communication desynced.
-            die_unequal(len, sizeof(*out_value));
+            // for communication verification, receive hash_code.
+            size_t hash_code;
+            SyncRecv(&hash_code, sizeof(hash_code));
+            if (hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::Receive() attempted to receive item "
+                          "with different typeid!");
+            }
         }
-
-        if (SyncRecv(out_value, sizeof(*out_value))
-            != static_cast<ssize_t>(sizeof(*out_value)))
-            throw Exception("Error during Receive", errno);
-    }
-
-    //! Blocking receive string message from the connected socket.
-    void ReceiveString(std::string* outdata) {
-        size_t len = 0;
-
-        if (SyncRecv(&len, sizeof(len)) != sizeof(len))
-            throw Exception("Error during ReceiveString", errno);
-
-        if (len == 0)
-            return;
-
-        outdata->resize(len);
-
-        ssize_t ret = SyncRecv(const_cast<char*>(outdata->data()), len);
-
-        if (ret != static_cast<ssize_t>(len))
-            throw Exception("Error during ReceiveString", errno);
+        if (std::is_pod<T>::value) {
+            // receive PODs directly into memory.
+            SyncRecv(out_value, sizeof(*out_value));
+        }
+        else if (data::Serialization<BufferBuilder, T>::is_fixed_size) {
+            // fixed_size items can be received without size header
+            // TODO(tb): make bb allocate on stack.
+            Buffer b(data::Serialization<BufferBuilder, T>::fixed_size);
+            SyncRecv(b.data(), b.size());
+            BufferReader br(b);
+            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
+        else {
+            // variable length items are prefixed with size header
+            size_t size;
+            SyncRecv(&size, sizeof(size));
+            // receives message
+            Buffer b(size);
+            SyncRecv(b.data(), size);
+            BufferReader br(b);
+            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
     }
 
     //! \}

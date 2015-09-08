@@ -50,10 +50,11 @@ public:
 
     void InboundMsg(net::Buffer&& msg);
 
-    ssize_t SyncSend(const void* data, size_t size, int /* flags */ = 0) final;
+    void SyncSend(const void* data, size_t size, int /* flags */ = 0) final;
 
     ssize_t SendOne(const void* data, size_t size) final {
-        return SyncSend(data, size);
+        SyncSend(data, size);
+        return size;
     }
 
     net::Buffer RecvNext() {
@@ -64,16 +65,16 @@ public:
         return msg;
     }
 
-    ssize_t SyncRecv(void* out_data, size_t size) final {
+    void SyncRecv(void* out_data, size_t size) final {
         net::Buffer msg = RecvNext();
         die_unequal(msg.size(), size);
         char* out_cdata = reinterpret_cast<char*>(out_data);
         std::copy(msg.begin(), msg.end(), out_cdata);
-        return size;
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
-        return SyncRecv(out_data, size);
+        SyncRecv(out_data, size);
+        return size;
     }
 
 protected:
@@ -328,9 +329,8 @@ protected:
 };
 
 inline
-ssize_t Connection::SyncSend(const void* data, size_t size, int /* flags */) {
+void Connection::SyncSend(const void* data, size_t size, int /* flags */) {
     group_->Send(peer_, net::Buffer(data, size));
-    return size;
 }
 
 inline
