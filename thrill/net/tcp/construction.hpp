@@ -65,7 +65,8 @@ public:
         }
 
         for (size_t i = 0; i < kGroupCount; i++) {
-            mgr_.groups_[i].Initialize(my_rank_, endpoints.size());
+            groups_[i] = std::make_unique<Group>();
+            groups_[i]->Initialize(my_rank_, endpoints.size());
         }
 
         // Parse endpoints.
@@ -123,10 +124,16 @@ public:
                 if (i == my_rank_) continue;
                 LOG << "Group " << j
                     << " link " << my_rank_ << " -> " << i << " = fd "
-                    << groups_[j].tcp_connection(i).GetSocket().fd();
+                    << groups_[j]->tcp_connection(i).GetSocket().fd();
 
-                groups_[j].tcp_connection(i).GetSocket().SetNonBlocking(true);
+                groups_[j]->tcp_connection(i).GetSocket().SetNonBlocking(true);
             }
+        }
+
+        // copy unique_ptr to constructed groups back to net::Manager (this
+        // upcasts tcp::Group to net::Group)
+        for (size_t i = 0; i < kGroupCount; ++i) {
+            mgr_.groups_[i] = std::move(groups_[i]);
         }
     }
 
@@ -138,7 +145,7 @@ protected:
     mem::Manager mem_manager_ { nullptr, "Construction" };
 
     //! Link to manager's groups to initialize
-    std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
+    std::array<std::unique_ptr<tcp::Group>, kGroupCount> groups_;
 
     /**
      * The rank associated with the local worker.
@@ -230,12 +237,12 @@ protected:
 
         for (size_t g = 0; g < kGroupCount; g++) {
 
-            for (size_t id = 0; id < groups_[g].num_hosts(); ++id) {
+            for (size_t id = 0; id < groups_[g]->num_hosts(); ++id) {
                 if (id == my_rank_) continue;
 
                 // Just checking the state works since this implicitey checks the
                 // size. Unset connections have state ConnectionState::Invalid.
-                if (groups_[g].tcp_connection(id).state()
+                if (groups_[g]->tcp_connection(id).state()
                     != ConnectionState::Connected)
                     return false;
             }
@@ -302,7 +309,7 @@ protected:
         size_t group, size_t id, const SocketAddress& address) {
 
         // Construct a new socket (old one is destroyed)
-        Connection& nc = groups_[group].tcp_connection(id);
+        Connection& nc = groups_[group]->tcp_connection(id);
         if (nc.IsValid()) nc.Close();
 
         nc = Connection(Socket::Create());
@@ -505,9 +512,9 @@ protected:
             << " id " << msg_in->id;
 
         die_unless(msg_in->group_id < kGroupCount);
-        die_unless(msg_in->id < groups_[msg_in->group_id].num_hosts());
+        die_unless(msg_in->id < groups_[msg_in->group_id]->num_hosts());
 
-        die_unequal(groups_[msg_in->group_id].tcp_connection(msg_in->id).state(),
+        die_unequal(groups_[msg_in->group_id]->tcp_connection(msg_in->id).state(),
                     ConnectionState::Invalid);
 
         // move connection into Group.
@@ -516,7 +523,7 @@ protected:
         tcp.set_peer_id(msg_in->id);
         tcp.set_group_id(msg_in->group_id);
 
-        Connection& c = groups_[msg_in->group_id].AssignConnection(tcp);
+        Connection& c = groups_[msg_in->group_id]->AssignConnection(tcp);
 
         // send welcome message (via new connection's place)
 

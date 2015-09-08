@@ -24,10 +24,9 @@
 #include <vector>
 
 using namespace thrill;      // NOLINT
-using namespace thrill::net; // NOLINT
 
 static void RealGroupTest(
-    const std::function<void(tcp::Group*)>& thread_function) {
+    const std::function<void(net::Group*)>& thread_function) {
     // randomize base port number for test
     std::default_random_engine generator(std::random_device { } ());
     std::uniform_int_distribution<int> distribution(10000, 30000);
@@ -50,13 +49,13 @@ static void RealGroupTest(
 
     // lambda to construct Group and call user thread function.
 
-    std::vector<std::unique_ptr<Manager> > groups(count);
+    std::vector<std::unique_ptr<net::Manager> > groups(count);
 
     for (size_t i = 0; i < count; i++) {
         threads[i] = std::thread(
             [i, &endpoints, thread_function, &groups]() {
                 // construct Group i with endpoints
-                groups[i] = std::make_unique<Manager>(i, endpoints);
+                groups[i] = std::make_unique<net::Manager>(i, endpoints);
                 // run thread function
                 thread_function(&groups[i]->GetFlowGroup());
             });
@@ -71,8 +70,8 @@ static void RealGroupTest(
 }
 
 static void MockGroupTest(
-    const std::function<void(tcp::Group*)>& thread_function) {
-    tcp::Group::ExecuteLocalMock(6, thread_function);
+    const std::function<void(net::Group*)>& thread_function) {
+    net::tcp::Group::ExecuteLocalMock(6, thread_function);
 }
 
 /*[[[cog

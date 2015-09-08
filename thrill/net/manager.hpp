@@ -14,7 +14,7 @@
 #define THRILL_NET_MANAGER_HEADER
 
 #include <thrill/net/connection.hpp>
-#include <thrill/net/tcp/group.hpp>
+#include <thrill/net/group.hpp>
 
 #include <array>
 #include <string>
@@ -50,8 +50,6 @@ public:
      */
     static const size_t kGroupCount = 3;
 
-    using Group = tcp::Group;
-
     size_t my_host_rank() {
         return GetSystemGroup().my_host_rank();
     }
@@ -81,7 +79,7 @@ public:
      * Construct Manager from already initialized net::Groups.
      */
     Manager(size_t my_rank_,
-            std::array<Group, kGroupCount>&& groups);
+            std::array<GroupPtr, kGroupCount>&& groups);
 
     //! Construct a mock network, consisting of node_count compute
     //! nodes. Delivers this number of net::Manager objects, which are
@@ -93,26 +91,26 @@ public:
      * \brief Returns the net group for the system control channel.
      */
     Group & GetSystemGroup() {
-        return groups_[0];
+        return *groups_[0];
     }
 
     /**
      * \brief Returns the net group for the flow control channel.
      */
     Group & GetFlowGroup() {
-        return groups_[1];
+        return *groups_[1];
     }
 
     /**
      * \brief Returns the net group for the data manager.
      */
     Group & GetDataGroup() {
-        return groups_[2];
+        return *groups_[2];
     }
 
     void Close() {
         for (size_t i = 0; i < kGroupCount; i++) {
-            groups_[i].Close();
+            groups_[i]->Close();
         }
     }
 
@@ -123,10 +121,9 @@ private:
     size_t my_rank_;
 
     /**
-     * The Groups initialized and managed
-     * by this Manager.
+     * The Groups initialized and managed by this Manager.
      */
-    std::array<Group, kGroupCount> groups_;
+    std::array<GroupPtr, kGroupCount> groups_;
 
     //! for initialization of members
     friend class tcp::Construction;

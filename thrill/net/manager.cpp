@@ -37,7 +37,7 @@ Manager::Manager(size_t my_rank,
 }
 
 Manager::Manager(size_t my_rank,
-                 std::array<Group, kGroupCount>&& groups)
+                 std::array<GroupPtr, kGroupCount>&& groups)
     : my_rank_(my_rank),
       groups_(std::move(groups)) { }
 
@@ -48,17 +48,17 @@ std::vector<std::unique_ptr<Manager> >
 Manager::ConstructLocalMesh(size_t host_count) {
 
     // construct three full mesh connection cliques, deliver net::Groups.
-    std::array<std::vector<Group>, kGroupCount> group;
+    std::array<std::vector<std::unique_ptr<tcp::Group> >, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
-        group[g] = Group::ConstructLocalMesh(host_count);
+        group[g] = tcp::Group::ConstructLocalMesh(host_count);
     }
 
     // construct list of uninitialized net::Manager objects.
     std::vector<std::unique_ptr<Manager> > nmlist(host_count);
 
     for (size_t h = 0; h < host_count; ++h) {
-        std::array<Group, kGroupCount> host_group = {
+        std::array<GroupPtr, kGroupCount> host_group = {
             { std::move(group[0][h]),
               std::move(group[1][h]),
               std::move(group[2][h]) },

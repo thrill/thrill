@@ -12,8 +12,8 @@
 #ifndef THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 #define THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 
-#include <thrill/net/group.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/net/group.hpp>
 
 #include <string>
 
@@ -141,8 +141,6 @@ static void TestReduceToRoot(net::Group* net) {
     if (net->my_host_rank() == 0)
         ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
 }
-
-
 
 #endif // !THRILL_TESTS_NET_GROUP_TEST_BASE_HEADER
 

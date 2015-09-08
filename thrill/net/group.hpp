@@ -47,6 +47,9 @@ public:
     //! move-assignment operator: default
     Group& operator = (Group&&) = default;
 
+    //! virtual destructor
+    virtual ~Group() { }
+
     //! Return our rank among hosts in this group.
     size_t my_host_rank() const { return my_rank_; }
 
@@ -113,6 +116,9 @@ public:
 
     //! \}
 };
+
+//! unique pointer to a Group.
+using GroupPtr = std::unique_ptr<Group>;
 
 //! \}
 
