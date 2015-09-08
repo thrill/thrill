@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/net/mock/group_test.cpp
+ * tests/net/mock_test.cpp
  *
  * Part of Project Thrill.
  *
@@ -13,10 +13,10 @@
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/mock/group.hpp>
 
-#include <tests/net/flow_control_test_base.hpp>
-#include <tests/net/group_test_base.hpp>
-
 #include <thread>
+
+#include "flow_control_test_base.hpp"
+#include "group_test_base.hpp"
 
 using namespace thrill;      // NOLINT
 
@@ -50,7 +50,7 @@ void MockTestLess(const std::function<void(net::Group*)>& thread_function) {
 }
 
 /*[[[cog
-import tests.net.group_test_gen as m
+import tests.net.test_gen as m
 
 m.generate_group_tests('MockGroup', 'MockTest')
 m.generate_dispatcher_tests('MockGroup', 'MockTest', 'net::mock::Dispatcher')
