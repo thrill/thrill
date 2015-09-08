@@ -91,7 +91,7 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
         [&]() {
             FutureX<int, Buffer> f;
             disp.AsyncRead(connB, 5,
-                           [&f](Connection& c, Buffer&& b) -> void {
+                           [&f](Connection&, Buffer&& b) -> void {
                                sLOG << "Got Hello in callback";
                                f.Callback(42, std::move(b));
                            });
