@@ -172,16 +172,18 @@ public:
         }
     }
 
-    ssize_t SyncSend(const void* data, size_t size, int flags) final {
-        return socket_.send(data, size, flags);
+    void SyncSend(const void* data, size_t size, int flags) final {
+        if (socket_.send(data, size, flags) != static_cast<ssize_t>(size))
+            throw Exception("Error during SyncSend", errno);
     }
 
     ssize_t SendOne(const void* data, size_t size) final {
         return socket_.send_one(data, size);
     }
 
-    ssize_t SyncRecv(void* out_data, size_t size) final {
-        return socket_.recv(out_data, size);
+    void SyncRecv(void* out_data, size_t size) final {
+        if (socket_.recv(out_data, size) != static_cast<ssize_t>(size))
+            throw Exception("Error during SyncRecv", errno);
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
