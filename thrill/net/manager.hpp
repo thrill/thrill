@@ -72,14 +72,16 @@ public:
      * \param endpoints The ordered list of all endpoints, including the local worker,
      * where the endpoint at position i corresponds to the worker with id i.
      */
-    Manager(size_t my_rank_,
+    Manager(size_t my_rank,
             const std::vector<std::string>& endpoints);
 
     /*!
      * Construct Manager from already initialized net::Groups.
      */
-    Manager(size_t my_rank_,
-            std::array<GroupPtr, kGroupCount>&& groups);
+    Manager(size_t my_rank,
+            std::array<GroupPtr, kGroupCount>&& groups)
+        : my_rank_(my_rank),
+          groups_(std::move(groups)) { }
 
     //! Construct a mock network, consisting of node_count compute
     //! nodes. Delivers this number of net::Manager objects, which are

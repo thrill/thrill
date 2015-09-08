@@ -69,9 +69,18 @@ static void RealGroupTest(
     }
 }
 
+static void MockGroupTestOne(
+    size_t num_hosts,
+    const std::function<void(net::Group*)>& thread_function) {
+    // execute local stream socket tests
+    net::ExecuteLocalMock<net::tcp::Group>(
+        net::tcp::Group::ConstructLocalMesh(num_hosts),
+        thread_function);
+}
+
 static void MockGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
-    net::tcp::Group::ExecuteLocalMock(6, thread_function);
+    MockGroupTestOne(6, thread_function);
 }
 
 /*[[[cog

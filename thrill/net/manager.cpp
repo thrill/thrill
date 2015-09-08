@@ -12,9 +12,8 @@
 #include <thrill/net/manager.hpp>
 #include <thrill/net/tcp/construction.hpp>
 
-#include <deque>
-#include <map>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -35,11 +34,6 @@ Manager::Manager(size_t my_rank,
         throw;
     }
 }
-
-Manager::Manager(size_t my_rank,
-                 std::array<GroupPtr, kGroupCount>&& groups)
-    : my_rank_(my_rank),
-      groups_(std::move(groups)) { }
 
 //! Construct a mock network, consisting of host_count compute
 //! hosts. Delivers this number of net::Manager objects, which are

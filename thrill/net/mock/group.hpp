@@ -104,28 +104,35 @@ protected:
     friend class Dispatcher;
 };
 
+/*!
+ * Context for communication links to peers in a mock network.
+ */
 class Group final : public net::Group
 {
     static const bool debug = false;
     static const bool debug_data = true;
 
 public:
+    /*!
+     * Construct a mock network with num_hosts peers and deliver Group contexts
+     * for each of them.
+     */
+    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
+        size_t num_hosts);
+
     //! Initialize a Group for the given size and rank
-    void Initialize(size_t my_rank, size_t group_size) {
-        my_rank_ = my_rank;
+    Group(size_t my_rank, size_t group_size)
+        : net::Group(my_rank) {
         peers_.resize(group_size);
+        // create virtual connections
         conns_ = new Connection[group_size];
         for (size_t i = 0; i < group_size; ++i)
             conns_[i].Initialize(this, i);
     }
 
     ~Group() {
-        if (conns_)
-            delete[] conns_;
+        delete[] conns_;
     }
-
-    //! \name Synchronous Send and Receive Functions
-    //! \{
 
     //! Send a buffer to peer tgt. Blocking, ... sort of.
     void Send(size_t tgt, net::Buffer&& msg) {
@@ -136,8 +143,6 @@ public:
 
         peers_[tgt]->conns_[my_rank_].InboundMsg(std::move(msg));
     }
-
-    //! \}
 
     net::Connection & connection(size_t peer) final {
         assert(peer < peers_.size());

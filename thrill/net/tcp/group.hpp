@@ -47,24 +47,23 @@ public:
     //! \{
 
     /*!
-     * Construct a mock Group vector with an underlying full mesh of local
-     * stream sockets for testing. Returns vector of net::Group interfaces for
-     * each virtual client. This is ideal for testing network communication
-     * protocols. See tests/net/test-net-group.cpp for examples.
-     *
-     * \param num_clients The number of clients in the mesh.
+     * Construct a test network with an underlying full mesh of local stream
+     * sockets for testing. Returns vector of net::Group interfaces for each
+     * virtual client. This is ideal for testing network communication
+     * protocols.
      */
-    static std::vector<std::unique_ptr<Group> >
-    ConstructLocalMesh(size_t num_clients);
+    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
+        size_t num_hosts);
 
-    //! Construct a mock Group using a complete graph of local stream sockets
-    //! for testing, and starts a thread for each client, which gets passed the
-    //! Group object. This is ideal for testing network communication
-    //! protocols. See tests/net/test-net-group.cpp for examples.
-    //! \param num_clients The number of clients to spawn.
-    //! \param thread_function The function to execute for each client.
+    /*!
+     * Construct a test network with an underlying full mesh of _REAL_ tcp
+     * streams interconnected via localhost ports.
+     */
+    static std::vector<std::unique_ptr<Group> > ConstructLocalRealTCPMesh(
+        size_t num_hosts);
+
     static void ExecuteLocalMock(
-        size_t num_clients,
+        size_t num_hosts,
         const std::function<void(Group*)>& thread_function);
 
     //! Default empty constructor, must be Initialize()d later.

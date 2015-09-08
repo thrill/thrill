@@ -24,6 +24,7 @@
 #include <cstring>
 #include <functional>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace thrill {
@@ -35,8 +36,11 @@ namespace net {
 class Group
 {
 public:
-    // default constructor
+    //! default constructor
     Group() = default;
+
+    //! initializing constructor
+    Group(size_t my_rank) : my_rank_(my_rank) { }
 
     //! non-copyable: delete copy-constructor
     Group(const Group&) = delete;
@@ -61,9 +65,6 @@ public:
 
     //! Close
     virtual void Close() = 0;
-
-    //! our rank in the network group
-    size_t my_rank_;
 
     //! \name Richer ReceiveFromAny Functions
     //! \{
@@ -93,10 +94,41 @@ public:
     }
 
     //! \}
+
+protected:
+    //! our rank in the network group
+    size_t my_rank_;
 };
 
 //! unique pointer to a Group.
 using GroupPtr = std::unique_ptr<Group>;
+
+//! Construct a mock Group using a complete graph of local stream sockets for
+//! testing, and starts a thread for each client, which gets passed the Group
+//! object. This is ideal for testing network communication protocols.
+template <typename Group>
+void ExecuteLocalMock(
+    const std::vector<std::unique_ptr<Group> >& groups,
+    const std::function<void(Group*)>& thread_function) {
+    size_t num_hosts = groups.size();
+
+    // create a thread for each Group object and run user program.
+    std::vector<std::thread> threads(num_hosts);
+
+    for (size_t i = 0; i < num_hosts; ++i) {
+        threads[i] = std::thread(
+            std::bind(thread_function, groups[i].get()));
+    }
+
+    for (size_t i = 0; i < num_hosts; ++i) {
+        threads[i].join();
+    }
+
+    // tear down mesh by closing all group objects
+    for (size_t i = 0; i < num_hosts; ++i) {
+        groups[i]->Close();
+    }
+}
 
 //! \}
 
