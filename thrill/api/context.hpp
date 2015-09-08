@@ -276,19 +276,19 @@ static inline std::ostream& operator << (std::ostream& os, const Context& ctx) {
  */
 void
 RunLocalMock(size_t host_count, size_t local_host_count,
-             std::function<void(api::Context&)> job_startpoint);
+             const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Helper Function to execute tests using mock networks in test suite for many
  * different numbers of workers and hosts as independent threads in one program.
  */
-void RunLocalTests(std::function<void(Context&)> job_startpoint);
+void RunLocalTests(const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Runs the given job_startpoint within the same thread -->
  * one host with one thread
  */
-void RunSameThread(std::function<void(Context&)> job_startpoint);
+void RunSameThread(const std::function<void(Context&)>& job_startpoint);
 
 /*!
  * Runs the given job startpoint with a context instance.  Startpoints may be
@@ -304,7 +304,7 @@ void RunSameThread(std::function<void(Context&)> job_startpoint);
  * non-zero return value of any thread is returned.
  */
 int Run(
-    std::function<void(Context&)> job_startpoint,
+    const std::function<void(Context&)>& job_startpoint,
     const std::string& log_prefix = std::string());
 
 //! \}
