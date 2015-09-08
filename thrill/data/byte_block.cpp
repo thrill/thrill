@@ -17,7 +17,6 @@ void ByteBlock::deleter(ByteBlock* bb) {
 
     // some blocks are created in 'detached' state (tests etc)
     if (bb->head.block_pool_ && bb->reference_count() == 0) {
-        bb->head.block_pool_->FreeBlockMemory(bb->size());
         bb->head.block_pool_->DestroyBlock(bb);
     }
     operator delete (bb);
@@ -35,7 +34,6 @@ ByteBlock::ByteBlock(size_t size, BlockPool* block_pool, bool pinned)
 ByteBlock* ByteBlock::Allocate(
     size_t block_size, BlockPool* block_pool, bool pinned) {
     // this counts only the bytes and excludes the header. why? -tb
-    block_pool->ClaimBlockMemory(block_size);
 
     // allocate a new block of uninitialized memory
     ByteBlock* block =

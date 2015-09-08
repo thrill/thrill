@@ -37,13 +37,12 @@ ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
     mem_manager_.add(block_size);
     ByteBlockPtr result(block);
     // we store a raw pointer --> does not increase ref count
-    if (pinned || block_size != default_block_size) {
+    if (pinned) {
         pinned_blocks_.push_back(block);
         pinned_blocks_.back()->head.pin_count_++;
         block->head.pin_count_++;
         LOG << "allocating pinned block @" << block;
-    }
-    else {
+    } else {
         victim_blocks_.push_back(block);
         LOG << "allocating unpinned block @" << block;
     }
@@ -90,20 +89,6 @@ ByteBlockPtr BlockPool::PinBlock(const ByteBlockPtr& block_ptr) {
 
 size_t BlockPool::block_count() const noexcept {
     return pinned_blocks_.size() + victim_blocks_.size() + swapped_blocks_.size();
-}
-void BlockPool::ClaimBlockMemory(size_t block_size) {
-    mem_manager_.add(block_size);
-
-    sLOG << "freeblock() total_count=" << block_count()
-         << " total_size=" << mem_manager_.total();
-}
-
-//! Called by ByteBlock when it is deleted or swapped
-void BlockPool::FreeBlockMemory(size_t block_size) {
-    mem_manager_.subtract(block_size);
-
-    sLOG << "freeblock() total_count=" << block_count() <<
-        " total_size=" << mem_manager_.total();
 }
 
 //! Mechanism to swap block to disk. No changes to pool or block state
