@@ -29,8 +29,9 @@ struct Multiplexer : public::testing::Test {
 
     static void FunctionSelect(
         net::tcp::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
-        data::BlockPool block_pool(nullptr);
-        data::Multiplexer multiplexer(block_pool, 1, *group);
+        mem::Manager mem_manager(nullptr, "MultiplexerTest");
+        data::BlockPool block_pool(&mem_manager);
+        data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
         switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
@@ -72,8 +73,9 @@ void TalkAllToAllViaChannel(net::tcp::Group* net) {
     size_t my_local_worker_id = 0;
     size_t num_workers_per_node = 1;
 
-    data::BlockPool block_pool(nullptr);
-    data::Multiplexer multiplexer(block_pool, num_workers_per_node, *net);
+    mem::Manager mem_manager(nullptr, "Benchmark");
+    data::BlockPool block_pool(&mem_manager);
+    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_node, *net);
     {
         data::ChannelId id = multiplexer.AllocateChannelId(my_local_worker_id);
 

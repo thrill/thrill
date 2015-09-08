@@ -103,6 +103,13 @@ public:
         return tcp_connection(id);
     }
 
+    //! construct a dispatcher object for tcp connections
+    static mem::mm_unique_ptr<Dispatcher> SConstructDispatcher(
+        mem::Manager& mem_manager);
+
+    mem::mm_unique_ptr<Dispatcher> ConstructDispatcher(
+        mem::Manager& mem_manager) const final;
+
     /**
      * \brief Assigns a connection to this net group.
      * \details This method swaps the net connection to memory managed by this group.

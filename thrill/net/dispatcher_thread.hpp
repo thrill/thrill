@@ -55,19 +55,19 @@ class DispatcherThread
     static const bool debug = false;
 
 public:
-    //! \name Imported Typedefs
-    //! \{
-
     //! Signature of async jobs to be run by the dispatcher thread.
     using Job = common::ThreadPool::Job;
 
-    //! \}
+    DispatcherThread(
+        mem::Manager& mem_manager,
+        mem::mm_unique_ptr<class Dispatcher>&& dispatcher,
+        const mem::by_string& thread_name);
 
-    //! common global memory stats, should become a HostContext member.
-    mem::Manager mem_manager_ { nullptr, "DispatcherThread" };
+    DispatcherThread(
+        mem::Manager& mem_manager,
+        class Group& group,
+        const mem::by_string& thread_name);
 
-public:
-    explicit DispatcherThread(const mem::by_string& thread_name);
     ~DispatcherThread();
 
     //! non-copyable: delete copy-constructor
@@ -146,6 +146,9 @@ protected:
     void WakeUpThread();
 
 private:
+    //! common memory stats, should become a HostContext member.
+    mem::Manager mem_manager_;
+
     //! Queue of jobs to be run by dispatching thread at its discretion.
     common::ConcurrentQueue<Job, mem::Allocator<Job> > jobqueue_ {
         mem::Allocator<Job>(mem_manager_)

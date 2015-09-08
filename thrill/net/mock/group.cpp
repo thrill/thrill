@@ -14,6 +14,14 @@ namespace thrill {
 namespace net {
 namespace mock {
 
+mem::mm_unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
+    mem::Manager& mem_manager) const {
+    // construct mock::Dispatcher
+    return mem::mm_unique_ptr<net::Dispatcher>(
+        mem::mm_new<Dispatcher>(mem_manager, mem_manager),
+        mem::Deleter<net::Dispatcher>(mem_manager));
+}
+
 std::vector<std::unique_ptr<Group> >
 Group::ConstructLocalMesh(size_t num_hosts) {
 

@@ -66,12 +66,16 @@ public:
     //! Close
     virtual void Close() = 0;
 
+    //! Construct a network dispatcher object for this group, matching its
+    //! internal implementation.
+    virtual mem::mm_unique_ptr<class Dispatcher> ConstructDispatcher(
+        mem::Manager& mem_manager) const = 0;
+
     //! \name Richer ReceiveFromAny Functions
     //! \{
 
     /**
-     * \brief Sends a fixed lentgh type to the given worker.
-     * \details Sends a fixed lentgh type to the given worker.
+     * Sends a fixed lentgh type to the given worker.
      *
      * \param dest The worker to send the data to.
      * \param data The data to send.
@@ -82,8 +86,7 @@ public:
     }
 
     /**
-     * \brief Receives a fixed length type from the given worker.
-     * \details Receives a fixed length type from the given worker.
+     * Receives a fixed length type from the given worker.
      *
      * \param src The worker to receive the fixed length type from.
      * \param data A pointer to the location where the received data should be stored.

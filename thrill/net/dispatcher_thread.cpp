@@ -10,7 +10,7 @@
 
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
-#include <thrill/net/tcp/select_dispatcher.hpp>
+#include <thrill/net/group.hpp>
 
 #include <unistd.h>
 
@@ -21,15 +21,21 @@
 namespace thrill {
 namespace net {
 
-DispatcherThread::DispatcherThread(const mem::by_string& thread_name)
-    : dispatcher_(
-          mem::mm_new<tcp::SelectDispatcher>(mem_manager_, mem_manager_),
-          mem::Deleter<Dispatcher>(mem_manager_)
-          ),
+DispatcherThread::DispatcherThread(
+    mem::Manager& mem_manager,
+    mem::mm_unique_ptr<Dispatcher>&& dispatcher,
+    const mem::by_string& thread_name)
+    : mem_manager_(&mem_manager, "DispatcherThread"),
+      dispatcher_(std::move(dispatcher)),
       name_(thread_name) {
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
 }
+
+DispatcherThread::DispatcherThread(
+    mem::Manager& mem_manager, Group& group, const mem::by_string& thread_name)
+    : DispatcherThread(mem_manager,
+                       group.ConstructDispatcher(mem_manager), thread_name) { }
 
 DispatcherThread::~DispatcherThread() {
     Terminate();

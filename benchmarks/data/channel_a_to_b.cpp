@@ -91,11 +91,13 @@ int main(int argc, const char** argv) {
         });
     connect_pool.LoopUntilEmpty();
 
-    data::BlockPool blockpool1(nullptr);
-    data::BlockPool blockpool2(nullptr);
+    mem::Manager mem_manager(nullptr, "Benchmark");
 
-    data::Multiplexer datamp1(blockpool1, 1, net_manager1->GetDataGroup());
-    data::Multiplexer datamp2(blockpool2, 1, net_manager2->GetDataGroup());
+    data::BlockPool blockpool1(&mem_manager);
+    data::BlockPool blockpool2(&mem_manager);
+
+    data::Multiplexer datamp1(mem_manager, blockpool1, 1, net_manager1->GetDataGroup());
+    data::Multiplexer datamp2(mem_manager, blockpool2, 1, net_manager2->GetDataGroup());
 
     net::FlowControlChannelManager flow_manager1(net_manager1->GetFlowGroup(), 1);
     net::FlowControlChannelManager flow_manager2(net_manager2->GetFlowGroup(), 1);
