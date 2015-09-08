@@ -50,7 +50,8 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(my_host_rank, endpoints),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          data_multiplexer_(block_pool_, workers_per_host,
+          data_multiplexer_(mem_manager_,
+                            block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
     { }
 
@@ -62,7 +63,8 @@ public:
         : workers_per_host_(workers_per_host),
           net_manager_(my_host_rank, std::move(groups)),
           flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
-          data_multiplexer_(block_pool_, workers_per_host,
+          data_multiplexer_(mem_manager_,
+                            block_pool_, workers_per_host,
                             net_manager_.GetDataGroup())
     { }
 

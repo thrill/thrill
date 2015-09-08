@@ -147,6 +147,9 @@ public:
         delete[] conns_;
     }
 
+    mem::mm_unique_ptr<net::Dispatcher> ConstructDispatcher(
+        mem::Manager& mem_manager) const final;
+
     //! Send a buffer to peer tgt. Blocking, ... sort of.
     void Send(size_t tgt, net::Buffer&& msg) {
         assert(tgt < peers_.size());

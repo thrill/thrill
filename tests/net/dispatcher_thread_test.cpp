@@ -11,15 +11,19 @@
 #include <gtest/gtest.h>
 #include <thrill/common/future.hpp>
 #include <thrill/common/thread_pool.hpp>
+#include <thrill/mem/manager.hpp>
+#include <thrill/net/dispatcher.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/tcp/connection.hpp>
+#include <thrill/net/tcp/group.hpp>
 
 #include <future>
 #include <tuple>
 #include <utility>
 
 using namespace std::literals;
-using namespace thrill::net;
+using namespace thrill;
+using thrill::net::DispatcherThread;
 using thrill::common::ThreadPool;
 using thrill::common::Future;
 using thrill::common::FutureX;
@@ -28,10 +32,14 @@ struct DispatcherThreadTest : public::testing::Test {
     DispatcherThreadTest() {
         thrill::common::NameThisThread("test-driver");
     }
+    mem::Manager mem_manager_ { nullptr, "DispatcherTest" };
 };
 
 TEST_F(DispatcherThreadTest, LaunchAndTerminate) {
-    DispatcherThread disp("dispatcher");
+    DispatcherThread disp(
+        mem_manager_,
+        net::tcp::Group::SConstructDispatcher(mem_manager_),
+        "dispatcher");
     // sleep for a new ticks until the dispatcher thread reaches select().
     std::this_thread::sleep_for(100ns);
 }
@@ -41,12 +49,14 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFuture) {
 
     ThreadPool pool(2);
 
-    using tcp::Socket;
+    using net::tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
+    net::tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
 
-    DispatcherThread disp("dispatcher");
+    DispatcherThread disp(
+        mem_manager_,
+        net::tcp::Group::SConstructDispatcher(mem_manager_), "dispatcher");
 
     pool.Enqueue([&]() {
                      std::this_thread::sleep_for(10ms);
@@ -55,13 +65,13 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFuture) {
                  });
 
     pool.Enqueue([&]() {
-                     Future<Buffer> f;
+                     Future<net::Buffer> f;
                      disp.AsyncRead(connB, 5,
-                                    [&f](Connection&, Buffer&& b) -> void {
+                                    [&f](net::Connection&, net::Buffer&& b) -> void {
                                         sLOG << "Got Hello in callback";
                                         f.Callback(std::move(b));
                                     });
-                     Buffer b = f.Wait();
+                     net::Buffer b = f.Wait();
                      sLOG << "Waiter got packet:" << b.ToString();
                  });
 
@@ -73,12 +83,14 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
 
     ThreadPool pool(2);
 
-    using tcp::Socket;
+    using net::tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
+    net::tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
 
-    DispatcherThread disp("dispatcher");
+    DispatcherThread disp(
+        mem_manager_,
+        net::tcp::Group::SConstructDispatcher(mem_manager_), "dispatcher");
 
     pool.Enqueue(
         [&]() {
@@ -89,14 +101,14 @@ TEST_F(DispatcherThreadTest, AsyncWriteAndReadIntoFutureX) {
 
     pool.Enqueue(
         [&]() {
-            FutureX<int, Buffer> f;
+            FutureX<int, net::Buffer> f;
             disp.AsyncRead(connB, 5,
-                           [&f](Connection&, Buffer&& b) -> void {
+                           [&f](net::Connection&, net::Buffer&& b) -> void {
                                sLOG << "Got Hello in callback";
                                f.Callback(42, std::move(b));
                            });
-            std::tuple<int, Buffer> t = f.Wait();
-            Buffer& b = std::get<1>(t);
+            std::tuple<int, net::Buffer> t = f.Wait();
+            net::Buffer& b = std::get<1>(t);
             sLOG << "Waiter got packet:" << b.ToString();
         });
 
@@ -110,12 +122,14 @@ TEST_F(DispatcherThreadTest, DISABLED_AsyncWriteAndReadIntoStdFuture) {
 
     ThreadPool pool(2);
 
-    using tcp::Socket;
+    using net::tcp::Socket;
 
     std::pair<Socket, Socket> sp = Socket::CreatePair();
-    tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
+    net::tcp::Connection connA(std::move(sp.first)), connB(std::move(sp.second));
 
-    DispatcherThread disp("dispatcher");
+    DispatcherThread disp(
+        mem_manager_,
+        net::tcp::Group::SConstructDispatcher(mem_manager_), "dispatcher");
 
     pool.Enqueue(
         [&]() {
@@ -126,15 +140,15 @@ TEST_F(DispatcherThreadTest, DISABLED_AsyncWriteAndReadIntoStdFuture) {
 
     pool.Enqueue(
         [&]() {
-            std::promise<Buffer> promise;
+            std::promise<net::Buffer> promise;
             disp.AsyncRead(connB, 5,
-                           [&promise](Connection&, Buffer&& b) -> void {
+                           [&promise](net::Connection&, net::Buffer&& b) -> void {
                                sLOG << "Got Hello in callback";
                                promise.set_value(std::move(b));
                            });
-            std::future<Buffer> f = promise.get_future();
+            std::future<net::Buffer> f = promise.get_future();
             f.wait();
-            Buffer b = f.get();
+            net::Buffer b = f.get();
             sLOG << "Waiter got packet:" << b.ToString();
         });
 

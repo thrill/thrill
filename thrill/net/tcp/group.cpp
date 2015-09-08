@@ -15,6 +15,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/net/tcp/construct.hpp>
 #include <thrill/net/tcp/group.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 
 #include <random>
 #include <string>
@@ -25,6 +26,20 @@
 namespace thrill {
 namespace net {
 namespace tcp {
+
+mem::mm_unique_ptr<Dispatcher>
+Group::SConstructDispatcher(mem::Manager& mem_manager) {
+    // construct tcp::SelectDispatcher
+    return mem::mm_unique_ptr<Dispatcher>(
+        mem::mm_new<SelectDispatcher>(mem_manager, mem_manager),
+        mem::Deleter<Dispatcher>(mem_manager));
+}
+
+mem::mm_unique_ptr<Dispatcher>
+Group::ConstructDispatcher(mem::Manager& mem_manager) const {
+    // construct tcp::SelectDispatcher
+    return SConstructDispatcher(mem_manager);
+}
 
 std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(
     size_t num_hosts) {
