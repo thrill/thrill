@@ -27,16 +27,20 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
-//! \brief   Calculate for every worker his prefix sum. Works only for worker
-//!          numbers which are powers of two.
-//! \details The prefix sum is the aggregatation of the values of all workers
-//!          with lesser index, including himself, according to a summation
-//!          operator. This function currently only supports worker numbers
-//!          which are powers of two.
-//!
-//! \param   net The current worker onto which to apply the operation
-//! \param   value The value to be summed up
-//! \param   sumOp A custom summation operator
+/*!
+ * \brief Calculate for every worker his prefix sum. Works only for worker
+ * numbers which are powers of two.
+ *
+ * \details The prefix sum is the aggregatation of the values of all workers
+ * with lesser index, including himself, according to a summation operator. This
+ * function currently only supports worker numbers which are powers of two.
+ *
+ * \param net The current worker onto which to apply the operation
+ *
+ * \param value The value to be summed up
+ *
+ * \param sum_op A custom summation operator
+ */
 template <typename T, typename BinarySumOp = std::plus<T> >
 static void PrefixSumForPowersOfTwo(
     Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
@@ -74,14 +78,19 @@ static void PrefixSumForPowersOfTwo(
          << ": value after prefix sum =" << value;
 }
 
-//! \brief   Perform a reduce to the worker with index 0.
-//! \details This function aggregates the values of all workers according to a
-//!          summation operator and sends the aggregate to the root, which is
-//!          the worker with index 0.
-//!
-//! \param   net The current worker onto which to apply the operation
-//! \param   value The value to be added to the aggregation
-//! \param   sumOp A custom summation operator
+/*!
+ * \brief Perform a reduce to the worker with index 0.
+ *
+ * \details This function aggregates the values of all workers according to a
+ * summation operator and sends the aggregate to the root, which is the worker
+ * with index 0.
+ *
+ * \param net The current worker onto which to apply the operation
+ *
+ * \param value The value to be added to the aggregation
+ *
+ * \param sum_op A custom summation operator
+ */
 template <typename T, typename BinarySumOp = std::plus<T> >
 void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
     bool active = true;

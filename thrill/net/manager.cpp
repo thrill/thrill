@@ -20,9 +20,6 @@
 namespace thrill {
 namespace net {
 
-//! \addtogroup net Network Communication
-//! \{
-
 Manager::Manager(size_t my_rank,
                  const std::vector<std::string>& endpoints)
     : my_rank_(my_rank) {
@@ -67,8 +64,6 @@ Manager::ConstructLocalMesh(size_t host_count) {
 
     return nmlist;
 }
-
-//! \}
 
 } // namespace net
 } // namespace thrill

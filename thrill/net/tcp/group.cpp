@@ -19,7 +19,6 @@
 #include <random>
 #include <string>
 #include <thread>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -74,7 +73,8 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
 
     std::vector<std::thread> threads(num_hosts);
 
-    // run threads to construct Group because these create real connections.
+    // we have to create and run threads to construct Group because these create
+    // real connections.
 
     std::vector<std::unique_ptr<Group> > groups(num_hosts);
 

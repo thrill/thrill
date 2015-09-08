@@ -1,6 +1,10 @@
 /*******************************************************************************
  * thrill/net/mock/group.hpp
  *
+ * Implementation of a mock network which does no real communication. All
+ * classes: Group, Connection, and Dispatcher are in this file since they are
+ * tightly connected to provide thread-safety.
+ *
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
@@ -30,9 +34,18 @@ namespace thrill {
 namespace net {
 namespace mock {
 
+//! \addtogroup net_mock Mock Network API
+//! \ingroup net
+//! \{
+
 class Group;
 class Dispatcher;
 
+/*!
+ * A virtual connection through the mock network: each Group has p Connections
+ * to its peers. The Connection hands over packets to the peers via SyncSend(),
+ * and receives them as InboundMsg().
+ */
 class Connection final : public net::Connection
 {
 public:
@@ -169,6 +182,11 @@ public:
     Connection* conns_;
 };
 
+/*!
+ * A virtual Dispatcher which waits for messages to arrive in the mock
+ * network. It is implemented as a ConcurrentBoundedQueue, into which
+ * Connections lay notification events.
+ */
 class Dispatcher final : public net::Dispatcher
 {
     static const bool debug = false;
@@ -333,19 +351,7 @@ protected:
     }
 };
 
-inline
-void Connection::SyncSend(const void* data, size_t size, int /* flags */) {
-    group_->Send(peer_, net::Buffer(data, size));
-}
-
-inline
-void Connection::InboundMsg(net::Buffer&& msg) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    inbound_.emplace_back(std::move(msg));
-    cv_.notify_all();
-    for (Dispatcher* d : watcher_)
-        d->Notify(this);
-}
+//! \}
 
 } // namespace mock
 } // namespace net

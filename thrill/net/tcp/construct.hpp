@@ -23,11 +23,16 @@ namespace thrill {
 namespace net {
 namespace tcp {
 
+//! \addtogroup net_tcp TCP Socket API
+//! \{
+
 //! Connect to peers via endpoints using TCP sockets. Construct a group_count
 //! tcp::Group objects at once. Within each Group this host has my_rank.
 void Construct(size_t my_rank,
                const std::vector<std::string>& endpoints,
                std::unique_ptr<Group>* groups, size_t group_count);
+
+//! \}
 
 } // namespace tcp
 } // namespace net

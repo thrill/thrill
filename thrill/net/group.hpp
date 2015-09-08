@@ -40,7 +40,7 @@ public:
     Group() = default;
 
     //! initializing constructor
-    Group(size_t my_rank) : my_rank_(my_rank) { }
+    explicit Group(size_t my_rank) : my_rank_(my_rank) { }
 
     //! non-copyable: delete copy-constructor
     Group(const Group&) = delete;
