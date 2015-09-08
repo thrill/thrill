@@ -13,6 +13,7 @@
 #include <thrill/net/flow_control_channel.hpp>
 #include <thrill/net/flow_control_manager.hpp>
 #include <thrill/net/group.hpp>
+#include <thrill/net/tcp/group.hpp>
 #include <thrill/net/manager.hpp>
 
 #include <functional>

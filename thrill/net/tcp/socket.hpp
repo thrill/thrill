@@ -113,8 +113,8 @@ public:
         int r = ::socketpair(PF_UNIX, SOCK_STREAM, 0, fds);
 #endif
         if (r != 0) {
-            LOG << "Socket::CreatePair()"
-                << " error=" << strerror(errno);
+            LOG1 << "Socket::CreatePair()"
+                 << " error=" << strerror(errno);
             abort();
         }
 

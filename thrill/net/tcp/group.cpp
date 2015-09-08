@@ -24,13 +24,14 @@ namespace thrill {
 namespace net {
 namespace tcp {
 
-std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
+std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(size_t num_clients) {
 
     // construct a group of num_clients
-    std::vector<Group> group(num_clients);
+    std::vector<std::unique_ptr<Group> > group(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {
-        group[i].Initialize(i, num_clients);
+        group[i] = std::make_unique<Group>();
+        group[i]->Initialize(i, num_clients);
     }
 
     // construct a stream socket pair for (i,j) with i < j
@@ -43,8 +44,8 @@ std::vector<Group> Group::ConstructLocalMesh(size_t num_clients) {
             sp.first.SetNonBlocking(true);
             sp.second.SetNonBlocking(true);
 
-            group[i].connections_[j] = Connection(std::move(sp.first));
-            group[j].connections_[i] = Connection(std::move(sp.second));
+            group[i]->connections_[j] = Connection(std::move(sp.first));
+            group[j]->connections_[i] = Connection(std::move(sp.second));
         }
     }
 
@@ -56,14 +57,14 @@ void Group::ExecuteLocalMock(
     const std::function<void(Group*)>& thread_function) {
 
     // construct a group of num_clients
-    std::vector<Group> group = ConstructLocalMesh(num_clients);
+    std::vector<std::unique_ptr<Group> > group = ConstructLocalMesh(num_clients);
 
     // create a thread for each Group object and run user program.
     std::vector<std::thread> threads(num_clients);
 
     for (size_t i = 0; i != num_clients; ++i) {
         threads[i] = std::thread(
-            std::bind(thread_function, &group[i]));
+            std::bind(thread_function, group[i].get()));
     }
 
     for (size_t i = 0; i != num_clients; ++i) {
@@ -72,7 +73,7 @@ void Group::ExecuteLocalMock(
 
     // tear down mesh by closing all group objects
     for (size_t i = 0; i != num_clients; ++i) {
-        group[i].Close();
+        group[i]->Close();
     }
 }
 

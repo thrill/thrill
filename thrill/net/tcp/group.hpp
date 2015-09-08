@@ -54,7 +54,8 @@ public:
      *
      * \param num_clients The number of clients in the mesh.
      */
-    static std::vector<Group> ConstructLocalMesh(size_t num_clients);
+    static std::vector<std::unique_ptr<Group> >
+        ConstructLocalMesh(size_t num_clients);
 
     //! Construct a mock Group using a complete graph of local stream sockets
     //! for testing, and starts a thread for each client, which gets passed the
