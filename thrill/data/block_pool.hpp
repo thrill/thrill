@@ -30,8 +30,9 @@ class BlockPool
     static const bool debug = false;
 
 public:
-    explicit BlockPool(mem::Manager* mem_manager)
-        : mem_manager_(mem_manager, "BlockPool")
+    explicit BlockPool(mem::Manager* mem_manager, mem::Manager* mem_manager_external)
+        : mem_manager_(mem_manager, "BlockPool"),
+          ext_mem_manager_(mem_manager_external, "BlockPool")
     { }
 
     ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = false);
@@ -45,9 +46,13 @@ public:
     size_t block_count() const noexcept;
 
 protected:
-    //! local Manager counting only ByteBlock allocations.
+    //! local Manager counting only ByteBlock allocations in internal memory.
     mem::Manager mem_manager_;
 
+    //! local Manager counting only ByteBlocks in external memory.
+    mem::Manager ext_mem_manager_;
+
+    //! PageMapper used for swapping-in/-out blocks
     mem::PageMapper page_mapper_;
 
     // list of all blocks that are no victims & not swapped
@@ -68,10 +73,10 @@ protected:
     //! Called by ByteBlock when it is deleted or swapped
     void FreeBlockMemory(size_t block_size);
 
-    //! Mechanism to swap block to disk. No changes to pool or block state are made. Blocking call.
-    void SwapBlockOut(const ByteBlockPtr& block_ptr) const;
+    //! Mechanism to swap block to disk. Blocking call.
+    void SwapBlockOut(const ByteBlockPtr& block_ptr);
 
-    //! Mechanism to swap block from disk. No changes to pool or block state are made. Blocking call.
+    //! Mechanism to swap block from disk. Blocking call.
     void SwapBlockIn(const ByteBlockPtr& block_ptr);
 
     void DestroyBlock(ByteBlock* block);

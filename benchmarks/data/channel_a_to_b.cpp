@@ -91,8 +91,8 @@ int main(int argc, const char** argv) {
         });
     connect_pool.LoopUntilEmpty();
 
-    data::BlockPool blockpool1(nullptr);
-    data::BlockPool blockpool2(nullptr);
+    data::BlockPool blockpool1(nullptr, nullptr);
+    data::BlockPool blockpool2(nullptr, nullptr);
 
     data::Multiplexer datamp1(blockpool1, 1, net_manager1->GetDataGroup());
     data::Multiplexer datamp2(blockpool2, 1, net_manager2->GetDataGroup());

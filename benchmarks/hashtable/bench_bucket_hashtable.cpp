@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
         current_size += sizeof(str) + str.capacity();
     }
 
-    data::BlockPool block_pool(nullptr);
+    data::BlockPool block_pool(nullptr, nullptr);
     std::vector<data::DiscardSink> sinks;
     std::vector<data::DynBlockWriter> writers;
     for (size_t i = 0; i != workers; ++i) {

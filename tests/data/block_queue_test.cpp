@@ -22,7 +22,7 @@ using MyBlockSource = data::ConsumeBlockQueueSource;
 using ConcatBlockSource = data::ConcatBlockSource<MyBlockSource>;
 
 struct BlockQueue : public::testing::Test {
-    data::BlockPool block_pool_ { nullptr };
+    data::BlockPool block_pool_ { nullptr, nullptr };
 };
 
 TEST_F(BlockQueue, FreshQueueIsNotClosed) {
