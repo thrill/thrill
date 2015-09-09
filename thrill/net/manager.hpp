@@ -64,24 +64,20 @@ public:
     Manager& operator = (const Manager&) = delete;
 
     /*!
-     * \brief Initializes this Manager and initializes all Groups.
-     * \details Initializes this Manager and initializes all Groups.
-     * When this method returns, the network system is ready to use.
-     *
-     * \param my_rank_ The rank of the worker that owns this Manager.
-     * \param endpoints The ordered list of all endpoints, including the local worker,
-     * where the endpoint at position i corresponds to the worker with id i.
-     */
-    Manager(size_t my_rank,
-            const std::vector<std::string>& endpoints);
-
-    /*!
      * Construct Manager from already initialized net::Groups.
      */
-    Manager(size_t my_rank,
-            std::array<GroupPtr, kGroupCount>&& groups)
+    Manager(size_t my_rank, std::array<GroupPtr, kGroupCount>&& groups)
         : my_rank_(my_rank),
           groups_(std::move(groups)) { }
+
+    /*!
+      * Construct Manager from already initialized net::Groups.
+      */
+    Manager(size_t my_rank, std::vector<GroupPtr>&& groups)
+        : my_rank_(my_rank) {
+        assert(groups.size() == kGroupCount);
+        std::move(groups.begin(), groups.end(), groups_.begin());
+    }
 
     /**
      * \brief Returns the net group for the system control channel.

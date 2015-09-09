@@ -566,6 +566,18 @@ void Construct(size_t my_rank,
     Construction(groups, group_count).Initialize(my_rank, endpoints);
 }
 
+//! Connect to peers via endpoints using TCP sockets. Construct a group_count
+//! net::Group objects at once. Within each Group this host has my_rank.
+std::vector<std::unique_ptr<net::Group> >
+Construct(size_t my_rank, const std::vector<std::string>& endpoints,
+          size_t group_count) {
+    std::vector<std::unique_ptr<tcp::Group> > tcp_groups(group_count);
+    Construction(&tcp_groups[0], tcp_groups.size()).Initialize(my_rank, endpoints);
+    std::vector<std::unique_ptr<net::Group> > groups(group_count);
+    std::move(tcp_groups.begin(), tcp_groups.end(), groups.begin());
+    return groups;
+}
+
 //! \}
 
 } // namespace tcp
