@@ -21,6 +21,7 @@
 
 #ifdef USE_EXPLAIN
 #include <libexplain/mmap.h> // explain mmap errors
+#include <libexplain/lseek.h>
 #endif
 
 #include <queue>
@@ -32,9 +33,6 @@
 namespace thrill {
 namespace mem {
 
-#define SWAP_FILE_PATH "/tmp/thrill.swap"
-#define ADDITIONAL_GROWTH 7
-
 /*! The PageMapper maps objects onto disk using mmap and madvise and acts as
  * a mapper for the c syscalls.
  *
@@ -44,8 +42,15 @@ namespace mem {
 class PageMapper
 {
 public:
+    //! when swap file is streched, it will be streched
+    //! for min(1, min_growth_delta) objects
+    static const size_t min_growth_delta = 0;
+
+    //! temporal swap file
+    static constexpr const char* swap_file_path = "/tmp/thrill.swap";
 
     //! Creates a PageMapper for objects of given size.
+    //! Removes and creates a temporal file (PageMapper::swap_file_path)
     //! Checks if the object size is valid
     PageMapper(size_t object_size = thrill::data::default_block_size) : object_size_(object_size) {
         //runtime check if object_size_ is correct
@@ -63,8 +68,8 @@ public:
         // user can read+write, group may read
         static const int permission = S_IRUSR | S_IWUSR | S_IRGRP;
 
-        std::remove(SWAP_FILE_PATH);
-        fd_ = open64(SWAP_FILE_PATH, flags, permission);
+        std::remove(swap_file_path);
+        fd_ = open64(swap_file_path, flags, permission);
         die_unless(fd_ != -1);
     }
 
@@ -86,17 +91,16 @@ public:
         //remember result
         result = next_token_;
 
-        //we allocate ADDITIONAL_GROWTH new ids,
         //+1 since result is 0-based
-        size_t file_size = (1 + ADDITIONAL_GROWTH + result) * object_size_;
+        size_t file_size = (1 + min_growth_delta + result) * object_size_;
         sLOG << "streching swap file to" << file_size;
 
         //seek to end - 1 of file and write one zero-byte to 'strech' file
-        die_unless(lseek(fd_, file_size - 1, SEEK_SET) != -1);
+        die_unless(lseek64(fd_, file_size - 1, SEEK_SET) != -1);
         die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
 
         //push remaining allocated ids into free-queue
-        for(size_t token = result + 1; token <= next_token_ + ADDITIONAL_GROWTH; token++) {
+        for(size_t token = result + 1; token <= next_token_ + min_growth_delta ; token++) {
             sLOG << "create new swap token" << token;
             free_tokens_.push(token);
         }
@@ -164,7 +168,7 @@ public:
     }
 
 private:
-    static const bool debug = true;
+    static const bool debug = false;
     size_t object_size_;
     int fd_;
     size_t next_token_ = { 0 };
