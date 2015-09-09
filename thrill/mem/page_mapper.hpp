@@ -79,36 +79,6 @@ public:
         return SwapIn(result_token, false /*prefetch*/);
     }
 
-    //! Returns the next free token and eventually streches the swapfile if
-    //! required
-    size_t next_free_token() {
-        size_t result = 0;
-        if (free_tokens_.try_pop(result)) {
-            sLOG << "reuse swap token" << result;
-            return result;
-        }
-
-        //remember result
-        result = next_token_;
-
-        //+1 since result is 0-based
-        size_t file_size = (1 + min_growth_delta + result) * object_size_;
-        sLOG << "streching swap file to" << file_size;
-
-        //seek to end - 1 of file and write one zero-byte to 'strech' file
-        die_unless(lseek64(fd_, file_size - 1, SEEK_SET) != -1);
-        die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
-
-        //push remaining allocated ids into free-queue
-        for(size_t token = result + 1; token <= next_token_ + min_growth_delta ; token++) {
-            sLOG << "create new swap token" << token;
-            free_tokens_.push(token);
-        }
-
-        next_token_++;
-        sLOG << "use swap token" << result;
-        return result;
-    }
 
     //! Releases a memory region and it's token.
     //! Does NOT write memory content back to disk
@@ -173,6 +143,37 @@ private:
     int fd_;
     size_t next_token_ = { 0 };
     common::ConcurrentQueue<size_t, std::allocator<size_t>> free_tokens_;
+
+    //! Returns the next free token and eventually streches the swapfile if
+    //! required
+    size_t next_free_token() {
+        size_t result = 0;
+        if (free_tokens_.try_pop(result)) {
+            sLOG << "reuse swap token" << result;
+            return result;
+        }
+
+        //remember result
+        result = next_token_;
+
+        //+1 since result is 0-based
+        size_t file_size = (1 + min_growth_delta + result) * object_size_;
+        sLOG << "streching swap file to" << file_size;
+
+        //seek to end - 1 of file and write one zero-byte to 'strech' file
+        die_unless(lseek64(fd_, file_size - 1, SEEK_SET) != -1);
+        die_unless(write(fd_, "\0", 1) == 1); //expect 1byte written
+
+        //push remaining allocated ids into free-queue
+        for(size_t token = result + 1; token <= next_token_ + min_growth_delta ; token++) {
+            sLOG << "create new swap token" << token;
+            free_tokens_.push(token);
+        }
+
+        next_token_++;
+        sLOG << "use swap token" << result;
+        return result;
+    }
 };
 
 } // namespace mem
