@@ -14,6 +14,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats.hpp>
+#include <thrill/net/tcp/construct.hpp>
 
 #include <atomic>
 #include <memory>
@@ -114,6 +115,19 @@ void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
         }
     }
 }
+
+HostContext::HostContext(size_t my_host_rank,
+                         const std::vector<std::string>& endpoints,
+                         size_t workers_per_host)
+    : workers_per_host_(workers_per_host),
+      net_manager_(my_host_rank,
+                   net::tcp::Construct(my_host_rank,
+                                       endpoints, net::Manager::kGroupCount)),
+      flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
+      data_multiplexer_(mem_manager_,
+                        block_pool_, workers_per_host,
+                        net_manager_.GetDataGroup())
+{ }
 
 void RunSameThread(const std::function<void(Context&)>& job_startpoint) {
 
