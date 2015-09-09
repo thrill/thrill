@@ -34,11 +34,11 @@ namespace thrill {
 namespace mem {
 
 /*! The PageMapper maps objects onto disk using mmap and madvise and acts as
- * a mapper for the c syscalls.
+ * a wrapper for the c syscalls.
  *
- * No temporal file is needed (anonymous mapping).
- * object_size_ must be divideable by page size
+ * OBJECT_SIZE must be divideable by page size
  */
+template<size_t OBJECT_SIZE>
 class PageMapper
 {
 public:
@@ -52,10 +52,9 @@ public:
     //! Creates a PageMapper for objects of given size.
     //! Removes and creates a temporal file (PageMapper::swap_file_path)
     //! Checks if the object size is valid
-    PageMapper(size_t object_size = thrill::data::default_block_size) : object_size_(object_size) {
-        //runtime check if object_size_ is correct
-        long page_size = sysconf(_SC_PAGESIZE);
-        die_unless(object_size % page_size == 0);
+    PageMapper() {
+        //runtime check if OBJECT_SIZE is correct
+        die_unless(OBJECT_SIZE % page_size() == 0);
 
         //create our swapfile
         //- read + write access
@@ -73,6 +72,9 @@ public:
         die_unless(fd_ != -1);
     }
 
+    //! Allocates a memory region of OBJECT_SIZE with a
+    //! file-backing. Returns the memory address of this region and a
+    //! result_token that can be used to address the memory region.
     char* Allocate(size_t& result_token) {
         sLOG << "allocate memory w/ disk backing";
         result_token = next_free_token();
@@ -80,36 +82,40 @@ public:
     }
 
 
-    //! Releases a memory region and it's token.
-    //! Does NOT write memory content back to disk
+    //! Releases an allocated token.
+    //!
+    //! Does NOT write memory content back to disk. Use PageMapper::SwapOut
+    //! instead. Make sure to call this only when the matching memory region
+    //! has been writen back before (PageMapper::SwapOut).
+    //!
     //!\param token that was returned from Allocate before
-    //!\param addr  of memory region. Use nullptr if area is swapped out.
-    void Free(size_t token, char* addr = nullptr) {
-        sLOG << "free swap token" << token << "(" << addr << ")";
-        if (addr != nullptr)
-            SwapOut(addr, false);
+    void ReleaseToken(size_t token) {
+        sLOG << "free swap token" << token;
         free_tokens_.push(token);
     }
 
     //! Swaps out a given memory region. The memory region will be invalidated and
-    //! is not accessible afterwards.
-    //! \param addr that was returned by Alloc before
-    //! \param write_back set to false if content must not be written to disk
+    //! is not accessible afterwards. Only memory regions that have been
+    //! allocated via PageMapper::Allocate can be swapped out.
+    //!
+    //! \param addr that was returned by PageMapper::Allocate before
+    //! \param write_back set to false if memory region's content may be
+    //!        dismissed
     void SwapOut(char* addr, bool write_back = true) {
         //we might sometimes not write back, if we want to unmap a block but
         //don't care about the content (block for net send operation)
         if(write_back) {
             sLOG << "writing back" << static_cast<void*>(addr);
-            die_unless(msync(static_cast<void*>(addr), object_size_, MS_SYNC) == 0);
+            die_unless(msync(static_cast<void*>(addr), OBJECT_SIZE, MS_SYNC) == 0);
         }
         sLOG << "unmapping " << static_cast<void*>(addr);
-        die_unless(munmap(static_cast<void*>(addr), object_size_) == 0);
+        die_unless(munmap(static_cast<void*>(addr), OBJECT_SIZE) == 0);
     }
 
     //! Swaps in a given memory region.
     //! \param token that was returned from Allocate before
     //! \returns pointer to memory region
-    char* SwapIn(size_t token, bool prefetch = true) {
+    char* SwapIn(size_t token, bool prefetch = true) const {
         //Flags exaplained:
         //- readable
         //- writeable
@@ -124,22 +130,33 @@ public:
             flags |= MAP_POPULATE;
 
         static void* addr_hint = nullptr; //we give no hint - kernel decides alone
-        off64_t offset = token * object_size_;
+        off64_t offset = token * OBJECT_SIZE;
 
-        void* result = mmap64(addr_hint, object_size_, protection_flags, flags, fd_, offset);
+        void* result = mmap64(addr_hint, OBJECT_SIZE, protection_flags, flags, fd_, offset);
         sLOG << "swapping in token" << token << "to address" << result << "into offset" << offset << "prefetch?" << prefetch;
         die_unless(result != MAP_FAILED);
         return static_cast<char*>(result);
     }
 
-    //! Returns the object_size that is used for this mapper
-    size_t object_size() const noexcept {
-        return object_size_;
+    //! Hint that the object at the specified memory region is likely to be
+    //! accessed in sequential order
+    void WillNeed(char* addr) const {
+        madvise(static_cast<void*>(addr), OBJECT_SIZE, MADV_SEQUENTIAL | MADV_WILLNEED);
+    }
+
+    //! Hint that the object at the specified memory region is likely not to
+    //! be used.
+    void WillNotNeed(char* addr) const {
+        madvise(static_cast<void*>(addr), OBJECT_SIZE, MADV_DONTNEED);
+    }
+
+    //! Returns the page size. OBJECT_SIZE must be a multiple of the page size.
+    static size_t page_size() {
+        return sysconf(_SC_PAGESIZE);
     }
 
 private:
     static const bool debug = false;
-    size_t object_size_;
     int fd_;
     size_t next_token_ = { 0 };
     common::ConcurrentQueue<size_t, std::allocator<size_t>> free_tokens_;
@@ -157,7 +174,7 @@ private:
         result = next_token_;
 
         //+1 since result is 0-based
-        size_t file_size = (1 + min_growth_delta + result) * object_size_;
+        size_t file_size = (1 + min_growth_delta + result) * OBJECT_SIZE;
         sLOG << "streching swap file to" << file_size;
 
         //seek to end - 1 of file and write one zero-byte to 'strech' file

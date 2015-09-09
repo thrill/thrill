@@ -15,42 +15,32 @@
 using namespace thrill;
 
 TEST(PageMapper, AllocateReturnsAccessibleMemoryArea) {
-    mem::PageMapper mapper;
+    mem::PageMapper<4096> mapper;
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
 
     //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
+    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
         array[i] = i;
     }
 
-    mapper.Free(token, reinterpret_cast<char*>(array));
-}
-
-TEST(PageMapper, FreeMakesMemoryAreaInaccessible) {
-    mem::PageMapper mapper;
-
-    size_t token;
-    int* array = reinterpret_cast<int*>(mapper.Allocate(token));
-    mapper.Free(token, reinterpret_cast<char*>(array));
-
-    ASSERT_DEATH({ array[1] = 42; }, "");
+    mapper.ReleaseToken(token);
 }
 
 TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
-    mem::PageMapper mapper;
+    mem::PageMapper<4096> mapper;
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
     mapper.SwapOut(reinterpret_cast<char*>(array));
 
     ASSERT_DEATH({ array[1] = 42; }, "");
-    mapper.Free(token);
+    mapper.ReleaseToken(token);
 }
 
 TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
-    mem::PageMapper mapper;
+    mem::PageMapper<4096> mapper;
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
@@ -58,20 +48,20 @@ TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
     array = reinterpret_cast<int*>(mapper.SwapIn(token));
 
     //write into memory area to see if we get a segfault
-    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
+    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
         array[i] = i;
     }
 
-    mapper.Free(token, reinterpret_cast<char*>(array));
+    mapper.ReleaseToken(token);
 }
 
 TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
-    mem::PageMapper mapper;
+    mem::PageMapper<4096> mapper;
 
     //write ascending numbers into array 1 & swap out
     size_t token1;
     int* array1 = reinterpret_cast<int*>(mapper.Allocate(token1));
-    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
+    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
         array1[i] = i;
     }
     mapper.SwapOut(reinterpret_cast<char*>(array1));
@@ -79,25 +69,25 @@ TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     //write descending numbers into array 2 & swap out
     size_t token2;
     int* array2 = reinterpret_cast<int*>(mapper.Allocate(token2));
-    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
-        array2[i] = mapper.object_size() - i;
+    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+        array2[i] = 4096 - i;
     }
     mapper.SwapOut(reinterpret_cast<char*>(array2));
 
     //read array1
     array1 = reinterpret_cast<int*>(mapper.SwapIn(token1));
-    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
+    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
         ASSERT_EQ(i, array1[i]);
     }
 
     //read array2
     array2 = reinterpret_cast<int*>(mapper.SwapIn(token2));
-    for(unsigned int i = 0; i * sizeof(int) < mapper.object_size() ; i++) {
-        ASSERT_EQ(mapper.object_size() - i, array2[i]);
+    for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
+        ASSERT_EQ(4096 - i, array2[i]);
     }
 
-    mapper.Free(token1, reinterpret_cast<char*>(array1));
-    mapper.Free(token2, reinterpret_cast<char*>(array2));
+    mapper.ReleaseToken(token1);
+    mapper.ReleaseToken(token2);
 }
 
 namespace thrill {
