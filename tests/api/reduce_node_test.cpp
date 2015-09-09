@@ -50,7 +50,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
 
             int i = 1;
 
-            for (int element : out_vec) {
+            for (const size_t& element : out_vec) {
                 ASSERT_EQ(element, 56 + (8 * i++));
             }
 
@@ -88,7 +88,7 @@ TEST(ReduceNode, ReduceModulo2PairsCorrectResults) {
                           return p1.first < p2.first;
                       });
 
-            for (auto element : out_vec) {
+            for (const auto& element : out_vec) {
                 ASSERT_EQ(element.second, (100u * 99u) / 2u);
             }
 

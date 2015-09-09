@@ -51,10 +51,10 @@ public:
      * \param local_worker_count The count of threads to spawn flow channels for.
      *
      */
-    explicit FlowControlChannelManager(Group& group, int local_worker_count)
+    explicit FlowControlChannelManager(Group& group, size_t local_worker_count)
         : barrier(local_worker_count), shmem(nullptr) {
 
-        for (int i = 0; i < local_worker_count; i++) {
+        for (size_t i = 0; i < local_worker_count; i++) {
             channels.emplace_back(group, i, local_worker_count, barrier, &shmem);
         }
     }
@@ -71,8 +71,8 @@ public:
      * \brief Gets the flow control channel for a certain thread.
      * \return The flow control channel for a certain thread.
      */
-    FlowControlChannel & GetFlowControlChannel(int threadId) {
-        return channels[threadId];
+    FlowControlChannel & GetFlowControlChannel(size_t thread_id) {
+        return channels[thread_id];
     }
 };
 

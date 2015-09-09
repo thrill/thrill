@@ -29,7 +29,7 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
         std::ostringstream oss;
         oss << "| ";
 
-        for (size_t fd = 3; fd < watch_.size(); ++fd) {
+        for (int fd = 3; fd < static_cast<int>(watch_.size()); ++fd) {
             Watch& w = watch_[fd];
 
             if (!w.active) continue;
@@ -48,7 +48,7 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
         LOG << "Performing select() on " << oss.str();
     }
 
-    int r = fdset.select_timeout(timeout.count());
+    int r = fdset.select_timeout(static_cast<double>(timeout.count()));
 
     if (r < 0) {
         // if we caught a signal, this is intended to interrupt a select().
@@ -64,7 +64,7 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
     // start running through the table at fd 3. 0 = stdin, 1 = stdout, 2 =
     // stderr.
 
-    for (size_t fd = 3; fd < watch_.size(); ++fd)
+    for (int fd = 3; fd < static_cast<int>(watch_.size()); ++fd)
     {
         // we use a pointer into the watch_ table. however, since the
         // std::vector may regrow when callback handlers are called, this

@@ -105,8 +105,9 @@ public:
             return select(nullptr);
         else {
             struct timeval tv;
-            tv.tv_sec = static_cast<long>(timeout / 1000);
-            tv.tv_usec = ((timeout / 1000) - tv.tv_sec) * 1e6;
+            tv.tv_sec = static_cast<time_t>(timeout / 1000);
+            tv.tv_usec = static_cast<time_t>(
+                (timeout / 1000.0 - static_cast<double>(tv.tv_sec)) * 1000000);
             return select(&tv);
         }
     }
