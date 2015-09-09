@@ -533,7 +533,7 @@ TEST_F(PreTable, InsertManyIntsAndTestReduce2) {
     table(1, key_ex, red_fn, writers, bucket_block_size * bucket_block_size, 1.0, 1.0);
 
     // insert lots of items
-    int sum = 0;
+    size_t sum = 0;
     for (size_t i = 0; i != nitems_per_key; ++i) {
         sum += i;
         for (size_t j = 0; j != nitems; ++j) {
@@ -588,7 +588,7 @@ TEST_F(PreTable, InsertManyStringItemsAndTestReduce) {
     table(1, key_ex, red_fn, writers, 16 * 1024, 0.001, 0.5);
 
     // insert lots of items
-    int sum = 0;
+    size_t sum = 0;
     for (size_t j = 0; j != nitems; ++j) {
         sum = 0;
         std::string str;

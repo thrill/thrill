@@ -342,7 +342,7 @@ protected:
 
         //! Should be called when the socket is readable
         bool operator () () {
-            int r = conn_.RecvOne(
+            ssize_t r = conn_.RecvOne(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -409,7 +409,7 @@ protected:
 
         //! Should be called when the socket is writable
         bool operator () () {
-            int r = conn_.SendOne(
+            ssize_t r = conn_.SendOne(
                 buffer_.data() + size_, buffer_.size() - size_);
 
             if (r <= 0) {
@@ -474,7 +474,7 @@ protected:
 
         //! Should be called when the socket is readable
         bool operator () () {
-            int r = conn_.RecvOne(
+            ssize_t r = conn_.RecvOne(
                 block_->data() + size_, block_->size() - size_);
 
             if (r <= 0) {
@@ -541,7 +541,7 @@ protected:
 
         //! Should be called when the socket is writable
         bool operator () () {
-            int r = conn_.SendOne(
+            ssize_t r = conn_.SendOne(
                 block_.data_begin() + size_, block_.size() - size_);
 
             if (r <= 0) {

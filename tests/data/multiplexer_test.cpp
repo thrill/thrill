@@ -67,7 +67,7 @@ void TalkAllToAllViaChannel(net::tcp::Group* net) {
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
-        send_buffer[i] = i;
+        send_buffer[i] = static_cast<unsigned char>(i);
 
     static const size_t iterations = 1000;
     size_t my_local_worker_id = 0;

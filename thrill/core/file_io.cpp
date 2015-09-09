@@ -40,26 +40,28 @@ std::string make_path(const std::string& pathbase,
         size_type dollar_end = out_path.rfind('$');
         size_type dollar_begin = out_path.find_last_not_of('$', dollar_end);
 
-        int dollar_length = dollar_end - dollar_begin;
-        if (dollar_length <= 0) dollar_length = 4;
+        size_type dollar_length = dollar_end - dollar_begin;
+        if (dollar_length == 0) dollar_length = 4;
 
         sLOG << "dollar_length" << dollar_length;
         out_path.replace(dollar_begin + 1, dollar_length,
                          common::str_snprintf<>(dollar_length + 2, "%0*lu",
-                                                dollar_length, worker));
+                                                static_cast<int>(dollar_length),
+                                                worker));
     }
     {
         // replace hash signs
         size_type hash_end = out_path.rfind('#');
         size_type hash_begin = out_path.find_last_not_of('#', hash_end);
 
-        int hash_length = hash_end - hash_begin;
-        if (hash_length <= 0) hash_length = 10;
+        size_type hash_length = hash_end - hash_begin;
+        if (hash_length == 0) hash_length = 10;
 
         sLOG << "hash_length" << hash_length;
         out_path.replace(hash_begin + 1, hash_length,
                          common::str_snprintf<>(hash_length + 2, "%0*lu",
-                                                hash_length, file_part));
+                                                static_cast<int>(hash_length),
+                                                file_part));
     }
     return out_path;
 }

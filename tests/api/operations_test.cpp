@@ -167,28 +167,28 @@ TEST(Operations, MapResultsCorrectChangingType) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) -> int {
+                [](const size_t& index) -> size_t {
                     return index + 1;
                 },
                 16);
 
-            std::function<double(int)> double_elements =
-                [](int in) {
-                    return static_cast<double>(2 * in);
+            std::function<double(size_t)> double_elements =
+                [](size_t in) {
+                    return static_cast<double>(2.0 * in);
                 };
 
             auto doubled = integers.Map(double_elements);
 
             std::vector<double> out_vec = doubled.AllGather();
 
-            int i = 1;
-            for (int element : out_vec) {
-                ASSERT_DOUBLE_EQ(element, (i++ *2));
+            size_t i = 1;
+            for (double& element : out_vec) {
+                ASSERT_DOUBLE_EQ(element, (2.0 * static_cast<double>(i++)));
             }
 
             ASSERT_EQ(16u, out_vec.size());
             static_assert(std::is_same<decltype(doubled)::ValueType, double>::value, "DIA must be double");
-            static_assert(std::is_same<decltype(doubled)::StackInput, int>::value, "Node must be int");
+            static_assert(std::is_same<decltype(doubled)::StackInput, size_t>::value, "Node must be size_t");
         };
 
     api::RunLocalTests(start_func);
@@ -201,13 +201,13 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) -> int {
+                [](const size_t& index) -> size_t {
                     return index;
                 },
                 16);
 
             auto flatmap_double =
-                [](int in, auto emit) {
+                [](size_t in, auto emit) {
                     emit(static_cast<double>(2 * in));
                     emit(static_cast<double>(2 * (in + 16)));
                 };
@@ -219,8 +219,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
             ASSERT_EQ(32u, out_vec.size());
 
             for (size_t i = 0; i != out_vec.size() / 2; ++i) {
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2 * i);
-                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2 * (i + 16));
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 0], 2.0 * i);
+                ASSERT_DOUBLE_EQ(out_vec[2 * i + 1], 2.0 * (i + 16));
             }
 
             static_assert(
@@ -228,8 +228,8 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
                 "DIA must be double");
 
             static_assert(
-                std::is_same<decltype(doubled)::StackInput, int>::value,
-                "Node must be int");
+                std::is_same<decltype(doubled)::StackInput, size_t>::value,
+                "Node must be size_t");
         };
 
     api::RunLocalTests(start_func);
@@ -407,22 +407,22 @@ TEST(Operations, WhileLoop) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) -> int {
+                [](const size_t& index) -> size_t {
                     return index;
                 },
                 16);
 
-            auto flatmap_duplicate = [](int in, auto emit) {
+            auto flatmap_duplicate = [](size_t in, auto emit) {
                                          emit(in);
                                          emit(in);
                                      };
 
-            auto map_multiply = [](int in) {
+            auto map_multiply = [](size_t in) {
                                     return 2 * in;
                                 };
 
-            DIARef<int> squares = integers.Collapse();
-            unsigned int sum = 0;
+            DIARef<size_t> squares = integers.Collapse();
+            size_t sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256
             while (sum < 256) {
@@ -432,11 +432,11 @@ TEST(Operations, WhileLoop) {
                 sum = squares.Size();
             }
 
-            std::vector<int> out_vec = squares.AllGather();
+            std::vector<size_t> out_vec = squares.AllGather();
 
             ASSERT_EQ(256u, out_vec.size());
             for (size_t i = 0; i != 256; ++i) {
-                ASSERT_EQ(out_vec[i], (int)(16 * (i / 16)));
+                ASSERT_EQ(out_vec[i], 16 * (i / 16));
             }
             ASSERT_EQ(256u, squares.Size());
         };

@@ -87,8 +87,10 @@ public:
 
     //! Return total length of enclosed sockaddr structure.
     socklen_t socklen() const {
-        return sockaddr()->sa_family == AF_INET ? sizeof(sockaddr_.in) :
-               sockaddr()->sa_family == AF_INET6 ? sizeof(sockaddr_.in6) : 0;
+        return socklen_t(
+            sockaddr()->sa_family == AF_INET ? sizeof(sockaddr_.in) :
+            sockaddr()->sa_family == AF_INET6 ? sizeof(sockaddr_.in6) :
+            0);
     }
 
     //! Returns true if the enclosed socket address is a valid IPv4 or IPv6

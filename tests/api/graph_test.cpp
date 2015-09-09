@@ -65,22 +65,22 @@ TEST(Graph, WhileLoop) {
 
             auto integers = Generate(
                 ctx,
-                [](const size_t& index) -> int {
+                [](const size_t& index) -> size_t {
                     return index;
                 },
                 16);
 
-            auto flatmap_duplicate = [](int in, auto emit) {
+            auto flatmap_duplicate = [](size_t in, auto emit) {
                                          emit(in);
                                          emit(in);
                                      };
 
-            auto map_multiply = [](int in) {
+            auto map_multiply = [](size_t in) {
                                     return 2 * in;
                                 };
 
-            DIARef<int> squares = integers.Collapse();
-            unsigned int sum = 0;
+            DIARef<size_t> squares = integers.Collapse();
+            size_t sum = 0;
 
             // run loop four times, inflating DIA of 16 items -> 256
             while (sum < 64) {
@@ -90,7 +90,7 @@ TEST(Graph, WhileLoop) {
                 sum = squares.Size();
             }
 
-            std::vector<int> out_vec = squares.AllGather();
+            std::vector<size_t> out_vec = squares.AllGather();
 
             ASSERT_EQ(64u, out_vec.size());
             ASSERT_EQ(64u, squares.Size());
