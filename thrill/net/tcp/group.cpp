@@ -28,17 +28,11 @@ namespace net {
 namespace tcp {
 
 mem::mm_unique_ptr<Dispatcher>
-Group::SConstructDispatcher(mem::Manager& mem_manager) {
+Group::ConstructDispatcher(mem::Manager& mem_manager) const {
     // construct tcp::SelectDispatcher
     return mem::mm_unique_ptr<Dispatcher>(
         mem::mm_new<SelectDispatcher>(mem_manager, mem_manager),
         mem::Deleter<Dispatcher>(mem_manager));
-}
-
-mem::mm_unique_ptr<Dispatcher>
-Group::ConstructDispatcher(mem::Manager& mem_manager) const {
-    // construct tcp::SelectDispatcher
-    return SConstructDispatcher(mem_manager);
 }
 
 std::vector<std::unique_ptr<Group> > Group::ConstructLocalMesh(
@@ -105,15 +99,6 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
     }
 
     return groups;
-}
-
-void Group::ExecuteLocalMock(
-    size_t num_hosts,
-    const std::function<void(Group*)>& thread_function) {
-
-    net::ExecuteLocalMock(
-        ConstructLocalMesh(num_hosts),
-        thread_function);
 }
 
 } // namespace tcp

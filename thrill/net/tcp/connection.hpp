@@ -196,12 +196,12 @@ public:
     }
 
     //! make ostreamable
-    friend std::ostream& operator << (std::ostream& os, const Connection& c) {
+    std::ostream & output_ostream(std::ostream& os) const final {
         os << "[tcp::Connection"
-           << " fd=" << c.GetSocket().fd();
+           << " fd=" << GetSocket().fd();
 
-        if (c.IsValid())
-            os << " peer=" << c.GetPeerAddress();
+        if (IsValid())
+            os << " peer=" << GetPeerAddress();
 
         return os << "]";
     }

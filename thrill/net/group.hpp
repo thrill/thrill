@@ -109,10 +109,10 @@ using GroupPtr = std::unique_ptr<Group>;
 //! Construct a mock Group using a complete graph of local stream sockets for
 //! testing, and starts a thread for each client, which gets passed the Group
 //! object. This is ideal for testing network communication protocols.
-template <typename Group>
-void ExecuteLocalMock(
+template <typename Group, typename GroupCalled>
+void ExecuteGroupThreads(
     const std::vector<std::unique_ptr<Group> >& groups,
-    const std::function<void(Group*)>& thread_function) {
+    const std::function<void(GroupCalled*)>& thread_function) {
     size_t num_hosts = groups.size();
 
     // create a thread for each Group object and run user program.
@@ -132,6 +132,13 @@ void ExecuteLocalMock(
         groups[i]->Close();
     }
 }
+
+//! Construct a mock Group network and run a thread for each client. The
+//! selected network implementation is platform dependent and must run without
+//! further configuration.
+void RunGroupTest(
+    size_t num_hosts,
+    const std::function<void(Group*)>& thread_function);
 
 //! \}
 
