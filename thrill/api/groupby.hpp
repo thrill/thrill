@@ -30,8 +30,18 @@
 namespace thrill {
 namespace api {
 
+template <typename ValueType, typename ParentDIARef,
+          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+class GroupByNode;
+
+
 template <typename ValueType, typename KeyExtractor>
 class GroupByIterator {
+template <typename T1,
+          typename T2,
+          typename T3,
+          typename T4,
+          typename T5> friend class GroupByNode;
 public:
     static const bool debug = false;
     using ValueIn = ValueType;
@@ -48,11 +58,6 @@ public:
                     new_key_(old_key_) {
     }
 
-    bool HasNextForReal() {
-        is_first_elem_ = true;
-        return !is_reader_empty;
-    }
-
     bool HasNext() {
         return (!is_reader_empty && old_key_ == new_key_) || is_first_elem_;
     }
@@ -62,6 +67,12 @@ public:
         auto elem = elem_;
         GetNextElem();
         return elem;
+    }
+
+protected:
+    bool HasNextForReal() {
+        is_first_elem_ = true;
+        return !is_reader_empty;
     }
 
 private:
