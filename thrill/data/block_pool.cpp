@@ -19,7 +19,7 @@ namespace data {
 ByteBlockPtr BlockPool::AllocateBlock(size_t block_size, bool pinned) {
     ByteBlock* block = nullptr;
 
-    if (block_size == default_block_size) {
+    if (false/*block_size == default_block_size*/) {
         //allocate backed memory region for block
         sLOG << "allocating block with size" << block_size << " with disk backing";
         block = reinterpret_cast<ByteBlock*>(page_mapper_.Allocate());
