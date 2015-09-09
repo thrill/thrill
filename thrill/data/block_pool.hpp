@@ -53,7 +53,7 @@ protected:
     mem::Manager ext_mem_manager_;
 
     //! PageMapper used for swapping-in/-out blocks
-    mem::PageMapper page_mapper_;
+    mem::PageMapper<default_block_size> page_mapper_;
 
     // list of all blocks that are no victims & not swapped
     std::deque<ByteBlock*> pinned_blocks_;
