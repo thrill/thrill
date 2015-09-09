@@ -274,7 +274,7 @@ public:
                 << " error=" << strerror(errno);
         }
 
-        return r;
+        return (r == 0);
     }
 
     //! Initial socket connection to address
@@ -313,7 +313,7 @@ public:
                 << " fd_=" << fd_
                 << " error=" << strerror(errno);
         }
-        return r;
+        return (r == 0);
     }
 
     //! Wait on socket until a new connection comes in.

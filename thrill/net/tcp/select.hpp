@@ -67,15 +67,15 @@ public:
 
     //! Check if a file descriptor is in the resulting read set.
     bool InRead(int fd) const
-    { return FD_ISSET(fd, &read_set_); }
+    { return FD_ISSET(fd, &read_set_) != 0; }
 
     //! Check if a file descriptor is in the resulting Write set.
     bool InWrite(int fd) const
-    { return FD_ISSET(fd, &write_set_); }
+    { return FD_ISSET(fd, &write_set_) != 0; }
 
     //! Check if a file descriptor is in the resulting exception set.
     bool InException(int fd) const
-    { return FD_ISSET(fd, &except_set_); }
+    { return FD_ISSET(fd, &except_set_) != 0; }
 
     //! Clear a file descriptor from the read set
     Select & ClearRead(int fd)
