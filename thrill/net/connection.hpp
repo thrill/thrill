@@ -145,6 +145,14 @@ public:
     }
 
     //! \}
+
+    //! virtual method to output to a std::ostream
+    virtual std::ostream & output_ostream(std::ostream& os) const = 0;
+
+    //! make ostreamable
+    friend std::ostream& operator << (std::ostream& os, const Connection& c) {
+        return c.output_ostream(os);
+    }
 };
 
 // \}

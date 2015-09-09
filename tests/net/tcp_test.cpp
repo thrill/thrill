@@ -25,8 +25,8 @@ using namespace thrill;      // NOLINT
 
 static void RealGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
-    // execute local stream socket tests
-    net::ExecuteLocalMock<net::tcp::Group>(
+    // execute locally connected TCP stream socket tests
+    net::ExecuteGroupThreads(
         net::tcp::Group::ConstructLocalRealTCPMesh(6),
         thread_function);
 }
@@ -34,7 +34,7 @@ static void RealGroupTest(
 static void LocalGroupTest(
     const std::function<void(net::Group*)>& thread_function) {
     // execute local stream socket tests
-    net::ExecuteLocalMock<net::tcp::Group>(
+    net::ExecuteGroupThreads(
         net::tcp::Group::ConstructLocalMesh(6),
         thread_function);
 }

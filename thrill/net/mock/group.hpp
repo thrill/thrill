@@ -90,6 +90,13 @@ public:
         return size;
     }
 
+    std::ostream & output_ostream(std::ostream& os) const final {
+        return os << "[mock::Connection"
+                  << " group=" << group_
+                  << " peer=" << peer_
+                  << "]";
+    }
+
 protected:
     //! Reference to our group.
     Group* group_;
@@ -231,9 +238,9 @@ public:
             std::unique_lock<std::mutex> c_lock(c.mutex_);
             c.watcher_.insert(this);
             w.active = true;
-            // our virtual sockets are always writable: issue notification.
-            Notify(&c);
         }
+        // our virtual sockets are always writable: issue notification.
+        Notify(&c);
     }
 
     void Cancel(net::Connection&) final {

@@ -62,10 +62,6 @@ public:
     static std::vector<std::unique_ptr<Group> > ConstructLocalRealTCPMesh(
         size_t num_hosts);
 
-    static void ExecuteLocalMock(
-        size_t num_hosts,
-        const std::function<void(Group*)>& thread_function);
-
     //! Initializing constructor, used by tests for creating Groups.
     Group(size_t my_rank, size_t group_size)
         : net::Group(my_rank),
@@ -103,10 +99,6 @@ public:
         return tcp_connection(id);
     }
 
-    //! construct a dispatcher object for tcp connections
-    static mem::mm_unique_ptr<Dispatcher> SConstructDispatcher(
-        mem::Manager& mem_manager);
-
     mem::mm_unique_ptr<Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 
@@ -116,8 +108,9 @@ public:
      *          The reference given to that method will be invalid afterwards.
      *
      * \param connection The connection to assign.
-     * \return A ref to the assigned connection, which is always valid, but might be different from the
-     * inut connection.
+     *
+     * \return A ref to the assigned connection, which is always valid, but
+     * might be different from the inut connection.
      */
     Connection & AssignConnection(Connection& connection) {
         if (connection.peer_id() >= connections_.size())
