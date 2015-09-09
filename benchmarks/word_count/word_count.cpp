@@ -61,14 +61,10 @@ int main(int argc, char* argv[]) {
                         }
                     }
                     emit(WordCountPair(word, 1));
-                }).ReduceBy(
-                [](const WordCountPair& in) -> std::string {
-                    /* reduction key: the word string */
-                    return in.first;
-                },
-                [](const WordCountPair& a, const WordCountPair& b) -> WordCountPair {
+                }).ReducePair(
+                [](const size_t& a, const size_t& b) {
                     /* associative reduction operator: add counters */
-                    return WordCountPair(a.first, a.second + b.second);
+                    return a + b;
                 });
 
             word_pairs.Sort([](const WordCountPair& wc1, const WordCountPair& wc2) {
