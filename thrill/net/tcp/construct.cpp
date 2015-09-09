@@ -74,11 +74,11 @@ public:
 
             SocketAddress& lsa = address_list[my_rank_];
 
-            if (listen_socket.bind(lsa) != 0)
+            if (!listen_socket.bind(lsa))
                 throw Exception("Could not bind listen socket to "
                                 + lsa.ToStringHostPort(), errno);
 
-            if (listen_socket.listen() != 0)
+            if (!listen_socket.listen())
                 throw Exception("Could not listen on socket "
                                 + lsa.ToStringHostPort(), errno);
 
