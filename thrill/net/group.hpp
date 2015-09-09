@@ -1,7 +1,7 @@
 /*******************************************************************************
  * thrill/net/group.hpp
  *
- * net::Group is a collection of NetConnections providing simple MPI-like
+ * net::Group is a collection of net::Connections providing simple MPI-like
  * collectives and point-to-point communication.
  *
  * Part of Project Thrill.
@@ -16,14 +16,10 @@
 #ifndef THRILL_NET_GROUP_HEADER
 #define THRILL_NET_GROUP_HEADER
 
-#include <thrill/common/logger.hpp>
 #include <thrill/net/connection.hpp>
 
 #include <algorithm>
-#include <cassert>
 #include <cstring>
-#include <functional>
-#include <string>
 #include <thread>
 #include <vector>
 
@@ -33,12 +29,19 @@ namespace net {
 //! \addtogroup net Network Communication
 //! \{
 
+/*!
+ * A network Group is a collection of enumerated communication links, which
+ * provides point-to-point communication and MPI-like collective primitives.
+ *
+ * Each communication link in the Group has a specific rank and a representative
+ * class Connection can be accessed via connection().
+ *
+ * The Group class is abstract, and subclasses must exist for every network
+ * implementation.
+ */
 class Group
 {
 public:
-    //! default constructor
-    Group() = default;
-
     //! initializing constructor
     explicit Group(size_t my_rank) : my_rank_(my_rank) { }
 
@@ -53,6 +56,9 @@ public:
 
     //! virtual destructor
     virtual ~Group() { }
+
+    //! \name Base Functions
+    //! \{
 
     //! Return our rank among hosts in this group.
     size_t my_host_rank() const { return my_rank_; }
@@ -71,13 +77,15 @@ public:
     virtual mem::mm_unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
 
-    //! \name Richer ReceiveFromAny Functions
+    //! \}
+
+    //! \name Convenience Functions
     //! \{
 
     /**
-     * Sends a fixed lentgh type to the given worker.
+     * Sends a serializable type to the given peer.
      *
-     * \param dest The worker to send the data to.
+     * \param dest The peer to send the data to.
      * \param data The data to send.
      */
     template <typename T>
@@ -86,9 +94,9 @@ public:
     }
 
     /**
-     * Receives a fixed length type from the given worker.
+     * Receives a serializable type from the given peer.
      *
-     * \param src The worker to receive the fixed length type from.
+     * \param src The peer to receive the fixed length type from.
      * \param data A pointer to the location where the received data should be stored.
      */
     template <typename T>

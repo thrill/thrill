@@ -40,17 +40,37 @@ namespace net {
 // #define MSG_MORE 0
 // #endif
 
+/*!
+ * A Connection represents a link to another peer in a network group. The link
+ * need not be an actual stateful TCP connection, but may be reliable and
+ * stateless.
+ *
+ * The Connection class is abstract, and subclasses must exist for every network
+ * implementation.
+ */
 class Connection
 {
 public:
+    //! flag which enables transmission of verification bytes for debugging,
+    //! this increases network volume.
     static const bool self_verify_ = common::g_self_verify;
 
+    //! TODO(tb): fixup later: add MSG_MORE flag to send.
+    static const int MsgMore = 0;
+
+    //! \name Base Status Functions
+    //! \{
+
+    //! check whether the connection is (still) valid.
     virtual bool IsValid() const = 0;
 
+    //! return a string representation of this connection, for user output.
     virtual std::string ToString() const = 0;
 
-    // TODO(tb): fixup later: add MSG_MORE flag to send.
-    static const int MsgMore = 0;
+    //! virtual method to output to a std::ostream
+    virtual std::ostream & output_ostream(std::ostream& os) const = 0;
+
+    //! \}
 
     //! \name Send Functions
     //! \{
@@ -145,9 +165,6 @@ public:
     }
 
     //! \}
-
-    //! virtual method to output to a std::ostream
-    virtual std::ostream & output_ostream(std::ostream& os) const = 0;
 
     //! make ostreamable
     friend std::ostream& operator << (std::ostream& os, const Connection& c) {

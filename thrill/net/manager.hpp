@@ -22,11 +22,6 @@
 
 namespace thrill {
 namespace net {
-namespace tcp {
-
-class Construction;
-
-} // namespace tcp
 
 //! \addtogroup net Network Communication
 //! \{

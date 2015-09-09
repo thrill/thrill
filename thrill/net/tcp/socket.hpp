@@ -681,12 +681,12 @@ protected:
     //! the file descriptor of the socket.
     int fd_;
 
-    //! return hexdump or just <data> if not debugging
+    //! return hexdump or just [data] if not debugging
     static std::string maybe_hexdump(const void* data, size_t size) {
         if (debug_data)
             return common::hexdump(data, size);
         else
-            return "<data>";
+            return "[data]";
     }
 };
 
