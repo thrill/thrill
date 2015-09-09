@@ -215,10 +215,10 @@ protected:
     ConnectionState state_ = ConnectionState::Invalid;
 
     //! The id of the group this connection is associated with.
-    size_t group_id_ = -1;
+    size_t group_id_ = size_t(-1);
 
     //! The id of the worker this connection is connected to.
-    size_t peer_id_ = -1;
+    size_t peer_id_ = size_t(-1);
 };
 
 // \}
