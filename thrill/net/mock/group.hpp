@@ -3,7 +3,7 @@
  *
  * Implementation of a mock network which does no real communication. All
  * classes: Group, Connection, and Dispatcher are in this file since they are
- * tightly connected to provide thread-safety.
+ * tightly interdependent to provide thread-safety.
  *
  * Part of Project Thrill.
  *
@@ -55,13 +55,29 @@ public:
         peer_ = peer;
     }
 
+    //! Method which is called by other peers to enqueue a message.
+    void InboundMsg(net::Buffer&& msg);
+
+    //! \name Base Status Functions
+    //! \{
+
     bool IsValid() const final { return true; }
 
     std::string ToString() const final {
         return "peer: " + std::to_string(peer_);
     }
 
-    void InboundMsg(net::Buffer&& msg);
+    std::ostream & output_ostream(std::ostream& os) const final {
+        return os << "[mock::Connection"
+                  << " group=" << group_
+                  << " peer=" << peer_
+                  << "]";
+    }
+
+    //! \}
+
+    //! \name Send Functions
+    //! \{
 
     void SyncSend(const void* data, size_t size, int /* flags */ = 0) final;
 
@@ -70,6 +86,12 @@ public:
         return size;
     }
 
+    //! \}
+
+    //! \name Receive Functions
+    //! \{
+
+    //! some-what internal function to extract the next packet from the queue.
     net::Buffer RecvNext() {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [=]() { return !inbound_.empty(); });
@@ -90,12 +112,7 @@ public:
         return size;
     }
 
-    std::ostream & output_ostream(std::ostream& os) const final {
-        return os << "[mock::Connection"
-                  << " group=" << group_
-                  << " peer=" << peer_
-                  << "]";
-    }
+    //! \}
 
 protected:
     //! Reference to our group.
@@ -111,7 +128,7 @@ protected:
     //! messages.
     std::condition_variable cv_;
 
-    //! Array of watching dispatchers.
+    //! Set of watching dispatchers.
     std::set<Dispatcher*> watcher_;
 
     //! type of message queue
@@ -125,7 +142,9 @@ protected:
 };
 
 /*!
- * Context for communication links to peers in a mock network.
+ * The central object of a mock network: the Group containing links to other
+ * mock Group forming the network. Note that there is no central object
+ * containing all Groups.
  */
 class Group final : public net::Group
 {
@@ -133,18 +152,15 @@ class Group final : public net::Group
     static const bool debug_data = true;
 
 public:
-    /*!
-     * Construct a mock network with num_hosts peers and deliver Group contexts
-     * for each of them.
-     */
-    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
-        size_t num_hosts);
+    //! \name Base Functions
+    //! \{
 
     //! Initialize a Group for the given size and rank
     Group(size_t my_rank, size_t group_size)
         : net::Group(my_rank) {
         peers_.resize(group_size);
-        // create virtual connections
+        // create virtual connections, due to complications with non-movable
+        // mutexes, use a plain new.
         conns_ = new Connection[group_size];
         for (size_t i = 0; i < group_size; ++i)
             conns_[i].Initialize(this, i);
@@ -154,8 +170,41 @@ public:
         delete[] conns_;
     }
 
+    size_t num_hosts() const final { return peers_.size(); }
+
+    net::Connection & connection(size_t peer) final {
+        assert(peer < peers_.size());
+        return conns_[peer];
+    }
+
+    void Close() final { }
+
     mem::mm_unique_ptr<net::Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
+
+    //! \}
+
+    /*!
+     * Construct a mock network with num_hosts peers and deliver Group contexts
+     * for each of them.
+     */
+    static std::vector<std::unique_ptr<Group> > ConstructLocalMesh(
+        size_t num_hosts);
+
+    //! return hexdump or just [data] if not debugging
+    static std::string maybe_hexdump(const void* data, size_t size) {
+        if (debug_data)
+            return common::hexdump(data, size);
+        else
+            return "[data]";
+    }
+
+protected:
+    //! vector of peers for delivery of messages.
+    std::vector<Group*> peers_;
+
+    //! vector of virtual connection objects to remote peers
+    Connection* conns_;
 
     //! Send a buffer to peer tgt. Blocking, ... sort of.
     void Send(size_t tgt, net::Buffer&& msg) {
@@ -167,29 +216,8 @@ public:
         peers_[tgt]->conns_[my_rank_].InboundMsg(std::move(msg));
     }
 
-    net::Connection & connection(size_t peer) final {
-        assert(peer < peers_.size());
-        return conns_[peer];
-    }
-
-    size_t num_hosts() const final { return peers_.size(); }
-
-    void Close() final { }
-
-    //! return hexdump or just <data> if not debugging
-    static std::string maybe_hexdump(const void* data, size_t size) {
-        if (debug_data)
-            return common::hexdump(data, size);
-        else
-            return "<data>";
-    }
-
-public:
-    //! vector of peers for delivery of messages.
-    std::vector<Group*> peers_;
-
-    //! vector of virtual connection objects to remote peers
-    Connection* conns_;
+    //! for access to Send()
+    friend class Connection;
 };
 
 /*!
