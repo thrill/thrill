@@ -31,10 +31,10 @@ TEST(GroupByNode, Compile_and_Sum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            unsigned n = 10000;
+            unsigned n = 8;
             unsigned m = 4;
 
-            auto integers = Generate(
+            auto sizets = Generate(
                 ctx,
                 [](const size_t& index) {
                     return index + 1;
@@ -44,20 +44,20 @@ TEST(GroupByNode, Compile_and_Sum) {
             auto modulo_keyfn = [m](size_t in) { return (in % m); };
 
             auto sum_fn =
-                [m](api::GroupByIterator<int> r) {
-                    unsigned res = 0;
+                [m](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
+                    auto res = 0;
                     int k = 0;
                     while (r.HasNext()) {
                         auto n = r.Next();
                         k = n % m;
                         res += n;
                     }
-                    return res;
+                    return static_cast<size_t>(res);
                 };
 
             // group by to compute sum and gather results
-            auto reduced = integers.GroupBy(modulo_keyfn, sum_fn);
-            std::vector<unsigned> out_vec = reduced.AllGather();
+            auto reduced = sizets.GroupBy(modulo_keyfn, sum_fn);
+            std::vector<size_t> out_vec = reduced.AllGather();
 
             // compute vector with expected results
             std::vector<unsigned> res_vec(m, 0);
@@ -68,10 +68,10 @@ TEST(GroupByNode, Compile_and_Sum) {
             std::sort(out_vec.begin(), out_vec.end());
             std::sort(res_vec.begin(), res_vec.end());
 
-            LOG << "out_vec " << "/" << " res_vec";
-            for (std::size_t i = 0; i < out_vec.size(); ++i) {
-                ASSERT_EQ(out_vec[i], res_vec[i]);
-                LOG << out_vec[i] << " / " << res_vec[i];
+            LOG << "res_vec " << "/" << " out_vec";
+            for (std::size_t i = 0; i < res_vec.size(); ++i) {
+                LOG << res_vec[i] << " / " << out_vec[i];
+                ASSERT_EQ(res_vec[i], out_vec[i]);
             }
         };
 

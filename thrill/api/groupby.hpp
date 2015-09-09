@@ -30,22 +30,67 @@
 namespace thrill {
 namespace api {
 
-template <typename ValueType>
+template <typename ValueType, typename KeyExtractor>
 class GroupByIterator {
 public:
-    using ValueTypeIn = ValueType;
+    static const bool debug = false;
+    using ValueIn = ValueType;
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    using Reader = typename data::File::Reader;
 
-    GroupByIterator(data::File::Reader &r) : r_(r) {}
+    GroupByIterator(Reader& reader, KeyExtractor &key_extractor)
+                  : reader_(reader),
+                    key_extractor_(key_extractor),
+                    is_first_elem_(true),
+                    is_reader_empty(false),
+                    elem_(reader.template Next<ValueIn>()),
+                    old_key_(key_extractor_(elem_)),
+                    new_key_(old_key_) {
+    }
+
+    bool HasNextForReal() {
+        is_first_elem_ = true;
+        return !is_reader_empty;
+    }
 
     bool HasNext() {
-        return r_.HasNext();
+        return (!is_reader_empty && old_key_ == new_key_) || is_first_elem_;
     }
 
-    ValueTypeIn Next() {
-        return r_.template Next<ValueTypeIn>();
+    ValueIn Next() {
+        assert(!is_reader_empty);
+        auto elem = elem_;
+        GetNextElem();
+        return elem;
     }
+
 private:
-    data::File::Reader &r_;
+    Reader& reader_;
+    KeyExtractor& key_extractor_;
+    bool is_first_elem_;
+    bool is_reader_empty;
+    ValueIn elem_;
+    Key old_key_;
+    Key new_key_;
+
+    void GetNextElem() {
+        is_first_elem_ = false;
+        if (reader_.HasNext()) {
+            elem_ = reader_.template Next<ValueIn>();
+            old_key_ = new_key_;
+            new_key_ = key_extractor_(elem_);
+        } else {
+            is_reader_empty = true;
+        }
+    }
+
+    void SetFirstElem() {
+        assert (reader_.HasNext());
+        is_first_elem_ = true;
+        elem_ = reader_.template Next<ValueIn>();
+        old_key_ = key_extractor_(elem_);
+        new_key_ = old_key_;
+    }
 };
 
 template <typename ValueType, typename ParentDIARef,
@@ -55,9 +100,11 @@ class GroupByNode : public DOpNode<ValueType>
     static const bool debug = false;
     using Super = DOpNode<ValueType>;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using ValueTypeOut = ValueType;
-    using ValueTypeIn = typename common::FunctionTraits<GroupFunction>
-                      ::template arg<0>::ValueTypeIn;
+    using ValueOut = ValueType;
+    using GroupIterator = typename common::FunctionTraits<GroupFunction>
+                      ::template arg<0>;
+    using ValueIn = typename std::remove_reference<GroupIterator>::type::ValueIn;
+    using Reader = typename data::File::Reader;
 
     struct ValueComparator
     {
@@ -98,7 +145,7 @@ public:
           emitter_(channel_->OpenWriters())
     {
         // Hook PreOp
-        auto pre_op_fn = [=](const ValueTypeIn& input) {
+        auto pre_op_fn = [=](const ValueIn& input) {
                              PreOp(input);
                          };
         // close the function stack with our pre op and register it at
@@ -128,48 +175,18 @@ public:
     }
 
     void PushData() override {
-        // OMG THIS IS SO HACKY. THIS MUST BE POSSIBLE MORE ELEGANTLY
-        // split sorted files to multiple files for each key
-        std::vector<data::File> user_files;
         auto r = sorted_elems_.GetReader();
         if (r.HasNext()) {
-            ValueTypeIn v1 = r.template Next<ValueTypeIn>();
-            Key k1 = key_extractor_(v1);
-            bool inserted = false;
-            while (r.HasNext()) {
-                user_files.push_back(data::File());
-                {
-                    auto w = user_files.back().GetWriter();
-                    w(v1);
-                    LOG << "Host " << context_.host_rank() << " added " << v1;
-                    inserted = true;
-
-                    while (inserted && r.HasNext()) {
-                        ValueTypeIn v2 = r.template Next<ValueTypeIn>();
-                        Key k2 = key_extractor_(v2);
-                        inserted = false;
-                        if (k2 == k1) {
-                            w(v2);
-                            LOG << "Host " << context_.host_rank() << " added " << v2;
-                            inserted = true;
-                        }
-                        else {
-                            v1 = v2;
-                            k1 = k2;
-                        }
-                    }
+            // create iterator to pass to user_function
+            auto user_iterator = GroupByIterator<ValueIn, KeyExtractor>(r, key_extractor_);
+            while(user_iterator.HasNextForReal()){
+                // call user function
+                const ValueOut res = groupby_function_(user_iterator);
+                // push result to callback functions
+                for (auto func : DIANode<ValueType>::callbacks_) {
+                    LOG << "grouped to value " << res;
+                    func(res);
                 }
-            }
-        }
-
-        // call user function
-        for (auto t : user_files) {
-            auto r = t.GetReader();
-            const ValueTypeOut res = groupby_function_(GroupByIterator<ValueTypeIn>(r));
-            // push result to callback functions
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                LOG << "Host " << context_.host_rank() << " grouped to value " << res;
-                func(res);
             }
         }
     }
@@ -205,7 +222,7 @@ private:
     /*
      * Send all elements to their designated PEs
      */
-    void PreOp(const ValueTypeIn& v) {
+    void PreOp(const ValueIn& v) {
         const Key k = key_extractor_(v);
         const auto recipient = hash_function_(k) % emitter_.size();
         emitter_[recipient](v);
@@ -214,7 +231,7 @@ private:
     /*
      * Sort and store elements in a file
      */
-    void FlushVectorToFile(std::vector<ValueTypeIn>& v) {
+    void FlushVectorToFile(std::vector<ValueIn>& v) {
         // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         data::File f;
@@ -230,7 +247,7 @@ private:
 
     //! Receive elements from other workers.
     auto MainOp() {
-        using Iterator = thrill::core::StxxlFileWrapper<ValueTypeIn>;
+        using Iterator = thrill::core::StxxlFileWrapper<ValueIn>;
         using OIterator = thrill::core::StxxlFileOutputWrapper<int>;
         using File = data::File;
         using Reader = File::Reader;
@@ -239,7 +256,7 @@ private:
         LOG << ToString() << " running group by main op";
 
         const std::size_t FIXED_VECTOR_SIZE = 99999;
-        std::vector<ValueTypeIn> incoming;
+        std::vector<ValueIn> incoming;
         incoming.reserve(FIXED_VECTOR_SIZE);
 
         // close all emitters
@@ -258,9 +275,9 @@ private:
                 incoming.clear();
             }
             // store incoming element
-            const auto elem = reader.template Next<ValueTypeIn>();
+            const auto elem = reader.template Next<ValueIn>();
             incoming.push_back(elem);
-            LOG << "Host " << context_.host_rank() << " received " << elem << " with key " << key_extractor_(incoming.back());
+            // LOG << "received " << elem << " with key " << key_extractor_(incoming.back());
             ++totalsize;
         }
         FlushVectorToFile(incoming);
@@ -305,7 +322,12 @@ auto DIARef<ValueType, Stack>::GroupBy(
     using DOpResult
               = typename common::FunctionTraits<GroupFunction>::result_type;
 
-    // TODO(cn) find correct assertions for input paarms
+    static_assert(
+        std::is_same<
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>
+                                ::template arg<0> >::type,
+            ValueType>::value,
+        "KeyExtractor has the wrong input type");
 
     StatsNode* stats_node = AddChildStatsNode("GroupBy", NodeType::DOP);
     using GroupByResultNode
