@@ -129,7 +129,6 @@ public:
 
 template <typename Key,
           typename ReduceFunction,
-          const bool Consume = false,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class PostReduceFlushToDefault
@@ -143,7 +142,7 @@ public:
 
     template <typename ReducePostTable>
     void
-    operator () (ReducePostTable* ht) const {
+    operator () (bool consume, ReducePostTable* ht) const {
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
 
@@ -225,7 +224,7 @@ public:
                 // reduce data from spilled files
                 /////
 
-                data::File::Reader reader = file.GetReader(Consume);
+                data::File::Reader reader = file.GetReader(consume);
 
                 // get the items and insert them in secondary
                 // table
@@ -349,7 +348,7 @@ public:
                         }
 
                         // advance to next
-                        if (Consume)
+                        if (consume)
                         {
                             BucketBlock* next = current->next;
                             // destroy block
@@ -362,7 +361,7 @@ public:
                         }
                     }
 
-                    if (Consume)
+                    if (consume)
                     {
                         buckets[i] = nullptr;
                     }
@@ -414,7 +413,7 @@ public:
                         }
 
                         // advance to next
-                        if (Consume)
+                        if (consume)
                         {
                             BucketBlock* next = current->next;
                             // destroy block
@@ -427,7 +426,7 @@ public:
                         }
                     }
 
-                    if (Consume)
+                    if (consume)
                     {
                         buckets[i] = nullptr;
                     }
@@ -435,14 +434,14 @@ public:
             }
 
             // set num blocks for frame to zero
-            if (Consume)
+            if (consume)
             {
                 ht->SetNumBlocksPerTable(ht->NumBlocksPerTable() - num_blocks_per_frame[frame_id]);
                 num_blocks_per_frame[frame_id] = 0;
             }
         }
 
-        if (Consume)
+        if (consume)
         {
             ht->SetNumItemsPerTable(0);
         }
@@ -460,7 +459,7 @@ class PostReduceFlushToIndex // TODO: no spilling here
 public:
     template <typename ReducePostTable>
     void
-    operator () (ReducePostTable* ht) const {
+    operator () (bool consume, ReducePostTable* ht) const {
 
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
@@ -531,8 +530,7 @@ struct EmitImpl<false, EmitterType, Key, Value, SendType>{
 template <typename ValueType, typename Key, typename Value, // TODO: dont need both ValueType and Value
           typename KeyExtractor, typename ReduceFunction,
           const bool SendPair = false,
-          const bool Consume = false,
-          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction, Consume>,
+          typename FlushFunction = PostReduceFlushToDefault<Key, ReduceFunction>,
           typename IndexFunction = PostReduceByHashKey<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           size_t TargetBlockSize = 16*16
@@ -791,10 +789,10 @@ public:
     /*!
     * Flushes all items in the whole table.
     */
-    void Flush() {
+    void Flush(bool consume = false) {
         LOG << "Flushing items";
 
-        flush_function_(this);
+        flush_function_(consume, this);
 
         LOG << "Flushed items";
     }

@@ -126,8 +126,7 @@ public:
                                           KeyExtractor,
                                           ReduceFunction,
                                           SendPair,
-                                          false,
-                                          core::PostReduceFlushToDefault<Key, ReduceFunction, false>,
+                                          core::PostReduceFlushToDefault<Key, ReduceFunction>,
                                           core::PostReduceByHashKey<Key>,
                                           std::equal_to<Key>,
                                           16*16>;
@@ -136,7 +135,7 @@ public:
 
         ReduceTable table(context_, key_extractor_, reduce_function_, cbs,
                           core::PostReduceByHashKey<Key>(),
-                          core::PostReduceFlushToDefault<Key, ReduceFunction, false>(),
+                          core::PostReduceFlushToDefault<Key, ReduceFunction>(),
                           0, 0, Value(), 1024 * 1024 * 128 * 8, 0.9, 0.6, 0.01);
 
         if (RobustKey) {
@@ -146,7 +145,7 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-            table.Flush();
+            table.Flush(consume);
         }
         else {
             auto reader = channel_->OpenConcatReader(consume);
@@ -155,7 +154,7 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
-            table.Flush();
+            table.Flush(consume);
         }
     }
 
