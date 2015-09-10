@@ -27,7 +27,7 @@ namespace data {
  */
 class BlockPool
 {
-    static const bool debug = true;
+    static const bool debug = false;
 
 public:
     explicit BlockPool(mem::Manager* mem_manager, mem::Manager* mem_manager_external)
