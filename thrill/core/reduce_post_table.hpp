@@ -635,6 +635,12 @@ public:
                 static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
                 / static_cast<double>(sizeof(BucketBlock)))), 0);
 
+        assert(num_frames_ > 0);
+        assert(max_num_blocks_per_table_ > 0);
+        assert(max_num_blocks_per_frame_ > 0);
+        assert(num_buckets_per_frame_ > 0);
+        assert(num_buckets_per_table_ > 0);
+
         buckets_.resize(num_buckets_per_table_, nullptr);
         num_blocks_per_frame_.resize(num_frames_, 0);
 
