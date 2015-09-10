@@ -372,7 +372,7 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
-                            ht->EmitAll(std::make_pair(bi->first, bi->second)); // TODO: create the pair later, only if sendpair = true
+                            ht->EmitAll(bi->first, bi->second);
                         }
 
                         // destroy block and advance to next
@@ -402,7 +402,7 @@ public:
                         for (KeyValuePair* bi = current->items;
                              bi != current->items + current->size; ++bi)
                         {
-                            ht->EmitAll(std::make_pair(bi->first, bi->second)); // TODO: create the pair later, only if sendpair = true
+                            ht->EmitAll(bi->first, bi->second);
                         }
 
                         // advance to next
@@ -488,7 +488,7 @@ public:
 
         size_t index = ht->BeginLocalIndex();
         for (auto element_to_emit : elements_to_emit) {
-            ht->EmitAll(std::make_pair(index++, element_to_emit));
+            ht->EmitAll(index++, element_to_emit);
         }
         assert(index == ht->EndLocalIndex());
 
@@ -498,23 +498,24 @@ public:
     }
 };
 
-template <bool, typename EmitterType, typename ValueType, typename SendType>
+template <bool, typename EmitterType, typename Key, typename Value, typename SendType>
 struct EmitImpl;
 
-template <typename EmitterType, typename ValueType, typename SendType>
-struct EmitImpl<true, EmitterType, ValueType, SendType>{
-    void EmitElement(const ValueType& ele, const std::vector<EmitterType>& emitters) {
+template <typename EmitterType, typename Key, typename Value, typename SendType>
+struct EmitImpl<true, EmitterType, Key, Value, SendType>{
+    void EmitElement(const Key& k, const Value& v, const std::vector<EmitterType>& emitters) {
         for (auto& emitter : emitters) {
-            emitter(ele);
+            emitter(std::make_pair(k, v));
         }
     }
 };
 
-template <typename EmitterType, typename ValueType, typename SendType>
-struct EmitImpl<false, EmitterType, ValueType, SendType>{
-    void EmitElement(const ValueType& ele, const std::vector<EmitterType>& emitters) {
+template <typename EmitterType, typename Key, typename Value, typename SendType>
+struct EmitImpl<false, EmitterType, Key, Value, SendType>{
+    void EmitElement(const Key& k, const Value& v, const std::vector<EmitterType>& emitters) {
         for (auto& emitter : emitters) {
-            emitter(ele.second);
+            (void)k;
+            emitter(v);
         }
     }
 };
@@ -537,7 +538,7 @@ public:
 
     using EmitterFunction = std::function<void(const ValueType&)>;
 
-    EmitImpl<SendPair, EmitterFunction, KeyValuePair, ValueType> emit_impl_;
+    EmitImpl<SendPair, EmitterFunction, Key, Value, ValueType> emit_impl_;
 
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
@@ -859,9 +860,8 @@ public:
     /*!
      * Emits element to all children
      */
-    void EmitAll(const KeyValuePair& element) {
-        // void EmitAll(const Key& key, const Value& value) {
-        emit_impl_.EmitElement(element, emit_);
+    void EmitAll(const Key& k, const Value& v) {
+        emit_impl_.EmitElement(k, v, emit_);
     }
 
     /*!
