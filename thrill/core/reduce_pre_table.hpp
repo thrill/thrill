@@ -42,7 +42,7 @@ namespace core {
  *
  * Afterwards, the key is hashed and the hash is used to assign that key/value pair
  * to some bucket. A bucket can have one or more slots to store items. There are
- * max_num_items_per_bucket slots in each bucket.
+ * max_num_items_per_table_per_bucket slots in each bucket.
  *
  * In case a slot already has a key/value pair and the key of that value and the key of
  * the value to be inserted are them same, the values are reduced according to
@@ -232,23 +232,23 @@ public:
         assert(bucket_rate > 0.0 && bucket_rate <= 1.0);
         assert(max_partition_fill_rate >= 0.0 && max_partition_fill_rate <= 1.0);
 
-        max_num_blocks_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
+        max_num_blocks_per_table_ = std::max<size_t>((size_t)(static_cast<double>(byte_size_)
                                                           / static_cast<double>(sizeof(BucketBlock))), 1);
-        num_items_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_table_ * block_size_)
+        max_num_blocks_per_partition_ = std::max<size_t>((size_t)(static_cast<double>(max_num_blocks_per_table_)
                                                              / static_cast<double>(num_partitions_)), 1);
-        num_buckets_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_table_)
+        num_buckets_per_partition_ = std::max<size_t>((size_t)((static_cast<double>(max_num_blocks_per_table_)
                                                                 / static_cast<double>(num_partitions_)) * bucket_rate), 1);
-        num_buckets_ = num_buckets_per_partition_ * num_partitions_;
+        num_buckets_per_table_ = num_buckets_per_partition_ * num_partitions_;
 
         // reduce number of blocks once we know how many buckets we have, thus
         // knowing the size of pointers in the bucket vector
 
-        max_num_blocks_table_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
+        max_num_blocks_per_table_ -= std::max<size_t>((size_t)(std::ceil(
+                static_cast<double>(num_buckets_per_table_ * sizeof(BucketBlock*))
                 / static_cast<double>(sizeof(BucketBlock)))), 0);
 
-        buckets_.resize(num_buckets_, nullptr);
-        items_per_partition_.resize(num_partitions_, 0);
+        buckets_.resize(num_buckets_per_table_, nullptr);
+        num_blocks_per_partition_.resize(num_partitions_, 0);
 
         for (size_t i = 0; i < emit_.size(); i++)
             emit_stats_.push_back(0);
@@ -290,7 +290,7 @@ public:
      * already in the table and the key of the value to be inserted are the same.
      *
      * An insert may trigger a partial flush of the partition with the most items if the maximal
-     * number of items in the table (max_num_items_table) is reached.
+     * number of items in the table (max_num_items_per_table_table) is reached.
      *
      * Alternatively, it may trigger a resize of table in case maximal number of items per
      * bucket is reached.
@@ -303,7 +303,7 @@ public:
 
         assert(h.partition_id >= 0 && h.partition_id < num_partitions_);
         assert(h.local_index >= 0 && h.local_index < num_buckets_per_partition_);
-        assert(h.global_index >= 0 && h.global_index < num_buckets_);
+        assert(h.global_index >= 0 && h.global_index < num_buckets_per_table_);
 
         LOG << "key: " << kv.first << " to bucket id: " << h.global_index;
 
@@ -331,20 +331,31 @@ public:
             current = current->next;
         }
 
+        //////
         // have an item that needs to be added.
-        if (static_cast<double>(items_per_partition_[h.partition_id] + 1)
-            / static_cast<double>(num_items_per_partition_)
-            > max_partition_fill_rate_)
-        {
-            FlushPartition(h.partition_id);
-        }
+        //////
 
         current = buckets_[h.global_index];
 
         if (current == nullptr ||
             current->size == block_size_)
         {
-            if (num_blocks_ == max_num_blocks_table_)
+            //////
+            // new block needed.
+            //////
+
+            // flush current partition if max partition fill rate
+            // reached
+            if (static_cast<double>(num_blocks_per_partition_[h.partition_id] + 1)
+                / static_cast<double>(max_num_blocks_per_partition_)
+                > max_partition_fill_rate_)
+            {
+                FlushPartition(h.partition_id);
+            }
+
+            // flush largest partition if max number of blocks
+            // reached
+            if (num_blocks_per_table_ == max_num_blocks_per_table_)
             {
                 FlushLargestPartition();
             }
@@ -356,15 +367,17 @@ public:
             current->size = 0;
             current->next = buckets_[h.global_index];
             buckets_[h.global_index] = current;
-            num_blocks_++;
+
+            // Number of blocks per partition.
+            num_blocks_per_partition_[h.partition_id]++;
+            // Total number of blocks
+            num_blocks_per_table_++;
         }
 
         // in-place construct/insert new item in current bucket block
         new (current->items + current->size++)KeyValuePair(kv.first, std::move(kv.second));
-        // Number of items per partition.
-        items_per_partition_[h.partition_id]++;
         // Increase total item count
-        num_items_++;
+        num_items_per_table_++;
     }
 
     /*!
@@ -395,9 +408,9 @@ public:
         size_t p_idx = 0;
         for (size_t i = 0; i < num_partitions_; i++)
         {
-            if (items_per_partition_[i] > p_size_max)
+            if (num_blocks_per_partition_[i] > p_size_max)
             {
-                p_size_max = items_per_partition_[i];
+                p_size_max = num_blocks_per_partition_[i];
                 p_idx = i;
             }
         }
@@ -435,8 +448,6 @@ public:
 
             while (current != nullptr)
             {
-                num_blocks_--;
-
                 for (KeyValuePair* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
@@ -450,6 +461,8 @@ public:
                         sLOG << "pushing pair";
                         emit_stats_[partition_id]++;
                     }
+
+                    num_items_per_table_--;
                 }
 
                 // destroy block and advance to next
@@ -457,15 +470,15 @@ public:
                 current->destroy_items();
                 operator delete (current);
                 current = next;
+
+                num_blocks_per_table_--;
             }
 
             buckets_[i] = nullptr;
         }
 
-        // reset total counter
-        num_items_ -= items_per_partition_[partition_id];
         // reset partition specific counter
-        items_per_partition_[partition_id] = 0;
+        num_blocks_per_partition_[partition_id] = 0;
         // flush elements pushed into emitter
         emit_[partition_id].Flush();
         // increase flush counter
@@ -481,7 +494,7 @@ public:
      * \return Number of buckets in the table.
      */
     size_t NumBuckets() const {
-        return num_buckets_;
+        return num_buckets_per_table_;
     }
 
     /*!
@@ -490,7 +503,7 @@ public:
      * \return Number of items in the table.
      */
     size_t NumItems() const {
-        return num_items_;
+        return num_items_per_table_;
     }
 
     /*!
@@ -527,8 +540,8 @@ public:
      *                  items to be returned..
      * \return The number of items in the partitions.
      */
-    size_t PartitionNumItems(size_t partition_id) {
-        return items_per_partition_[partition_id];
+    size_t PartitionNumBlocks(size_t partition_id) {
+        return num_blocks_per_partition_[partition_id];
     }
 
     /*!
@@ -603,7 +616,7 @@ protected:
 
     //! Maximal number of blocks before some items
     //! are spilled.
-    size_t max_num_blocks_table_;
+    size_t max_num_blocks_per_table_;
 
     //! Key extractor function for extracting a key from a value.
     KeyExtractor key_extractor_;
@@ -624,13 +637,13 @@ protected:
     EqualToFunction equal_to_function_;
 
     //! Number of buckets.
-    size_t num_buckets_;
+    size_t num_buckets_per_table_;
 
     //! Keeps the total number of blocks in the table.
-    size_t num_blocks_ = 0;
+    size_t num_blocks_per_table_ = 0;
 
     //! Number of items per partition.
-    std::vector<size_t> items_per_partition_;
+    std::vector<size_t> num_blocks_per_partition_;
 
     //! Emitter stats.
     std::vector<int> emit_stats_;
@@ -639,10 +652,10 @@ protected:
     std::vector<BucketBlock*> buckets_;
 
     //! Keeps the expected number of items per partition.
-    size_t num_items_per_partition_ = 0;
+    size_t max_num_blocks_per_partition_ = 0;
 
     //! Keeps the total number of items in the table.
-    size_t num_items_ = 0;
+    size_t num_items_per_table_ = 0;
 
     //! Number of flushes.
     size_t num_flushes_ = 0;
