@@ -14,9 +14,18 @@
 #define THRILL_CORE_FILE_IO_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
+#if defined(_MSC_VER)
+
+#include <io.h>
+
+#else
+
 #include <unistd.h>
+
+#endif
 
 #include <string>
 #include <utility>
@@ -106,13 +115,21 @@ public:
     //! POSIX write function.
     ssize_t write(const void* data, size_t count) {
         assert(fd_ >= 0);
+#if defined(_MSC_VER)
+        return ::_write(fd_, data, static_cast<unsigned>(count));
+#else
         return ::write(fd_, data, count);
+#endif
     }
 
     //! POSIX read function.
     ssize_t read(void* data, size_t count) {
         assert(fd_ >= 0);
+#if defined(_MSC_VER)
+        return ::_read(fd_, data, static_cast<unsigned>(count));
+#else
         return ::read(fd_, data, count);
+#endif
     }
 
     //! POSIX lseek function from current position.
@@ -135,6 +152,10 @@ protected:
 
     //! file descriptor
     int fd_ = -1;
+
+#if defined(_MSC_VER)
+    using pid_t = int;
+#endif
 
     //! pid of child process to wait for
     pid_t pid_ = 0;
