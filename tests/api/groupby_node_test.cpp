@@ -31,7 +31,7 @@ TEST(GroupByNode, Compile_and_Sum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            unsigned n = 99999;
+            unsigned n = 999999;
             unsigned m = 4;
 
             auto sizets = Generate(
@@ -83,7 +83,7 @@ TEST(GroupByNode, Median) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            unsigned n = 99999;
+            unsigned n = 999999;
             unsigned m = 4;
 
             auto sizets = Generate(
