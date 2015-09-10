@@ -471,12 +471,10 @@ public:
      * each array cell.
      */
     template <typename ReduceFunction>
-    auto ReducePairToIndex(const ReduceFunction &reduce_function,
-                           size_t size,
-                           typename common::FunctionTraits<ReduceFunction>
-                           ::result_type neutral_element =
-                               typename common::FunctionTraits<ReduceFunction>
-                               ::result_type()) const;
+    auto ReducePairToIndex(
+        const ReduceFunction &reduce_function, size_t size,
+        typename FunctionTraits<ReduceFunction>::result_type
+        neutral_element = typename FunctionTraits<ReduceFunction>::result_type()) const;
 
     /*!
      * Zip is a DOp, which Zips two DIAs in style of functional programming. The
