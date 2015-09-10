@@ -15,8 +15,9 @@
 #define THRILL_API_GENERATE_FROM_FILE_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stat_logger.hpp>
 
 #include <fstream>
 #include <random>
@@ -41,12 +42,11 @@ namespace api {
  * \tparam ReadFunction Type of the generate function.
  */
 template <typename ValueType, typename GeneratorFunction>
-class GenerateFileNode : public DOpNode<ValueType>
+class GenerateFileNode : public SourceNode<ValueType>
 {
 public:
-    using Super = DOpNode<ValueType>;
+    using Super = SourceNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
     /*!
      * Constructor for a GenerateFileNode. Sets the Context, parents, generator
@@ -63,21 +63,15 @@ public:
                      std::string path_in,
                      size_t size,
                      StatsNode* stats_node)
-        : DOpNode<ValueType>(ctx, { }, "GenerateFromFile", stats_node),
+        : SourceNode<ValueType>(ctx, { }, stats_node),
           generator_function_(generator_function),
           path_in_(path_in),
           size_(size)
     { }
 
     virtual ~GenerateFileNode() { }
-
-    //! Executes the generate operation. Reads a file line by line and creates a
-    //! element vector, out of which elements are randomly chosen (possibly
-    //! duplicated).
-    void Execute() final { }
-
     void PushData() final {
-        LOG << "GENERATING data to file " << result_file_.ToString();
+        LOG << "GENERATING data to file " << this->id();
 
         std::ifstream file(path_in_);
         assert(file.good());
@@ -107,10 +101,10 @@ public:
 
         for (size_t i = 0; i < local_elements; i++) {
             size_t rand_element = distribution(generator);
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(elements_[rand_element]);
-            }
+            this->PushItem(elements_[rand_element]);
         }
+
+        STAT(context_) << "NodeType" << "GenerateFromFile";
     }
 
     void Dispose() final { }
@@ -123,14 +117,6 @@ public:
      */
     auto ProduceStack() {
         return FunctionStack<ValueType>();
-    }
-
-    /*!
-     * Returns information about the GeneratorNode as a string.
-     * \return Stringified node.
-     */
-    std::string ToString() final {
-        return "[GeneratorNode] Id: " + result_file_.ToString();
     }
 
 private:
@@ -163,7 +149,9 @@ auto GenerateFromFile(Context & ctx, std::string filepath,
             const std::string&>::value,
         "GeneratorFunction needs a const std::string& as input");
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("GenerateFromFile", NodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "GenerateFromFile", DIANodeType::DOP);
+
     auto shared_node =
         std::make_shared<GenerateResultNode>(
             ctx, generator_function, filepath, size, stats_node);

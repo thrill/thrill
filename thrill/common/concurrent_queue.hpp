@@ -12,15 +12,15 @@
 #ifndef THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 #include <tbb/concurrent_queue.h>
 
-#endif // HAVE_INTELTBB
+#endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
+#include <deque>
 #include <mutex>
-#include <queue>
 
 namespace thrill {
 namespace common {
@@ -36,7 +36,7 @@ namespace common {
  * StyleGuide is violated, because signatures MUST match those in the TBB
  * version.
  */
-template <typename T>
+template <typename T, typename Allocator>
 class OurConcurrentQueue
 {
 public:
@@ -48,23 +48,27 @@ public:
 
 protected:
     //! the actual data queue
-    std::queue<T> queue_;
+    std::deque<T, Allocator> queue_;
 
     //! the mutex to lock before accessing the queue
     mutable std::mutex mutex_;
 
 public:
+    //! Constructor
+    explicit OurConcurrentQueue(const Allocator& alloc = Allocator())
+        : queue_(alloc) { }
+
     //! Pushes a copy of source onto back of the queue.
     void push(const T& source) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.push(source);
+        queue_.push_back(source);
     }
 
     //! Pushes given element into the queue by utilizing element's move
     //! constructor
     void push(T&& elem) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.push(std::move(elem));
+        queue_.push_back(std::move(elem));
     }
 
     //! Pushes a new element into the queue. The element is constructed with
@@ -72,7 +76,7 @@ public:
     template <typename ... Arguments>
     void emplace(Arguments&& ... args) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.emplace(args ...);
+        queue_.emplace_back(args ...);
     }
 
     //! Returns: true if queue has no items; false otherwise.
@@ -89,7 +93,7 @@ public:
             return false;
 
         destination = std::move(queue_.front());
-        queue_.pop();
+        queue_.pop_front();
         return true;
     }
 
@@ -100,17 +104,17 @@ public:
     }
 };
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
-template <typename T>
-using ConcurrentQueue = tbb::concurrent_queue<T>;
+template <typename T, typename Allocator>
+using ConcurrentQueue = tbb::concurrent_queue<T, Allocator>;
 
-#else   // !HAVE_INTELTBB
+#else   // !THRILL_HAVE_INTELTBB
 
-template <typename T>
-using ConcurrentQueue = OurConcurrentQueue<T>;
+template <typename T, typename Allocator>
+using ConcurrentQueue = OurConcurrentQueue<T, Allocator>;
 
-#endif // !HAVE_INTELTBB
+#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

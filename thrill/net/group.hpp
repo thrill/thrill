@@ -19,6 +19,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/net/connection.hpp>
 
+#include <sys/select.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -175,10 +177,10 @@ public:
      */
     template <typename T>
     void ReceiveFromAny(size_t* out_src, T* out_value) {
-        fd_set fd_set;
+        fd_set fds;
         int max_fd = 0;
 
-        FD_ZERO(&fd_set);
+        FD_ZERO(&fds);
 
         // TODO(ej) use NetDispatcher here?
         // TODO(rh) use NetDispatcher here and everywhere else in this class
@@ -191,12 +193,12 @@ public:
             if (i == my_rank_) continue;
 
             int fd = connections_[i].GetSocket().fd();
-            FD_SET(fd, &fd_set);
+            FD_SET(fd, &fds);
             max_fd = std::max(max_fd, fd);
             sLOG0 << "select from fd=" << fd;
         }
 
-        int retval = select(max_fd + 1, &fd_set, nullptr, nullptr, nullptr);
+        int retval = select(max_fd + 1, &fds, nullptr, nullptr, nullptr);
 
         if (retval < 0) {
             perror("select()");
@@ -213,7 +215,7 @@ public:
 
             int fd = connections_[i].GetSocket().fd();
 
-            if (FD_ISSET(fd, &fd_set))
+            if (FD_ISSET(fd, &fds))
             {
                 sLOG << "select() readable fd" << fd;
 
@@ -235,10 +237,10 @@ public:
      * \param out_data The string received from the worker.
      */
     void ReceiveStringFromAny(size_t* out_src, std::string* out_data) {
-        fd_set fd_set;
+        fd_set fds;
         int max_fd = 0;
 
-        FD_ZERO(&fd_set);
+        FD_ZERO(&fds);
 
         // add file descriptor to read set for poll TODO(ts): make this faster
         // (somewhen)
@@ -250,12 +252,12 @@ public:
             if (i == my_rank_) continue;
 
             int fd = connections_[i].GetSocket().fd();
-            FD_SET(fd, &fd_set);
+            FD_SET(fd, &fds);
             max_fd = std::max(max_fd, fd);
             sLOG0 << "select from fd=" << fd;
         }
 
-        int retval = select(max_fd + 1, &fd_set, nullptr, nullptr, nullptr);
+        int retval = select(max_fd + 1, &fds, nullptr, nullptr, nullptr);
 
         if (retval < 0) {
             perror("select()");
@@ -272,7 +274,7 @@ public:
 
             int fd = connections_[i].GetSocket().fd();
 
-            if (FD_ISSET(fd, &fd_set))
+            if (FD_ISSET(fd, &fds))
             {
                 sLOG << my_rank_ << "- select() readable fd" << fd << "id" << i;
 

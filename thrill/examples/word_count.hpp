@@ -56,7 +56,7 @@ auto WordCount(const DIARef<std::string, InStack>&input) {
 
 size_t WordCountBasic(Context& ctx) {
 
-    auto lines = ReadLines(ctx, "wordcount.in");
+    auto lines = ReadLines(ctx, "inputs/wordcount.in");
 
     auto red_words = WordCount(lines);
 
@@ -65,7 +65,7 @@ size_t WordCountBasic(Context& ctx) {
             return wc.first + ": " + std::to_string(wc.second);
         })
     .WriteLinesMany(
-        "wordcount_" + std::to_string(ctx.my_rank()) + ".out");
+        "outputs/wordcount-");
 
     return 0;
 }
@@ -73,7 +73,7 @@ size_t WordCountBasic(Context& ctx) {
 size_t WordCountGenerated(Context& ctx, size_t size) {
 
     auto lines = GenerateFromFile(
-        ctx, "headwords",
+        ctx, "inputs/headwords",
         [](const std::string& line) {
             return line;
         },
@@ -86,7 +86,7 @@ size_t WordCountGenerated(Context& ctx, size_t size) {
             return wc.first + ": " + std::to_string(wc.second);
         })
     .WriteLinesMany(
-        "wordcount_" + std::to_string(ctx.my_rank()) + ".out");
+        "outputs/wordcount-");
 
     return 42;
 }

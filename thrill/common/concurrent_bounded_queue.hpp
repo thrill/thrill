@@ -12,11 +12,11 @@
 #ifndef THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 #include <tbb/concurrent_queue.h>
 
-#endif // HAVE_INTELTBB
+#endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
 #include <condition_variable>
@@ -59,6 +59,15 @@ protected:
     std::condition_variable cv_;
 
 public:
+    //! default constructor
+    OurConcurrentBoundedQueue() = default;
+
+    //! move-constructor
+    OurConcurrentBoundedQueue(OurConcurrentBoundedQueue&& other) {
+        std::unique_lock<std::mutex> lock(other.mutex_);
+        queue_ = std::move(other.queue_);
+    }
+
     //! Pushes a copy of source onto back of the queue.
     void push(const T& source) {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -124,17 +133,17 @@ public:
     }
 };
 
-#if HAVE_INTELTBB
+#if THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
 
-#else   // !HAVE_INTELTBB
+#else   // !THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 
-#endif // !HAVE_INTELTBB
+#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

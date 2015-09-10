@@ -35,17 +35,16 @@ class WriteLinesNode : public ActionNode
 
 public:
     using Super = ActionNode;
-    using Super::result_file_;
     using Super::context_;
 
     WriteLinesNode(const ParentDIARef& parent,
                    const std::string& path_out,
                    StatsNode* stats_node)
-        : ActionNode(parent.ctx(), { parent.node() },
-                     "WriteSingleFile", stats_node),
+        : ActionNode(parent.ctx(), { parent.node() }, stats_node),
           path_out_(path_out),
           file_(path_out_),
-          writer_(result_file_.GetWriter())
+          temp_file_(context_.GetFile()),
+          writer_(&temp_file_)
     {
         sLOG << "Creating write node.";
 
@@ -61,11 +60,16 @@ public:
     void PreOp(const ValueType& input) {
         writer_(input);
         size_ += input.size() + 1;
+        stats_total_elements_++;
     }
 
     //! Closes the output file
     void Execute() override {
         writer_.Close();
+
+        STAT(context_) << "NodeType" << "WriteLines"
+                       << "TotalBytes" << size_
+                       << "TotalLines" << stats_total_elements_;
 
         // (Portable) allocation of output file, setting individual file pointers.
         size_t prefix_elem = context_.flow_control_channel().ExPrefixSum(size_);
@@ -76,9 +80,9 @@ public:
         file_.seekp(prefix_elem);
         context_.Barrier();
 
-        data::File::Reader reader = result_file_.GetReader();
+        data::File::Reader reader = temp_file_.GetReader();
 
-        for (size_t i = 0; i < result_file_.NumItems(); ++i) {
+        for (size_t i = 0; i < temp_file_.num_items(); ++i) {
             file_ << reader.Next<ValueType>() << "\n";
         }
 
@@ -86,14 +90,6 @@ public:
     }
 
     void Dispose() override { }
-
-    /*!
-     * Returns "[WriteNode]" and its id as a string.
-     * \return "[WriteNode]"
-     */
-    std::string ToString() override {
-        return "[WriteNode] Id:" + result_file_.ToString();
-    }
 
 private:
     //! Path of the output file.
@@ -105,20 +101,26 @@ private:
     //! Local file size
     size_t size_ = 0;
 
+    //! Temporary File for splitting correctly?
+    data::File temp_file_;
+
     //! File writer used.
     data::File::Writer writer_;
+
+    size_t stats_total_elements_ = 0;
 };
 
 template <typename ValueType, typename Stack>
 void DIARef<ValueType, Stack>::WriteLines(
     const std::string& filepath) const {
+    assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
                   "WriteLines needs an std::string as input parameter");
 
     using WriteResultNode = WriteLinesNode<ValueType, DIARef>;
 
-    StatsNode* stats_node = AddChildStatsNode("Write", NodeType::ACTION);
+    StatsNode* stats_node = AddChildStatsNode("WriteLines", DIANodeType::ACTION);
     auto shared_node =
         std::make_shared<WriteResultNode>(*this,
                                           filepath,

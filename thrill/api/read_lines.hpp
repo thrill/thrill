@@ -14,11 +14,18 @@
 #define THRILL_API_READ_LINES_HEADER
 
 #include <thrill/api/dia.hpp>
-#include <thrill/api/dop_node.hpp>
+#include <thrill/api/source_node.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
+#include <thrill/common/stat_logger.hpp>
+#include <thrill/common/string.hpp>
+#include <thrill/core/file_io.hpp>
+#include <thrill/net/buffer_builder.hpp>
 
-#include <fstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace thrill {
 namespace api {
@@ -30,48 +37,60 @@ namespace api {
  * A DIANode which performs a line-based Read operation. Read reads a file from
  * the file system and emits it as a DIA.
  */
-class ReadLinesNode : public DOpNode<std::string>
+class ReadLinesNode : public SourceNode<std::string>
 {
 public:
-    using Super = DOpNode<std::string>;
+    using Super = SourceNode<std::string>;
     using Super::context_;
-    using Super::result_file_;
+
+    using FileSizePair = std::pair<std::string, size_t>;
+
+    static const bool debug = false;
 
     /*!
      * Constructor for a ReadLinesNode. Sets the Context
      * and file path.
      *
-     * \param ctx Reference to Context, which holds references to data and network.
-     * \param filepath Path of the input file
+     * \param ctx Reference to Context, which holds references to data and
+     * network.
+     *
+     * \param path Path of the input file(s)
      */
     ReadLinesNode(Context& ctx,
-                  const std::string& filepath,
+                  const std::string& path,
                   StatsNode* stats_node)
-        : Super(ctx, { }, "Read", stats_node),
-          filepath_(filepath)
-    { }
+        : Super(ctx, { }, stats_node),
+          path_(path)
+    {
+        LOG << "Opening read notes for " << path_;
 
-    virtual ~ReadLinesNode() { }
+        filesize_prefix_ = core::GlobFileSizePrefixSum(path_);
 
-    //! Executes the read operation. Reads a file line by line
-    //! and emits it after applying the read function.
-    void Execute() final { }
+        for (auto file : filesize_prefix_) {
+            if (core::IsCompressed(file.first)) {
+                contains_compressed_file_ = true;
+                break;
+            }
+        }
+    }
 
     void PushData() final {
-        static const bool debug = false;
-        LOG << "READING data " << result_file_.ToString();
+        if (contains_compressed_file_) {
+            InputLineIteratorCompressed it = InputLineIteratorCompressed(
+                filesize_prefix_, context_);
 
-        std::ifstream file(filepath_);
-        assert(file.good());
+            // Hook Read
+            while (it.HasNext()) {
+                this->PushItem(it.Next());
+            }
+        }
+        else {
+            InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
+                filesize_prefix_, context_);
 
-        InputLineIterator it = GetInputLineIterator(
-            file, context_.my_rank(), context_.num_workers());
-
-        // Hook Read
-        while (it.HasNext()) {
-            auto item = it.Next();
-            for (auto func : Super::callbacks_) {
-                func(item);
+            // Hook Read
+            while (it.HasNext()) {
+                this->PushItem(it.Next());
             }
         }
     }
@@ -88,101 +107,314 @@ public:
         return FunctionStack<std::string>();
     }
 
-    /*!
-     * Returns "[ReadLinesNode]" as a string.
-     * \return "[ReadLinesNode]"
-     */
-    std::string ToString() final {
-        return "[ReadLinesNode] Id: " + result_file_.ToString();
-    }
-
 private:
+    //! True, if at least one input file is compressed.
+    bool contains_compressed_file_ = false;
     //! Path of the input file.
-    std::string filepath_;
+    std::string path_;
 
-    //! InputLineIterator gives you access to lines of a file
+    std::vector<std::pair<std::string, size_t> > filesize_prefix_;
+
     class InputLineIterator
     {
     public:
+        InputLineIterator(const std::vector<FileSizePair>& files, Context& ctx)
+            : files_(files), context_(ctx) { }
+
+        static const bool debug = false;
+
+    protected:
+        //! Block read size
+        const size_t read_size = data::default_block_size;
+        //! String, which Next() references to
+        std::string data_;
+        //! Input files with size prefixsum.
+        const std::vector<FileSizePair>& files_;
+        //! Index of current file in files_
+        size_t current_file_ = 0;
+        //! Byte buffer to create line-std::strings
+        net::BufferBuilder buffer_;
+        //! Start of next element in current buffer.
+        unsigned char* current_;
+        //! (exclusive) end of local block
+        size_t my_end_;
+        //! Reference to context
+        Context& context_;
+
+        size_t stats_total_bytes_ = 0;
+        size_t stats_total_reads_ = 0;
+        size_t stats_total_elements_ = 0;
+
+        bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
+            ssize_t bytes = file.read(buffer.data(), read_size);
+            buffer.set_size(bytes);
+            current_ = buffer.begin();
+            stats_total_bytes_ += bytes;
+            stats_total_reads_++;
+            return bytes > 0;
+        }
+
+        ~InputLineIterator() {
+            STAT(context_) << "NodeType" << "ReadLines"
+                           << "TotalBytes" << stats_total_bytes_
+                           << "TotalReads" << stats_total_reads_
+                           << "TotalLines" << stats_total_elements_;
+        }
+    };
+
+    //! InputLineIterator gives you access to lines of a file
+    class InputLineIteratorUncompressed : public InputLineIterator
+    {
+    public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIterator(std::ifstream& file,
-                          size_t my_id,
-                          size_t num_workers)
-            : file_(file),
-              my_id_(my_id),
-              num_workers_(num_workers) {
-            // Find file size and save it
-            file_.seekg(0, std::ios::end);
-            file_size_ = file_.tellg();
+        InputLineIteratorUncompressed(
+            const std::vector<FileSizePair>& files,
+            Context& ctx)
+            : InputLineIterator(files, ctx) {
 
             // Go to start of 'local part'.
-            std::streampos per_worker = file_size_ / num_workers_;
-            std::streampos my_start = per_worker * my_id_;
-            if (my_id_ == (num_workers - 1)) {
-                my_end_ = file_size_ - 1;
+            size_t my_start;
+            std::tie(my_start, my_end_) =
+                common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
+
+            while (files_[current_file_ + 1].second <= my_start) {
+                current_file_++;
+            }
+            if (my_start < my_end_) {
+                LOG << "Opening file " << current_file_;
+                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
             }
             else {
-                my_end_ = per_worker * (my_id_ + 1) - 1;
+                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                return;
             }
 
-            file_.seekg(my_start, std::ios::beg);
+            // find offset in current file:
+            // offset = start - sum of previous file sizes
+            offset_ = file_.lseek(my_start - files_[current_file_].second);
+            buffer_.Reserve(read_size);
+            ReadBlock(file_, buffer_);
 
-            // Go to next new line if the stream-pointer is not at the beginning
-            // of a line
-            if (my_id != 0) {
-                std::streampos previous = (per_worker * my_id_) - 1;
-                file_.seekg(previous, std::ios::beg);
-                // file_.unget();
-                if (file_.get() != '\n') {
-                    std::string str;
-                    std::getline(file_, str);
+            if (offset_ != 0) {
+                bool found_n = false;
+
+                // find next newline, discard all previous data as previous worker already covers it
+                while (!found_n) {
+                    while (current_ < buffer_.end()) {
+                        if (THRILL_UNLIKELY(*current_++ == '\n')) {
+                            found_n = true;
+                            break;
+                        }
+                    }
+                    // no newline found: read new data into buffer_builder
+                    if (!found_n) {
+                        offset_ += buffer_.size();
+                        if (!ReadBlock(file_, buffer_)) {
+                            // EOF = newline per definition
+                            found_n = true;
+                        }
+                    }
                 }
             }
+            data_.reserve(4 * 1024);
         }
 
         //! returns the next element if one exists
         //!
         //! does no checks whether a next element exists!
-        std::string Next() {
-            std::string line;
-            std::getline(file_, line);
-            return line;
+        const std::string & Next() {
+            stats_total_elements_++;
+            data_.clear();
+            while (true) {
+                while (current_ < buffer_.end()) {
+                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+                        current_++;
+                        return data_;
+                    }
+                    else {
+                        data_.push_back(*current_++);
+                    }
+                }
+                if (!ReadBlock(file_, buffer_)) {
+                    file_.close();
+                    current_file_++;
+                    offset_ = 0;
+
+                    if (current_file_ < NumFiles()) {
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ReadBlock(file_, buffer_);
+                    }
+                    else {
+                        current_ = buffer_.begin() +
+                                   files_[current_file_].second - files_[current_file_ - 1].second;
+                    }
+
+                    if (data_.length()) {
+                        return data_;
+                    }
+                }
+            }
         }
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            return (file_.tellg() <= my_end_);
+            size_t global_index = offset_ + current_ - buffer_.begin() + files_[current_file_].second;
+            return global_index < my_end_ ||
+                   (global_index == my_end_ &&
+                    files_[current_file_ + 1].second - files_[current_file_].second >
+                    offset_ + (current_ - buffer_.begin()));
+        }
+
+        size_t NumFiles() {
+            return files_.size() - 1;
         }
 
     private:
-        //! Input file stream
-        std::ifstream& file_;
-        //! File size in bytes
-        size_t file_size_;
-        //! Worker ID
-        size_t my_id_;
-        //! total number of workers
-        size_t num_workers_;
-        //! end of local block
-        std::streampos my_end_;
+        //! Offset of current block in file_.
+        size_t offset_ = 0;
+        //! File handle to files_[current_file_]
+        core::SysFile file_;
     };
 
-    //! Returns an InputLineIterator with a given input file stream.
-    //!
-    //! \param file Input file stream
-    //! \param my_id Id of this worker
-    //! \param num_work Number of workers
-    //!
-    //! \return An InputLineIterator for a given file stream
-    InputLineIterator GetInputLineIterator(
-        std::ifstream& file, size_t my_id, size_t num_work) {
-        return InputLineIterator(file, my_id, num_work);
-    }
+    //! InputLineIterator gives you access to lines of a file
+    class InputLineIteratorCompressed : public InputLineIterator
+    {
+    public:
+        //! Creates an instance of iterator that reads file line based
+        InputLineIteratorCompressed(
+            const std::vector<FileSizePair>& files,
+            Context& ctx)
+            : InputLineIterator(files, ctx) {
+
+            // Go to start of 'local part'.
+            size_t my_start;
+            std::tie(my_start, my_end_) =
+                common::CalculateLocalRange(files[NumFiles()].second, ctx.num_workers(), ctx.my_rank());
+
+            while (files_[current_file_ + 1].second <= my_start) {
+                current_file_++;
+            }
+
+            for (size_t file_nr = current_file_; file_nr < NumFiles(); file_nr++) {
+                if (files[file_nr + 1].second == my_end_) {
+                    break;
+                }
+                if (files[file_nr + 1].second > my_end_) {
+                    my_end_ = files_[file_nr].second;
+                    break;
+                }
+            }
+
+            if (my_start < my_end_) {
+                LOG << "Opening file " << current_file_;
+                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+            }
+            else {
+                // No local files, set buffer size to 2, so HasNext() does not try to read
+                LOG << "my_start : " << my_start << " my_end_: " << my_end_;
+                buffer_.Reserve(2);
+                buffer_.set_size(2);
+                current_ = buffer_.begin();
+                return;
+            }
+            buffer_.Reserve(read_size);
+            ReadBlock(file_, buffer_);
+            data_.reserve(4 * 1024);
+        }
+
+        //! returns the next element if one exists
+        //!
+        //! does no checks whether a next element exists!
+        const std::string & Next() {
+            stats_total_elements_++;
+            data_.clear();
+            while (true) {
+                while (current_ < buffer_.end()) {
+                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+                        current_++;
+                        return data_;
+                    }
+                    else {
+                        data_.push_back(*current_++);
+                    }
+                }
+
+                if (!ReadBlock(file_, buffer_)) {
+                    LOG << "Opening new file!";
+                    file_.close();
+                    current_file_++;
+
+                    if (current_file_ < NumFiles()) {
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ReadBlock(file_, buffer_);
+                    }
+                    else {
+                        LOG << "reached last file";
+                        current_ = buffer_.begin();
+                    }
+
+                    if (data_.length()) {
+                        LOG << "end - returning string of length" << data_.length();
+                        return data_;
+                    }
+                }
+            }
+        }
+
+        size_t NumFiles() {
+            return files_.size() - 1;
+        }
+
+        //! returns true, if an element is available in local part
+        bool HasNext() {
+            if (files_[current_file_].second >= my_end_) {
+                return false;
+            }
+
+            // if block is fully read, read next block. needs to be done here
+            // as HasNext() has to know if file is finished
+            //         v-- no new line at end ||   v-- newline at end of file
+            if (current_ >= buffer_.end() || (current_ + 1 >= buffer_.end() && *current_ == '\n')) {
+                LOG << "New buffer in HasNext()";
+                ReadBlock(file_, buffer_);
+                if (buffer_.size() > 1 || (buffer_.size() == 1 && buffer_[0] != '\n')) {
+                    return true;
+                }
+                else {
+                    LOG << "Opening new file in HasNext()";
+                    // already at last file
+                    if (current_file_ >= NumFiles() - 1) {
+                        return false;
+                    }
+                    file_.close();
+                    // if (this worker reads at least one more file)
+                    if (my_end_ > files_[current_file_ + 1].second) {
+                        current_file_++;
+                        file_ = core::SysFile::OpenForRead(files_[current_file_].first);
+                        ReadBlock(file_, buffer_);
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+            }
+            else {
+                return true;
+            }
+        }
+
+    private:
+        //! File handle to files_[current_file_]
+        core::SysFile file_;
+    };
 };
 
 DIARef<std::string> ReadLines(Context& ctx, std::string filepath) {
 
-    StatsNode* stats_node = ctx.stats_graph().AddNode("ReadLines", NodeType::DOP);
+    StatsNode* stats_node = ctx.stats_graph().AddNode(
+        "ReadLines", DIANodeType::DOP);
 
     auto shared_node =
         std::make_shared<ReadLinesNode>(

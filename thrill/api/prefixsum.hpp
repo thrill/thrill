@@ -35,14 +35,13 @@ class PrefixSumNode : public DOpNode<ValueType>
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
-    using Super::result_file_;
 
 public:
     PrefixSumNode(const ParentDIARef& parent,
                   SumFunction sum_function,
                   ValueType neutral_element,
                   StatsNode* stats_node)
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "PrefixSum", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           sum_function_(sum_function),
           local_sum_(neutral_element),
           neutral_element_(neutral_element)
@@ -68,11 +67,9 @@ public:
 
         ValueType sum = local_sum_;
 
-        for (size_t i = 0; i < file_.NumItems(); ++i) {
+        for (size_t i = 0; i < file_.num_items(); ++i) {
             sum = sum_function_(sum, reader.Next<ValueType>());
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(sum);
-            }
+            this->PushItem(sum);
         }
     }
 
@@ -88,14 +85,6 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[PrefixSumNode]" as a string.
-     * \return "[PrefixSumNode]"
-     */
-    std::string ToString() final {
-        return "[PrefixSumNode] Id:" + result_file_.ToString();
-    }
-
 private:
     //! The sum function which is applied to two elements.
     SumFunction sum_function_;
@@ -105,7 +94,7 @@ private:
     ValueType neutral_element_;
 
     //! Local data file
-    data::File file_;
+    data::File file_ { context_.GetFile() };
     //! Data writer to local file (only active in PreOp).
     data::File::Writer writer_ = file_.GetWriter();
 
@@ -138,6 +127,7 @@ template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIARef<ValueType, Stack>::PrefixSum(
     const SumFunction &sum_function, ValueType neutral_element) const {
+    assert(IsValid());
 
     using SumResultNode
               = PrefixSumNode<ValueType, DIARef, SumFunction>;
@@ -161,7 +151,7 @@ auto DIARef<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("PrefixSum", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("PrefixSum", DIANodeType::DOP);
     auto shared_node
         = std::make_shared<SumResultNode>(*this,
                                           sum_function,

@@ -14,6 +14,8 @@
 #ifndef THRILL_COMMON_LOGGER_HEADER
 #define THRILL_COMMON_LOGGER_HEADER
 
+#include <thrill/mem/allocator.hpp>
+
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -21,8 +23,14 @@
 namespace thrill {
 namespace common {
 
-//! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const std::string& name);
+//! memory manager singleton for Logger
+extern mem::Manager g_logger_mem_manager;
+
+template <typename Type>
+using LoggerAllocator = mem::FixedAllocator<Type, g_logger_mem_manager>;
+
+//! Defines a name for the current thread.
+void NameThisThread(const mem::by_string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();
@@ -96,19 +104,14 @@ class Logger<true>
 {
 protected:
     //! collector stream
-    std::ostringstream oss_;
-
-    //! for access to mutex_
-    template <bool Active>
-    friend class SpacingLogger;
+    std::basic_ostringstream<
+        char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
 public:
     //! Real active flag
     static const bool active = true;
 
-    Logger() {
-        oss_ << "[" << GetNameForThisThread() << "] ";
-    }
+    Logger();
 
     //! output any type, including io manipulators
     template <typename AnyType>
@@ -151,16 +154,14 @@ protected:
     bool first_ = true;
 
     //! collector stream
-    std::ostringstream oss_;
+    std::basic_ostringstream<
+        char, std::char_traits<char>, LoggerAllocator<char> > oss_;
 
 public:
     //! Real active flag
     static const bool active = true;
 
-    //! constructor: if real = false the output is suppressed.
-    SpacingLogger() {
-        oss_ << "[" << GetNameForThisThread() << "] ";
-    }
+    SpacingLogger();
 
     //! output any type, including io manipulators
     template <typename AnyType>

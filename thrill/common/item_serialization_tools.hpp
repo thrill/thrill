@@ -20,14 +20,6 @@
 #include <stdexcept>
 #include <string>
 
-#if defined(__GNUC__) || defined(__clang__)
-#define THRILL_LIKELY(c)   __builtin_expect((c), 1)
-#define THRILL_UNLIKELY(c) __builtin_expect((c), 0)
-#else
-#define THRILL_LIKELY(c)   c
-#define THRILL_UNLIKELY(c) c
-#endif
-
 namespace thrill {
 namespace common {
 

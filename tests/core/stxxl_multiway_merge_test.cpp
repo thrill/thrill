@@ -27,7 +27,11 @@ using namespace thrill; // NOLINT
 
 static const bool debug = false;
 
-TEST(MultiwayMerge, Basic) {
+struct MultiwayMerge : public::testing::Test {
+    data::BlockPool block_pool_ { nullptr };
+};
+
+TEST_F(MultiwayMerge, Basic) {
     std::mt19937 gen(0);
     std::size_t a = 2;
     std::size_t b = 5;
@@ -71,7 +75,7 @@ TEST(MultiwayMerge, Basic) {
     }
 }
 
-TEST(MultiwayMerge, Vector_Wrapper) {
+TEST_F(MultiwayMerge, Vector_Wrapper) {
     std::mt19937 gen(0);
     std::size_t a = 200;
     std::size_t b = 50;
@@ -116,7 +120,7 @@ TEST(MultiwayMerge, Vector_Wrapper) {
     }
 }
 
-TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
+TEST_F(MultiwayMerge, File_Wrapper_with_many_Runs) {
     std::mt19937 gen(0);
     // get _a_ different runs with _b[i]_ number of elements
     std::size_t a = 400;
@@ -158,7 +162,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
         }
         std::sort(std::begin(tmp), std::end(tmp));
 
-        data::File f;
+        data::File f(block_pool_);
         {
             auto w = f.GetWriter();
             for (auto& t : tmp) {
@@ -171,11 +175,11 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
     for (std::size_t t = 0; t < in.size(); ++t) {
         auto reader = std::make_shared<Reader>(in[t].GetReader());
         Iterator s(&in[t], reader, 0, true);
-        Iterator e(&in[t], reader, in[t].NumItems(), false);
+        Iterator e(&in[t], reader, in[t].num_items(), false);
         seq.push_back(std::make_pair(s, e));
     }
 
-    data::File output_file;
+    data::File output_file(block_pool_);
 
     {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
@@ -196,7 +200,7 @@ TEST(MultiwayMerge, File_Wrapper_with_many_Runs) {
     }
 }
 
-TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
+TEST_F(MultiwayMerge, File_Wrapper_with_1_Runs) {
     std::mt19937 gen(0);
     std::size_t a = 1;
     std::size_t b = 100;
@@ -228,7 +232,7 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
         }
         std::sort(std::begin(tmp), std::end(tmp));
 
-        data::File f;
+        data::File f(block_pool_);
         {
             auto w = f.GetWriter();
             for (auto& t : tmp) {
@@ -241,11 +245,11 @@ TEST(MultiwayMerge, File_Wrapper_with_1_Runs) {
     for (std::size_t t = 0; t < in.size(); ++t) {
         auto reader = std::make_shared<Reader>(in[t].GetReader());
         Iterator s(&in[t], reader, 0, true);
-        Iterator e(&in[t], reader, in[t].NumItems(), false);
+        Iterator e(&in[t], reader, in[t].num_items(), false);
         seq.push_back(std::make_pair(s, e));
     }
 
-    data::File output_file;
+    data::File output_file(block_pool_);
     {
         OIterator oiter(std::make_shared<Writer>(output_file.GetWriter()));
 

@@ -72,6 +72,15 @@ public:
         : block_source_(std::move(block_source))
     { }
 
+    //! non-copyable: delete copy-constructor
+    DynBlockSourceAdapter(const DynBlockSourceAdapter&) = delete;
+    //! non-copyable: delete assignment operator
+    DynBlockSourceAdapter& operator = (const DynBlockSourceAdapter&) = delete;
+    //! move-constructor: default
+    DynBlockSourceAdapter(DynBlockSourceAdapter&&) = default;
+    //! move-assignment operator: default
+    DynBlockSourceAdapter& operator = (DynBlockSourceAdapter&&) = default;
+
     Block NextBlock() final {
         return block_source_.NextBlock();
     }

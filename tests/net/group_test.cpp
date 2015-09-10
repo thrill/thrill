@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
+#include <thrill/mem/manager.hpp>
 #include <thrill/net/collective_communication.hpp>
 #include <thrill/net/dispatcher.hpp>
 #include <thrill/net/flow_control_channel.hpp>
@@ -20,7 +21,8 @@
 #include <thread>
 #include <vector>
 
-using namespace thrill::net;
+using namespace thrill;      // NOLINT
+using namespace thrill::net; // NOLINT
 
 static void ThreadInitializeAsyncRead(Group* net) {
     // send a message to all other clients except ourselves.
@@ -31,9 +33,10 @@ static void ThreadInitializeAsyncRead(Group* net) {
     }
 
     size_t received = 0;
-    Dispatcher dispatcher;
+    mem::Manager mem_manager(nullptr, "Dispatcher");
+    Dispatcher dispatcher(mem_manager);
 
-    Dispatcher::AsyncReadCallback callback =
+    AsyncReadCallback callback =
         [net, &received](Connection& /* s */, const Buffer& buffer) {
             ASSERT_EQ(*(reinterpret_cast<const size_t*>(buffer.data())),
                       net->my_host_rank());

@@ -60,7 +60,8 @@ public:
                  const ParentDIARef1& parent1,
                  MergeFunction merge_function,
                  StatsNode* stats_node)
-        : DOpNode<ValueType>(parent0.ctx(), { parent0.node(), parent1.node() }, "MergeNode", stats_node),
+        : DOpNode<ValueType>(parent0.ctx(),
+                             { parent0.node(), parent1.node() }, stats_node),
           merge_function_(merge_function)
     {
         // Hook PreOp(s)
@@ -104,10 +105,7 @@ public:
             while (readers[0].HasNext() && readers[1].HasNext()) {
                 MergeArg0 i0 = readers[0].Next<MergeArg0>();
                 MergeArg1 i1 = readers[1].Next<MergeArg1>();
-                ValueType v = zip_function_(i0, i1);
-                for (auto func : DIANode<ValueType>::callbacks_) {
-                    func(v);
-                }
+                this->PushItem(zip_function_(i0, i1));
                 ++result_count;
             }
 
@@ -134,14 +132,6 @@ public:
         return FunctionStack<MergeResult>();
     }
 
-    /*!
-     * Returns "[MergeNode]" as a string.
-     * \return "[MergeNode]"
-     */
-    std::string ToString() final {
-        return "[MergeNode]";
-    }
-
 private:
     //! Merge function
     MergeFunction merge_function_;
@@ -149,8 +139,13 @@ private:
     //! Number of storage DIAs backing
     static const size_t num_inputs_ = 2;
 
+    //! TODO
+    size_t result_size_;
+
     //! Files for intermediate storage
-    std::array<data::File, num_inputs_> files_;
+    std::array<data::File, num_inputs_> files_ {
+        { context_.GetFile(), context_.GetFile() }
+    };
 
     //! Writers to intermediate files
     std::array<data::File::Writer, num_inputs_> writers_  {
@@ -186,7 +181,9 @@ private:
 template <typename ValueType, typename Stack>
 template <typename MergeFunction, typename SecondDIA>
 auto DIARef<ValueType, Stack>::Merge(
-    SecondDIA second_dia, const MergeFunction &zip_function) const {
+    SecondDIA second_dia, const MergeFunction &merge_function) const {
+    assert(IsValid());
+    assert(second_dia.IsValid());
 
     using MergeResult
               = typename FunctionTraits<MergeFunction>::result_type;
@@ -208,7 +205,7 @@ auto DIARef<ValueType, Stack>::Merge(
             >::value,
         "MergeFunction has the wrong input type in DIA 1");
 
-    StatsNode* stats_node = AddChildStatsNode("Merge", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("Merge", DIANodeType::DOP);
     second_dia.AppendChildStatsNode(stats_node);
     auto merge_node
         = std::make_shared<MergeResultNode>(*this,
@@ -218,8 +215,8 @@ auto DIARef<ValueType, Stack>::Merge(
 
     auto merge_stack = merge_node->ProduceStack();
 
-    return DIARef<MergeResult, decltype(Merge_stack)>(
-        Merge_node,
+    return DIARef<MergeResult, decltype(merge_stack)>(
+        merge_node,
         merge_stack,
         { stats_node });
 }

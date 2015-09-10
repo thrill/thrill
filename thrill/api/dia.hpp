@@ -6,6 +6,7 @@
  * Part of Project Thrill.
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2015 Sebastian Lamm <seba.lamm@gmail.com>
  * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
  *
  * This file has no license. Only Chunk Norris can compile it.
@@ -23,11 +24,8 @@
 #include <thrill/common/functional.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,9 +35,6 @@ namespace api {
 
 //! \addtogroup api Interface
 //! \{
-
-template <typename T>
-class DIANode;
 
 /*!
  * DIARef is the interface between the user and the Thrill framework. A DIARef
@@ -80,6 +75,14 @@ public:
     //! input type.
     using DIANodePtr = std::shared_ptr<DIANode<StackInput> >;
 
+    //! default-constructor: invalid DIARef
+    DIARef()
+        : node_(nullptr)
+    { }
+
+    //! Return whether the DIARef is valid.
+    bool IsValid() const { return node_.get(); }
+
     /*!
      * Constructor of a new DIARef with a pointer to a DIANode and a
      * function chain from the DIANode to this DIARef.
@@ -90,7 +93,8 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(const DIANodePtr& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(const DIANodePtr& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(node),
           stack_(stack),
           stats_parents_(stats_parents)
@@ -105,18 +109,18 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIARef.
      */
-    DIARef(DIANodePtr&& node, const Stack& stack, const std::vector<StatsNode*>& stats_parents)
+    DIARef(DIANodePtr&& node, const Stack& stack,
+           const std::vector<StatsNode*>& stats_parents)
         : node_(std::move(node)),
           stack_(stack),
           stats_parents_(stats_parents)
     { }
 
     /*!
-     * Copy-Constructor of a DIARef with empty function chain
-     * from a DIARef with a non-empty chain.
-     * The functionality of the chain is stored in a newly created LOpNode.
-     * The current DIARef than points to this LOpNode.
-     * This is needed to support assignment operations between DIARef's.
+     * Copy-Constructor of a DIARef with empty function chain from a DIARef with
+     * a non-empty chain.  The functionality of the chain is stored in a newly
+     * created LOpNode.  The current DIARef than points to this LOpNode.  This
+     * is needed to support assignment operations between DIARef's.
      *
      * \param rhs DIA containing a non-empty function chain.
      */
@@ -134,30 +138,36 @@ public:
 
     //! Returns a pointer to the according DIANode.
     const DIANodePtr & node() const {
+        assert(IsValid());
         return node_;
     }
 
     //! Returns the number of references to the according DIANode.
     size_t node_refcount() const {
+        assert(IsValid());
         return node_.use_count();
     }
 
     //! Returns the stored function chain.
     const Stack & stack() const {
+        assert(IsValid());
         return stack_;
     }
 
-    StatsNode * AddChildStatsNode(const std::string& label, const NodeType& type) const {
+    StatsNode * AddChildStatsNode(const char* label, const DIANodeType& type) const {
         StatsNode* node = node_->context().stats_graph().AddNode(label, type);
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, node);
         return node;
     }
 
     void AppendChildStatsNode(StatsNode* stats_node) const {
-        for (const auto& parent : stats_parents_) node_->context().stats_graph().AddEdge(parent, stats_node);
+        for (const auto& parent : stats_parents_)
+            node_->context().stats_graph().AddEdge(parent, stats_node);
     }
 
     Context & ctx() const {
+        assert(IsValid());
         return node_->context();
     }
 
@@ -174,6 +184,8 @@ public:
      */
     template <typename MapFunction>
     auto Map(const MapFunction &map_function) const {
+        assert(IsValid());
+
         using MapArgument
                   = typename FunctionTraits<MapFunction>::template arg<0>;
         using MapResult
@@ -187,14 +199,13 @@ public:
             "MapFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_map_function);
-        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", NodeType::LAMBDA) });
+        return DIARef<MapResult, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Map", DIANodeType::LAMBDA) });
     }
 
     /*!
-     * Filter is a LOp, which filters elements from  this DIARef
-     * according to the filter_function given by the
-     * user. The filter_function maps each element to a boolean.
-     * The function chain of the returned DIARef is this DIARef's
+     * Filter is a LOp, which filters elements from this DIARef according to the
+     * filter_function given by the user. The filter_function maps each element
+     * to a boolean.  The function chain of the returned DIARef is this DIARef's
      * stack_ chained with filter_function.
      *
      * \tparam FilterFunction Type of the map function.
@@ -205,6 +216,8 @@ public:
      */
     template <typename FilterFunction>
     auto Filter(const FilterFunction &filter_function) const {
+        assert(IsValid());
+
         using FilterArgument
                   = typename FunctionTraits<FilterFunction>::template arg<0>;
         auto conv_filter_function = [=](FilterArgument input, auto emit_func) {
@@ -216,7 +229,7 @@ public:
             "FilterFunction has the wrong input type");
 
         auto new_stack = stack_.push(conv_filter_function);
-        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", NodeType::LAMBDA) });
+        return DIARef<ValueType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("Filter", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -237,8 +250,10 @@ public:
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
     auto FlatMap(const FlatmapFunction &flatmap_function) const {
+        assert(IsValid());
+
         auto new_stack = stack_.push(flatmap_function);
-        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", NodeType::LAMBDA) });
+        return DIARef<ResultType, decltype(new_stack)>(node_, new_stack, { AddChildStatsNode("FlatMap", DIANodeType::LAMBDA) });
     }
 
     /*!
@@ -252,8 +267,8 @@ public:
      * of the PostOp of Reduce, as a reduced element can
      * directly be chained to the following LOps.
      *
-     * \tparam KeyExtractor Type of the key_extractor function.
-     * The key_extractor function is equal to a map function.
+     * \tparam KeyExtractor Type of the key_extractor function.  The
+     * key_extractor function is equal to a map function.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
@@ -498,6 +513,13 @@ public:
     auto Zip(SecondDIA second_dia, const ZipFunction &zip_function) const;
 
     /*!
+     * TODO
+     */
+    template <typename MergeFunction, typename SecondDIA>
+    auto Merge(
+        SecondDIA second_dia, const MergeFunction &zip_function) const;
+
+    /*!
      * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
      * function defines how two elements are combined to a single element.
      *
@@ -554,9 +576,32 @@ public:
      * files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
-     * \param filepath Destination of the output file.
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param target_file_size target size of each individual file.
      */
-    void WriteLinesMany(const std::string& filepath) const;
+    void WriteLinesMany(const std::string& filepath,
+                        size_t target_file_size = 128* 1024* 1024) const;
+
+    /*!
+     * WriteBinary is a function, which writes a DIA to many files per
+     * worker. The input DIA can be recreated with ReadBinary and equal
+     * filepath.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param max_file_size size limit of individual file.
+     */
+    void WriteBinary(const std::string& filepath,
+                     size_t max_file_size = 128* 1024* 1024) const;
 
     /*!
      * AllGather is an Action, which returns the whole DIA in an std::vector on
@@ -614,8 +659,6 @@ private:
 /*!
  * ReadLines is a DOp, which reads a file from the file system and
  * creates an ordered DIA according to a given read function.
- *
- * \tparam ReadFunction Type of the read function.
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system

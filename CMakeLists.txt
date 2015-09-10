@@ -23,8 +23,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-option(JENKINS_BUILD "Build all with more warnings" OFF)
-
 option(USE_GCOV "Compile and run tests with gcov for coverage analysis." OFF)
 
 option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
@@ -32,6 +30,10 @@ option(USE_VALGRIND "Run tests with valgrind, reports using XML files." OFF)
 option(USE_IWYU "Compile with include-what-you-use (iwyu) tool." OFF)
 
 option(USE_TBB "Use (optional) Intel TBB library if available." ON)
+
+option(THRILL_USE_SWIG "Use (optional) swig wrapper generator." ON)
+
+option(THRILL_REQUIRE_SWIG "Make swig wrapper generator mandatory." OFF)
 
 option(TRY_COMPILE_HEADERS "Test header files for self-sufficiency: try to compile them." OFF)
 
@@ -44,13 +46,22 @@ else()
 endif()
 
 # enable warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -g -W -Wall -Wextra -fPIC")
 
 # enable more warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
+# enable AddressSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+# enable ThreadSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+
+# enable UndefinedBehaviorSanitizer
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wcast-qual")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-qual")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winit-self -Wnoexcept")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wredundant-decls")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel -Wstrict-overflow=5")
@@ -63,32 +74,25 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
 endif()
 
-# enable AddressSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ON)
+  # Clang < 3.6 0 (?) does not support debug output for auto return types yet
+  # try compiling a program with auto return types
+  include(CheckCXXSourceCompiles)
+  set(OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
-# enable ThreadSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
+  check_cxx_source_compiles(
+    "template <typename T> struct A { auto func(int i) { return 42 + i; } };
+     int main() { A<int> a; return 0; }"
+    THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
 
-# enable UndefinedBehaviorSanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
-
-# add sanitizer flags for debug builds
-if(JENKINS_BUILD)
-
-  if(NOT USE_VALGRIND)
-    # enable AddressSanitizer
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    # enable ThreadSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-    # enable UndefinedBehaviorSanitizer
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+  if (NOT THRILL_CLANG_AUTO_RETURN_DEBUG_INFO)
+    message(STATUS "compiler does not support -g debug info with auto returns")
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 
-  # build using libc++ with clang in Jenkins
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-    message(STATUS "Building using libc++ on clang")
-  endif()
+  set(CMAKE_REQUIRED_FLAGS "${OLD_CMAKE_REQUIRED_FLAGS}")
 endif()
 
 if(USE_IWYU)
@@ -103,21 +107,6 @@ if(USE_IWYU)
       COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}"
       COMMENT "Running include-what-you-use tool"
       VERBATIM)
-  endif()
-endif()
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} --version
-    OUTPUT_VARIABLE clang_full_version_string)
-
-  string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1"
-    CLANG_VERSION_STRING ${clang_full_version_string})
-
-  if (CLANG_VERSION_STRING VERSION_LESS 3.6 AND NOT APPLE)
-    # Clang < 3.6 0 (?) does not support debug output for auto return types yet
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-    string(REPLACE "-g" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
   endif()
 endif()
 
@@ -194,6 +183,15 @@ set(THRILL_VALGRIND_OPTS
 #  --suppressions=${PROJECT_SOURCE_DIR}/misc/valgrind.supp)
 
 ###############################################################################
+# check some required system functions
+
+include(CheckFunctionExists)
+check_function_exists(pipe2 THRILL_HAVE_PIPE2)
+if(THRILL_HAVE_PIPE2)
+  add_definitions(-DTHRILL_HAVE_PIPE2=1)
+endif()
+
+###############################################################################
 # add cereal
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
@@ -209,8 +207,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extlib/stxxl/include)
 
 # find pthreads
 
-find_package(Threads)
+find_package(Threads REQUIRED)
 set(ALL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ALL_LIBRARIES})
+
+# use dl (dynamic linker library)
+
+set(ALL_LIBRARIES ${ALL_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # try to find Intel TBB (optional)
 
@@ -220,16 +222,16 @@ endif()
 
 if(NOT TBB_FOUND)
   message(STATUS "Intel TBB not found. No problem, using slower replacements.")
-  add_definitions(-DHAVE_INTELTBB=0)
+  add_definitions(-DTHRILL_HAVE_INTELTBB=0)
 elseif(TBB_INTERFACE_VERSION LESS 8000)
   message(STATUS "Intel TBB ${TBB_INTERFACE_VERSION} is too old. "
     "No problem, using slower replacements.")
-  add_definitions(-DHAVE_INTELTBB=0)
+  add_definitions(-DTHRILL_HAVE_INTELTBB=0)
 else(NOT TBB_FOUND)
   include_directories(${TBB_INCLUDE_DIRS})
   link_directories(${TBB_LIBRARY_DIRS})
   set(ALL_LIBRARIES ${TBB_LIBRARIES} ${ALL_LIBRARIES})
-  add_definitions(-DHAVE_INTELTBB=1)
+  add_definitions(-DTHRILL_HAVE_INTELTBB=1)
 endif()
 
 # example: use Boost libraries:
@@ -238,6 +240,18 @@ endif()
 #include_directories(${Boost_INCLUDE_DIRS})
 #set(ALL_LIBRARIES ${Boost_LIBRARIES} ${ALL_LIBRARIES})
 #message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
+
+# SWIG (optional)
+
+if(THRILL_USE_SWIG)
+  find_package(SWIG)
+  if(SWIG_FOUND)
+    include(${SWIG_USE_FILE})
+  endif()
+  if(NOT SWIG_FOUND AND THRILL_REQUIRE_SWIG)
+    message(FATAL "Swig was not found but is mandatory.")
+  endif()
+endif()
 
 ################################################################################
 ### Build Macros
@@ -272,6 +286,11 @@ add_subdirectory(tests)
 
 # descend into benchmarks and examples programs
 add_subdirectory(benchmarks)
+
+if(SWIG_FOUND)
+  # build swig frontends
+  add_subdirectory(swig)
+endif()
 
 ###############################################################################
 ### cmake script TRY_COMPILE all stxxl header files

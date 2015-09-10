@@ -13,6 +13,7 @@
 #define THRILL_DATA_BLOCK_READER_HEADER
 
 #include <thrill/common/config.hpp>
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
@@ -48,6 +49,15 @@ public:
     //! Return reference to enclosed BlockSource
     BlockSource & source() { return source_; }
 
+    //! non-copyable: delete copy-constructor
+    BlockReader(const BlockReader&) = delete;
+    //! non-copyable: delete assignment operator
+    BlockReader& operator = (const BlockReader&) = delete;
+    //! move-constructor: default
+    BlockReader(BlockReader&&) = default;
+    //! move-assignment operator: default
+    BlockReader& operator = (BlockReader&&) = default;
+
     //! \name Reading (Generic) Items
     //! \{
 
@@ -55,8 +65,8 @@ public:
     template <typename T>
     T Next() {
         assert(HasNext());
-        assert(nitems_ > 0);
-        --nitems_;
+        assert(num_items_ > 0);
+        --num_items_;
 
         if (self_verify) {
             // for self-verification, T is prefixed with its hash code
@@ -70,11 +80,20 @@ public:
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
+    //! Next() reads a complete item T, without item counter or self
+    //! verification
+    template <typename T>
+    T NextNoSelfVerify() {
+        assert(HasNext());
+        return Serialization<BlockReader, T>::Deserialize(*this);
+    }
+
     //! HasNext() returns true if at least one more byte is available.
     bool HasNext() {
         while (current_ == end_) {
-            if (!NextBlock())
+            if (!NextBlock()) {
                 return false;
+            }
         }
         return true;
     }
@@ -106,11 +125,11 @@ public:
 
         // inside the if-clause the current_ may not point to a valid item
         // boundary.
-        if (n >= nitems_)
+        if (n >= num_items_)
         {
             // *** if the current block still contains items, push it partially
 
-            if (n >= nitems_) {
+            if (n >= num_items_) {
                 // construct first Block using current_ pointer
                 out.emplace_back(
                     bytes_,
@@ -119,39 +138,37 @@ public:
                     // first item is at begin_ (we may have dropped some)
                     current_ - bytes_->begin(),
                     // remaining items in this block
-                    nitems_);
+                    num_items_);
 
                 sLOG << "partial first:" << out.back();
 
-                n -= nitems_;
+                n -= num_items_;
 
                 // get next block. if not possible -> may be okay since last
                 // item might just terminate the current block.
                 if (!NextBlock()) {
                     assert(n == 0);
-                    sLOG << "exit1 after batch:"
-                         << "current_=" << current_ - bytes_->begin();
+                    sLOG << "exit1 after batch.";
                     return out;
                 }
             }
 
             // *** then append complete blocks without deserializing them
 
-            while (n >= nitems_) {
+            while (n >= num_items_) {
                 out.emplace_back(
                     bytes_,
                     // full range is valid.
                     current_ - bytes_->begin(), end_ - bytes_->begin(),
-                    first_item_, nitems_);
+                    first_item_, num_items_);
 
                 sLOG << "middle:" << out.back();
 
-                n -= nitems_;
+                n -= num_items_;
 
                 if (!NextBlock()) {
                     assert(n == 0);
-                    sLOG << "exit2 after batch:"
-                         << "current_=" << current_ - bytes_->begin();
+                    sLOG << "exit2 after batch.";
                     return out;
                 }
             }
@@ -245,13 +262,13 @@ public:
             bytes -= end_ - current_;
             // deduct number of remaining items in skipped block from item skip
             // counter.
-            items -= nitems_;
+            items -= num_items_;
             if (!NextBlock())
                 throw std::runtime_error("Data underflow in BlockReader.");
         }
         current_ += bytes;
         // the last line skipped over the remaining "items" number of items.
-        nitems_ -= items;
+        num_items_ -= items;
         return *this;
     }
 
@@ -294,7 +311,7 @@ protected:
     BlockSource source_;
 
     //! The current block being read, this holds a shared pointer reference.
-    ByteBlockCPtr bytes_;
+    ByteBlockPtr bytes_;
 
     //! current read pointer into current block of file.
     const Byte* current_ = nullptr;
@@ -307,7 +324,7 @@ protected:
     size_t first_item_;
 
     //! remaining number of items starting in this block
-    size_t nitems_ = 0;
+    size_t num_items_ = 0;
 
     //! pointer to vector to collect blocks in GetItemRange.
     std::vector<Block>* block_collect_ = nullptr;
@@ -325,8 +342,8 @@ protected:
 
         current_ = b.data_begin();
         end_ = b.data_end();
-        first_item_ = b.first_item();
-        nitems_ = b.nitems();
+        first_item_ = b.first_item_absolute();
+        num_items_ = b.num_items();
         return true;
     }
 };

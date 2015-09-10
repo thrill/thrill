@@ -131,7 +131,6 @@ class GroupByNode : public DOpNode<ValueType>
     };
 
     using Super::context_;
-    using Super::result_file_;
 
 public:
     /*!
@@ -148,12 +147,13 @@ public:
                 GroupFunction groupby_function,
                 StatsNode* stats_node,
                 const HashFunction& hash_function = HashFunction())
-        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, "GroupBy", stats_node),
+        : DOpNode<ValueType>(parent.ctx(), { parent.node() }, stats_node),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
           channel_(parent.ctx().GetNewChannel()),
-          emitter_(channel_->OpenWriters())
+          emitter_(channel_->OpenWriters()),
+          sorted_elems_(context_.GetFile())
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -212,13 +212,13 @@ public:
         return FunctionStack<ValueType>();
     }
 
-    /*!
-     * Returns "[GroupByNode]" and its id as a string.
-     * \return "[GroupByNode]"
-     */
-    std::string ToString() override {
-        return "[GroupByNode] Id: " + result_file_.ToString();
-    }
+    // /*!
+    //  * Returns "[GroupByNode]" and its id as a string.
+    //  * \return "[GroupByNode]"
+    //  */
+    // std::string ToString() override {
+    //     return "[GroupByNode] Id: " + result_file_.ToString();
+    // }
 
 private:
     KeyExtractor key_extractor_;
@@ -226,7 +226,7 @@ private:
     HashFunction hash_function_;
 
     data::ChannelPtr channel_;
-    std::vector<data::BlockWriter> emitter_;
+    std::vector<data::Channel::Writer> emitter_;
     std::vector<data::File> files_;
     data::File sorted_elems_;
 
@@ -245,7 +245,7 @@ private:
     void FlushVectorToFile(std::vector<ValueIn>& v) {
         // sort run and sort to file
         std::sort(v.begin(), v.end(), ValueComparator(*this));
-        data::File f;
+        auto f = context_.GetFile();
         {
             auto w = f.GetWriter();
             for (const auto& e : v) {
@@ -264,7 +264,7 @@ private:
         using Reader = File::Reader;
         using Writer = File::Writer;
 
-        LOG << ToString() << " running group by main op";
+        LOG << "running group by main op";
 
         const std::size_t FIXED_VECTOR_SIZE = 99999;
         std::vector<ValueIn> incoming;
@@ -296,7 +296,13 @@ private:
         const auto num_elems = files_.size();
         // if there's only one run, store it
         if (num_elems == 1) {
-            sorted_elems_ = std::move(files_[0]);
+            auto w = sorted_elems_.GetWriter();
+            auto r = files_[0].GetReader();
+            {
+                while(r.HasNext()) {
+                    w(r.template Next<ValueIn>());
+                }
+            }
         } // otherwise sort all runs using multiway merge
         else {
             std::vector<std::pair<Iterator, Iterator> > seq;
@@ -304,7 +310,7 @@ private:
             for (std::size_t t = 0; t < num_elems; ++t) {
                 auto reader = std::make_shared<Reader>(files_[t].GetReader());
                 Iterator s = Iterator(&files_[t], reader, 0, true);
-                Iterator e = Iterator(&files_[t], reader, files_[t].NumItems(), false);
+                Iterator e = Iterator(&files_[t], reader, files_[t].num_items(), false);
                 seq.push_back(std::make_pair(std::move(s), std::move(e)));
             }
 
@@ -340,7 +346,7 @@ auto DIARef<ValueType, Stack>::GroupBy(
             ValueType>::value,
         "KeyExtractor has the wrong input type");
 
-    StatsNode* stats_node = AddChildStatsNode("GroupBy", NodeType::DOP);
+    StatsNode* stats_node = AddChildStatsNode("GroupBy", DIANodeType::DOP);
     using GroupByResultNode
               = GroupByNode<DOpResult, DIARef, KeyExtractor,
                             GroupFunction, HashFunction>;

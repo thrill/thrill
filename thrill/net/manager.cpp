@@ -127,6 +127,9 @@ protected:
     //! Link to manager being initialized
     Manager& mgr_;
 
+    //! Temporary Manager for construction
+    mem::Manager mem_manager_ { nullptr, "Construction" };
+
     //! Link to manager's groups to initialize
     std::array<Group, kGroupCount>& groups_ = mgr_.groups_;
 
@@ -145,7 +148,7 @@ protected:
      * The dispatcher instance used by this Manager
      * to perform async operations.
      */
-    Dispatcher dispatcher_;
+    Dispatcher dispatcher_ { mem_manager_ };
 
     // Some definitions for convenience
     using Socket = lowlevel::Socket;
@@ -270,6 +273,11 @@ protected:
                                      return OnConnected(nc, address);
                                  });
         }
+        else if (errno == ECONNREFUSED) {
+            LOG << "Early connect refused.";
+            // connect() already refused connection?
+            OnConnected(nc, address, errno);
+        }
         else {
             // Failed to even try the connection - this might be a permanent
             // error.
@@ -354,12 +362,15 @@ protected:
      * \param address The associated address. This parameter is needed in case
      * we need to reconnect.
      *
+     * \param _err An errno state if called synchronously after a connect().
+     *
      * \return A bool indicating wether this callback should stay registered.
      */
-    bool OnConnected(Connection& conn, const SocketAddress& address) {
+    bool OnConnected(Connection& conn, const SocketAddress& address,
+                     int _err = 0) {
 
         // First, check if everything went well.
-        int err = conn.GetSocket().GetError();
+        int err = _err ? _err : conn.GetSocket().GetError();
 
         if (conn.state() != ConnectionState::Connecting) {
             LOG << "Client " << my_rank_
@@ -368,8 +379,7 @@ protected:
             die("FAULTY STATE DETECTED");
         }
 
-        if (err == Socket::Errors::ConnectionRefused ||
-            err == Socket::Errors::Timeout) {
+        if (err == ECONNREFUSED || err == ETIMEDOUT) {
 
             // Connection refused. The other workers might not be online yet.
 
@@ -414,18 +424,18 @@ protected:
         // send welcome message
         const WelcomeMsg hello = { thrill_sign, conn.group_id(), my_rank_ };
 
-        dispatcher_.AsyncWriteCopy(conn, &hello, sizeof(hello),
-                                   [=](Connection& nc) {
-                                       return OnHelloSent(nc);
-                                   });
+        dispatcher_.AsyncWriteCopy(
+            conn, &hello, sizeof(hello),
+            AsyncWriteCallback::from<
+                Construction, & Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_ << " sent active hello to "
             << "client " << conn.peer_id() << " group id " << conn.group_id();
 
-        dispatcher_.AsyncRead(conn, sizeof(hello),
-                              [=](Connection& nc, Buffer&& b) {
-                                  OnIncomingWelcome(nc, std::move(b));
-                              });
+        dispatcher_.AsyncRead(
+            conn, sizeof(hello),
+            AsyncReadCallback::from<
+                Construction, & Construction::OnIncomingWelcome>(this));
 
         return false;
     }
@@ -439,7 +449,7 @@ protected:
      *
      * \return A boolean indicating wether this handler should stay attached.
      */
-    bool OnIncomingWelcome(Connection& conn, Buffer&& buffer) {
+    void OnIncomingWelcome(Connection& conn, Buffer&& buffer) {
 
         die_unless(conn.GetSocket().IsValid());
         die_unequal(buffer.size(), sizeof(WelcomeMsg));
@@ -462,8 +472,6 @@ protected:
         die_unequal(conn.group_id(), msg->group_id);
 
         conn.set_state(ConnectionState::Connected);
-
-        return false;
     }
 
     /**
@@ -475,7 +483,7 @@ protected:
      *
      * \return A boolean indicating wether this handler should stay attached.
      */
-    bool OnIncomingWelcomeAndReply(Connection& conn, Buffer&& buffer) {
+    void OnIncomingWelcomeAndReply(Connection& conn, Buffer&& buffer) {
 
         die_unless(conn.GetSocket().IsValid());
         die_unless(conn.state() != ConnectionState::TransportConnected);
@@ -505,15 +513,13 @@ protected:
 
         const WelcomeMsg msg_out = { thrill_sign, msg_in->group_id, my_rank_ };
 
-        dispatcher_.AsyncWriteCopy(c, &msg_out, sizeof(msg_out),
-                                   [=](Connection& nc) {
-                                       return OnHelloSent(nc);
-                                   });
+        dispatcher_.AsyncWriteCopy(
+            c, &msg_out, sizeof(msg_out),
+            AsyncWriteCallback::from<
+                Construction, & Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_
             << " sent passive hello to client " << msg_in->id;
-
-        return false;
     }
 
     /**
@@ -535,10 +541,10 @@ protected:
             << " from=" << connections_.back().GetPeerAddress();
 
         // wait for welcome message from other side
-        dispatcher_.AsyncRead(connections_.back(), sizeof(WelcomeMsg),
-                              [&](Connection& nc, Buffer&& b) {
-                                  OnIncomingWelcomeAndReply(nc, std::move(b));
-                              });
+        dispatcher_.AsyncRead(
+            connections_.back(), sizeof(WelcomeMsg),
+            AsyncReadCallback::from<
+                Construction, & Construction::OnIncomingWelcomeAndReply>(this));
 
         // wait for more connections.
         return true;
@@ -548,7 +554,13 @@ protected:
 Manager::Manager(size_t my_rank,
                  const std::vector<std::string>& endpoints)
     : my_rank_(my_rank) {
-    Construction(*this).Initialize(my_rank_, endpoints);
+    try {
+        Construction(*this).Initialize(my_rank_, endpoints);
+    }
+    catch (std::exception& e) {
+        LOG1 << "Exception: " << e.what();
+        throw;
+    }
 }
 
 Manager::Manager(size_t my_rank,
