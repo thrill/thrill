@@ -23,6 +23,8 @@
 #include <thrill/data/buffered_block_reader.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/net/collective_communication.hpp>
+#include <thrill/common/stats_counter.hpp>
+#include <thrill/common/stats_timer.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -36,11 +38,46 @@ namespace api {
 //! \addtogroup api Interface
 //! \{
 
-namespace merge_local {
-    template <typename ItemType, typename CompareFunction>
-    static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator) {
 
+namespace merge_local {
+    
+    static const bool stats_enabled = true;
+
+    struct MergeStatsBase {
+        thrill::common::StatsTimer<stats_enabled> IndexOfTimer;
+        thrill::common::StatsTimer<stats_enabled> GetAtIndexTimer;
+        thrill::common::StatsTimer<stats_enabled> MergeTimer;
+        thrill::common::StatsTimer<stats_enabled> BalancingTimer;
+        thrill::common::StatsTimer<stats_enabled> PivotSelectionTimer;
+        thrill::common::StatsTimer<stats_enabled> PivotLocationTimer;
+        thrill::common::StatsTimer<stats_enabled> OffsetCalculationTimer;
+    };
+
+    
+    struct MergeStats : public MergeStatsBase {
+        void Print() { 
+            if(stats_enabled) {
+                static const bool debug = true;
+
+                LOG << "Merge Statistics: ";
+
+                LOG << "Merging: " << MergeTimer.Microseconds() << " mms";
+                LOG << "Balancing: " << BalancingTimer.Microseconds() << " mms";
+                LOG << "Pivot Selection: " << PivotSelectionTimer.Microseconds() << " mms";
+                LOG << "Pivot Localization: " << PivotLocationTimer.Microseconds() << " mms";
+                LOG << "Offset Calculation: " << OffsetCalculationTimer.Microseconds() << " mms";
+                LOG << "Index Of: " << IndexOfTimer.Microseconds() << " mms";
+                LOG << "Get at Index: " << GetAtIndexTimer.Microseconds() << " mms";
+            }
+        }
+    };
+
+    template <typename ItemType, typename CompareFunction>
+    static ItemType GetAt(size_t k, const std::vector<data::File> &files, CompareFunction comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
+        
         static const bool debug = false;
+
+        START_TIMER(timer);
         
         size_t n = files.size();
         std::vector<size_t> left(n);
@@ -112,12 +149,17 @@ namespace merge_local {
         size_t j = remap[k];
         ItemType value = files[j].GetItemAt<ItemType>(mid[j]);
         LOG << "Selected value " << value; 
+        
+        STOP_TIMER(timer);
+        
         return value;
     }
 
     template <typename ItemType, typename Comperator>
-    static size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files, Comperator comperator) {
+    static size_t IndexOf(ItemType element, size_t tie, const std::vector<data::File> &files, Comperator comperator, common::StatsTimer<stats_enabled> *timer = NULL) {
         static const bool debug = false;
+
+        START_TIMER(timer);
 
         //Get the index of a given element, or the first
         //Greater one - 1 
@@ -137,6 +179,8 @@ namespace merge_local {
 
         LOG << "hidx: " << hidx << ", lidx: " << lidx << ", tie: " << tie; 
 
+        STOP_TIMER(timer);
+
         if(tie > hidx) {
             return hidx;
         } else if(tie < lidx) {
@@ -153,6 +197,8 @@ template <typename ValueType,
 class TwoMergeNode : public DOpNode<ValueType>
 {
     static const bool debug = false;
+
+    merge_local::MergeStats stats;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -193,11 +239,14 @@ public:
         MainOp();
     }
 
+
     void PushData(bool consume) final {
         size_t result_count = 0;
         static const bool debug = false;
 
         LOG << "Entering Main OP";
+
+        stats.MergeTimer.Start();
 
         typedef data::BufferedBlockReader<ValueType, data::ConcatBlockSource<data::DynBlockSource>> Reader; 
 
@@ -209,36 +258,31 @@ public:
 
         while(true) {
 
-            int biggest = -1;
+            auto &a = readers[0];
+            auto &b = readers[1];
 
-            // REVIEW(ej): i didnt even see that this merges, so horrible.
-
-            for (size_t i = 0; i < readers.size(); i++) {
-                if(readers[i].HasValue()) {
-                    if(biggest == -1 || comperator_(readers[i].Value(), readers[biggest].Value())) {
-                       biggest = (int)i; 
-                    }
+            if(a.HasValue() && b.HasValue()) {
+                if(comperator_(b.Value(), a.Value())) {
+                    PushDataToChilds(b.Value());
+                    b.Next();
+                } else {
+                    PushDataToChilds(a.Value());
+                    a.Next();
                 }
-            }
-
-            if(biggest == -1) {
-                LOG << "Finished Merge.";
-                //We finished.
-                break;
+            } else if(b.HasValue()) {
+                PushDataToChilds(b.Value());
+                b.Next();
+            } else if(a.HasValue()) {
+                PushDataToChilds(a.Value());
+                a.Next();
             } else {
-                LOG << "Use " << biggest; 
+                break;
             }
-
-            auto &reader = readers[biggest];
-
-            for (auto func : DIANode<ValueType>::callbacks_) {
-                func(reader.Value());
-            }
-
-            reader.Next();
 
             result_count++;
         }
+        
+        stats.MergeTimer.Stop();
 
         for (size_t i = 0; i < channels_.size(); i++) {
             channels_[i]->Close();
@@ -246,6 +290,8 @@ public:
         }
         
         sLOG << "Merge: result_count" << result_count;
+
+        stats.Print();
     }
 
     void Dispose() final { }
@@ -326,6 +372,7 @@ private:
         net::FlowControlChannel& flowControl = context_.flow_control_channel();
 
         //Partitioning happens here.
+        stats.BalancingTimer.Start();
         
         //Environment
         size_t me = context_.my_rank(); //Local rank. 
@@ -387,12 +434,15 @@ private:
         std::vector<Pivot> pivots(p - 1);
         std::vector<size_t> splitsum(p - 1);
 
-        Pivot zero = CreatePivot(merge_local::GetAt<ValueType>(0, files_, comperator_), 0);
+        Pivot zero = CreatePivot(merge_local::GetAt<ValueType>(0, files_, comperator_, &stats.GetAtIndexTimer), 0);
         zero.valid = false;
 
         //Partition loop 
         
         while(1) {
+            stats.PivotSelectionTimer.Start();
+
+
             flowControl.ArrayPrefixSum(width, widthscan, std::plus<ValueType>(), false);
             flowControl.ArrayAllReduce(width, widthsum, std::plus<ValueType>());
              
@@ -434,10 +484,10 @@ private:
                    
                    size_t localRank = left[r] + pivotrank[r] - widthscan[r]; 
                    LOG << "Selecting local rank " << localRank << " zero pivot " << r;
-                   ValueType pivotElement = merge_local::GetAt<ValueType>(localRank, files_, comperator_);
+                   ValueType pivotElement = merge_local::GetAt<ValueType>(localRank, files_, comperator_, &stats.GetAtIndexTimer);
 
                    if(debug) {
-                        assert(merge_local::IndexOf(pivotElement, localRank, files_, comperator_) == localRank);
+                        assert(merge_local::IndexOf(pivotElement, localRank, files_, comperator_, &stats.IndexOfTimer) == localRank);
                    }
                     
                    Pivot pivot = CreatePivot(pivotElement, localRank + prefixSize);
@@ -470,11 +520,14 @@ private:
 
             LOG << "Final Pivots: " << VToStr(pivots);
 
+            stats.PivotSelectionTimer.Stop();
+            stats.PivotLocationTimer.Start();
+
             for(size_t r = 0; r < p - 1; r++) {
                 if(widthsum[r] <= 1) {
                     split[r] = 0;
                 } else {
-                    split[r] = merge_local::IndexOf(pivots[r].first, pivots[r].second - prefixSize, files_, comperator_) - left[r];
+                    split[r] = merge_local::IndexOf(pivots[r].first, pivots[r].second - prefixSize, files_, comperator_, &stats.IndexOfTimer) - left[r];
                 }
             }
 
@@ -500,6 +553,7 @@ private:
                     width[r] = split[r];
                 }
             } 
+            stats.PivotLocationTimer.Stop();
         }
 
         //Cool, parts contains the global splitters now. But we need
@@ -518,6 +572,8 @@ private:
 
         LOG << "Calculating offsets.";
 
+        stats.OffsetCalculationTimer.Start();
+
         //TODO(ej) - this is superfluiouuiuius. We can probably
         //Extract the ranks per file from the above loop. 
         for(size_t i = 0; i < p - 1; i++) {
@@ -526,7 +582,7 @@ private:
             LOG << "Global Splitter " << i << ": " << globalSplitter;
             if(globalSplitter < dataSize) {
                 //We have to find file-local splitters.
-                ValueType pivot = merge_local::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_);
+                ValueType pivot = merge_local::GetAt<ValueType, Comperator>(partitions[i], files_, comperator_, &stats.GetAtIndexTimer);
 
                 size_t prefixSum = 0;
 
@@ -541,6 +597,10 @@ private:
                 }
             }
         }
+
+        stats.OffsetCalculationTimer.Stop();
+        stats.BalancingTimer.Stop();
+
         LOG << "Scattering.";
         
         for(size_t j = 0; j < num_inputs_; j++) {
@@ -551,7 +611,13 @@ private:
 
             channels_[j]->template Scatter<ValueType>(files_[j], offsets[j]);
         }
-   }
+    }
+    
+    void PushDataToChilds(const ValueType &data) {
+        for (auto func : DIANode<ValueType>::callbacks_) {
+            func(data);
+        }
+    }
 };
 
 template <typename ValueType, typename Stack>
