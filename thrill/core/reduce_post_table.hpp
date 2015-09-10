@@ -169,17 +169,25 @@ public:
 
         std::vector<BucketBlock*> buckets_second;
 
-        // TODO: start with largest frame instead of iteration from left to right
-        for (size_t frame_id = 0; frame_id < ht->NumFrames(); frame_id++) {
+        // get a vector of frame indices, sort by frame sizes asc
+        std::vector<size_t> frames_asc(num_blocks_per_frame.size());
+        for (size_t i = 0; i != frames_asc.size(); ++i) {
+            frames_asc[i] = i;
+        }
+        std::sort(frames_asc.begin(), frames_asc.end(), [&num_blocks_per_frame](size_t i1, size_t i2) {
+            return num_blocks_per_frame[i1] < num_blocks_per_frame[i2];
+        });
 
-            // compute frame offset of current frame
-            size_t offset = frame_id * num_buckets_per_frame;
-            size_t length = std::min<size_t>(offset + num_buckets_per_frame, num_buckets_per_table);
+        for (size_t frame_id : frames_asc) {
 
             // get the actual reader from the file
             data::File& file = frame_files[frame_id];
             data::File::Writer& writer = frame_writers[frame_id];
             writer.Close();
+
+            // compute frame offset of current frame
+            size_t offset = frame_id * num_buckets_per_frame;
+            size_t length = std::min<size_t>(offset + num_buckets_per_frame, num_buckets_per_table);
 
             // only if items have been spilled,
             // process a second reduce
