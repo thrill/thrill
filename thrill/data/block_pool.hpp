@@ -27,7 +27,7 @@ namespace data {
  */
 class BlockPool
 {
-    static const bool debug = false;
+    static const bool debug = true;
 
 public:
     explicit BlockPool(mem::Manager* mem_manager, mem::Manager* mem_manager_external)
@@ -37,6 +37,7 @@ public:
 
     ByteBlockPtr AllocateBlock(size_t block_size, bool pinned = false);
 
+    //TODO make this async
     void UnpinBlock(const ByteBlockPtr& block_ptr);
 
     // TODO make this a future + Async
@@ -55,14 +56,12 @@ protected:
     //! PageMapper used for swapping-in/-out blocks
     mem::PageMapper<default_block_size> page_mapper_;
 
-    // list of all blocks that are no victims & not swapped
-    std::deque<ByteBlock*> pinned_blocks_;
-
     // list of all blocks that are not swapped but are not pinned
     std::deque<ByteBlock*> victim_blocks_;
 
-    // list of all blocks that are swapped out and not pinned
-    std::deque<ByteBlock*> swapped_blocks_;
+
+    size_t num_swapped_blocks_ = { 0 };
+    size_t num_pinned_blocks_ = { 0 };
 
     std::mutex list_mutex_;
 

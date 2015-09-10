@@ -13,11 +13,11 @@ namespace thrill {
 namespace data {
 
 void ByteBlock::deleter(ByteBlock* bb) {
-    assert(bb->head.pin_count_ == 0);
+    assert(bb->pin_count_ == 0);
 
     // some blocks are created in 'detached' state (tests etc)
-    if (bb->head.block_pool_ && bb->reference_count() == 0) {
-        bb->head.block_pool_->DestroyBlock(bb);
+    if (bb->block_pool_ && bb->reference_count() == 0) {
+        bb->block_pool_->DestroyBlock(bb);
     }
     operator delete (bb);
 }
@@ -25,29 +25,8 @@ void ByteBlock::deleter(const ByteBlock* bb) {
     return deleter(const_cast<ByteBlock*>(bb));
 }
 
-ByteBlock::ByteBlock(size_t size, BlockPool* block_pool, bool pinned)
-    : head({
-               size, block_pool, 0, pinned
-           }) { }
-
-//! Construct a block of given size.
-ByteBlock* ByteBlock::Allocate(
-    size_t block_size, BlockPool* block_pool, bool pinned) {
-    // this counts only the bytes and excludes the header. why? -tb
-
-    // allocate a new block of uninitialized memory
-    ByteBlock* block =
-        static_cast<ByteBlock*>(
-            operator new (
-                sizeof(common::ReferenceCount) + sizeof(head) + block_size));
-
-    // initialize block using constructor
-    new (block)ByteBlock(block_size, block_pool, pinned);
-
-    // wrap allocated ByteBlock in a shared_ptr. TODO(tb) figure out how to do
-    // this whole procedure with std::make_shared.
-    return block;
-}
+ByteBlock::ByteBlock(Byte* data, size_t size, BlockPool* block_pool, bool pinned, size_t swap_token)
+    : data_(data), size_(size), block_pool_(block_pool), pin_count_(pinned ? 1 : 0), swap_token_(swap_token) { }
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;
 }

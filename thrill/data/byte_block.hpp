@@ -43,47 +43,40 @@ public:
     using ByteBlockCPtr = common::CountingPtr<const ByteBlock, deleter>;
 
 protected:
-    struct {
-        //! the allocated size of the buffer in bytes, excluding the size_ field
-        size_t   size_;
+    //! the memory block itself is referenced as it is in a a separate memory
+    //! region that can be swapped out
+    Byte* data_;
 
-        //! reference to BlockPool for deletion.
-        BlockPool* block_pool_;
+    //! the allocated size of the buffer in bytes, excluding the size_ field
+    size_t   size_;
 
-        //! counts the number of pins in this block
-        //! this is not atomic since a) head would not be a POD and
-        //! b) the count is only modified by BlockPool which is thread-safe
-        size_t   pin_count_;
+    //! reference to BlockPool for deletion.
+    BlockPool* block_pool_;
 
-        //! Indicates that block resides out of memory (on disk)
-        bool     swapped_out_;
-    } head;
+    //! counts the number of pins in this block
+    //! this is not atomic since a) head would not be a POD and
+    //! b) the count is only modified by BlockPool which is thread-safe
+    size_t   pin_count_;
 
-    //! the memory block itself follows here, this is just a placeholder
-    Byte data_[1];
+    //! token that is used with mem::PageMapper
+    size_t   swap_token_;
+
 
     // BlockPool is a friend to modify the head's pin_count_
     friend class BlockPool;
 
     //! Constructor to initialize ByteBlock in a buffer of memory. Protected,
     //! use BlockPoolAllocate() for construction.
-    explicit ByteBlock(size_t size, BlockPool* block_pool, bool pinned = false);
-
-    //! Construct a block of given size.
-    static ByteBlock* Allocate(
-        size_t block_size, BlockPool* block_pool, bool pinned = false);
+    //!\param memory the memory address of the byte-blocks data. nullptr if swapped out
+    //!\param size the size of the block in bytes
+    //!\param block_pool the block pool that manages this ByteBlock
+    //!\param pinned whether the block was created in pinned state
+    explicit ByteBlock(Byte* memory, size_t size, BlockPool* block_pool, bool pinned, size_t swap_token);
 
     //! No default construction of Byteblock
     ByteBlock() = delete;
 
 public:
-    //! Construct a block of given size WIHTOUT pool management
-    //! Do this only when the block should not be accounted by memory
-    //! management. Use only recommended for tests
-    static ByteBlock* Allocate(size_t block_size) {
-        return Allocate(block_size, nullptr);
-    }
-
     //! mutable data accessor to memory block
     Byte * data() { return data_; }
     //! const data accessor to memory block
@@ -95,15 +88,17 @@ public:
     const Byte * begin() const { return data_; }
 
     //! mutable data accessor beyond end of memory block
-    Byte * end() { return data_ + head.size_; }
+    Byte * end() { return data_ + size_; }
     //! const data accessor beyond end of memory block
-    const Byte * end() const { return data_ + head.size_; }
+    const Byte * end() const { return data_ + size_; }
 
     //! the block size
-    size_t size() const { return head.size_; }
+    size_t size() const { return size_; }
 
-    //! indicates whether this block is backed to disk
-    bool swapable() const { return head.size_ == default_block_size - sizeof(common::ReferenceCount) - sizeof(head); }
+    //! true if block resides in memory
+    bool in_memory() const {
+        return data_ != nullptr;
+    }
 };
 
 #endif // !THRILL_DATA_BYTE_BLOCK_HEADER

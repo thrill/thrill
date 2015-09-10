@@ -33,7 +33,7 @@ TEST(PageMapper, SwapOutLeavesAreaInaccessible) {
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
-    mapper.SwapOut(reinterpret_cast<char*>(array));
+    mapper.SwapOut(reinterpret_cast<uint8_t*>(array));
 
     ASSERT_DEATH({ array[1] = 42; }, "");
     mapper.ReleaseToken(token);
@@ -44,7 +44,7 @@ TEST(PageMapper, SwapInLeavesMakesAreaAccessible) {
 
     size_t token;
     int* array = reinterpret_cast<int*>(mapper.Allocate(token));
-    mapper.SwapOut(reinterpret_cast<char*>(array));
+    mapper.SwapOut(reinterpret_cast<uint8_t*>(array));
     array = reinterpret_cast<int*>(mapper.SwapIn(token));
 
     //write into memory area to see if we get a segfault
@@ -64,7 +64,7 @@ TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
         array1[i] = i;
     }
-    mapper.SwapOut(reinterpret_cast<char*>(array1));
+    mapper.SwapOut(reinterpret_cast<uint8_t*>(array1));
 
     //write descending numbers into array 2 & swap out
     size_t token2;
@@ -72,7 +72,7 @@ TEST(PageMapper, SwappingMultiplePagesDoesNotAlterContent) {
     for(unsigned int i = 0; i * sizeof(int) < 4096 ; i++) {
         array2[i] = 4096 - i;
     }
-    mapper.SwapOut(reinterpret_cast<char*>(array2));
+    mapper.SwapOut(reinterpret_cast<uint8_t*>(array2));
 
     //read array1
     array1 = reinterpret_cast<int*>(mapper.SwapIn(token1));

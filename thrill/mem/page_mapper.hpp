@@ -75,7 +75,7 @@ public:
     //! Allocates a memory region of OBJECT_SIZE with a
     //! file-backing. Returns the memory address of this region and a
     //! result_token that can be used to address the memory region.
-    char* Allocate(size_t& result_token) {
+    uint8_t* Allocate(size_t& result_token) {
         sLOG << "allocate memory w/ disk backing";
         result_token = next_free_token();
         return SwapIn(result_token, false /*prefetch*/);
@@ -101,7 +101,7 @@ public:
     //! \param addr that was returned by PageMapper::Allocate before
     //! \param write_back set to false if memory region's content may be
     //!        dismissed
-    void SwapOut(char* addr, bool write_back = true) {
+    void SwapOut(uint8_t* addr, bool write_back = true) {
         //we might sometimes not write back, if we want to unmap a block but
         //don't care about the content (block for net send operation)
         if(write_back) {
@@ -115,7 +115,7 @@ public:
     //! Swaps in a given memory region.
     //! \param token that was returned from Allocate before
     //! \returns pointer to memory region
-    char* SwapIn(size_t token, bool prefetch = true) const {
+    uint8_t* SwapIn(size_t token, bool prefetch = true) const {
         //Flags exaplained:
         //- readable
         //- writeable
@@ -135,18 +135,18 @@ public:
         void* result = mmap64(addr_hint, OBJECT_SIZE, protection_flags, flags, fd_, offset);
         sLOG << "swapping in token" << token << "to address" << result << "into offset" << offset << "prefetch?" << prefetch;
         die_unless(result != MAP_FAILED);
-        return static_cast<char*>(result);
+        return static_cast<uint8_t*>(result);
     }
 
     //! Hint that the object at the specified memory region is likely to be
     //! accessed in sequential order
-    void WillNeed(char* addr) const {
+    void WillNeed(uint8_t* addr) const {
         madvise(static_cast<void*>(addr), OBJECT_SIZE, MADV_SEQUENTIAL | MADV_WILLNEED);
     }
 
     //! Hint that the object at the specified memory region is likely not to
     //! be used.
-    void WillNotNeed(char* addr) const {
+    void WillNotNeed(uint8_t* addr) const {
         madvise(static_cast<void*>(addr), OBJECT_SIZE, MADV_DONTNEED);
     }
 
