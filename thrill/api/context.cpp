@@ -51,7 +51,7 @@ HostContext::ConstructLocalMock(size_t host_count, size_t workers_per_host) {
 
         host_context.emplace_back(
             std::make_unique<HostContext>(
-                h, std::move(host_group), workers_per_host));
+                std::move(host_group), workers_per_host));
     }
 
     return host_context;
@@ -120,8 +120,7 @@ HostContext::HostContext(size_t my_host_rank,
                          const std::vector<std::string>& endpoints,
                          size_t workers_per_host)
     : workers_per_host_(workers_per_host),
-      net_manager_(my_host_rank,
-                   net::tcp::Construct(my_host_rank,
+      net_manager_(net::tcp::Construct(my_host_rank,
                                        endpoints, net::Manager::kGroupCount)),
       flow_manager_(net_manager_.GetFlowGroup(), workers_per_host),
       data_multiplexer_(mem_manager_,

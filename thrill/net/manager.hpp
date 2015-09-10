@@ -61,15 +61,13 @@ public:
     /*!
      * Construct Manager from already initialized net::Groups.
      */
-    Manager(size_t my_rank, std::array<GroupPtr, kGroupCount>&& groups)
-        : my_rank_(my_rank),
-          groups_(std::move(groups)) { }
+    Manager(std::array<GroupPtr, kGroupCount>&& groups)
+        : groups_(std::move(groups)) { }
 
     /*!
       * Construct Manager from already initialized net::Groups.
       */
-    Manager(size_t my_rank, std::vector<GroupPtr>&& groups)
-        : my_rank_(my_rank) {
+    Manager(std::vector<GroupPtr>&& groups) {
         assert(groups.size() == kGroupCount);
         std::move(groups.begin(), groups.end(), groups_.begin());
     }
@@ -102,11 +100,6 @@ public:
     }
 
 private:
-    /**
-     * The rank associated with the local worker.
-     */
-    size_t my_rank_;
-
     /**
      * The Groups initialized and managed by this Manager.
      */
