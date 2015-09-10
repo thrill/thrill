@@ -22,6 +22,7 @@
 #include <glob.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #else
 
@@ -355,6 +356,53 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
     return SysFile(pipefd[1], pid);
 #endif
+}
+
+/******************************************************************************/
+
+std::string TemporaryDirectory::make_directory(const char* sample) {
+
+    std::string tmp_dir = std::string(sample) + "XXXXXX";
+    // evil const_cast, but mkdtemp replaces the XXXXXX with something
+    // unique. it also mkdirs.
+    char* p = mkdtemp(const_cast<char*>(tmp_dir.c_str()));
+
+    if (p == nullptr) {
+        throw common::ErrnoException(
+            "Could create temporary directory " + tmp_dir);
+    }
+
+    return tmp_dir;
+}
+
+void TemporaryDirectory::wipe_directory(
+    const std::string& tmp_dir, bool do_rmdir) {
+    DIR* d = opendir(tmp_dir.c_str());
+    if (d == nullptr) {
+        throw common::ErrnoException(
+            "Could open temporary directory " + tmp_dir);
+    }
+
+    struct dirent* de, entry;
+    while (readdir_r(d, &entry, &de) == 0 && de != nullptr) {
+        // skip ".", "..", and also hidden files (don't create them).
+        if (de->d_name[0] == '.') continue;
+
+        std::string path = tmp_dir + "/" + de->d_name;
+        int r = unlink(path.c_str());
+        if (r != 0)
+            sLOG1 << "Could not unlink temporary file " << path
+                  << ": " << strerror(errno);
+    }
+
+    closedir(d);
+
+    if (!do_rmdir) return;
+
+    if (rmdir(tmp_dir.c_str()) != 0) {
+        sLOG1 << "Could not unlink temporary directory " << tmp_dir
+              << ": " << strerror(errno);
+    }
 }
 
 } // namespace core
