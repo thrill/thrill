@@ -461,6 +461,8 @@ public:
     void
     operator () (bool consume, ReducePostTable* ht) const {
 
+        (void)consume;
+
         using BucketBlock = typename ReducePostTable::BucketBlock;
 
         using KeyValuePair = typename ReducePostTable::KeyValuePair;
@@ -501,7 +503,6 @@ public:
 
         ht->SetNumBlocksPerTable(0);
         ht->SetNumItemsPerTable(0);
-
     }
 };
 
