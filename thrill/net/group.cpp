@@ -10,7 +10,6 @@
 
 #include <thrill/net/group.hpp>
 #include <thrill/net/mock/group.hpp>
-#include <thrill/net/tcp/group.hpp>
 
 #include <thread>
 

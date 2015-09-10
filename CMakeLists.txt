@@ -112,6 +112,9 @@ elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4127")
   # disable lots of warnings about "unsecure" C runtime function
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  # disable "The POSIX name for this item is deprecated. Instead, use the ISO C
+  # and C++ conformant name.", Nope. We will not.
+  add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
   # disable lots of warnings about "unsecure" STL functions
   add_definitions(-D_SCL_SECURE_NO_WARNINGS)
   # windef.h bizzarly defines min and max as macros, unless this is defined.
@@ -206,12 +209,15 @@ endif(USE_GCOV)
 
 enable_testing()
 
-# google test + mock - enable "make test" and add_test()
-set(gtest_force_shared_crt ON) # this fixes compilation with static libs on MSVC
+### google test + mock - enable "make test" and add_test()
+
+# this fixes compilation with static libs on MSVC
+set(gtest_force_shared_crt ON CACHE BOOL "on" FORCE)
 add_subdirectory(extlib/googletest/googletest)
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-# general valgrind setting, if run with USE_VALGRIND=ON.
+### general valgrind setting, if run with USE_VALGRIND=ON.
+
 set(THRILL_VALGRIND_OPTS
   --leak-check=full --track-origins=yes)
 #  --error-exitcode=1)
