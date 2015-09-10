@@ -150,6 +150,18 @@ static void TestReduceToRootString(net::Group* net) {
         ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 
+//! construct group of p workers which perform an Broadcast collective
+static void TestBroadcast(net::Group* net) {
+    size_t local_value;
+    if (net->my_host_rank() == 0) local_value = 42;
+    Broadcast(*net, local_value);
+    ASSERT_EQ(42u, local_value);
+    // repeat with a different value.
+    local_value = net->my_host_rank() == 0 ? 6 * 9 : 0;
+    Broadcast(*net, local_value);
+    ASSERT_EQ(6 * 9u, local_value);
+}
+
 /******************************************************************************/
 // Dispatcher Tests
 

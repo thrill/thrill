@@ -76,6 +76,9 @@ TEST(RealTcpGroup, ReduceToRoot) {
 TEST(RealTcpGroup, ReduceToRootString) {
     RealGroupTest(TestReduceToRootString);
 }
+TEST(RealTcpGroup, Broadcast) {
+    RealGroupTest(TestBroadcast);
+}
 TEST(RealTcpGroup, DispatcherLaunchAndTerminate) {
     RealGroupTest(TestDispatcherLaunchAndTerminate);
 }
@@ -112,6 +115,9 @@ TEST(LocalTcpGroup, ReduceToRoot) {
 }
 TEST(LocalTcpGroup, ReduceToRootString) {
     LocalGroupTest(TestReduceToRootString);
+}
+TEST(LocalTcpGroup, Broadcast) {
+    LocalGroupTest(TestBroadcast);
 }
 TEST(LocalTcpGroup, DispatcherLaunchAndTerminate) {
     LocalGroupTest(TestDispatcherLaunchAndTerminate);
@@ -183,19 +189,6 @@ TEST(Group, TestAllReduceInHypercube) {
                 size_t local_value = net->my_host_rank();
                 AllReduceForPowersOfTwo(*net, local_value);
                 ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
-            });
-    }
-}
-
-TEST(Group, TestBroadcast) {
-    for (size_t p = 0; p <= 8; ++p) {
-        // Construct Group of p workers which perform an Broadcast collective
-        Group::ExecuteLocalMock(
-            p, [](Group* net) {
-                size_t local_value;
-                if (net->my_host_rank() == 0) local_value = 42;
-                Broadcast(*net, local_value);
-                ASSERT_EQ(local_value, 42u);
             });
     }
 }

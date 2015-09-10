@@ -49,6 +49,12 @@ static inline Integral RoundUpToPowerOfTwo(Integral n) {
     return n;
 }
 
+//! does what it says.
+template <typename Integral>
+static inline Integral RoundDownToPowerOfTwo(Integral n) {
+    return RoundUpToPowerOfTwo(n + 1) >> 1;
+}
+
 /******************************************************************************/
 
 //! calculate n div k with rounding up
