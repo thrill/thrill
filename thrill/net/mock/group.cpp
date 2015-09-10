@@ -46,7 +46,7 @@ Group::ConstructLocalMesh(size_t num_hosts) {
 
 /******************************************************************************/
 
-void Connection::SyncSend(const void* data, size_t size, int /* flags */) {
+void Connection::SyncSend(const void* data, size_t size, Flags /* flags */) {
     group_->Send(peer_, net::Buffer(data, size));
 }
 
