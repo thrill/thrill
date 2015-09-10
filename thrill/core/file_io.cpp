@@ -15,9 +15,22 @@
 #include <thrill/core/file_io.hpp>
 
 #include <fcntl.h>
-#include <glob.h>
 #include <sys/stat.h>
+
+#if !defined(_MSC_VER)
+
+#include <glob.h>
 #include <sys/wait.h>
+#include <unistd.h>
+
+#else
+
+#include <windows.h>
+#include <io.h>
+
+#define S_ISREG(m)       (((m) & _S_IFMT) == _S_IFREG)
+
+#endif
 
 #include <string>
 #include <vector>
@@ -69,6 +82,28 @@ std::string FillFilePattern(const std::string& pathbase,
 std::vector<std::string> GlobFilePattern(const std::string& path) {
 
     std::vector<std::string> files;
+#if defined(_MSC_VER)
+    WIN32_FIND_DATA ff_data;
+    HANDLE h = FindFirstFile(path.c_str(), &ff_data);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        throw common::SystemException(
+            "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    do {
+        if (!(ff_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+            files.emplace_back(ff_data.cFileName);
+    } while (FindNextFile(h, &ff_data) != 0);
+
+    DWORD e = GetLastError();
+    if (e != ERROR_NO_MORE_FILES) {
+        throw common::SystemException(
+            "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+    FindClose(h);
+
+#else
     glob_t glob_result;
     glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
 
@@ -76,6 +111,9 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
         files.push_back(glob_result.gl_pathv[i]);
     }
     globfree(&glob_result);
+#endif
+
+    std::sort(files.begin(), files.end());
 
     return files;
 }
@@ -117,6 +155,7 @@ void SysFile::close() {
         }
         fd_ = -1;
     }
+#if !defined(_MSC_VER)
     if (pid_ != 0) {
         sLOG << "SysFile::close(): waitpid for" << pid_;
         int status;
@@ -147,6 +186,7 @@ void SysFile::close() {
         }
         pid_ = 0;
     }
+#endif
 }
 
 SysFile SysFile::OpenForRead(const std::string& path) {
@@ -179,15 +219,18 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     }
     else {
         // not a compressed file
-        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
-        }
+        common::PortSetCloseOnExec(fd);
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
 
         return SysFile(fd);
     }
 
+#if defined(_MSC_VER)
+    throw common::SystemException(
+        "Reading compressed files is not supported on windows, yet. "
+        "Please submit a patch.");
+#else
     // if decompressor: fork a child program which calls the decompressor and
     // connect file descriptors via a pipe.
 
@@ -227,6 +270,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     ::close(fd);
 
     return SysFile(pipefd[0], pid);
+#endif
 }
 
 SysFile SysFile::OpenForWrite(const std::string& path) {
@@ -259,15 +303,18 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     }
     else {
         // not a compressed file
-        if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-            throw common::ErrnoException("Error setting FD_CLOEXEC on SysFile");
-        }
+        common::PortSetCloseOnExec(fd);
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
         return SysFile(fd);
     }
 
+#if defined(_MSC_VER)
+    throw common::SystemException(
+        "Reading compressed files is not supported on windows, yet. "
+        "Please submit a patch.");
+#else
     // if compressor: fork a child program which calls the compressor and
     // connect file descriptors via a pipe.
 
@@ -307,6 +354,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     ::close(fd);
 
     return SysFile(pipefd[1], pid);
+#endif
 }
 
 } // namespace core
