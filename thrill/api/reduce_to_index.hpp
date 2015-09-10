@@ -133,7 +133,6 @@ public:
                                           KeyExtractor,
                                           ReduceFunction,
                                           SendPair,
-                                          false,
                                           core::PostReduceFlushToIndex<Value>,
                                           core::PostReduceByIndex,
                                           std::equal_to<Key>,
@@ -164,7 +163,7 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<Value>());
             }
-            table.Flush();
+            table.Flush(consume);
         }
         else {
             // we actually want to wire up callbacks in the ctor and NOT use this blocking method
@@ -173,7 +172,7 @@ public:
             while (reader.HasNext()) {
                 table.Insert(reader.template Next<KeyValuePair>());
             }
-            table.Flush();
+            table.Flush(consume);
         }
     }
 
