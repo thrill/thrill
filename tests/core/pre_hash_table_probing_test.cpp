@@ -451,7 +451,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce1) {
 
     // insert lots of items
     for (size_t i = 0; i != nitems; ++i) {
-        table.Insert(IntPair(i, 1));
+        table.Insert(IntPair(static_cast<int>(i), 1));
     }
 
     table.Flush();
@@ -495,7 +495,7 @@ TEST_F(ReducePreProbingTable, InsertManyIntsAndTestReduce2) {
     for (size_t i = 0; i != nitems_per_key; ++i) {
         sum += i;
         for (size_t j = 0; j != nitems; ++j) {
-            table.Insert(IntPair(j, i));
+            table.Insert(IntPair(static_cast<int>(j), static_cast<int>(i)));
         }
     }
 
@@ -556,7 +556,7 @@ TEST_F(ReducePreProbingTable, InsertManyStringItemsAndTestReduce) {
         randomStr(str, 10);
         for (size_t i = 0; i != nitems_per_key; ++i) {
             sum += i;
-            table.Insert(StringPair(str, i));
+            table.Insert(StringPair(str, static_cast<int>(i)));
         }
     }
 

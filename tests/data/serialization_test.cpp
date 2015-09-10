@@ -97,7 +97,7 @@ TEST_F(Serialization, pod_struct) {
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<MyPodStruct>();
     ASSERT_EQ(foo.i1, fooserial.i1);
-    ASSERT_FLOAT_EQ(foo.d2, fooserial.d2);
+    ASSERT_DOUBLE_EQ(foo.d2, fooserial.d2);
     static_assert(
         data::Serialization<data::DynBlockWriter, MyPodStruct>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
@@ -138,7 +138,7 @@ TEST_F(Serialization, tuple_w_pair) {
     ASSERT_EQ(std::get<0>(foo), std::get<0>(fooserial));
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
     ASSERT_EQ(std::get<2>(foo), std::get<2>(fooserial));
-    ASSERT_FLOAT_EQ(std::get<3>(foo).first, std::get<3>(fooserial).first);
+    ASSERT_DOUBLE_EQ(std::get<3>(foo).first, std::get<3>(fooserial).first);
     ASSERT_EQ(std::get<3>(foo).second, std::get<3>(fooserial).second);
 }
 
