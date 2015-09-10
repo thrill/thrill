@@ -111,6 +111,29 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
 }
 
 /*!
+ * Broadcasts the value of the peer with index 0 to all the others. This is a
+ * trivial broadcast from peer 0.
+ *
+ * \param net The current peer onto which to apply the operation
+ *
+ * \param value The value to be broadcast / receive into.
+ */
+template <typename T>
+void BroadcastTrivial(Group& net, T& value) {
+
+    if (net.my_host_rank() == 0) {
+        // send value to all peers
+        for (size_t p = 1; p < net.num_hosts(); ++p) {
+            net.SendTo(p, value);
+        }
+    }
+    else {
+        // receive from peer 0
+        net.ReceiveFrom(0, &value);
+    }
+}
+
+/*!
  * Broadcasts the value of the worker with index 0 to all the others. This is a
  * binomial tree broadcast method.
  *
@@ -119,7 +142,7 @@ void ReduceToRoot(Group& net, T& value, BinarySumOp sum_op = BinarySumOp()) {
  * \param value The value to be broadcast / receive into.
  */
 template <typename T>
-void Broadcast(Group& net, T& value) {
+void BroadcastBinomialTree(Group& net, T& value) {
     static const bool debug = false;
 
     size_t my_rank = net.my_host_rank();
@@ -145,6 +168,19 @@ void Broadcast(Group& net, T& value) {
             net.SendTo(my_rank + d, value);
         }
     }
+}
+
+/*!
+ * Broadcasts the value of the worker with index 0 to all the others. This is a
+ * binomial tree broadcast method.
+ *
+ * \param net The current worker onto which to apply the operation
+ *
+ * \param value The value to be broadcast / receive into.
+ */
+template <typename T>
+void Broadcast(Group& net, T& value) {
+    return BroadcastBinomialTree(net, value);
 }
 
 #if DISABLE_MAYBE_REMOVE

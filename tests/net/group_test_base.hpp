@@ -160,6 +160,10 @@ static void TestBroadcast(net::Group* net) {
     local_value = net->my_host_rank() == 0 ? 6 * 9 : 0;
     Broadcast(*net, local_value);
     ASSERT_EQ(6 * 9u, local_value);
+    // check trivial broadcast
+    local_value = net->my_host_rank() == 0 ? 5 : 0;
+    BroadcastTrivial(*net, local_value);
+    ASSERT_EQ(5u, local_value);
 }
 
 /******************************************************************************/
