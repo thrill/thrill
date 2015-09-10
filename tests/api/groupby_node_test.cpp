@@ -31,13 +31,13 @@ TEST(GroupByNode, Compile_and_Sum) {
 
     std::function<void(Context&)> start_func =
         [](Context& ctx) {
-            unsigned n = 8;
+            unsigned n = 99999;
             unsigned m = 4;
 
             auto sizets = Generate(
                 ctx,
                 [](const size_t& index) {
-                    return index + 1;
+                    return static_cast<std::size_t>(index + 1);
                 },
                 n);
 
@@ -52,17 +52,75 @@ TEST(GroupByNode, Compile_and_Sum) {
                         k = n % m;
                         res += n;
                     }
-                    return static_cast<size_t>(res);
+                    return static_cast<int>(res);
                 };
 
             // group by to compute sum and gather results
             auto reduced = sizets.GroupBy(modulo_keyfn, sum_fn);
-            std::vector<size_t> out_vec = reduced.AllGather();
+            std::vector<int> out_vec = reduced.AllGather();
 
             // compute vector with expected results
             std::vector<unsigned> res_vec(m, 0);
             for (unsigned t = 0; t <= n; ++t) {
                 res_vec[t % m] += t;
+            }
+
+            std::sort(out_vec.begin(), out_vec.end());
+            std::sort(res_vec.begin(), res_vec.end());
+
+            LOG << "res_vec " << "/" << " out_vec";
+            for (std::size_t i = 0; i < res_vec.size(); ++i) {
+                LOG << res_vec[i] << " / " << out_vec[i];
+                ASSERT_EQ(res_vec[i], out_vec[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+
+TEST(GroupByNode, Median) {
+
+    std::function<void(Context&)> start_func =
+        [](Context& ctx) {
+            unsigned n = 99999;
+            unsigned m = 4;
+
+            auto sizets = Generate(
+                ctx,
+                [](const size_t& index) {
+                    return index + 1;
+                },
+                n);
+
+            auto modulo_keyfn = [m](size_t in) { return (in % m); };
+
+            auto median_fn =
+                [m](api::GroupByIterator<std::size_t, decltype(modulo_keyfn)>& r) {
+                    std::vector<std::size_t> all;
+                    while (r.HasNext()) {
+                        all.push_back(r.Next());
+                    }
+                    std::sort(std::begin(all), std::end(all));
+                    for (auto c : all) {
+                        LOG << c;
+                    }
+                    return static_cast<int>(all[all.size()/2 - 1]);
+                };
+
+            // group by to compute sum and gather results
+            auto reduced = sizets.GroupBy(modulo_keyfn, median_fn);
+            std::vector<int> out_vec = reduced.AllGather();
+
+            // compute vector with expected results
+            std::vector<std::vector<unsigned>> res_vecvec(m);
+            std::vector<unsigned> res_vec(m, 0);
+            for (unsigned t = 1; t <= n; ++t) {
+                res_vecvec[t % m].push_back(t);
+            }
+            for (std::size_t i = 0; i < res_vecvec.size(); ++i) {
+                std::sort(std::begin(res_vecvec[i]), std::end(res_vecvec[i]));
+                res_vec[i] = res_vecvec[i][res_vecvec[i].size()/2 - 1];
             }
 
             std::sort(out_vec.begin(), out_vec.end());
