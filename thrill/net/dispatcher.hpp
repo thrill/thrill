@@ -170,7 +170,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = nullptr) {
+                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.GetSocket().IsValid());
 
         if (buffer.size() == 0) {
@@ -190,7 +190,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     void AsyncWrite(Connection& c, const data::Block& block,
-                    AsyncWriteCallback done_cb = nullptr) {
+                    AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         assert(c.GetSocket().IsValid());
 
         if (block.size() == 0) {
@@ -210,14 +210,14 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const void* buffer, size_t size,
-                        AsyncWriteCallback done_cb = nullptr) {
+                        AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         return AsyncWrite(c, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(Connection& c, const std::string& str,
-                        AsyncWriteCallback done_cb = nullptr) {
+                        AsyncWriteCallback done_cb = AsyncWriteCallback()) {
         return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
     }
 

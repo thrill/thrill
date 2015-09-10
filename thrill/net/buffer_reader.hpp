@@ -162,7 +162,7 @@ public:
     //! Fetch a BufferRef to a binary string or blob which was Put via
     //! Put_string(). Does NOT copy the data.
     BufferRef GetBufferRef() {
-        uint32_t len = GetVarint();
+        uint64_t len = GetVarint();
         // save object
         BufferRef br(data_ + cursor_, len);
         // skip over sub block data

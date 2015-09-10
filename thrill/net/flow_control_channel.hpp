@@ -42,7 +42,6 @@ namespace net {
 class FlowControlChannel
 {
 protected:
-
     static const bool self_verify = false;
 
     /**
@@ -113,7 +112,7 @@ protected:
 
     template <typename T>
     void SetLocalShared(T* value) {
-        if(self_verify)
+        if (self_verify)
             assert(*shmem == nullptr);
         assert(threadId == 0);
         *shmem = value;
@@ -126,7 +125,7 @@ protected:
     }
 
     void ClearLocalShared() {
-        if(self_verify) {
+        if (self_verify) {
             assert(threadId == 0);
             *shmem = nullptr;
         }
@@ -174,7 +173,7 @@ public:
         // return value when computing non-exclusive prefix sum
         T exclusiveRes = T();
         std::vector<T> localPrefixBuffer(threadCount);
-            
+
         // Local Reduce
         if (threadId == 0) {
             // Master allocate memory.
@@ -330,7 +329,6 @@ public:
     T AllReduce(const T& value, BinarySumOp sumOp = BinarySumOp()) {
         T res = value;
         std::vector<T> localReduceBuffer(threadCount);
-            
 
         // Local Reduce
         if (threadId == 0) {
@@ -383,7 +381,7 @@ public:
             // Slave get result
             res = *GetLocalShared<T>();
         }
-        
+
         barrier.Await();
 
         return res;

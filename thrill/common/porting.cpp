@@ -15,8 +15,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <cerrno>
-
 namespace thrill {
 namespace common {
 

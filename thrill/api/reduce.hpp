@@ -216,7 +216,7 @@ private:
     std::vector<data::Channel::Writer> emitters_;
 
     core::ReducePreTable<Key, Value, KeyExtractor, ReduceFunction, RobustKey,
-            core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
+                         core::PreReduceByHashKey<Key>, std::equal_to<Key>, 16*16> reduce_pre_table_;
 
     //! Locally hash elements of the current DIA onto buckets and reduce each
     //! bucket to a single value, afterwards send data to another worker given
@@ -323,20 +323,21 @@ auto DIARef<ValueType, Stack>::ReducePair(
         "ReduceFunction has the wrong output type");
 
     using Key = typename ValueType::first_type;
+	using Value = typename ValueType::second_type;
 
     StatsNode* stats_node = AddChildStatsNode("ReducePair", DIANodeType::DOP);
     using ReduceResultNode
-              = ReduceNode<ValueType, DIARef, std::function<Key(Key)>,
+              = ReduceNode<ValueType, DIARef, std::function<Key(Value)>,
                            ReduceFunction, false, true>;
     auto shared_node
         = std::make_shared<ReduceResultNode>(*this,
-                                             [](Key key) {
+                                             [](Value value) {
                                                  // This function should not be
                                                  // called, it is only here to
                                                  // give the key type to the
                                                  // hashtables.
                                                  assert(1 == 0);
-                                                 key = key;
+                                                 value = value;
                                                  return Key();
                                              },
                                              reduce_function,

@@ -12,6 +12,7 @@
 #ifndef THRILL_COMMON_SYSTEM_EXCEPTION_HEADER
 #define THRILL_COMMON_SYSTEM_EXCEPTION_HEADER
 
+#include <cerrno>
 #include <cstring>
 #include <stdexcept>
 #include <string>
@@ -37,7 +38,7 @@ class ErrnoException : public SystemException
 public:
     ErrnoException(const std::string& what, int _errno)
         : SystemException(
-            what + ": [" + std::to_string(_errno) + "] " + strerror(_errno))
+              what + ": [" + std::to_string(_errno) + "] " + strerror(_errno))
     { }
 
     explicit ErrnoException(const std::string& what)

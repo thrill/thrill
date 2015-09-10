@@ -228,7 +228,7 @@ TEST_F(File, SerializeSomeItemsConsumeReader) {
     {
         // construct File with very small blocks for testing
         data::File::Writer fw = file.GetWriter(53);
-        for (size_t i = 0; i < 50; ++i) {
+        for (unsigned i = 0; i < 50; ++i) {
             fw.PutItem<unsigned>(i);
         }
     }

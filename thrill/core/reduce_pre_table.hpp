@@ -211,7 +211,7 @@ public:
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
                    std::vector<data::DynBlockWriter>& emit,
-                   size_t byte_size = 1024 * 1024 * 128 * 4,
+                   size_t byte_size = 1024* 1024* 128* 4,
                    double bucket_rate = 0.9,
                    double max_partition_fill_rate = 0.6,
                    const IndexFunction& index_function = IndexFunction(),
@@ -244,8 +244,8 @@ public:
         // knowing the size of pointers in the bucket vector
 
         max_num_blocks_table_ -= std::max<size_t>((size_t)(std::ceil(
-                static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
-                / static_cast<double>(sizeof(BucketBlock)))), 0);
+                                                               static_cast<double>(num_buckets_ * sizeof(BucketBlock*))
+                                                               / static_cast<double>(sizeof(BucketBlock)))), 0);
 
         buckets_.resize(num_buckets_, nullptr);
         items_per_partition_.resize(num_partitions_, 0);

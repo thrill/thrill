@@ -121,7 +121,7 @@ void SysFile::close() {
         pid_t p = waitpid(pid_, &status, 0);
         if (p != pid_) {
             throw common::SystemException(
-                "SysFile: waitpid() failed to return child");
+                      "SysFile: waitpid() failed to return child");
         }
         if (WIFEXITED(status)) {
             // child program exited normally
