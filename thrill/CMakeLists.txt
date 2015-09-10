@@ -14,24 +14,24 @@ if(NOT MSVC)
     )
 else()
   set(SRCS
-    #api/context.cpp
+    api/context.cpp
     common/cmdline_parser.cpp
     common/logger.cpp
     common/porting.cpp
     common/string.cpp
     common/thread_pool.cpp
-    #core/file_io.cpp
-    #data/multiplexer.cpp
+    core/file_io.cpp
+    data/multiplexer.cpp
     mem/malloc_tracker.cpp
     mem/manager.cpp
-    #net/dispatcher_thread.cpp
-    #net/flow_control_channel.cpp
-    #net/group.cpp
-    #net/manager.cpp
-    #net/system_control_channel.cpp
+    net/group.cpp
+    net/dispatcher_thread.cpp
+    net/flow_control_channel.cpp
+    net/system_control_channel.cpp
+    net/mock/group.cpp
     #net/lowlevel/select_dispatcher.cpp
     #net/lowlevel/socket.cpp
-    net/lowlevel/socket_address.cpp
+    #net/lowlevel/socket_address.cpp
     )
 endif()
 
